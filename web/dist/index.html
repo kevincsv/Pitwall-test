@@ -249,6 +249,27 @@ html.ov #liveGrid{display:flex;flex-direction:column;gap:6px}
 html.ov .flag{margin:0 0 6px}
 html.ov-clear,html.ov-clear body{background:transparent!important}
 html.ov-clear .panel{background:color-mix(in srgb,var(--surface) 80%,transparent)}
+/* 0.7 */
+.dbar{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;margin-top:6px}
+.dbar-track{position:relative;height:22px;border-radius:4px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.dbar-track b{position:absolute;top:0;bottom:0;width:0}
+.dbar-track b.good{background:var(--good)}.dbar-track b.bad{background:var(--bad)}
+.dbar-track i{position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:var(--fg)}
+.dbar-val{font:700 26px/1 var(--f-display);min-width:90px;text-align:right}
+#dbTrend{font-size:18px;width:18px}
+#ggC{max-width:280px;margin:4px auto 0}
+.slipbar{position:relative;height:10px;border-radius:5px;margin-top:6px;background:linear-gradient(90deg,var(--bad),var(--surface2) 30%,var(--surface2) 70%,var(--bad));border:1px solid var(--line)}
+.slipbar b{position:absolute;top:-4px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--accent)}
+.screen{position:relative;width:100%;max-width:960px;background:var(--surface2);border:1px solid var(--line);border-radius:6px;overflow:hidden;touch-action:none;margin-top:8px;min-height:120px}
+.screen .mon{position:absolute;border:1px dashed var(--muted);border-radius:3px;pointer-events:none}
+.ovrect{position:absolute;background:color-mix(in srgb,var(--blue) 22%,var(--surface));border:1px solid var(--blue);border-radius:3px;cursor:move;touch-action:none;overflow:hidden;min-width:18px;min-height:12px}
+.ovrect.auto{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border-color:var(--accent)}
+.ovrect span{display:block;font:600 11px/1.1 var(--f-data);padding:3px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.ovrect .rz{position:absolute;right:0;bottom:0;width:12px;height:12px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--fg) 50%)}
+.pvbox{background:var(--bg);border:1px dashed var(--line);border-radius:6px;padding:8px;min-height:80px;overflow:auto}
+.pvbox iframe{display:block;width:100%;border:0;background:transparent}
+#lockBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+html.remote nav.tabs button[data-v="overlays"],html.remote nav.tabs button[data-v="account"],html.remote .popbtn,html.remote #demoCtl{display:none!important}
 /* drag to reorder */
 .grip{position:absolute;top:6px;right:36px;width:26px;height:26px;display:grid;place-items:center;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:grab;touch-action:none;opacity:.75}
 html.sorting,html.sorting *{user-select:none!important;-webkit-user-select:none!important;cursor:grabbing!important}
@@ -331,6 +352,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
     <button role="tab" data-v="data" aria-selected="false" data-i18n="tab.data"></button>
     <button role="tab" data-v="account" aria-selected="false" data-i18n="tab.account"></button>
   </nav>
+  <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
@@ -372,6 +394,10 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <div class="meter"><b id="lapProg" style="width:0"></b></div>
     </div>
 
+    <div class="panel s12 wpanel" data-w="deltabar">
+      <div class="label" data-i18n="w.deltabar"></div>
+      <div class="dbar"><div class="dbar-track"><b id="dbFill"></b><i></i></div><div class="dbar-val mono" id="dbVal">–</div><span id="dbTrend"></span></div>
+    </div>
     <div class="panel s6 wpanel" data-w="map">
       <div class="vhead" style="margin:0 0 6px"><div class="label" data-i18n="trackMap"></div>
         <button class="btn small ovhide" type="button" id="mapLayersBtn" aria-expanded="false" data-i18n="layers"></button></div>
@@ -396,6 +422,15 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
     <div class="panel s3 wpanel" data-w="boost">
       <div class="label" data-i18n="w.boost"></div>
       <div id="boostBox"></div>
+    </div>
+    <div class="panel s3 wpanel" data-w="gg">
+      <div class="label" data-i18n="w.gg"></div>
+      <canvas id="ggC" height="220"></canvas>
+      <div class="hstrip" id="ggStats"></div>
+    </div>
+    <div class="panel s3 wpanel" data-w="stats">
+      <div class="label" data-i18n="w.stats"></div>
+      <div id="statsBox"></div>
     </div>
     <div class="panel s6 wpanel" data-w="inputs">
       <div class="label" data-i18n="w.inputs"></div>
@@ -454,6 +489,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
   <div class="vhead"><div><h1 data-i18n="tab.overlays"></h1><div class="sub" id="ovSub"></div></div></div>
   <div class="callout" id="ovCallout"></div>
   <div class="panel" id="ovGlobal"></div>
+  <div class="panel" id="ovScreenPanel" style="margin-top:10px"><h2 data-i18n="yourScreen"></h2><p class="note" id="ovScreenNote"></p><div class="screen" id="ovScreen"></div></div>
   <div class="ovcards" id="ovCards"></div>
 </section>
 
@@ -621,6 +657,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <p class="note" data-i18n="credPrivacy"></p>
     </div>
   </div>
+  <div class="panel" id="g61Panel" style="margin-bottom:10px"></div>
   <div id="accBody" class="grid" hidden>
     <div class="panel s12"><div class="label" style="margin-bottom:8px" data-i18n="licences"></div><div class="lcards" id="licCards"></div></div>
     <div class="panel s3"><div class="label">iRating</div><div class="big mono" id="accIr">–</div><div class="sub" id="accIrD"></div></div>
@@ -657,6 +694,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
     </div>
+    <div class="panel s12" id="sharePanel" hidden></div>
     <div class="panel s12">
       <h2 data-i18n="phoneTitle"></h2>
       <div class="row" style="align-items:flex-start;gap:24px">
@@ -674,6 +712,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
 
 <script>
 "use strict";
+let REMOTE=false;
 /* ===================== i18n ===================== */
 const I18N={
  "tab.live":["Live","En vivo"],"tab.field":["Standings","Posiciones"],"tab.laps":["Laps","Vueltas"],"tab.data":["Data","Datos"],"tab.account":["Account","Cuenta"],
@@ -819,9 +858,10 @@ const Demo=(()=>{
       CarIdxLap:A(c=>Math.floor(c.dist/LEN)+1,0),CarIdxLapCompleted:A(c=>Math.floor(c.dist/LEN),0),CarIdxLapDistPct:A(c=>(c.dist%LEN)/LEN,-1),CarIdxPosition:A((c,i)=>pos[i],0),CarIdxClassPosition:A((c,i)=>pos[i],0),
       CarIdxEstTime:A(c=>tB[Math.floor(c.dist%LEN)],0),CarIdxF2Time:A(c=>(lead-c.dist)/40,0),CarIdxLastLapTime:A(c=>c.last,0),CarIdxBestLapTime:A(c=>c.best,0),CarIdxOnPitRoad:A(()=>false,false),CarIdxTrackSurface:A(()=>3,-1),CarIdxGear:A(()=>3,0),CarIdxRPM:A(()=>6000,0)};
   }
+  let P2PL=168,P2PT=null;
   function demoExtras(cars,ME,pct,lap,brk,t){let nl=0,nr=0;const md=cars[ME].dist;cars.forEach((c,i)=>{if(i===ME)return;let g=((c.dist-md)%LEN+LEN*1.5)%LEN-LEN/2;if(Math.abs(g)<4.5){i%2?nr++:nl++}});
-    const lr=nl&&nr?4:nl>1?5:nr>1?6:nl?2:nr?3:1,pp=pct/LEN,p2=pp>.04&&pp<.11;let used=Math.max(0,lap-6+(p2?1:0));
-    return{CarLeftRight:lr,DRS_Status:pp>.9&&pp<.97?1:(pp>=.97||pp<.02)?2:pp<.14?3:0,P2P_Status:p2,P2P_Count:10-used,PlayerCarMyIncidentCount:2,SessionTimeOfDay:14*3600+t,TrackWetness:1,BrakeABSactive:brk>.95,CarIdxTireCompound:Array.from({length:64},(_,i)=>i<N?0:-1)}}
+    const lr=nl&&nr?4:nl>1?5:nr>1?6:nl?2:nr?3:1,pp=pct/LEN,p2=pp>.04&&pp<.11&&P2PL>0;if(p2&&P2PT!=null)P2PL-=Math.max(0,t-P2PT);P2PT=t;
+    return{CarLeftRight:lr,DRS_Status:pp>.9&&pp<.97?1:(pp>=.97||pp<.02)?2:pp<.14?3:0,P2P_Status:p2,P2P_Count:Math.ceil(P2PL),PlayerCarMyIncidentCount:2,SessionTimeOfDay:14*3600+t,TrackWetness:1,BrakeABSactive:brk>.95,CarIdxTireCompound:Array.from({length:64},(_,i)=>i<N?0:-1)}}
   /* preview only: a map "saved from an earlier session", so the demo shows it straight away */
   function demoMap(){const N=720,o={x:[],y:[],v:[],b:[],th:[],t:[]};for(let i=0;i<N;i++){const d=Math.floor(i/N*LEN),a=sp(d+3)-sp(d);o.x.push(gx[d]);o.y.push(gy[d]);o.v.push(sp(d));o.b.push(a<-.02?Math.min(1,-a/.7):0);o.th.push(a<-.02?0:1);o.t.push(tB[d])}
     o.time=98.214;o.brakes=brakePts(o);o.st=[];for(let m=0;m<40;m++){const a=Math.floor(m*N/40),b=Math.floor((m+1)*N/40);o.st.push((b>=N?o.time:o.t[b])-o.t[a])}
@@ -834,7 +874,7 @@ const Demo=(()=>{
 /* ===================== live view ===================== */
 const rpmEl=$("#rpm");for(let i=0;i<16;i++){const s=document.createElement("span");if(i>=10)s.className=i>=13?"r":"y";rpmEl.appendChild(s)}
 const rpmSeg=[...rpmEl.children];
-const hist=[];let lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0,lastCmp=0;
+const hist=[];let lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0,lastCmp=0,lastGG=0,lastSt=0;
 const fuelLog={lap:null,startFuel:null,uses:[]};
 const FLAGS=[[0x10000,"black","Black flag","Bandera negra"],[0x10,"red","Red flag","Bandera roja"],[0x100000,"black","Repair required","Reparación obligatoria"],[0x1,"checkered","Checkered flag","Bandera a cuadros"],[0x2,"white","Last lap","Última vuelta"],[0x8,"yellow","Yellow","Amarilla"],[0x100,"yellow","Yellow waving","Amarilla agitada"],[0x4000,"yellow","Caution","Safety car"],[0x8000,"yellow","Caution","Safety car"],[0x20,"blue","Blue flag · let faster car by","Bandera azul · deja pasar"]];
 function drivers(){return(S.DriverInfo&&S.DriverInfo.Drivers)||[]}
@@ -858,6 +898,9 @@ function frameTick(){
   if(now-lastSlow>200){lastSlow=now;if(lv("boost"))renderBoost();if(lv("telemetry"))renderTelemetry()}
   if(now-lastStd>500){lastStd=now;if(lv("standings"))renderStandingsWidget()}
   if(now-lastCmp>100){lastCmp=now;if(lv("compare"))drawCompare()}
+  trackStats();if(lv("deltabar"))renderDeltaBar();
+  if(now-lastGG>66){lastGG=now;if(lv("gg"))drawGG()}
+  if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -1222,7 +1265,7 @@ function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);
    </div>`;
   document.querySelectorAll("#dBody .pin").forEach(b=>b.onclick=()=>{const tt=+b.dataset.t;togglePlan(s,w,tt);b.setAttribute("aria-pressed",inPlan(s.sid,tt));b.textContent=inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir")});
   $("#drawer").hidden=false;$("#dClose").focus()}
-function closeDrawer(){$("#drawer").hidden=true;LAYOUT_VIEW=null;if(CUR_VIEW==="series")renderSeries()}
+function closeDrawer(){$("#drawer").hidden=true;LAYOUT_VIEW=null;clearInterval(PREVIEW_TIMER);if(CUR_VIEW==="series")renderSeries()}
 $("#dClose").onclick=closeDrawer;$("#drawerBg").onclick=closeDrawer;document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#drawer").hidden)closeDrawer()});
 function renderAgenda(){const now=Date.now();PLAN=PLAN.filter(p=>p.t>now-3*3600e3);
   $("#planList").innerHTML=PLAN.length?PLAN.map(p=>`<div class="agrow"><span class="t">${hm(p.t)}</span><span class="s"><div>${esc(p.name)}</div><div class="muted" style="font-size:13px">${esc(new Date(p.t).toLocaleDateString(locale(),{weekday:"short",day:"numeric",month:"short"}))} · ${esc(p.track)} · ${esc(until(p.t))}</div></span><button type="button" class="pin" aria-pressed="true" data-rm="${p.sid}@${p.t}">✕</button></div>`).join(""):`<p class="note">${Lp("Add sessions from the list to build your plan.","Añade sesiones de la lista para montar tu plan.")}</p>`;
@@ -1398,11 +1441,11 @@ function ui(k){const d=UI_DEFAULTS[k],v=(CFG.ui||{})[k]||{};return Object.assign
 function setUI(k,patch){CFG.ui=CFG.ui||{};CFG.ui[k]=Object.assign(ui(k),patch);saveCfg()}
 let cfgTimer=0,cfgSeq=0,cfgPending=false;
 /* local edits win until the PC confirms them, so a reconnect cannot overwrite them */
-function saveCfg(){const seq=++cfgSeq;cfgPending=MODE==="bridge";clearTimeout(cfgTimer);cfgTimer=setTimeout(()=>{if(MODE==="bridge"){const body={...CFG};delete body.positions;
+function saveCfg(){if(REMOTE){store.set("pw.cfg",CFG);cfgChanged();return}const seq=++cfgSeq;cfgPending=MODE==="bridge";clearTimeout(cfgTimer);cfgTimer=setTimeout(()=>{if(MODE==="bridge"){const body={...CFG};delete body.positions;
     fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json()).then(j=>{if(seq===cfgSeq){cfgPending=false;applyServerCfg(j.config,true)}}).catch(()=>{if(seq===cfgSeq)cfgPending=false})}
     else store.set("pw.cfg",CFG)},250);cfgChanged()}
-function applyServerCfg(c,force){if(!c||(cfgPending&&!force))return;const before=JSON.stringify((CFG.ui||{}).tel);CFG=Object.assign(CFG,c);if(!CFG.ui)CFG.ui={};cfgChanged();if(before!==JSON.stringify((CFG.ui||{}).tel)&&MODE==="bridge")connectBridge()}
-function cfgChanged(){if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
+function applyServerCfg(c,force){if(!c||(cfgPending&&!force))return;if(REMOTE){const keepUI=store.get("pw.cfg",null);if(keepUI&&keepUI.ui)c=Object.assign({},c,{ui:keepUI.ui})}const before=JSON.stringify((CFG.ui||{}).tel);CFG=Object.assign(CFG,c);if(!CFG.ui)CFG.ui={};cfgChanged();if(before!==JSON.stringify((CFG.ui||{}).tel)&&MODE==="bridge")connectBridge()}
+function cfgChanged(){if(typeof renderLock==="function")renderLock();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit&&!OV.preview));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
 
 /* ===================== race maths ===================== */
 const BR1=1600/Math.LN2;
@@ -1478,12 +1521,12 @@ function rowCtx(i,extra){const d=driverBy(i)||{};const pos=T.CarIdxPosition||[],
 function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>`<th class="${COLS[k].c.includes("r")?"r":""}">${colHead(k)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 
 /* relative */
-function renderRelative(){const box=$("#relBox");if(!box)return;const cfg=ui("rel"),all=relList(),me=T.PlayerCarIdx;
+function renderRelative(target){const box=target||$("#relBox");if(!box)return;const cfg=ui("rel"),all=relList(),me=T.PlayerCarIdx;
   if(!all.length){box.innerHTML=strip(cfg.head)+`<p class="empty">${Lp("Waiting for cars on track","Esperando coches en pista")}</p>`;return}
   const ahead=all.filter(r=>r.g>0&&r.i!==me).sort((a,b)=>a.g-b.g).slice(0,cfg.ahead).reverse(),behind=all.filter(r=>r.g<=0&&r.i!==me).sort((a,b)=>b.g-a.g).slice(0,cfg.behind),mine=all.find(r=>r.i===me);
   const rows=[...ahead,...(mine?[mine]:[]),...behind].map(r=>rowCtx(r.i,{gap:r.i===me?"—":(r.g>0?"−":"+")+Math.abs(r.g).toFixed(1),cls:r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"",int:"–"}));
   box.innerHTML=(cfg.head.length?strip(cfg.head):"")+tableHTML(cfg.cols,rows,me)+(cfg.foot.length?strip(cfg.foot):"");
-  const st=$("#trackStrip");if(st&&!st.hidden){let html='<div class="sf"></div>';const pct=T.CarIdxLapDistPct||[];all.forEach(r=>{const cls=r.i===me?"me":r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"";html+=`<div class="car ${cls}" style="left:${(pct[r.i]*100).toFixed(2)}%"></div>`});st.innerHTML=html}}
+  const st=target?null:$("#trackStrip");if(st&&!st.hidden){let html='<div class="sf"></div>';const pct=T.CarIdxLapDistPct||[];all.forEach(r=>{const cls=r.i===me?"me":r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"";html+=`<div class="car ${cls}" style="left:${(pct[r.i]*100).toFixed(2)}%"></div>`});st.innerHTML=html}}
 /* standings (widget and tab) */
 function standingsRows(full){const cfg=ui("std"),me=T.PlayerCarIdx,meD=driverBy(me),pos=T.CarIdxPosition||[],cpos=T.CarIdxClassPosition||[],f2=T.CarIdxF2Time||[],best=T.CarIdxBestLapTime||[];
   let list=field();const multi=new Set(list.map(classOf)).size>1;if(cfg.myClass&&multi&&meD)list=list.filter(d=>classOf(d)===classOf(meD));
@@ -1492,7 +1535,7 @@ function standingsRows(full){const cfg=ui("std"),me=T.PlayerCarIdx,meD=driverBy(
   const rows=list.map((d,k)=>{const i=d.CarIdx,lead=k===0;const gap=lead?Tx("Leader","Líder"):f2[i]>0?"+"+f2[i].toFixed(1):"–";const iv=prev==null?"–":f2[i]>0&&f2[prev]>=0?"+"+(f2[i]-f2[prev]).toFixed(1):"–";prev=i;return rowCtx(i,{gap,int:iv,fastest:best[i]===fast})});
   if(full)return rows;const idx=rows.findIndex(r=>r.i===me);const keep=new Set();rows.forEach((r,k)=>{if(k<cfg.top||(idx>=0&&Math.abs(k-idx)<=cfg.around))keep.add(k)});
   const out=[];let last=-1;rows.forEach((r,k)=>{if(!keep.has(k))return;if(last>=0&&k>last+1)out.push({sep:true});out.push(r);last=k});return out}
-function renderStandingsWidget(){const box=$("#stdBox");if(!box||box.closest("[hidden]"))return;const cfg=ui("std");box.innerHTML=(cfg.head.length?strip(cfg.head):"")+tableHTML(cfg.cols,standingsRows(false),T.PlayerCarIdx)+(cfg.foot.length?strip(cfg.foot):"")}
+function renderStandingsWidget(target){const box=target||$("#stdBox");if(!box||(!target&&box.closest("[hidden]")))return;const cfg=ui("std");box.innerHTML=(cfg.head.length?strip(cfg.head):"")+tableHTML(cfg.cols,standingsRows(false),T.PlayerCarIdx)+(cfg.foot.length?strip(cfg.foot):"")}
 function renderStandings(){const box=$("#stdFull");if(!box)return;const cfg=ui("std"),rows=standingsRows(true);$("#fieldSub").textContent=rows.length+" "+Tx("drivers","pilotos");
   box.innerHTML=strip(cfg.head)+(rows.length?tableHTML(cfg.cols,rows,T.PlayerCarIdx):`<p class="empty">${Lp("No drivers yet","Aún no hay pilotos")}</p>`)+strip(cfg.foot)}
 
@@ -1523,16 +1566,6 @@ function renderInputs(){if(!$("#inGear"))return;const g=T.Gear;$("#inGear").text
   const a=T.SteeringWheelAngle;if(a!=null)$("#wheel").style.transform=`rotate(${(-a*180/Math.PI).toFixed(1)}deg)`;$("#absPill").hidden=!T.BrakeABSactive}
 
 /* DRS / push-to-pass / hybrid */
-const P2P={active:false,since:0,unit:null,lastC:null,lastDropAt:0,drops:0};
-function renderBoost(){const box=$("#boostBox");if(!box)return;const drs=T.DRS_Status,p2s=T.P2P_Status,p2c=T.P2P_Count,bat=T.EnergyERSBatteryPct,dep=T.EnergyMGU_KLapDeployPct;
-  const has=drs!=null||p2c!=null||p2s!=null||bat!=null||dep!=null;const now=performance.now();
-  if(p2s&&!P2P.active){P2P.active=true;P2P.since=now;P2P.drops=0}else if(!p2s&&P2P.active)P2P.active=false;
-  if(p2c!=null&&P2P.lastC!=null&&p2c<P2P.lastC){if(P2P.active&&now-P2P.lastDropAt<1600)P2P.drops++;P2P.lastDropAt=now;if(P2P.drops>=2)P2P.unit="s"}P2P.lastC=p2c;
-  if(!has){box.innerHTML=`<p class="note">${Lp("This car has no DRS, push-to-pass or hybrid boost.","Este coche no tiene DRS, push-to-pass ni híbrido.")}</p>`;if(OV.on&&ui("boost").autohide&&!CFG.edit)boostVisible(false);return}
-  boostVisible(true);const DRS=[["DRS off","DRS cerrado",""],["DRS next zone","DRS en la próxima zona","warn"],["DRS available","DRS disponible","good"],["DRS open","DRS abierto","acc"]][drs]||null;
-  box.innerHTML=`<div class="boost">${drs!=null&&DRS?`<div class="bcell ${DRS[2]}"><div class="label">DRS</div><div class="mid">${esc(Tx(DRS[0],DRS[1]).replace(/^DRS /,""))}</div></div>`:""}
-   ${p2c!=null||p2s!=null?`<div class="bcell ${p2s?"acc":""}"><div class="label">${Lp("Push to pass","Push to pass",true)}</div><div class="mid mono">${p2c??"–"}<span class="unit">${P2P.unit==="s"?Tx("s left","s restantes"):Tx("left","restantes")}</span></div><div class="sub">${p2s?Tx("Active","Activo")+" "+((now-P2P.since)/1000).toFixed(1)+" s":Tx("Ready","Listo")}</div></div>`:""}
-   ${bat!=null?`<div class="bcell"><div class="label">${Lp("Battery","Batería",true)}</div><div class="mid mono">${Math.round(bat*(bat<=1?100:1))}%</div>${dep!=null?`<div class="sub">${Tx("Deploy this lap","Despliegue esta vuelta")} ${Math.round(dep*(dep<=1?100:1))}%</div>`:""}</div>`:""}</div>`}
 let BOOSTV=null;function boostVisible(on){if(!OV.on||!OV.list.includes("boost")||OV.list.length>1)return;if(CFG.edit||!ui("boost").autohide)on=true;if(BOOSTV===on)return;BOOSTV=on;nativeVisible("boost",on)}
 
 /* any telemetry value */
@@ -1547,14 +1580,14 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","map","relative","compare","radar","boost","inputs","fuel","engine","tyres","standings","telemetry"];
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","engine","tyres","standings","telemetry"];
 const CONFIGURABLE={relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
-  if(!v)return;OV.on=true;OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
+  if(!v)return;OV.on=true;OV.preview=q.get("preview")==="1";OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
   document.documentElement.classList.add("ov");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="PitWall Overlay · "+OV.list.join("+")})();
-function applyLayout(){if(!OV.on)applyOrderAndSizes();if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
+function applyLayout(){if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
   document.querySelectorAll("#v-live .wpanel").forEach(p=>{p.hidden=HIDDEN.has(p.dataset.w)});
   const vis=WIDGETS.filter(w=>!HIDDEN.has(w)&&w!=="flag");$("#liveEmpty").hidden=vis.length>0;$("#liveEmpty").innerHTML=Lp("Every widget is in an overlay or hidden. Use Layout to bring them back.","Todos los widgets están en overlays u ocultos. Usa Diseño para recuperarlos.")}
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
@@ -1611,7 +1644,9 @@ function openWidgetCfg(w){const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(
   else if(k==="tel"){const all=SCHEMA.map(s=>s.name);body=`<div class="panel"><input type="search" id="telQ" placeholder="${esc(Tx("Search variables","Buscar variables"))}" style="width:100%"><div class="cfglist" id="telList" style="margin-top:8px"></div></div>`;
     setTimeout(()=>{const draw=()=>{const qv=($("#telQ").value||"").toLowerCase(),sel=ui("tel").vars;$("#telList").innerHTML=sel.map(n=>`<div class="cfgitem on"><span>${esc(telName(n))} <span class="mono muted" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">✕</button></div>`).join("")+all.filter(n=>!sel.includes(n)&&(!qv||n.toLowerCase().includes(qv)||telName(n).toLowerCase().includes(qv))).slice(0,60).map(n=>`<div class="cfgitem"><span class="muted">${esc(telName(n))} <span class="mono" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">+</button></div>`).join("");
       document.querySelectorAll("#telList [data-tv]").forEach(b=>b.onclick=()=>{toggleTelVar(b.dataset.tv);draw()})};$("#telQ").oninput=draw;draw()},0)}
-  $("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div style="margin-top:10px">${body}</div>`;
+  const keepPv=$("#cfgPreview")&&$("#cfgPreview").dataset.w===w&&!$("#drawer").hidden;
+  if(keepPv)$("#cfgForm").innerHTML=body;
+  else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="label" style="margin:12px 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div><div id="cfgForm" style="margin-top:10px">${body}</div>`;startPreview(w)}
   $("#cfgBack").onclick=()=>{const b=CFG_BACK;CFG_BACK=null;(b||openLayout)()};
   const upd=patch=>{setUI(k,patch);openWidgetCfg(w)};
   document.querySelectorAll("#dBody [data-add]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.add.split(":");upd({[f]:[...ui(k)[f],x]})});
@@ -1633,7 +1668,7 @@ Object.assign(I18N,{"tab.overlays":["Overlays","Overlays"],ovGlobal:["How overla
  "d.boost":["DRS, push-to-pass and hybrid","DRS, push-to-pass e híbrido"],"d.inputs":["Throttle, brake, clutch, wheel and gear","Acelerador, freno, embrague, volante y marcha"],"d.fuel":["Fuel left, per lap and to add","Combustible restante, por vuelta y a añadir"],
  "d.engine":["Water, oil, voltage and temperatures","Agua, aceite, voltaje y temperaturas"],"d.tyres":["Tyre temperatures and wear","Temperatura y desgaste de neumáticos"],"d.standings":["Race order with the columns you choose","Clasificación con las columnas que elijas"],"d.telemetry":["Any telemetry values you pick","Los valores de telemetría que elijas"]});
 let CFG_BACK=null;
-function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;const pc=isPC(),remote=pcOverlays(),auto=new Set(CFG.autoWidgets||[]);
+function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreenEditor();$("#ovScreenNote").innerHTML=pcOverlays()?Lp("Drag a box to move that overlay on your PC screen, or its corner to resize it. The windows move as you drag.","Arrastra un recuadro para mover ese overlay en la pantalla del PC, o su esquina para cambiar el tamaño. Las ventanas se mueven mientras arrastras."):Lp("Preview of where your overlays sit on the PC screen. Moving them here moves the real windows when the app runs from PitWall.exe.","Vista de dónde están tus overlays en la pantalla del PC. Al moverlos aquí se mueven las ventanas reales cuando la app funciona desde PitWall.exe.");const pc=isPC(),remote=pcOverlays(),auto=new Set(CFG.autoWidgets||[]);
   const c=$("#ovCallout");
   c.innerHTML=MODE!=="bridge"?Lp("Preview: overlay windows open when the app runs from PitWall.exe on your Windows PC. You can set them up here already.","Vista previa: las ventanas overlay se abren cuando la app funciona desde PitWall.exe en tu PC con Windows. Ya puedes configurarlas aquí.")
     :!remote?Lp("Overlay windows need PitWall.exe running on Windows.","Las ventanas overlay necesitan PitWall.exe en Windows.")
@@ -1938,7 +1973,7 @@ function applyOrderAndSizes(){if(OV.on)return;const grid=$("#liveGrid"),panels=[
 function addGrips(){if(OV.on)return;document.querySelectorAll("#liveGrid>.wpanel").forEach(p=>{if(p.querySelector(".grip"))return;const g=document.createElement("button");g.type="button";g.className="grip";
   g.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
   g.title=Tx("Drag to move","Arrastra para mover");g.setAttribute("aria-label",g.title);p.appendChild(g)})}
-function cycleSize(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="${w}"]`);const cur=WSIZE[w]||+(p&&p.dataset.def||12);const i=SIZES.indexOf(cur);WSIZE[w]=SIZES[(i+1)%SIZES.length];store.set("pw.sizes",WSIZE);applyOrderAndSizes();drawMapSoon()}
+function cycleSize(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="${w}"]`);const cur=WSIZE[w]||+(p&&p.dataset.def||12);const i=SIZES.indexOf(cur);WSIZE[w]=SIZES[(i+1)%SIZES.length];store.set("pw.sizes",WSIZE);applyOrderAndSizes();packGrid();drawMapSoon()}
 function sizeLabel(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="${w}"]`);const n=WSIZE[w]||+(p&&p.dataset.def||12);return{3:"S",4:"M",6:"L",8:"XL",12:"Full"}[n]||n}
 
 /* ===================== live lap comparison: best vs last vs current ===================== */
@@ -1946,22 +1981,25 @@ Object.assign(I18N,{"w.compare":["Lap comparison","Comparación de vueltas"],"d.
  "it.cmpbest":["Best","Mejor"],"it.cmplast":["Last","Última"],"it.cmpnow":["Now vs best","Ahora vs mejor"]});
 UI_DEFAULTS.cmp={ch:"speed",follow:false};
 const CMPCH=[["speed","Speed","Velocidad"],["pedals","Throttle & brake","Acelerador y freno"],["delta","Time delta","Diferencia de tiempo"],["gear","Gear","Marcha"],["steer","Steering","Volante"],["rpm","RPM","RPM"]];
-function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const k=c.ch+"|"+c.follow+"|"+LANG;if(box.dataset.k===k)return;box.dataset.k=k;
-  box.innerHTML=CMPCH.map(([v,en,es])=>`<button type="button" class="chip" data-ch="${v}" aria-pressed="${c.ch===v}">${esc(Tx(en,es))}</button>`).join("")+`<button type="button" class="chip" data-follow aria-pressed="${!!c.follow}">${esc(Tx("Follow me","Seguirme"))}</button>`;
+function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const k=c.ch+"|"+c.follow+"|"+LANG+"|"+(G61REF?1:0)+"|"+MODE;if(box.dataset.k===k)return;box.dataset.k=k;
+  box.innerHTML=CMPCH.map(([v,en,es])=>`<button type="button" class="chip" data-ch="${v}" aria-pressed="${c.ch===v}">${esc(Tx(en,es))}</button>`).join("")+`<button type="button" class="chip" data-follow aria-pressed="${!!c.follow}">${esc(Tx("Follow me","Seguirme"))}</button>`
+    +(MODE==="bridge"&&!REMOTE&&!OV.on?(G61REF?`<button type="button" class="chip" data-g61off aria-pressed="true">Garage 61 ✕</button>`:`<button type="button" class="chip" data-g61>+ Garage 61</button>`):"");
+  const g=box.querySelector("[data-g61]");if(g)g.onclick=openG61Picker;const go=box.querySelector("[data-g61off]");if(go)go.onclick=()=>{G61REF=null;cmpCtl();drawCompare()};
   box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{setUI("cmp",{ch:b.dataset.ch});cmpCtl();drawCompare()});
   box.querySelector("[data-follow]").onclick=()=>{setUI("cmp",{follow:!ui("cmp").follow});cmpCtl();drawCompare()}}
 function serOf(l){if(!l._ser||l._serN!==l.bins.length){l._ser=lapSeries(l).arr;l._serN=l.bins.length}return l._ser}
 function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;cmpCtl();if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1)-cv.getBoundingClientRect().top-16));if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}const c=ui("cmp");
   const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null),last=LAPS.length?LAPS.at(-1):null,cur=rec;
-  const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null;
+  const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null,rs=G61REF?serOf(G61REF):null,base=rs||bs;
   const curD=T.LapDist||0,len=Math.max(trackLenM(),(bs?bs.length:0)*BIN);
   // header: lap times and live delta
-  let now=null;if(bs&&cur&&cur.bins){const i=Math.floor(curD/BIN);let k=i;while(k>0&&!cur.bins[k])k--;if(cur.bins[k]&&bs[k])now=cur.bins[k][1]-bs[k][1]}
+  let now=null;if(base&&cur&&cur.bins){const i=Math.floor(curD/BIN);let k=i;while(k>0&&!cur.bins[k])k--;if(cur.bins[k]&&base[k])now=cur.bins[k][1]-base[k][1]}
   $("#cmpHead").innerHTML=`<div><span class="k" style="color:var(--pb)">${L("it.cmpbest",true)}</span><span class="v">${best?Tx("L","V")+best.n+" "+fmtT(best.time):"–"}</span></div>
     <div><span class="k">${L("it.cmplast",true)}</span><span class="v">${last?Tx("L","V")+last.n+" "+fmtT(last.time):"–"}</span></div>
-    <div><span class="k" style="color:var(--accent)">${L("it.cmpnow",true)}</span><span class="v ${now==null?"":now<=0?"good":"bad"}">${now==null?"–":sgn(now,2)}</span></div>`;
+    ${G61REF?`<div><span class="k" style="color:var(--good)">Garage 61</span><span class="v">${esc(G61REF.name||"")} ${fmtT(G61REF.time)}</span></div>`:""}
+    <div><span class="k" style="color:var(--accent)">${G61REF?esc(Tx("Now vs Garage 61","Ahora vs Garage 61")):L("it.cmpnow",true)}</span><span class="v ${now==null?"":now<=0?"good":"bad"}">${now==null?"–":sgn(now,2)}</span></div>`;
   const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
-  if(!best){x.fillStyle=css("--muted");x.font="13px "+css("--f-body");x.textAlign="center";x.fillText(Tx("Complete a lap to start comparing.","Completa una vuelta para empezar a comparar."),w/2,h/2);return}
+  if(!best&&!rs){x.fillStyle=css("--muted");x.font="13px "+css("--f-body");x.textAlign="center";x.fillText(Tx("Complete a lap to start comparing.","Completa una vuelta para empezar a comparar."),w/2,h/2);return}
   let d0=0,d1=len;if(c.follow){d0=Math.max(0,curD-300);d1=Math.min(len,d0+500)}
   // channel definition: value from a bin, y range
   const ch=c.ch,acc={speed:b=>spd(b[0]),gear:b=>b[4],steer:b=>b[5]==null?null:b[5]*180/Math.PI,rpm:b=>b[6]}[ch];
@@ -1969,8 +2007,8 @@ function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidd
   const collect=[];const push=v=>{if(v!=null&&isFinite(v))collect.push(v)};
   const i0=Math.floor(d0/BIN),i1=Math.ceil(d1/BIN);
   if(ch==="pedals"){lo=-1;hi=1;fmtY=v=>Math.round(Math.abs(v)*100)+"%"}
-  else if(ch==="delta"){[ls,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){const a=arr[i],b=bs[i];if(a&&b)push(a[1]-b[1])}});const m=Math.max(.2,...collect.map(Math.abs));lo=-m;hi=m;fmtY=v=>(v>0?"+":"")+v.toFixed(2)}
-  else{[bs,ls,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){if(arr[i])push(acc(arr[i]))}});if(collect.length){lo=Math.min(...collect);hi=Math.max(...collect)}if(ch==="speed"){lo=Math.max(0,Math.floor(lo/20)*20);hi=Math.ceil(hi/20)*20}else if(ch==="gear"){lo=Math.min(0,Math.floor(lo));hi=Math.max(1,Math.ceil(hi))}else{const p=(hi-lo)*.08||1;lo-=p;hi+=p}fmtY=v=>ch==="rpm"?Math.round(v/100)*100:ch==="steer"?Math.round(v)+"°":Math.round(v)}
+  else if(ch==="delta"){[bs!==base?bs:null,ls,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){const a=arr[i],b=base[i];if(a&&b)push(a[1]-b[1])}});const m=Math.max(.2,...collect.map(Math.abs));lo=-m;hi=m;fmtY=v=>(v>0?"+":"")+v.toFixed(2)}
+  else{[bs,ls,rs,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){if(arr[i])push(acc(arr[i]))}});if(collect.length){lo=Math.min(...collect);hi=Math.max(...collect)}if(ch==="speed"){lo=Math.max(0,Math.floor(lo/20)*20);hi=Math.ceil(hi/20)*20}else if(ch==="gear"){lo=Math.min(0,Math.floor(lo));hi=Math.max(1,Math.ceil(hi))}else{const p=(hi-lo)*.08||1;lo-=p;hi+=p}fmtY=v=>ch==="rpm"?Math.round(v/100)*100:ch==="steer"?Math.round(v)+"°":Math.round(v)}
   const pl=46,pr=8,pt=8,pb=18,X=d=>pl+(d-d0)/((d1-d0)||1)*(w-pl-pr),Y=v=>pt+(1-(v-lo)/((hi-lo)||1))*(h-pt-pb);
   x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.lineWidth=1;x.textAlign="right";
   const ticks=ch==="pedals"?[-1,0,1]:ch==="delta"?[lo,0,hi]:[lo,(lo+hi)/2,hi];ticks.forEach(v=>{const y=Y(v);x.beginPath();x.moveTo(pl,y);x.lineTo(w-pr,y);x.stroke();x.fillText(fmtY(v),pl-6,y+4)});
@@ -1978,15 +2016,166 @@ function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidd
   const line=(arr,valOf,col,wd,upto,dash)=>{if(!arr)return;x.beginPath();let on=false;const end=Math.min(i1,upto??i1);let lastI=-99;for(let i=i0;i<=end;i++){const b=arr[i];const v=b?valOf(b,i):null;if(v==null||!isFinite(v))continue;if(i-lastI>12)on=false;const px=X(i*BIN),py=Y(v);on?x.lineTo(px,py):x.moveTo(px,py);on=true;lastI=i}
     x.setLineDash(dash||[]);x.strokeStyle=col;x.lineWidth=wd;x.stroke();x.setLineDash([])};
   const PB=css("--pb"),MU=css("--blue"),AC=css("--accent"),curEnd=cur&&cur.maxBin!=null?cur.maxBin:-1;
-  if(ch==="pedals"){const th=b=>b[2],br=b=>-b[3];[[bs,PB,1.6],[ls,MU,1.4],[cur&&cur.bins,AC,2.2,curEnd]].forEach(([a,col,wd,up])=>{line(a,th,col,wd,up);line(a,br,col,wd,up,[4,3])})}
-  else if(ch==="delta"){line(bs,()=>0,PB,1.4);line(ls,(b,i)=>bs[i]?b[1]-bs[i][1]:null,MU,1.6);line(cur&&cur.bins,(b,i)=>bs[i]?b[1]-bs[i][1]:null,AC,2.4,curEnd)}
-  else{line(bs,acc,PB,1.6);line(ls,acc,MU,1.6);line(cur&&cur.bins,acc,AC,2.4,curEnd)}
+  const GR=css("--good");
+  if(ch==="pedals"){const th=b=>b[2],br=b=>-b[3];[[rs,GR,1.4],[bs,PB,1.6],[ls,MU,1.4],[cur&&cur.bins,AC,2.2,curEnd]].forEach(([a,col,wd,up])=>{line(a,th,col,wd,up);line(a,br,col,wd,up,[4,3])})}
+  else if(ch==="delta"){line(base,()=>0,rs?GR:PB,1.4);if(rs)line(bs,(b,i)=>base[i]?b[1]-base[i][1]:null,PB,1.6);line(ls,(b,i)=>base[i]?b[1]-base[i][1]:null,MU,1.6);line(cur&&cur.bins,(b,i)=>base[i]?b[1]-base[i][1]:null,AC,2.4,curEnd)}
+  else{line(rs,acc,GR,1.6,null,[6,4]);line(bs,acc,PB,1.6);line(ls,acc,MU,1.6);line(cur&&cur.bins,acc,AC,2.4,curEnd)}
   if(curD>=d0&&curD<=d1){x.strokeStyle=AC;x.globalAlpha=.6;x.beginPath();x.moveTo(X(curD),pt);x.lineTo(X(curD),h-pb);x.stroke();x.globalAlpha=1}
   if(ch==="pedals"){x.fillStyle=css("--muted");x.textAlign="left";x.fillText(Tx("throttle ↑  brake ↓ (dashed)","acelerador ↑  freno ↓ (discontinuo)"),pl+4,pt+10)}}
+
+/* ===================== 0.7: auto-fit, lock, screen editor, previews, new widgets, Garage 61, engineer sharing ===================== */
+Object.assign(I18N,{
+ "w.deltabar":["Delta bar","Barra de delta"],"d.deltabar":["Gaining or losing time against your best lap","Si ganas o pierdes tiempo frente a tu mejor vuelta"],
+ "w.gg":["G-force circle","Círculo de fuerzas g"],"d.gg":["Braking, acceleration and cornering grip","Agarre en frenada, aceleración y curva"],
+ "w.stats":["Driving stats","Estadísticas de conducción"],"d.stats":["Full throttle, braking, coasting and slip","Gas a fondo, frenada, inercia y deslizamiento"],
+ yourScreen:["Your screen","Tu pantalla"],lockAll:["Lock overlays","Bloquear overlays"],unlockAll:["Unlock overlays","Desbloquear overlays"],
+ share:["Engineer view","Vista de ingeniero"],sameNet:["Same network","Misma red"],internet:["From another house","Desde otra casa"],
+ startLink:["Create link","Crear enlace"],stopLink:["Stop sharing","Dejar de compartir"],copy:["Copy","Copiar"],
+ g61:["Garage 61","Garage 61"],g61Ref:["Garage 61 lap","Vuelta de Garage 61"],connect:["Connect","Conectar"],disconnect:["Disconnect","Desconectar"],
+});
+UI_DEFAULTS.cmp.ref=null;
+
+/* ---------- Live blocks fill every row ---------- */
+function packGrid(){if(OV.on)return;const grid=$("#liveGrid");if(!grid)return;const panels=[...grid.children].filter(p=>p.classList.contains("wpanel")&&!p.hidden&&!p.classList.contains("dragging"));
+  if(innerWidth<=1020){panels.forEach(p=>p.style.gridColumn="");return}
+  let row=[],sum=0;const flush=()=>{if(!row.length)return;const sp=row.map(r=>r.n);let left=12-sum,i=0;while(left>0){sp[i%sp.length]++;left--;i++}row.forEach((r,k)=>r.p.style.gridColumn="span "+sp[k]);row=[];sum=0};
+  panels.forEach(p=>{const n=Math.min(12,+(p.className.match(/\bs(\d+)\b/)||[0,12])[1]);if(sum+n>12)flush();row.push({p,n});sum+=n});flush()}
+addEventListener("resize",()=>{packGrid();drawMapSoon()});
+
+/* ---------- push to pass: seconds or uses, never a bare number ---------- */
+const P2P={active:false,since:0,c0:null,drops:0,unit:null,lastC:null};
+function p2pUnit(){if(P2P.unit)return P2P.unit;const cp=((driverBy(T.PlayerCarIdx)||{}).CarPath||"")+" "+((driverBy(T.PlayerCarIdx)||{}).CarScreenName||"");
+  if(/ir18|dallarair|indycar|superformula|super formula|sf23|sf19/i.test(cp))return"s";
+  return T.P2P_Count!=null&&T.P2P_Count>20?"s":null}
+const mmss=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+function renderBoost(){const box=$("#boostBox");if(!box)return;const drs=T.DRS_Status,p2s=T.P2P_Status,p2c=T.P2P_Count,bat=T.EnergyERSBatteryPct,dep=T.EnergyMGU_KLapDeployPct;
+  const has=drs!=null||p2c!=null||p2s!=null||bat!=null||dep!=null;const now=performance.now();
+  if(p2s&&!P2P.active){P2P.active=true;P2P.since=now;P2P.c0=p2c;P2P.drops=0}
+  if(p2c!=null&&P2P.lastC!=null&&p2c<P2P.lastC&&P2P.active)P2P.drops++;
+  if(!p2s&&P2P.active){P2P.active=false;if(P2P.drops>=2)P2P.unit="s";else if(P2P.c0!=null&&P2P.c0-p2c===1&&now-P2P.since>2500)P2P.unit="uses"}
+  P2P.lastC=p2c;
+  if(!has){box.innerHTML=`<p class="note">${Lp("This car has no DRS, push-to-pass or hybrid boost.","Este coche no tiene DRS, push-to-pass ni híbrido.")}</p>`;if(OV.on&&ui("boost").autohide&&!CFG.edit)boostVisible(false);return}
+  boostVisible(true);const DRS=[["Closed","Cerrado",""],["Next zone","En la próxima zona","warn"],["Available","Disponible","good"],["Open","Abierto","acc"]][drs]||null;const u=p2pUnit();
+  const p2v=p2c==null?"–":u==="s"?mmss(p2c):p2c,p2u=u==="s"?Tx("left","restante"):u==="uses"?Tx("uses left","usos restantes"):Tx("left","restante");
+  box.innerHTML=`<div class="boost">${drs!=null&&DRS?`<div class="bcell ${DRS[2]}"><div class="label">DRS</div><div class="mid">${esc(Tx(DRS[0],DRS[1]))}</div></div>`:""}
+   ${p2c!=null||p2s!=null?`<div class="bcell ${p2s?"acc":""}"><div class="label">${Lp("Push to pass","Push to pass",true)}</div><div class="mid mono">${p2v}<span class="unit">${esc(p2u)}</span></div><div class="sub">${p2s?Tx("Active","Activo")+" · "+((now-P2P.since)/1000).toFixed(1)+" s":Tx("Ready","Listo")}${u?"":` · <span class="muted">${esc(Tx("unit not known yet","unidad aún desconocida"))}</span>`}</div></div>`:""}
+   ${bat!=null?`<div class="bcell"><div class="label">${Lp("Battery","Batería",true)}</div><div class="mid mono">${Math.round(bat*(bat<=1?100:1))}%</div>${dep!=null?`<div class="sub">${Tx("Deploy left this lap","Despliegue restante esta vuelta")} ${Math.round(dep*(dep<=1?100:1))}%</div>`:""}</div>`:""}</div>`}
+
+/* ---------- lock / unlock all overlays (header padlock) ---------- */
+function renderLock(){const b=$("#lockBtn");if(!b)return;const show=(MODE==="bridge"&&!REMOTE)||MODE==="local";b.hidden=!show||OV.on;const locked=!CFG.edit;b.setAttribute("aria-pressed",!locked);
+  b.title=locked?Tx("Overlays locked. Tap to move them.","Overlays bloqueados. Toca para moverlos."):Tx("Overlays unlocked: drag them. Tap to lock.","Overlays desbloqueados: arrástralos. Toca para bloquear.");b.setAttribute("aria-label",b.title);
+  b.innerHTML=locked?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>'}
+$("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.edit?Tx("Overlays unlocked: drag them on your screen.","Overlays desbloqueados: arrástralos por la pantalla."):Tx("Overlays locked.","Overlays bloqueados."))};
+
+/* ---------- screen editor: move overlay windows from the app or a phone ---------- */
+const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220]};
+let SCREEN=null,SCREEN_DRAG=false;
+async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
+async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
+  const pos=CFG.positions||{},names=[...new Set([...(CFG.autoWidgets||[]),...Object.keys(pos)])].filter(n=>OVSZ[n]);
+  const rect=(n,i)=>pos[n]||[vx+60+i*40,vy+60+i*40,OVSZ[n][0],OVSZ[n][1]];
+  box.innerHTML=`<div class="mon" style="left:${(sc.primary[0]-vx)/vw*100}%;top:${(sc.primary[1]-vy)/vh*100}%;width:${sc.primary[2]/vw*100}%;height:${sc.primary[3]/vh*100}%"></div>`+
+    names.map((n,i)=>{const[x,y,w,h]=rect(n,i);return `<div class="ovrect${(CFG.autoWidgets||[]).includes(n)?" auto":""}" data-n="${n}" style="left:${(x-vx)/vw*100}%;top:${(y-vy)/vh*100}%;width:${w/vw*100}%;height:${h/vh*100}%"><span>${L("w."+n,true)}</span><i class="rz"></i></div>`}).join("")||
+    `<p class="empty" style="position:absolute;inset:0;display:grid;place-items:center">${Lp("Mark overlays with Auto to place them here.","Marca overlays con Auto para colocarlos aquí.")}</p>`;
+  box.querySelectorAll(".ovrect").forEach((el,i)=>{el.onpointerdown=e=>{e.preventDefault();SCREEN_DRAG=true;el.setPointerCapture(e.pointerId);const n=el.dataset.n,resize=!!e.target.closest(".rz"),k=vw/box.clientWidth;
+    let[x,y,w,h]=rect(n,names.indexOf(n));const sx=e.clientX,sy=e.clientY,x0=x,y0=y,w0=w,h0=h;let t=0;
+    const send=()=>{CFG.positions=Object.assign({},CFG.positions,{[n]:[x,y,w,h]});if(pcOverlays())fetch(`/api/overlay/move?w=${n}&x=${x}&y=${y}&width=${w}&height=${h}`,{method:"POST"}).catch(()=>{});else if(MODE==="local")store.set("pw.cfg",CFG)};
+    el.onpointermove=ev=>{const dx=(ev.clientX-sx)*k,dy=(ev.clientY-sy)*k,snap=v=>Math.round(v/5)*5;
+      if(resize){w=Math.max(120,snap(w0+dx));h=Math.max(60,snap(h0+dy))}else{x=snap(Math.min(vx+vw-40,Math.max(vx-w+40,x0+dx)));y=snap(Math.min(vy+vh-30,Math.max(vy,y0+dy)))}
+      el.style.left=(x-vx)/vw*100+"%";el.style.top=(y-vy)/vh*100+"%";el.style.width=w/vw*100+"%";el.style.height=h/vh*100+"%";const now=performance.now();if(now-t>120){t=now;send()}};
+    el.onpointerup=()=>{el.onpointermove=null;el.onpointerup=null;SCREEN_DRAG=false;send()}}})}
+
+/* ---------- live preview while configuring ---------- */
+let PREVIEW_TIMER=0;
+function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;
+  if(MODE==="bridge"&&!REMOTE){if(!pv.querySelector("iframe")){const sz=OVSZ[w]||[460,260];pv.innerHTML=`<iframe title="preview" src="/?overlay=${w}&preview=1" style="height:${Math.min(sz[1],420)}px"></iframe>`}return}
+  const draw=()=>{if(w==="relative")renderRelative(pv);else if(w==="standings")renderStandingsWidget(pv);else pv.innerHTML=`<p class="note">${Lp("The preview appears here when the app runs from PitWall.exe; the block on Live already shows your changes.","La vista previa aparece aquí con PitWall.exe; el bloque en En vivo ya muestra tus cambios.")}</p>`};draw();PREVIEW_TIMER=setInterval(draw,500)}
+
+/* ---------- new widgets: delta bar, G-G circle, driving stats ---------- */
+let DB_HIST=[];
+function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const ok=T.LapDeltaToBestLap_OK,d=ok?T.LapDeltaToBestLap:null,now=performance.now();
+  DB_HIST.push([now,d]);while(DB_HIST.length&&now-DB_HIST[0][0]>600)DB_HIST.shift();const old=DB_HIST[0][1];
+  if(d==null){fill.style.width="0";$("#dbVal").textContent="–";$("#dbTrend").textContent="";return}
+  const r=1,f=Math.min(Math.abs(d),r)/r*50;fill.style.width=f+"%";fill.style.left=d<0?(50-f)+"%":"50%";fill.className=d<0?"good":"bad";
+  $("#dbVal").textContent=sgn(d,2);$("#dbVal").className="dbar-val mono "+(d<0?"good":"bad");const tr=old==null?0:d-old;$("#dbTrend").textContent=Math.abs(tr)<.005?"":tr<0?"▼":"▲";$("#dbTrend").className=tr<0?"good":"bad"}
+const GG=[];let GGMAX={lat:0,brk:0,acc:0,lap:null};
+function drawGG(){const cv=$("#ggC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;const g=9.81,lat=(T.LatAccel||0)/g,lon=(T.LongAccel||0)/g;
+  if(GGMAX.lap!==T.LapCompleted){GGMAX={lat:0,brk:0,acc:0,lap:T.LapCompleted}}GGMAX.lat=Math.max(GGMAX.lat,Math.abs(lat));if(lon<0)GGMAX.brk=Math.max(GGMAX.brk,-lon);else GGMAX.acc=Math.max(GGMAX.acc,lon);
+  GG.push([lat,lon]);if(GG.length>90)GG.shift();
+  const sz=Math.min(cv.clientWidth||220,OV.on?innerHeight-60:260);if(+cv.getAttribute("height")!==Math.round(sz))cv.setAttribute("height",Math.round(sz));const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
+  const R=Math.max(2,Math.ceil(Math.max(GGMAX.lat,GGMAX.brk,GGMAX.acc)*2)/2),cx=w/2,cy=h/2,ppg=(Math.min(w,h)/2-12)/R;
+  x.strokeStyle=css("--line");x.lineWidth=1;for(let k=1;k<=R;k++){x.beginPath();x.arc(cx,cy,k*ppg,0,7);x.stroke()}x.beginPath();x.moveTo(cx-R*ppg,cy);x.lineTo(cx+R*ppg,cy);x.moveTo(cx,cy-R*ppg);x.lineTo(cx,cy+R*ppg);x.stroke();
+  x.fillStyle=css("--muted");x.font="10px "+css("--f-data");x.textAlign="left";x.fillText("1g",cx+ppg+3,cy-3);
+  GG.forEach(([a,b],k)=>{x.globalAlpha=(k+1)/GG.length*.6;x.fillStyle=css("--blue");x.beginPath();x.arc(cx+a*ppg,cy+b*ppg,2.5,0,7);x.fill()});x.globalAlpha=1;
+  x.fillStyle=css("--accent");x.beginPath();x.arc(cx+lat*ppg,cy+lon*ppg,6,0,7);x.fill();
+  $("#ggStats").innerHTML=`<div><span class="k">${L("it.ggLat",true)}</span><span class="v">${GGMAX.lat.toFixed(2)} g</span></div><div><span class="k">${L("it.ggBrk",true)}</span><span class="v">${GGMAX.brk.toFixed(2)} g</span></div><div><span class="k">${L("it.ggAcc",true)}</span><span class="v">${GGMAX.acc.toFixed(2)} g</span></div>`}
+Object.assign(I18N,{"it.ggLat":["Max cornering","Máx. en curva"],"it.ggBrk":["Max braking","Máx. frenada"],"it.ggAcc":["Max traction","Máx. tracción"]});
+const ST={cur:null,last:null,lt:null};
+function trackStats(){const t=T.SessionTime,lc=T.LapCompleted;if(t==null||lc==null)return;if(!ST.cur||ST.cur.lc!==lc){if(ST.cur&&lc===ST.cur.lc+1&&ST.cur.t>20)ST.last=ST.cur;ST.cur={lc,t:0,full:0,brk:0,coast:0,shifts:0,top:0,g:null,slip:0}}
+  const dt=ST.lt==null?0:t-ST.lt;ST.lt=t;if(!(dt>0&&dt<.5)||!T.IsOnTrack)return;const c=ST.cur,th=T.Throttle||0,br=T.Brake||0;c.t+=dt;if(th>.98)c.full+=dt;if(br>.05)c.brk+=dt;if(th<.05&&br<.05)c.coast+=dt;
+  if(T.Gear!=null&&c.g!=null&&T.Gear!==c.g&&T.Gear>0)c.shifts++;c.g=T.Gear;c.top=Math.max(c.top,T.Speed||0);const b=slipAngle();if(b!=null)c.slip=Math.max(c.slip,Math.abs(b))}
+function slipAngle(){const vx=T.VelocityX,vy=T.VelocityY;if(vx==null||vy==null||Math.abs(vx)<5)return null;return Math.atan2(vy,vx)*180/Math.PI}
+function renderStats(){const box=$("#statsBox");if(!box)return;const c=ST.cur,l=ST.last,pc=(s,k)=>s&&s.t>0?Math.round(s[k]/s.t*100)+"%":"–";const b=slipAngle();
+  const rows=[["Full throttle","Gas a fondo",s=>pc(s,"full")],["Braking","Frenando",s=>pc(s,"brk")],["Coasting","Sin pedales",s=>pc(s,"coast")],["Gear changes","Cambios de marcha",s=>s?s.shifts:"–"],["Top speed","Vel. máxima",s=>s&&s.top?Math.round(spd(s.top))+" "+spdU():"–"],["Max slip angle","Deslizamiento máx.",s=>s&&s.slip?s.slip.toFixed(1)+"°":"–"]];
+  box.innerHTML=`<table class="wtable"><thead><tr><th></th><th class="r">${esc(Tx("This lap","Esta vuelta"))}</th><th class="r">${esc(Tx("Last","Última"))}</th></tr></thead><tbody>${rows.map(([en,es,f])=>`<tr><td>${esc(Tx(en,es))}</td><td class="r mono">${f(c)}</td><td class="r mono">${f(l)}</td></tr>`).join("")}</tbody></table>
+   <div class="label" style="margin-top:8px">${L("it.slip",true)} <span class="mono" style="color:var(--fg)">${b==null?"–":b.toFixed(1)+"°"}</span></div><div class="slipbar"><b style="left:${b==null?50:50+Math.max(-1,Math.min(1,b/10))*50}%"></b></div>`}
+Object.assign(I18N,{"it.slip":["Car slip angle now","Deslizamiento del coche ahora"]});
+
+/* ---------- Garage 61 ---------- */
+let G61={connected:false,user:null},G61REF=null,G61CACHE={};
+async function g61Status(){if(MODE!=="bridge"||REMOTE)return G61;try{G61=await (await fetch("/api/g61/status")).json()}catch(e){}return G61}
+async function g61Get(path){if(G61CACHE[path])return G61CACHE[path];const r=await fetch("/api/g61/"+path);if(!r.ok){let m="HTTP "+r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}const ct=r.headers.get("Content-Type")||"";const v=ct.includes("json")?await r.json():await r.text();if(!path.includes("/csv"))G61CACHE[path]=v;return v}
+const listOf=v=>Array.isArray(v)?v:(v&&(v.items||v.data||v.results))||[];
+function g61UserName(u){if(!u)return"";return u.nickName||u.name||[u.firstName,u.lastName].filter(Boolean).join(" ")||u.slug||""}
+async function renderG61Panel(){const box=$("#g61Panel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.innerHTML=`<h2>${L("g61")}</h2><p class="note">${Lp("Connect Garage 61 in the app running from PitWall.exe.","Conecta Garage 61 en la app desde PitWall.exe.")}</p>`;return}
+  await g61Status();box.innerHTML=`<h2>${L("g61")}</h2>`+(G61.connected?`<p>${Lp("Connected","Conectado",true)}${G61.user?": <b>"+esc(g61UserName(G61.user))+"</b>":""}</p><p class="note">${Lp("Load a Garage 61 lap as a reference in Live → Lap comparison.","Carga una vuelta de Garage 61 como referencia en En vivo → Comparación de vueltas.")}</p><button class="btn" id="g61Off" type="button">${L("disconnect",true)}</button>`
+   :`<p class="note">${Lp("Use your laps (or your team's) from Garage 61 as the reference while you drive. Create a personal token at garage61.net/developer and paste it here.","Usa tus vueltas (o las de tu equipo) de Garage 61 como referencia mientras conduces. Crea un token personal en garage61.net/developer y pégalo aquí.")}</p>
+     <form class="frow" id="g61Form"><input type="password" id="g61Tok" placeholder="Token" style="flex:1;min-width:200px" autocomplete="off"><button class="btn primary" type="submit">${L("connect",true)}</button></form><div class="err" id="g61Err"></div>
+     <p class="note"><a class="acc" href="https://garage61.net/developer" target="_blank" rel="noopener">garage61.net/developer</a></p>`);
+  if($("#g61Off"))$("#g61Off").onclick=async()=>{await fetch("/api/g61/token",{method:"POST",body:JSON.stringify({Token:""})});G61CACHE={};renderG61Panel()};
+  if($("#g61Form"))$("#g61Form").onsubmit=async e=>{e.preventDefault();$("#g61Err").textContent="";const r=await fetch("/api/g61/token",{method:"POST",body:JSON.stringify({Token:$("#g61Tok").value})});const j=await r.json().catch(()=>({}));if(!r.ok){$("#g61Err").textContent=j.error||"Error";return}renderG61Panel()}}
+function bestMatch(list,name,extra){const toks=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").split(/[^a-z0-9]+/).filter(t=>t.length>1);const want=new Set(toks(name+" "+(extra||"")));
+  let best=null,bs=0;list.forEach(it=>{const label=[it.name,it.variant,it.config,it.layout,it.configName].filter(Boolean).join(" ");const tt=toks(label);const sc=tt.filter(t=>want.has(t)).length/Math.max(1,tt.length)+tt.filter(t=>want.has(t)).length*.01;if(sc>bs){bs=sc;best=it}});return best}
+async function openG61Picker(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=L("g61Ref");$("#dSub").innerHTML=Lp("Pick a lap to compare against while you drive.","Elige una vuelta para compararte mientras conduces.");$("#dBody").innerHTML=`<p class="note">…</p>`;$("#drawer").hidden=false;
+  await g61Status();if(!G61.connected){$("#dBody").innerHTML=`<p class="note">${Lp("Connect Garage 61 first in the Account tab.","Conecta primero Garage 61 en la pestaña Cuenta.")}</p>`;return}
+  try{const[tracks,cars]=await Promise.all([g61Get("tracks"),g61Get("cars")]);const TL=listOf(tracks),CL=listOf(cars);const wi=S.WeekendInfo||{},me=driverBy(T.PlayerCarIdx)||{};
+    const tm=bestMatch(TL,wi.TrackDisplayName,wi.TrackConfigName),cm=bestMatch(CL,me.CarScreenName||"");
+    const opt=(list,sel)=>list.map(it=>`<option value="${esc(it.id)}"${sel&&it.id===sel.id?" selected":""}>${esc([it.name,it.variant||it.config||it.layout].filter(Boolean).join(" · "))}</option>`).join("");
+    $("#dBody").innerHTML=`<div class="frow"><select id="g61T" style="flex:1">${opt(TL,tm)}</select><select id="g61C" style="flex:1">${opt(CL,cm)}</select></div>
+      <div class="frow" style="margin-top:8px"><button type="button" class="chip" id="g61Mine" aria-pressed="true">${esc(Tx("My laps","Mis vueltas"))}</button><button type="button" class="chip" id="g61All" aria-pressed="false">${esc(Tx("Everyone","Todos"))}</button></div><div id="g61Laps" style="margin-top:10px"></div>`;
+    let who="me";const load=async()=>{const box=$("#g61Laps");box.innerHTML=`<p class="note">…</p>`;try{const q=`laps?tracks=${$("#g61T").value}&cars=${$("#g61C").value}${who==="me"?"&drivers=me":""}&group=${who==="me"?"none":"driver"}&limit=25`;
+        const laps=listOf(await g61Get(q)).sort((a,b)=>(a.lapTime||1e9)-(b.lapTime||1e9));
+        box.innerHTML=laps.length?laps.map(l=>`<div class="agrow" style="grid-template-columns:90px 1fr auto"><span class="t">${fmtT(l.lapTime)}</span><span class="s"><div>${esc(g61UserName(l.driver)||Tx("You","Tú"))}</div><div class="muted" style="font-size:12px">${esc(l.startTime?new Date(l.startTime).toLocaleDateString(locale()):"")}</div></span><button type="button" class="pin" data-lap="${esc(l.id)}" data-t="${l.lapTime}" data-n="${esc(g61UserName(l.driver)||"")}">${esc(Tx("Use","Usar"))}</button></div>`).join(""):`<p class="note">${Lp("No laps found for this car and track.","No hay vueltas para este coche y circuito.")}</p>`;
+        box.querySelectorAll("[data-lap]").forEach(b=>b.onclick=async()=>{b.textContent="…";try{const csv=await g61Get(`laps/${b.dataset.lap}/csv`);G61REF=csvToLap(csv,+b.dataset.t,b.dataset.n);if(!G61REF)throw new Error(Tx("This lap has no telemetry","Esta vuelta no tiene telemetría"));closeDrawer();toast(Tx("Reference lap loaded","Vuelta de referencia cargada"));drawCompare()}catch(err){b.textContent=err.message}})}
+      catch(err){box.innerHTML=`<p class="err">${esc(err.message)}</p>`}};
+    $("#g61T").onchange=$("#g61C").onchange=load;$("#g61Mine").onclick=()=>{who="me";$("#g61Mine").setAttribute("aria-pressed",true);$("#g61All").setAttribute("aria-pressed",false);load()};$("#g61All").onclick=()=>{who="all";$("#g61All").setAttribute("aria-pressed",true);$("#g61Mine").setAttribute("aria-pressed",false);load()};load()}
+  catch(err){$("#dBody").innerHTML=`<p class="err">${esc(err.message)}</p>`}}
+function csvToLap(csv,lapTime,name){const lines=String(csv).trim().split(/\r?\n/);if(lines.length<20)return null;const head=lines[0].split(",").map(s=>s.trim().replace(/^"|"$/g,""));const ix=k=>head.indexOf(k);
+  const iP=ix("LapDistPct"),iV=ix("Speed");if(iP<0||iV<0)return null;const iT=ix("Throttle"),iB=ix("Brake"),iG=ix("Gear"),iS=ix("SteeringWheelAngle"),iR=ix("RPM"),iL=ix("LapCurrentLapTime");
+  const len=trackLenM(),bins=[];let t=0,lastD=null;
+  for(let k=1;k<lines.length;k++){const c=lines[k].split(",");const p=+c[iP],v=+c[iV];if(!(p>=0&&p<=1)||!isFinite(v))continue;const d=p*len;
+    if(iL>=0)t=+c[iL];else if(lastD!=null&&d>lastD)t+=(d-lastD)/Math.max(v,1);lastD=d;const b=Math.floor(d/BIN);if(!bins[b])bins[b]=[v,t,iT>=0?+c[iT]:0,iB>=0?+c[iB]:0,iG>=0?+c[iG]:null,iS>=0?+c[iS]:null,iR>=0?+c[iR]:null]}
+  return{n:"G61",name,time:lapTime||t,bins,maxBin:bins.length-1}}
+
+/* ---------- engineer sharing ---------- */
+async function renderShare(){const box=$("#sharePanel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.hidden=true;return}box.hidden=false;
+  let st={};try{st=await (await fetch("/api/share")).json()}catch(e){}const urls=(INFO&&INFO.urls)||[];
+  box.innerHTML=`<h2>${L("share")}</h2><p class="note">${Lp("Let someone follow your session live from another computer, tablet or phone: telemetry, map, relative, laps and tyres. They can look but cannot change anything.","Deja que alguien siga tu sesión en vivo desde otro ordenador, tablet o móvil: telemetría, mapa, relative, vueltas y neumáticos. Puede mirar pero no cambiar nada.")}</p>
+   <div class="grid" style="margin-top:8px"><div class="s6"><div class="label">${L("sameNet",true)}</div><div class="mono" style="margin-top:6px">${urls.map(u=>esc(u+"/?view=engineer")).join("<br>")||"–"}</div>${urls[0]?`<img class="qr" style="margin-top:8px;width:150px" alt="QR" src="/api/qr.png?u=${encodeURIComponent(urls[0]+"/?view=engineer")}">`:""}</div>
+   <div class="s6"><div class="label">${L("internet",true)}</div>${st.link?`<div class="frow" style="margin-top:6px"><input type="text" id="shareLink" readonly value="${esc(st.link)}" style="flex:1;min-width:200px"><button class="btn" type="button" id="shareCopy">${L("copy",true)}</button></div>
+      <img class="qr" style="margin-top:8px;width:150px" alt="QR" src="/api/qr.png?u=${encodeURIComponent(st.link)}"><div style="margin-top:8px"><button class="btn" type="button" id="shareStop">${L("stopLink",true)}</button></div>`
+     :st.starting?`<p class="note">${Lp("Creating the link… the first time this downloads a small tool from Cloudflare.","Creando el enlace… la primera vez descarga una pequeña herramienta de Cloudflare.")}</p>`
+     :`<div style="margin-top:6px"><button class="btn primary" type="button" id="shareStart">${L("startLink",true)}</button></div>${st.error?`<p class="err">${esc(st.error)}</p>`:""}<p class="note">${Lp("A private link through Cloudflare (free). It stops working when you press Stop or close PitWall.","Un enlace privado a través de Cloudflare (gratis). Deja de funcionar al pulsar Dejar de compartir o al cerrar PitWall.")}</p>`}</div></div>`;
+  if($("#shareStart"))$("#shareStart").onclick=async()=>{await fetch("/api/share?action=start",{method:"POST"});renderShare();pollShare()};
+  if($("#shareStop"))$("#shareStop").onclick=async()=>{await fetch("/api/share?action=stop",{method:"POST"});renderShare()};
+  if($("#shareCopy"))$("#shareCopy").onclick=()=>{const i=$("#shareLink");navigator.clipboard.writeText(i.value).then(()=>toast(Tx("Link copied","Enlace copiado"))).catch(()=>{i.select()})};
+  if(st.starting)pollShare()}
+let sharePoll=0;function pollShare(){clearTimeout(sharePoll);sharePoll=setTimeout(async()=>{if(CUR_VIEW==="settings")renderShare()},1500)}
 
 /* ===================== settings & connection ===================== */
 function renderConn(){const c=$("#conn");let cls,en,es;
   if(STATUS.offline){cls="wait";en="PC offline";es="PC sin conexión"}
+  else if(REMOTE){cls="live";en="Engineer view";es="Vista de ingeniero"}
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
   else if(STATUS.connected){cls="live";en="iRacing live";es="iRacing en vivo"}
   else{cls="wait";en="Waiting for iRacing";es="Esperando iRacing"}
@@ -2019,7 +2208,7 @@ let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
 function show(v){CUR_VIEW=v;tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="overlays")renderOverlaysTab();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings")renderSettings();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings")renderSettings();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>show(b.dataset.v));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="series")renderSeries();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
@@ -2027,10 +2216,10 @@ window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
-  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS}
+  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
   addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();
-  if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
+  if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
   const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");

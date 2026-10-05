@@ -21,12 +21,26 @@ var widgetRe = regexp.MustCompile(`^([a-z]{2,12}|\*)$`)
 
 // Default window sizes for each widget.
 var overlaySizes = map[string][2]int{"flag": {520, 90}, "dash": {560, 230}, "timing": {440, 190}, "map": {440, 480}, "relative": {600, 380}, "fuel": {420, 220},
-	"engine": {320, 260}, "tyres": {420, 260}, "inputs": {560, 210}, "standings": {720, 640}, "radar": {260, 300}, "boost": {360, 170}, "telemetry": {420, 300}, "compare": {680, 320}}
+	"engine": {320, 260}, "tyres": {420, 260}, "inputs": {560, 210}, "standings": {720, 640}, "radar": {260, 300}, "boost": {360, 170}, "telemetry": {420, 300}, "compare": {680, 320}, "gg": {280, 300}, "deltabar": {520, 90}, "stats": {420, 220}}
 
 func itoa(i int) string { return strconv.Itoa(i) }
 
+// Each overlay gets its own loopback address (127.0.0.2, 127.0.0.3, ...). Browsers
+// allow only 6 open connections per host, and every overlay keeps one open for
+// the live stream, so sharing one address would freeze overlays beyond the sixth.
+var overlayOrder = []string{"flag", "dash", "timing", "map", "relative", "compare", "radar", "boost", "inputs", "fuel", "engine", "tyres", "standings", "telemetry", "gg", "deltabar", "stats"}
+
+func overlayHost(name string) string {
+	for i, n := range overlayOrder {
+		if n == name {
+			return fmt.Sprintf("127.0.0.%d", 2+i)
+		}
+	}
+	return "127.0.0.250"
+}
+
 func overlayURL(name string) string {
-	return fmt.Sprintf("http://localhost:%d/?overlay=%s&win=1", listenPort, url.QueryEscape(name))
+	return fmt.Sprintf("http://%s:%d/?overlay=%s&win=1", overlayHost(name), listenPort, url.QueryEscape(name))
 }
 
 // openNamedOverlay opens a widget at its saved position, or a default one.
@@ -94,6 +108,28 @@ func registerOverlayRoutes(mux *http.ServeMux) {
 		setOverlayVisible(n, r.URL.Query().Get("on") == "1")
 		writeJSON(w, map[string]any{"ok": true})
 	}))
+	// Move or resize an overlay from the app (also from a phone).
+	mux.HandleFunc("/api/overlay/move", post(func(w http.ResponseWriter, r *http.Request) {
+		n, ok := name(r)
+		q := r.URL.Query()
+		x, e1 := strconv.Atoi(q.Get("x"))
+		y, e2 := strconv.Atoi(q.Get("y"))
+		ww, e3 := strconv.Atoi(q.Get("width"))
+		hh, e4 := strconv.Atoi(q.Get("height"))
+		if !ok || n == "*" || e1 != nil || e2 != nil || e3 != nil || e4 != nil || ww < 80 || hh < 40 {
+			http.Error(w, "bad request", 400)
+			return
+		}
+		moveOverlay(n, x, y, ww, hh)
+		cfgMu.Lock()
+		cfg.Positions[n] = [4]int{x, y, ww, hh}
+		saveSettingsLocked()
+		cfgMu.Unlock()
+		writeJSON(w, map[string]any{"moved": n})
+	}))
+	mux.HandleFunc("/api/overlay/screen", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, screenInfo())
+	})
 	mux.HandleFunc("/api/overlay/list", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"supported": overlaysSupported, "open": listOverlays()})
 	})

@@ -10,15 +10,17 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
-const appVersion = "0.6.0"
+const appVersion = "0.7.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -372,6 +374,7 @@ func main() {
 
 	loadConfig()
 	loadSettings()
+	loadG61()
 	go reader(*demo)
 	go autoOverlays()
 	go positionKeeper()
@@ -382,6 +385,10 @@ func main() {
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
 		st := currentStatus()
 		host, _ := os.Hostname()
+		if isRemote(r) {
+			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
+			return
+		}
 		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported})
 	})
 	mux.HandleFunc("/api/demo", func(w http.ResponseWriter, r *http.Request) {
@@ -426,6 +433,8 @@ func main() {
 	registerMapRoutes(mux)
 	registerOverlayRoutes(mux)
 	registerConfigRoutes(mux)
+	registerG61Routes(mux)
+	registerShareRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
@@ -474,7 +483,16 @@ func main() {
 			openAppWindow(local)
 		}()
 	}
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	// close the internet link and overlay windows when PitWall closes
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sig
+		stopShare()
+		closeOverlays("*")
+		os.Exit(0)
+	}()
+	srv := &http.Server{Handler: guard(mux), ReadHeaderTimeout: 10 * time.Second}
 	if err := srv.Serve(ln); err != nil {
 		log.Println(err)
 		os.Exit(1)

@@ -152,6 +152,7 @@ type demoSource struct {
 	stop    chan struct{}
 	vmax    float64
 	head    []float64
+	p2pLeft float64
 	kappa   []float64
 }
 
@@ -181,6 +182,7 @@ func (d *demoSource) Open() error {
 		d.cars[i].last = 98.6 * pace
 	}
 	d.fuel, d.lapFuel = 29.6, 29.6
+	d.p2pLeft = 168
 	d.lapF, d.tgtF = 1.004, 1.004
 
 	// lay out the memory block
@@ -551,16 +553,13 @@ func (d *demoSource) step(dt float64) {
 		drs = 3
 	}
 	in("DRS_Status", drs)
-	p2p := pp > 0.04 && pp < 0.11
-	bo("P2P_Status", p2p)
-	used := lap - 6
+	// push to pass works like IndyCar: 200 seconds per race, used on the main straight
+	p2p := pp > 0.04 && pp < 0.11 && d.p2pLeft > 0
 	if p2p {
-		used++
+		d.p2pLeft -= 1.0 / 60 * demoRate
 	}
-	if used < 0 {
-		used = 0
-	}
-	in("P2P_Count", 10-used)
+	bo("P2P_Status", p2p)
+	in("P2P_Count", int(math.Ceil(d.p2pLeft)))
 	in("PlayerCarMyIncidentCount", 2)
 	f("SessionTimeOfDay", 14*3600+d.t)
 	in("TrackWetness", 1)
