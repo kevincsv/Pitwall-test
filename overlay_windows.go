@@ -152,7 +152,11 @@ func openOverlay(o overlayReq, url, engine string) error {
 						delete(procs, o.Widget)
 					}
 					procsMu.Unlock()
-					if err != nil && time.Since(started) < 6*time.Second {
+					code := -1
+					if cmd.ProcessState != nil {
+						code = cmd.ProcessState.ExitCode()
+					}
+					if err != nil && (code == 3 || time.Since(started) < 6*time.Second) {
 						log.Printf("Frameless overlay %s could not start (%v); using an Edge window", o.Widget, err)
 						openEdgeOverlay(o, url)
 					}

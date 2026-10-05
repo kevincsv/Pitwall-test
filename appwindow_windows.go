@@ -36,6 +36,7 @@ var o=window.open;window.open=function(u){if(u&&ext(u)){window.pwOpen(new URL(u,
 // runMainWindow shows the app and blocks until its window is closed.
 // It returns false when WebView2 is not available.
 func runMainWindow(url string, minimized bool) bool {
+	setDPIAware()
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
 	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2")
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
@@ -130,5 +131,22 @@ func setWindowIcon(hwnd uintptr) {
 	}
 	if h := iconFromICO(48); h != 0 {
 		procSendMessageW.Call(hwnd, wmSetIcon, 1, h) // ICON_BIG
+	}
+}
+
+// setDPIAware: sharp text on screens with Windows scaling (125 %, 150 %…).
+// Without it Windows stretches the window and the letters look blurry.
+func setDPIAware() {
+	if p := user32.NewProc("SetProcessDpiAwarenessContext"); p.Find() == nil {
+		if r, _, _ := p.Call(^uintptr(3)); r != 0 { // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 (-4)
+			return
+		}
+	}
+	if p := syscall.NewLazyDLL("shcore.dll").NewProc("SetProcessDpiAwareness"); p.Find() == nil {
+		p.Call(2) // PROCESS_PER_MONITOR_DPI_AWARE
+		return
+	}
+	if p := user32.NewProc("SetProcessDPIAware"); p.Find() == nil {
+		p.Call()
 	}
 }

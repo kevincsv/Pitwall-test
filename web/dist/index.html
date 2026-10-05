@@ -4005,6 +4005,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   applyTheme();
   try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
+  if(OV.on&&typeof window.pwReady==="function")window.pwReady(); // the frameless overlay window: the page loaded
   addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();renderProfBtn();if(OV.on&&OV.list.includes("simhub"))renderSimhubWidget();
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));

@@ -11,7 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync/atomic"
 	"syscall"
+	"time"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
@@ -53,7 +55,17 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
-	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2")
+	// its own browser data, apart from the main window's
+	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2-overlays")
+	// a window that never shows the page (blank and impossible to close) gives up after
+	// a few seconds; Pitlane HQ then opens this overlay in an Edge window instead
+	var ready atomic.Bool
+	go func() {
+		time.Sleep(8 * time.Second)
+		if !ready.Load() {
+			os.Exit(3)
+		}
+	}()
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      data,
 		WindowOptions: webview2.WindowOptions{Title: overlayTitlePrefix + name, Width: uint(w), Height: uint(h)},
@@ -100,6 +112,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 		})
 	})
 	wv.Bind("pwClose", func() { wv.Dispatch(func() { wv.Destroy() }) })
+	wv.Bind("pwReady", func() { ready.Store(true) })
 	wv.Navigate(url)
 	wv.Run()
 }
