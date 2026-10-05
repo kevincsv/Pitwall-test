@@ -149,6 +149,7 @@ func loadProfileState() {
 	loadG61()
 	loadApps()
 	loadHaptics()
+	loadCloud()
 }
 
 func switchProfile(id string) error {

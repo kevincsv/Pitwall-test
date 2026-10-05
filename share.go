@@ -186,7 +186,7 @@ func isRemote(r *http.Request) bool {
 	return r.Header.Get("Cf-Connecting-Ip") != "" || strings.HasSuffix(strings.Split(r.Host, ":")[0], ".trycloudflare.com")
 }
 
-var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics"}
+var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics", "/api/cloud"}
 
 // guard protects the app from remote viewers: they need the share key and can only read.
 func guard(next http.Handler) http.Handler {

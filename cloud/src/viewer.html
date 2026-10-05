@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pitlane HQ Cloud</title>
+<meta name="theme-color" content="#11151b">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Same look as the Pitlane HQ app: timing-screen panels on a dark pit wall. */
+:root{
+  --bg:#11151b;--surface:#19202a;--surface2:#1e2631;--line:#2b3542;--fg:#e7ebf1;--muted:#8a97a9;
+  --accent:#ffb02e;--accent-ink:#11151b;--good:#38c97c;--bad:#ff6363;--pb:#b98cff;--blue:#5c9dff;
+  --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"IBM Plex Sans",system-ui,sans-serif;--f-data:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark}
+@media (prefers-color-scheme:light){:root{--bg:#eef1f5;--surface:#fff;--surface2:#f4f6f9;--line:#d6dce5;--fg:#141a22;--muted:#5b677a;--accent:#b86e00;--accent-ink:#fff;--good:#178a4c;--bad:#c62f2f;--pb:#7a3fd1;--blue:#1f63c6;color-scheme:light}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:14px 40px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.brand{font:700 26px var(--f-display);letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.brand i{width:16px;height:16px;background:conic-gradient(var(--fg) 25%,transparent 0 50%,var(--fg) 0 75%,transparent 0) 0 0/8px 8px}
+.brand small{font:600 12px var(--f-data);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:2px 5px}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button,.btn{font:600 14px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer}
+nav button[aria-selected=true],.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:focus-visible,nav button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1{font:700 32px/1.05 var(--f-display);text-transform:uppercase;margin:0 0 4px;text-wrap:balance}
+h2{font:700 19px var(--f-display);text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
+.sub{color:var(--muted);font-size:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(12,minmax(0,1fr))}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s4{grid-column:span 4}.s6{grid-column:span 6}
+@media (max-width:860px){.s8,.s4,.s6{grid-column:span 12}}
+.label{font:600 11px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font:600 11px var(--f-data);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+td.r,th.r{text-align:right}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--surface2)}
+.pb{color:var(--pb);font-weight:600}.bad{color:var(--bad)}.good{color:var(--good)}.muted{color:var(--muted)}
+.pill{display:inline-block;font:600 11px/1 var(--f-data);padding:4px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.empty{color:var(--muted);padding:24px 4px;text-align:center}
+.login{max-width:440px;margin:8vh auto 0;display:grid;gap:12px}
+input,select{font:15px var(--f-body);background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;width:100%}
+.err{color:var(--bad);min-height:1.2em;font-size:14px}
+canvas{width:100%;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}.legend i{display:inline-block;width:12px;height:3px;margin-right:6px;vertical-align:middle}
+.chip{font:600 13px var(--f-body);background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 11px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.frow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stat{display:grid;gap:2px}.stat b{font:700 30px var(--f-display)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
+  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true">Sesiones</button><button type="button" data-v="bests" aria-selected="false">Récords</button><button type="button" id="out">Salir</button></nav>
+</header>
+
+<form class="login panel" id="login" hidden>
+  <h1>Tus vueltas, en cualquier sitio</h1>
+  <p class="sub">PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con la clave que configuraste (o con la clave de solo lectura que te pasó el piloto).</p>
+  <label><span class="label">Clave</span><input type="password" id="key" autocomplete="current-password" required></label>
+  <div class="err" id="loginErr" role="alert"></div>
+  <button class="btn primary" type="submit">Entrar</button>
+</form>
+
+<main id="app" hidden>
+  <section id="v-sessions"></section>
+  <section id="v-bests" hidden></section>
+  <section id="v-session" hidden></section>
+</main>
+</div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtT=t=>{if(!(t>0))return"–";const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(3)};
+const day=t=>new Date(t).toLocaleString("es-ES",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let KEY="";try{KEY=localStorage.getItem("plq.key")||""}catch(e){}
+async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:"respuesta no válida"}));if(r.status===401){logout();throw new Error("clave incorrecta")}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
+function logout(){KEY="";try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
+let ROLE="viewer";
+$("#login").onsubmit=async e=>{e.preventDefault();KEY=$("#key").value.trim();$("#loginErr").textContent="";
+  try{const me=await get("/api/me");ROLE=me.role;try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent="No se pudo entrar: "+err.message}};
+$("#out").onclick=logout;
+document.querySelectorAll("nav [data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
+function show(v){document.querySelectorAll("nav [data-v]").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["sessions","bests","session"].forEach(x=>$("#v-"+x).hidden=x!==v);if(v==="sessions")sessions();if(v==="bests")bests()}
+async function start(){$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
+
+async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="empty">Cargando…</div>`;
+  try{const list=await get("/api/sessions?limit=120");
+    const laps=list.reduce((s,x)=>s+(x.laps||0),0);
+    box.innerHTML=`<div class="grid" style="margin-bottom:10px"><div class="panel s4 stat"><span class="label">Sesiones</span><b class="mono">${list.length}</b></div><div class="panel s4 stat"><span class="label">Vueltas</span><b class="mono">${laps}</b></div><div class="panel s4 stat"><span class="label">Última</span><b style="font-size:20px">${list[0]?esc(day(list[0].started)):"–"}</b></div></div>
+    <div class="panel"><h2>Sesiones</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>Fecha</th><th>Circuito</th><th>Coche</th><th>Tipo</th><th class="r">Vueltas</th><th class="r">Mejor</th></tr></thead><tbody>${list.map(s=>`<tr class="click" data-id="${esc(s.id)}"><td>${esc(day(s.started))}</td><td>${esc(s.track)}${s.track_config?` <span class="muted">${esc(s.track_config)}</span>`:""}</td><td>${esc(s.car)}</td><td><span class="pill">${esc(s.kind||"–")}</span></td><td class="r mono">${s.laps||0}</td><td class="r mono">${fmtT(s.best)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Aún no hay sesiones. En Pitlane HQ: Cuenta → Pitlane HQ Cloud → activa “Subir mis vueltas” y da unas vueltas en iRacing.</div>`}</div>`;
+    box.querySelectorAll("[data-id]").forEach(r=>r.onclick=()=>openSession(r.dataset.id))}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+
+async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty">Cargando…</div>`;
+  try{const list=await get("/api/bests");box.innerHTML=`<div class="panel"><h2>Tus récords por circuito y coche</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>Circuito</th><th>Coche</th><th class="r">Mejor vuelta</th><th class="r">Vueltas</th><th>Última vez</th></tr></thead><tbody>${list.map(b=>`<tr><td>${esc(b.track)}${b.track_config?` <span class="muted">${esc(b.track_config)}</span>`:""}</td><td>${esc(b.car)}</td><td class="r mono pb">${fmtT(b.best)}</td><td class="r mono">${b.laps}</td><td>${esc(day(b.last))}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Sin récords todavía.</div>`}</div>`}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+
+let CUR=null,SEL=[],TR={},CH="speed";
+async function openSession(id){show("session");history.replaceState(null,"","#"+id);const box=$("#v-session");box.innerHTML=`<div class="empty">Cargando…</div>`;
+  try{CUR=await get("/api/sessions/"+encodeURIComponent(id));SEL=[];TR={};const s=CUR.session,laps=CUR.laps;const valid=laps.filter(l=>l.valid);const best=valid.reduce((a,l)=>!a||l.time<a.time?l:a,null);
+    if(best)SEL=[best.id];const last=laps[laps.length-1];if(last&&last.id!==(best&&best.id))SEL.push(last.id);
+    const nS=Math.max(0,...laps.map(l=>(l.sectors||[]).length)),sb=[...Array(nS)].map((_,i)=>Math.min(...laps.filter(l=>l.valid&&l.sectors&&l.sectors[i]>0).map(l=>l.sectors[i])));
+    const ideal=nS&&sb.every(isFinite)?sb.reduce((a,b)=>a+b,0):null;
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px"><div><button class="btn" type="button" id="back">← Sesiones</button><h1 style="margin-top:12px">${esc(s.track)}</h1><div class="sub">${esc(s.car)} · ${esc(s.kind||"")} · ${esc(day(s.started))}${s.track_temp!=null?` · pista ${(+s.track_temp).toFixed(0)} °C`:""}</div></div>
+      ${ROLE==="owner"?`<button class="btn" type="button" id="del">Borrar sesión</button>`:""}</div>
+    <div class="grid"><div class="panel s4 stat"><span class="label">Mejor vuelta</span><b class="mono pb">${fmtT(best&&best.time)}</b></div><div class="panel s4 stat"><span class="label">Vuelta ideal (mejores sectores)</span><b class="mono">${fmtT(ideal)}</b></div><div class="panel s4 stat"><span class="label">Vueltas válidas</span><b class="mono">${valid.length} / ${laps.length}</b></div>
+      <div class="panel s12"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">Comparar vueltas</h2><div class="frow">${[["speed","Velocidad"],["pedals","Acelerador y freno"],["gear","Marcha"]].map(c=>`<button type="button" class="chip" data-ch="${c[0]}" aria-pressed="${CH===c[0]}">${c[1]}</button>`).join("")}</div></div>
+        <div class="legend" id="lg"></div><canvas id="cv" height="240"></canvas><div class="label" style="margin:10px 0 4px">Diferencia acumulada (s) · por encima de cero, la segunda vuelta pierde tiempo</div><canvas id="dv" height="110"></canvas></div>
+      <div class="panel s12"><h2>Vueltas</h2><p class="sub" style="margin:0 0 8px">Toca dos vueltas para compararlas.</p><div class="tscroll"><table><thead><tr><th>#</th><th class="r">Tiempo</th>${[...Array(nS)].map((_,i)=>`<th class="r">S${i+1}</th>`).join("")}<th class="r">Gasolina</th><th class="r">Vel. máx.</th><th></th></tr></thead><tbody>${laps.map(l=>`<tr class="click" data-lap="${esc(l.id)}"><td class="mono">${l.n}</td><td class="r mono ${best&&l.id===best.id?"pb":""}">${fmtT(l.time)}</td>${[...Array(nS)].map((_,i)=>{const v=(l.sectors||[])[i];return `<td class="r mono ${v&&v===sb[i]?"pb":""}">${v?v.toFixed(3):"–"}</td>`}).join("")}<td class="r mono">${l.fuel!=null?l.fuel.toFixed(2)+" L":"–"}</td><td class="r mono">${l.vmax?Math.round(l.vmax*3.6)+" km/h":"–"}</td><td>${l.valid?"":`<span class="pill bad">inválida</span>`} <span class="pill" data-selp="${esc(l.id)}"></span></td></tr>`).join("")}</tbody></table></div></div></div>`;
+    $("#back").onclick=()=>{history.replaceState(null,"","#");show("sessions")};
+    const del=$("#del");if(del)del.onclick=async()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent="Pulsa otra vez para borrar";return}await get("/api/sessions/"+encodeURIComponent(id),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});history.replaceState(null,"","#");show("sessions")};
+    box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{CH=b.dataset.ch;box.querySelectorAll("[data-ch]").forEach(x=>x.setAttribute("aria-pressed",x===b));draw()});
+    box.querySelectorAll("[data-lap]").forEach(r=>r.onclick=()=>{const k=r.dataset.lap;SEL=SEL.includes(k)?SEL.filter(x=>x!==k):[...SEL,k].slice(-2);loadSel()});
+    loadSel()}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+async function loadSel(){document.querySelectorAll("[data-selp]").forEach(p=>{const i=SEL.indexOf(p.dataset.selp);p.textContent=i<0?"":i===0?"A":"B";p.style.borderColor=i===0?css("--accent"):i===1?css("--blue"):"";p.style.color=p.style.borderColor;p.hidden=i<0});
+  for(const id of SEL)if(!TR[id])try{TR[id]=await get("/api/laps/"+encodeURIComponent(id))}catch(e){}
+  draw()}
+function fit(c){const d=devicePixelRatio||1,w=c.clientWidth,h=+c.getAttribute("height");c.width=w*d;c.height=h*d;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);return[x,w,h]}
+function series(l){const t=l&&l.trace;if(!t||!t.d)return null;return{bin:t.bin||5,d:t.d}}
+function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv),[y,w2,h2]=fit(dv);const A=series(TR[SEL[0]]),B=series(TR[SEL[1]]);
+  const cols=[css("--accent"),css("--blue")];$("#lg").innerHTML=SEL.map((id,i)=>{const l=TR[id];return l?`<span><i style="background:${cols[i]}"></i>${i?"B":"A"} · vuelta ${l.n} · ${fmtT(l.time)}</span>`:""}).join("");
+  [x,y].forEach((c,i)=>{c.clearRect(0,0,i?w2:w,i?h2:h)});const sets=[A,B].filter(Boolean);
+  if(!sets.length){x.fillStyle=css("--muted");x.font="14px "+css("--f-body");x.fillText("Esta vuelta no tiene telemetría guardada.",12,30);return}
+  const n=Math.max(...sets.map(s=>s.d.length));const val=r=>CH==="speed"?r[0]*3.6:CH==="gear"?r[3]:r[1]*100;const vmax=CH==="speed"?Math.max(...sets.flatMap(s=>s.d.map(r=>r[0]*3.6)))*1.05:CH==="gear"?8:100;
+  x.strokeStyle=css("--line");x.lineWidth=1;for(let k=1;k<4;k++){x.beginPath();x.moveTo(0,h*k/4);x.lineTo(w,h*k/4);x.stroke()}
+  x.fillStyle=css("--muted");x.font="11px "+css("--f-data");x.fillText(CH==="speed"?Math.round(vmax)+" km/h":CH==="gear"?"8":"100%",4,12);
+  [A,B].forEach((s,i)=>{if(!s)return;const plot=(f,col,dash)=>{x.strokeStyle=col;x.setLineDash(dash||[]);x.lineWidth=1.6;x.beginPath();s.d.forEach((r,k)=>{const X=k/(n-1)*w,Y=h-f(r)/vmax*(h-6)-3;k?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();x.setLineDash([])};
+    if(CH==="pedals"){plot(r=>r[1]*100,i?css("--blue"):css("--good"));plot(r=>r[2]*100,i?css("--pb"):css("--bad"),i?[4,3]:[])}else plot(val,cols[i])});
+  if(A&&B){const cum=s=>{let t=0;return s.d.map(r=>t+=s.bin/Math.max(r[0],5))};const ca=cum(A),cb=cum(B),m=Math.min(ca.length,cb.length);const dd=[...Array(m)].map((_,k)=>cb[k]-ca[k]);const lim=Math.max(.2,...dd.map(Math.abs));
+    y.strokeStyle=css("--line");y.beginPath();y.moveTo(0,h2/2);y.lineTo(w2,h2/2);y.stroke();y.strokeStyle=css("--accent");y.lineWidth=1.6;y.beginPath();dd.forEach((v,k)=>{const X=k/(n-1)*w2,Y=h2/2-v/lim*(h2/2-4);k?y.lineTo(X,Y):y.moveTo(X,Y)});y.stroke();
+    y.fillStyle=css("--muted");y.font="11px "+css("--f-data");y.fillText("+"+lim.toFixed(2)+" s",4,12);y.fillText("final "+(dd[m-1]>=0?"+":"")+dd[m-1].toFixed(3)+" s",w2-110,h2-6)}}
+addEventListener("resize",draw);
+if(KEY)get("/api/me").then(me=>{ROLE=me.role;start()}).catch(()=>logout());else logout();
+</script>
+</body>
+</html>

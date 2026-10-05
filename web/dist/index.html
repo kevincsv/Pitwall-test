@@ -120,7 +120,7 @@ tr.ahead td.nm{color:var(--bad)}tr.behind td.nm{color:var(--blue)}
 .row{display:flex;gap:18px;flex-wrap:wrap}
 .row>div{min-width:0}
 .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-select,input[type=text],input[type=email],input[type=password],input[type=search]{font:500 14px var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0;max-width:100%}
+select,input[type=text],input[type=email],input[type=password],input[type=search],input[type=url],input[type=date],input[type=time]{font:500 14px var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0;max-width:100%}
 .btn{font:600 14px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:10px 13px;cursor:pointer}
 .btn:hover{border-color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -821,6 +821,7 @@ html.ov .shbox{height:calc(100vh - 40px)}
     </div>
   </div>
   <div class="panel" id="g61Panel" style="margin-bottom:10px"></div>
+  <div class="panel" id="cloudPanel" style="margin-bottom:10px"></div>
   <div id="accBody" class="grid" hidden>
     <div class="panel s12"><div class="label" style="margin-bottom:8px" data-i18n="licences"></div><div class="lcards" id="licCards"></div></div>
     <div class="panel s3"><div class="label">iRating</div><div class="big mono" id="accIr">–</div><div class="sub" id="accIrD"></div></div>
@@ -2395,7 +2396,7 @@ function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];bo
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel();renderCloudPanel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
@@ -2843,6 +2844,33 @@ async function hapTick(){if(CUR_VIEW!=="haptics"||!HAP)return;let lv=null;
   if(MODE==="local")lv=demoLevels();else{const j=await rigGet("/api/haptics/levels");lv=j&&j.levels}
   if(lv)Object.keys(HAP_NAMES).forEach(k=>{const b=$("#hm-"+k);if(b)b.style.width=Math.min(100,(lv[k]||0)*100)+"%"});
   hapTimer=setTimeout(hapTick,120)}
+
+/* ===================== Pitlane HQ Cloud (your own web version) ===================== */
+async function renderCloudPanel(){const box=$("#cloudPanel");if(!box)return;
+  if(MODE!=="bridge"||REMOTE){box.innerHTML=`<h2>Pitlane HQ Cloud</h2><p class="note">${Lp("Your laps on the web, from anywhere: PitlaneHQ.exe uploads every lap to your own free Cloudflare site. Set it up in the app running from PitlaneHQ.exe.","Tus vueltas en la web, desde cualquier sitio: PitlaneHQ.exe sube cada vuelta a tu propio sitio gratuito de Cloudflare. Se configura en la app desde PitlaneHQ.exe.")}</p>`;return}
+  const st=await rigGet("/api/cloud")||{};const ago=t=>t?new Date(t).toLocaleString(locale(),{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"}):"–";
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">Pitlane HQ Cloud</h2><span class="pill ${st.enabled&&!st.error?"good":st.error?"bad":""}">${st.enabled?(st.error?esc(Tx("Problem","Problema")):"✓ "+esc(Tx("Uploading your laps","Subiendo tus vueltas"))):esc(Tx("Off","Desactivado"))}</span></div>
+    <p class="note">${Lp("Like Garage 61, on your own site: Pitlane HQ records every lap you drive (even with this screen closed) and uploads it to your free Cloudflare site, where you see your sessions, records and lap comparisons from any device. Laps wait on this PC if the internet drops.","Como Garage 61, en tu propio sitio: Pitlane HQ graba cada vuelta que das (aunque esta pantalla esté cerrada) y la sube a tu sitio gratuito de Cloudflare, donde ves tus sesiones, récords y comparaciones desde cualquier dispositivo. Si se cae internet, las vueltas esperan en este PC.")}</p>
+    <form class="form" id="cloudForm" style="margin-top:10px">
+      <label><span class="label">${esc(Tx("Your site's address","Dirección de tu sitio"))}</span><input type="url" id="cUrl" placeholder="https://pitlanehq.tu-usuario.workers.dev" value="${esc(st.url||"")}"></label>
+      <label><span class="label">${esc(Tx("Key (PITLANE_KEY)","Clave (PITLANE_KEY)"))}</span><span class="frow"><input type="password" id="cKey" autocomplete="off" placeholder="${st.hasKey?esc(Tx("saved, encrypted","guardada, cifrada")):""}" style="flex:1;min-width:200px"><button type="button" class="btn small" id="cGen">${esc(Tx("Create a key","Crear una clave"))}</button></span></label>
+      <div class="frow">${chk("cOn",st.enabled,Lp("Upload my laps","Subir mis vueltas",true))}</div>
+      <div class="frow"><button type="submit" class="btn primary">${esc(Tx("Save","Guardar"))}</button><button type="button" class="btn" id="cTest">${esc(Tx("Test connection","Probar conexión"))}</button>${st.url?`<a class="btn" href="${esc(st.url)}" target="_blank" rel="noopener">${esc(Tx("Open my site","Abrir mi sitio"))}</a>`:""}</div>
+      <div class="err" id="cErr" role="alert">${st.error?esc(st.error):""}</div>
+    </form>
+    <dl class="kv" style="margin-top:8px"><dt>${esc(Tx("Laps sent","Vueltas enviadas"))}</dt><dd class="mono">${st.sent||0}</dd><dt>${esc(Tx("Waiting to upload","Esperando para subir"))}</dt><dd class="mono">${st.waiting||0}</dd><dt>${esc(Tx("Last upload","Última subida"))}</dt><dd>${esc(ago(st.last))}</dd></dl>
+    <details style="margin-top:10px"><summary class="label">${esc(Tx("How to create your site (once, free)","Cómo crear tu sitio (una vez, gratis)"))}</summary><ol class="steps">
+      <li>${Lp("Create a free Cloudflare account at dash.cloudflare.com.","Crea una cuenta gratuita de Cloudflare en dash.cloudflare.com.")}</li>
+      <li>${Lp("On a PC with Node.js, open the cloud folder of this project and run: npx wrangler login","En un PC con Node.js, abre la carpeta cloud de este proyecto y ejecuta: npx wrangler login")}</li>
+      <li>${Lp("npx wrangler d1 create pitlanehq, then paste the database_id it prints into wrangler.toml.","npx wrangler d1 create pitlanehq y pega en wrangler.toml el database_id que muestra.")}</li>
+      <li>${Lp("npm run db:init, then npx wrangler secret put PITLANE_KEY and paste the key you created here.","npm run db:init y después npx wrangler secret put PITLANE_KEY y pega la clave que creaste aquí.")}</li>
+      <li>${Lp("npx wrangler deploy. It prints your address (…workers.dev): paste it above, save and test.","npx wrangler deploy. Te muestra tu dirección (…workers.dev): pégala arriba, guarda y prueba.")}</li></ol>
+      <p class="note">${Lp("Optional: npx wrangler secret put VIEW_KEY creates a read-only key for your engineer or team.","Opcional: npx wrangler secret put VIEW_KEY crea una clave de solo lectura para tu ingeniero o equipo.")}</p></details>`;
+  const on=$("#cOn");on.onclick=()=>on.setAttribute("aria-pressed",on.getAttribute("aria-pressed")!=="true");
+  $("#cGen").onclick=async()=>{const j=await rigPost("/api/cloud",{action:"newkey"});if(!j)return;const k=$("#cKey");k.type="text";k.value=j.key;k.select();toast(Tx("Key created: save it here and as PITLANE_KEY in Cloudflare","Clave creada: guárdala aquí y como PITLANE_KEY en Cloudflare"))};
+  $("#cloudForm").onsubmit=async e=>{e.preventDefault();const j=await rigPost("/api/cloud",{action:"save",url:$("#cUrl").value,key:$("#cKey").value,enabled:on.getAttribute("aria-pressed")==="true"});if(j){toast(Tx("Saved","Guardado"));renderCloudPanel()}};
+  $("#cTest").onclick=async()=>{$("#cErr").textContent="";const r=await fetch("/api/cloud",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"test"})}).catch(()=>null);const j=r?await r.json().catch(()=>({})):{};
+    if(r&&r.ok)toast(Tx("Connected to your Pitlane HQ Cloud","Conectado a tu Pitlane HQ Cloud"));else $("#cErr").textContent=(j&&j.error)||Tx("Could not connect","No se pudo conectar")}}
 
 /* ===================== boot ===================== */
 (async function boot(){

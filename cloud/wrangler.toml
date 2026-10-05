@@ -1,0 +1,18 @@
+name = "pitlanehq"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pitlanehq"
+# paste the id printed by `npx wrangler d1 create pitlanehq`
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# secrets (set with `npx wrangler secret put NAME`):
+#   PITLANE_KEY  key that PitlaneHQ.exe uses to upload and you use to sign in
+#   VIEW_KEY     optional read-only key to share with your engineer or team
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false

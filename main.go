@@ -361,7 +361,9 @@ func main() {
 	ovW := flag.Int("w", 460, "internal")
 	ovH := flag.Int("h", 260, "internal")
 	rate := flag.Float64("demo-rate", 1, "demo playback speed (testing)")
+	cd := flag.Bool("cloud-demo", false, "internal: upload the demo race laps (testing)")
 	flag.Parse()
+	cloudDemo = *cd
 	demoRate = *rate
 	if *ovName != "" {
 		runOverlayWindow(*ovName, *ovURL, *ovX, *ovY, *ovW, *ovH)
@@ -378,6 +380,8 @@ func main() {
 	go autoOverlays()
 	go positionKeeper()
 	go appsOnSim()
+	go lapRecorder()
+	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
 		launchGroup("pitwall")
@@ -443,6 +447,7 @@ func main() {
 	registerAppRoutes(mux)
 	registerRigRoutes(mux)
 	registerHapticsRoutes(mux)
+	registerCloudRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

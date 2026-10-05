@@ -25,3 +25,6 @@ android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+cloud/node_modules/
+cloud/.wrangler/
+cloud/.dev.vars

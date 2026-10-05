@@ -78,6 +78,18 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Gap graph**: how the gap to the cars around you changes over the last minutes, and whether you are catching them.
 - **Incident log**: every incident with lap and place on track, against the session limit.
 
+## Calendar, phone apps and your own web version
+
+- **Season → Calendar**: week and month views of your plan, your own events (league races, practice, times you are not available), clashes in red, suggested sessions of your starred series, reminders 5/15/30/60 minutes before and export to any calendar (.ics).
+- **iPhone/iPad app** (see `ios/README.md`): reminders before each race even with the app closed, and a **Next races** widget for the home screen and lock screen.
+- **Android app**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (install the .apk). Same reminders and a **Next races** home-screen widget with a live countdown.
+- **Pitlane HQ Cloud** (see `cloud/README.md`): your own free website on Cloudflare. Pitlane HQ records every lap (even with the screen closed) and uploads it; open the site anywhere to see sessions, records per track and car, and compare laps.
+
+## Haptics (Rig → Haptics)
+
+- **SimHub ShakeIt** (recommended for Simsonn Pro Haptics and MOZA pedal haptics through AZOM): mute, unmute and change the strength of bass shakers and motors from Pitlane HQ. Warns you when SIMSONN Manager is open, because Simsonn asks not to use it together with SimHub.
+- **Pitlane HQ engine**: Pitlane HQ's own effects for bass shakers on any sound card or USB sound box (2, 4, 6 or 8 channels): engine, gear shifts, road and kerbs (left/right), ABS, impacts and off track, each with strength, frequency, the channels it goes to and a **Feel it** test.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -192,6 +204,18 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Mini-sectores**: la vuelta en 24 partes, en morado (mejor de la sesión), verde (más rápido que tu mejor vuelta) o amarillo, con tu vuelta ideal.
 - **Gráfica de gaps**: cómo cambia el gap con los coches de alrededor en los últimos minutos y si los estás alcanzando.
 - **Registro de incidentes**: cada incidente con vuelta y punto de la pista, frente al límite de la sesión.
+
+## Calendario, apps del móvil y tu propia versión web
+
+- **Temporada → Calendario**: vista semanal y mensual de tu plan, tus propios eventos (carreras de liga, prácticas, ratos en que no estás disponible), solapes en rojo, sesiones sugeridas de tus series con estrella, avisos 5/15/30/60 minutos antes y exportación a cualquier calendario (.ics).
+- **App de iPhone/iPad** (mira `ios/README.md`): avisos antes de cada carrera aunque la app esté cerrada, y un widget **Próximas carreras** para la pantalla de inicio y la de bloqueo.
+- **App de Android**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (instala el .apk). Los mismos avisos y un widget **Próximas carreras** con cuenta atrás en vivo.
+- **Pitlane HQ Cloud** (mira `cloud/README.md`): tu propia web gratuita en Cloudflare. Pitlane HQ graba cada vuelta (aunque la pantalla esté cerrada) y la sube; abre la web desde cualquier sitio para ver sesiones, récords por circuito y coche, y comparar vueltas.
+
+## Hápticos (Rig → Hápticos)
+
+- **SimHub ShakeIt** (recomendado para Simsonn Pro Haptics y hápticos de pedales MOZA vía AZOM): silencia, activa y cambia la intensidad de bass shakers y motores desde Pitlane HQ. Avisa si SIMSONN Manager está abierto, porque Simsonn pide no usarlo a la vez que SimHub.
+- **Motor de Pitlane HQ**: efectos propios para bass shakers en cualquier tarjeta o caja de sonido USB (2, 4, 6 u 8 canales): motor, cambios de marcha, asfalto y pianos (izquierda/derecha), ABS, impactos y fuera de pista, cada uno con fuerza, frecuencia, los canales a los que va y un botón **Probar**.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 
