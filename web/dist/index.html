@@ -583,6 +583,82 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .linkrow{width:100%;text-align:left;background:var(--surface);color:var(--fg);font:inherit;cursor:pointer}.linkrow:hover{border-color:var(--accent)}
 @media (min-width:761px){nav.tabs button{padding:8px 8px;font-size:13.5px;letter-spacing:.03em}nav.tabs button svg{width:15px;height:15px}header.top .brand{font-size:24px}}
 @media (min-width:761px) and (max-width:1180px){nav.tabs button span{display:none}nav.tabs button{padding:9px 11px}}
+/* home dashboard (phone app) */
+nav.tabs button[data-g=home],nav.tabs button[data-g=more]{display:none}
+@media (max-width:820px){nav.tabs button[data-g=home],nav.tabs button[data-g=more]{display:inline-flex}nav.tabs button[data-g=rig],nav.tabs button[data-g=community],nav.tabs button[data-g=account]{display:none}}
+.hm{display:grid;gap:16px;max-width:760px;margin:0 auto;padding-bottom:12px}
+.hm-head{display:flex;align-items:center;gap:13px}
+.hm-av{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;font:800 22px/1 var(--f-display);color:var(--accent-ink);background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 40%,var(--bad)));flex:none;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 25%,transparent)}
+.hm-who{min-width:0;flex:1}.hm-name{font:700 24px/1.05 var(--f-display);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-meta{color:var(--muted);font-size:12.5px;line-height:1.45}.hm-meta b{color:var(--fg);font-weight:600}
+.hm-gear{flex:none}
+.hm-sec{display:grid;gap:8px}
+.hm-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 2px}
+.hm-h h2{font:700 15px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;margin:0;color:var(--muted)}
+.hm-h button{background:none;border:0;color:var(--accent);font:600 13px var(--f-body);cursor:pointer;padding:4px 0}
+.hm-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.cico{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hm-lics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.hm-lic{--lc:var(--lic-p);background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 12%,var(--surface)),var(--surface) 70%);border:1px solid color-mix(in srgb,var(--lc) 30%,var(--line));border-radius:14px;padding:8px 2px 8px;display:grid;justify-items:center;gap:4px;min-width:0}
+.hm-lic.lc-R{--lc:var(--lic-r)}.hm-lic.lc-D{--lc:var(--lic-d)}.hm-lic.lc-C{--lc:var(--lic-c)}.hm-lic.lc-B{--lc:var(--lic-b)}.hm-lic.lc-A{--lc:var(--lic-a)}.hm-lic.lc-P{--lc:var(--lic-p)}
+.hm-lic .cico{width:22px;height:22px;color:var(--lc)}.hm-lic .licring{width:54px;height:54px}
+.hm-lic b{font:700 13px/1 var(--f-data)}.hm-lic small{font:600 9.5px/1 var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-lic.none{opacity:.45}
+.hm-live{display:flex;align-items:center;gap:12px;border-color:color-mix(in srgb,var(--good) 45%,var(--line));background:color-mix(in srgb,var(--good) 8%,var(--surface))}
+.hm-live i{width:10px;height:10px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 25%,transparent);flex:none;animation:hmPulse 1.6s infinite}
+@keyframes hmPulse{50%{box-shadow:0 0 0 8px transparent}}
+.hm-live div{flex:1;min-width:0}.hm-live b{display:block}.hm-live span{color:var(--muted);font-size:13px}
+.hm-cr{display:grid;gap:12px}
+.hm-crtop{display:flex;align-items:center;gap:12px}
+.hm-coin{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#ffe29a,var(--accent) 55%,color-mix(in srgb,var(--accent) 60%,#000));color:#3b2600;font:800 20px/1 var(--f-display);box-shadow:inset 0 -3px 0 rgba(0,0,0,.18),0 4px 14px color-mix(in srgb,var(--accent) 30%,transparent)}
+.hm-crbig{font:800 30px/1 var(--f-data)}.hm-crbig small{font:600 13px var(--f-body);color:var(--muted);margin-left:6px}
+.hm-crsub{color:var(--muted);font-size:12.5px;margin-top:3px}
+.hm-bar{height:8px;border-radius:5px;background:var(--surface2);overflow:hidden;display:flex}.hm-bar b{background:var(--good)}.hm-bar s{background:color-mix(in srgb,var(--accent) 70%,transparent)}
+.hm-barlbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:5px}
+.hm-crl{display:grid;gap:0}
+.hm-crr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:11px 0;border-top:1px solid var(--line);align-items:center}
+.hm-crr .nm{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-crr .st{font-size:12.5px;color:var(--muted)}
+.hm-dots{display:flex;gap:4px;flex-wrap:wrap;grid-column:1/-1}
+.hm-dots i{width:15px;height:6px;border-radius:3px;background:var(--surface2);border:1px solid var(--line)}
+.hm-dots i.on{background:var(--good);border-color:var(--good)}.hm-dots i.now{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 25%,transparent)}
+.hm-dots i.lost{background:color-mix(in srgb,var(--bad) 22%,transparent);border-color:color-mix(in srgb,var(--bad) 50%,var(--line))}
+.hm-tag{font:700 11px/1 var(--f-data);letter-spacing:.04em;padding:5px 8px;border-radius:20px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.hm-tag.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 55%,var(--line));background:color-mix(in srgb,var(--good) 10%,transparent)}
+.hm-tag.acc{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.hm-tag.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.hm-nx{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);grid-column:1/-1}.hm-nx b{color:var(--fg);font-weight:600}
+.hm-nx .bell,.hm-up .bell{margin-left:auto}
+.bell{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none}
+.bell svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bell[aria-pressed=true]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.hm-rr{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(186px,62%);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+.hm-rr::-webkit-scrollbar{display:none}
+.hm-race{scroll-snap-align:start;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:9px;min-width:0}
+.hm-race:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.hm-race .tr{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hm-race .se{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-race .mid{display:flex;align-items:center;gap:10px}
+.hm-pos{font:800 30px/1 var(--f-display)}.hm-pos.win{color:var(--accent)}
+.hm-pos small{font:600 12px var(--f-body);color:var(--muted);margin-left:4px}
+.hm-inc{margin-left:auto;font:700 12px/1 var(--f-data);padding:5px 7px;border-radius:7px;background:var(--surface2);border:1px solid var(--line)}
+.hm-inc.i0{color:var(--good);border-color:color-mix(in srgb,var(--good) 50%,var(--line))}.hm-inc.ihi{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,var(--line))}
+.hm-ch{display:flex;gap:12px;font:600 12.5px var(--f-data)}.hm-ch span{display:flex;gap:4px;align-items:center}.hm-ch em{font-style:normal;color:var(--muted);font-weight:500}
+.hm-up{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--line)}.hm-up:first-child{border-top:0;padding-top:2px}
+.hm-when{width:54px;flex:none;text-align:center;border-radius:12px;background:var(--surface2);padding:6px 0}
+.hm-when small{display:block;font:700 10px/1.2 var(--f-data);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.hm-when b{font:700 16px/1.2 var(--f-data)}
+.hm-up .inf{min-width:0;flex:1}.hm-up .nm{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-up .sub2{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hm-up .cd{font:700 12.5px var(--f-data);color:var(--accent)}
+.hm-empty{color:var(--muted);font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hm-note{font-size:12px;color:var(--muted);margin:0 2px}
+/* "more" sheet */
+.msheet{position:fixed;inset:0;z-index:40}.msheet[hidden]{display:none}
+.msheet .bg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.msheet .pn{position:absolute;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;box-shadow:0 18px 50px rgba(0,0,0,.45);animation:msUp .16s ease-out}
+@keyframes msUp{from{transform:translateY(12px);opacity:0}}
+.msheet .pn button{display:grid;justify-items:center;gap:7px;padding:14px 4px;border-radius:14px;border:1px solid var(--line);background:var(--surface2);color:var(--fg);font:600 13px var(--f-body);cursor:pointer}
+.msheet .pn button[aria-current=true]{border-color:var(--accent);color:var(--accent)}
+.msheet .pn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 
 <div class="wrap">
@@ -590,12 +666,14 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ</div>
   <button class="conn" id="conn" type="button">…</button>
   <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-g="home" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v10h4.5v-5.5h3V20H18V10"/></svg><span data-i18n="g.home"></span></button>
     <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h9l1 2h6v9h-7l-1-2H6v8z"/></svg><span data-i18n="g.race"></span></button>
     <button role="tab" data-g="analysis" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-5M11 16V6M16 16v-8M21 4l-5 4-5-2-5 5"/></svg><span data-i18n="g.analysis"></span></button>
     <button role="tab" data-g="season" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="g.season"></span></button>
     <button role="tab" data-g="rig" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M4.5 10h5M14.5 10h5M12 14.5V20"/></svg><span data-i18n="g.rig"></span></button>
     <button role="tab" data-g="community" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M15 14.6c2.8-.3 5.4 1.3 6.3 4.6"/></svg><span data-i18n="g.community"></span></button>
     <button role="tab" data-g="account" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span data-i18n="g.account"></span></button>
+    <button role="tab" data-g="more" aria-selected="false" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span data-i18n="g.more"></span></button>
   </nav>
   <button class="profbtn" id="profBtn" type="button" hidden></button>
   <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
@@ -1017,6 +1095,9 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
     <dl class="kv" style="margin-top:12px" id="devList"></dl>
   </div>
 </section>
+
+<!-- HOME: the phone app's dashboard -->
+<section class="view" id="v-home" hidden><div class="hm" id="homeBox"></div></section>
 
 <!-- ACCOUNT -->
 <section class="view" id="v-account" hidden>
@@ -1470,7 +1551,7 @@ async function loadAccount(){accLoaded=true;$("#accSub").textContent=Tx("Loading
 function drawAccount(){if(!MEMBER||!ACCDATA)return;renderLicences(normMember(MEMBER));$("#accName").textContent=MEMBER.display_name||ACC.username;$("#accSub").textContent=`#${MEMBER.cust_id}`+(MEMBER.club_name?" · "+MEMBER.club_name:"");
   const lics=MEMBER.licenses||{},key={5:"sports_car",6:"formula_car",1:"oval",3:"dirt_oval",4:"dirt_road"}[CAT];const li=lics[key]||Object.values(lics).find(l=>l.category_id==CAT)||{};
   const races=ACCDATA.recent.filter(r=>!r.series_name||true);fillAccount({ir:li.irating,ttr:li.tt_rating,lic:li.group_name?(li.group_name.replace("Class ","")[0]):"",sr:li.safety_rating,cpi:li.cpi,chart:ACCDATA.chart,
-    races:races.map(r=>({sub:r.subsession_id,date:r.session_start_time,series:r.series_name,track:(r.track||{}).track_name,start:r.start_position,finish:r.finish_position,inc:r.incidents,dIr:(r.newi_rating??0)-(r.oldi_rating??0),dSr:((r.new_sub_level??0)-(r.old_sub_level??0))/100}))})}
+    races:races.map(r=>({sub:r.subsession_id,sid:r.series_id,date:r.session_start_time,series:r.series_name,track:(r.track||{}).track_name,start:r.start_position,finish:r.finish_position,inc:r.incidents,dIr:(r.newi_rating??0)-(r.oldi_rating??0),dSr:((r.new_sub_level??0)-(r.old_sub_level??0))/100}))})}
 function fillAccount(a){ACCSUM=a;
   $("#accIr").textContent=a.ir!=null?a.ir.toLocaleString():"–";const ch=a.chart||[];if(ch.length>1){const d=ch.at(-1).value-ch[0].value;$("#accIrD").innerHTML=`<span class="${d>=0?"good":"bad"}">${d>=0?"+":"−"}${Math.abs(d)}</span> ${Lp("over the period shown","en el periodo mostrado",true)}`}else $("#accIrD").textContent="";
   $("#aLic").innerHTML=a.lic?`<span class="lic ${esc(a.lic)}" style="font-size:22px;padding:5px 8px;vertical-align:middle">${esc(a.lic)}</span> <span class="mono">${a.sr!=null?Number(a.sr).toFixed(2):"–"}</span>`:"–";
@@ -1489,7 +1570,7 @@ function drawIR(ch){const el=$("#irChart");if(!ch||ch.length<2){el.innerHTML=`<d
   const pts=vals.map((v,i)=>X(i)+","+Y(v)).join(" ");s+=`<polygon points="${X(0)},${Y(lo)} ${pts} ${X(vals.length-1)},${Y(lo)}" fill="var(--accent)" fill-opacity=".12"/><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${X(vals.length-1)}" cy="${Y(vals.at(-1))}" r="5" fill="var(--accent)"/>`;el.innerHTML=s+"</svg>"}
 function renderSampleAccount(){$("#accName").textContent="Alex D.";if(SER)renderLicences(SER.member);else loadSeries().then(()=>{if(SER)renderLicences(SER.member)});const ir=[1984,2011,1996,2040,2068,2052,2031,2077,2102,2089,2120,2146,2133,2101,2125,2160,2152,2181,2170,2199,2186,2205,2190,2214];const now=Date.now();
   fillAccount({ir:2214,lic:"B",sr:3.41,cpi:31.4,chart:ir.map((v,i)=>({when:new Date(now-(ir.length-i)*4*864e5).toISOString(),value:v})),
-    races:[["2026-10-03","Global Mazda MX-5 Cup","Laguna Seca",6,4,2,24,.18],["2026-10-01","Global Mazda MX-5 Cup","Laguna Seca",3,5,4,-15,-.21],["2026-09-28","GR86 Cup","Okayama",8,3,0,29,.34],["2026-09-26","Global Mazda MX-5 Cup","Lime Rock Park",4,6,6,-11,-.42],["2026-09-24","Global Mazda MX-5 Cup","Lime Rock Park",5,2,1,28,.27],["2026-09-21","GR86 Cup","Summit Point",2,0,0,35,.41]].map(r=>({date:r[0],series:r[1],track:r[2],start:r[3],finish:r[4],inc:r[5],dIr:r[6],dSr:r[7]}))})}
+    races:[[0.3,"Global Mazda MX-5 Cup","Laguna Seca",6,4,2,24,.18],[2.2,"Global Mazda MX-5 Cup","Laguna Seca",3,5,4,-15,-.21],[5.1,"GR86 Cup","Okayama",8,3,0,29,.34],[7.4,"Global Mazda MX-5 Cup","Lime Rock Park",4,6,6,-11,-.42],[9.2,"Global Mazda MX-5 Cup","Lime Rock Park",5,2,1,28,.27],[12.1,"GR86 Cup","Summit Point",2,0,0,35,.41]].map(r=>({date:new Date(now-r[0]*864e5).toISOString(),series:r[1],track:r[2],start:r[3],finish:r[4],inc:r[5],dIr:r[6],dSr:r[7]}))})}
 $("#catSel").onchange=()=>{CAT=+$("#catSel").value;store.set("pw.cat",CAT);if(MODE==="bridge"){accLoaded=false;loadAccount()}};
 $("#loginForm").onsubmit=async e=>{e.preventDefault();const btn=$("#loginBtn");btn.disabled=true;$("#loginErr").textContent="";
   try{const r=await fetch("/api/account/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ClientID:$("#fClient").value,ClientSecret:$("#fSecret").value,Username:$("#fUser").value,Password:$("#fPass").value})});
@@ -1603,7 +1684,9 @@ function normSeries(seasons,tracks,cars,classes,member){
     weeks:(s.schedules||[]).map(w=>{const r=(w.race_time_descriptors||[{}])[0]||{},wx=(w.weather||{}).weather_summary||{};return{w:w.race_week_num,s:w.start_date,e:w.week_end_time,cat:w.category,tr:w.track.track_id,trn:w.track.track_name,cars:(w.race_week_cars||[]).map(c=>c.car_id),laps:w.race_lap_limit,mins:w.race_time_limit,
       rtd:{r:!!r.repeating,f:r.first_session_time,m:r.repeat_minutes,d:r.day_offset,sd:r.start_date,t:r.session_times||[],sl:r.session_minutes},wx:{hi:wx.temp_high,lo:wx.temp_low,u:wx.temp_units,rain:wx.precip_chance}}})}));
   return{seasons:out,tracks:T,cars:C,member:normMember(member||{})}}
-function sampleCredits(){return[]}
+function sampleCredits(){const now=Date.now(),pick=re=>SER.seasons.find(s=>re.test(s.name)&&s.weeks.length);
+  return[[/Mazda MX-5/,1,0],[/GR86|Toyota/,3,2],[/Formula Vee|Ray FF1600|Skip Barber/,9,0],[/Ferrari|GT3|IMSA/,6,4]].map(([re,lead,miss])=>{const s=pick(re);if(!s)return null;const wi=Math.max(0,Math.min(weekIdx(s,now),s.weeks.length));
+    return{series_id:s.sid,season_id:s.id,series_name:s.name,min_weeks:Math.min(8,s.weeks.length),weeks:Math.max(0,Math.min(wi+1-miss,lead>8?8:wi-miss+(lead===1?1:0))),participation_credits:s.lic>=4?3:2}}).filter(Boolean)}
 const DAY=864e5;
 function weekStart(w){return Date.parse(w.s+(w.s.length===10?"T00:00:00Z":""))}
 function weekEnd(w){return w.e?Date.parse(w.e):weekStart(w)+7*DAY}
@@ -2703,20 +2786,20 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={race:["live","field","engineer","strategy","tyres"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","plan","settings"],community:["community"]};
+const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","plan","settings"],community:["community"]};
 if(!FEATURES.voice)GROUPS.race=GROUPS.race.filter(v=>v!=="engineer");if(!FEATURES.subscription)GROUPS.account=GROUPS.account.filter(v=>v!=="plan");
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
-const VIEW_LABEL={live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+const VIEW_LABEL={home:"tab.home",live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
-function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
+function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
+  if(v==="home")renderHome();if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
-tabs.forEach(b=>b.onclick=()=>openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
+tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 /* ---------- quick search: Ctrl+K or / jumps to any page, setting or action ---------- */
-const QS_PAGES={live:"delta speed rpm gear fuel relative radar inputs dash widgets velocidad marcha gasolina relativo",field:"standings positions results classification posiciones clasificación resultados",
+const QS_PAGES={home:"home dashboard inicio panel credits créditos participation participación upcoming próximas",live:"delta speed rpm gear fuel relative radar inputs dash widgets velocidad marcha gasolina relativo",field:"standings positions results classification posiciones clasificación resultados",
   engineer:"voice radio spotter crewchief audio pack wheel button voz botón volante paquete off track fuera de pista",strategy:"fuel stint pit endurance strategy gasolina parada resistencia relevo",tyres:"tyres tires temperature wear neumáticos gomas temperatura desgaste",
   laps:"laps lap times history sectors vueltas tiempos historial sectores",coach:"braking brake coach corners tips frenada frenar curvas consejos",plan:"subscription plan licence license lifetime pro suscripción licencia pago",community:"community comunidad share compartir leaderboard clasificación laps vueltas compare comparar",news:"news noticias iracing season release notes hotfix events eventos",races:"races results history report irating discord carreras resultados historial informe",tracks:"tracks notes corners fuel per lap best circuitos notas curvas consumo",data:"telemetry variables raw data sdk telemetría variables datos",
   calendar:"calendar schedule plan reminders add race ics calendario agenda avisos añadir carrera widget",series:"series season schedule tracks cars licence series temporada circuitos coches",goals:"goals irating safety rating targets objetivos metas",
@@ -3720,7 +3803,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
-  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","haptics","calendar","coach","strategy","goals","cars","setups","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
+  const phone=!!NATIVE||matchMedia("(max-width:820px)").matches,start=OV.on?"live":(location.hash||"").slice(1)||(phone?"home":store.get("pw.tab","live"));show(Object.values(GROUPS).flat().includes(start)?start:"live");
   syncNativePlan();
   if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else Demo.start();
@@ -4239,4 +4322,104 @@ async function loadCommLap(id,btn){if(btn)btn.textContent="…";try{const l=awai
     const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);G61REF={n:"COM",name:Tx("Community · ","Comunidad · ")+(l.alias||""),time:l.time,bins,maxBin:bins.length-1};
     toast(Tx(`Reference: ${l.alias} ${fmtT(l.time)}`,`Referencia: ${l.alias} ${fmtT(l.time)}`));BM.key=null;show("coach")}catch(e){toast(e.message);if(btn)btn.textContent=Tx("Compare","Comparar")}}
 
+
+/* ===================== home: the phone app's dashboard ===================== */
+Object.assign(I18N,{"g.home":["Home","Inicio"],"tab.home":["Home","Inicio"],"g.more":["More","Más"]});
+const MORE_G=["rig","community","account"];
+const CAT_ICON={
+ oval:'<ellipse cx="12" cy="12" rx="9.5" ry="6.2"/><path d="M7.4 9.4c1.2-.8 2.8-1.2 4.6-1.2 3 0 5.4 1.2 6 2.8"/><path d="M12 15.6v2.6"/>',
+ sports_car:'<path d="M3 15.5v-2.2c0-.9.6-1.5 1.5-1.7l3.2-.6 2.6-2.4c.6-.5 1.3-.8 2.1-.8h3.2c.9 0 1.7.4 2.2 1.1l1.7 2.1 1.6.4c.8.2 1.4.9 1.4 1.7v2.4z"/><circle cx="7.3" cy="15.8" r="1.9"/><circle cx="16.8" cy="15.8" r="1.9"/><path d="M10.6 11.1h6.4"/>',
+ formula_car:'<path d="M12 3.2v2.4M8.8 3.6h6.4"/><path d="M10.6 5.6h2.8l1 9.2h-4.8z"/><rect x="4.6" y="6.6" width="3.2" height="4.6" rx="1.2"/><rect x="16.2" y="6.6" width="3.2" height="4.6" rx="1.2"/><rect x="4.2" y="14" width="3.8" height="5.6" rx="1.3"/><rect x="16" y="14" width="3.8" height="5.6" rx="1.3"/><path d="M7.8 8.9h2.9M13.3 8.9h2.9M8 16.8h2.4M13.6 16.8H16M8.6 20.6h6.8"/>',
+ dirt_oval:'<ellipse cx="12" cy="10.5" rx="9" ry="5.6"/><ellipse cx="12" cy="10.5" rx="4.4" ry="1.9"/><path d="M4.5 19.6h.01M8.6 20.6h.01M12.8 19.9h.01M17.2 20.7h.01M20 18.8h.01"/>',
+ dirt_road:'<path d="M2.8 19.2 8.6 9.6l3.6 5.2 2.9-3.8 6.1 8.2z"/><path d="M8.6 9.6l1.4 2.1M15.1 11l1.2 1.6"/><circle cx="18.4" cy="5.4" r="1.7"/>'};
+const catIcon=k=>`<svg class="cico" viewBox="0 0 24 24" aria-hidden="true">${CAT_ICON[k]||CAT_ICON.sports_car}</svg>`;
+const BELL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2H4.4z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg>';
+const flagOf=c=>/^[A-Za-z]{2}$/.test(c||"")?String.fromCodePoint(...[...c.toUpperCase()].map(x=>127397+x.charCodeAt(0))):"";
+function agoTxt(t){const m=Math.round((Date.now()-t)/60e3);if(m<60)return Tx(`${Math.max(1,m)} min ago`,`hace ${Math.max(1,m)} min`);const h=Math.round(m/60);if(h<24)return Tx(`${h} h ago`,`hace ${h} h`);const d=Math.round(h/24);return Tx(`${d} d ago`,`hace ${d} d`)}
+const money=v=>v==null||isNaN(v)?"–":"$"+(+v).toFixed(2);
+let HOME={busy:false,acct:null,tries:0};
+function homeLive(){return MODE==="bridge"&&ACC.loggedIn&&!!MEMBER}
+function homeMember(){if(homeLive())return{name:MEMBER.display_name||ACC.username||"",id:MEMBER.cust_id,since:MEMBER.member_since,last:MEMBER.last_login,flag:flagOf(MEMBER.flair_shortname),club:MEMBER.club_name||"",m:normMember(MEMBER)};
+  return{name:"Alex D.",id:412873,since:"2019-03-12",last:new Date(Date.now()-2*3600e3).toISOString(),flag:flagOf("ES"),club:"",m:SER?SER.member:normMember({}),sample:true}}
+async function homeLoad(){if(HOME.busy)return;HOME.busy=true;
+  try{if(!SER)await loadSeries();
+    if(MODE==="bridge"&&ACC.loggedIn){if(!ACCDATA)await loadAccount();if(!HOME.acct)HOME.acct=await api("member/account").catch(()=>({}))}
+    else if(!ACCSUM)renderSampleAccount()}catch(e){}
+  HOME.busy=false;if(CUR_VIEW==="home")renderHome(true)}
+/* participation credits: for each series you race (and your favourites) how many weeks you still need and whether it still fits in the season */
+function creditRows(){if(!SER)return[];const now=Date.now(),seen=new Set(),rows=[],races=(ACCSUM&&ACCSUM.races)||[];
+  const add=(s,c)=>{if(!s||seen.has(s.sid)||!s.weeks.length)return;seen.add(s.sid);
+    const min=(c&&c.min_weeks)||Math.min(8,s.weeks.length),done=c?(+c.weeks||0):0,left=s.weeks.filter(w=>weekEnd(w)>now),cw=curWeek(s,now);
+    const raced=!!cw&&races.some(r=>(r.sid!=null?r.sid===s.sid:!!r.series&&s.name.startsWith(r.series))&&Date.parse(r.date)>=weekStart(cw));
+    const need=Math.max(0,min-done),avail=left.length-(raced?1:0),own=left.filter(ownsTrack).length-(raced&&ownsTrack(cw)?1:0);
+    const amt=c?(c.participation_credits??c.credits??null):null;
+    rows.push({s,c,min,done,need,avail,own,raced,amt,earned:need===0,ok:need<=avail,next:nextRace(s,now),cw})};
+  CREDITS.forEach(c=>add(SER.seasons.find(s=>s.sid===c.series_id),c));FAV.forEach(sid=>add(SER.seasons.find(s=>s.sid===sid),null));
+  const rank=r=>r.earned?2:r.ok?0:3;return rows.sort((a,b)=>rank(a)-rank(b)||a.need-b.need||(a.raced-b.raced))}
+function renderHome(fromLoad){const box=$("#homeBox");if(!box)return;if(!fromLoad&&!HOME.busy&&(!SER||(!ACCSUM&&!(MODE==="bridge"&&ACC.loggedIn&&ACCDATA))||(MODE==="bridge"&&ACC.loggedIn&&!HOME.acct)))homeLoad();
+  if(!SER&&HOME.tries++<25)setTimeout(()=>{if(CUR_VIEW==="home")renderHome()},700);
+  const me=homeMember(),now=Date.now(),loc=locale(),ini=(me.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
+  const dt=t=>t?new Date(t).toLocaleDateString(loc,{month:"short",year:"numeric"}):"–";
+  // profile
+  let h=`<div class="hm-head"><div class="hm-av" aria-hidden="true">${esc(ini)}</div><div class="hm-who"><div class="hm-name">${esc(me.name||Tx("Driver","Piloto"))} ${me.flag?`<span aria-hidden="true" style="font-size:.8em">${me.flag}</span>`:""}</div>
+    <div class="hm-meta">#${esc(me.id??"–")}${me.club?" · "+esc(me.club):""} · ${esc(Tx("Member since","Miembro desde"))} <b>${esc(dt(me.since))}</b><br>${me.last?esc(Tx("Last login","Último acceso"))+" "+esc(agoTxt(Date.parse(me.last))):""}${me.sample?` <span class="pill acc" style="font-size:10px;padding:2px 6px">${esc(Tx("sample","ejemplo"))}</span>`:""}</div></div>
+    <button type="button" class="iconbtn hm-gear" id="hmSet" aria-label="${esc(Tx("Settings","Ajustes"))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>`;
+  if(MODE==="bridge"&&!ACC.loggedIn)h+=`<div class="hm-card hm-empty"><span>${esc(Tx("Connect your iRacing account on the PC to see your own licences, credits and races. Showing an example.","Conecta tu cuenta de iRacing en el PC para ver tus licencias, créditos y carreras. Ahora ves un ejemplo."))}</span><button type="button" class="btn small" id="hmConn">${esc(Tx("Connect","Conectar"))}</button></div>`;
+  if(STATUS.connected||STATUS.demo)h+=`<button type="button" class="hm-card hm-live" id="hmLive" style="text-align:left;font:inherit;color:inherit;cursor:pointer"><i></i><div><b>${esc(STATUS.demo?Tx("Demo session running","Sesión demo en marcha"):Tx("You are on track","Estás en pista"))}</b><span>${esc(Tx("Open live telemetry","Abrir la telemetría en vivo"))}</span></div><span aria-hidden="true" style="font-size:20px;color:var(--muted)">›</span></button>`;
+  // licences
+  const order=[["oval","Oval","Óvalo"],["sports_car","Sports","Sports"],["formula_car","Formula","Fórmula"],["dirt_oval","Dirt oval","Óv. tierra"],["dirt_road","Dirt road","Tierra"]];
+  h+=`<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Licences","Licencias"))}</h2><button type="button" data-go="account">${esc(Tx("Details","Detalles"))}</button></div><div class="hm-lics">${order.map(([k,en,es])=>{const l=me.m.lic[k]||(k==="sports_car"?me.m.lic.road:null);
+    if(!l)return `<div class="hm-lic none">${catIcon(k)}${licRing("R",0)}<b>–</b><small>${esc(Tx(en,es))}</small></div>`;const L1=((l.group_name||"R").replace("Class ","")[0]);const L=("RDCBAP".includes(L1)?L1:"R");
+    return `<div class="hm-lic lc-${L}" title="${esc(Tx(en,es))} · SR ${(+l.safety_rating||0).toFixed(2)} · iRating ${l.irating??"–"}">${catIcon(k)}${licRing(L,+l.safety_rating||0)}<b>${l.irating??"–"}</b><small>${esc(Tx(en,es))}</small></div>`}).join("")}</div></section>`;
+  // credits
+  const rows=creditRows(),bal=homeLive()?(HOME.acct&&HOME.acct.ir_credits):14,dol=homeLive()?(HOME.acct&&HOME.acct.ir_dollars):null;
+  const won=rows.filter(r=>r.earned).reduce((a,r)=>a+(+r.amt||0),0),open=rows.filter(r=>!r.earned&&r.ok).reduce((a,r)=>a+(+r.amt||0),0),lost=rows.filter(r=>!r.ok).reduce((a,r)=>a+(+r.amt||0),0),tot=won+open+lost||1;
+  h+=`<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Credits","Créditos"))}</h2><button type="button" data-go="series" data-stab="season">${esc(Tx("Season plan","Plan de temporada"))}</button></div><div class="hm-card hm-cr">
+    <div class="hm-crtop"><div class="hm-coin" aria-hidden="true">¢</div><div><div class="hm-crbig">${money(bal)}<small>${esc(Tx("in your account","en tu cuenta"))}</small></div><div class="hm-crsub">${dol!=null&&+dol>0?esc(Tx(`plus ${money(dol)} iRacing dollars · `,`más ${money(dol)} en dólares de iRacing · `)):""}${esc(Tx("Participation credits pay out at the end of the season.","Los créditos de participación se pagan al cerrar la temporada."))}</div></div></div>
+    ${rows.length?`<div><div class="hm-bar" role="img" aria-label="${esc(Tx(`Earned ${money(won)}, still possible ${money(open)}`,`Ganado ${money(won)}, aún posible ${money(open)}`))}"><b style="width:${(won/tot*100).toFixed(1)}%"></b><s style="width:${(open/tot*100).toFixed(1)}%"></s></div>
+      <div class="hm-barlbl"><span class="good">${esc(Tx("Earned","Ganado"))} ${money(won)}</span><span class="acc">${esc(Tx("Still possible","Aún posible"))} ${money(open)}</span></div></div>`:""}
+    <div class="hm-crl">${rows.length?rows.slice(0,6).map(r=>{const tag=r.earned?`<span class="hm-tag good">✓ ${r.amt?money(r.amt):esc(Tx("Earned","Ganado"))}</span>`:!r.ok?`<span class="hm-tag bad">${esc(Tx("Out of reach","Ya no llega"))}</span>`:r.raced?`<span class="hm-tag good">${esc(Tx("Week done","Semana hecha"))} ✓</span>`:`<span class="hm-tag acc">${esc(Tx("Race this week","Corre esta semana"))}</span>`;
+      const dots=[...Array(r.min)].map((_,i)=>`<i class="${i<r.done?"on":!r.earned&&!r.raced&&i===r.done&&r.cw&&r.ok?"now":!r.ok&&i>=r.done+r.avail?"lost":""}"></i>`).join("");
+      const st=r.earned?Tx(`${r.done} of ${r.min} weeks raced: credits earned${r.amt?"":""}`,`${r.done} de ${r.min} semanas corridas: créditos ganados`)
+        :!r.ok?Tx(`Needs ${r.need} more weeks, only ${r.avail} left`,`Faltan ${r.need} semanas y solo quedan ${r.avail}`)
+        :Tx(`${r.need} more week${r.need===1?"":"s"} needed · ${r.avail} left${r.own<r.need?` · you own ${Math.max(0,r.own)} of those tracks`:""}`,`Faltan ${r.need} semana${r.need===1?"":"s"} · quedan ${r.avail}${r.own<r.need?` · tienes ${Math.max(0,r.own)} de esos circuitos`:""}`);
+      const nx=!r.earned&&r.ok&&!r.raced&&r.next&&r.next.t<weekEnd(r.cw||r.next.w)?`<div class="hm-nx">${esc(Tx("Next","Próxima"))} <b>${esc(hm(r.next.t))}</b> · ${esc(until(r.next.t))} · ${esc(trackInfo(r.next.w).name)}<button type="button" class="bell" data-bell="${r.s.sid}@${r.next.t}" aria-pressed="${inPlan(r.s.sid,r.next.t)}" aria-label="${esc(Tx("Remind me","Avisarme"))}">${BELL}</button></div>`:"";
+      return `<div class="hm-crr"><div style="min-width:0"><div class="nm">${licBadge(r.s.lic)} ${esc(r.s.name)}</div><div class="st">${esc(st)}${r.amt&&!r.earned?` · ${money(r.amt)}`:""}</div></div>${tag}<div class="hm-dots" aria-hidden="true">${dots}</div>${nx}</div>`}).join("")
+      :`<div class="hm-empty" style="padding-top:6px"><span>${esc(Tx("Race in a series (or star it) and its credit progress shows here.","Corre una serie (o márcala con estrella) y aquí verás tu progreso de créditos."))}</span><button type="button" class="btn small" data-go="series">${esc(Tx("Series","Series"))}</button></div>`}</div>
+    ${rows.length?`<p class="hm-note">${esc(Tx("Each series pays its credits when you race in the minimum number of weeks; one race in a week counts that week.","Cada serie paga sus créditos si corres el mínimo de semanas; una carrera en una semana cuenta esa semana."))}</p>`:""}</div></section>`;
+  // recent races
+  const rs=((ACCSUM&&ACCSUM.races)||[]).slice(0,10);
+  h+=`<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Recent races","Carreras recientes"))}</h2><button type="button" data-go="races">${esc(Tx("Analysis","Análisis"))}</button></div>${rs.length?`<div class="hm-rr">${rs.map((r,i)=>{const ok=r.finish!=null;const inc=r.inc??null;
+      return `<button type="button" class="hm-race" data-hr="${i}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><div class="tr">${esc(r.track||"–")}</div><small class="muted" style="white-space:nowrap;font-size:11.5px">${r.date?esc(agoTxt(Date.parse(r.date))):""}</small></div><div class="se">${esc(r.series||"")}</div>
+      <div class="mid"><span class="hm-pos ${ok&&r.finish===0?"win":""}">${ok?"P"+(r.finish+1):"–"}<small>${r.start!=null?esc(Tx("from","desde"))+" P"+(r.start+1):""}</small></span>${inc!=null?`<span class="hm-inc ${inc===0?"i0":inc>=6?"ihi":""}">${inc}x</span>`:""}</div>
+      <div class="hm-ch"><span><em>iR</em><b class="${r.dIr>=0?"good":"bad"}">${r.dIr>=0?"▲":"▼"} ${Math.abs(r.dIr||0)}</b></span><span><em>SR</em><b class="${r.dSr>=0?"good":"bad"}">${r.dSr>=0?"▲":"▼"} ${Math.abs(r.dSr||0).toFixed(2)}</b></span></div></button>`}).join("")}</div>`
+    :`<div class="hm-card hm-empty">${esc(Tx("No recent races yet.","Aún no hay carreras recientes."))}</div>`}</section>`;
+  // upcoming
+  const up=PLAN.filter(p=>p.t+(p.mins||60)*60e3>now).slice(0,6);
+  h+=`<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Upcoming races","Próximas carreras"))}</h2><button type="button" id="hmAdd">+ ${esc(Tx("Add","Añadir"))}</button></div><div class="hm-card">${up.length?up.map(p=>{const s=SER&&SER.seasons.find(x=>x.sid===p.sid);const d=new Date(p.t);
+      return `<div class="hm-up"><div class="hm-when"><small>${esc(d.toLocaleDateString(loc,{weekday:"short"}))} ${d.getDate()}</small><b>${esc(hm(p.t))}</b></div><div class="inf"><div class="nm">${s?licBadge(s.lic)+" ":""}${esc(p.name)}</div><div class="sub2"><span>${esc(p.track||"")}</span><span>· ${p.mins||60} min</span></div><div class="cd">${p.t<=now?esc(Tx("Racing now","En carrera")):esc(until(p.t))}</div></div><button type="button" class="bell" data-bell="${p.sid}@${p.t}" aria-pressed="true" aria-label="${esc(Tx("Remove the reminder","Quitar el aviso"))}">${BELL}</button></div>`}).join("")
+    :`<div class="hm-empty"><span>${esc(Tx("Nothing planned. Add the races you want to run and your phone reminds you.","Nada planeado. Añade las carreras que quieras correr y el móvil te avisa."))}</span><button type="button" class="btn small" id="hmAdd2">${esc(Tx("Add a race","Añadir carrera"))}</button></div>`}</div></section>`;
+  box.innerHTML=h;
+  // actions
+  const go=v=>show(v);box.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{if(b.dataset.stab)SER_TAB=b.dataset.stab;go(b.dataset.go)});
+  const st=$("#hmSet");if(st)st.onclick=()=>go("settings");const lv=$("#hmLive");if(lv)lv.onclick=()=>go("live");
+  const cn=$("#hmConn");if(cn)cn.onclick=()=>{go("settings");setTimeout(()=>{const t=$("#set-conn");if(t)t.scrollIntoView()},60)};
+  [$("#hmAdd"),$("#hmAdd2")].forEach(b=>{if(b)b.onclick=()=>{go("calendar");openRacePicker()}});
+  box.querySelectorAll("[data-hr]").forEach(b=>b.onclick=()=>openAccRace(rs[+b.dataset.hr],+b.dataset.hr));
+  box.querySelectorAll("[data-bell]").forEach(b=>b.onclick=()=>{const[sid,t]=b.dataset.bell.split("@").map(Number);const s=SER&&SER.seasons.find(x=>x.sid===sid);
+    if(inPlan(sid,t)){PLAN=PLAN.filter(p=>!(p.sid===sid&&p.t===t));store.set("pw.plan",PLAN);syncNativePlan();toast(Tx("Reminder removed","Aviso quitado"))}
+    else if(s){const w=s.weeks.find(x=>t>=weekStart(x)&&t<weekEnd(x))||curWeek(s);togglePlan(s,w,t);toast(Tx("Added to your calendar","Añadida a tu calendario"))}
+    renderHome(true)})}
+setInterval(()=>{if(CUR_VIEW==="home"&&!document.hidden&&$("#drawer").hidden&&!document.querySelector("#moreSheet:not([hidden])"))renderHome(true)},30000);
+function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div");m.id="moreSheet";m.className="msheet";document.body.appendChild(m)}
+  const icon=g=>{const b=document.querySelector(`nav.tabs button[data-g="${g}"] svg`);return b?b.outerHTML:""};
+  const items=[["rig",icon("rig"),L("g.rig",true)],["community",icon("community"),L("g.community",true)],["account",icon("account"),L("tab.account",true)],
+    ["settings",'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>',esc(Tx("Settings","Ajustes"))],
+    ["search",'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>',esc(Tx("Search","Buscar"))],
+    ["series",icon("season"),L("tab.series",true)]];
+  const cur=groupOf(CUR_VIEW);
+  m.innerHTML=`<div class="bg"></div><div class="pn" role="dialog" aria-modal="true" aria-label="${esc(Tx("More","Más"))}">${items.map(([k,ic,lb])=>`<button type="button" data-m="${k}" aria-current="${k===cur||k===CUR_VIEW}">${ic}<span>${lb.replace(/<span class="t2">.*?<\/span>/g,"")}</span></button>`).join("")}</div>`;
+  m.hidden=false;const close=()=>{m.hidden=true;document.removeEventListener("keydown",esck)},esck=e=>{if(e.key==="Escape")close()};document.addEventListener("keydown",esck);
+  m.querySelector(".bg").onclick=close;m.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{close();const k=b.dataset.m;if(k==="search")openQuick();else if(MORE_G.includes(k))openGroup(k);else show(k)});
+  const f=m.querySelector("button");if(f)f.focus()}
 </script>
