@@ -61,13 +61,22 @@ canvas{width:100%;display:block}
   <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true">Sesiones</button><button type="button" data-v="bests" aria-selected="false">Récords</button><button type="button" data-v="team" aria-selected="false">Equipo</button><button type="button" id="out">Salir</button></nav>
 </header>
 
-<form class="login panel" id="login" hidden>
+<div id="login" hidden>
+<form class="login panel" id="accLogin">
   <h1>Tus vueltas, en cualquier sitio</h1>
-  <p class="sub">PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con la clave que configuraste (o con la clave de solo lectura que te pasó el piloto).</p>
-  <label><span class="label">Clave</span><input type="password" id="key" autocomplete="current-password" required></label>
-  <div class="err" id="loginErr" role="alert"></div>
+  <p class="sub">PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ.</p>
+  <label><span class="label">Email</span><input type="email" id="aEmail" autocomplete="username" required></label>
+  <label><span class="label">Contraseña</span><input type="password" id="aPass" autocomplete="current-password" required></label>
+  <div class="err" id="accErr" role="alert"></div>
   <button class="btn primary" type="submit">Entrar</button>
 </form>
+<details class="login panel" style="margin-top:12px"><summary class="sub">Entrar con una clave (dueño del servidor, equipo o solo lectura)</summary>
+<form id="keyLogin" style="margin-top:10px">
+  <label><span class="label">Clave</span><input type="password" id="key" autocomplete="current-password" required></label>
+  <div class="err" id="loginErr" role="alert"></div>
+  <button class="btn" type="submit">Entrar con clave</button>
+</form></details>
+</div>
 
 <main id="app" hidden>
   <section id="v-sessions"></section>
@@ -87,12 +96,23 @@ let KEY="";try{KEY=localStorage.getItem("plq.key")||""}catch(e){}
 async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:"respuesta no válida"}));if(r.status===401){logout();throw new Error("clave incorrecta")}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
 function logout(){KEY="";try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
 let ROLE="viewer",ME="";
-$("#login").onsubmit=async e=>{e.preventDefault();KEY=$("#key").value.trim();$("#loginErr").textContent="";
+// sign in with the Pitlane HQ account: the password becomes keys here (same as the app), only the login key is sent
+async function accountAuth(email,password){const te=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+  const salt=await crypto.subtle.digest("SHA-256",te.encode("pitlanehq-account-v1:"+email.trim().toLowerCase()));
+  const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);
+  const master=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000},k,256);
+  const hk=await crypto.subtle.importKey("raw",master,"HKDF",false,["deriveBits"]);
+  return hex(await crypto.subtle.deriveBits({name:"HKDF",hash:"SHA-256",salt:new Uint8Array(0),info:te.encode("pitlanehq auth")},hk,256))}
+$("#accLogin").onsubmit=async e=>{e.preventDefault();const er=$("#accErr");er.textContent="Comprobando…";
+  try{const auth=await accountAuth($("#aEmail").value,$("#aPass").value);const r=await fetch("/account/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:$("#aEmail").value.trim().toLowerCase(),auth,device:"Web"})});const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("HTTP "+r.status));KEY=j.token;const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(x){}er.textContent="";start()}
+  catch(err){er.textContent="No se pudo entrar: "+err.message}};
+$("#keyLogin").onsubmit=async e=>{e.preventDefault();KEY=$("#key").value.trim();$("#loginErr").textContent="";
   try{const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent="No se pudo entrar: "+err.message}};
 $("#out").onclick=logout;
 document.querySelectorAll("nav [data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){document.querySelectorAll("nav [data-v]").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["sessions","bests","team","session"].forEach(x=>$("#v-"+x).hidden=x!==v);if(v==="sessions")sessions();if(v==="bests")bests();if(v==="team")team()}
-async function start(){$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
+async function start(){const tb=document.querySelector(`#nav [data-v="team"]`);if(tb)tb.hidden=ROLE==="account";$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
 
 async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="empty">Cargando…</div>`;
   try{const list=await get("/api/sessions?limit=120");

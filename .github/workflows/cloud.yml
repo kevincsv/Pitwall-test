@@ -5,7 +5,7 @@ name: Pitlane HQ Cloud (web version)
 # database and its tables the first time:
 #   CLOUDFLARE_API_TOKEN   (Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" + Account · D1 · Edit)
 #   CLOUDFLARE_ACCOUNT_ID
-#   PITLANE_KEY            (the key you created in Pitlane HQ → Settings → Connections → Pitlane HQ Cloud)
+#   PITLANE_KEY            optional: the older key sign-in of the lap site (owner/team keys)
 # Optional: PITLANE_D1_ID secret (an existing database) and the repository
 # variable SEASON_UPLOADERS (your Pitlane HQ account id).
 
@@ -61,6 +61,7 @@ jobs:
             echo
             echo "Address: **$url**"
             echo
-            echo "Paste it in Pitlane HQ → Account → Settings → Connections → Pitlane HQ Cloud (with your key), and on the phone in My account → Server."
-            if [ -z "$PITLANE_KEY" ]; then echo; echo "⚠️ The PITLANE_KEY secret is missing: laps cannot be uploaded until you add it and run this again."; fi
+            echo "Drivers sign in to their laps on this address with their Pitlane HQ account."
+            echo
+            echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
           } >> "$GITHUB_STEP_SUMMARY"

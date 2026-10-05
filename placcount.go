@@ -52,6 +52,7 @@ type plAccount struct {
 	LastSync time.Time `json:"lastSync"`
 	SyncErr  string    `json:"syncErr,omitempty"`
 	Conflict bool      `json:"conflict,omitempty"`
+	NoLaps   bool      `json:"noLaps,omitempty"` // do not keep my laps on the server
 }
 
 var (
@@ -384,7 +385,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -517,6 +518,12 @@ func registerPLRoutes(mux *http.ServeMux) {
 				}
 				wrapped, _ := sealAES(newWrap, key)
 				_, err = plCall("POST", "/password", map[string]string{"auth": oldAuth, "newAuth": newAuth, "wrappedKey": wrapped})
+			case "laps":
+				plMu.Lock()
+				plAcc.NoLaps = !in.On
+				savePLLocked()
+				plMu.Unlock()
+				kickCloud()
 			case "autosync":
 				plMu.Lock()
 				plAcc.AutoSync = in.On

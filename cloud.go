@@ -164,8 +164,12 @@ func cloudUploader() {
 		case <-cloudKick:
 		}
 		for {
+			acct := accountCloud()
 			cloudMu.Lock()
 			c := cloudCfg
+			if !c.Enabled || c.URL == "" || c.Key == "" {
+				c = acct // no own site set up: the laps go to your Pitlane HQ account
+			}
 			if !c.Enabled || c.URL == "" || c.Key == "" || len(cloudQueue) == 0 {
 				cloudMu.Unlock()
 				break
@@ -199,9 +203,10 @@ func kickCloud() {
 }
 
 func queueLap(s cloudSession, l cloudLap) {
+	acct := accountCloud()
 	cloudMu.Lock()
 	defer cloudMu.Unlock()
-	if !cloudCfg.Enabled {
+	if !cloudCfg.Enabled && !acct.Enabled {
 		return
 	}
 	// laps of the same session travel together
@@ -521,4 +526,21 @@ func registerCloudRoutes(mux *http.ServeMux) {
 		cloudMu.Unlock()
 		writeJSON(w, out)
 	})
+}
+
+// accountCloud: with a Pitlane HQ account your laps are kept on the Pitlane HQ
+// server under your account, with nothing to set up (no key to create).
+func accountCloud() cloudConfig {
+	loadPL()
+	plMu.Lock()
+	tok, off := plAcc.Token, plAcc.NoLaps
+	plMu.Unlock()
+	if tok == "" || off {
+		return cloudConfig{}
+	}
+	base := commBase()
+	if base == "" {
+		return cloudConfig{}
+	}
+	return cloudConfig{URL: base, Key: tok, Enabled: true}
 }

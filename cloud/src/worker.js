@@ -2,7 +2,7 @@
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
-import { accounts } from "./accounts.js";
+import { accounts, sessionAccount } from "./accounts.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -26,7 +26,10 @@ async function who(req, env) {
   const h = req.headers.get("authorization") || "";
   const key = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (!key) return null;
-  if (same(key, env.PITLANE_KEY)) return { role: "owner", name: "owner" };
+  // a Pitlane HQ account: uploads and sees only its own laps, with nothing to set up
+  const acc = await sessionAccount(req, env).catch(() => null);
+  if (acc) return { role: "account", name: "acct:" + acc.id, display: acc.display };
+  if (env.PITLANE_KEY && same(key, env.PITLANE_KEY)) return { role: "owner", name: "owner" };
   if (env.VIEW_KEY && same(key, env.VIEW_KEY)) return { role: "viewer", name: "viewer" };
   const m = await env.DB.prepare("SELECT name FROM members WHERE key_hash=?1").bind(await sha256(key)).first().catch(() => null);
   return m ? { role: "member", name: m.name } : null;
@@ -65,23 +68,23 @@ async function addLap(env, sessionId, l) {
 }
 
 async function api(req, env, url) {
-  if (!env.PITLANE_KEY) return err("The server has no PITLANE_KEY yet. Run: npx wrangler secret put PITLANE_KEY", 500);
   const me = await who(req, env);
-  if (!me) return err("wrong or missing key", 401);
+  if (!me) return err(env.PITLANE_KEY ? "wrong or missing key" : "sign in with your Pitlane HQ account (this server has no PITLANE_KEY)", 401);
   const role = me.role;
   const p = url.pathname;
   const m = req.method;
 
-  if (p === "/api/me") return json({ role, name: me.name });
+  if (p === "/api/me") return json({ role, name: me.name, display: me.display });
+  const own = role === "account" ? me.name : null; // accounts only ever see their own laps
 
   if (p === "/api/upload" && m === "POST") {
     if (role === "viewer") return err("this key can only read", 403);
     const body = await req.json().catch(() => null);
     if (!body || !body.session) return err("bad upload", 400);
     // a member's sessions are kept apart from the owner's even with the same iRacing session id
-    if (role === "member" && body.session.id) body.session.id = (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + body.session.id).slice(0, 80);
+    if ((role === "member" || role === "account") && body.session.id) body.session.id = (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + body.session.id).slice(0, 80);
     let e = await upsertSession(env, body.session, me.name);
-    if (role === "member") body.laps = (body.laps || []).map((l) => ({ ...l, id: (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + l.id).slice(0, 80) }));
+    if (role === "member" || role === "account") body.laps = (body.laps || []).map((l) => ({ ...l, id: (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + l.id).slice(0, 80) }));
     if (e) return err(e, 400);
     for (const l of (body.laps || []).slice(0, 50)) {
       e = await addLap(env, body.session.id, l);
@@ -97,7 +100,7 @@ async function api(req, env, url) {
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
-    if (q.get("who")) { args.push(q.get("who")); sql += `${args.length > 1 ? " AND" : " WHERE"} uploader=?${args.length}`; }
+    if (own || q.get("who")) { args.push(own || q.get("who")); sql += `${args.length > 1 ? " AND" : " WHERE"} uploader=?${args.length}`; }
     sql += ` ORDER BY started DESC LIMIT ${lim}`;
     const { results } = await env.DB.prepare(sql).bind(...args).all();
     return json(results);
@@ -106,9 +109,9 @@ async function api(req, env, url) {
   if (p === "/api/bests" && m === "GET") {
     const { results } = await env.DB.prepare(
       `SELECT s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last
-       FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1
+       FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND (?1 IS NULL OR s.uploader=?1)
        GROUP BY s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
-    ).all();
+    ).bind(own).all();
     return json(results);
   }
 
@@ -116,12 +119,12 @@ async function api(req, env, url) {
   if (mm) {
     if (m === "DELETE") {
       const own = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(mm[1]).first();
-      if (role === "viewer" || (role === "member" && (!own || own.uploader !== me.name))) return err("you can only delete your own sessions", 403);
+      if (role === "viewer" || ((role === "member" || role === "account") && (!own || own.uploader !== me.name))) return err("you can only delete your own sessions", 403);
       await env.DB.batch([env.DB.prepare("DELETE FROM laps WHERE session_id=?1").bind(mm[1]), env.DB.prepare("DELETE FROM sessions WHERE id=?1").bind(mm[1])]);
       return json({ ok: true });
     }
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(mm[1]).first();
-    if (!s) return err("not found", 404);
+    if (!s || (own && s.uploader !== own)) return err("not found", 404);
     const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n").bind(mm[1]).all();
     return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null })) });
   }
@@ -130,12 +133,13 @@ async function api(req, env, url) {
   if (p === "/api/teambest" && m === "GET") {
     const q = url.searchParams;
     const l = await env.DB.prepare(
-      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 ORDER BY l.time LIMIT 1`
-    ).bind(q.get("track") || "", q.get("config") || "", q.get("car") || "").first();
+      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 AND (?4 IS NULL OR s.uploader=?4) ORDER BY l.time LIMIT 1`
+    ).bind(q.get("track") || "", q.get("config") || "", q.get("car") || "", own).first();
     return json(l || {});
   }
 
   if (p === "/api/team") {
+    if (role === "account") return json({ members: [], me: me.display || me.name, role });
     if (m === "GET") {
       const { results } = await env.DB.prepare("SELECT name, created FROM members ORDER BY name").all();
       return json({ members: results, me: me.name, role });
@@ -164,7 +168,7 @@ async function api(req, env, url) {
   mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)$/);
   if (mm && m === "GET") {
     const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(mm[1]).first();
-    if (!l) return err("not found", 404);
+    if (!l || (own && l.uploader !== own)) return err("not found", 404);
     return json({ ...l, trace: l.trace ? JSON.parse(l.trace) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
   }
 
