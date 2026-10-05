@@ -323,7 +323,10 @@ func registerRigRoutes(mux *http.ServeMux) {
 			} else {
 				err = errors.New("SimHub is not installed on this PC")
 			}
-		case "azomInstall", "azomRemove", "azomRestore":
+		case "azomInstall", "azomRestore":
+			// installing AZOM from Pitlane HQ is switched off for now; removing still works
+			err = errors.New("installing AZOM from Pitlane HQ is not available")
+		case "azomRemove":
 			err = azomJob(strings.ToLower(strings.TrimPrefix(in.Action, "azom")))
 		case "closePitHouse": // AZOM and Pit House cannot share the wheel
 			n := killProcs("MOZA Pit House.exe", `\simhub\`)
