@@ -9,6 +9,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"html"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,8 +38,14 @@ var compKeep = map[string][]string{
 		"week_end_time", "category", "track", "track_id", "track_name", "race_week_cars", "car_id", "race_lap_limit", "race_time_limit",
 		"race_time_descriptors", "repeating", "first_session_time", "repeat_minutes", "day_offset", "session_times", "session_minutes",
 		"weather", "weather_summary", "temp_high", "temp_low", "temp_units", "precip_chance"},
-	"track/get":         {"track_id", "track_name", "config_name", "package_id", "free_with_subscription", "price"},
-	"car/get":           {"car_id", "car_name", "car_name_abbreviated", "package_id", "free_with_subscription"},
+	"track/get": {"track_id", "track_name", "config_name", "package_id", "free_with_subscription", "price", "track_config_length", "corners_per_lap",
+		"location", "latitude", "longitude", "category", "max_cars", "grid_stalls", "pit_road_speed_limit", "night_lighting", "track_types", "track_type",
+		"retired", "time_zone", "site_url", "is_oval", "is_dirt", "has_svg_map", "first_sale", "created"},
+	"car/get": {"car_id", "car_name", "car_name_abbreviated", "package_id", "free_with_subscription", "price", "hp", "car_weight", "car_make",
+		"car_model", "categories", "car_types", "car_type", "retired", "has_headlights", "has_multiple_dry_tire_types", "rain_enabled", "max_power_adjust_pct", "created"},
+	// pictures and maps (served by iRacing's public image server), by id
+	"track/assets":      nil,
+	"car/assets":        nil,
 	"carclass/get":      {"car_class_id", "cars_in_class", "car_id"},
 	"season/race_guide": {"sessions", "season_id", "start_time", "entry_count"},
 }
@@ -80,7 +87,12 @@ func companionStore(path, rawQuery string, body []byte) {
 	if !ok || len(body) == 0 || len(body) > 32<<20 {
 		return
 	}
-	if fields != nil {
+	if strings.HasSuffix(path, "/assets") {
+		body = trimAssets(body)
+		if body == nil {
+			return
+		}
+	} else if fields != nil {
 		var v any
 		if json.Unmarshal(body, &v) != nil {
 			return
@@ -154,7 +166,7 @@ func refreshCompanion() {
 		get("member/chart_data", "cust_id="+id+"&category_id="+cat+"&chart_type=1")
 		get("member/chart_data", "cust_id="+id+"&category_id="+cat+"&chart_type=3")
 	}
-	for _, p := range []string{"series/seasons", "track/get", "car/get", "carclass/get", "season/race_guide"} {
+	for _, p := range []string{"series/seasons", "track/get", "car/get", "carclass/get", "season/race_guide", "track/assets", "car/assets"} {
 		get(p, "")
 	}
 	publishSeason()
@@ -172,7 +184,7 @@ func publishSeason() {
 		return json.RawMessage("null")
 	}
 	season := map[string]json.RawMessage{"seasons": part("series/seasons"), "tracks": part("track/get"), "cars": part("car/get"),
-		"classes": part("carclass/get"), "guide": part("season/race_guide")}
+		"classes": part("carclass/get"), "guide": part("season/race_guide"), "trackAssets": part("track/assets"), "carAssets": part("car/assets")}
 	compMu.Unlock()
 	if string(season["seasons"]) == "null" {
 		return
@@ -180,4 +192,43 @@ func publishSeason() {
 	if _, err := commCall("POST", "/season", map[string]any{"season": season}, true); err != nil && !strings.Contains(err.Error(), "cannot publish") {
 		log.Println("Season schedule:", err)
 	}
+}
+
+// trimAssets keeps, for each track or car id, the picture and map file names and a short description.
+func trimAssets(body []byte) []byte {
+	var all map[string]map[string]any
+	if json.Unmarshal(body, &all) != nil {
+		return nil
+	}
+	keep := map[string]bool{"folder": true, "small_image": true, "large_image": true, "logo": true, "track_map": true, "track_map_layers": true, "detail_copy": true}
+	for id, a := range all {
+		if a == nil {
+			delete(all, id)
+			continue
+		}
+		for k, v := range a {
+			if !keep[k] {
+				delete(a, k)
+				continue
+			}
+			if k == "detail_copy" {
+				if t, ok := v.(string); ok {
+					a[k] = plainText(t, 900)
+				}
+			}
+		}
+	}
+	b, _ := json.Marshal(all)
+	return b
+}
+
+// plainText removes HTML tags and entities and cuts the text at max characters.
+func plainText(h string, max int) string {
+	t := tagRe.ReplaceAllString(h, " ")
+	t = html.UnescapeString(t)
+	t = strings.Join(strings.Fields(t), " ")
+	if r := []rune(t); len(r) > max {
+		t = strings.TrimSpace(string(r[:max])) + "…"
+	}
+	return t
 }

@@ -29,7 +29,16 @@ func TestCompanionStoreTrims(t *testing.T) {
 	}
 	var v []map[string]any
 	json.Unmarshal(e.Body, &v)
-	if len(v) != 1 || len(v[0]) != 4 {
+	if len(v) != 1 || len(v[0]) != 5 { // pit_road_speed_limit is track info too
 		t.Fatal("fields", v)
+	}
+}
+
+func TestTrimAssets(t *testing.T) {
+	b := trimAssets([]byte(`{"1":{"folder":"/img/tracks/spa","small_image":"s.jpg","gallery_images":"x","detail_copy":"<p>Spa &amp; <b>Eau Rouge</b></p>"}}`))
+	var m map[string]map[string]any
+	json.Unmarshal(b, &m)
+	if m["1"]["gallery_images"] != nil || m["1"]["folder"] != "/img/tracks/spa" || m["1"]["detail_copy"] != "Spa & Eau Rouge" {
+		t.Fatal("assets", string(b))
 	}
 }
