@@ -93,6 +93,9 @@ var baseDemoVars = []demoVar{
 	{name: "PlayerCarMyIncidentCount", desc: "Players own incident count for this session", typ: TypeInt},
 	{name: "PlayerTrackSurface", desc: "Players car track surface type", unit: "irsdk_TrkLoc", typ: TypeInt},
 	{name: "EngineWarnings", desc: "Bitfield for warning lights", unit: "irsdk_EngineWarnings", typ: TypeInt},
+	{name: "Precipitation", desc: "Precipitation at start/finish line", unit: "%", typ: TypeFloat},
+	{name: "WeatherDeclaredWet", desc: "The steward says rain tires can be used", typ: TypeBool},
+	{name: "PlayerTireCompound", desc: "Players car current tire compound", typ: TypeInt},
 	{name: "SessionTimeOfDay", desc: "Time of day in seconds", unit: "s", typ: TypeFloat},
 	{name: "TrackWetness", desc: "How wet is the average track surface", unit: "irsdk_TrackWetness", typ: TypeInt},
 	{name: "BrakeABSactive", desc: "true if abs is currently reducing brake force pressure", typ: TypeBool},
@@ -573,7 +576,36 @@ func (d *demoSource) step(dt float64) {
 	in("PlayerTrackSurface", surface)
 	in("EngineWarnings", 0)
 	f("SessionTimeOfDay", 14*3600+d.t)
-	in("TrackWetness", 1)
+	// a shower every 10 minutes of demo: rain from 1:30, the track gets wet, then dries
+	ph := math.Mod(d.t, 600)
+	prec, wet := 0.0, 1
+	switch {
+	case ph < 90:
+	case ph < 300:
+		prec = (ph - 90) / 210 * 0.4
+	case ph < 420:
+		prec = 0.4 * (1 - (ph-300)/120)
+	}
+	switch {
+	case ph < 150:
+		wet = 1
+	case ph < 200:
+		wet = 3
+	case ph < 260:
+		wet = 4
+	case ph < 420:
+		wet = 5
+	case ph < 480:
+		wet = 4
+	case ph < 540:
+		wet = 3
+	default:
+		wet = 2
+	}
+	f("Precipitation", prec)
+	in("TrackWetness", wet)
+	bo("WeatherDeclaredWet", ph >= 260 && ph < 480)
+	in("PlayerTireCompound", 0)
 	bo("BrakeABSactive", brk > 0.95)
 	in("TireSetsUsed", 1)
 	in("TireSetsAvailable", 255)
@@ -682,6 +714,12 @@ DriverInfo:
  DriverCarVersion: 2026.09.29.01
  DriverPitTrkPct: 0.938
  DriverCarEstLapTime: 98.2140
+ DriverCarGearNumForward: 6
+ DriverTires:
+ - TireIndex: 0
+   TireCompoundType: "Hard"
+ - TireIndex: 1
+   TireCompoundType: "Wet"
  DriverSetupName: baseline.sto
  DriverIncidentCount: 2
  Drivers:

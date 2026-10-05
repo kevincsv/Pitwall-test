@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.9.0"
+const appVersion = "0.10.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -235,6 +235,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "retry: 2000\n\n")
 	schemaVer, sessionVer, configVer := -1, -1, -1
 	_, radioSeen := radioSince(-1) // only questions asked after this screen connected
+	_, noticeSeen := noticesSince(-1)
 	var lastTick int32 = -1
 	var want []int
 	var lastStatus statusMsg
@@ -269,6 +270,14 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			radioSeen = seq
+		}
+		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
+			for _, e := range evs {
+				if !send("notice", e) {
+					return
+				}
+			}
+			noticeSeen = seq
 		}
 		if c, v := settingsSnapshot(); v != configVer {
 			configVer = v
@@ -392,6 +401,8 @@ func main() {
 	go lapRecorder()
 	go carWatcher()
 	go joyWatcher()
+	go raceWatcher()
+	go updateWatcher()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
@@ -462,6 +473,9 @@ func main() {
 	registerSetupRoutes(mux)
 	registerCarRoutes(mux)
 	registerRadioRoutes(mux)
+	registerJournalRoutes(mux)
+	registerDiscordRoutes(mux)
+	registerUpdateRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
@@ -482,11 +496,24 @@ func main() {
 
 	var ln net.Listener
 	var err error
-	for p := *port; p < *port+10; p++ {
-		ln, err = net.Listen("tcp", fmt.Sprintf(":%d", p))
-		if err == nil {
-			listenPort = p
-			break
+	// after an update the previous version is still closing: wait for its port
+	if os.Getenv("PITLANE_UPDATED") != "" {
+		for i := 0; i < 40; i++ {
+			if ln, err = net.Listen("tcp", fmt.Sprintf(":%d", *port)); err == nil {
+				break
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+	if ln != nil {
+		listenPort = *port
+	} else {
+		for p := *port; p < *port+10; p++ {
+			ln, err = net.Listen("tcp", fmt.Sprintf(":%d", p))
+			if err == nil {
+				listenPort = p
+				break
+			}
 		}
 	}
 	if err != nil {
@@ -515,13 +542,18 @@ func main() {
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sig
-		stopShare()
-		closeOverlays("*")
-		os.Exit(0)
+		quitApp()
 	}()
 	srv := &http.Server{Handler: guard(mux), ReadHeaderTimeout: 10 * time.Second}
 	if err := srv.Serve(ln); err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
+}
+
+// quitApp closes the internet link and the overlay windows, then exits.
+func quitApp() {
+	stopShare()
+	closeOverlays("*")
+	os.Exit(0)
 }

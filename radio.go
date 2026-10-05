@@ -21,7 +21,7 @@ import (
 )
 
 // What can be asked: the page knows how to say each one.
-var radioAsks = []string{"fuel", "gaps", "position", "last", "remaining", "pit", "incidents", "delta", "mute"}
+var radioAsks = []string{"weather", "fuel", "gaps", "position", "last", "remaining", "pit", "incidents", "delta", "mute"}
 
 type radioEvent struct {
 	Seq int    `json:"seq"`

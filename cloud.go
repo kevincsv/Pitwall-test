@@ -246,7 +246,7 @@ func listItem(y, key, value string) string {
 func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 	s := cloudSession{Started: started.UnixMilli(), Track: yamlField(y, "TrackDisplayName"), TrackConfig: yamlField(y, "TrackConfigName")}
 	me := yamlField(y, "DriverCarIdx")
-	if d := listItem(y, "CarIdx", me); d != "" {
+	if d := driverBlock(y, me); d != "" {
 		s.Car = yamlField(d, "CarScreenName")
 		s.Driver = yamlField(d, "UserName")
 	}
@@ -432,6 +432,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow float64) {
 	if l.Valid {
 		recordSetupLap(l.Time)
 	}
+	recordBookLap(l.Time, l.Fuel, l.Valid)
 	queueLap(s, l)
 }
 

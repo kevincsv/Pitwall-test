@@ -25,7 +25,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 | Section | Pages |
 |---|---|
 | **Race** (while you drive) | Live · Standings · Engineer · Strategy · Tyres |
-| **Analysis** (after the session) | Laps · Braking coach · Data |
+| **Analysis** (after the session) | Races · Laps · Braking coach · Tracks · Data |
 | **Season** | Calendar · Series · Goals |
 | **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
 | **Account** | Account · Settings (also the gear button) |
@@ -126,6 +126,17 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Settings** now holds everything you set up once: general, profiles, connections (iRacing, Garage 61, Pitlane HQ Cloud), phone and engineer view.
 - **Inputs widget**: choose gear, speed, wheel and angle, pedal bars (vertical or horizontal), values, ABS light, trace lines (incl. steering and ABS zones), trace length and height. Live blocks resize from their corner; overlays from any edge in edit mode.
 
+## Race reports, tracks, beeps and more (0.10)
+
+- **Race reports** (Analysis → Races): after every race, automatically: start and finish, places gained, incidents, best lap against the fastest, average and consistency, fuel, stops, SOF and an **iRating estimate** (the official change too when you are signed in to iRacing). Lap-time and position charts and your class results. History with totals.
+- **Tracks** (Analysis → Tracks): best lap and **fuel per lap** for each car at each track, learned while you drive, and your **notes per corner**. The engineer reads them a few seconds before each corner in your first laps ("Read my track notes").
+- **Prepare a race**: tap a race in the calendar: track and car (and whether you own them), length and laps, weather, your best lap there, **fuel needed** (and stops if it does not fit in the tank), your setups with laps there, and your notes.
+- **Braking markers** (Live widget and overlay): the next corner, the distance to your braking point from your best lap, 1 or 3 beeps, and afterwards how many metres early or late you braked. **With a car close ahead** it moves the marker earlier (more the closer it is) and does not count that corner.
+- **Shift beep** (Rig → Car profiles): on/off and settings **for each car**: iRacing's shift lights, an **estimated best shift RPM** for each gear (from your own flat-out acceleration) or your own RPM per gear; how early it sounds, tone and volume. The dash shift lights follow it.
+- **Engineer: multiclass and rain**: "faster class behind, 2 seconds", "slower car ahead"; rain starting / heavier / easing / stopped with iRacing's **precipitation %**, the **track wetness** level (dry … extremely wet), **wet declared**, and when to think about wets or slicks. Ask it "weather".
+- **Discord** (Settings → Connections): your results posted automatically, and "Share on Discord" for your next races. The webhook link is stored encrypted.
+- **Updates**: the Windows app checks the downloads page and updates itself with one click (Settings → About, or the banner).
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -179,7 +190,7 @@ Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para para
 | Sección | Páginas |
 |---|---|
 | **Carrera** (mientras conduces) | En vivo · Posiciones · Ingeniero · Estrategia · Neumáticos |
-| **Análisis** (después de la sesión) | Vueltas · Coach de frenada · Datos |
+| **Análisis** (después de la sesión) | Carreras · Vueltas · Coach de frenada · Circuitos · Datos |
 | **Temporada** | Calendario · Series · Objetivos |
 | **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
 | **Cuenta** | Cuenta · Ajustes (también el botón del engranaje) |
@@ -279,6 +290,17 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Equipo en la web**: tu Pitlane HQ Cloud puede tener compañeros con su propia clave; récords por circuito y coche de todo el equipo y comparación con la vuelta más rápida del equipo.
 - **Ajustes** reúne todo lo que se configura una vez: general, perfiles, conexiones (iRacing, Garage 61, Pitlane HQ Cloud), móvil y vista de ingeniero.
 - **Widget de pedales**: elige marcha, velocidad, volante y ángulo, barras de pedales (verticales u horizontales), valores, aviso de ABS, líneas de la gráfica (incluido volante y zonas de ABS), duración y altura. Los bloques de En vivo cambian de tamaño desde su esquina; los overlays desde cualquier borde en modo edición.
+
+## Informes de carrera, circuitos, pitidos y más (0.10)
+
+- **Informes de carrera** (Análisis → Carreras): tras cada carrera, solo: salida y llegada, posiciones ganadas, incidentes, mejor vuelta frente a la más rápida, media y regularidad, gasolina, paradas, SOF y un **iRating estimado** (y el cambio oficial si has iniciado sesión en iRacing). Gráficas de tiempos y posición y los resultados de tu clase. Historial con totales.
+- **Circuitos** (Análisis → Circuitos): mejor vuelta y **gasolina por vuelta** de cada coche en cada circuito, aprendidas mientras conduces, y tus **notas por curva**. El ingeniero las lee unos segundos antes de cada curva en tus primeras vueltas («Leer mis notas del circuito»).
+- **Preparar una carrera**: toca una carrera del calendario: circuito y coche (y si los tienes), duración y vueltas, clima, tu mejor vuelta allí, **gasolina necesaria** (y paradas si no cabe en el depósito), tus setups con vuelta allí y tus notas.
+- **Marcas de frenada** (widget de En vivo y overlay): la próxima curva, la distancia a tu punto de frenada de tu mejor vuelta, 1 o 3 pitidos, y después cuántos metros antes o tarde frenaste. **Con un coche justo delante** adelanta la marca (más cuanto más cerca) y esa curva no cuenta.
+- **Pitido de cambio** (Rig → Perfiles por coche): activar/desactivar y ajustes **por coche**: luces de cambio de iRacing, **RPM óptimas estimadas** por marcha (a partir de tu propia aceleración a fondo) o tus propias RPM por marcha; cuánto se adelanta, tono y volumen. Las luces del dash lo siguen.
+- **Ingeniero: multiclase y lluvia**: «clase más rápida detrás, a 2 segundos», «coche más lento delante»; empieza a llover / llueve más / menos / ha parado con el **% de precipitación** de iRacing, el nivel de **mojado de la pista** (seca … extremadamente mojada), **pista declarada mojada** y cuándo pensar en neumáticos de lluvia o slicks. Pregúntale «tiempo».
+- **Discord** (Ajustes → Conexiones): tus resultados se publican solos, y «Compartir en Discord» para tus próximas carreras. El enlace del webhook se guarda cifrado.
+- **Actualizaciones**: la app de Windows mira la página de descargas y se actualiza con un clic (Ajustes → Acerca de, o el aviso de arriba).
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 

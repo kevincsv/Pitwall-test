@@ -131,7 +131,7 @@ func currentCarSetup() (carPath, carName, setup, track string) {
 	if y == "" {
 		return
 	}
-	if d := listItem(y, "CarIdx", yamlField(y, "DriverCarIdx")); d != "" {
+	if d := driverBlock(y, yamlField(y, "DriverCarIdx")); d != "" {
 		carPath, carName = yamlField(d, "CarPath"), yamlField(d, "CarScreenName")
 	}
 	setup = yamlField(y, "DriverSetupName")
