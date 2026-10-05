@@ -72,7 +72,7 @@ h2{font:700 20px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.0
 .sub{color:var(--muted);font-size:14px}
 .grid{display:grid;gap:10px;grid-template-columns:repeat(12,minmax(0,1fr))}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:13px;min-width:0}
-.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
+.s2{grid-column:span 2}.s9{grid-column:span 9}.s10{grid-column:span 10}.s11{grid-column:span 11}.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:span 12}
 @media (max-width:1020px){.s2{grid-column:span 4}.s3{grid-column:span 6}.s4,.s5,.s7,.s8,.s6{grid-column:span 12}}
 @media (max-width:520px){.s2{grid-column:span 6}.s3{grid-column:span 6}}
 .label{font:600 11px/1.25 var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -435,6 +435,7 @@ html.ov.edit .ovh{display:block}
 .chs{gap:3px}.chs .pin{padding:4px 6px;font-size:11px}.chs .pin[aria-pressed="true"]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
 @media (max-width:900px){.hapfx-row{grid-template-columns:1fr 1fr}.hapfx-row .nm{grid-column:1/-1}}
 .calday{display:grid;max-height:420px;overflow:auto;margin-top:8px}
+.calbtn[aria-pressed="true"]{background:var(--good);color:var(--accent-ink);border-color:var(--good)}
 .cdrow{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .cdrow .s{min-width:0}.cdrow .s b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cdrow .s small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cdrow .t{color:var(--accent);font-weight:600}.cdrow .star.on{color:var(--accent);border-color:var(--accent)}
@@ -1507,8 +1508,9 @@ function renderSeriesList(){if(!SER)return;const list=filtered(),now=Date.now();
       <div class="row2"><div><div class="k">${Lp(`Week ${wi+1} of ${x.s.weeks.length}`,`Semana ${wi+1} de ${x.s.weeks.length}`,true)}</div><div>${esc(t.name)}${t.cfg?` <span class="muted">· ${esc(t.cfg)}</span>`:""}</div></div><div style="text-align:right">${ownTag(x.ot,"Track","Circuito")}</div>
         <div><div class="k">${Lp("Car","Coche",true)}</div><div>${esc(cars.slice(0,2).map(c=>c.name).join(", "))}${cars.length>2?` <span class="muted">+${cars.length-2}</span>`:""}</div></div><div style="text-align:right">${ownTag(x.oc,"Car","Coche")}</div>
         <div><div class="k">${Lp("Next race","Próxima carrera",true)}</div><div class="next">${x.next?`${hm(x.next.t)} <span class="muted" style="font-weight:400">· ${until(x.next.t)}</span>`:"–"}</div></div><div style="text-align:right" class="muted">${esc(lenText(x.w))}<br>${esc(every(x.w))}${gc!=null?`<br>${gc} ${esc(Tx("signed up","inscritos"))}`:""}</div></div>
-      <div class="pills">${status}</div></div>`}).join(""):`<div class="panel empty">${Lp("No series match these filters.","Ninguna serie cumple estos filtros.")}</div>`;
+      <div class="pills" style="justify-content:space-between;align-items:center">${status}${x.next?`<button type="button" class="btn small calbtn" data-cal="${x.s.id}" data-t="${x.next.t}" aria-pressed="${inPlan(x.s.sid,x.next.t)}">${esc(inPlan(x.s.sid,x.next.t)?Tx("✓ In calendar","✓ En el calendario"):Tx("+ Calendar","+ Calendario"))}</button>`:""}</div></div>`}).join(""):`<div class="panel empty">${Lp("No series match these filters.","Ninguna serie cumple estos filtros.")}</div>`;
   document.querySelectorAll("#serList .scard").forEach(c=>{c.onclick=e=>{if(e.target.closest(".star"))return;openSeries(+c.dataset.id)};c.onkeydown=e=>{if(e.key==="Enter")openSeries(+c.dataset.id)}});
+  document.querySelectorAll("#serList .calbtn").forEach(b=>b.onclick=e=>{e.stopPropagation();const x=SER.seasons.find(q=>q.id===+b.dataset.cal),t=+b.dataset.t,w=x.weeks.find(q=>t>=weekStart(q)&&t<weekEnd(q))||x.weeks[0];togglePlan(x,w,t);const on=inPlan(x.sid,t);b.setAttribute("aria-pressed",on);b.textContent=on?Tx("✓ In calendar","✓ En el calendario"):Tx("+ Calendar","+ Calendario");toast(on?Tx("Added to your calendar","Añadida a tu calendario"):Tx("Removed from your calendar","Quitada de tu calendario"))});
   document.querySelectorAll("#serList .star").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleFav(+b.dataset.fav);b.setAttribute("aria-pressed",FAV.has(+b.dataset.fav))});
 }
 function toggleFav(sid){FAV.has(sid)?FAV.delete(sid):FAV.add(sid);store.set("pw.fav",[...FAV])}
@@ -1517,7 +1519,7 @@ const NATIVE=window.webkit&&window.webkit.messageHandlers&&window.webkit.message
 function togglePlan(s,w,t){if(inPlan(s.sid,t))PLAN=PLAN.filter(p=>!(p.sid===s.sid&&p.t===t));else PLAN.push({sid:s.sid,id:s.id,t,name:s.name,track:trackInfo(w).name,mins:(w.rtd&&w.rtd.sl)||w.mins||60});PLAN.sort((a,b)=>a.t-b.t);store.set("pw.plan",PLAN);syncNativePlan()}
 function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);if(!s)return;const now=Date.now(),w=curWeek(s)||s.weeks[0],wi=weekIdx(s);
   $("#dTitle").textContent=s.name;$("#dSub").innerHTML=`${licBadge(s.lic)} · ${esc(s.desc||"")}`;
-  const today=sessions(w,now,now+36*3600e3).slice(0,24);const t=trackInfo(w);const cars=seasonCars(s,w);
+  const today=s.weeks.flatMap(x=>sessions(x,now,now+7*DAYMS)).sort((a,b)=>a-b).slice(0,80);const t=trackInfo(w);const cars=seasonCars(s,w);
   const wx=w.wx||{};const tu=v=>v==null?"–":(wx.u===0?((v-32)*5/9):v);
   const cr=CREDITS.find(c=>c.series_id===s.sid);
   $("#dBody").innerHTML=`
@@ -1529,13 +1531,13 @@ function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);
       <dt>${Lp("Setup","Setup",true)}</dt><dd>${esc(s.fixed?Tx("Fixed","Fijo"):Tx("Open","Libre"))}</dd><dt>${Lp("Incident limit","Límite de incidentes",true)}</dt><dd>${s.inc||"–"}</dd><dt>${Lp("Drop weeks","Semanas descartables",true)}</dt><dd>${s.drops??"–"}</dd>
       <dt>${Lp("Cars","Coches",true)}</dt><dd style="font-family:var(--f-body)">${cars.map(c=>`${esc(c.name)} ${c.free||SER.member.cp.has(c.pkg)?'<span class="own y">✓</span>':'<span class="own n">✗</span>'}`).join("<br>")}</dd></dl>
       ${cr?`<p class="note">${Lp(`Participation: ${cr.weeks} of ${cr.min_weeks} weeks raced.`,`Participación: ${cr.weeks} de ${cr.min_weeks} semanas corridas.`)}</p>`:""}</div>
-    <div class="panel s6"><div class="label">${Lp("Next sessions (your time)","Próximas sesiones (tu hora)",true)}</div>
-      <div>${today.length?today.map(tt=>`<div class="agrow"><span class="t">${hm(tt)}</span><span class="s muted">${esc(new Date(tt).toLocaleDateString(locale(),{weekday:"short"}))} · ${esc(until(tt))}</span><button type="button" class="pin" data-t="${tt}" aria-pressed="${inPlan(s.sid,tt)}">${esc(inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir"))}</button></div>`).join(""):`<p class="note">${Lp("No more sessions this week.","No hay más sesiones esta semana.")}</p>`}</div></div>
+    <div class="panel s6"><div class="label">${Lp("Next 7 days (your time) · tap Add to put a race in your calendar","Próximos 7 días (tu hora) · pulsa Añadir para ponerla en tu calendario",true)}</div>
+      <div style="max-height:420px;overflow:auto">${today.length?today.map((tt,k)=>`${k===0||new Date(today[k-1]).toDateString()!==new Date(tt).toDateString()?`<div class="agday">${esc(dayName(tt))}</div>`:""}<div class="agrow"><span class="t">${hm(tt)}</span><span class="s muted">${esc(new Date(tt).toLocaleDateString(locale(),{weekday:"short"}))} · ${esc(until(tt))}</span><button type="button" class="pin" data-t="${tt}" aria-pressed="${inPlan(s.sid,tt)}">${esc(inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir"))}</button></div>`).join(""):`<p class="note">${Lp("No more sessions this week.","No hay más sesiones esta semana.")}</p>`}</div></div>
     <div class="panel s12"><div class="label" style="margin-bottom:4px">${Lp("Season schedule","Calendario de la temporada",true)}</div><div class="tscroll"><table><thead><tr><th>${esc(Tx("Wk","Sem"))}</th><th>${esc(Tx("Dates","Fechas"))}</th><th>${esc(Tx("Track","Circuito"))}</th><th>${esc(Tx("Length","Duración"))}</th><th>${esc(Tx("Owned","Comprado"))}</th></tr></thead><tbody>
       ${s.weeks.map((x,i)=>{const ti=trackInfo(x),o=ownsTrack(x);const ds=new Date(weekStart(x)),de=new Date(weekEnd(x)-1);return `<tr class="${i===wi?"me":""}" style="${weekEnd(x)<now?"opacity:.5":""}"><td class="mono">${i+1}</td><td class="mono">${ds.toLocaleDateString(locale(),{day:"2-digit",month:"short"})} – ${de.toLocaleDateString(locale(),{day:"2-digit",month:"short"})}</td><td>${esc(ti.name)}${ti.cfg?` <span class="muted">· ${esc(ti.cfg)}</span>`:""}</td><td class="mono">${esc(lenText(x))}</td><td>${o?'<span class="own y">✓</span>':`<span class="own n">✗</span> <span class="muted mono">${ti.price?"$"+ti.price:""}</span>`}</td></tr>`}).join("")}</tbody></table></div>
       <p class="note">${(()=>{const rem=s.weeks.filter(x=>weekEnd(x)>now),can=rem.filter(ownsTrack).length;return Lp(`You can race ${can} of the ${rem.length} remaining weeks with your tracks.`,`Puedes correr ${can} de las ${rem.length} semanas restantes con tus circuitos.`)})()}</p></div>
    </div>`;
-  document.querySelectorAll("#dBody .pin").forEach(b=>b.onclick=()=>{const tt=+b.dataset.t;togglePlan(s,w,tt);b.setAttribute("aria-pressed",inPlan(s.sid,tt));b.textContent=inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir")});
+  document.querySelectorAll("#dBody .pin").forEach(b=>b.onclick=()=>{const tt=+b.dataset.t,w=s.weeks.find(x=>tt>=weekStart(x)&&tt<weekEnd(x))||s.weeks[0];togglePlan(s,w,tt);b.setAttribute("aria-pressed",inPlan(s.sid,tt));b.textContent=inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir")});
   $("#drawer").hidden=false;$("#dClose").focus()}
 function closeDrawer(){$("#drawer").hidden=true;LAYOUT_VIEW=null;clearInterval(PREVIEW_TIMER);if(CUR_VIEW==="series")renderSeries()}
 $("#dClose").onclick=closeDrawer;$("#drawerBg").onclick=closeDrawer;document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#drawer").hidden)closeDrawer()});
@@ -2291,7 +2293,7 @@ function addGrips(){if(OV.on)return;document.querySelectorAll("#liveGrid>.wpanel
   r.addEventListener("dblclick",()=>{delete WHGT[p.dataset.w];store.set("pw.heights",WHGT);applyOrderAndSizes();packGrid();drawMapSoon()});
   r.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();r.setPointerCapture(e.pointerId);const grid=$("#liveGrid"),gs=getComputedStyle(grid),gap=parseFloat(gs.columnGap)||10,colW=(grid.clientWidth-11*gap)/12,
       x0=e.clientX,y0=e.clientY,w0=p.offsetWidth,h0=p.offsetHeight,w=p.dataset.w;p.classList.add("resizing");
-    const mv=ev=>{const span=Math.max(2,Math.min(12,Math.round((w0+ev.clientX-x0+gap)/(colW+gap))));if(innerWidth>1020&&span!==(WSIZE[w]||+p.dataset.def)){WSIZE[w]=span;applyOrderAndSizes();packGrid()}
+    const mv=ev=>{const span=Math.max(2,Math.min(12,Math.round((w0+ev.clientX-x0+gap)/(colW+gap))));if(Math.abs(ev.clientX-x0)>8&&span!==WSIZE[w]){WSIZE[w]=span;p.className=p.className.replace(/\bs\d+\b/g,"").trim()+" s"+span;packGrid()}
       const hh=Math.max(90,Math.round(h0+ev.clientY-y0));if(Math.abs(hh-h0)>4||WHGT[w]){WHGT[w]=hh;p.style.height=hh+"px";p.classList.add("ch")}};
     const up=()=>{r.removeEventListener("pointermove",mv);r.removeEventListener("pointerup",up);p.classList.remove("resizing");store.set("pw.sizes",WSIZE);store.set("pw.heights",WHGT);drawMapSoon();rerenderAll()};
     r.addEventListener("pointermove",mv);r.addEventListener("pointerup",up)})})}
@@ -2358,9 +2360,12 @@ Object.assign(I18N,{
 UI_DEFAULTS.cmp.ref=null;
 
 /* ---------- Live blocks fill every row ---------- */
+/* Blocks fill each row. A block you resized keeps exactly the width you gave it;
+   only the other blocks of its row stretch to fill the gap. */
 function packGrid(){if(OV.on)return;const grid=$("#liveGrid");if(!grid)return;const panels=[...grid.children].filter(p=>p.classList.contains("wpanel")&&!p.hidden&&!p.classList.contains("dragging"));
-  if(innerWidth<=1020){panels.forEach(p=>p.style.gridColumn="");return}
-  let row=[],sum=0;const flush=()=>{if(!row.length)return;const sp=row.map(r=>r.n);let left=12-sum,i=0;while(left>0){sp[i%sp.length]++;left--;i++}row.forEach((r,k)=>r.p.style.gridColumn="span "+sp[k]);row=[];sum=0};
+  const user=p=>WSIZE[p.dataset.w];
+  if(innerWidth<=1020){panels.forEach(p=>p.style.gridColumn=user(p)?"span "+Math.min(12,user(p)):"");return}
+  let row=[],sum=0;const flush=()=>{if(!row.length)return;const sp=row.map(r=>r.n),auto=row.map((r,k)=>user(r.p)?-1:k).filter(k=>k>=0);let left=12-sum,i=0;while(left>0&&auto.length){sp[auto[i%auto.length]]++;left--;i++}row.forEach((r,k)=>r.p.style.gridColumn="span "+sp[k]);row=[];sum=0};
   panels.forEach(p=>{const n=Math.min(12,+(p.className.match(/\bs(\d+)\b/)||[0,12])[1]);if(sum+n>12)flush();row.push({p,n});sum+=n});flush()}
 addEventListener("resize",()=>{packGrid();drawMapSoon()});
 
