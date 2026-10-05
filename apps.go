@@ -1,7 +1,7 @@
 package main
 
 // App launcher: finds your sim-racing programs (iRacing, Steam, CrewChief,
-// Garage 61, TrackImpulse…) and starts the ones you
+// Garage 61, TrackImpulse, SimHub, MOZA Pit House…) and starts the ones you
 // pick when Pitlane HQ opens or when iRacing starts.
 //
 // Safety: the app never accepts a program path from the network. Paths come
@@ -63,6 +63,12 @@ var appCatalog = []catalogApp{
 	{ID: "trackimpulse", Name: "TrackImpulse", Procs: []string{"trackimpulse.exe", "track impulse.exe", "trackimpulseoverlay.exe"},
 		Paths: []string{`%LOCALAPPDATA%\Programs\TrackImpulse\TrackImpulse.exe`, `%ProgramFiles%\TrackImpulse\TrackImpulse.exe`, `%LOCALAPPDATA%\TrackImpulse\TrackImpulse.exe`},
 		Match: regexp.MustCompile(`(?i)track\s*impulse`), What: [2]string{"Overlays", "Overlays"}},
+	{ID: "simhub", Name: "SimHub", Procs: []string{"simhubwpf.exe"},
+		Paths: []string{`%ProgramFiles(x86)%\SimHub\SimHubWPF.exe`, `%ProgramFiles%\SimHub\SimHubWPF.exe`},
+		Match: regexp.MustCompile(`(?i)^simhub$`), MinArgs: "-minimize", What: [2]string{"Dashboards and LEDs", "Dashboards y LEDs"}},
+	{ID: "pithouse", Name: "MOZA Pit House", Procs: []string{"moza pit house.exe"},
+		Paths: []string{`%ProgramFiles(x86)%\MOZA Pit House\MOZA Pit House.exe`, `%ProgramFiles%\MOZA Pit House\MOZA Pit House.exe`},
+		Match: regexp.MustCompile(`(?i)pit\s*house`), What: [2]string{"MOZA wheel settings and firmware", "Ajustes y firmware del volante MOZA"}},
 	{ID: "racelab", Name: "RaceLab", Procs: []string{"racelabapps.exe", "racelab.exe"},
 		Paths: []string{`%LOCALAPPDATA%\racelabapps\RacelabApps.exe`, `%LOCALAPPDATA%\racelab\RaceLab.exe`},
 		Match: regexp.MustCompile(`(?i)^race\s*lab`), What: [2]string{"Overlays", "Overlays"}},

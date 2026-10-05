@@ -79,7 +79,7 @@ The round button at the top right (with your initial) opens **Profiles**. Each p
 
 ## Programs (Settings → General)
 
-**Programs.** Pitlane HQ looks for iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord and OBS (known folders, Start menu and installed programs). Add the ones you want and choose for each one:
+**Programs.** Pitlane HQ looks for iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord and OBS (known folders, Start menu and installed programs). Add the ones you want and choose for each one:
 
 - **With Pitlane HQ**: starts when Pitlane HQ opens.
 - **When iRacing starts**: starts each time the sim starts.
@@ -246,7 +246,7 @@ El botón redondo de arriba a la derecha (con tu inicial) abre **Perfiles**. Cad
 
 ## Programas (Ajustes → General)
 
-**Programas.** Pitlane HQ busca iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord y OBS (carpetas conocidas, menú Inicio y programas instalados). Añade los que quieras y elige para cada uno:
+**Programas.** Pitlane HQ busca iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord y OBS (carpetas conocidas, menú Inicio y programas instalados). Añade los que quieras y elige para cada uno:
 
 - **Con Pitlane HQ**: se abre al abrir Pitlane HQ.
 - **Al abrir iRacing**: se abre cada vez que arranca el simulador.

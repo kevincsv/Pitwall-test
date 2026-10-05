@@ -3449,13 +3449,13 @@ $("#profBtn").onclick=openProfiles;
 const askOK=async m=>MODE==="local"||await uiConfirm(m);
 /* In-browser demo of the programs list: a simulated PC */
 const DEMO_RIG=(()=>{const W=(en,es)=>[en,es];
-  const cat={iracing:["iRacing",W("The iRacing app","La app de iRacing"),"iRacingUI.exe"],steam:["Steam",W("Games and iRacing on Steam","Juegos e iRacing en Steam"),"steam.exe"],crewchief:["Crew Chief",W("Spotter and race engineer voice","Spotter e ingeniero por voz"),"CrewChiefV4.exe"],garage61:["Garage 61",W("Telemetry agent that uploads your laps","Agente que sube tus vueltas"),"garage61-launcher.exe"],trackimpulse:["TrackImpulse",W("Overlays","Overlays"),"TrackImpulse.exe"],discord:["Discord",W("Voice chat with your team","Chat de voz con tu equipo"),"Update.exe"]};
+  const cat={iracing:["iRacing",W("The iRacing app","La app de iRacing"),"iRacingUI.exe"],steam:["Steam",W("Games and iRacing on Steam","Juegos e iRacing en Steam"),"steam.exe"],crewchief:["Crew Chief",W("Spotter and race engineer voice","Spotter e ingeniero por voz"),"CrewChiefV4.exe"],garage61:["Garage 61",W("Telemetry agent that uploads your laps","Agente que sube tus vueltas"),"garage61-launcher.exe"],simhub:["SimHub",W("Dashboards and LEDs","Dashboards y LEDs"),"SimHubWPF.exe"],pithouse:["MOZA Pit House",W("MOZA wheel settings and firmware","Ajustes y firmware del volante MOZA"),"MOZA Pit House.exe"],trackimpulse:["TrackImpulse",W("Overlays","Overlays"),"TrackImpulse.exe"],discord:["Discord",W("Voice chat with your team","Chat de voz con tu equipo"),"Update.exe"]};
   const st={apps:[{id:"iracing",when:"pitwall",min:false},{id:"crewchief",when:"sim",min:false},{id:"garage61",when:"sim",min:true}],run:{steam:true},};
   const row=a=>({...a,name:cat[a.id][0],running:!!st.run[a.id],found:true,file:cat[a.id][2]});
   const later=(ms,fn)=>setTimeout(()=>{fn();if(CUR_VIEW==="settings")renderRig()},ms);
   return{get(p){
     if(p==="/api/apps"){const added=new Set(st.apps.map(a=>a.id));return{apps:st.apps.map(row),found:Object.keys(cat).filter(k=>!added.has(k)&&k!=="discord").map(k=>({id:k,name:cat[k][0],what:cat[k][1],running:!!st.run[k]})),missing:[{name:"RaceLab"},{name:"Coach Dave Delta"},{name:"Track Titan"},{name:"OBS Studio"}],windows:true}}
-    if(p==="/api/apps/shortcuts")return["Assetto Corsa Competizione","Discord","iRacing","Le Mans Ultimate","OBS Studio","Spotify","Steam","TrackImpulse"].map((n,i)=>({key:"k"+i,name:n}));
+    if(p==="/api/apps/shortcuts")return["Assetto Corsa Competizione","Discord","iRacing","Le Mans Ultimate","MOZA Pit House","OBS Studio","SimHub","Spotify","Steam","TrackImpulse"].map((n,i)=>({key:"k"+i,name:n}));
     return null},
    post(p,b){b=b||{};
     if(p==="/api/apps/do"){const i=st.apps.findIndex(a=>a.id===b.id);
