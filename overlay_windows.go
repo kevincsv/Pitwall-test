@@ -9,7 +9,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -135,43 +134,22 @@ func openOverlay(o overlayReq, url, engine string) error {
 		n := len(listOverlays())
 		o.X, o.Y = 80+n*40, 80+n*40
 	}
-	// WebView2 draws nothing (a white box) in a see-through or click-through
-	// (layered) window, so those overlays always open in an Edge window
-	if engine != "edge" && !needsLayer(o) {
-		exe, err := os.Executable()
-		if err == nil {
-			cmd := exec.Command(exe, "-overlay-window", o.Widget, "-url", url, "-x", itoa(o.X), "-y", itoa(o.Y), "-w", itoa(o.Width), "-h", itoa(o.Height))
-			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW: no console flash
-			if err := cmd.Start(); err == nil {
-				procsMu.Lock()
-				procs[o.Widget] = cmd
-				procsMu.Unlock()
-				started := time.Now()
-				go func() {
-					err := cmd.Wait()
-					procsMu.Lock()
-					mine := procs[o.Widget] == cmd // false when Pitlane HQ closed it on purpose
-					if mine {
-						delete(procs, o.Widget)
-					}
-					procsMu.Unlock()
-					code := -1
-					if cmd.ProcessState != nil {
-						code = cmd.ProcessState.ExitCode()
-					}
-					if mine && err != nil && (code == 3 || time.Since(started) < 6*time.Second) {
-						log.Printf("Frameless overlay %s could not start (%v); using an Edge window", o.Widget, err)
-						openEdgeOverlay(o, url)
-					}
-				}()
-				return nil
-			}
-		}
+	// Frameless overlays are Edge windows without their title bar and borders:
+	// WebView2 windows stayed white on some PCs. The page moves and resizes
+	// itself through /api/overlay/move (fl=1).
+	if engine != "edge" {
+		return openEdgeOverlayFrameless(o, url)
 	}
 	return openEdgeOverlay(o, url)
 }
 
-func openEdgeOverlay(o overlayReq, url string) error {
+func openEdgeOverlay(o overlayReq, url string) error { return startEdgeOverlay(o, url, false) }
+
+func openEdgeOverlayFrameless(o overlayReq, url string) error {
+	return startEdgeOverlay(o, url+"&fl=1", true)
+}
+
+func startEdgeOverlay(o overlayReq, url string, frameless bool) error {
 	edge := edgePath()
 	if edge == "" {
 		return errors.New("Microsoft Edge is needed for overlay windows")
@@ -183,20 +161,43 @@ func openEdgeOverlay(o overlayReq, url string) error {
 	if err := exec.Command(edge, args...).Start(); err != nil {
 		return err
 	}
-	go styleWhenReady(o)
+	go styleWhenReady(o, frameless)
 	return nil
 }
 
-func styleWhenReady(o overlayReq) {
-	for i := 0; i < 40; i++ {
+func styleWhenReady(o overlayReq, frameless bool) {
+	for i := 0; i < 60; i++ {
 		time.Sleep(250 * time.Millisecond)
 		for h, name := range overlayWindows() {
 			if name == o.Widget {
+				if frameless {
+					removeFrame(h)
+				}
+				// the saved place and size are screen pixels (what Windows reports)
+				if o.HasPos && o.Width > 0 && o.Height > 0 {
+					procSetWindowPos.Call(h, 0, uintptr(o.X), uintptr(o.Y), uintptr(o.Width), uintptr(o.Height), swpNoActivate|0x0004) // SWP_NOZORDER
+				}
 				applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
 				return
 			}
 		}
 	}
+}
+
+// removeFrame takes the title bar and borders off a window, keeping its place and size.
+func removeFrame(h uintptr) {
+	const (
+		wsCaption    = 0x00C00000
+		wsThickFrame = 0x00040000
+		wsSysMenu    = 0x00080000
+		wsMinBox     = 0x00020000
+		wsMaxBox     = 0x00010000
+	)
+	x, y, w, hh := windowRect(h)
+	st, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlStyle))
+	st &^= wsCaption | wsThickFrame | wsSysMenu | wsMinBox | wsMaxBox
+	procSetWindowLongPtrW.Call(h, uintptr(gwlStyle), st)
+	procSetWindowPos.Call(h, 0, uintptr(x), uintptr(y), uintptr(w), uintptr(hh), swpFrameChanged|swpNoActivate|0x0004)
 }
 
 func overlayRects() map[string][4]int {

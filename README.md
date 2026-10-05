@@ -168,7 +168,7 @@ Add `http://localhost:8484` as a Browser Source in OBS to show the app on stream
 Settings → **Engineer view**.
 
 - **Same network**: open the address shown there (it ends in `/?view=engineer`) or scan its QR code on the other device.
-- **From another house**: press **Create link**. Pitlane HQ downloads Cloudflare's free `cloudflared` tool once and gives you a private `https://….trycloudflare.com` link with a secret key. Send it to your engineer. The link only lets them watch (telemetry, map, relative, laps, tyres); they cannot change settings, overlays or see your account. It stops working when you press **Stop sharing** or close Pitlane HQ, and a new link is different every time.
+- **Remote (over the internet)**: press **Create link**. Pitlane HQ downloads Cloudflare's free `cloudflared` tool once and gives you a private `https://….trycloudflare.com` link with a secret key. Send it to your engineer. The link only lets them watch (telemetry, map, relative, laps, tyres); they cannot change settings, overlays or see your account. It stops working when you press **Stop sharing** or close Pitlane HQ, and a new link is different every time.
 
 ## Garage 61 (optional)
 
