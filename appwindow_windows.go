@@ -165,11 +165,11 @@ func styleTitleBar(hwnd uintptr) {
 	set := func(attr uintptr, v uint32) {
 		procDwmSetWindowAttribute.Call(hwnd, attr, uintptr(unsafe.Pointer(&v)), 4)
 	}
-	set(20, 1)          // DWMWA_USE_IMMERSIVE_DARK_MODE (Windows 10 20H1 and later)
-	set(19, 1)          // the same on older Windows 10 builds
-	set(35, 0x001B1511) // DWMWA_CAPTION_COLOR: #11151b, the app background
-	set(34, 0x0031261E) // DWMWA_BORDER_COLOR: #1e2631, like the panels
-	set(36, 0x00F1EBE7) // DWMWA_TEXT_COLOR: #e7ebf1
-	set(33, 2)          // DWMWA_WINDOW_CORNER_PREFERENCE: round
+	set(20, 1)                                                                                           // DWMWA_USE_IMMERSIVE_DARK_MODE (Windows 10 20H1 and later)
+	set(19, 1)                                                                                           // the same on older Windows 10 builds
+	set(35, 0x001B1511)                                                                                  // DWMWA_CAPTION_COLOR: #11151b, the app background
+	set(34, 0x0031261E)                                                                                  // DWMWA_BORDER_COLOR: #1e2631, like the panels
+	set(36, 0x00F1EBE7)                                                                                  // DWMWA_TEXT_COLOR: #e7ebf1
+	set(33, 2)                                                                                           // DWMWA_WINDOW_CORNER_PREFERENCE: round
 	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate|0x0004|swpFrameChanged) // redraw the frame
 }
