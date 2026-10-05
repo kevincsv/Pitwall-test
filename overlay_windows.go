@@ -226,13 +226,17 @@ func setOverlayVisible(name string, on bool) {
 func setStartWithWindows(on bool) error {
 	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 	if !on {
-		return exec.Command("reg", "delete", key, "/v", "PitWall", "/f").Run()
+		cmd := exec.Command("reg", "delete", key, "/v", "PitWall", "/f")
+		hideChildWindow(cmd)
+		return cmd.Run()
 	}
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	return exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f").Run()
+	cmd := exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f")
+	hideChildWindow(cmd)
+	return cmd.Run()
 }
 
 var procGetSystemMetrics = user32.NewProc("GetSystemMetrics")

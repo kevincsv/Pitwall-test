@@ -687,6 +687,14 @@ nav.tabs button[data-g=home],nav.tabs button[data-g=more]{display:none}
 .pc-form{display:grid;gap:10px;width:100%}.pc-form input{box-sizing:border-box;width:100%;font:700 26px var(--f-data);letter-spacing:.12em;text-align:center;padding:12px}
 .pc-card .hm-bar,.pc-card .devlist{width:100%}
 html.companion #lockBtn,html.companion #fsBtn,html.companion #logoutBtn,html.companion #exForm,html.companion #exForm+pre{display:none}
+/* update pop-up */
+.updpop{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}.updpop[hidden]{display:none}
+.up-card{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;gap:12px;justify-items:center;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.up-card h2{margin:0}.up-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.up-ic{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}.up-ic svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.up-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.up-skip{background:none;border:0;color:var(--muted);font:500 12.5px var(--f-body);cursor:pointer;text-decoration:underline}
+.sec-off{display:none!important}
+#setNav a[aria-current=true]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent)}
 </style>
 
 <div class="wrap">
@@ -2982,7 +2990,7 @@ function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];bo
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(COMPANION&&(g==="race"||g==="rig")){document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-pc");$("#subtabs").hidden=true;renderPC();return}if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="home")renderHome();if(v==="me")renderMe();if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
+  if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
 tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 /* ---------- quick search: Ctrl+K or / jumps to any page, setting or action ---------- */
@@ -3579,7 +3587,14 @@ function renderStartPanel(){const box=$("#startPanel");if(!box)return;if(MODE!==
 function renderAbout(){const box=$("#aboutPanel");if(!box)return;const v=(INFO&&INFO.version)||"";
   box.innerHTML=`<dl class="kv"><dt>${esc(Tx("Version","Versión"))}</dt><dd class="mono">Pitlane HQ ${esc(v||"web")}</dd><dt>${esc(Tx("Your data","Tus datos"))}</dt><dd class="mono">%APPDATA%\\PitlaneHQ</dd><dt>${esc(Tx("Profile","Perfil"))}</dt><dd>${esc(PROFILE.name||"–")}</dd></dl>
     <p class="note">${Lp("AZOM (MOZA plugin for SimHub) is free software (GPL v3) by giantorth, included in the azom folder. Sign-ins are encrypted with your Windows account. Nothing leaves this PC unless you turn on Pitlane HQ Cloud, Garage 61 or the engineer link.","AZOM (plugin de MOZA para SimHub) es software libre (GPL v3) de giantorth, incluido en la carpeta azom. Las sesiones se cifran con tu cuenta de Windows. Nada sale de este PC salvo que actives Pitlane HQ Cloud, Garage 61 o el enlace de ingeniero.")}</p>`}
-document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault();const t=$(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"})});
+/* Settings show one section at a time (General, Profiles, Connections, Phone, About) */
+let SET_SEC=store.get("pw.setSec","set-general");
+function setSection(id){const sec=$("#v-settings");if(!sec||COMPANION)return;if(!document.getElementById(id))id="set-general";SET_SEC=id;rawSet("pw.setSec",id);let cur=null;
+  [...sec.children].forEach(el=>{if(el.classList.contains("sethead"))cur=el.id;if(el.classList.contains("vhead")||el.id==="setNav")return;el.classList.toggle("sec-off",cur!==id)});
+  document.querySelectorAll("#setNav a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+id))}
+document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault();setSection(a.getAttribute("href").slice(1));scrollTo(0,0)});
+// links elsewhere that used to scroll to a section now open its tab
+document.querySelectorAll("#v-settings .sethead").forEach(h=>{h.scrollIntoView=()=>{setSection(h.id);scrollTo(0,0)}});
 
 /* ===================== voice engineer ===================== */
 Object.assign(I18N,{"tab.coach":["Braking coach","Coach de frenada"],"tab.strategy":["Strategy","Estrategia"],"tab.goals":["Goals","Objetivos"],"tab.setups":["Setups","Setups"],"tab.cars":["Car profiles","Perfiles por coche"],
@@ -4339,11 +4354,16 @@ async function shareCalDiscord(){const now=Date.now(),its=calItems(now,now+7*DAY
 /* ---------- updates ---------- */
 let UPD=null;
 async function loadUpdate(){if(MODE!=="bridge"||REMOTE)return null;try{UPD=await jget("/api/update")}catch(e){UPD=null}return UPD}
-function renderUpdBanner(){let b=$("#updBanner");const show=UPD&&UPD.available&&!OV.on&&store.get("pw.updSkip","")!==(UPD.latest&&UPD.latest.build);
-  if(!show){if(b)b.hidden=true;return}if(!b){b=document.createElement("div");b.id="updBanner";b.className="updbanner";document.body.appendChild(b)}b.hidden=false;
-  b.innerHTML=`<span>${esc(Tx(`Pitlane HQ ${UPD.latest.version} is available`,`Hay una versión nueva de Pitlane HQ (${UPD.latest.version})`,`Pitlane HQ ${UPD.latest.version} ist verfügbar`,`O Pitlane HQ ${UPD.latest.version} está disponível`))}</span><button type="button" class="btn small primary" id="updGo">${esc(Tx("Update now","Actualizar ahora"))}</button><button type="button" class="iconbtn" id="updX" aria-label="${esc(Tx("Later","Más tarde"))}">✕</button>`;
-  $("#updGo").onclick=applyUpdate;$("#updX").onclick=()=>{store.set("pw.updSkip",UPD.latest.build);renderUpdBanner()}}
-async function applyUpdate(){if(!confirm(Tx("Download the new version and restart Pitlane HQ? (Overlays close and reopen.)","¿Descargar la versión nueva y reiniciar Pitlane HQ? (Los overlays se cierran y se vuelven a abrir.)")))return;
+let UPD_LATER="";
+function renderUpdBanner(){let b=$("#updBanner");const build=UPD&&UPD.latest&&UPD.latest.build;const show=UPD&&UPD.available&&!OV.on&&!REMOTE&&store.get("pw.updSkip","")!==build&&UPD_LATER!==build;
+  if(!show){if(b)b.hidden=true;return}if(!b){b=document.createElement("div");b.id="updBanner";b.className="updpop";document.body.appendChild(b)}b.hidden=false;
+  b.innerHTML=`<div class="up-card" role="dialog" aria-modal="true" aria-labelledby="upT"><div class="up-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
+    <h2 id="upT">${esc(Tx(`Pitlane HQ ${UPD.latest.version} is available`,`Hay una versión nueva de Pitlane HQ (${UPD.latest.version})`,`Pitlane HQ ${UPD.latest.version} ist verfügbar`,`O Pitlane HQ ${UPD.latest.version} está disponível`))}</h2>
+    <p>${esc(Tx(`You have ${UPD.version}. It downloads and restarts by itself in a few seconds; your settings stay.`,`Tienes la ${UPD.version}. Se descarga y se reinicia sola en unos segundos; tus ajustes se mantienen.`,`Du hast ${UPD.version}. Sie wird heruntergeladen und startet in ein paar Sekunden neu; deine Einstellungen bleiben.`,`Você tem a ${UPD.version}. Ela baixa e reinicia sozinha em alguns segundos; suas configurações continuam.`))}</p>
+    <div class="up-btns"><button type="button" class="btn primary" id="updGo">${esc(Tx("Update now","Actualizar ahora"))}</button><button type="button" class="btn" id="updLater">${esc(Tx("Later","Más tarde"))}</button></div>
+    <button type="button" class="up-skip" id="updX">${esc(Tx("Skip this version","Omitir esta versión","Diese Version überspringen","Pular esta versão"))}</button></div>`;
+  $("#updGo").onclick=()=>{b.hidden=true;applyUpdate(true)};$("#updLater").onclick=()=>{UPD_LATER=build;renderUpdBanner()};$("#updX").onclick=()=>{store.set("pw.updSkip",build);renderUpdBanner()}}
+async function applyUpdate(sure){if(sure!==true&&!confirm(Tx("Download the new version and restart Pitlane HQ? (Overlays close and reopen.)","¿Descargar la versión nueva y reiniciar Pitlane HQ? (Los overlays se cierran y se vuelven a abrir.)")))return;
   toast(Tx("Downloading the update…","Descargando la actualización…"));try{await jpost("/api/update?action=apply")}catch(e){toast(e.message);return}
   document.body.insertAdjacentHTML("beforeend",`<div class="updwait"><div><h2>${esc(Tx("Updating…","Actualizando…"))}</h2><p>${esc(Tx("Pitlane HQ restarts by itself in a few seconds.","Pitlane HQ se reinicia sola en unos segundos."))}</p></div></div>`);
   const want=UPD&&UPD.latest&&UPD.latest.build;const t0=Date.now();const poll=async()=>{try{const u=await jget("/api/update");if(u.build===want||Date.now()-t0>60000){location.reload();return}}catch(e){}setTimeout(poll,1500)};setTimeout(poll,3000)}

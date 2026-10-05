@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -20,7 +21,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.18.0"
+const appVersion = "0.19.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -386,10 +387,30 @@ func main() {
 		runOverlayWindow(*ovName, *ovURL, *ovX, *ovY, *ovW, *ovH)
 		return
 	}
-	if *minimized {
-		minimizeConsole()
-	}
 	log.SetFlags(log.Ltime)
+	if runtime.GOOS == "windows" {
+		// no console window: the log goes to a file
+		if p := logFilePath(); p != "" {
+			os.MkdirAll(filepath.Dir(p), 0o700)
+			if st, err := os.Stat(p); err == nil && st.Size() > 5<<20 {
+				os.Rename(p, p+".old")
+			}
+			if f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600); err == nil {
+				log.SetOutput(f)
+				log.SetFlags(log.Ldate | log.Ltime)
+			}
+		}
+		// already running: bring its window to the front instead of starting again
+		if os.Getenv("PITLANE_UPDATED") == "" && !*noBrowser {
+			c := &http.Client{Timeout: 1500 * time.Millisecond}
+			if resp, err := c.Post(fmt.Sprintf("http://localhost:%d/api/show", *port), "application/json", nil); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == 200 {
+					return
+				}
+			}
+		}
+	}
 
 	initProfiles()
 	loadProfileState()
@@ -428,6 +449,25 @@ func main() {
 			return
 		}
 		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
+	})
+	mux.HandleFunc("/api/show", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
+			http.Error(w, "only from this PC", 403)
+			return
+		}
+		if !showMainWindow() {
+			http.Error(w, "no window", 404)
+			return
+		}
+		writeJSON(w, map[string]bool{"shown": true})
+	})
+	mux.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
+			http.Error(w, "only from this PC", 403)
+			return
+		}
+		writeJSON(w, map[string]bool{"quitting": true})
+		go func() { time.Sleep(300 * time.Millisecond); quitApp() }()
 	})
 	mux.HandleFunc("/api/demo", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -544,12 +584,6 @@ func main() {
 	}
 	fmt.Println("  ------------------------------------------------------------")
 	fmt.Println()
-	if !*noBrowser {
-		go func() {
-			time.Sleep(400 * time.Millisecond)
-			openAppWindow(local)
-		}()
-	}
 	// close the internet link and overlay windows when PitWall closes
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -558,6 +592,28 @@ func main() {
 		quitApp()
 	}()
 	srv := &http.Server{Handler: guard(mux), ReadHeaderTimeout: 10 * time.Second}
+	if runtime.GOOS == "windows" {
+		go func() {
+			if err := srv.Serve(ln); err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+		}()
+		// the app in its own window; closing it quits Pitlane HQ
+		if runMainWindow(local, *minimized || *noBrowser) {
+			quitApp()
+		}
+		if !*noBrowser {
+			openAppWindow(local) // no WebView2 on this PC: an Edge app window
+		}
+		select {}
+	}
+	if !*noBrowser {
+		go func() {
+			time.Sleep(400 * time.Millisecond)
+			openAppWindow(local)
+		}()
+	}
 	if err := srv.Serve(ln); err != nil {
 		log.Println(err)
 		os.Exit(1)
