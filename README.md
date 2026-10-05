@@ -89,7 +89,7 @@ You can start them minimised, change the order, start them all at once, remove t
 
 ## Calendar, phone apps and your own web version
 
-- **Season → Calendar**: week and month views of your plan, your own events (league races, practice, times you are not available), clashes in red, suggested sessions of your starred series, reminders 5/15/30/60 minutes before and export to any calendar (.ics).
+- **Season → Calendar**: only what you add. **+ Add race** → choose the series (favourites, what your licence allows, what you own or all; search and category) → choose the day and time it runs → it is in your calendar, the reminders and the phone widget. Also your own events (league races, practice, times you are not available), clashes in red, optional suggestions from your favourites, reminders 5/15/30/60 minutes before and export to any calendar (.ics).
 - **iPhone/iPad app** (see `ios/README.md`): reminders before each race even with the app closed, and a **Next races** widget for the home screen and lock screen.
 - **Android app**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (install the .apk). Same reminders and a **Next races** home-screen widget with a live countdown.
 - **Pitlane HQ Cloud** (see `cloud/README.md`): your own free website on Cloudflare. Pitlane HQ records every lap (even with the screen closed) and uploads it; open the site anywhere to see sessions, records per track and car, and compare laps.
@@ -231,7 +231,7 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 
 ## Calendario, apps del móvil y tu propia versión web
 
-- **Temporada → Calendario**: vista semanal y mensual de tu plan, tus propios eventos (carreras de liga, prácticas, ratos en que no estás disponible), solapes en rojo, sesiones sugeridas de tus series con estrella, avisos 5/15/30/60 minutos antes y exportación a cualquier calendario (.ics).
+- **Temporada → Calendario**: solo lo que tú añades. **+ Añadir carrera** → eliges la serie (favoritas, lo que tu licencia permite, lo que tienes o todas; con buscador y categoría) → eliges el día y la hora en que corre → queda en tu calendario, en los avisos y en el widget del móvil. También tus propios eventos (carreras de liga, prácticas, ratos en que no estás disponible), solapes en rojo, sugerencias opcionales de tus favoritas, avisos 5/15/30/60 minutos antes y exportación a cualquier calendario (.ics).
 - **App de iPhone/iPad** (mira `ios/README.md`): avisos antes de cada carrera aunque la app esté cerrada, y un widget **Próximas carreras** para la pantalla de inicio y la de bloqueo.
 - **App de Android**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (instala el .apk). Los mismos avisos y un widget **Próximas carreras** con cuenta atrás en vivo.
 - **Pitlane HQ Cloud** (mira `cloud/README.md`): tu propia web gratuita en Cloudflare. Pitlane HQ graba cada vuelta (aunque la pantalla esté cerrada) y la sube; abre la web desde cualquier sitio para ver sesiones, récords por circuito y coche, y comparar vueltas.

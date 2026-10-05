@@ -111,8 +111,9 @@ tr.me td{background:color-mix(in srgb,var(--accent) 15%,transparent)}
 tr.me td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 tr.pit td{opacity:.55}
 tr.ahead td.nm{color:var(--bad)}tr.behind td.nm{color:var(--blue)}
-.lic{display:inline-block;font:600 11px/1 var(--f-data);padding:3px 5px;border-radius:3px;color:var(--bg)}
-.lic.R{background:var(--lic-r)}.lic.D{background:var(--lic-d)}.lic.C{background:var(--lic-c)}.lic.B{background:var(--lic-b)}.lic.A{background:var(--lic-a)}.lic.P{background:var(--lic-p)}
+.lic{--lc:var(--lic-p);display:inline-flex;align-items:center;justify-content:center;min-width:1.8em;font:700 11px/1 var(--f-data);padding:3px 6px;border-radius:5px;color:#fff;letter-spacing:.03em;vertical-align:middle;white-space:nowrap;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--lc) 78%,#fff) 0%,var(--lc) 48%,color-mix(in srgb,var(--lc) 82%,#000) 100%);box-shadow:inset 0 0 0 1px color-mix(in srgb,#fff 24%,transparent),0 1px 2px rgba(0,0,0,.35);text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.lic.R{--lc:var(--lic-r)}.lic.D{--lc:var(--lic-d)}.lic.C{--lc:var(--lic-c);color:#2b2200;text-shadow:none}.lic.B{--lc:var(--lic-b)}.lic.A{--lc:var(--lic-a)}.lic.P{--lc:var(--lic-p);color:#141a22;text-shadow:none}
 .pill{display:inline-block;font:600 11px/1 var(--f-data);letter-spacing:.05em;padding:4px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .pill.acc{border-color:var(--accent);color:var(--accent)}.pill.good{border-color:var(--good);color:var(--good)}.pill.bad{border-color:var(--bad);color:var(--bad)}
 .meter{height:8px;border-radius:4px;background:var(--surface2);border:1px solid var(--line);overflow:hidden;margin-top:10px}
@@ -217,12 +218,26 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 .pin{font:600 12px var(--f-data);background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:6px 8px;cursor:pointer;white-space:nowrap}
 .pin[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:10px}
-.lchead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.carart{width:104px;height:38px;flex:none;--c:var(--lic-p)}
+.carart{width:150px;height:55px;flex:none;--c:var(--lic-p);overflow:visible}
 .carart.lic-R{--c:var(--lic-r)}.carart.lic-D{--c:var(--lic-d)}.carart.lic-C{--c:var(--lic-c)}.carart.lic-B{--c:var(--lic-b)}.carart.lic-A{--c:var(--lic-a)}.carart.lic-P{--c:var(--lic-p)}
-.carart .b{fill:var(--c)}.carart .w{fill:var(--surface);opacity:.75}.carart .n{stroke:var(--surface);stroke-width:1.6;fill:none}
-.carart .t{fill:var(--bg);stroke:var(--c);stroke-width:1.5}.carart .h{fill:var(--c);opacity:.6}
-.lcard{background:linear-gradient(135deg,color-mix(in srgb,var(--surface2) 100%,transparent),var(--surface2));border:1px solid var(--line);border-radius:6px;padding:12px}
+.carart .b{fill:var(--c)}.carart .g{fill:#0c1016;opacity:.82}.carart .k{fill:#10151c}.carart .s{fill:#fff;opacity:.2}.carart .n{fill:#f4f6f9}
+.carart .bl{stroke:var(--c);stroke-width:1.8;fill:none}.carart .st{stroke:#10151c;stroke-width:1.6;fill:none;stroke-linecap:round}
+.carart .t{fill:#0b0e13;stroke:#2e3744;stroke-width:1}.carart .h{fill:color-mix(in srgb,var(--c) 40%,#cfd6df)}.carart .sh{fill:#000;opacity:.32}
+.lcard{--lc:var(--lic-p);position:relative;overflow:hidden;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:0}
+.lcard.lc-R{--lc:var(--lic-r)}.lcard.lc-D{--lc:var(--lic-d)}.lcard.lc-C{--lc:var(--lic-c)}.lcard.lc-B{--lc:var(--lic-b)}.lcard.lc-A{--lc:var(--lic-a)}.lcard.lc-P{--lc:var(--lic-p)}
+.lchero{position:relative;height:78px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;
+  background:radial-gradient(90% 80% at 50% 100%,color-mix(in srgb,var(--lc) 34%,transparent),transparent 72%),linear-gradient(180deg,color-mix(in srgb,var(--lc) 9%,transparent),transparent);border-bottom:1px solid color-mix(in srgb,var(--lc) 40%,var(--line))}
+.lccat{position:absolute;top:9px;left:11px;font:700 10px/1 var(--f-data);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.lcmain{display:flex;gap:12px;align-items:center;padding:12px 12px 6px}
+.licring{width:66px;height:66px;flex:none}
+.licring .tr{fill:color-mix(in srgb,var(--lc) 13%,transparent);stroke:color-mix(in srgb,var(--lc) 22%,var(--line));stroke-width:5}
+.licring .pr{fill:none;stroke:var(--lc);stroke-width:5;stroke-linecap:round}
+.licring .tk line{stroke:var(--fg);stroke-width:1.6;opacity:.6}
+.licring text{font:800 24px var(--f-display);fill:var(--lc)}
+.lcnums{min-width:0;display:grid;gap:3px}
+.lcsr b{font-size:26px;line-height:1}.lcsr small{color:var(--muted);margin-left:5px;font:700 11px var(--f-data);letter-spacing:.08em}
+.lcir{display:flex;gap:8px;font-size:12px;color:var(--muted)}.lcir b{color:var(--fg);font-weight:600}
+.lcgoal{padding:0 12px 12px;margin:4px 0 0}
 .srbar{position:relative;height:8px;border-radius:4px;background:var(--surface);border:1px solid var(--line);margin-top:8px;overflow:visible}
 .srbar b{display:block;height:100%;border-radius:4px;background:var(--good)}
 .srbar i{position:absolute;top:-4px;width:2px;height:14px;background:var(--muted)}
@@ -496,6 +511,30 @@ html.ov .shbox{height:calc(100vh - 40px)}
 .phr{display:grid;grid-template-columns:minmax(96px,auto) 1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
 .phr .mono{font-size:11px;color:var(--muted)}.phr.has .mono{color:var(--good)}
 label.btn{display:inline-flex;align-items:center;cursor:pointer}
+.pkbar{display:grid;gap:10px;margin-bottom:10px}
+.pkseg{display:flex;width:100%}.pkseg button{flex:1;font-size:13px;padding:10px 8px}.pkseg small{opacity:.7;font-size:11px}
+.pkbar input[type=search]{width:100%}
+.pkcats{gap:6px}
+.pklist{display:grid;gap:6px}
+.pkrow{display:grid;grid-template-columns:auto 1fr auto 14px;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;font:inherit}
+.pkrow:hover,.pkrow:focus-visible{border-color:var(--accent)}
+.pkname{min-width:0;display:grid;gap:3px}.pkname b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pkname small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkstar{color:var(--accent)}
+.pknext{display:grid;justify-items:end;gap:2px}.pknext b{font-size:15px;color:var(--accent)}.pknext small{color:var(--muted);font-size:11px;white-space:nowrap}.pknext small.good{color:var(--good)}
+.pkgo{color:var(--muted);font-size:20px;line-height:1}
+.pktimes{display:grid;gap:6px}
+.pktop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.pkdays{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:4px;scrollbar-width:thin}.pkdays .chip{flex:none}.pkdays .chip b{font-size:11px}
+.pkt{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;font:inherit}
+.pkt .t{font-size:17px;font-weight:700}.pkt .s{color:var(--muted);font-size:13px;min-width:0}
+.pkt .pkadd{font:700 12px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:7px 10px;white-space:nowrap}
+.pkt:hover{border-color:var(--accent)}
+.pkt.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}.pkt.on .pkadd{background:var(--accent);color:var(--accent-ink)}
+.pkfoot{position:sticky;bottom:-24px;background:var(--bg);padding:12px 0;margin-top:8px;border-top:1px solid var(--line)}
+.pkfavs{display:grid;gap:6px;margin-top:8px}
+.pkfav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;text-align:left;background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer;font:inherit;font-size:13px}
+.pkfav span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pkfav small{color:var(--muted);font-size:11px}.pkfav:hover{border-color:var(--accent)}
+.nextrace.click{cursor:pointer}
 </style>
 
 <div class="wrap">
@@ -1609,23 +1648,26 @@ setInterval(()=>{if(CUR_VIEW==="series"&&SER&&$("#drawer").hidden&&document.acti
 
 /* ===================== licences (account) ===================== */
 /* side views of the car type of each licence */
+/* side views of each licence's car, facing right: b body (licence colour), g glass, k carbon parts, s light reflection, n white parts */
 const CARSVG={
- oval:'<path class="b" d="M5 33 L7 25 L30 23 L44 13 L78 13 L90 22 L112 23 L115 33 Z"/><path class="w" d="M47 15 L74 15 L84 22 L45 22 Z"/><path class="n" d="M18 27 h18 M58 27 h22"/>',
- sports_car:'<path class="b" d="M5 33 C5 27 13 25 26 24 L42 23 C51 15 63 12 76 13 C86 14 94 19 101 22 L112 24 C117 25 117 31 115 33 Z"/><path class="w" d="M53 17 C60 15 70 15 78 16 L86 22 L48 22 Z"/><path class="b" d="M102 17 L117 16 L117 19 L104 20 Z"/>',
- formula_car:'<path class="b" d="M6 31 L30 28 L48 25 L57 19 L66 18 L72 24 L98 25 L104 21 L111 21 L111 31 Z"/><path class="b" d="M1 30 L19 30 L19 33 L1 33 Z M104 12 L118 12 L118 17 L104 17 Z"/><path class="n" d="M110 17 L108 24"/>',
- dirt_oval:'<path class="b" d="M44 3 L104 1 L104 19 L44 21 Z"/><path class="n" d="M58 21 L62 26 M92 19 L90 25"/><path class="b" d="M12 31 L30 27 L60 27 L70 23 L94 23 L106 29 L106 33 L12 33 Z"/><path class="b" d="M4 25 L22 25 L22 28 L4 28 Z"/>',
- dirt_road:'<path class="b" d="M7 32 L9 23 L30 20 L42 11 L80 10 L94 19 L111 21 L113 32 Z"/><path class="w" d="M45 13 L78 12 L88 19 L42 20 Z"/><path class="b" d="M58 7 L72 7 L70 10 L60 10 Z"/><path class="n" d="M36 33 L36 38 M104 33 L104 38"/>'};
-const WHEELS={oval:[[27,33,7],[92,33,7]],sports_car:[[28,33,7],[93,33,7]],formula_car:[[25,32,8],[94,31,9]],dirt_oval:[[24,34,7],[92,32,10]],dirt_road:[[28,33,7],[94,33,7]]};
-function carArt(kind,letter){const w=(WHEELS[kind]||WHEELS.sports_car).map(([x,y,r])=>`<circle class="t" cx="${x}" cy="${y}" r="${r}"/><circle class="h" cx="${x}" cy="${y}" r="${r*.42}"/>`).join("");
-  return `<svg class="carart lic-${letter}" viewBox="0 0 120 44" aria-hidden="true">${CARSVG[kind]||CARSVG.sports_car}${w}</svg>`}
+ oval:'<path class="k" d="M3.5 21.6 L12.5 20.7 L12.6 23 L3.8 23.7 Z"/><path class="b" d="M5 33 L5 26.5 C5 24.5 6.5 23.4 9 23.2 L28 22 L33 19.5 C40 14.5 47 11.8 58 11.4 C68 11 76 12 82 16.4 C88 18.6 100 19.8 110 21.2 C114 21.8 116 24.4 116 28 L116 31.6 C116 32.6 115.2 33 114 33 L101 33 A9 9 0 0 0 83 33 L37 33 A9 9 0 0 0 19 33 Z"/><path class="g" d="M45 15.6 C51 13.2 58 12.6 66 12.6 C72 12.6 77 13.8 80 16.6 L81.5 18.4 L42 19.2 Z"/><path class="s" d="M14 24.2 L110 22.6 L111 23.8 L14 25.6 Z"/><circle class="n" cx="59" cy="26.4" r="4.3"/><path class="k" d="M106 32 L118.5 32 L118.5 33.4 L106 33.4 Z"/>',
+ sports_car:'<path class="k" d="M4.5 18.2 L19.5 17.6 L20 19.8 L5 20.6 Z M12 20.3 L13 23.8 L14.2 23.8 L13.4 20.2 Z"/><path class="b" d="M7 33 C6 29 7 26 10 25 L22 23.5 C30 22.5 37 16 48 13 C58 10.5 70 10.5 79 14 C85 16.5 90 19.5 96 20.6 L108 22.4 C113 23.2 115 26 115 29.5 L115 31.5 C115 32.6 114.2 33 113 33 L101 33 A9 9 0 0 0 83 33 L37 33 A9 9 0 0 0 19 33 Z"/><path class="g" d="M47 15.5 C56 12.6 68 12.4 77 15.6 L84 20 L45.4 20.4 C45.2 18.6 45.7 16.8 47 15.5 Z"/><path class="bl" d="M64 12.9 L63.2 20.4"/><path class="s" d="M22 25 C42 23.2 72 22.8 106 23.8 L106 25 C72 24.2 42 24.8 22 26.4 Z"/><path class="k" d="M104 32 L117.5 32 L117.5 33.4 L104 33.4 Z"/>',
+ formula_car:'<path class="k" d="M3 10.8 L17.5 10 L17.5 14 L3 14.8 Z"/><path class="b" d="M1.8 9 L5 9 L5 24.5 L1.8 24.5 Z"/><path class="st" d="M11 14.4 L13 23.4"/><path class="b" d="M8 27.5 C8 24.6 12 23.4 20 23 L40 22.2 C46 21.8 50 18.2 54 16.6 L60 15.4 C64 15 67 16 69.5 18.4 L72 21.2 L98 24.8 C104 25.6 110 27 113 28.6 L113 30.2 C110 31 104 31.2 98 31 L18 31 C11 31 8 30 8 27.5 Z"/><path class="s" d="M22 24.6 L66 22.6 L67 23.8 L22 25.8 Z"/><circle class="n" cx="64.2" cy="16.6" r="3.5"/><path class="st" d="M57.5 16.2 C61 11.8 69 11.6 73.5 18.6"/><path class="k" d="M97 30.6 L118 30.6 L118 33.4 L97 33.4 Z"/><path class="b" d="M114.5 27 L118.4 27 L118.4 33.4 L114.5 33.4 Z"/>',
+ dirt_oval:'<path class="st" d="M50 16.6 L54 23.4 M84 15.6 L80 23"/><path class="b" d="M30 2.6 L100 1 C102 1 103 2 103 4 L103 15.4 L36 17 C33 17 31.5 16 31 14 Z"/><path class="s" d="M32 4 L101 2.5 L101 4 L32 5.5 Z"/><path class="b" d="M12 29.5 C12 26.4 16 25 24 24.6 L46 23.6 C50 20 56 18.6 62 19 C66 19.2 69 20.8 71 23 L100 26.2 C105 26.8 108 28.2 108 30.4 L108 31.6 L14 31.6 C12.8 31.6 12 30.8 12 29.5 Z"/><circle class="n" cx="60.5" cy="20.2" r="3.2"/><path class="st" d="M105.5 21.6 L104.5 26.4"/><path class="b" d="M99 18.8 L117 18.8 C118 18.8 118.6 19.4 118.6 20.4 L118.6 21.8 L99 21.8 Z"/><path class="k" d="M40 33 L84 33 L84 34.4 L40 34.4 Z"/>',
+ dirt_road:'<path class="k" d="M5.8 14.4 L22 12.4 L22.7 15 L6.8 16.8 Z"/><path class="b" d="M8 31.5 L8 22.5 C8 19.5 9.5 17.8 12.5 17 C16 12.5 22 9.6 30 9.2 L66 8.6 C71 8.6 75 10.4 79 13.6 L86 18.6 L104 21.2 C110 22 113.5 24.6 113.5 28.4 L113.5 30.4 C113.5 31.4 112.7 32 111.6 32 L102 32 A9.5 9.5 0 0 0 83 32 L38 32 A9.5 9.5 0 0 0 19 32 L9.5 32 C8.6 32 8 31.9 8 31.5 Z"/><path class="b" d="M52 8.8 L56 5.6 L62 5.6 L61.5 8.7 Z"/><path class="g" d="M28 11.6 C32 11.2 38 11 44 11 L65 10.8 C69.5 10.8 72.5 12.2 76 15 L80.5 18.6 L22 19 C21.6 16 23.6 12.6 28 11.6 Z"/><path class="bl" d="M44 11 L43.5 19 M62 10.9 L62.5 18.8"/><path class="s" d="M20 21.4 L104 22.4 L104 23.6 L20 22.8 Z"/><circle class="n" cx="106.6" cy="26.4" r="1.9"/><circle class="n" cx="110.8" cy="26.4" r="1.9"/><path class="k" d="M36 31 L39 31 L39 38 L36 38 Z M100 31 L103 31 L103 38 L100 38 Z"/>'};
+const WHEELS={oval:[[28,33,7.2],[92,33,7.2]],sports_car:[[28,33,7.2],[92,33,7.2]],formula_car:[[24,31,9],[92,31.5,7.5]],dirt_oval:[[26,31,10.5],[98,33,7]],dirt_road:[[28.5,33.6,6.8],[92.5,33.6,6.8]]};
+function carArt(kind,letter){const w=(WHEELS[kind]||WHEELS.sports_car).map(([x,y,r])=>`<circle class="t" cx="${x}" cy="${y}" r="${r}"/><circle class="h" cx="${x}" cy="${y}" r="${(r*.56).toFixed(2)}"/><circle class="k" cx="${x}" cy="${y}" r="${(r*.18).toFixed(2)}"/>`).join("");
+  return `<svg class="carart lic-${letter}" viewBox="0 0 120 44" aria-hidden="true"><ellipse class="sh" cx="60" cy="40.6" rx="54" ry="2.4"/>${CARSVG[kind]||CARSVG.sports_car}${w}</svg>`}
+/* licence letter inside a ring that fills with the safety rating (marks at 3.00 and 4.00) */
+function licRing(letter,sr){const r=22,c=2*Math.PI*r,f=Math.max(0,Math.min(1,sr/4.99)),tick=v=>{const a=v/4.99*2*Math.PI-Math.PI/2;return `<line x1="${(28+Math.cos(a)*(r-4.5)).toFixed(2)}" y1="${(28+Math.sin(a)*(r-4.5)).toFixed(2)}" x2="${(28+Math.cos(a)*(r+4.5)).toFixed(2)}" y2="${(28+Math.sin(a)*(r+4.5)).toFixed(2)}"/>`};
+  return `<svg class="licring" viewBox="0 0 56 56" role="img" aria-label="${esc(letter==="P"?"Pro":letter)} ${sr.toFixed(2)}"><circle class="tr" cx="28" cy="28" r="${r}"/><circle class="pr" cx="28" cy="28" r="${r}" stroke-dasharray="${(f*c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 28 28)"/><g class="tk">${tick(3)}${tick(4)}</g><text x="28" y="29.5" text-anchor="middle" dominant-baseline="middle"${letter==="P"?' style="font-size:15px"':""}>${letter==="P"?"PRO":letter}</text></svg>`}
 function renderLicences(m){const box=$("#licCards");if(!box)return;const order=[["oval","Oval","Óvalo"],["sports_car","Sports Car","Sports Car"],["formula_car","Formula","Fórmula"],["dirt_oval","Dirt Oval","Óvalo tierra"],["dirt_road","Dirt Road","Tierra"]];
-  box.innerHTML=order.map(([k,en,es])=>{const l=m.lic[k]||(k==="sports_car"?m.lic.road:null);if(!l)return"";const letter=(l.group_name||"R").replace("Class ","")[0];const sr=+l.safety_rating||0;
-    const goal=letter==="A"||letter==="P"?null:sr>=3?Tx("Promotion at season end (SR 3.00+)","Asciende al cierre de temporada (SR 3.00+)"):Tx(`${(3-sr).toFixed(2)} SR to promotion`,`${(3-sr).toFixed(2)} de SR para ascender`);
-    const fast=letter!=="A"&&letter!=="P"?(sr>=4?Tx("Fast-track promotion now","Ascenso inmediato"):Tx(`${(4-sr).toFixed(2)} SR to fast-track`,`${(4-sr).toFixed(2)} de SR para ascenso inmediato`)):"";
-    return `<div class="lcard"><div class="lchead"><div class="label">${esc(Tx(en,es))}</div>${carArt(k,letter==="P"?"P":letter)}</div><div style="display:flex;gap:10px;align-items:baseline;margin-top:6px"><span class="lic ${letter==="P"?"P":letter}" style="font-size:18px;padding:4px 7px">${letter==="P"?"Pro":letter}</span><span class="mid mono" style="margin:0">${sr.toFixed(2)}</span></div>
-      <div class="srbar"><b style="width:${Math.min(100,sr/4.99*100)}%"></b><i style="left:${3/4.99*100}%"></i><i style="left:${4/4.99*100}%"></i></div>
-      <dl class="kv" style="margin-top:10px;font-size:13px"><dt>iRating</dt><dd>${l.irating??"–"}</dd><dt>CPI</dt><dd>${l.cpi!=null?(+l.cpi).toFixed(1):"–"}</dd>${l.tt_rating?`<dt>TT</dt><dd>${l.tt_rating}</dd>`:""}</dl>
-      ${goal?`<p class="note">${esc(goal)}${fast?"<br>"+esc(fast):""}</p>`:""}</div>`}).join("")}
+  box.innerHTML=order.map(([k,en,es])=>{const l=m.lic[k]||(k==="sports_car"?m.lic.road:null);if(!l)return"";const letter=(l.group_name||"R").replace("Class ","")[0];const L1="RDCBAP".includes(letter)?letter:"R";const sr=+l.safety_rating||0;
+    const goal=L1==="A"||L1==="P"?null:sr>=3?Tx("Promotion at season end (SR 3.00+)","Asciende al cierre de temporada (SR 3.00+)"):Tx(`${(3-sr).toFixed(2)} SR to promotion`,`${(3-sr).toFixed(2)} de SR para ascender`);
+    const fast=L1!=="A"&&L1!=="P"?(sr>=4?Tx("Fast-track promotion now","Ascenso inmediato"):Tx(`${(4-sr).toFixed(2)} SR to fast-track`,`${(4-sr).toFixed(2)} de SR para ascenso inmediato`)):"";
+    return `<div class="lcard lc-${L1}"><div class="lchero"><span class="lccat">${esc(Tx(en,es))}</span>${carArt(k,L1)}</div>
+      <div class="lcmain">${licRing(L1,sr)}<div class="lcnums"><div class="lcsr"><b class="mono">${sr.toFixed(2)}</b><small>SR</small></div><div class="lcir"><span>iRating</span><b class="mono">${l.irating??"–"}</b></div><div class="lcir"><span>CPI</span><b class="mono">${l.cpi!=null?(+l.cpi).toFixed(1):"–"}</b></div>${l.tt_rating?`<div class="lcir"><span>TT</span><b class="mono">${l.tt_rating}</b></div>`:""}</div></div>
+      ${goal?`<p class="note lcgoal">${esc(goal)}${fast?"<br>"+esc(fast):""}</p>`:""}</div>`}).join("")}
 
 /* ===================== track map ===================== */
 Object.assign(I18N,{
@@ -2585,7 +2627,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],traceSecs:["Trace length (s)","Duración de la gráfica (s)"],traceH:["Trace height (px)","Altura de la gráfica (px)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
    PC's profile so they follow the profile. Phones keep their own Live layout. */
-const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsrc|haptics|goals|strategy|radio|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsugg|calsrc|haptics|goals|strategy|radio|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
 const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
 let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
 const rawSet=store.set.bind(store);
@@ -2863,14 +2905,7 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
 Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
  "tab.calendar":["Calendar","Calendario"],"tab.rigGear":["Programs & gear","Programas y equipo"],"tab.haptics":["Haptics","Hápticos"]});
 const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
-let EVENTS=store.get("pw.events",[]),REMIND=store.get("pw.remind",[15]),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calghost",true),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
-function renderDayList(){const box=$("#calDayList");if(!box)return;if(!SER){box.innerHTML=`<div class="empty">${esc(Tx("Loading series…","Cargando series…"))}</div>`;return}
-  const now=Date.now(),d0=startOfDay(CAL.pick||now),from=Math.max(d0,now-30*6e4),to=d0+DAYMS,q=(CAL.q||"").toLowerCase().trim();
-  const rows=[];calPool(CAL.src).forEach(s=>s.weeks.forEach(w=>{const ti=trackInfo(w);if(q&&!s.name.toLowerCase().includes(q)&&!ti.name.toLowerCase().includes(q))return;sessions(w,from,to).forEach(t=>rows.push({s,w,t,ti}))}));rows.sort((a,b)=>a.t-b.t);
-  box.innerHTML=rows.length?rows.slice(0,120).map((r,i)=>{const p=inPlan(r.s.sid,r.t),own=ownsTrack(r.w)&&ownsCar(r.s,r.w);return `<div class="cdrow"><span class="t mono">${esc(hm(r.t))}</span><span class="s"><b>${esc(r.s.name)}</b><small>${esc(r.ti.name)} · ${esc(lenText(r.w))}${own?"":` · <span class="bad">${esc(Tx("missing content","falta contenido"))}</span>`}</small></span>
-    <button type="button" class="pin star${FAV.has(r.s.sid)?" on":""}" data-fav="${r.s.sid}" aria-pressed="${FAV.has(r.s.sid)}" aria-label="★">★</button><button type="button" class="pin" data-cadd="${i}" aria-pressed="${p}">${p?"✓":"+"}</button></div>`}).join(""):`<div class="empty">${esc(CAL.src==="fav"&&!FAV.size?Tx("You have no favourite series yet. Choose another option above or star series here.","Aún no tienes series favoritas. Elige otra opción arriba o marca series con la estrella aquí."):Tx("No races this day for this choice.","No hay carreras este día con esta opción."))}</div>`;
-  box.querySelectorAll("[data-cadd]").forEach(b=>b.onclick=()=>{const r=rows[+b.dataset.cadd];togglePlan(r.s,r.w,r.t);renderCalendar()});
-  box.querySelectorAll("[data-fav]").forEach(b=>b.onclick=()=>{toggleFav(+b.dataset.fav);renderCalendar()})}
+let EVENTS=store.get("pw.events",[]),REMIND=store.get("pw.remind",[15]),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
 const DAYMS=864e5,startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()},weekMon=t=>{const d=new Date(startOfDay(t));const k=(d.getDay()+6)%7;return d.getTime()-k*DAYMS};
 const addDays=(t,n)=>{const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime()};
 function calItems(from,to){const out=[];
@@ -2895,7 +2930,7 @@ function lanes(items){const res=[];let group=[],end=0;const flush=()=>{const col
 let SER_WAIT=null;function whenSeries(){if(SER)return Promise.resolve();if(!SER_WAIT)SER_WAIT=new Promise(res=>{loadSeries();const t=setInterval(()=>{if(SER){clearInterval(t);SER_WAIT=null;res()}else if(!serLoading)loadSeries()},300)});return SER_WAIT}
 function renderCalendar(){if(!SER)whenSeries().then(()=>{if(CUR_VIEW==="calendar")renderCalendar()});
   document.querySelectorAll("#calMode button").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.m===CAL.mode);b.textContent=b.dataset.m==="week"?Tx("Week","Semana"):Tx("Month","Mes")});
-  $("#calToday").textContent=Tx("Today","Hoy");$("#calAdd").textContent="+ "+Tx("Add","Añadir");
+  $("#calToday").textContent=Tx("Today","Hoy");$("#calAdd").textContent="+ "+Tx("Add race","Añadir carrera");
   CAL.mode==="month"?renderMonth():renderWeek();renderCalSide()}
 function renderWeek(){const narrow=innerWidth<760,days=narrow?3:7,start=narrow?startOfDay(CAL.day):weekMon(CAL.day),end=addDays(start,days),now=Date.now(),RH=narrow?44:40;
   const items=calItems(start,end),ghosts=ghostItems(Math.max(start,now),end),H0=Math.min(6,...items.map(i=>new Date(i.t).getHours())),H1=24;
@@ -2922,35 +2957,36 @@ function renderMonth(){const d=new Date(CAL.day);d.setDate(1);const first=weekMo
     h+=`<div class="cell${dt.getMonth()!==month?" out":""}${now>=t0&&now<t1?" today":""}" data-day="${t0}"><span class="dn">${dt.getDate()}</span>${its.slice(0,3).map(i=>`<div class="it ${i.k}">${esc(hm(i.t))} ${esc(i.title)}</div>`).join("")}${its.length>3?`<div class="muted" style="font-size:12px">+${its.length-3}</div>`:""}</div>`}
   $("#calMain").innerHTML=`<div class="mo">${h}</div>`;
   document.querySelectorAll("#calMain .cell").forEach(c=>c.onclick=()=>{CAL.day=+c.dataset.day;CAL.pick=CAL.day;CAL.mode="week";store.set("pw.calmode","week");renderCalendar()})}
-function renderCalSide(){const now=Date.now(),next=calItems(now-3*36e5,now+60*DAYMS).filter(i=>i.k!=="busy"&&i.t+i.mins*6e4>now).slice(0,5);
+function renderCalSide(){const now=Date.now(),next=calItems(now-3*36e5,now+60*DAYMS).filter(i=>i.k!=="busy"&&i.t+i.mins*6e4>now).slice(0,6);
   const cd=t=>{const m=Math.round((t-now)/6e4);if(m<=0)return Tx("now","ahora");if(m<60)return m+" min";const h=Math.floor(m/60);if(h<48)return h+" h "+(m%60)+" min";return Math.floor(h/24)+Tx(" days"," días")};
-  $("#calSide").innerHTML=`<div class="panel"><h2>${esc(Tx("Next up","Próximas"))}</h2>${next.map(i=>`<div class="nextrace"><span class="cd">${esc(cd(i.t))}</span><b>${esc(i.title)}</b><span class="muted" style="font-size:13px">${esc(dayName(i.t))} · ${esc(hm(i.t))}${i.sub?" · "+esc(i.sub):""}</span></div>`).join("")||`<p class="note">${Lp("Nothing planned. Tap a time on the calendar, or add races from Series.","Nada planificado. Toca una hora en el calendario o añade carreras desde Series.")}</p>`}</div>
-    <div class="panel"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Races on","Carreras del"))} ${esc(new Date(CAL.pick||now).toLocaleDateString(locale(),{weekday:"short",day:"numeric",month:"short"}))}</h2></div>
-      <div class="frow"><select id="calSrc" style="flex:1;min-width:0">${[["fav","My favourite series","Mis series favoritas"],["elig","What my licence allows","Lo que mi licencia permite"],["own","Content I own","Contenido que tengo"],["all","All series","Todas las series"]].map(o=>`<option value="${o[0]}"${CAL.src===o[0]?" selected":""}>${esc(Tx(o[1],o[2]))}</option>`).join("")}</select></div>
-      <input type="search" id="calQ" placeholder="${esc(Tx("Search series or track","Buscar serie o circuito"))}" value="${esc(CAL.q||"")}" style="width:100%;margin-top:6px">
-      <div id="calDayList" class="calday"></div><p class="note">${Lp("Tap a day on the calendar to see its races. ★ adds the series to your favourites, + adds that race to your plan.","Toca un día del calendario para ver sus carreras. ★ añade la serie a tus favoritas y + añade esa carrera a tu plan.")}</p></div>
+  const favs=SER?SER.seasons.filter(s=>FAV.has(s.sid)).map(s=>({s,n:nextRace(s,now)})).filter(x=>x.n).sort((a,b)=>a.n.t-b.n.t).slice(0,8):[];
+  $("#calSide").innerHTML=`<div class="panel"><h2>${esc(Tx("Add races","Añadir carreras"))}</h2><p class="note" style="margin-top:0">${Lp("Choose a series, then the time you want to race. It goes to your calendar, the reminders and the phone widget.","Elige una serie y luego la hora a la que quieres correr. Va a tu calendario, a los avisos y al widget del móvil.")}</p>
+      <button type="button" class="btn primary" id="calPick" style="width:100%">+ ${esc(Tx("Add race","Añadir carrera"))}</button>
+      ${favs.length?`<div class="label" style="margin-top:14px">${esc(Tx("Your favourites","Tus favoritas"))}</div><div class="pkfavs">${favs.map(x=>`<button type="button" class="pkfav" data-fid="${x.s.id}">${licBadge(x.s.lic)}<span>${esc(x.s.name)}</span><small>${esc(hm(x.n.t))}</small></button>`).join("")}</div>`:""}</div>
+    <div class="panel"><h2>${esc(Tx("Next up","Próximas"))}</h2>${next.map((i,k)=>`<div class="nextrace click" data-nx="${k}"><span class="cd">${esc(cd(i.t))}</span><b>${esc(i.title)}</b><span class="muted" style="font-size:13px">${esc(dayName(i.t))} · ${esc(hm(i.t))}${i.sub?" · "+esc(i.sub):""}</span></div>`).join("")||`<p class="note">${Lp("Nothing planned yet. Press “+ Add race”.","Nada planificado todavía. Pulsa «+ Añadir carrera».")}</p>`}</div>
     <div class="panel"><h2>${esc(Tx("Reminders","Avisos"))}</h2><div class="frow">${[5,15,30,60].map(m=>`<button type="button" class="chip" data-rem="${m}" aria-pressed="${REMIND.includes(m)}">${m} min</button>`).join("")}</div>
-      <p class="note">${NATIVE?Lp("Your phone reminds you before each race, even with the app closed.","Tu móvil te avisa antes de cada carrera, aunque la app esté cerrada."):Lp("This screen shows a notification while it is open. The iPhone and Android apps remind you even when closed.","Esta pantalla muestra un aviso mientras está abierta. Las apps de iPhone y Android avisan aunque estén cerradas.")}</p>
+      <p class="note">${NATIVE?Lp("Your phone reminds you before each race, even with the app closed.","Tu móvil te avisa antes de cada carrera, aunque la app esté cerrada."):Lp("This screen shows a notification while it is open. The iPhone and Android apps remind you even when closed, and show your next races in their home-screen widget.","Esta pantalla muestra un aviso mientras está abierta. Las apps de iPhone y Android avisan aunque estén cerradas y muestran tus próximas carreras en su widget.")}</p>
       ${!NATIVE&&"Notification" in window&&Notification.permission!=="granted"?`<button type="button" class="btn small" id="calNotif">${esc(Tx("Allow notifications","Permitir avisos"))}</button>`:""}</div>
-    <div class="panel"><h2>${esc(Tx("Show","Mostrar"))}</h2><div class="frow">${chk("calGhost",CAL.ghosts,Lp("Sessions of my favourite series","Sesiones de mis series favoritas",true))}</div>
-      <p class="note">${Lp("Dashed blocks are upcoming sessions of your starred series: tap one to add it to your plan.","Los bloques con línea discontinua son próximas sesiones de tus series con estrella: toca uno para añadirlo a tu plan.")}</p>
+    <div class="panel"><h2>${esc(Tx("More","Más"))}</h2><div class="frow">${chk("calGhost",CAL.ghosts,Lp("Suggest sessions of my favourites","Sugerir sesiones de mis favoritas",true))}</div>
       <div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="calIcs">${esc(Tx("Export to my calendar (.ics)","Exportar a mi calendario (.ics)"))}</button></div></div>`;
-  $("#calSrc").onchange=e=>{CAL.src=e.target.value;store.set("pw.calsrc",CAL.src);renderDayList()};$("#calQ").oninput=e=>{CAL.q=e.target.value;renderDayList()};renderDayList();
+  $("#calPick").onclick=()=>openRacePicker();
+  document.querySelectorAll("#calSide [data-fid]").forEach(b=>b.onclick=()=>openRacePicker(+b.dataset.fid));
+  document.querySelectorAll("#calSide [data-nx]").forEach(b=>b.onclick=()=>openCalItem(next[+b.dataset.nx]));
   document.querySelectorAll("#calSide [data-rem]").forEach(b=>b.onclick=()=>{const m=+b.dataset.rem;REMIND=REMIND.includes(m)?REMIND.filter(x=>x!==m):[...REMIND,m].sort((a,b)=>a-b);store.set("pw.remind",REMIND);syncNativePlan();renderCalSide()});
-  $("#calGhost").onclick=()=>{CAL.ghosts=!CAL.ghosts;store.set("pw.calghost",CAL.ghosts);renderCalendar()};
+  $("#calGhost").onclick=()=>{CAL.ghosts=!CAL.ghosts;store.set("pw.calsugg",CAL.ghosts);renderCalendar()};
   $("#calIcs").onclick=exportICS;const n=$("#calNotif");if(n)n.onclick=()=>Notification.requestPermission().then(()=>{scheduleWebReminders();renderCalSide()})}
 function openCalItem(i){LAYOUT_VIEW=null;$("#dTitle").textContent=i.title;$("#dSub").textContent=dayName(i.t)+" · "+hm(i.t)+" – "+hm(i.t+i.mins*6e4)+(i.sub?" · "+i.sub:"");
   if(i.k==="ghost"&&i.group){$("#dBody").innerHTML=`<div class="panel">${i.group.map((g,n)=>`<div class="cdrow"><span class="t mono">${esc(hm(g.t))}</span><span class="s"><b>${esc(g.title)}</b><small>${esc(g.sub)}</small></span><span></span><button type="button" class="pin" data-gadd="${n}">+</button></div>`).join("")}</div>`;
     document.querySelectorAll("#dBody [data-gadd]").forEach(b=>b.onclick=()=>{const g=i.group[+b.dataset.gadd];togglePlan(g.s,g.w,g.t);b.textContent="✓";b.disabled=true;renderCalendar()})}
   else if(i.k==="ghost"){$("#dBody").innerHTML=`<div class="frow"><button type="button" class="btn primary" id="ciAdd">${esc(Tx("Add to my plan","Añadir a mi plan"))}</button><button type="button" class="btn" id="ciSer">${esc(Tx("Series details","Detalles de la serie"))}</button></div>`;
     $("#ciAdd").onclick=()=>{togglePlan(i.s,i.w,i.t);closeDrawer();renderCalendar()};$("#ciSer").onclick=()=>openSeries(i.s.id)}
-  else if(i.k==="plan"){$("#dBody").innerHTML=`${i.clash?`<div class="callout">${Lp("This race overlaps another one or a time you marked as not available.","Esta carrera se solapa con otra o con un rato que marcaste como no disponible.")}</div>`:""}<div class="frow"><button type="button" class="btn" id="ciRm">${esc(Tx("Remove from plan","Quitar del plan"))}</button>${SER&&SER.seasons.some(x=>x.id===i.ref.id)?`<button type="button" class="btn" id="ciSer">${esc(Tx("Series details","Detalles de la serie"))}</button>`:""}</div>`;
-    $("#ciRm").onclick=()=>{PLAN=PLAN.filter(p=>p!==i.ref);store.set("pw.plan",PLAN);syncNativePlan();closeDrawer();renderCalendar()};const sb=$("#ciSer");if(sb)sb.onclick=()=>openSeries(i.ref.id)}
+  else if(i.k==="plan"){$("#dBody").innerHTML=`${i.clash?`<div class="callout">${Lp("This race overlaps another one or a time you marked as not available.","Esta carrera se solapa con otra o con un rato que marcaste como no disponible.")}</div>`:""}<div class="frow"><button type="button" class="btn" id="ciRm">${esc(Tx("Remove from calendar","Quitar del calendario"))}</button>${SER&&SER.seasons.some(x=>x.id===i.ref.id)?`<button type="button" class="btn" id="ciTime">${esc(Tx("Other times","Otros horarios"))}</button><button type="button" class="btn" id="ciSer">${esc(Tx("Series details","Detalles de la serie"))}</button>`:""}</div>`;
+    $("#ciRm").onclick=()=>{PLAN=PLAN.filter(p=>p!==i.ref);store.set("pw.plan",PLAN);syncNativePlan();closeDrawer();renderCalendar()};const sb=$("#ciSer");if(sb)sb.onclick=()=>openSeries(i.ref.id);const ct=$("#ciTime");if(ct)ct.onclick=()=>openRacePicker(i.ref.id)}
   else{openEventForm(i.ref);return}
   if($("#drawer").hidden)$("#drawer").hidden=false}
 function openEventForm(ev,t){LAYOUT_VIEW=null;const e=ev||{id:"e"+Date.now().toString(36),t:t||Math.ceil(Date.now()/9e5)*9e5,mins:60,title:"",kind:"race",note:""};const dt=new Date(e.t),pad=n=>String(n).padStart(2,"0");
   $("#dTitle").textContent=ev?Tx("Edit","Editar"):Tx("Add to calendar","Añadir al calendario");$("#dSub").textContent="";
-  $("#dBody").innerHTML=`<form class="form" id="evForm"><label><span class="label">${esc(Tx("What","Qué"))}</span><input type="text" id="evTitle" maxlength="80" required value="${esc(e.title)}" placeholder="${esc(Tx("e.g. League round 4, Spa","p. ej. Liga ronda 4, Spa"))}"></label>
+  $("#dBody").innerHTML=`${ev?"":`<p class="note" style="margin-top:0">${Lp("For an official iRacing race use","Para una carrera oficial de iRacing usa")} <button type="button" class="linkbtn" id="evPick">${esc(Tx("Add race","Añadir carrera"))}</button>.</p>`}<form class="form" id="evForm"><label><span class="label">${esc(Tx("What","Qué"))}</span><input type="text" id="evTitle" maxlength="80" required value="${esc(e.title)}" placeholder="${esc(Tx("e.g. League round 4, Spa","p. ej. Liga ronda 4, Spa"))}"></label>
     <div class="frow">${EVKIND.map(k=>`<button type="button" class="chip" data-k="${k[0]}" aria-pressed="${e.kind===k[0]}">${esc(Tx(k[1],k[2]))}</button>`).join("")}</div>
     <div class="frow"><label><span class="label">${esc(Tx("Day","Día"))}</span><input type="date" id="evDate" value="${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}" required></label><label><span class="label">${esc(Tx("Start","Inicio"))}</span><input type="time" id="evTime" step="300" value="${pad(dt.getHours())}:${pad(dt.getMinutes())}" required></label><label><span class="label">${esc(Tx("Minutes","Minutos"))}</span><input type="number" id="evMins" class="num" min="5" max="1440" step="5" value="${e.mins}"></label></div>
     <label><span class="label">${esc(Tx("Notes","Notas"))}</span><input type="text" id="evNote" maxlength="120" value="${esc(e.note||"")}"></label>
@@ -2960,7 +2996,55 @@ function openEventForm(ev,t){LAYOUT_VIEW=null;const e=ev||{id:"e"+Date.now().toS
     const n={...e,title:$("#evTitle").value.trim(),kind,t:new Date(y,mo-1,d,hh,mm).getTime(),mins:Math.max(5,Math.min(1440,+$("#evMins").value||60)),note:$("#evNote").value.trim()};
     EVENTS=EVENTS.filter(z=>z.id!==e.id);EVENTS.push(n);saveEvents();closeDrawer();CAL.day=n.t;renderCalendar();toast(Tx("Saved","Guardado"))};
   const del=$("#evDel");if(del)del.onclick=()=>{EVENTS=EVENTS.filter(z=>z.id!==e.id);saveEvents();closeDrawer();renderCalendar()};
+  const ep=$("#evPick");if(ep)ep.onclick=()=>openRacePicker();
   if($("#drawer").hidden)$("#drawer").hidden=false;$("#evTitle").focus()}
+/* ---------- add a race: choose the series, then the time ---------- */
+const PICK={src:null,cat:"",q:"",id:null,last:null,day:null};
+const PICK_CATS=[["","All","Todas"],["oval","Oval","Óvalo"],["sports_car","Sports car","Sports car"],["formula_car","Formula","Fórmula"],["dirt_oval","Dirt oval","Óvalo de tierra"],["dirt_road","Dirt road","Tierra"]];
+function openRacePicker(id){LAYOUT_VIEW=null;PICK.id=id||null;PICK.last=null;PICK.day=null;if(!PICK.src)PICK.src=FAV.size?"fav":"elig";renderRacePicker();if($("#drawer").hidden)$("#drawer").hidden=false}
+function pickOpen(){return !$("#drawer").hidden&&!!$("#dBody [data-picker]")}
+function renderRacePicker(){const body=$("#dBody");$("#dTitle").textContent=Tx("Add a race","Añadir carrera");
+  if(!SER){$("#dSub").textContent="";body.innerHTML=`<div data-picker class="empty">${esc(Tx("Loading series…","Cargando series…"))}</div>`;whenSeries().then(()=>{if(pickOpen())renderRacePicker()});return}
+  if(PICK.id&&SER.seasons.some(s=>s.id===PICK.id))return renderPickTimes();
+  $("#dSub").textContent=Tx("1. Choose the series  ·  2. Choose the time","1. Elige la serie  ·  2. Elige la hora");
+  const srcs=[["fav","Favourites","Favoritas"],["elig","My licence","Mi licencia"],["own","Content I own","Lo que tengo"],["all","All","Todas"]];
+  body.innerHTML=`<div data-picker class="pkbar"><div class="seg pkseg" role="group">${srcs.map(o=>`<button type="button" data-psrc="${o[0]}" aria-pressed="${PICK.src===o[0]}">${esc(Tx(o[1],o[2]))}${o[0]==="fav"?` <small>${FAV.size}</small>`:""}</button>`).join("")}</div>
+      <input type="search" id="pkQ" placeholder="${esc(Tx("Search series, track or car","Buscar serie, circuito o coche"))}" value="${esc(PICK.q)}" aria-label="${esc(Tx("Search","Buscar"))}">
+      <div class="frow pkcats">${PICK_CATS.map(c=>`<button type="button" class="chip" data-pcat="${c[0]}" aria-pressed="${PICK.cat===c[0]}">${esc(Tx(c[1],c[2]))}</button>`).join("")}</div></div>
+    <div class="pklist" id="pkList"></div>
+    <div class="frow" style="margin-top:12px"><button type="button" class="linkbtn" id="pkOther">${esc(Tx("Something else: league, practice, not available…","Otra cosa: liga, entreno, no disponible…"))}</button></div>`;
+  body.querySelectorAll("[data-psrc]").forEach(b=>b.onclick=()=>{PICK.src=b.dataset.psrc;renderRacePicker()});
+  body.querySelectorAll("[data-pcat]").forEach(b=>b.onclick=()=>{PICK.cat=b.dataset.pcat;body.querySelectorAll("[data-pcat]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderPickList()});
+  $("#pkQ").oninput=e=>{PICK.q=e.target.value;renderPickList()};$("#pkOther").onclick=()=>openEventForm(null);renderPickList()}
+function renderPickList(){const box=$("#pkList");if(!box)return;const now=Date.now(),q=PICK.q.toLowerCase().trim();
+  let rows=calPool(PICK.src).map(s=>{const w=curWeek(s)||s.weeks.find(x=>weekStart(x)>now)||s.weeks[0];return{s,w,n:nextRace(s,now),cat:seasonCat(s)}}).filter(r=>r.w&&r.n&&r.n.t<now+8*DAYMS);
+  if(PICK.cat)rows=rows.filter(r=>r.cat===PICK.cat);
+  if(q)rows=rows.filter(r=>r.s.name.toLowerCase().includes(q)||trackInfo(r.w).name.toLowerCase().includes(q)||seasonCars(r.s,r.w).some(c=>c.name.toLowerCase().includes(q)));
+  rows.sort((a,b)=>(FAV.has(b.s.sid)-FAV.has(a.s.sid))||a.n.t-b.n.t);
+  box.innerHTML=rows.length?rows.slice(0,150).map(r=>{const ti=trackInfo(r.w),own=ownsTrack(r.w)&&ownsCar(r.s,r.w),cnt=PLAN.filter(p=>p.sid===r.s.sid&&p.t>now).length;
+    return `<button type="button" class="pkrow" data-pid="${r.s.id}">${licBadge(r.s.lic)}<span class="pkname"><b>${FAV.has(r.s.sid)?'<span class="pkstar">★</span> ':""}${esc(r.s.name)}</b><small>${esc(ti.name)} · ${esc(lenText(r.w))}${every(r.w)?" · "+esc(every(r.w)):""}${own?"":` · <span class="bad">${esc(Tx("missing content","falta contenido"))}</span>`}</small></span><span class="pknext"><b class="mono">${esc(hm(r.n.t))}</b><small>${esc(until(r.n.t))}</small>${cnt?`<small class="good">✓ ${cnt} ${esc(Tx("in calendar","en calendario"))}</small>`:""}</span><span class="pkgo" aria-hidden="true">›</span></button>`}).join("")
+    :`<div class="empty">${esc(PICK.src==="fav"&&!FAV.size?Tx("No favourite series yet. Choose “My licence” or “All” and mark the ones you like with ★ in the next step.","Aún no tienes favoritas. Elige «Mi licencia» o «Todas» y marca las que te gusten con ★ en el siguiente paso."):Tx("No series with races in the next days for this choice.","No hay series con carreras en los próximos días con esta opción."))}</div>`;
+  box.querySelectorAll("[data-pid]").forEach(b=>b.onclick=()=>{PICK.id=+b.dataset.pid;PICK.day=null;renderRacePicker();const p=$(".drawer-panel");if(p)p.scrollTop=0})}
+function renderPickTimes(){const s=SER.seasons.find(x=>x.id===PICK.id),now=Date.now(),to=now+7*DAYMS,all=[];
+  s.weeks.forEach(w=>sessions(w,now,to).forEach(t=>all.push({t,w})));all.sort((a,b)=>a.t-b.t);
+  const days=[...new Set(all.map(r=>startOfDay(r.t)))];if(PICK.day==null||!days.includes(PICK.day))PICK.day=days[0]??null;
+  const list=all.filter(r=>startOfDay(r.t)===PICK.day),cars=seasonCars(s,curWeek(s)||s.weeks[0]),mins=w=>(w.rtd&&w.rtd.sl)||w.mins||60;
+  const dayLbl=d=>d===startOfDay(now)?Tx("Today","Hoy"):d===startOfDay(addDays(now,1))?Tx("Tomorrow","Mañana"):new Date(d).toLocaleDateString(locale(),{weekday:"short",day:"numeric"});
+  $("#dTitle").textContent=s.name;$("#dSub").innerHTML=`${licBadge(s.lic)} ${esc(cars.map(c=>c.name).slice(0,3).join(", "))}`;
+  $("#dBody").innerHTML=`<div data-picker class="pktop"><button type="button" class="btn small" id="pkBack">‹ ${esc(Tx("All series","Todas las series"))}</button><button type="button" class="chip" id="pkFav" aria-pressed="${FAV.has(s.sid)}">★ ${esc(FAV.has(s.sid)?Tx("Favourite","Favorita"):Tx("Add to favourites","Añadir a favoritas"))}</button></div>
+    ${days.length?`<div class="pkdays" role="group">${days.map(d=>{const n=PLAN.filter(p=>p.sid===s.sid&&startOfDay(p.t)===d).length;return `<button type="button" class="chip" data-pday="${d}" aria-pressed="${d===PICK.day}">${esc(dayLbl(d))}${n?` <b>✓${n}</b>`:""}</button>`}).join("")}</div>`:""}
+    ${list.length?`<div class="agday">${esc(dayName(list[0].t))} <span class="muted">· ${esc(trackInfo(list[0].w).name)}</span></div><p class="note" style="margin:0 0 8px">${esc(Tx("Times in your time zone. Tap the ones you want to race.","Horas en tu zona horaria. Toca las que quieras correr."))}</p>`:""}
+    <div class="pktimes">${list.length?list.map((r,i)=>{const p=inPlan(s.sid,r.t),clash=!p&&calItems(r.t,r.t+mins(r.w)*6e4).length>0;
+        return `<button type="button" class="pkt${p?" on":""}" data-pt="${i}" aria-pressed="${p}"><span class="t mono">${esc(hm(r.t))}</span><span class="s">${esc(until(r.t))} · ${esc(lenText(r.w))}${clash?` · <span class="warn">${esc(Tx("overlaps your calendar","se solapa con tu calendario"))}</span>`:""}</span><span class="pkadd">${esc(p?Tx("✓ Added","✓ Añadida"):Tx("+ Add","+ Añadir"))}</span></button>`}).join("")
+      :`<div class="empty">${esc(Tx("No sessions in the next 7 days.","No hay sesiones en los próximos 7 días."))}</div>`}</div>
+    <div class="frow pkfoot"><button type="button" class="btn primary" id="pkDone">${esc(Tx("Done","Listo"))}</button><button type="button" class="btn small" id="pkInfo">${esc(Tx("Series details","Detalles de la serie"))}</button></div>`;
+  $("#pkBack").onclick=()=>{PICK.id=null;renderRacePicker()};
+  $("#pkFav").onclick=()=>{toggleFav(s.sid);renderPickTimes()};
+  document.querySelectorAll("#dBody [data-pday]").forEach(b=>b.onclick=()=>{PICK.day=+b.dataset.pday;renderPickTimes()});
+  document.querySelectorAll("#dBody [data-pt]").forEach(b=>b.onclick=()=>{const r=list[+b.dataset.pt],was=inPlan(s.sid,r.t);togglePlan(s,r.w,r.t);if(!was){PICK.last=r.t;toast(Tx(`Added: ${dayName(r.t)} ${hm(r.t)}`,`Añadida: ${dayName(r.t)} ${hm(r.t)}`))}
+    const p=$(".drawer-panel"),y=p?p.scrollTop:0;renderPickTimes();if(p)p.scrollTop=y;if(CUR_VIEW==="calendar")renderCalendar()});
+  $("#pkDone").onclick=()=>{const t=PICK.last;closeDrawer();if(CUR_VIEW==="calendar"){if(t)CAL.day=t;renderCalendar()}};
+  $("#pkInfo").onclick=()=>openSeries(s.id)}
 function exportICS(){const all=[...PLAN.map(p=>({id:p.sid+"-"+p.t,t:p.t,mins:p.mins||60,title:p.name,loc:p.track||""})),...EVENTS.filter(e=>e.kind!=="busy").map(e=>({id:e.id,t:e.t,mins:e.mins,title:e.title,loc:e.note||""}))];
   if(!all.length){toast(Tx("Nothing to export yet","Aún no hay nada que exportar"));return}const z=t=>new Date(t).toISOString().replace(/[-:]/g,"").replace(/\.\d+/,""),c=s=>String(s).replace(/[,;\\]/g," ").replace(/\n/g," ");
   const ev=all.map(p=>["BEGIN:VEVENT",`UID:${p.id}@pitlanehq`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(p.t)}`,`DTEND:${z(p.t+p.mins*6e4)}`,`SUMMARY:${c(p.title)}`,`LOCATION:${c(p.loc)}`,...REMIND.flatMap(m=>["BEGIN:VALARM",`TRIGGER:-PT${m}M`,"ACTION:DISPLAY","DESCRIPTION:iRacing","END:VALARM"]),"END:VEVENT"].join("\r\n"));
@@ -2973,7 +3057,7 @@ function syncNativePlan(){scheduleWebReminders();const now=Date.now(),items=calI
   const msg={type:"notify",items,leads:REMIND,lang:LANG};if(NATIVE)try{NATIVE.postMessage(msg)}catch(e){}}
 $("#calPrev").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()-1);return d.getTime()})():addDays(CAL.day,innerWidth<760?-3:-7);renderCalendar()};
 $("#calNext").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()+1);return d.getTime()})():addDays(CAL.day,innerWidth<760?3:7);renderCalendar()};
-$("#calToday").onclick=()=>{CAL.day=Date.now();renderCalendar()};$("#calAdd").onclick=()=>openEventForm(null);
+$("#calToday").onclick=()=>{CAL.day=Date.now();renderCalendar()};$("#calAdd").onclick=()=>openRacePicker();
 document.querySelectorAll("#calMode button").forEach(b=>b.onclick=()=>{CAL.mode=b.dataset.m;store.set("pw.calmode",CAL.mode);renderCalendar()});
 addEventListener("resize",()=>{if(CUR_VIEW==="calendar"&&CAL.mode==="week")renderWeek()});
 setInterval(()=>{if(CUR_VIEW==="calendar")renderCalSide()},30000);
