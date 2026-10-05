@@ -216,7 +216,7 @@ func registerCarRoutes(mux *http.ServeMux) {
 			list = append(list, row{k, n, cars.Profiles[k]})
 		}
 		for k, p := range cars.Profiles {
-			if _, ok := cars.Seen[k]; !ok {
+			if _, ok := cars.Seen[k]; !ok && k != generalKey {
 				list = append(list, row{k, p.Name, p})
 			}
 		}
