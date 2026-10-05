@@ -1,0 +1,799 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="TabHeader_Base" xml:space="preserve"><value>Đế</value></data>
+  <data name="TabHeader_Handbrake" xml:space="preserve"><value>Phanh tay</value></data>
+  <data name="TabHeader_Pedals" xml:space="preserve"><value>Bàn đạp</value></data>
+  <data name="TabHeader_Ab9Shifter" xml:space="preserve"><value>AB9</value></data>
+  <data name="TabHeader_MBooster" xml:space="preserve"><value>mBooster</value></data>
+  <data name="TabHeader_Hub" xml:space="preserve"><value>Hub</value></data>
+  <data name="TabHeader_Options" xml:space="preserve"><value>Tùy chọn</value></data>
+  <data name="Section_Sdk" xml:space="preserve"><value>SDK</value></data>
+  <data name="TabHeader_Import" xml:space="preserve"><value>Nhập</value></data>
+  <data name="TabHeader_Help" xml:space="preserve"><value>Trợ giúp</value></data>
+  <data name="Status_Disconnected" xml:space="preserve"><value>Đã ngắt kết nối</value></data>
+  <data name="Button_Refresh" xml:space="preserve"><value>LÀM MỚI</value></data>
+  <data name="Label_PerformanceOutput" xml:space="preserve"><value>Hiệu suất đầu ra</value></data>
+  <data name="Option_Reserved" xml:space="preserve"><value>Dự trữ</value></data>
+  <data name="Option_Full" xml:space="preserve"><value>Toàn phần</value></data>
+  <data name="Button_CalibrateCenter" xml:space="preserve"><value>HIỆU CHỈNH TÂM</value></data>
+  <data name="Brand_Mcu" xml:space="preserve"><value>MCU</value></data>
+  <data name="Brand_Mosfet" xml:space="preserve"><value>MOSFET</value></data>
+  <data name="Brand_Motor" xml:space="preserve"><value>ĐỘNG CƠ</value></data>
+  <data name="Section_CoreSettings" xml:space="preserve"><value>CÀI ĐẶT CHÍNH</value></data>
+  <data name="Section_GearshiftVibration" xml:space="preserve"><value>RUNG SANG SỐ</value></data>
+  <data name="SliderLabel_WheelRotationAngle" xml:space="preserve"><value>Góc xoay vô lăng</value></data>
+  <data name="SliderLabel_GameFfbStrength" xml:space="preserve"><value>Cường độ FFB của game</value></data>
+  <data name="SliderLabel_BaseTorqueOutput" xml:space="preserve"><value>Mô-men xoắn đầu ra của đế</value></data>
+  <data name="SliderLabel_MaximumWheelSpeed" xml:space="preserve"><value>Tốc độ vô lăng tối đa</value></data>
+  <data name="SliderLabel_ShiftIntensity" xml:space="preserve"><value>Cường độ sang số</value></data>
+  <data name="SliderLabel_VibrateOnNeutral" xml:space="preserve"><value>Rung khi ở số mo</value></data>
+  <data name="SliderLabel_ShiftDebounce" xml:space="preserve"><value>Chống dội sang số</value></data>
+  <data name="Section_WheelbaseEffects" xml:space="preserve"><value>HIỆU ỨNG CỦA ĐẾ</value></data>
+  <data name="Section_GameEffects" xml:space="preserve"><value>HIỆU ỨNG CỦA GAME</value></data>
+  <data name="SliderLabel_WheelDamper" xml:space="preserve"><value>Giảm chấn vô lăng</value></data>
+  <data name="SliderLabel_WheelFriction" xml:space="preserve"><value>Ma sát vô lăng</value></data>
+  <data name="SliderLabel_NaturalInertia" xml:space="preserve"><value>Quán tính tự nhiên</value></data>
+  <data name="SliderLabel_WheelSpring" xml:space="preserve"><value>Lò xo vô lăng</value></data>
+  <data name="SliderLabel_GameDamper" xml:space="preserve"><value>Giảm chấn từ game</value></data>
+  <data name="SliderLabel_GameFriction" xml:space="preserve"><value>Ma sát từ game</value></data>
+  <data name="SliderLabel_GameInertia" xml:space="preserve"><value>Quán tính từ game</value></data>
+  <data name="SliderLabel_GameSpring" xml:space="preserve"><value>Lò xo từ game</value></data>
+  <data name="Section_Protection" xml:space="preserve"><value>BẢO VỆ</value></data>
+  <data name="Section_SoftLimit" xml:space="preserve"><value>GIỚI HẠN MỀM</value></data>
+  <data name="SliderLabel_HandsOffProtection" xml:space="preserve"><value>Bảo vệ khi buông tay</value></data>
+  <data name="SliderLabel_SteeringWheelInertia" xml:space="preserve"><value>Quán tính vô lăng</value></data>
+  <data name="SliderLabel_Stiffness" xml:space="preserve"><value>Độ cứng</value></data>
+  <data name="SliderLabel_RetainGameFfb" xml:space="preserve"><value>Giữ FFB của game</value></data>
+  <data name="Section_FfbEqualizer" xml:space="preserve"><value>BỘ CÂN BẰNG FFB</value></data>
+  <data name="Subtitle_FfbEqualizer" xml:space="preserve"><value>// khuếch đại từng dải · 100% = trung tính · 400% = tăng tối đa</value></data>
+  <data name="Section_FfbOutputCurve" xml:space="preserve"><value>ĐƯỜNG CONG ĐẦU RA FFB</value></data>
+  <data name="Subtitle_FfbOutputCurve" xml:space="preserve"><value>// kéo 5 điểm nút để định hình phản hồi</value></data>
+  <data name="Button_Linear" xml:space="preserve"><value>TUYẾN TÍNH</value></data>
+  <data name="Button_SCurve" xml:space="preserve"><value>ĐƯỜNG CONG S</value></data>
+  <data name="Button_Exponential" xml:space="preserve"><value>HÀM MŨ</value></data>
+  <data name="Button_Parabolic" xml:space="preserve"><value>PARABOL</value></data>
+  <data name="Section_Miscellaneous" xml:space="preserve"><value>KHÁC</value></data>
+  <data name="Section_HighSpeedDamping" xml:space="preserve"><value>GIẢM CHẤN TỐC ĐỘ CAO</value></data>
+  <data name="Subtitle_HighSpeedDamping" xml:space="preserve"><value>// tôi không biết các tùy chọn này dùng để làm gì</value></data>
+  <data name="SliderLabel_ForceFeedbackReversal" xml:space="preserve"><value>Đảo chiều phản hồi lực</value></data>
+  <data name="SliderLabel_StandbyMode" xml:space="preserve"><value>Chế độ chờ</value></data>
+  <data name="SliderLabel_AutoStandbyTimeout" xml:space="preserve"><value>Chờ sau</value></data>
+  <data name="SliderLabel_BaseStatusLed" xml:space="preserve"><value>LED trạng thái của đế</value></data>
+  <data name="SliderLabel_Bluetooth" xml:space="preserve"><value>Bluetooth</value></data>
+  <data name="SliderLabel_DampingLevel" xml:space="preserve"><value>Mức giảm chấn</value></data>
+  <data name="SliderLabel_TriggerSpeed" xml:space="preserve"><value>Tốc độ kích hoạt</value></data>
+  <data name="Section_PaddleSettings" xml:space="preserve"><value>CÀI ĐẶT LẪY</value></data>
+  <data name="SliderLabel_PaddlesMode" xml:space="preserve"><value>Chế độ lẫy</value></data>
+  <data name="Option_Buttons" xml:space="preserve"><value>Nút bấm</value></data>
+  <data name="Option_Dpad" xml:space="preserve"><value>D-Pad</value></data>
+  <data name="Option_Combined" xml:space="preserve"><value>Kết hợp</value></data>
+  <data name="Option_Split" xml:space="preserve"><value>Tách riêng</value></data>
+  <data name="SliderLabel_ClutchSplitPoint" xml:space="preserve"><value>Điểm tách côn</value></data>
+  <data name="Option_Knob" xml:space="preserve"><value>Núm xoay</value></data>
+  <data name="SliderLabel_LeftStickMode" xml:space="preserve"><value>Chế độ cần trái</value></data>
+  <data name="SliderLabel_JoystickAssignment" xml:space="preserve"><value>Gán cần điều khiển</value></data>
+  <data name="Option_None" xml:space="preserve"><value>Không</value></data>
+  <data name="Option_Left" xml:space="preserve"><value>Trái</value></data>
+  <data name="Option_Right" xml:space="preserve"><value>Phải</value></data>
+  <data name="Section_Position" xml:space="preserve"><value>VỊ TRÍ</value></data>
+  <data name="Subtitle_LiveHandbrakeInput" xml:space="preserve"><value>// tín hiệu phanh tay trực tiếp</value></data>
+  <data name="Label_Position" xml:space="preserve"><value>Vị trí</value></data>
+  <data name="Section_Calibration" xml:space="preserve"><value>HIỆU CHUẨN</value></data>
+  <data name="Subtitle_PullHandbrakeFully" xml:space="preserve"><value>// kéo phanh tay hết cỡ một lần</value></data>
+  <data name="Button_StartCalibration" xml:space="preserve"><value>BẮT ĐẦU HIỆU CHUẨN</value></data>
+  <data name="Button_Stop" xml:space="preserve"><value>DỪNG</value></data>
+  <data name="Section_HandbrakeSettings" xml:space="preserve"><value>CÀI ĐẶT PHANH TAY</value></data>
+  <data name="SliderLabel_Mode" xml:space="preserve"><value>Chế độ</value></data>
+  <data name="Option_Axis" xml:space="preserve"><value>Trục</value></data>
+  <data name="Option_Button" xml:space="preserve"><value>Nút bấm</value></data>
+  <data name="SliderLabel_ButtonThreshold" xml:space="preserve"><value>Ngưỡng nút bấm</value></data>
+  <data name="SliderLabel_ReverseDirection" xml:space="preserve"><value>Đảo chiều</value></data>
+  <data name="SliderLabel_RangeStart" xml:space="preserve"><value>Đầu khoảng</value></data>
+  <data name="SliderLabel_RangeEnd" xml:space="preserve"><value>Cuối khoảng</value></data>
+  <data name="Section_OutputCurve" xml:space="preserve"><value>ĐƯỜNG CONG ĐẦU RA</value></data>
+  <data name="Subtitle_MapPhysicalPullToGame" xml:space="preserve"><value>// ánh xạ lực kéo vật lý sang đầu vào game</value></data>
+  <data name="Label_Throttle" xml:space="preserve"><value>GA</value></data>
+  <data name="Label_Brake" xml:space="preserve"><value>PHANH</value></data>
+  <data name="Label_Clutch" xml:space="preserve"><value>CÔN</value></data>
+  <data name="Section_ThrottleDirectionRange" xml:space="preserve"><value>GA · CHIỀU &amp; KHOẢNG</value></data>
+  <data name="Section_BrakeDirectionRange" xml:space="preserve"><value>PHANH · CHIỀU &amp; KHOẢNG</value></data>
+  <data name="Section_ClutchDirectionRange" xml:space="preserve"><value>CÔN · CHIỀU &amp; KHOẢNG</value></data>
+  <data name="Section_ThrottleOutputCurve" xml:space="preserve"><value>ĐƯỜNG CONG ĐẦU RA GA</value></data>
+  <data name="Section_BrakeOutputCurve" xml:space="preserve"><value>ĐƯỜNG CONG ĐẦU RA PHANH</value></data>
+  <data name="Section_ClutchOutputCurve" xml:space="preserve"><value>ĐƯỜNG CONG ĐẦU RA CÔN</value></data>
+  <data name="Subtitle_MapPhysicalPositionToGame" xml:space="preserve"><value>// ánh xạ vị trí vật lý sang đầu vào game</value></data>
+  <data name="Subtitle_ShapeBrakeResponse" xml:space="preserve"><value>// định hình phản hồi phanh</value></data>
+  <data name="Subtitle_ShapeClutchResponse" xml:space="preserve"><value>// định hình phản hồi côn</value></data>
+  <data name="Section_ThrottleCalibration" xml:space="preserve"><value>GA · HIỆU CHUẨN</value></data>
+  <data name="Section_BrakeCalibration" xml:space="preserve"><value>PHANH · HIỆU CHUẨN</value></data>
+  <data name="Section_ClutchCalibration" xml:space="preserve"><value>CÔN · HIỆU CHUẨN</value></data>
+  <data name="SliderLabel_SensorRatio" xml:space="preserve"><value>Tỷ lệ cảm biến</value></data>
+  <data name="Section_MechanicalLayout" xml:space="preserve"><value>BỐ CỤC CƠ HỌC</value></data>
+  <data name="Option_Ab9Layout5R1" xml:space="preserve"><value>5+R Bố cục 1</value></data>
+  <data name="Option_Ab9Layout6R1" xml:space="preserve"><value>6+R Bố cục 1</value></data>
+  <data name="Option_Ab9Layout6R2" xml:space="preserve"><value>6+R Bố cục 2</value></data>
+  <data name="Option_Ab9Layout7R1" xml:space="preserve"><value>7+R Bố cục 1</value></data>
+  <data name="Option_Ab9Layout7R2" xml:space="preserve"><value>7+R Bố cục 2</value></data>
+  <data name="Option_Sequential" xml:space="preserve"><value>Tuần tự</value></data>
+  <data name="Option_HPattern" xml:space="preserve"><value>Kiểu chữ H</value></data>
+  <data name="Label_ShifterType" xml:space="preserve"><value>Kiểu cần số</value></data>
+  <data name="Section_Feel" xml:space="preserve"><value>CẢM GIÁC</value></data>
+  <data name="Subtitle_PerAxisMechanicalCharacter" xml:space="preserve"><value>// đặc tính cơ học theo từng trục</value></data>
+  <data name="SliderLabel_MechanicalResistance" xml:space="preserve"><value>Lực cản cơ học</value></data>
+  <data name="SliderLabel_Spring" xml:space="preserve"><value>Lò xo</value></data>
+  <data name="SliderLabel_NaturalDamping" xml:space="preserve"><value>Giảm chấn tự nhiên</value></data>
+  <data name="SliderLabel_NaturalFriction" xml:space="preserve"><value>Ma sát tự nhiên</value></data>
+  <data name="SliderLabel_MaxOutputTorqueLimit" xml:space="preserve"><value>Giới hạn mô-men xoắn tối đa</value></data>
+  <data name="Section_EngineVibration" xml:space="preserve"><value>RUNG ĐỘNG CƠ</value></data>
+  <data name="Subtitle_HostRenderedRumble" xml:space="preserve"><value>// rung do máy chủ tạo từ RPM</value></data>
+  <data name="SliderLabel_Intensity" xml:space="preserve"><value>Cường độ</value></data>
+  <data name="SliderLabel_Frequency" xml:space="preserve"><value>Tần số</value></data>
+  <data name="Section_GearShift" xml:space="preserve"><value>SANG SỐ</value></data>
+  <data name="SliderLabel_VibrationIntensity" xml:space="preserve"><value>Cường độ rung</value></data>
+  <data name="Section_MBoosterPedals" xml:space="preserve"><value>BÀN ĐẠP MBOOSTER</value></data>
+  <data name="Subtitle_MBoosterPedals" xml:space="preserve"><value>// hiệu ứng do máy chủ tạo · vai trò + vị trí theo từng thiết bị</value></data>
+  <data name="SliderLabel_Device" xml:space="preserve"><value>Thiết bị</value></data>
+  <data name="SliderLabel_Role" xml:space="preserve"><value>Vai trò</value></data>
+  <data name="Option_Disabled" xml:space="preserve"><value>Đã tắt</value></data>
+  <data name="Option_Throttle" xml:space="preserve"><value>Ga</value></data>
+  <data name="Option_Brake" xml:space="preserve"><value>Phanh</value></data>
+  <data name="Option_Clutch" xml:space="preserve"><value>Côn</value></data>
+  <data name="Section_PedalFeel" xml:space="preserve"><value>CẢM GIÁC BÀN ĐẠP</value></data>
+  <data name="SliderLabel_DeadzoneKg" xml:space="preserve"><value>Vùng chết (kg)</value></data>
+  <data name="SliderLabel_MaxForceKg" xml:space="preserve"><value>Lực tối đa (kg)</value></data>
+  <data name="SliderLabel_TravelRangeMm" xml:space="preserve"><value>Bắt đầu / Kết thúc Hành trình (mm)</value></data>
+  <data name="SliderLabel_EndstopFrontStiffness" xml:space="preserve"><value>Độ cứng giới hạn đầu</value></data>
+  <data name="SliderLabel_EndstopEndStiffness" xml:space="preserve"><value>Độ cứng giới hạn cuối</value></data>
+  <data name="Hint_NaturalFrictionPedalFeel" xml:space="preserve"><value>Mô phỏng một lực ma sát độc lập với đầu ra của game.</value></data>
+  <data name="Section_SegmentedDamping" xml:space="preserve"><value>GIẢM CHẤN PHÂN ĐOẠN</value></data>
+  <data name="Subtitle_SegmentedDamping" xml:space="preserve"><value>Lực giảm chấn độc lập với đầu ra của game, theo từng phân đoạn hành trình bàn đạp</value></data>
+  <data name="Hint_SegmentedDampingExperimental" xml:space="preserve"><value>Mô phỏng một lực giảm chấn độc lập với đầu ra trong game. Hành trình bàn đạp được chia thành nhiều phân đoạn, mỗi phân đoạn có phạm vi điều chỉnh riêng và độ giảm chấn tự nhiên riêng. Kéo đường chia để thay đổi kích thước phân đoạn; kéo bên trong phân đoạn để đặt mức giảm chấn.</value></data>
+  <data name="Section_SegmentedDampingPressed" xml:space="preserve"><value>Khi Đạp</value></data>
+  <data name="Section_SegmentedDampingReleased" xml:space="preserve"><value>Khi Nhả</value></data>
+  <data name="Section_SimInputMapping" xml:space="preserve"><value>ÁNH XẠ ĐẦU VÀO SIM</value></data>
+  <data name="Subtitle_SimInputMapping" xml:space="preserve"><value>// ánh xạ tín hiệu loadcell/bàn đạp vào game, theo kiểu Pit House</value></data>
+  <data name="SliderLabel_MaxThresholdKg" xml:space="preserve"><value>Ngưỡng tối đa (kg)</value></data>
+  <data name="Section_Effects" xml:space="preserve"><value>HIỆU ỨNG</value></data>
+  <data name="Subtitle_EffectsTriggers" xml:space="preserve"><value>// kích hoạt: ABS theo tín hiệu game · Khóa bánh khi phanh&gt;0.8 · Ngưỡng theo sườn xung · Động cơ liên tục</value></data>
+  <data name="Section_Abs" xml:space="preserve"><value>ABS</value></data>
+  <data name="Section_TractionControl" xml:space="preserve"><value>Kiểm soát lực kéo</value></data>
+  <data name="Section_WheelSpin" xml:space="preserve"><value>Trượt bánh xe</value></data>
+  <data name="Section_MBoosterGearShift" xml:space="preserve"><value>Sang số</value></data>
+  <data name="Section_RoadTexture" xml:space="preserve"><value>Kết cấu mặt đường</value></data>
+  <data name="Label_Enable" xml:space="preserve"><value>Bật</value></data>
+  <data name="Button_Test1s" xml:space="preserve"><value>Thử 1 giây</value></data>
+  <data name="Label_Test" xml:space="preserve"><value>Thử</value></data>
+  <data name="Section_Lockup" xml:space="preserve"><value>Khóa bánh</value></data>
+  <data name="Section_Threshold" xml:space="preserve"><value>Ngưỡng</value></data>
+  <data name="Section_BitePoint" xml:space="preserve"><value>Điểm bắt côn</value></data>
+  <data name="Section_EngineContinuous" xml:space="preserve"><value>Rung động cơ</value></data>
+  <data name="SliderLabel_FrequencyHz" xml:space="preserve"><value>Tần số (Hz)</value></data>
+  <data name="SliderLabel_Smoothness" xml:space="preserve"><value>Độ mượt</value></data>
+  <data name="SliderLabel_Gain" xml:space="preserve"><value>Độ khuếch đại</value></data>
+  <data name="SliderLabel_TriggerLevel" xml:space="preserve"><value>Mức kích hoạt đầu vào</value></data>
+  <data name="SliderLabel_VibrationDecay" xml:space="preserve"><value>Độ suy giảm rung</value></data>
+  <data name="Subtitle_CalibrationExperimental" xml:space="preserve"><value>// thử nghiệm — có thể không được firmware mBooster áp dụng</value></data>
+  <data name="Label_ReversedDirection" xml:space="preserve"><value>Chiều đảo ngược</value></data>
+  <data name="SliderLabel_MinRaw" xml:space="preserve"><value>Min (thô)</value></data>
+  <data name="SliderLabel_MaxRaw" xml:space="preserve"><value>Max (thô)</value></data>
+  <data name="Button_ReadFromDevice" xml:space="preserve"><value>ĐỌC TỪ THIẾT BỊ</value></data>
+  <data name="Button_Apply" xml:space="preserve"><value>ÁP DỤNG</value></data>
+  <data name="Section_UniversalHubPedals" xml:space="preserve"><value>HUB ĐA NĂNG · BÀN ĐẠP</value></data>
+  <data name="Subtitle_PedalsPort" xml:space="preserve"><value>// cổng bàn đạp (kiểm tra mỗi 2 giây)</value></data>
+  <data name="Label_PedalsPort" xml:space="preserve"><value>Cổng bàn đạp</value></data>
+  <data name="Section_Accessories" xml:space="preserve"><value>PHỤ KIỆN</value></data>
+  <data name="Label_Port1" xml:space="preserve"><value>Cổng 1</value></data>
+  <data name="Label_Port2" xml:space="preserve"><value>Cổng 2</value></data>
+  <data name="Label_Port3" xml:space="preserve"><value>Cổng 3</value></data>
+  <data name="Section_Settings" xml:space="preserve"><value>CÀI ĐẶT</value></data>
+  <data name="SliderLabel_ApplyProfileOnLaunch" xml:space="preserve"><value>Áp dụng cài đặt hồ sơ khi khởi chạy</value></data>
+  <data name="Section_DashboardTelemetry" xml:space="preserve"><value>TELEMETRY BẢNG ĐIỀU KHIỂN</value></data>
+  <data name="Label_UploadDashboardOnConnect" xml:space="preserve"><value>Tải lên bảng điều khiển khi kết nối</value></data>
+  <data name="Label_DownloadDashboardsFromWheel" xml:space="preserve"><value>Tải bảng điều khiển từ vô lăng</value></data>
+  <data name="SliderLabel_ShowAllTabs" xml:space="preserve"><value>Hiện tất cả các tab (nâng cao)</value></data>
+  <data name="Section_DeviceDefinitions" xml:space="preserve"><value>ĐỊNH NGHĨA THIẾT BỊ</value></data>
+  <data name="Button_RedeployDefinitions" xml:space="preserve"><value>TRIỂN KHAI LẠI TẤT CẢ ĐỊNH NGHĨA</value></data>
+  <data name="Status_RedeployedFmt" xml:space="preserve"><value>Đã ghi {0}/{1} định nghĩa cho PID {2}. Khởi động lại SimHub để áp dụng.</value></data>
+  <data name="Section_Reset" xml:space="preserve"><value>ĐẶT LẠI</value></data>
+  <data name="Button_ClearAllSettings" xml:space="preserve"><value>XÓA TẤT CẢ CÀI ĐẶT &amp; HỒ SƠ</value></data>
+  <data name="Hint_ClearAllSettingsWarning" xml:space="preserve"><value>Thao tác này sẽ đặt lại toàn bộ cài đặt và hồ sơ của plugin về mặc định.</value></data>
+  <data name="Section_DashboardUpload" xml:space="preserve"><value>TẢI LÊN BẢNG ĐIỀU KHIỂN</value></data>
+  <data name="Option_LocalMzdashFile" xml:space="preserve"><value>Tệp .mzdash cục bộ</value></data>
+  <data name="Option_DashboardLibrary" xml:space="preserve"><value>Thư viện bảng điều khiển</value></data>
+  <data name="Button_PickMzdash" xml:space="preserve"><value>CHỌN .MZDASH…</value></data>
+  <data name="Status_NoFileSelected" xml:space="preserve"><value>(chưa chọn tệp)</value></data>
+  <data name="Label_Dashboard" xml:space="preserve"><value>Bảng điều khiển:</value></data>
+  <data name="Button_UploadNow" xml:space="preserve"><value>TẢI LÊN NGAY</value></data>
+  <data name="Status_Idle" xml:space="preserve"><value>nhàn rỗi</value></data>
+  <data name="Section_WheelFiles" xml:space="preserve"><value>TỆP TRÊN VÔ LĂNG</value></data>
+  <data name="DataGridHeader_State" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="DataGridHeader_Title" xml:space="preserve"><value>Tiêu đề</value></data>
+  <data name="DataGridHeader_LastModified" xml:space="preserve"><value>Sửa đổi lần cuối</value></data>
+  <data name="Button_Delete" xml:space="preserve"><value>XÓA</value></data>
+  <data name="SliderLabel_EnableCoapServer" xml:space="preserve"><value>Bật máy chủ CoAP SDK</value></data>
+  <data name="SliderLabel_EnableUdpControl" xml:space="preserve"><value>Bật máy chủ điều khiển UDP</value></data>
+  <data name="Section_About" xml:space="preserve"><value>GIỚI THIỆU</value></data>
+  <data name="Subtitle_About" xml:space="preserve"><value>// Plugin SimHub mã nguồn mở</value></data>
+  <data name="Label_AzomTitle" xml:space="preserve"><value>AZOM</value></data>
+  <data name="Label_VersionPlaceholder" xml:space="preserve"><value>phiên bản —</value></data>
+  <data name="Hint_AboutDescription" xml:space="preserve"><value>Plugin SimHub không chính thức giao tiếp trực tiếp với phần cứng MOZA Racing qua cổng serial — cấu hình phần cứng, pipeline hiệu ứng LED và truyền phát bảng điều khiển. Không liên kết với MOZA / Gudsen Technology.</value></data>
+  <data name="Hint_SponsorshipsAppreciated" xml:space="preserve"><value>Rất cảm kích các khoản tài trợ — việc bổ sung hỗ trợ cho phần cứng mà tôi không sở hữu có thể rất khó!</value></data>
+  <data name="Button_Github" xml:space="preserve"><value>GitHub</value></data>
+  <data name="Button_JoinDiscord" xml:space="preserve"><value>Tham gia Discord</value></data>
+  <data name="Button_SponsorDevelopment" xml:space="preserve"><value>Tài trợ phát triển</value></data>
+  <data name="Button_Kofi" xml:space="preserve"><value>Ủng hộ tôi trên Ko-fi</value></data>
+  <data name="Tooltip_Github" xml:space="preserve"><value>github.com/giantorth/AZOM</value></data>
+  <data name="Tooltip_JoinDiscord" xml:space="preserve"><value>Tham gia Discord của dự án</value></data>
+  <data name="Tooltip_Sponsor" xml:space="preserve"><value>github.com/sponsors/giantorth</value></data>
+  <data name="Tooltip_Kofi" xml:space="preserve"><value>ko-fi.com/giantorth</value></data>
+  <data name="Hint_ThanksToTesters" xml:space="preserve"><value>Xin gửi lời cảm ơn chân thành đến tất cả các tester alpha và beta đầu tiên — những người đã bỏ thời gian và sự kiên nhẫn của mình trong khi tôi tìm ra cách làm cho giao thức MOZA hoạt động. Plugin này sẽ không tồn tại nếu không có các bạn.</value></data>
+  <data name="Label_UpdateAvailable" xml:space="preserve"><value>Có bản cập nhật</value></data>
+  <data name="Button_OpenReleaseNotes" xml:space="preserve"><value>Mở ghi chú phát hành</value></data>
+  <data name="Button_SkipThisVersion" xml:space="preserve"><value>Bỏ qua phiên bản này</value></data>
+  <data name="Button_DismissUpdate" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Banner_SdkSuggestionText" xml:space="preserve"><value>Nếu bạn muốn ngăn MOZA Pit House khởi chạy, hãy bật hỗ trợ SDK.</value></data>
+  <data name="Button_ConfigureSdk" xml:space="preserve"><value>Cấu hình SDK</value></data>
+  <data name="Button_Dismiss" xml:space="preserve"><value>Đóng</value></data>
+  <data name="Button_RestartSimHub" xml:space="preserve"><value>Khởi động lại SimHub</value></data>
+  <data name="Label_WhatsNew" xml:space="preserve"><value>Có gì mới trong v{0}</value></data>
+  <data name="Label_CheckForUpdates" xml:space="preserve"><value>Tự động kiểm tra cập nhật</value></data>
+  <data name="Label_ReleaseChannel" xml:space="preserve"><value>Kênh phát hành</value></data>
+  <data name="Option_ReleaseChannelStable" xml:space="preserve"><value>Ổn định</value></data>
+  <data name="Button_CheckNow" xml:space="preserve"><value>Kiểm tra ngay</value></data>
+  <data name="Status_UpdateNeverChecked" xml:space="preserve"><value>Chưa từng kiểm tra</value></data>
+  <data name="Status_UpdateChecking" xml:space="preserve"><value>Đang kiểm tra…</value></data>
+  <data name="Status_UpdateUpToDate" xml:space="preserve"><value>Đã cập nhật</value></data>
+  <data name="Status_UpdateFailedNetwork" xml:space="preserve"><value>Kiểm tra thất bại (mạng)</value></data>
+  <data name="Status_UpdateFailedHttp" xml:space="preserve"><value>Kiểm tra thất bại (máy chủ)</value></data>
+  <data name="Status_UpdateFailedParse" xml:space="preserve"><value>Kiểm tra thất bại (định dạng phản hồi)</value></data>
+  <data name="Button_InstallUpdate" xml:space="preserve"><value>Cài đặt cập nhật</value></data>
+  <data name="Status_DownloadingStart" xml:space="preserve"><value>Bắt đầu tải xuống…</value></data>
+  <data name="Status_Downloading" xml:space="preserve"><value>Đang tải {0}% ({1} trên {2})</value></data>
+  <data name="Status_DownloadingIndeterminate" xml:space="preserve"><value>Đang tải… ({0})</value></data>
+  <data name="Status_Extracting" xml:space="preserve"><value>Đang giải nén…</value></data>
+  <data name="Status_Installing" xml:space="preserve"><value>Đang cài đặt…</value></data>
+  <data name="Status_InstalledRestartRequired" xml:space="preserve"><value>Đã cài đặt cập nhật — khởi động lại SimHub để tải v{0}</value></data>
+  <data name="Status_InstallFailed" xml:space="preserve"><value>Cài đặt thất bại: {0}</value></data>
+  <data name="Status_InstallFailedBadPackage" xml:space="preserve"><value>gói phát hành không hợp lệ</value></data>
+  <data name="Status_InstallFailedPendingRestart" xml:space="preserve"><value>cài đặt trước đó đang chờ — khởi động lại SimHub trước</value></data>
+  <data name="Status_InstallFailedWriteDenied" xml:space="preserve"><value>không thể ghi vào thư mục plugin</value></data>
+  <data name="Section_Updates" xml:space="preserve"><value>CẬP NHẬT</value></data>
+  <data name="Subtitle_Updates" xml:space="preserve"><value>// trình thông báo cập nhật tích hợp</value></data>
+  <data name="Section_Bandwidth" xml:space="preserve"><value>BĂNG THÔNG</value></data>
+  <data name="Subtitle_Bandwidth" xml:space="preserve"><value>// thông lượng cổng serial · cửa sổ 30 giây</value></data>
+  <data name="Label_Inbound" xml:space="preserve"><value>ĐẾN</value></data>
+  <data name="Label_Outbound" xml:space="preserve"><value>ĐI</value></data>
+  <data name="Label_Capacity" xml:space="preserve"><value>SỨC CHỨA</value></data>
+  <data name="Label_Peak" xml:space="preserve"><value>ĐỈNH</value></data>
+  <data name="Label_Session" xml:space="preserve"><value>PHIÊN</value></data>
+  <data name="Section_SerialTrafficCapture" xml:space="preserve"><value>BẮT LƯU LƯỢNG SERIAL</value></data>
+  <data name="Subtitle_SerialTrafficCapture" xml:space="preserve"><value>// ghi lại mọi khung TX/RX</value></data>
+  <data name="Hint_CaptureDataInMemory" xml:space="preserve"><value>Dữ liệu chỉ nằm trong bộ nhớ — không có gì được lưu giữa các lần khởi chạy. Nhấn Dừng để Xuất gói ZIP hỗ trợ chẩn đoán.</value></data>
+  <data name="Button_StartCapture" xml:space="preserve"><value>BẮT ĐẦU GHI</value></data>
+  <data name="Label_AlwaysCaptureOnStartup" xml:space="preserve"><value>Luôn bắt đầu ghi chẩn đoán khi khởi chạy/đổi game</value></data>
+  <data name="Tooltip_AlwaysCaptureOnStartup" xml:space="preserve"><value>Khi bật, việc ghi lưu lượng serial sẽ tự động bắt đầu mỗi khi plugin khởi động.</value></data>
+  <data name="Button_ExportBundle" xml:space="preserve"><value>XUẤT GÓI (ZIP)…</value></data>
+  <data name="Button_CopyReference" xml:space="preserve"><value>SAO CHÉP MÃ THAM CHIẾU</value></data>
+  <data name="Button_CopyCapture" xml:space="preserve"><value>SAO CHÉP BẢN GHI VÀO CLIPBOARD</value></data>
+  <data name="Section_FullDiagReport" xml:space="preserve"><value>BÁO CÁO CHẨN ĐOÁN ĐẦY ĐỦ</value></data>
+  <data name="Subtitle_FullDiagReport" xml:space="preserve"><value>// thông tin gỡ lỗi</value></data>
+  <data name="Button_Expand" xml:space="preserve"><value>MỞ RỘNG</value></data>
+  <data name="Button_Collapse" xml:space="preserve"><value>THU GỌN</value></data>
+  <data name="Button_CopyAll" xml:space="preserve"><value>SAO CHÉP TẤT CẢ VÀO CLIPBOARD</value></data>
+  <data name="Hint_ClickExpandToRender" xml:space="preserve"><value>Nhấn Mở rộng để hiển thị toàn bộ báo cáo gồm nhiều phần.</value></data>
+  <data name="Hint_FullDiagRendered" xml:space="preserve"><value>// {0} dòng · cùng nội dung với gói xuất</value></data>
+  <data name="Hint_FullDiagRenderFailed" xml:space="preserve"><value>// kết xuất thất bại</value></data>
+  <data name="Hint_MBoosterIntro" xml:space="preserve"><value>Mỗi mBooster được kết nối sẽ xuất hiện bên dưới. Hãy chọn vai trò (Ga/Phanh/Côn) cho từng thiết bị để định tuyến vị trí bàn đạp. Phần Hiệu chuẩn đang ở giai đoạn thử nghiệm.</value></data>
+  <data name="Hint_MBoosterCalibrationWarning" xml:space="preserve"><value>Chưa được kiểm thử.</value></data>
+  <data name="Title_PickLedColor" xml:space="preserve"><value>Chọn màu LED</value></data>
+  <data name="Label_Palette" xml:space="preserve"><value>BẢNG MÀU</value></data>
+  <data name="Label_FineTuneRgb" xml:space="preserve"><value>TINH CHỈNH · RGB</value></data>
+  <data name="Button_Cancel" xml:space="preserve"><value>HỦY</value></data>
+  <data name="Button_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Section_BaseAmbientLeds" xml:space="preserve"><value>MOZA WHEEL BASE · LED MÔI TRƯỜNG</value></data>
+  <data name="Label_BaseModel" xml:space="preserve"><value>Mẫu đế</value></data>
+  <data name="Hint_NoBaseAmbientDetected" xml:space="preserve"><value>Không phát hiện dải LED môi trường trên đế. Đế R9/R12 không có dải LED này; bảng này chỉ kích hoạt với các đế dòng R21/R25/R27.</value></data>
+  <data name="Section_Mode" xml:space="preserve"><value>CHẾ ĐỘ</value></data>
+  <data name="SliderLabel_IndicatorState" xml:space="preserve"><value>Trạng thái đèn báo</value></data>
+  <data name="Option_Off" xml:space="preserve"><value>Tắt</value></data>
+  <data name="Option_On" xml:space="preserve"><value>Bật</value></data>
+  <data name="SliderLabel_StandbyAnimation" xml:space="preserve"><value>Hiệu ứng khi chờ</value></data>
+  <data name="Option_Constant" xml:space="preserve"><value>Cố định</value></data>
+  <data name="Option_Breath" xml:space="preserve"><value>Thở</value></data>
+  <data name="Option_Cycle" xml:space="preserve"><value>Quay vòng</value></data>
+  <data name="Option_Rainbow" xml:space="preserve"><value>Cầu vồng</value></data>
+  <data name="Option_Flow" xml:space="preserve"><value>Dòng chảy</value></data>
+  <data name="Section_Brightness" xml:space="preserve"><value>ĐỘ SÁNG</value></data>
+  <data name="SliderLabel_Brightness" xml:space="preserve"><value>Độ sáng</value></data>
+  <data name="Section_Sleep" xml:space="preserve"><value>NGỦ</value></data>
+  <data name="SliderLabel_SleepMode" xml:space="preserve"><value>Chế độ ngủ</value></data>
+  <data name="Option_Enabled" xml:space="preserve"><value>Đã bật</value></data>
+  <data name="SliderLabel_SleepTimeout" xml:space="preserve"><value>Thời gian chờ ngủ</value></data>
+  <data name="Section_PowerOnOffColor" xml:space="preserve"><value>MÀU LÚC BẬT / TẮT NGUỒN</value></data>
+  <data name="SliderLabel_StartupColor" xml:space="preserve"><value>Màu khởi động</value></data>
+  <data name="SliderLabel_ShutdownColor" xml:space="preserve"><value>Màu tắt máy</value></data>
+  <data name="Section_MozaDashboard" xml:space="preserve"><value>BẢNG ĐIỀU KHIỂN MOZA</value></data>
+  <data name="Status_SearchingForDashboard" xml:space="preserve"><value>Đang tìm bảng điều khiển...</value></data>
+  <data name="Section_IndicatorModes" xml:space="preserve"><value>CHẾ ĐỘ ĐÈN BÁO</value></data>
+  <data name="SliderLabel_RpmIndicatorMode" xml:space="preserve"><value>Chế độ đèn báo RPM</value></data>
+  <data name="Option_SimHubMode" xml:space="preserve"><value>Chế độ SimHub</value></data>
+  <data name="Option_AlwaysOn" xml:space="preserve"><value>Luôn bật</value></data>
+  <data name="SliderLabel_RpmDisplayMode" xml:space="preserve"><value>Chế độ hiển thị RPM</value></data>
+  <data name="Option_Mode1" xml:space="preserve"><value>Chế độ 1</value></data>
+  <data name="Option_Mode2" xml:space="preserve"><value>Chế độ 2</value></data>
+  <data name="SliderLabel_FlagsIndicatorMode" xml:space="preserve"><value>Chế độ đèn báo cờ</value></data>
+  <data name="SliderLabel_RpmBrightness" xml:space="preserve"><value>Độ sáng RPM</value></data>
+  <data name="SliderLabel_FlagsBrightness" xml:space="preserve"><value>Độ sáng cờ</value></data>
+  <data name="Section_RpmLedColors" xml:space="preserve"><value>MÀU LED RPM</value></data>
+  <data name="Section_RpmBlinkColors" xml:space="preserve"><value>MÀU NHẤP NHÁY RPM</value></data>
+  <data name="Subtitle_RpmBlinkColors" xml:space="preserve"><value>// hiển thị khi RPM chạm vạch đỏ</value></data>
+  <data name="Section_FlagLedColors" xml:space="preserve"><value>MÀU LED CỜ</value></data>
+  <data name="Label_SteeringAngle" xml:space="preserve"><value>GÓC LÁI</value></data>
+  <data name="Toggle_Off" xml:space="preserve"><value>TẮT</value></data>
+  <data name="Toggle_On" xml:space="preserve"><value>BẬT</value></data>
+  <data name="TabHeader_Inputs" xml:space="preserve"><value>Đầu vào</value></data>
+  <data name="TabHeader_Dashboard" xml:space="preserve"><value>Bảng điều khiển</value></data>
+  <data name="TabHeader_Leds" xml:space="preserve"><value>LEDs</value></data>
+  <data name="TabHeader_Rpm" xml:space="preserve"><value>RPM</value></data>
+  <data name="TabHeader_Buttons" xml:space="preserve"><value>Nút bấm</value></data>
+  <data name="TabHeader_Knobs" xml:space="preserve"><value>Núm xoay</value></data>
+  <data name="TabHeader_Files" xml:space="preserve"><value>Tệp</value></data>
+  <data name="TabHeader_Sleep" xml:space="preserve"><value>Ngủ</value></data>
+  <data name="Status_SearchingForWheel" xml:space="preserve"><value>Đang tìm vô lăng...</value></data>
+  <data name="Section_LivePaddles" xml:space="preserve"><value>LẪY TRỰC TIẾP</value></data>
+  <data name="Label_PaddleLeft" xml:space="preserve"><value>TRÁI</value></data>
+  <data name="Label_PaddleRight" xml:space="preserve"><value>PHẢI</value></data>
+  <data name="Label_PaddleCombined" xml:space="preserve"><value>KẾT HỢP</value></data>
+  <data name="Section_ActiveButtons" xml:space="preserve"><value>NÚT BẤM ĐANG HOẠT ĐỘNG</value></data>
+  <data name="Section_Joystick" xml:space="preserve"><value>JOYSTICK</value></data>
+  <data name="Subtitle_JoystickAssignment" xml:space="preserve"><value>// gán cần điều khiển định hướng</value></data>
+  <data name="Hint_NoJoystickConfig" xml:space="preserve"><value>Vô lăng chưa báo cáo cấu hình joystick nào. Hãy kết nối vô lăng và đợi quá trình dò nhận dạng hoàn tất.</value></data>
+  <data name="Label_EnableDashboardTelemetry" xml:space="preserve"><value>Bật telemetry cho bảng điều khiển</value></data>
+  <data name="Button_LoadMzdash" xml:space="preserve"><value>NẠP .MZDASH…</value></data>
+  <data name="Button_SetFolder" xml:space="preserve"><value>ĐẶT THƯ MỤC…</value></data>
+  <data name="Button_AutoDetect" xml:space="preserve"><value>TỰ ĐỘNG PHÁT HIỆN</value></data>
+  <data name="Tooltip_LoadMzdash" xml:space="preserve"><value>Nạp tệp .mzdash cục bộ để khớp kênh theo tier-def</value></data>
+  <data name="Tooltip_SetFolder" xml:space="preserve"><value>Đặt một thư mục chứa tệp .mzdash làm thư viện bảng điều khiển</value></data>
+  <data name="Tooltip_AutoDetect" xml:space="preserve"><value>Tự động phát hiện thư mục bảng điều khiển cho vô lăng đang kết nối</value></data>
+  <data name="Button_SendTestPattern" xml:space="preserve"><value>▶ GỬI MẪU THỬ</value></data>
+  <data name="Button_StopTest" xml:space="preserve"><value>■ DỪNG</value></data>
+  <data name="Section_ChannelMappings" xml:space="preserve"><value>ÁNH XẠ KÊNH</value></data>
+  <data name="Hint_ClickPencilForProperty" xml:space="preserve"><value>Bút chì để chọn thuộc tính, hoặc nút công thức cho biểu thức NCalc / js:</value></data>
+  <data name="Status_LoadingChannelMappings" xml:space="preserve"><value>Đang tải ánh xạ kênh…</value></data>
+  <data name="DataGridHeader_Channel" xml:space="preserve"><value>Kênh</value></data>
+  <data name="DataGridHeader_SimHubProperty" xml:space="preserve"><value>Thuộc tính SimHub</value></data>
+  <data name="DataGridHeader_CurrentValue" xml:space="preserve"><value>Giá trị hiện tại</value></data>
+  <data name="Tooltip_EditMapping" xml:space="preserve"><value>Sửa liên kết thuộc tính SimHub</value></data>
+  <data name="Tooltip_EditFormula" xml:space="preserve"><value>Chỉnh sửa dưới dạng công thức (NCalc [property] / js:)</value></data>
+  <data name="Button_ResetToDefaults" xml:space="preserve"><value>ĐẶT LẠI MẶC ĐỊNH</value></data>
+  <data name="Button_MasterChannelDefaults" xml:space="preserve"><value>MẶC ĐỊNH CHUNG</value></data>
+  <data name="Title_MasterChannelDefaults" xml:space="preserve"><value>Mặc định kênh chung</value></data>
+  <data name="Button_ResetAllDefaults" xml:space="preserve"><value>ĐẶT LẠI TẤT CẢ MẶC ĐỊNH</value></data>
+  <data name="Button_Close" xml:space="preserve"><value>ĐÓNG</value></data>
+  <data name="Status_OverriddenCountFormat" xml:space="preserve"><value>{0} trên {1} đã ghi đè</value></data>
+  <data name="Tooltip_RevertToDefault" xml:space="preserve"><value>Khôi phục mặc định</value></data>
+  <data name="Status_MasterMapperUnavailable" xml:space="preserve"><value>Trình ánh xạ kênh chung không khả dụng (xem nhật ký)</value></data>
+  <data name="Button_ResetField" xml:space="preserve"><value>ĐẶT LẠI TRƯỜNG</value></data>
+  <data name="Button_SplitField" xml:space="preserve"><value>TÁCH TRƯỜNG</value></data>
+  <data name="Button_BitSplit" xml:space="preserve"><value>TÁCH BIT</value></data>
+  <data name="Button_MergePrev" xml:space="preserve"><value>GỘP ◀</value></data>
+  <data name="Button_MergeNext" xml:space="preserve"><value>GỘP ▶</value></data>
+  <data name="Button_RemoveSplit" xml:space="preserve"><value>GỠ TÁCH</value></data>
+  <data name="Viz_Title" xml:space="preserve"><value>DỮ LIỆU FSR1 TRỰC TIẾP</value></data>
+  <data name="Edit_StartByte" xml:space="preserve"><value>Byte bắt đầu</value></data>
+  <data name="Edit_StartBit" xml:space="preserve"><value>Bit bắt đầu</value></data>
+  <data name="Edit_BitWidth" xml:space="preserve"><value>Độ rộng bit</value></data>
+  <data name="Edit_EndByte" xml:space="preserve"><value>Byte kết thúc</value></data>
+  <data name="Edit_Endian_LE" xml:space="preserve"><value>Little-endian</value></data>
+  <data name="Edit_Scale" xml:space="preserve"><value>Tỷ lệ</value></data>
+  <data name="Edit_Bias" xml:space="preserve"><value>Độ lệch</value></data>
+  <data name="Section_Display" xml:space="preserve"><value>MÀN HÌNH</value></data>
+  <data name="SliderLabel_DisplayBrightness" xml:space="preserve"><value>Độ sáng màn hình</value></data>
+  <data name="SliderLabel_StandbyTime" xml:space="preserve"><value>Thời gian chờ</value></data>
+  <data name="Option_Time1Min" xml:space="preserve"><value>1 phút</value></data>
+  <data name="Option_Time2Min" xml:space="preserve"><value>2 phút</value></data>
+  <data name="Option_Time3Min" xml:space="preserve"><value>3 phút</value></data>
+  <data name="Option_Time4Min" xml:space="preserve"><value>4 phút</value></data>
+  <data name="Option_Time5Min" xml:space="preserve"><value>5 phút</value></data>
+  <data name="Option_Time10Min" xml:space="preserve"><value>10 phút</value></data>
+  <data name="Option_Time15Min" xml:space="preserve"><value>15 phút</value></data>
+  <data name="Option_Time20Min" xml:space="preserve"><value>20 phút</value></data>
+  <data name="Option_Time25Min" xml:space="preserve"><value>25 phút</value></data>
+  <data name="Option_Time30Min" xml:space="preserve"><value>30 phút</value></data>
+  <data name="Option_Time35Min" xml:space="preserve"><value>35 phút</value></data>
+  <data name="Option_Time40Min" xml:space="preserve"><value>40 phút</value></data>
+  <data name="Option_Time45Min" xml:space="preserve"><value>45 phút</value></data>
+  <data name="Option_Time1Hour" xml:space="preserve"><value>1 giờ</value></data>
+  <data name="Option_Time2Hour" xml:space="preserve"><value>2 giờ</value></data>
+  <data name="Option_Time3Hour" xml:space="preserve"><value>3 giờ</value></data>
+  <data name="Option_Time4Hour" xml:space="preserve"><value>4 giờ</value></data>
+  <data name="Option_Time5Hour" xml:space="preserve"><value>5 giờ</value></data>
+  <data name="Section_RpmLedMode" xml:space="preserve"><value>CHẾ ĐỘ LED RPM</value></data>
+  <data name="SliderLabel_RpmLedMode" xml:space="preserve"><value>Chế độ LED RPM</value></data>
+  <data name="Option_Static" xml:space="preserve"><value>Tĩnh</value></data>
+  <data name="SliderLabel_RpmIdleEffect" xml:space="preserve"><value>Hiệu ứng RPM lúc nhàn rỗi</value></data>
+  <data name="Option_Breathing" xml:space="preserve"><value>Thở</value></data>
+  <data name="Option_ColorCycle" xml:space="preserve"><value>Quay vòng màu</value></data>
+  <data name="Option_SandFlow" xml:space="preserve"><value>Dòng cát</value></data>
+  <data name="Option_RgbPulse" xml:space="preserve"><value>Nhịp RGB</value></data>
+  <data name="SliderLabel_RpmIdleSpeed" xml:space="preserve"><value>Tốc độ RPM lúc nhàn rỗi</value></data>
+  <data name="Section_RpmLedColorsStatic" xml:space="preserve"><value>MÀU LED RPM (TĨNH)</value></data>
+  <data name="Subtitle_RpmLedColorsStatic" xml:space="preserve"><value>// hiển thị khi không có telemetry · nhấn vào một LED để đổi màu</value></data>
+  <data name="Label_LedPlaceholder" xml:space="preserve"><value>LED 01</value></data>
+  <data name="Subtitle_ClickFlagToRecolor" xml:space="preserve"><value>// nhấn vào một cờ để đổi màu</value></data>
+  <data name="Label_FlagPlaceholder" xml:space="preserve"><value>CỜ 1</value></data>
+  <data name="Section_EsWheelRpmIndicator" xml:space="preserve"><value>ĐÈN BÁO RPM</value></data>
+  <data name="Subtitle_EsLegacy" xml:space="preserve"><value>// giao thức ES cũ</value></data>
+  <data name="SliderLabel_IndicatorMode" xml:space="preserve"><value>Chế độ đèn báo</value></data>
+  <data name="SliderLabel_DisplayMode" xml:space="preserve"><value>Chế độ hiển thị</value></data>
+  <data name="Section_ButtonLedMode" xml:space="preserve"><value>CHẾ ĐỘ LED NÚT BẤM</value></data>
+  <data name="SliderLabel_ButtonLedMode" xml:space="preserve"><value>Chế độ LED nút bấm</value></data>
+  <data name="SliderLabel_ButtonIdleEffect" xml:space="preserve"><value>Hiệu ứng nút bấm lúc nhàn rỗi</value></data>
+  <data name="SliderLabel_ButtonIdleSpeed" xml:space="preserve"><value>Tốc độ nút bấm lúc nhàn rỗi</value></data>
+  <data name="Section_ButtonLedColors" xml:space="preserve"><value>MÀU LED NÚT BẤM</value></data>
+  <data name="Subtitle_ButtonLedColors" xml:space="preserve"><value>// nhấn vào một nút để đổi màu · 'mặc định khi có telemetry' thay thế các nút tắt bằng màu đã chọn</value></data>
+  <data name="Label_ButtonPlaceholder" xml:space="preserve"><value>NÚT 01</value></data>
+  <data name="Section_KnobLedMode" xml:space="preserve"><value>CHẾ ĐỘ LED NÚM XOAY</value></data>
+  <data name="SliderLabel_KnobLedMode" xml:space="preserve"><value>Chế độ LED núm xoay</value></data>
+  <data name="SliderLabel_KnobDefaultDuringTelemetry" xml:space="preserve"><value>Khôi phục màu khi tắt</value></data>
+  <data name="Tooltip_KnobDefaultDuringTelemetry" xml:space="preserve"><value>Khi SimHub tắt hoàn toàn đèn LED núm xoay, khôi phục màu núm đã lưu của vô lăng thay vì để tối.</value></data>
+  <data name="Section_KnobTelemetryRestore" xml:space="preserve"><value>Khôi phục màu telemetry</value></data>
+  <data name="SliderLabel_KnobStaticTimeout" xml:space="preserve"><value>Thời gian tĩnh tối đa</value></data>
+  <data name="Tooltip_KnobStaticTimeout" xml:space="preserve"><value>Khôi phục màu núm gốc sau khi màu telemetry giữ nguyên trong khoảng thời gian này. 0 = tắt.</value></data>
+  <data name="SliderLabel_KnobIdleEffect" xml:space="preserve"><value>Hiệu ứng núm xoay lúc nhàn rỗi</value></data>
+  <data name="SliderLabel_KnobIdleSpeed" xml:space="preserve"><value>Tốc độ núm xoay lúc nhàn rỗi</value></data>
+  <data name="Section_KnobSettings" xml:space="preserve"><value>CÀI ĐẶT NÚM XOAY</value></data>
+  <data name="Label_SignalMode" xml:space="preserve"><value>CHẾ ĐỘ TÍN HIỆU</value></data>
+  <data name="Subtitle_SignalMode" xml:space="preserve"><value>// cách từng núm xoay báo cáo đầu vào</value></data>
+  <data name="SliderLabel_AllRotaries" xml:space="preserve"><value>Tất cả núm xoay</value></data>
+  <data name="Label_Colours" xml:space="preserve"><value>MÀU</value></data>
+  <data name="Subtitle_KnobColours" xml:space="preserve"><value>// nhấn vào bất kỳ LED nào trên vòng, hoặc ô màu trung tâm cho màu đang dùng của núm đó</value></data>
+  <data name="Label_KnobEditing" xml:space="preserve"><value>ĐANG SỬA · NÚM 1 · ĐANG DÙNG</value></data>
+  <data name="Button_FillRingWithSelected" xml:space="preserve"><value>TÔ VÒNG BẰNG MÀU ĐÃ CHỌN</value></data>
+  <data name="Button_CopyKnobToAll" xml:space="preserve"><value>SAO CHÉP NÚM NÀY CHO TẤT CẢ</value></data>
+  <data name="Section_SleepLight" xml:space="preserve"><value>ĐÈN KHI NGỦ</value></data>
+  <data name="Subtitle_SleepLight" xml:space="preserve"><value>// nội dung vô lăng hiển thị sau khi hết thời gian chờ</value></data>
+  <data name="SliderLabel_Speed" xml:space="preserve"><value>Tốc độ</value></data>
+  <data name="SliderLabel_Color" xml:space="preserve"><value>Màu</value></data>
+  <data name="Section_Language" xml:space="preserve"><value>NGÔN NGỮ</value></data>
+  <data name="SliderLabel_Language" xml:space="preserve"><value>Ngôn ngữ</value></data>
+  <data name="Hint_LanguageChangeRestart" xml:space="preserve"><value>Cần khởi động lại sau khi thay đổi.</value></data>
+  <!-- PitHouse preset import (Button_ImportProfile + Import_*) -->
+  <data name="Button_ImportProfile" xml:space="preserve"><value>NHẬP HỒ SƠ…</value></data>
+  <data name="Import_DialogTitle" xml:space="preserve"><value>Nhập cài đặt PitHouse</value></data>
+  <data name="Import_Tab_Browse" xml:space="preserve"><value>Duyệt tệp…</value></data>
+  <data name="Import_Category_Motor" xml:space="preserve"><value>Đế vô-lăng (Motor)</value></data>
+  <data name="Import_Category_Pedals" xml:space="preserve"><value>Bàn đạp</value></data>
+  <data name="Import_NoFolderFound" xml:space="preserve"><value>Không tìm thấy thư mục cài đặt PitHouse. Đặt đường dẫn tùy chỉnh hoặc dùng Duyệt.</value></data>
+  <data name="Import_SetCustomFolder" xml:space="preserve"><value>Đặt thư mục…</value></data>
+  <data name="Import_ConfirmHeader" xml:space="preserve"><value>Đang áp dụng "{0}" vào hồ sơ "{1}". Các cài đặt sau sẽ thay đổi:</value></data>
+  <data name="Import_NoChangesHeader" xml:space="preserve"><value>Tất cả các giá trị trong cài đặt này đã khớp với hồ sơ đang hoạt động.</value></data>
+  <data name="Import_NotImportedHeader" xml:space="preserve"><value>Không nhập (không có tương đương trong plugin):</value></data>
+  <data name="Import_ApplyButton" xml:space="preserve"><value>ÁP DỤNG</value></data>
+  <data name="Import_CancelButton" xml:space="preserve"><value>HỦY</value></data>
+  <data name="Import_NextButton" xml:space="preserve"><value>TIẾP</value></data>
+  <data name="Import_BackButton" xml:space="preserve"><value>QUAY LẠI</value></data>
+  <data name="Import_BrowseDescription" xml:space="preserve"><value>Chọn một tệp JSON cài đặt PitHouse từ bất kỳ vị trí nào.</value></data>
+  <data name="Import_Error_InvalidJson" xml:space="preserve"><value>Tệp không phải JSON hợp lệ: {0}</value></data>
+  <data name="Import_Error_UnsupportedType" xml:space="preserve"><value>Loại cài đặt không hỗ trợ "{0}". Chỉ hỗ trợ cài đặt Motor và Pedals.</value></data>
+  <data name="Status_Connected" xml:space="preserve"><value>Đã kết nối</value></data>
+  <data name="Status_Recovering" xml:space="preserve"><value>Đang khôi phục…</value></data>
+  <data name="Status_Parked" xml:space="preserve"><value>Đã dừng</value></data>
+  <data name="Status_TelemetryParked" xml:space="preserve"><value>Đã dừng telemetry sau nhiều lỗi — bật lại để thử lại</value></data>
+  <data name="Status_DegradedScreenless" xml:space="preserve"><value>Vô lăng không có màn hình — không cần telemetry</value></data>
+  <data name="Banner_PortLocked_Title" xml:space="preserve"><value>Đã phát hiện phần cứng MOZA nhưng cổng đang được sử dụng</value></data>
+  <data name="Banner_PortLocked_Body" xml:space="preserve"><value>Đã tìm thấy thiết bị MOZA trên {0}, nhưng cổng đang bị một ứng dụng khác chiếm giữ. Hãy đóng MOZA PitHouse (hoặc bất kỳ ứng dụng nào đang giao tiếp với wheelbase) rồi nhấp Làm mới.</value></data>
+  <data name="Banner_PortVanished_Title" xml:space="preserve"><value>Cổng MOZA đã biến mất</value></data>
+  <data name="Banner_PortVanished_Body" xml:space="preserve"><value>Thiết bị MOZA trên {0} đã ngừng phản hồi khi mở. Hãy cắm lại wheelbase (hoặc cáp USB của nó) rồi nhấp Làm mới.</value></data>
+  <data name="Banner_TelemetryDegraded_Title" xml:space="preserve"><value>Vô-lăng MOZA không có màn hình</value></data>
+  <data name="Banner_TelemetryDegraded_Body" xml:space="preserve"><value>Đây là điều bình thường với vô-lăng không có màn hình — không cần thao tác gì.</value></data>
+  <data name="Banner_TelemetryParked_Title" xml:space="preserve"><value>Telemetry đã dừng sau nhiều lần lỗi liên tiếp</value></data>
+  <data name="Banner_TelemetryParked_Body" xml:space="preserve"><value>Tắt rồi bật lại telemetry bảng đồng hồ để thử lại.</value></data>
+  <data name="Banner_RestartSimHub_Title" xml:space="preserve"><value>Khởi động lại SimHub</value></data>
+  <data name="Banner_RestartSimHub_Body" xml:space="preserve"><value>Đã triển khai các định nghĩa thiết bị mới. Khởi động lại SimHub để thêm chúng trong mục Thiết bị.</value></data>
+  <data name="Banner_WheelFwOutdated_Title" xml:space="preserve"><value>Khuyến nghị cập nhật firmware vô-lăng</value></data>
+  <data name="Banner_WheelFwOutdated_BodyFmt" xml:space="preserve"><value>{0} phản hồi bằng giao thức cũ nên các tính năng vô-lăng bị hạn chế trong phiên này. Hãy cập nhật firmware của vô-lăng và wheelbase trong MOZA Pit House, sau đó khởi động lại SimHub.</value></data>
+  <data name="Banner_WheelFwOutdated_GenericSubject" xml:space="preserve"><value>Vô-lăng đang kết nối</value></data>
+  <data name="Banner_ProfileNotAdded_TitleFmt" xml:space="preserve"><value>{0} chưa được thêm trong SimHub</value></data>
+  <data name="Banner_ProfileNotAddedDash_Body" xml:space="preserve"><value>Một bảng đồng hồ MOZA đang được kết nối, nhưng thiết bị chưa được thêm trong SimHub. Mở Thiết bị &gt; Thêm thiết bị &gt; {0}.</value></data>
+  <data name="Banner_ProfileNotAddedBase_Body" xml:space="preserve"><value>Wheelbase đang được kết nối, nhưng '{0}' chưa được thêm trong SimHub. Mở Thiết bị &gt; Thêm thiết bị &gt; {0}.</value></data>
+  <data name="Banner_ProfileNotAddedWheel_Body" xml:space="preserve"><value>Vô-lăng '{1}' đang được kết nối, nhưng '{0}' chưa được thêm trong SimHub. Mở Thiết bị &gt; Thêm thiết bị &gt; {0}.</value></data>
+  <data name="Banner_ProfileNotAddedPedalHaptics_Title" xml:space="preserve"><value>Chưa thêm bộ rung bàn đạp trong SimHub</value></data>
+  <data name="Banner_ProfileNotAddedPedalHaptics_Body" xml:space="preserve"><value>Bộ rung bàn đạp đang được kết nối, nhưng chưa có thiết bị bàn đạp nào được thêm trong SimHub. Mở Thiết bị &gt; Thêm thiết bị &gt; {0}.</value></data>
+  <data name="Banner_PortFallbackName" xml:space="preserve"><value>cổng COM của MOZA</value></data>
+  <data name="DeviceDef_KnobIndicators" xml:space="preserve"><value>Đèn báo núm xoay</value></data>
+  <data name="Sdk_Status_Disabled" xml:space="preserve"><value>Đã tắt</value></data>
+  <data name="Sdk_Status_Starting" xml:space="preserve"><value>Đang khởi động…</value></data>
+  <data name="Sdk_Status_Stopped" xml:space="preserve"><value>Đã dừng</value></data>
+  <data name="Sdk_Status_RunningPid" xml:space="preserve"><value>Đang chạy (PID {0})</value></data>
+  <data name="Label_StubManager" xml:space="preserve"><value>Trình quản lý stub</value></data>
+  <data name="Status_CapturingClickStop" xml:space="preserve"><value>đang ghi… (chế độ luôn ghi đang bật — nhấp Dừng khi xong)</value></data>
+  <data name="Status_CapturingOpenTab" xml:space="preserve"><value>đang ghi… (mở tab khác và sử dụng thiết bị, sau đó quay lại để dừng)</value></data>
+  <data name="Status_ExportedTo" xml:space="preserve"><value>đã xuất ra {0}</value></data>
+  <data name="Status_CalibrationSent" xml:space="preserve"><value>Đã gửi hiệu chuẩn</value></data>
+  <data name="Status_HbCalibrating" xml:space="preserve"><value>Đang hiệu chuẩn — kéo hết cỡ rồi dừng</value></data>
+  <data name="Status_Done" xml:space="preserve"><value>Xong</value></data>
+  <data name="Status_TelemetrySenderUnavailableInit" xml:space="preserve"><value>Bộ gửi telemetry không khả dụng (plugin chưa khởi tạo).</value></data>
+  <data name="Status_PickMzdashFirst" xml:space="preserve"><value>Trước tiên hãy chọn một tệp .mzdash hoặc một mục thư viện.</value></data>
+  <data name="Status_NoConfigJsonState" xml:space="preserve"><value>(chưa nhận được trạng thái configJson)</value></data>
+  <data name="Status_PluginNotLoaded" xml:space="preserve"><value>Plugin chưa được tải</value></data>
+  <data name="Upload_CannotResolveBytes" xml:space="preserve"><value>Không thể lấy dữ liệu byte cho "{0}" — hãy chọn một tệp cục bộ.</value></data>
+  <data name="Upload_FolderPrefix" xml:space="preserve"><value>Thư mục: {0}</value></data>
+  <data name="Upload_Queued" xml:space="preserve"><value>Đã đưa tải lên vào hàng đợi — đang gửi "{0}" đến vô-lăng…</value></data>
+  <data name="Upload_NotStarted" xml:space="preserve"><value>Chưa bắt đầu tải lên — vô-lăng chưa kết nối hoặc chưa có phiên quản lý.</value></data>
+  <data name="Upload_Complete" xml:space="preserve"><value>Tải lên hoàn tất (trạng thái 0x{0})</value></data>
+  <data name="Upload_Stopped" xml:space="preserve"><value>Đã dừng tải lên ở {0}% (trạng thái 0x{1})</value></data>
+  <data name="Upload_FileDialog_Title" xml:space="preserve"><value>Chọn tệp .mzdash để tải lên</value></data>
+  <data name="Upload_FileDialog_Filter" xml:space="preserve"><value>Bảng đồng hồ Moza (*.mzdash)|*.mzdash|Tất cả tệp (*.*)|*.*</value></data>
+  <data name="Upload_FolderDialog_Description" xml:space="preserve"><value>Chọn thư mục chứa các tệp bảng đồng hồ .mzdash</value></data>
+  <data name="Upload_AutoDetect_Caption" xml:space="preserve"><value>Tự động dò thư mục bảng đồng hồ</value></data>
+  <data name="Upload_AutoDetect_NotFound" xml:space="preserve"><value>Không tìm thấy thư mục bảng đồng hồ MOZA Pit House tại:
+{0}
+
+Hãy cài đặt MOZA Pit House và tải một bảng đồng hồ, hoặc dùng «Đặt thư mục…» để trỏ tới vị trí tùy chỉnh.</value></data>
+  <data name="Upload_AutoDetect_NoFolderForWheel" xml:space="preserve"><value>Không có thư mục bảng đồng hồ cho vô-lăng đang kết nối (UID {0}).
+Đã tìm trong:
+{1}
+
+Hãy mở một bảng đồng hồ trong MOZA Pit House cho vô-lăng này trước.</value></data>
+  <data name="Upload_AutoDetect_NoFolders" xml:space="preserve"><value>Không tìm thấy thư mục bảng đồng hồ riêng cho vô-lăng trong _dashes. Hãy mở MOZA Pit House, tải một bảng đồng hồ rồi thử lại.</value></data>
+  <data name="Upload_AutoDetect_Multiple" xml:space="preserve"><value>Tìm thấy nhiều thư mục bảng đồng hồ ({0}) và không có vô-lăng nào được kết nối. Hãy kết nối vô-lăng rồi thử lại, hoặc dùng «Đặt thư mục…» để chọn thủ công.</value></data>
+  <data name="Dialog_ClearAllSettings_Body" xml:space="preserve"><value>Thao tác này sẽ xóa vĩnh viễn toàn bộ thiết lập và hồ sơ của plugin.
+
+Bạn có chắc không?</value></data>
+  <data name="Dialog_ClearAllSettings_Caption" xml:space="preserve"><value>Xóa tất cả thiết lập</value></data>
+  <data name="Dialog_RedeployDefinitions_Caption" xml:space="preserve"><value>Triển khai lại định nghĩa thiết bị</value></data>
+  <data name="Dialog_RedeployDefinitions_Body" xml:space="preserve"><value>Thao tác này sẽ ghi lại các định nghĩa thiết bị SimHub cho mọi vô lăng, màn hình, wheelbase và bộ rung bàn đạp MOZA đã biết, khớp với wheelbase đang kết nối.
+
+Mọi chỉnh sửa thủ công trong các tệp đó sẽ bị mất. Tiếp tục?</value></data>
+  <data name="Dialog_ExportFailed" xml:space="preserve"><value>Xuất thất bại: {0}</value></data>
+  <data name="Dialog_ReadMzdashFailed" xml:space="preserve"><value>Không đọc được tệp .mzdash:
+{0}</value></data>
+  <data name="Dialog_CannotDeleteNoId" xml:space="preserve"><value>Không thể xóa "{0}": vô-lăng chưa gán id.</value></data>
+  <data name="Dialog_ConfirmDelete_Body" xml:space="preserve"><value>Xóa "{0}" khỏi vô-lăng?
+
+DirName: {1}
+Id: {2}</value></data>
+  <data name="Dialog_ConfirmDelete_Caption" xml:space="preserve"><value>Moza — xác nhận xóa</value></data>
+  <data name="Dialog_TelemetrySenderUnavailable" xml:space="preserve"><value>Bộ gửi telemetry không khả dụng.</value></data>
+  <data name="Dialog_CompletelyRemoveTimeout" xml:space="preserve"><value>completelyRemove("{0}") đã hết thời gian chờ. Bảng đồng hồ có thể vẫn còn trên vô-lăng.</value></data>
+  <data name="Import_Label_Folder" xml:space="preserve"><value>THƯ MỤC</value></data>
+  <data name="Import_Label_Preset" xml:space="preserve"><value>CÀI ĐẶT SẴN</value></data>
+  <data name="Import_Label_Profile" xml:space="preserve"><value>HỒ SƠ</value></data>
+  <data name="Import_Label_SubjectRole" xml:space="preserve"><value>BÀN ĐẠP</value></data>
+  <data name="Import_Label_ApplyTo" xml:space="preserve"><value>ÁP DỤNG CHO</value></data>
+  <data name="Import_Label_Changes" xml:space="preserve"><value>THAY ĐỔI</value></data>
+  <data name="Import_NoMotorPresets" xml:space="preserve"><value>// không có cài đặt sẵn Motor trong thư mục này</value></data>
+  <data name="Import_NoPedalsPresets" xml:space="preserve"><value>// không có cài đặt sẵn Pedals trong thư mục này</value></data>
+  <data name="Import_NoActiveProfile" xml:space="preserve"><value>Không có hồ sơ SimHub đang hoạt động.</value></data>
+  <data name="Import_Footer_NoMappable" xml:space="preserve"><value>không có thiết lập nào có thể ánh xạ trong cài đặt sẵn này</value></data>
+  <data name="Import_Footer_AllMatch" xml:space="preserve"><value>tất cả {0} thiết lập đã khớp — không có gì để áp dụng</value></data>
+  <data name="Import_Footer_WillChange" xml:space="preserve"><value>{0} trong số {1} thiết lập sẽ thay đổi</value></data>
+  <data name="Status_CaptureStopped" xml:space="preserve"><value>đã dừng — đã ghi {0} khung</value></data>
+  <data name="Diag_ZipFilter" xml:space="preserve"><value>Tệp nén ZIP (*.zip)|*.zip</value></data>
+  <data name="SliderLabel_Interpolation" xml:space="preserve"><value>Nội suy</value></data>
+  <data name="SliderLabel_PaddleCalibration" xml:space="preserve"><value>Hiệu chỉnh lẫy</value></data>
+  <data name="Button_RestartWheelbase" xml:space="preserve"><value>Khởi động lại đế</value></data>
+  <data name="Button_CalibrateStart" xml:space="preserve"><value>Bắt đầu</value></data>
+  <data name="Button_CalibrateSave" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Dialog_RestartWheelbase_Caption" xml:space="preserve"><value>Khởi động lại đế</value></data>
+  <data name="Dialog_RestartWheelbase_Body" xml:space="preserve"><value>Khởi động lại đế ngay bây giờ? Phản hồi lực sẽ tạm dừng trong giây lát khi đế khởi động lại.</value></data>
+  <data name="Hint_PaddleCalibrate" xml:space="preserve"><value>Bóp hết tất cả các lẫy rồi nhả ra. Lưu sau {0}s…</value></data>
+  <data name="Hint_PaddleCalibrateDone" xml:space="preserve"><value>Đã lưu hiệu chỉnh lẫy.</value></data>
+  <data name="Hint_CalibratePedal" xml:space="preserve"><value>Đạp bàn đạp hết hành trình rồi nhả ra. Lưu sau {0}s…</value></data>
+  <data name="Hint_CalibrateHandbrake" xml:space="preserve"><value>Kéo hết phanh tay rồi nhả ra. Lưu sau {0}s…</value></data>
+  <data name="Section_Ab9InputMode" xml:space="preserve"><value>Chế độ nhập</value></data>
+  <data name="Option_Ab9Shifter" xml:space="preserve"><value>Cần số</value></data>
+  <data name="Option_Ab9FlightSim" xml:space="preserve"><value>Mô phỏng bay</value></data>
+  <data name="SliderLabel_KeepaliveTimeout" xml:space="preserve"><value>Thời gian chờ keepalive</value></data>
+  <data name="Hint_KeepaliveTimeout" xml:space="preserve"><value>Đèn LED giữ trạng thái cuối trong bao lâu sau khi hiệu ứng dừng, trước khi vô-lăng trở về ánh sáng riêng của nó.</value></data>
+  <data name="SliderLabel_DisplayRotation" xml:space="preserve"><value>Xoay màn hình</value></data>
+  <data name="Option_RotationSmooth" xml:space="preserve"><value>Mượt</value></data>
+  <data name="Option_RotationImmediate" xml:space="preserve"><value>Tức thì</value></data>
+  <data name="TabHeader_Stalks" xml:space="preserve"><value>Cần gạt</value></data>
+  <data name="Section_StalkMode" xml:space="preserve"><value>Chế độ cần gạt</value></data>
+  <data name="Option_StalkButtonBox" xml:space="preserve"><value>Hộp nút</value></data>
+  <data name="Option_StalkTruckSim" xml:space="preserve"><value>Mô phỏng xe tải (ETS2/ATS)</value></data>
+  <data name="Hint_StalksTruckSim" xml:space="preserve"><value>Ở chế độ mô phỏng xe tải, plugin chuyển thao tác cần gạt thành phím bàn phím cho Euro/American Truck Simulator. Ở chế độ hộp nút, cần gạt hoạt động như các nút thường.</value></data>
+  <data name="Section_StalksKeyMapping" xml:space="preserve"><value>Gán nút</value></data>
+  <data name="Subtitle_StalksInteractiveMap" xml:space="preserve"><value>Nhấn một điều khiển cần gạt để làm nổi bật nút của nó, rồi gán một phím hoặc cấp gạt mưa/đèn.</value></data>
+  <data name="Section_StalksWiperSync" xml:space="preserve"><value>Gạt mưa &amp; đèn</value></data>
+  <data name="Subtitle_StalksWiperSync" xml:space="preserve"><value>Trò chơi chuyển gạt mưa/đèn bằng phím xoay vòng; plugin gửi đúng số lần nhấn để đạt vị trí cần gạt.</value></data>
+  <data name="SliderLabel_WiperStageCount" xml:space="preserve"><value>Cấp gạt mưa</value></data>
+  <data name="Label_WiperForwardWraps" xml:space="preserve"><value>Phím gạt mưa xoay vòng</value></data>
+  <data name="SliderLabel_LightStageCount" xml:space="preserve"><value>Cấp đèn</value></data>
+  <data name="Button_ResyncWipers" xml:space="preserve"><value>Đồng bộ lại gạt mưa</value></data>
+  <data name="Hint_ResyncWipers" xml:space="preserve"><value>Đưa gạt mưa trong trò chơi về tắt để khớp lại với cấp mà plugin đang theo dõi.</value></data>
+  <data name="Label_StalksLastPressed" xml:space="preserve"><value>Lần nhấn cuối: nút {0}</value></data>
+  <data name="Button_LoadEts2Defaults" xml:space="preserve"><value>Tải mặc định ETS2/ATS</value></data>
+  <data name="Button_ResyncStages" xml:space="preserve"><value>Đồng bộ lại gạt mưa và đèn</value></data>
+  <data name="Section_CustomEffects" xml:space="preserve"><value>Hiệu ứng tùy chỉnh (Thử nghiệm)</value></data>
+  <data name="Subtitle_CustomEffectsExperimental" xml:space="preserve"><value>// thử nghiệm — rung do người dùng định nghĩa bằng công thức SimHub/NCalc</value></data>
+  <data name="Hint_CustomEffectsExperimental" xml:space="preserve"><value>Thử nghiệm — mỗi hiệu ứng tùy chỉnh làm rung động cơ bằng thuộc tính SimHub hoặc công thức NCalc mà bạn cung cấp. Tất cả hiệu ứng tùy chỉnh (và hiệu ứng Engine tích hợp) dùng chung một kênh, nên tại một thời điểm chỉ một hiệu ứng có thể điều khiển động cơ; hiệu ứng đang hoạt động được xử lý gần nhất sẽ thắng. Tần số/Cường độ hoạt động như thanh trượt của Engine.</value></data>
+  <data name="Hint_CustomEffectFormula" xml:space="preserve"><value>Một thuộc tính SimHub (ví dụ SpeedKmh) hoặc công thức NCalc (ví dụ [Rpms] / [CarSettings_MaxRPM]). Khi tắt "Dùng ngưỡng", giá trị (giới hạn 0..1) điều chỉnh Cường độ liên tục. Khi bật, hiệu ứng rung theo Cường độ đã đặt mỗi khi giá trị đạt hoặc vượt ngưỡng.</value></data>
+  <data name="Label_UseThreshold" xml:space="preserve"><value>Dùng ngưỡng</value></data>
+  <data name="SliderLabel_Name" xml:space="preserve"><value>Tên</value></data>
+  <data name="SliderLabel_Formula" xml:space="preserve"><value>Công thức</value></data>
+  <data name="SliderLabel_Threshold" xml:space="preserve"><value>Ngưỡng</value></data>
+  <data name="Button_AddCustomEffect" xml:space="preserve"><value>+ Thêm hiệu ứng tùy chỉnh</value></data>
+  <data name="Button_DeleteCustomEffect" xml:space="preserve"><value>Xóa hiệu ứng</value></data>
+  <data name="DefaultName_CustomEffect" xml:space="preserve"><value>Hiệu ứng tùy chỉnh</value></data>
+  <data name="Section_PedalRoles" xml:space="preserve"><value>Vai trò bàn đạp</value></data>
+  <data name="Label_PedalAxis" xml:space="preserve"><value>Bàn đạp {0}</value></data>
+  <data name="Hint_MBoosterAxisRoles" xml:space="preserve"><value>mBooster này lưu trữ nhiều bàn đạp trên một kết nối. Gán mỗi trục được phát hiện cho một đầu vào trò chơi. Thứ tự mặc định theo bố cục Rx/Ry/Rz của Moza (ga/phanh/côn) — gán lại tại đây nếu một bàn đạp điều khiển sai đầu vào.</value></data>
+  <data name="Label_EffectsForPedal" xml:space="preserve"><value>Cấu hình bàn đạp:</value></data>
+  <data name="Note_PassivePedalNoEffects" xml:space="preserve"><value>Bàn đạp này là loại thụ động (không có động cơ) — hiệu ứng rung không áp dụng.</value></data>
+  <data name="TabHeader_ShifterHgp" xml:space="preserve"><value>HGP</value></data>
+  <data name="TabHeader_ShifterSgp" xml:space="preserve"><value>SGP</value></data>
+  <data name="Section_ShifterSettings" xml:space="preserve"><value>CÀI ĐẶT CẦN SỐ</value></data>
+  <data name="Section_ShifterLeds" xml:space="preserve"><value>ĐÈN LED</value></data>
+  <data name="Subtitle_ShifterLeds" xml:space="preserve"><value>// hai đèn LED tùy chỉnh (SGP)</value></data>
+  <data name="Subtitle_ShifterCalibrate" xml:space="preserve"><value>// vào số R &gt; 7 &gt; R &gt; Mo</value></data>
+  <data name="SliderLabel_ShifterPaddleSync" xml:space="preserve"><value>Đồng bộ lẫy</value></data>
+  <data name="Label_ShifterLed1" xml:space="preserve"><value>LED 1 (S1)</value></data>
+  <data name="Label_ShifterLed2" xml:space="preserve"><value>LED 2 (S2)</value></data>
+  <data name="SliderLabel_ShifterBrightness" xml:space="preserve"><value>Độ sáng LED</value></data>
+  <data name="ShifterColor_Red" xml:space="preserve"><value>Đỏ</value></data>
+  <data name="ShifterColor_Orange" xml:space="preserve"><value>Cam</value></data>
+  <data name="ShifterColor_Yellow" xml:space="preserve"><value>Vàng</value></data>
+  <data name="ShifterColor_Green" xml:space="preserve"><value>Xanh lá</value></data>
+  <data name="ShifterColor_Cyan" xml:space="preserve"><value>Lục lam</value></data>
+  <data name="ShifterColor_Blue" xml:space="preserve"><value>Xanh dương</value></data>
+  <data name="ShifterColor_Purple" xml:space="preserve"><value>Tím</value></data>
+  <data name="ShifterColor_White" xml:space="preserve"><value>Trắng</value></data>
+  <data name="Section_WheelbaseLfe" xml:space="preserve"><value>HIỆU ỨNG RUNG ĐẾ</value></data>
+  <data name="SliderLabel_Trigger" xml:space="preserve"><value>Kích hoạt</value></data>
+  <data name="Label_EnginePresets" xml:space="preserve"><value>Cài đặt sẵn động cơ:</value></data>
+  <data name="Preset_AdditiveEngine" xml:space="preserve"><value>Động cơ cộng tính</value></data>
+  <data name="Preset_BigRig" xml:space="preserve"><value>Xe tải lớn</value></data>
+  <data name="Preset_DetunedV8" xml:space="preserve"><value>V8 lệch nhịp</value></data>
+  <data name="Label_Defaults" xml:space="preserve"><value>Mặc định</value></data>
+  <data name="TriggerMode_Level" xml:space="preserve"><value>Mức</value></data>
+  <data name="TriggerMode_OnChange" xml:space="preserve"><value>Khi thay đổi</value></data>
+  <data name="Label_FormulaLimitsHz" xml:space="preserve"><value>Giới hạn công thức (Hz)</value></data>
+  <data name="Label_AlwaysOn" xml:space="preserve"><value>(luôn bật)</value></data>
+  <data name="TabHeader_WheelbaseLfe" xml:space="preserve"><value>Hiệu ứng LFE</value></data>
+  <data name="Section_EnginePresets" xml:space="preserve"><value>Cài đặt sẵn động cơ</value></data>
+  <data name="Section_EffectsSlot1" xml:space="preserve"><value>Khe hiệu ứng 1</value></data>
+  <data name="Section_EffectsSlot2" xml:space="preserve"><value>Khe hiệu ứng 2</value></data>
+  <data name="Section_EffectsSlot3" xml:space="preserve"><value>Khe hiệu ứng 3</value></data>
+  <data name="Label_Mode" xml:space="preserve"><value>Chế độ</value></data>
+  <data name="Mode_Engine" xml:space="preserve"><value>Động cơ</value></data>
+  <data name="Mode_Abs" xml:space="preserve"><value>ABS</value></data>
+  <data name="Mode_Gearshift" xml:space="preserve"><value>Sang số</value></data>
+  <data name="Mode_Custom" xml:space="preserve"><value>Tùy chỉnh</value></data>
+  <data name="Label_Load" xml:space="preserve"><value>Tải</value></data>
+  <data name="Label_Save" xml:space="preserve"><value>Lưu</value></data>
+  <data name="Label_Delete" xml:space="preserve"><value>Xóa</value></data>
+  <data name="Label_Import" xml:space="preserve"><value>Nhập</value></data>
+  <data name="Label_Export" xml:space="preserve"><value>Xuất</value></data>
+  <data name="Preset_RoadRumble" xml:space="preserve"><value>Rung mặt đường</value></data>
+  <data name="Label_AngleSensor" xml:space="preserve"><value>Góc</value></data>
+  <data name="Label_LoadCell" xml:space="preserve"><value>Loadcell</value></data>
+  <data name="Section_PedalFeelSimInput" xml:space="preserve"><value>CẢM GIÁC BÀN ĐẠP &amp; ÁNH XẠ ĐẦU VÀO SIM</value></data>
+  <data name="Section_BrakeFade" xml:space="preserve"><value>Mất Phanh Do Nhiệt (Thử nghiệm)</value></data>
+  <data name="SliderLabel_OnsetTempC" xml:space="preserve"><value>Nhiệt Độ Bắt Đầu (°C)</value></data>
+  <data name="Hint_BrakeFadeExperimental" xml:space="preserve"><value>Thử nghiệm — trong khi đang hoạt động, ghi các giá trị hiệu chỉnh phần cứng thực tế cho Kết thúc Hành trình và Ngưỡng tối đa (cần nhiều hành trình và lực hơn), sau đó khôi phục các giá trị bạn đã cấu hình khi phanh nguội dần. Yêu cầu các giá trị này đã được thiết lập trong Cảm giác Bàn đạp / Ánh xạ Đầu vào Sim — nếu không sẽ không có tác dụng.</value></data>
+  <data name="Section_GForce" xml:space="preserve"><value>Lực G (Cảm giác bàn đạp quán tính) (Thử nghiệm)</value></data>
+  <data name="Hint_GForceExperimental" xml:space="preserve"><value>Thử nghiệm — đẩy chính bàn đạp dưới chân bạn tỷ lệ với lực G dọc theo thời gian thực (tăng tốc đẩy về phía trước, phanh đẩy về phía sau), thay vì rung. Hành trình bàn đạp tối đa đặt mức di chuyển ở lực G tối đa; Tốc độ phản hồi đặt tốc độ bàn đạp đạt tới vị trí mới.</value></data>
+  <data name="SliderLabel_MaxTravelMm" xml:space="preserve"><value>Hành trình bàn đạp tối đa (mm)</value></data>
+  <data name="SliderLabel_ResponseSpeedPct" xml:space="preserve"><value>Tốc độ phản hồi (%)</value></data>
+  <data name="Section_BugReport" xml:space="preserve"><value>BÁO CÁO SỰ CỐ</value></data>
+  <data name="Subtitle_BugReport" xml:space="preserve"><value>Gửi báo cáo chẩn đoán cho người phát triển</value></data>
+  <data name="Label_BugReportDescription" xml:space="preserve"><value>Mô tả sự cố</value></data>
+  <data name="Placeholder_BugReportDescription" xml:space="preserve"><value>Mô tả sự cố: bạn đã làm gì, vô lăng hoặc màn hình đã làm gì, và nó bắt đầu khi nào.</value></data>
+  <data name="Label_BugReportContact" xml:space="preserve"><value>Liên hệ (không bắt buộc — email hoặc Discord)</value></data>
+  <data name="Hint_BugReportConsent" xml:space="preserve"><value>Khi gửi, một gói chẩn đoán (bản ghi plugin và dấu vết cổng nối tiếp, đã ẩn định danh phần cứng) sẽ được tải lên cho người phát triển plugin.</value></data>
+  <data name="Button_SubmitBugReport" xml:space="preserve"><value>Gửi báo cáo lỗi</value></data>
+  <data name="Status_BugReportUploading" xml:space="preserve"><value>Đang tải lên…</value></data>
+  <data name="Status_BugReportSubmitted" xml:space="preserve"><value>Đã gửi báo cáo. Mã tham chiếu: {0}</value></data>
+  <data name="Status_BugReportRateLimited" xml:space="preserve"><value>Gần đây có quá nhiều báo cáo từ kết nối của bạn — vui lòng thử lại sau.</value></data>
+  <data name="Status_BugReportTooLarge" xml:space="preserve"><value>Gói chẩn đoán quá lớn để tải lên.</value></data>
+  <data name="Status_BugReportFailed" xml:space="preserve"><value>Tải lên thất bại. Vui lòng kiểm tra kết nối và thử lại.</value></data>
+  <data name="Status_BugReportEdgeBlocked" xml:space="preserve"><value>Việc tải lên bị CDN của chúng tôi chặn, không phải do kết nối của bạn — hãy dùng Xuất gói.</value></data>
+  <data name="Status_BugReportNeedDescription" xml:space="preserve"><value>Vui lòng mô tả sự cố trước khi gửi.</value></data>
+  <data name="Label_DiagnosticCapture" xml:space="preserve"><value>Bản ghi chẩn đoán</value></data>
+  <data name="Tooltip_DiagnosticCapture" xml:space="preserve"><value>Giữ một dấu vết nhỏ của lưu lượng cổng nối tiếp trong bộ nhớ (phút đầu khi khởi động cùng hoạt động gần đây) để báo cáo lỗi bao gồm quá trình kết nối. Không có gì rời khỏi máy của bạn cho đến khi bạn gửi báo cáo.</value></data>
+  <data name="Status_CaptureOff" xml:space="preserve"><value>Bản ghi chẩn đoán đang tắt.</value></data>
+  <data name="Status_CaptureSegments" xml:space="preserve"><value>Khởi động: {0} khung ({1} KB, {2}) · Liên tục: {3} khung ({4} KB)</value></data>
+  <data name="Word_Frozen" xml:space="preserve"><value>đã đóng băng</value></data>
+  <data name="Word_Filling" xml:space="preserve"><value>đang lấp</value></data>
+  <data name="Status_BugReportCooldown" xml:space="preserve"><value>Vui lòng đợi một chút trước khi gửi báo cáo khác.</value></data>
+  <data name="Tooltip_ExportBundle" xml:space="preserve"><value>Lưu gói chẩn đoán thành tệp trên máy này (không tải lên gì cả).</value></data>
+  <data name="Section_StalksGameKeys" xml:space="preserve"><value>Phím trò chơi</value></data>
+  <data name="Label_WiperForwardKey" xml:space="preserve"><value>Gạt mưa tiến</value></data>
+  <data name="Label_WiperBackKey" xml:space="preserve"><value>Gạt mưa lùi</value></data>
+  <data name="Label_LightCycleKey" xml:space="preserve"><value>Xoay vòng đèn</value></data>
+  <data name="Label_IndicatorLeftKey" xml:space="preserve"><value>Xi nhan trái</value></data>
+  <data name="Label_IndicatorRightKey" xml:space="preserve"><value>Xi nhan phải</value></data>
+  <data name="Section_StalksIndicators" xml:space="preserve"><value>Xi nhan</value></data>
+  <data name="SliderLabel_IndicatorMinBlink" xml:space="preserve"><value>Thời gian xi nhan tối thiểu (giây)</value></data>
+  <data name="KeyCapture_Prompt" xml:space="preserve"><value>Nhấn một phím…</value></data>
+  <data name="KeyCapture_None" xml:space="preserve"><value>(chưa đặt)</value></data>
+  <data name="StalkKind_None" xml:space="preserve"><value>(không)</value></data>
+  <data name="StalkKind_KeyTap" xml:space="preserve"><value>Nhấn phím</value></data>
+  <data name="StalkKind_HeldKey" xml:space="preserve"><value>Giữ phím</value></data>
+  <data name="StalkKind_LatchKey" xml:space="preserve"><value>Khóa phím</value></data>
+  <data name="StalkKind_IndicatorLeft" xml:space="preserve"><value>Xi nhan: trái</value></data>
+  <data name="StalkKind_IndicatorRight" xml:space="preserve"><value>Xi nhan: phải</value></data>
+  <data name="StalkKind_IndicatorCancel" xml:space="preserve"><value>Xi nhan: hủy</value></data>
+  <data name="StalkKind_WiperSwipe" xml:space="preserve"><value>Gạt mưa: gạt một lần</value></data>
+  <data name="StalkKind_ReleaseHeld" xml:space="preserve"><value>Nhả các phím đang giữ</value></data>
+  <data name="StalkKind_WiperStage" xml:space="preserve"><value>Cấp gạt mưa {0}</value></data>
+  <data name="StalkKind_LightStage" xml:space="preserve"><value>Cấp đèn {0}</value></data>
+  <data name="Status_UpdatePrChannelGone" xml:space="preserve"><value>PR đã đóng — đã chuyển về Ổn định</value></data>
+  <data name="Subtitle_FfbEqualizer10" xml:space="preserve"><value>// khuếch đại từng dải · 100% = trung tính · 500% = tăng tối đa</value></data>
+  <data name="Label_EqSensitivity" xml:space="preserve"><value>ĐỘ NHẠY</value></data>
+  <data name="Label_InputForce" xml:space="preserve"><value>Lực đầu vào</value></data>
+  <data name="Section_PerLedColors" xml:space="preserve"><value>MÀU THEO TỪNG LED</value></data>
+  <data name="Label_IdleConstant" xml:space="preserve"><value>Chờ · Cố định</value></data>
+  <data name="Label_IdleBreathing" xml:space="preserve"><value>Chờ · Nhịp thở</value></data>
+  <data name="Label_SleepBreathing" xml:space="preserve"><value>Ngủ · Nhịp thở</value></data>
+  <data name="SliderLabel_StandbySpeedMs" xml:space="preserve"><value>Tốc độ hiệu ứng (ms)</value></data>
+  <data name="SliderLabel_SleepSpeedMs" xml:space="preserve"><value>Tốc độ nhịp thở (ms)</value></data>
+  <data name="Section_IdleEffect" xml:space="preserve"><value>HIỆU ỨNG CHỜ</value></data>
+  <data name="SliderLabel_IdleAnimation" xml:space="preserve"><value>Hiệu ứng khi chờ</value></data>
+  <data name="SliderLabel_WheelbaseLfeSource" xml:space="preserve"><value>Nguồn LFE của đế lái</value></data>
+  <data name="Option_WheelbaseLfeSourcePlugin" xml:space="preserve"><value>Thẻ LFE của plugin</value></data>
+  <data name="Option_WheelbaseLfeSourceShakeIt" xml:space="preserve"><value>SimHub ShakeIt</value></data>
+  <data name="Status_WheelbaseLfeShakeItUnavailable" xml:space="preserve"><value>Yêu cầu SimHub 9.12 trở lên — đang dùng thẻ LFE của plugin.</value></data>
+  <data name="Status_WheelbaseLfeSourceRestartRequired" xml:space="preserve"><value>Đã cập nhật định nghĩa thiết bị. Khởi động lại SimHub để áp dụng.</value></data>
+  <data name="SliderLabel_ForzaCompatMode" xml:space="preserve"><value>Khả năng tương thích Forza Horizon</value></data>
+  <data name="SliderLabel_Ab9Detection" xml:space="preserve"><value>Phát hiện cần số chủ động (AB9 / AB6)</value></data>
+  <data name="Label_BaseGraphMode" xml:space="preserve"><value>Biểu đồ</value></data>
+  <data name="Option_GraphBandwidth" xml:space="preserve"><value>Băng thông</value></data>
+  <data name="Option_GraphTorque" xml:space="preserve"><value>Mô-men xoắn</value></data>
+  <data name="Label_Torque" xml:space="preserve"><value>Mô-men xoắn</value></data>
+  <data name="Label_GraphScale" xml:space="preserve"><value>Tỷ lệ</value></data>
+  <data name="Button_EditInStudio" xml:space="preserve"><value>SỬA TRONG STUDIO</value></data>
+  <data name="Button_NewDashboard" xml:space="preserve"><value>BẢNG ĐIỀU KHIỂN MỚI…</value></data>
+  <data name="Tooltip_EditInStudio" xml:space="preserve"><value>Mở bảng điều khiển đã chọn trong MOZA Dashboard Studio</value></data>
+  <data name="Tooltip_NewDashboard" xml:space="preserve"><value>Tạo bảng điều khiển mới trong MOZA Dashboard Studio, đúng kích thước màn hình đang kết nối</value></data>
+  <data name="Studio_Launched" xml:space="preserve"><value>Đã mở trong Studio — xong thì bấm Làm mới.</value></data>
+  <data name="Studio_NotInstalled" xml:space="preserve"><value>Không thấy Dashboard Studio — hãy cài MOZA Pit House.</value></data>
+  <data name="Studio_LaunchFailed" xml:space="preserve"><value>Studio không khởi động được: {0}</value></data>
+  <data name="Studio_NoEditablePath" xml:space="preserve"><value>Chọn bảng điều khiển có tệp trên đĩa.</value></data>
+  <data name="Studio_NoDeviceInfo" xml:space="preserve"><value>Chưa có thông tin màn hình — mở mà không chọn thiết bị.</value></data>
+  <data name="Studio_NewDashboardSavesTo" xml:space="preserve"><value>Lưu vào {0}</value></data>
+  <data name="Studio_LibraryReloaded" xml:space="preserve"><value>Đã nạp lại thư viện — {0} bảng.</value></data>
+  <data name="Option_Ab9Layout5R2" xml:space="preserve"><value>5+R Bố cục 2</value></data>
+  <data name="Option_Ab9LayoutR5" xml:space="preserve"><value>R+5 Bố cục</value></data>
+  <data name="Option_Ab9LayoutR6" xml:space="preserve"><value>R+6 Bố cục</value></data>
+  <data name="Option_Ab9LayoutR8" xml:space="preserve"><value>R+8 Bố cục</value></data>
+  <data name="Section_Ab9StatusProbe" xml:space="preserve"><value>DÒ TRẠNG THÁI</value></data>
+  <data name="Label_Ab9PollLive" xml:space="preserve"><value>Dò trực tiếp</value></data>
+  <data name="Label_Ab9LayoutReadback" xml:space="preserve"><value>Đọc lại bố cục</value></data>
+  <data name="Label_State" xml:space="preserve"><value>Trạng thái</value></data>
+  <data name="Label_StateError" xml:space="preserve"><value>Lỗi trạng thái</value></data>
+  <data name="Label_UploadStatus" xml:space="preserve"><value>Trạng thái:</value></data>
+  <data name="Upload_StatusUploading" xml:space="preserve"><value>Đang tải lên - {0}%</value></data>
+  <data name="Upload_StatusComplete" xml:space="preserve"><value>Hoàn tất - 100%</value></data>
+  <data name="Upload_StatusStopped" xml:space="preserve"><value>Đã dừng - {0}%</value></data>
+  <data name="Section_UploadSource" xml:space="preserve"><value>NGUỒN TẢI LÊN</value></data>
+  <data name="Banner_LegacyLfeMigrated_Body" xml:space="preserve"><value>Phản hồi rung LFE của đế đã chuyển vào thiết bị đế MOZA — hãy thêm thiết bị đó để chuyển các hiệu ứng của bạn.</value></data>
+  <data name="Button_TravelCalibration" xml:space="preserve"><value>HIỆU CHUẨN HÀNH TRÌNH</value></data>
+  <data name="Button_MotorCalibration" xml:space="preserve"><value>HIỆU CHUẨN MÔ-TƠ</value></data>
+  <data name="Hint_MBoosterTravelCal" xml:space="preserve"><value>Đang hiệu chuẩn hành trình bàn đạp — mô-tơ tự di chuyển bàn đạp, đừng đặt chân lên. Còn {0}s…</value></data>
+  <data name="Hint_MBoosterMotorCal" xml:space="preserve"><value>Đang hiệu chuẩn mô-tơ — đừng đặt chân lên bàn đạp. Việc này mất khoảng một phút. Còn {0}s…</value></data>
+  <data name="Hint_MBoosterCalRebooting" xml:space="preserve"><value>Đang khởi động lại bàn đạp để hoàn tất — nó sẽ kết nối lại sau vài giây.</value></data>
+  <data name="Hint_MBoosterCalBusyElsewhere" xml:space="preserve"><value>Một hiệu chuẩn đang chạy trên bàn đạp khác.</value></data>
+  <data name="Status_CalibrationFailed" xml:space="preserve"><value>Hiệu chuẩn thất bại: {0}</value></data>
+  <data name="SliderLabel_DampingPress" xml:space="preserve"><value>Giảm chấn (khi đạp)</value></data>
+  <data name="SliderLabel_DampingRelease" xml:space="preserve"><value>Giảm chấn (khi nhả)</value></data>
+  <data name="Title_DjsonImport" xml:space="preserve"><value>Nhập bảng điều khiển SimHub</value></data>
+  <data name="Button_ImportSimHubDash" xml:space="preserve"><value>NHẬP BẢNG SIMHUB…</value></data>
+  <data name="Tooltip_ImportSimHubDash" xml:space="preserve"><value>Chuyển đổi bảng điều khiển SimHub .djson sang MOZA .mzdash</value></data>
+  <data name="Button_PickDjson" xml:space="preserve"><value>CHỌN TỆP…</value></data>
+  <data name="Button_Convert" xml:space="preserve"><value>CHUYỂN ĐỔI</value></data>
+  <data name="FileFilter_Djson" xml:space="preserve"><value>Bảng điều khiển SimHub (*.djson;*.simhubdash)|*.djson;*.simhubdash|Tất cả tệp (*.*)|*.*</value></data>
+  <data name="Status_DjsonConvertFailed" xml:space="preserve"><value>Chuyển đổi thất bại: {0}</value></data>
+  <data name="Status_DjsonHeavyLoss" xml:space="preserve"><value>Đã bỏ {0}% tiện ích</value></data>
+  <data name="Label_NodeLimit" xml:space="preserve"><value>Giới hạn nút</value></data>
+  <data name="Tooltip_SavedColor" xml:space="preserve"><value>Màu đã lưu</value></data>
+  <data name="Button_FillOddLeds" xml:space="preserve"><value>TÔ CÁC LED LẺ</value></data>
+  <data name="Button_FillEvenLeds" xml:space="preserve"><value>TÔ CÁC LED CHẴN</value></data>
+</root>

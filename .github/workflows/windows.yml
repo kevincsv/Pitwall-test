@@ -1,0 +1,79 @@
+name: Build PitWall.exe with AZOM
+
+# Compiles the AZOM SimHub plugin from ./azom, puts it inside PitWall.exe and
+# uploads both as a download on the run page (Actions → this run → Artifacts).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master, "claude/**"]
+    paths:
+      - "**.go"
+      - "web/**"
+      - "azom/**"
+      - "azomdist/**"
+      - ".github/workflows/windows.yml"
+
+permissions:
+  contents: read
+
+env:
+  AZOM_UPSTREAM_COMMIT: 28a089ca6fd7fef0b6a18ce3ec674b2c67a0ca64
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # SimHub's own DLLs are needed to compile the plugin. They are not stored
+      # in this repo; take them from the original AZOM project at the same commit.
+      - name: Get SimHub reference DLLs
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/giantorth/AZOM upstream
+          cd upstream
+          git sparse-checkout set libs/SimHub
+          git checkout $env:AZOM_UPSTREAM_COMMIT
+          cd ..
+          New-Item -ItemType Directory -Force azom/libs | Out-Null
+          Copy-Item -Recurse -Force upstream/libs/SimHub azom/libs/SimHub
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Build AZOM plugin
+        shell: pwsh
+        working-directory: azom
+        run: |
+          dotnet restore
+          dotnet build -c Release --no-restore "/p:Version=0.0.0-pitwall"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item bin/x86/Release/MozaPlugin.dll ../azomdist/MozaPlugin.dll
+          $d = Get-Date -Format "yyyy-MM-dd"
+          "AZOM $($env:AZOM_UPSTREAM_COMMIT.Substring(0,7)) built $d" | Out-File -Encoding ascii -NoNewline ../azomdist/VERSION.txt
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build PitWall.exe
+        shell: pwsh
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go build -mod=vendor -ldflags "-s -w" -o PitWall.exe .
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item PitWall.exe, README.md out/
+          Copy-Item azomdist/MozaPlugin.dll out/
+          Copy-Item azom/LICENSE out/AZOM-LICENSE.txt
+          Copy-Item azom/UPSTREAM.md out/AZOM-README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PitWall-windows
+          path: out/

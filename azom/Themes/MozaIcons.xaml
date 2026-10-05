@@ -1,0 +1,92 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Section icons — converted from components.jsx Icon const SVGs.
+         Each is a Geometry (path-mini-language) sized to a 24x24 viewbox.
+         Renderers (e.g. SectionCard's icon chip) use Path with
+         Stretch=Uniform + Stroke=Cyan + StrokeThickness=1.5 + Fill=None. -->
+
+    <!-- Plugin-tab top-bar icons -->
+    <Geometry x:Key="IconBase">M3,12 A9,9 0 1 1 21,12 A9,9 0 1 1 3,12 Z M8,12 A4,4 0 1 1 16,12 A4,4 0 1 1 8,12 Z M12,3 V6 M12,18 V21 M3,12 H6 M18,12 H21</Geometry>
+
+    <Geometry x:Key="IconWheel">M3,12 A9,9 0 1 1 21,12 A9,9 0 1 1 3,12 Z M9.5,12 A2.5,2.5 0 1 1 14.5,12 A2.5,2.5 0 1 1 9.5,12 Z M12,9.5 V4.5 M14.5,13.5 L18.5,17 M9.5,13.5 L5.5,17</Geometry>
+
+    <Geometry x:Key="IconHandbrake">M7,4 V14 M7,14 A3,3 0 0 0 10,17 H14 A3,3 0 0 0 17,14 V12 M5,2 H9 V5 H5 Z M11,17 V21 M15,17 V21</Geometry>
+
+    <Geometry x:Key="IconPedals">M3,6 H9 V20 H3 Z M11,9 H17 V20 H11 Z M19,12 H22 V20 H19 Z</Geometry>
+
+    <Geometry x:Key="IconOptions">M9.5,12 A2.5,2.5 0 1 1 14.5,12 A2.5,2.5 0 1 1 9.5,12 Z M19.4,15 a1.7,1.7 0 0 0 0.3,1.8 l0.1,0.1 a2,2 0 1 1 -2.8,2.8 l-0.1,-0.1 a1.7,1.7 0 0 0 -1.8,-0.3 a1.7,1.7 0 0 0 -1,1.5 V21 a2,2 0 1 1 -4,0 v-0.1 a1.7,1.7 0 0 0 -1,-1.5 a1.7,1.7 0 0 0 -1.8,0.3 l-0.1,0.1 a2,2 0 1 1 -2.8,-2.8 l0.1,-0.1 a1.7,1.7 0 0 0 0.3,-1.8 a1.7,1.7 0 0 0 -1.5,-1 H3 a2,2 0 1 1 0,-4 h0.1 a1.7,1.7 0 0 0 1.5,-1 a1.7,1.7 0 0 0 -0.3,-1.8 l-0.1,-0.1 a2,2 0 1 1 2.8,-2.8 l0.1,0.1 a1.7,1.7 0 0 0 1.8,0.3 a1.7,1.7 0 0 0 1,-1.5 V3 a2,2 0 1 1 4,0 v0.1 a1.7,1.7 0 0 0 1,1.5 a1.7,1.7 0 0 0 1.8,-0.3 l0.1,-0.1 a2,2 0 1 1 2.8,2.8 l-0.1,0.1 a1.7,1.7 0 0 0 -0.3,1.8 a1.7,1.7 0 0 0 1.5,1 H21 a2,2 0 1 1 0,4 h-0.1 a1.7,1.7 0 0 0 -1.5,1 Z</Geometry>
+
+    <Geometry x:Key="IconDiag">M3,12 H7 L10,4 L14,20 L17,12 H21</Geometry>
+
+    <!-- Section header icons -->
+    <Geometry x:Key="IconSteer">M4,12 A8,8 0 1 1 20,12 A8,8 0 1 1 4,12 Z M10,12 A2,2 0 1 1 14,12 A2,2 0 1 1 10,12 Z M12,10 V4 M14,13 L19,17 M10,13 L5,17</Geometry>
+
+    <Geometry x:Key="IconTemp">M14,14 V5 A2,2 0 1 0 10,5 V14 A4,4 0 1 0 14,14 Z</Geometry>
+
+    <Geometry x:Key="IconPower">M13,2 L4,14 H11 L10,22 L19,10 H12 L13,2 Z</Geometry>
+
+    <Geometry x:Key="IconDamper">M3,17 C5,17 5,13 7,13 S9,17 11,17 S13,9 15,9 S17,17 19,17 S21,13 23,13</Geometry>
+
+    <Geometry x:Key="IconGame">M2,10 V16 A3,3 0 0 0 5,19 H19 A3,3 0 0 0 22,16 V10 A3,3 0 0 0 19,7 H5 A3,3 0 0 0 2,10 Z M7,12 H10 M8.5,10.5 V13.5 M14.7,12.2 L15.3,12.2 M17.2,14.2 L17.8,14.2</Geometry>
+
+    <Geometry x:Key="IconSpeed">M12,14 L16,10 M3,12 A9,9 0 0 1 21,12 M10.5,14 A1.5,1.5 0 1 1 13.5,14 A1.5,1.5 0 1 1 10.5,14 Z</Geometry>
+
+    <Geometry x:Key="IconShield">M12,2 L20,6 V12 C20,17 16.5,20.5 12,22 C7.5,20.5 4,17 4,12 V6 L12,2 Z</Geometry>
+
+    <Geometry x:Key="IconLimit">M4,12 H20 M8,6 L4,12 L8,18 M16,6 L20,12 L16,18</Geometry>
+
+    <Geometry x:Key="IconEq">M5,4 V10 M5,14 V20 M12,4 V7 M12,11 V20 M19,4 V9 M19,13 V20 M3.4,12 A1.6,1.6 0 1 1 6.6,12 A1.6,1.6 0 1 1 3.4,12 Z M10.4,9 A1.6,1.6 0 1 1 13.6,9 A1.6,1.6 0 1 1 10.4,9 Z M17.4,11 A1.6,1.6 0 1 1 20.6,11 A1.6,1.6 0 1 1 17.4,11 Z</Geometry>
+
+    <Geometry x:Key="IconCurve">M3,20 C7,20 9,4 21,4 M3,20 H21</Geometry>
+
+    <Geometry x:Key="IconShift">M12,3 V21 M5,8 L12,3 L19,8 M5,16 L12,21 L19,16</Geometry>
+
+    <Geometry x:Key="IconMisc">M3.4,12 A1.6,1.6 0 1 1 6.6,12 A1.6,1.6 0 1 1 3.4,12 Z M10.4,12 A1.6,1.6 0 1 1 13.6,12 A1.6,1.6 0 1 1 10.4,12 Z M17.4,12 A1.6,1.6 0 1 1 20.6,12 A1.6,1.6 0 1 1 17.4,12 Z</Geometry>
+
+    <Geometry x:Key="IconPaddle">M3,8 L11,5 V19 L3,16 Z M21,8 L13,5 V19 L21,17 Z</Geometry>
+
+    <Geometry x:Key="IconKnob">M5,12 A7,7 0 1 1 19,12 A7,7 0 1 1 5,12 Z M12,7 V12</Geometry>
+
+    <Geometry x:Key="IconButtons">M4.6,7 A2.4,2.4 0 1 1 9.4,7 A2.4,2.4 0 1 1 4.6,7 Z M14.6,7 A2.4,2.4 0 1 1 19.4,7 A2.4,2.4 0 1 1 14.6,7 Z M4.6,17 A2.4,2.4 0 1 1 9.4,17 A2.4,2.4 0 1 1 4.6,17 Z M14.6,17 A2.4,2.4 0 1 1 19.4,17 A2.4,2.4 0 1 1 14.6,17 Z</Geometry>
+
+    <Geometry x:Key="IconRange">M4,12 H20 M4,9 V15 M20,9 V15 M9,12 L12,9 M9,12 L12,15 M15,12 L12,9 M15,12 L12,15</Geometry>
+
+    <Geometry x:Key="IconCal">M12,2 V5 M12,19 V22 M2,12 H5 M19,12 H22 M5,5 L7,7 M17,17 L19,19 M5,19 L7,17 M17,7 L19,5 M8,12 A4,4 0 1 1 16,12 A4,4 0 1 1 8,12 Z</Geometry>
+
+    <Geometry x:Key="IconLed">M9,18 H15 M10,21 H14 M12,3 A7,7 0 0 0 8,15 C8.7,15.7 9,16.5 9,17.5 H15 C15,16.5 15.3,15.7 16,15 A7,7 0 0 0 12,3 Z</Geometry>
+
+    <Geometry x:Key="IconAlert">M12,9 V13 M12,17 H12.01 M10.3,3.86 L1.82,18 A2,2 0 0 0 3.53,21 H20.47 A2,2 0 0 0 22.18,18 L13.71,3.86 A2,2 0 0 0 10.29,3.86 Z</Geometry>
+
+    <Geometry x:Key="IconRefresh">M3,12 A9,9 0 0 1 18,5.3 L21,8 M21,3 V8 H16 M21,12 A9,9 0 0 1 6,18.7 L3,16 M3,21 V16 H8</Geometry>
+
+    <Geometry x:Key="IconBolt">M13,2 L4,14 H11 L10,22 L19,10 H12 L13,2 Z</Geometry>
+
+    <!-- Pencil/edit icon for inline-edit affordances (e.g. channel-mapping row). -->
+    <Geometry x:Key="IconEdit">M4,20 L4,16 L14,6 L18,10 L8,20 Z M14,6 L17,3 A1.4,1.4 0 0 1 19,3 L21,5 A1.4,1.4 0 0 1 21,7 L18,10</Geometry>
+
+    <!-- Brand tile: cyan rounded square with the wheel-with-screen knocked out.
+         Geometry from tools/icon-smooth/smooth.py; EvenOdd makes screen + grips holes. -->
+    <DrawingImage x:Key="MozaWheelBrandIcon">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="#FF00E5FF">
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,240,240" RadiusX="34" RadiusY="34"/>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#FF0B0F1A">
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup FillRule="EvenOdd">
+                            <PathGeometry Figures="M120 59.796 C138.96 59.796 162.619 61.39 176.88 63.24 C185.6 64.371 192.128 65.002 197.77 67.42 C202.233 69.332 205.348 71.131 208.68 75.08 C213.705 81.036 219.158 93.188 221.68 102.47 C224.041 111.16 224.598 120.366 224 128.94 C223.422 137.219 221.451 145.183 218.43 153.08 C215.197 161.531 209.84 173.848 204.73 177.92 C201.674 180.354 197.823 180.838 194.98 180.71 C192.71 180.608 190.703 179.682 188.95 178.38 C187.008 176.938 184.96 174.482 184.07 172.12 C183.182 169.761 182.957 167.317 183.61 164.22 C184.683 159.129 191.556 150.924 193.36 145.19 C194.708 140.903 196.706 135.328 194.98 133.35 C193.245 131.362 186.24 132.564 182.91 133.35 C180.326 133.96 178.176 134.53 176.41 136.6 C173.65 139.836 173.746 149.614 171.07 153.54 C169.14 156.372 167.635 158.023 163.88 159.35 C155.7 162.242 134.627 159.35 120 159.35 C105.373 159.35 84.3 162.242 76.12 159.35 C72.365 158.023 70.86 156.372 68.93 153.54 C66.254 149.614 66.35 139.836 63.59 136.6 C61.824 134.53 59.674 133.96 57.09 133.35 C53.76 132.564 46.755 131.362 45.02 133.35 C43.294 135.328 45.292 140.903 46.64 145.19 C48.444 150.924 55.317 159.129 56.39 164.22 C57.043 167.317 56.818 169.761 55.93 172.12 C55.04 174.482 52.992 176.938 51.05 178.38 C49.297 179.682 47.29 180.608 45.02 180.71 C42.177 180.838 38.326 180.354 35.27 177.92 C30.16 173.848 24.803 161.531 21.57 153.08 C18.549 145.183 16.578 137.219 16 128.94 C15.402 120.366 15.959 111.16 18.32 102.47 C20.842 93.188 26.295 81.036 31.32 75.08 C34.652 71.131 37.767 69.332 42.23 67.42 C47.872 65.002 54.4 64.371 63.12 63.24 C77.381 61.39 101.04 59.796 120 59.796 Z"/>
+                            <RectangleGeometry Rect="74,72,92,49" RadiusX="5" RadiusY="5"/>
+                            <PathGeometry Figures="M181.52 90.63 C183.754 90.597 186.679 90.747 188.48 92.03 C190.368 93.376 191.199 96.014 192.43 98.76 C194.143 102.582 196.537 109.76 197.07 113.15 C197.35 114.932 197.609 116.149 197.07 117.33 C196.504 118.57 195.366 119.687 193.59 120.35 C190.16 121.631 179.84 121.631 176.41 120.35 C174.634 119.687 173.725 119.072 172.93 117.33 C171.2 113.539 171.607 99.554 172.93 95.51 C173.518 93.712 174.253 92.839 175.48 92.03 C176.951 91.06 179.432 90.661 181.52 90.63 Z"/>
+                            <PathGeometry Figures="M64.52 92.03 C65.747 92.839 66.482 93.712 67.07 95.51 C68.393 99.554 68.8 113.539 67.07 117.33 C66.275 119.072 65.366 119.687 63.59 120.35 C60.16 121.631 49.84 121.631 46.41 120.35 C44.634 119.687 43.496 118.57 42.93 117.33 C42.391 116.149 42.65 114.932 42.93 113.15 C43.463 109.76 45.857 102.582 47.57 98.76 C48.801 96.014 49.632 93.376 51.52 92.03 C53.321 90.747 56.246 90.597 58.48 90.63 C60.568 90.661 63.049 91.06 64.52 92.03 Z"/>
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+</ResourceDictionary>

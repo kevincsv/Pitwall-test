@@ -33,7 +33,7 @@ var (
 
 // Common AZOM actions (see github.com/giantorth/AZOM, Integration/SimHubRegistrar.cs).
 var azomActions = []string{"AZOM.DashboardNext", "AZOM.DashboardPrev", "AZOM.WorkModeToggle", "AZOM.CalibrateCenter",
-	"AZOM.DisplayBrightness25", "AZOM.DisplayBrightness50", "AZOM.DisplayBrightness75", "AZOM.DisplayBrightness100"}
+	"AZOM.DisplayBrightness30", "AZOM.DisplayBrightness50", "AZOM.DisplayBrightness70", "AZOM.DisplayBrightness100"}
 
 func simhubExe() string {
 	if c, ok := catalogByID("simhub"); ok {
@@ -247,7 +247,7 @@ func registerRigRoutes(mux *http.ServeMux) {
 		azom := dir != "" && (fileExists(filepath.Join(dir, "MozaPlugin.dll")) || fileExists(filepath.Join(dir, "AZOM.dll")))
 		writeJSON(w, map[string]any{
 			"installed": dir != "", "running": running["simhubwpf.exe"], "web": simhubWebUp(), "port": simhubPort,
-			"dashes": simhubDashes(dir), "azom": azom, "azomActions": azomActions, "pitHouse": pitHouseRunning(), "windows": appsSupported,
+			"dashes": simhubDashes(dir), "azom": azom, "azomActions": azomActions, "azomPkg": azomStatus(), "pitHouse": pitHouseRunning(), "windows": appsSupported,
 		})
 	})
 	mux.HandleFunc("/api/simhub/preview", func(w http.ResponseWriter, r *http.Request) {
@@ -323,6 +323,8 @@ func registerRigRoutes(mux *http.ServeMux) {
 			} else {
 				err = errors.New("SimHub is not installed on this PC")
 			}
+		case "azomInstall", "azomRemove", "azomRestore":
+			err = azomJob(strings.ToLower(strings.TrimPrefix(in.Action, "azom")))
 		case "closePitHouse": // AZOM and Pit House cannot share the wheel
 			n := killProcs("MOZA Pit House.exe", `\simhub\`)
 			writeJSON(w, map[string]any{"result": "ok", "closed": n})

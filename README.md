@@ -67,7 +67,7 @@ You can start them minimised, change the order, start them all at once, remove t
 
 **SimHub.** Start, show, minimise or close SimHub and switch it to iRacing. Every dashboard and overlay in SimHub is listed with its preview: **Open** it in a window, put it **On Live**, or open it as a Pit Wall **overlay** window on top of iRacing. **Import .simhubdash** sends a dashboard file to SimHub (also from your phone). The **SimHub dashboard** widget shows any SimHub dashboard live (SimHub's web server must be on, port 8888).
 
-**AZOM (MOZA wheels in SimHub).** If the [AZOM plugin](https://github.com/giantorth/AZOM) is installed, Pit Wall can change the wheel screen page, brightness, work mode and centre, and run any other SimHub action by name. Pit Wall warns you when MOZA Pit House is open (AZOM needs it closed) and can close it for you.
+**AZOM (MOZA wheels in SimHub).** Pit Wall carries its own copy of the AZOM plugin (source in the `azom` folder, copied from [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Install in SimHub** closes SimHub, copies the plugin into its folder (Windows asks for permission once if SimHub is in Program Files), keeps the previous version as a backup and opens SimHub again; **Update**, **Remove** and **Previous version** work the same way. With AZOM installed, Pit Wall controls the wheel screen (page, on/off, telemetry, brightness), the wheelbase (FFB strength, torque, rotation, damper, friction, inertia, spring and more, in fine or big steps), switches like reverse FFB and hands-off protection, centre calibration and LEDs. It can also change the wheel screen page, brightness, work mode and centre, and run any other SimHub action by name. Pit Wall warns you when MOZA Pit House is open (AZOM needs it closed) and can close it for you.
 
 **MOZA Pit House.** Open Pit House or Dashboard Studio, see your MOZA dashboards (`.mzdash`), add one from a file (even from your phone) and open it in Dashboard Studio to send it to the wheel. MOZA has no public API to upload dashboards, so that last click (Upload) happens in Dashboard Studio or with AZOM's upload button.
 
@@ -182,7 +182,7 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 
 **SimHub.** Abre, muestra, minimiza o cierra SimHub y cámbialo a iRacing. Aparecen todos tus dashboards y overlays de SimHub con su vista previa: **Ábrelo** en una ventana, ponlo **En vivo** o ábrelo como **overlay** de Pit Wall encima de iRacing. **Importar .simhubdash** envía un dashboard a SimHub (también desde el móvil). El widget **Dashboard de SimHub** muestra cualquier dashboard en vivo (el servidor web de SimHub debe estar activo, puerto 8888).
 
-**AZOM (volantes MOZA en SimHub).** Si tienes el [plugin AZOM](https://github.com/giantorth/AZOM), Pit Wall puede cambiar la página de la pantalla del volante, el brillo, el modo de trabajo y el centrado, y ejecutar cualquier otra acción de SimHub por su nombre. Te avisa cuando MOZA Pit House está abierto (AZOM necesita que esté cerrado) y puede cerrarlo por ti.
+**AZOM (volantes MOZA en SimHub).** Pit Wall lleva su propia copia del plugin AZOM (código en la carpeta `azom`, copiado de [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Instalar en SimHub** cierra SimHub, copia el plugin en su carpeta (Windows pide permiso una vez si SimHub está en Archivos de programa), guarda la versión anterior como copia y vuelve a abrir SimHub; **Actualizar**, **Quitar** y **Versión anterior** funcionan igual. Con AZOM instalado, Pit Wall controla la pantalla del volante (página, encendido, telemetría, brillo), la base (fuerza FFB, par, rotación, amortiguación, fricción, inercia, muelle y más, en pasos finos o grandes), interruptores como invertir FFB y protección sin manos, el centrado y los LEDs. También puede cambiar la página de la pantalla del volante, el brillo, el modo de trabajo y el centrado, y ejecutar cualquier otra acción de SimHub por su nombre. Te avisa cuando MOZA Pit House está abierto (AZOM necesita que esté cerrado) y puede cerrarlo por ti.
 
 **MOZA Pit House.** Abre Pit House o Dashboard Studio, mira tus dashboards de MOZA (`.mzdash`), añade uno desde un archivo (incluso desde el móvil) y ábrelo en Dashboard Studio para enviarlo al volante. MOZA no tiene API pública para subir dashboards, así que ese último clic (Upload) se hace en Dashboard Studio o con el botón de subir de AZOM.
 
@@ -211,6 +211,10 @@ Crea un token personal en https://garage61.net/developer y pégalo en Cuenta →
 ## Cuenta de iRacing (opcional)
 
 iRacing exige un cliente OAuth registrado para leer datos de la cuenta. Desde octubre de 2026 iRacing tiene **pausada la creación de nuevos Client ID** mientras revisa el uso de terceros (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Mientras tanto, la pestaña Series muestra una temporada real de ejemplo. Cuando se reabra, solicita un cliente **password limited** para uso personal. Introduce el Client ID, el secret, tu email y tu contraseña de iRacing una vez en la pestaña Cuenta. La contraseña solo se envía a iRacing y nunca se guarda.
+
+## Descargar PitWall.exe con AZOM dentro
+
+Cada cambio en GitHub compila en Windows el plugin AZOM y PitWall.exe con el plugin dentro (Actions → *Build PitWall.exe with AZOM* → Artifacts → **PitWall-windows**). / Every push builds AZOM and PitWall.exe with the plugin inside on Windows (Actions → *Build PitWall.exe with AZOM* → Artifacts → **PitWall-windows**).
 
 ## Compilar desde el código
 

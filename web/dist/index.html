@@ -349,7 +349,7 @@ html.ov .profbtn{display:none!important}
 .seg3 button{font:600 12px var(--f-body);background:none;border:0;color:var(--muted);padding:6px 9px;cursor:pointer}
 .seg3 button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .found{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:8px;margin-top:8px}
-.found>div{border:1px dashed var(--line);border-radius:6px;padding:9px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.found>div .btn{white-space:nowrap;flex:none}.found>div{border:1px dashed var(--line);border-radius:6px;padding:9px;display:flex;gap:8px;align-items:center;justify-content:space-between}
 .dashgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px;margin-top:8px}
 .dashcard{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:8px;display:grid;gap:6px;min-width:0}
 .dashcard img,.dashcard .noimg{width:100%;aspect-ratio:5/3;object-fit:contain;background:#000;border-radius:4px}
@@ -364,6 +364,7 @@ html.ov .profbtn{display:none!important}
 .shbox{position:relative;height:360px;background:#000;border-radius:4px;overflow:hidden}
 .shbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 html.ov .shbox{height:calc(100vh - 40px)}
+.azgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:4px 14px;margin-top:6px}.azgrid>div{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:3px 0;font-size:14px}
 .filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -2321,7 +2322,7 @@ function profileEvent(m){if(!m||!m.profile||MODE!=="bridge"||REMOTE)return;PROFI
   if(PROFILE.id&&m.profile!==PROFILE.id){PROFILE.id=m.profile;toast(Tx("Profile: ","Perfil: ")+PROFILE.name);setTimeout(async()=>{await pullProfile();location.reload()},300)}}
 function renderProfBtn(){const b=$("#profBtn");if(!b)return;b.hidden=!(MODE==="bridge"&&!REMOTE&&!OV.on&&PROFILE.id);
   const n=PROFILE.name||"?";b.innerHTML=`<b>${esc(n.trim()[0]||"?").toUpperCase()}</b><span class="hide-sm">${esc(n)}</span>`;b.title=Tx("Profile: ","Perfil: ")+n;
-  const r=$("#rigProfiles");if(r)r.innerHTML=`${L("profiles",true)}: ${esc(n)}`}
+  const r=$("#rigProfiles");if(r)r.hidden=b.hidden;if(r)r.innerHTML=`${L("profiles",true)}: ${esc(n)}`}
 async function profAction(q,body){const r=await fetch("/api/profiles?"+q,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});if(!r.ok)throw new Error((await r.text()).trim()||("HTTP "+r.status));return r.json()}
 function profilesHTML(list){return `<div class="panel">${list.list.map(p=>`<div class="approw"><div class="nm"><b>${esc(p.name)}</b>${p.id===list.active?` <span class="pill acc">${esc(Tx("in use","en uso"))}</span>`:""}<small>${esc(Tx("created ","creado "))}${esc(new Date(p.created).toLocaleDateString(locale()))}</small></div>
     ${p.id!==list.active?`<button type="button" class="btn small primary" data-puse="${p.id}">${esc(Tx("Use","Usar"))}</button>`:""}
@@ -2349,19 +2350,59 @@ $("#profBtn").onclick=openProfiles;$("#rigProfiles").onclick=openProfiles;
 (function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
 
 /* ===================== rig: programs, SimHub, AZOM, MOZA ===================== */
-async function rigGet(p){try{const r=await fetch(p);return r.ok?await r.json():null}catch(e){return null}}
-async function rigPost(p,body){const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})}).catch(()=>null);
+const askOK=m=>MODE==="local"||confirm(m);
+/* In-browser demo of the Rig tab: a simulated PC with programs, SimHub, AZOM and MOZA */
+const DEMO_RIG=(()=>{const W=(en,es)=>[en,es];
+  const cat={iracing:["iRacing",W("The iRacing app","La app de iRacing"),"iRacingUI.exe"],steam:["Steam",W("Games and iRacing on Steam","Juegos e iRacing en Steam"),"steam.exe"],crewchief:["Crew Chief",W("Spotter and race engineer voice","Spotter e ingeniero por voz"),"CrewChiefV4.exe"],garage61:["Garage 61",W("Telemetry agent that uploads your laps","Agente que sube tus vueltas"),"garage61-launcher.exe"],trackimpulse:["TrackImpulse",W("Overlays","Overlays"),"TrackImpulse.exe"],simhub:["SimHub",W("Dashboards, LEDs and AZOM for MOZA","Dashboards, LEDs y AZOM para MOZA"),"SimHubWPF.exe"],pithouse:["MOZA Pit House",W("MOZA settings and firmware","Ajustes y firmware de MOZA"),"MOZA Pit House.exe"],discord:["Discord",W("Voice chat with your team","Chat de voz con tu equipo"),"Update.exe"]};
+  const st={apps:[{id:"iracing",when:"pitwall",min:false},{id:"crewchief",when:"sim",min:false},{id:"garage61",when:"sim",min:true},{id:"simhub",when:"pitwall",min:true}],run:{simhub:true,steam:true},
+    azom:{installed:false,busy:false,message:"",backup:false},pitHouse:true,
+    dashes:[{name:"Lovely Dashboard",overlay:false},{name:"GT3 Endurance",overlay:false},{name:"Relative Overlay",overlay:true},{name:"MX-5 Cup",overlay:false}],
+    mz:[{name:"Lovely CS Pro",changed:Date.now()-864e5},{name:"GT3 Endurance",changed:Date.now()-5*864e5}]};
+  const row=a=>({...a,name:cat[a.id][0],running:!!st.run[a.id],found:true,file:cat[a.id][2]});
+  const later=(ms,fn)=>setTimeout(()=>{fn();if(CUR_VIEW==="rig")renderRig()},ms);
+  return{get(p){
+    if(p==="/api/apps"){const added=new Set(st.apps.map(a=>a.id));return{apps:st.apps.map(row),found:Object.keys(cat).filter(k=>!added.has(k)&&k!=="discord").map(k=>({id:k,name:cat[k][0],what:cat[k][1],running:!!st.run[k]})),missing:[{name:"RaceLab"},{name:"Coach Dave Delta"},{name:"Track Titan"},{name:"OBS Studio"}],windows:true}}
+    if(p==="/api/apps/shortcuts")return["Assetto Corsa Competizione","Discord","iRacing","Le Mans Ultimate","MOZA Pit House","OBS Studio","Spotify","Steam","TrackImpulse"].map((n,i)=>({key:"k"+i,name:n}));
+    if(p==="/api/simhub")return{installed:true,running:!!st.run.simhub,web:false,port:8888,dashes:st.dashes,azom:st.azom.installed,azomActions:[],pitHouse:!!st.run.pithouse||st.pitHouse,windows:true,
+      azomPkg:{bundled:true,version:"AZOM 28a089c built 2026-10-05",installed:st.azom.installed,upToDate:st.azom.installed,backup:st.azom.backup,busy:st.azom.busy,message:st.azom.message}};
+    if(p==="/api/moza")return{installed:true,studio:true,running:!!st.run.pithouse||st.pitHouse,dashes:st.mz.map(x=>({...x,changed:new Date(x.changed).toISOString()})),windows:true};
+    return null},
+   post(p,b){b=b||{};
+    if(p==="/api/apps/do"){const i=st.apps.findIndex(a=>a.id===b.id);
+      if(b.action==="add"&&i<0)st.apps.push({id:b.id,when:"pitwall",min:false});
+      if(b.action==="addShortcut")return{result:"ok"};
+      if(b.action==="set"&&i>=0)Object.assign(st.apps[i],{when:b.when,min:b.min});
+      if(b.action==="remove"&&i>=0)st.apps.splice(i,1);
+      if(b.action==="order")st.apps.sort((x,y)=>b.order.indexOf(x.id)-b.order.indexOf(y.id));
+      if(b.action==="launch"){if(st.run[b.id])return{result:"running"};later(1200,()=>st.run[b.id]=true);return{result:"started"}}
+      if(b.action==="launchAll")st.apps.forEach((a,k)=>later(600*(k+1),()=>st.run[a.id]=true));
+      if(b.action==="browse"){toast(Tx("In the real app a file window opens on the PC.","En la app real se abre una ventana de archivos en el PC."));return null}
+      return{result:"ok"}}
+    if(p==="/api/simhub/do"){const a=b.action;
+      if(a==="start"||a==="show")later(800,()=>st.run.simhub=true);if(a==="exit")st.run.simhub=false;
+      if(a==="closePitHouse"){st.pitHouse=false;st.run.pithouse=false}
+      if(a==="azomInstall"||a==="azomRemove"||a==="azomRestore"){const z=st.azom;z.busy=true;z.message=Tx("closing SimHub","cerrando SimHub");st.run.simhub=false;
+        later(1300,()=>z.message=a==="azomRemove"?Tx("removing","quitando"):Tx("installing","instalando"));
+        later(2800,()=>{z.busy=false;if(a==="azomRemove"){z.installed=false;z.backup=true;z.message=Tx("removed","quitado")}else{if(z.installed)z.backup=true;z.installed=true;z.message=Tx("installed","instalado")}st.run.simhub=true})}
+      if(a==="trigger")return{result:"ok"};
+      if(a==="folder"){toast(Tx("In the real app this opens the folder on the PC.","En la app real se abre la carpeta en el PC."));return null}
+      return{result:"ok"}}
+    if(p==="/api/moza/do"){if(b.action==="pithouse")later(800,()=>st.run.pithouse=true);if(b.action==="open"||b.action==="studio")toast(Tx("In the real app MOZA Dashboard Studio opens.","En la app real se abre MOZA Dashboard Studio."));return b.action==="open"||b.action==="studio"?null:{result:"ok"}}
+    return{result:"ok"}},
+   upload(p,file){const n=file.name.replace(/\.[^.]+$/,"");if(p==="/api/moza/do")st.mz.unshift({name:n,changed:Date.now()});else st.dashes.push({name:n,overlay:false});return{result:"added",name:n}}}})();
+async function rigGet(p){if(MODE==="local")return DEMO_RIG.get(p);try{const r=await fetch(p);return r.ok?await r.json():null}catch(e){return null}}
+async function rigPost(p,body){if(MODE==="local")return DEMO_RIG.post(p,body);const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})}).catch(()=>null);
   let j={};try{j=await r.json()}catch(e){}if(!r||!r.ok){toast((j&&j.error)||Tx("That did not work.","No funcionó."));return null}return j}
-async function rigUpload(p,file){const fd=new FormData();fd.append("file",file);const r=await fetch(p,{method:"POST",body:fd}).catch(()=>null);let j={};try{j=await r.json()}catch(e){}
+async function rigUpload(p,file){if(MODE==="local")return DEMO_RIG.upload(p,file);const fd=new FormData();fd.append("file",file);const r=await fetch(p,{method:"POST",body:fd}).catch(()=>null);let j={};try{j=await r.json()}catch(e){}
   if(!r||!r.ok){toast((j&&j.error)||Tx("Upload failed","Error al subir"));return null}return j}
 let RIG_TIMER=0,RIG_APPS=null;
 const WHEN=[["pitwall","With Pit Wall","Con Pit Wall"],["sim","When iRacing starts","Al abrir iRacing"],["","Only by hand","Solo a mano"]];
-async function renderRig(){clearTimeout(RIG_TIMER);const ok=MODE==="bridge"&&!REMOTE;const c=$("#rigCallout");renderProfBtn();
+async function renderRig(){clearTimeout(RIG_TIMER);const ok=(MODE==="bridge"&&!REMOTE)||MODE==="local";const c=$("#rigCallout");renderProfBtn();
   $("#rigSub").innerHTML=Lp("Everything around your sim in one place","Todo lo que rodea a tu simulador en un solo sitio");
   if(!ok){c.hidden=false;c.innerHTML=REMOTE?Lp("Not available in the engineer view.","No disponible en la vista de ingeniero."):Lp("Preview: programs, SimHub and MOZA are controlled when the app runs from PitWall.exe on your Windows PC.","Vista previa: los programas, SimHub y MOZA se controlan cuando la app funciona desde PitWall.exe en tu PC con Windows.");
     ["#appsPanel","#simhubPanel","#azomPanel","#mozaPanel"].forEach(s=>$(s).innerHTML="");return}
   const [apps,sh,mz]=await Promise.all([rigGet("/api/apps"),rigGet("/api/simhub"),rigGet("/api/moza")]);
-  c.hidden=!!(apps&&apps.windows);if(!c.hidden)c.innerHTML=Lp("Starting programs and controlling SimHub and MOZA only works on Windows.","Iniciar programas y controlar SimHub y MOZA solo funciona en Windows.");
+  c.hidden=!!(apps&&apps.windows)&&MODE!=="local";if(MODE==="local")c.innerHTML=Lp("Demo: this is a simulated PC. With PitWall.exe on your Windows PC these buttons start your real programs, SimHub and MOZA.","Demo: esto es un PC simulado. Con PitWall.exe en tu PC con Windows estos botones abren tus programas reales, SimHub y MOZA.");else if(!c.hidden)c.innerHTML=Lp("Starting programs and controlling SimHub and MOZA only works on Windows.","Iniciar programas y controlar SimHub y MOZA solo funciona en Windows.");
   if(apps)renderApps(apps);if(sh){renderSimhub(sh);renderAzom(sh)}if(mz)renderMoza(mz);
   RIG_TIMER=setTimeout(pollRig,3000)}
 async function pollRig(){if(CUR_VIEW!=="rig")return;const a=await rigGet("/api/apps");if(a&&JSON.stringify(a)!==JSON.stringify(RIG_APPS))renderApps(a);RIG_TIMER=setTimeout(pollRig,3000)}
@@ -2414,19 +2455,37 @@ function renderSimhub(d){SH=d;const box=$("#simhubPanel"),pill=(on,en,es)=>`<spa
   box.querySelectorAll("[data-dlive]").forEach(b=>b.onclick=()=>{setUI("simhub",{dash:b.dataset.dlive});HIDDEN.delete("simhub");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderSimhubWidget(true);toast(Tx("Added to Live","Añadido a En vivo"))});
   box.querySelectorAll("[data-dov]").forEach(b=>b.onclick=async()=>{setUI("simhub",{dash:b.dataset.dov});await new Promise(r=>setTimeout(r,400));popOut("simhub")});
   const im=$("#shImport");im.onchange=async()=>{if(!im.files[0])return;const j=await rigUpload("/api/simhub/do",im.files[0]);if(j)toast(Tx("SimHub is importing ","SimHub está importando ")+j.name)}}
-const AZOM_LABEL={"AZOM.DashboardNext":["Next screen","Pantalla siguiente"],"AZOM.DashboardPrev":["Previous screen","Pantalla anterior"],"AZOM.WorkModeToggle":["Work mode","Modo de trabajo"],"AZOM.CalibrateCenter":["Centre wheel","Centrar volante"]};
-function renderAzom(d){const box=$("#azomPanel");
-  const acts=(d.azomActions||[]).map(a=>{const m=a.match(/DisplayBrightness(\d+)/);const l=m?[`Brightness ${m[1]}%`,`Brillo ${m[1]}%`]:AZOM_LABEL[a]||[a,a];return `<button type="button" class="btn small" data-az="${esc(a)}"${d.installed?"":" disabled"}>${esc(Tx(l[0],l[1]))}</button>`}).join("");
-  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">AZOM · MOZA</h2><span class="pill ${d.azom?"good":""}">${d.azom?"✓ "+esc(Tx("Installed in SimHub","Instalado en SimHub")):"✗ "+esc(Tx("Not installed","No instalado"))}</span></div>
-    ${d.azom&&d.pitHouse?`<div class="callout">${Lp("MOZA Pit House is open. AZOM and Pit House cannot use the wheel at the same time; close Pit House completely so SimHub can drive the screen and LEDs.","MOZA Pit House está abierto. AZOM y Pit House no pueden usar el volante a la vez; cierra Pit House del todo para que SimHub controle la pantalla y los LEDs.")} <button type="button" class="btn small" id="azClosePH">${esc(Tx("Close Pit House","Cerrar Pit House"))}</button></div>`:""}
-    ${d.azom?"":`<p class="note">${Lp("AZOM is a free SimHub plugin that drives MOZA wheel screens, dashes and LEDs from SimHub and converts SimHub dashboards for MOZA. Copy MozaPlugin.dll into the SimHub folder (SimHub 9.12 or newer).","AZOM es un plugin gratuito de SimHub que controla las pantallas, dashes y LEDs de MOZA desde SimHub y convierte dashboards de SimHub para MOZA. Copia MozaPlugin.dll en la carpeta de SimHub (SimHub 9.12 o más nuevo).")} <a class="acc" href="https://github.com/giantorth/AZOM" target="_blank" rel="noopener">github.com/giantorth/AZOM</a></p>`}
-    <div class="label" style="margin-top:8px">${esc(Tx("Wheel controls (through SimHub)","Controles del volante (vía SimHub)"))}</div>
-    <div class="frow" style="margin-top:6px">${acts}</div>
-    <form class="frow" id="azForm" style="margin-top:10px"><input type="text" id="azAct" placeholder="AZOM.DashboardNext" style="flex:1;min-width:160px" aria-label="SimHub action" pattern="[A-Za-z0-9_.\\-]{1,80}"><button type="submit" class="btn">${esc(Tx("Run action","Ejecutar acción"))}</button></form>
-    <p class="note">${Lp("Runs any SimHub action (from AZOM or any other plugin) as if you pressed a mapped button.","Ejecuta cualquier acción de SimHub (de AZOM o de otro plugin) como si pulsaras un botón asignado.")}</p>`;
-  box.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>rigPost("/api/simhub/do",{action:"trigger",name:b.dataset.az}).then(j=>j&&toast(Tx("Sent","Enviado"))));
+/* AZOM: the MOZA plugin for SimHub that Pit Wall carries and installs */
+const AZ_BASE=[["FfbStrength","FFB strength","Fuerza FFB","%"],["Torque","Torque","Par","%"],["Rotation","Rotation","Rotación","°"],["Damper","Damper","Amortiguación",""],["Friction","Friction","Fricción",""],["Inertia","Inertia","Inercia",""],["Spring","Spring","Muelle",""],["SpeedDamping","Speed damping","Amortig. por velocidad",""],["NaturalInertia","Natural inertia","Inercia natural",""],["WheelSpeedLimit","Max wheel speed","Vel. máx. volante",""],["GameDamper","Game damper","Amortig. del juego","%"],["GameFriction","Game friction","Fricción del juego","%"],["GameSpring","Game spring","Muelle del juego","%"],["GameInertia","Game inertia","Inercia del juego","%"],["SoftLimitStiffness","Soft-lock stiffness","Rigidez del tope",""]];
+const AZ_TOG=[["FfbReverse","Reverse FFB","Invertir FFB"],["Protection","Hands-off protection","Protección sin manos"],["SoftLimitRetain","Keep soft lock","Mantener tope"],["BaseStatusLed","Base status LED","LED de la base"]];
+const AZ_SCREEN=[["DashboardPrev","◀ Screen","◀ Pantalla"],["DashboardNext","Screen ▶","Pantalla ▶"],["DisplayToggle","Screen on/off","Pantalla on/off"],["DashboardTelemetryToggle","Telemetry on/off","Telemetría on/off"],["DisplayBrightnessDown","Brightness −","Brillo −"],["DisplayBrightnessUp","Brightness +","Brillo +"]];
+const AZ_OTHER=[["CalibrateCenter","Set centre","Fijar centro"],["WorkModeToggle","Work mode","Modo de trabajo"],["ClearLeds","LEDs off","Apagar LEDs"]];
+let AZ_POLL=0;
+function renderAzom(d){const box=$("#azomPanel"),p=d.azomPkg||{},ok=d.azom,dis=ok&&d.running?"":" disabled";
+  const btn=(a,en,es,cls)=>`<button type="button" class="${cls||"btn small"}" data-az="AZOM.${a}"${dis}>${esc(Tx(en,es))}</button>`;
+  const state=p.busy?`<span class="pill acc">${esc(Tx("Working…","Trabajando…"))} ${esc(p.message||"")}</span>`:ok?(p.upToDate?`<span class="pill good">✓ ${esc(Tx("Installed, up to date","Instalado y actualizado"))}</span>`:`<span class="pill acc">${esc(Tx("Installed (other version)","Instalado (otra versión)"))}</span>`):`<span class="pill">✗ ${esc(Tx("Not installed","No instalado"))}</span>`;
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">AZOM · MOZA</h2>${state}</div>
+    <div class="frow">${p.bundled?`<button type="button" class="btn ${ok&&p.upToDate?"":"primary"}" data-azi="azomInstall"${p.busy||!d.installed?" disabled":""}>${esc(ok?(p.upToDate?Tx("Reinstall","Reinstalar"):Tx("Update in SimHub","Actualizar en SimHub")):Tx("Install in SimHub","Instalar en SimHub"))}</button>`:""}
+      ${ok?`<button type="button" class="btn" data-azi="azomRemove"${p.busy?" disabled":""}>${esc(Tx("Remove","Quitar"))}</button>`:""}${p.backup&&!p.busy?`<button type="button" class="btn" data-azi="azomRestore">${esc(Tx("Previous version","Versión anterior"))}</button>`:""}</div>
+    <p class="note">${p.bundled?Lp(`Pit Wall carries its own copy of AZOM (${p.version}). Installing closes SimHub, copies the plugin into its folder (Windows may ask for permission) and opens SimHub again.`,`Pit Wall lleva su propia copia de AZOM (${p.version}). Al instalar se cierra SimHub, se copia el plugin en su carpeta (Windows puede pedir permiso) y SimHub se vuelve a abrir.`):Lp("This Pit Wall was built without the plugin inside. Use the PitWall.exe built by GitHub Actions (it carries AZOM), or put MozaPlugin.dll next to PitWall.exe.","Este Pit Wall se compiló sin el plugin dentro. Usa el PitWall.exe que compila GitHub Actions (lleva AZOM), o pon MozaPlugin.dll junto a PitWall.exe.")}${p.message&&!p.busy?` <b>${esc(p.message)}</b>`:""}</p>
+    ${ok&&d.pitHouse?`<div class="callout">${Lp("MOZA Pit House is open. AZOM and Pit House cannot use the wheel at the same time; close Pit House completely so SimHub can drive the wheel.","MOZA Pit House está abierto. AZOM y Pit House no pueden usar el volante a la vez; cierra Pit House del todo para que SimHub controle el volante.")} <button type="button" class="btn small" id="azClosePH">${esc(Tx("Close Pit House","Cerrar Pit House"))}</button></div>`:""}
+    ${ok&&!d.running?`<p class="note">${Lp("Start SimHub to use the controls.","Abre SimHub para usar los controles.")}</p>`:""}
+    <div class="label" style="margin-top:10px">${esc(Tx("Wheel screen","Pantalla del volante"))}</div>
+    <div class="frow" style="margin-top:6px">${AZ_SCREEN.map(a=>btn(...a)).join("")}</div>
+    <div class="frow" style="margin-top:6px">${[0,30,50,70,100].map(v=>btn("DisplayBrightness"+v,v+"%",v+"%","pin")).join("")}</div>
+    <div class="label" style="margin-top:12px">${esc(Tx("Wheelbase","Base del volante"))}</div>
+    <div class="azgrid">${AZ_BASE.map(a=>`<div><span>${esc(Tx(a[1],a[2]))}</span><span class="frow" style="gap:3px;flex-wrap:nowrap">${btn(a[0]+"DownCoarse","«","«","pin")}${btn(a[0]+"Down","−","−","pin")}${btn(a[0]+"Up","+","+","pin")}${btn(a[0]+"UpCoarse","»","»","pin")}</span></div>`).join("")}</div>
+    <div class="frow" style="margin-top:8px">${AZ_TOG.map(a=>btn(a[0]+"Toggle",a[1],a[2])).join("")}${AZ_OTHER.map(a=>btn(...a)).join("")}</div>
+    <details style="margin-top:10px"><summary class="label">${esc(Tx("Any SimHub action","Cualquier acción de SimHub"))}</summary>
+    <form class="frow" id="azForm" style="margin-top:8px"><input type="text" id="azAct" placeholder="AZOM.TorqueUp" style="flex:1;min-width:160px" aria-label="SimHub action" pattern="[A-Za-z0-9_.\-]{1,80}"><button type="submit" class="btn">${esc(Tx("Run","Ejecutar"))}</button></form>
+    <p class="note">${Lp("Runs any SimHub action (AZOM or any other plugin) as if you pressed a mapped button. The new value shows on the wheel and in SimHub.","Ejecuta cualquier acción de SimHub (AZOM u otro plugin) como si pulsaras un botón asignado. El nuevo valor se ve en el volante y en SimHub.")}</p></details>
+    <p class="note">${Lp("AZOM is free software (GPL v3) originally made by giantorth; Pit Wall's copy lives in the azom folder of this project.","AZOM es software libre (GPL v3) creado originalmente por giantorth; la copia de Pit Wall está en la carpeta azom de este proyecto.")}</p>`;
+  box.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>rigPost("/api/simhub/do",{action:"trigger",name:b.dataset.az}).then(j=>j&&toast(Tx("Sent to the wheel","Enviado al volante"))));
+  box.querySelectorAll("[data-azi]").forEach(b=>b.onclick=async()=>{if(b.dataset.azi==="azomRemove"&&!askOK(Tx("Remove AZOM from SimHub? SimHub will restart.","¿Quitar AZOM de SimHub? SimHub se reiniciará.")))return;if(await rigPost("/api/simhub/do",{action:b.dataset.azi})){toast(Tx("Working… SimHub will restart.","Trabajando… SimHub se reiniciará."));pollAzom()}});
   $("#azForm").onsubmit=e=>{e.preventDefault();const n=$("#azAct").value.trim();if(n)rigPost("/api/simhub/do",{action:"trigger",name:n}).then(j=>j&&toast(Tx("Sent","Enviado")))};
-  const cp=$("#azClosePH");if(cp)cp.onclick=async()=>{if(!confirm(Tx("Close MOZA Pit House now?","¿Cerrar MOZA Pit House ahora?")))return;const j=await rigPost("/api/simhub/do",{action:"closePitHouse"});if(j)setTimeout(renderRig,1200)}}
+  const cp=$("#azClosePH");if(cp)cp.onclick=async()=>{if(!askOK(Tx("Close MOZA Pit House now?","¿Cerrar MOZA Pit House ahora?")))return;const j=await rigPost("/api/simhub/do",{action:"closePitHouse"});if(j)setTimeout(renderRig,1200)};
+  if(p.busy)pollAzom()}
+function pollAzom(){clearTimeout(AZ_POLL);AZ_POLL=setTimeout(async()=>{const d=await rigGet("/api/simhub");if(d&&CUR_VIEW==="rig"){renderSimhub(d);renderAzom(d)}},1500)}
 function renderMoza(d){const box=$("#mozaPanel");const ds=d.dashes||[];
   box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">MOZA Pit House</h2><div class="frow"><span class="pill ${d.running?"good":""}">${d.running?"✓ "+esc(Tx("Open","Abierto")):"✗ "+esc(Tx("Closed","Cerrado"))}</span><span class="pill ${d.studio?"good":""}">${d.studio?"✓":"✗"} Dashboard Studio</span></div></div>
     <div class="frow"><button type="button" class="btn" data-mz="pithouse"${d.installed?"":" disabled"}>${esc(Tx("Open Pit House","Abrir Pit House"))}</button><button type="button" class="btn" data-mz="studio"${d.studio?"":" disabled"}>${esc(Tx("Open Dashboard Studio","Abrir Dashboard Studio"))}</button>

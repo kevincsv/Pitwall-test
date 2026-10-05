@@ -14,3 +14,10 @@ account.json
 garage61.json
 profiles/
 profiles.json
+azomdist/MozaPlugin.dll
+azomdist/VERSION.txt
+azom/bin/
+azom/obj/
+azom/CoapStub/bin/
+azom/CoapStub/obj/
+azom/libs/SimHub/

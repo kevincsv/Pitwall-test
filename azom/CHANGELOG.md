@@ -1,0 +1,1228 @@
+# Changelog
+
+All notable changes to the AZOM plugin are documented here.
+
+## [1.6.3]
+
+## Added
+
+- **mBooster auto-sleep timeout.** Off, or 1 minute to 5 hours, set on the host pedal.
+
+## Changed
+
+- **mBooster pedals can share a role, as in Pit House.** Picking a role another pedal holds no
+  longer clears it from that pedal.
+
+- **mBooster Travel start and end can be set any distance apart.** The end no longer stops
+  32 mm past the start.
+
+- **The mBooster pedal display-name field is removed.** It only appeared on the selected row and
+  had no useful effect.
+
+## Fixed
+
+- **Stock pedal-haptics effects vibrate again.** Switching an effect on now gives it an
+  oscillator; switching it off frees it.
+
+- **Wheel and base LEDs no longer lag behind the game.** Busy LED effects used to queue up and
+  replay seconds late; the LEDs now always show the latest frame.
+
+- **Knobs can now be skipped in SimHub LED effects.** A skipped knob keeps its own colours
+  instead of going dark.
+
+- **Wheel LEDs stay on SimHub while the wheel renegotiates its dashboard.** They no longer
+  fall back to the wheel's own lighting during a dashboard switch or game-switch reload.
+
+- **Switching games no longer rewrites every wheel LED setting.** Only what the new game's
+  profile actually changes is written.
+
+- **The sleep-light colour you pick survives a game switch.** An older saved colour was being
+  written over it on every profile apply.
+
+- **Wheel LEDs repaint straight after a profile apply.** They no longer show the stored colours
+  until SimHub's next frame.
+
+- **Base ambient LEDs hold when SimHub's LED output pauses.** Their refresh now runs on its own
+  timer, like the wheel and dash.
+
+- **The Clear LEDs action keeps the LEDs off.** The plugin no longer relit the frame it had just
+  cleared, and the knob rings are cleared too.
+
+- **ES rims return to SimHub lighting after an idle gap.** The wake-up that puts them in
+  telemetry mode is repeated when lit frames resume.
+
+- **Wheel, pedal and button inputs read again on newer Wine.** Inputs are now decoded through
+  the system HID parser, which handles devices the previous parser rejected.
+
+- **mBooster Sim Input Mapping can have a deadzone.** Its first node now drags vertically too;
+  at 0 it holds the output at zero up to that point.
+
+- **The mBooster Pedal Feel graph scales to Max Force.** A light setting no longer sits
+  squashed at the bottom of a 200 kg axis.
+
+- **The mBooster page shows the right pedal's settings after startup.** When a passive pedal
+  moved to the Pedals tab, the page switched pedals but kept showing the old one's values.
+
+- **mBooster passive pedals land on the Pedals tab straight away.** Their type is remembered
+  from the last session instead of waiting ~30 s for the pedal to report it.
+
+- **PitHouse mBooster presets import the travel, force and feel curve PitHouse shows.** Newer
+  presets store these twice, and the importer read the older copy.
+
+- **The mBooster page shows imported values straight away.** It kept showing the pre-import
+  settings until you switched pedals or profiles, though the pedal already had the new ones.
+
+- **PitHouse pedal presets import Pedal Feel, damping, friction and G-Force.** Deadzone, Max
+  Force and the feel curve now come across instead of being skipped.
+
+- **Changing an mBooster pedal's role sets it on the pedal.** The role is written to the unit the
+  way Pit House does, which also repairs a chain whose pedals had swapped.
+
+- **mBooster error reports are acknowledged, as Pit House does.** A unit no longer repeats the
+  same error once a second for the whole session.
+
+- **mBooster settings are read-only until the pedal has identified.** Edits made in the first
+  seconds after connect could be overridden by the saved values.
+
+
+## [1.6.2]
+
+### Added
+
+- **Active shifter detection can be turned off.** An Options toggle stops the plugin
+  claiming the AB9 / AB6 port and releases it if already held.
+
+- **Automatic channel selection for pedal haptics.** Effects output automatically per 
+  pedal without needing to assign channel slots.
+
+### Fixed
+
+- **AB9 settings are no longer re-written on every connect.** They are read back first and
+  only what the profile changes is written.
+
+- **A shifter that never reports its settings is no longer written to.** Its stored values
+  can't be read back, so the profile is held rather than committed blind to its EEPROM.
+
+- **Passive pedals on an mBooster moved to the Pedals tab.** A CRP2 throttle or clutch
+  wired to an mBooster gets the normal range, curve and calibration controls again.
+
+## [1.6.1]
+
+### Added
+
+- **Pedal haptics support.** The new pedal vibration module shows up as its own SimHub ShakeIt
+  device per pedal.
+
+- **Convert a SimHub dashboard to MOZA format.** A Files tab button turns a `.djson` or
+  `.simhubdash` into an uploadable `.mzdash` — widgets, images, fonts and formulas — and
+  reports what it could not carry across.
+
+- **mBooster travel and motor calibration.** Both run from the pedal's tab, per pedal on a
+  chained pair.
+
+- **The Files tab's dashboard list is sorted.**
+
+- **The wheel's RPM bar shows upload progress.** While a dashboard is uploading, the LEDs
+  stop following telemetry and the RPM bar fills up as the transfer lands.
+
+- **Knob rings can be filled on alternating LEDs.** A button beside "Fill ring" on the Knobs
+  tab colours every other LED in the group that contains the selected one.
+
+### Changed
+
+- **The LED colour palette is two rows of standard colours.** Red, orange, yellow, green, cyan,
+  blue, purple and magenta over their pastel tints, plus off and white, with the last custom
+  colour as the final swatch of every palette, kept across restarts.
+
+- **Clicking a selected LED again closes its colour editor.**
+
+### Fixed
+
+- **The LEDs stay lit when SimHub's effect pipeline stalls.** The keepalive now runs on
+  its own timer instead of riding SimHub's LED callback, so a pause in that callback no
+  longer drops the wheel and dash back to their own lighting mid-session.
+
+- **A sequential shifter wired through the wheelbase is no longer reported as an H-pattern
+  one.** It is identified by the name it reports, the only reply that differs between them.
+
+- **A shifter on its own USB port stays connected.** Its keepalive stopped after the first
+  answer, so the port was closed as dead and reopened every 35 seconds.
+
+- **A shifter's settings are no longer re-written on every connect.** They are read back
+  first and only what the profile changes is written, sparing the shifter's EEPROM.
+
+- **A rim that hasn't identified yet no longer gets its base port bounced.** The
+  display-wedge watchdog waits for the wheel model to resolve before it can fire.
+
+- **Two chained mBoosters get their own settings and calibration.** Which pedal sits on
+  the USB unit is now read from the pedal's own heartbeat instead of assumed to be the
+  throttle.
+
+- **An mBooster comes back after its calibration reboot.** Its pedal positions and its
+  pedal row no longer stay gone until SimHub restarts.
+
+- **mBooster Max Force goes down to 0 kg.** The 24 kg floor was a Pit House UI limit, not
+  a hardware one, and it kept pulling lighter settings back up to 24.
+
+- **AB9 engine vibration now has a 20hz floor** 
+
+- **A CM2 dash shows data on every dashboard, not just the one it started on.** Switching
+  it to another dashboard left the display rendering with no telemetry behind it.
+
+- **A dashboard switched with the CM2's own buttons is followed** — the plugin no longer
+  pulls the dash back to its previously saved dashboard on the next restart.
+
+- **Other serial devices keep working.** The plugin was opening every COM port it couldn't
+  identify while hunting for a wheelbase, holding a DIY pedal set or Arduino dash away from
+  SimHub's own scanner; it now leaves ports the registry attributes to another vendor alone.
+
+- **mBooster settings survive a reconnect.** When the pedal's serial arrived mid-session its
+  two settings entries were reconciled by letting one replace the other outright, so a single
+  stored value on one side could discard everything on the other; they are now merged field by
+  field.
+
+- **mBooster calibration reaches the pedal.** On a unit hosting a passive pedal the whole
+  connect-time config batch was addressed to a chained device that wasn't there.
+
+- **Dashboard uploads no longer stall part-way.** An upload could stop advancing at any
+  percentage and sit there indefinitely, never finishing and never failing. The plugin was
+  overrunning the cable, losing its place in the wheel's replies, and giving up on the one
+  chunk the wheel was waiting for while flooding it with chunks it discards. It now paces
+  itself, re-sends only what the wheel is asking for, and reports a failure instead of
+  hanging.
+- **The upload percentage on the Files tab is no longer wrong.** It read the wheel's own
+  byte count, which sometimes reports the full size before anything has actually been sent,
+  so the figure could sit at 100 % for the whole upload. It now counts what has been sent.
+- **Starting a second upload while one is running no longer breaks both.** Clicking Upload
+  again — or reconnecting mid-transfer — used to start a second attempt that fought the first
+  over the same connection; both could fail. The second request is now declined while one is
+  in progress.
+- **A game's saved dashboard survives re-uploading that dashboard.** It was remembered by
+  the wheel's internal id, which changes on every upload; it is now remembered by name, and
+  its channel mappings follow.
+- **The BUTTON/KNOB selector applies correctly.** 
+- **Dropped unecessary idle polls.** .
+- **Control Mapper fixes.** The plugin no longer stamps a wheel name SimHub will never match, 
+  and puts its wheel recognizer back when SimHub rebuilds its list.
+- **mBooster range limits no longer clamp deadzone and max force.**
+- **The mBooster force curve editor no longer stops a node short of the end.**
+- **A CM2 dash is no longer classified as a CM1.**
+- **The FSR1 gap box updates on the dashboards where it stayed blank.**
+- **Knob LED colours stop being forced black.** Saved all-black palettes are repaired on load.
+- **A connected accessory stays detected** instead of dropping out of the device list and
+  coming back.
+- **The old shared "MOZA Wheel Base" device is retired on upgrade,** so you stop seeing two
+  wheelbases.
+- **The update selector no longer lists PR build names.**
+- **The Help tab's GitHub link points at the right repository.**
+
+## [1.6.0]
+
+### Added
+
+- **Upload dashboards to your wheel.** A new Files tab on the wheel and dash pages sends a
+  `.mzdash` to the device — from your dashboard library or a file you pick — and lists, enables
+  and deletes the dashboards it already holds. Custom images ride along: Dashboard Studio keeps
+  widget images in MOZA's shared image pool rather than beside the `.mzdash`, so the tab looks
+  in both places and logs every path it tried when one really is missing. Uploads run back to
+  back, and deleting a dashboard closes the gap it leaves in the device's list.
+- **Edit dashboards in MOZA Dashboard Studio.** The Files tab can open the selected
+  dashboard directly in MOZA's editor, or start a new one already sized for the connected
+  display. Needs MOZA Pit House installed; the buttons stay disabled when it isn't.
+  The dashboard library refreshes on its own a few seconds after you save in Studio.
+- **The dashboard library reads MOZA Dashboard Studio's own folder** as well as the one
+  you configured, so a dashboard you just authored in Studio shows up without repointing
+  anything. Neither folder is a superset of the other; on a duplicate name your configured
+  folder wins. The Files tab lists every folder the library reads, and the picker fills in as
+  the library loads rather than latching onto whatever happened to be ready first.
+- **The Files tab remembers your upload source.** The local-file / dashboard-library choice,
+  the selected library dashboard, and the folder the file picker opens in now persist across
+  tab switches and restarts.
+- **Master Channel Defaults editor.** One dialog (Dashboard tab → Master Defaults) sets the
+  default mapping for every telemetry channel, with the same property picker and ƒ(x) formula
+  editor as the per-dashboard list. Defaults live in their own named profiles — created,
+  switched and exported from the dialog's own selector, with nothing to line up against the
+  device profiles on the Options tab — and the dialog counts how many channels you have
+  overridden. Per-dashboard overrides still win.
+- **Wheelbase LEDs and LFE are now a single SimHub device** on SimHub 9.12+, shipping a set of
+  ShakeIt default effects. A **Wheelbase LFE source** option (Options tab) chooses between the
+  plugin's LFE tab and SimHub ShakeIt. New installs start on SimHub ShakeIt; upgrading never
+  changes the source you are already using.
+- **Wheelbase ambient LED controls** — per-LED colours for both strips, idle and sleep effects
+  with their own animation speeds, and the sleep timeout. R16 Ultra strip length added.
+- **Wheelbase product images** — the base now shows its own render in SimHub's Devices list.
+- **Knob mode selector for wheels without knob LEDs.** Rims with rotary encoders but no LED
+  rings now get the same BUTTON/KNOB selector, sized to the wheel's real encoder count.
+- **Live wheelbase torque graph.** A selector on the Base tab switches the right-hand chart
+  between the serial-traffic graph and live motor torque in Nm, scaled to the base's rated
+  output so you can read headroom at a glance. The chart covers two minutes, and it is already
+  filled in when you open the tab.
+- **Four torque properties for dashboards and overlays**, all refreshed at 5 Hz whether or not
+  the settings panel is open: `AZOM.CurrentTorque` (live Nm, unsigned),
+  `AZOM.CurrentTorqueRaw` (the same reading with the direction sign kept),
+  `AZOM.MaxTorque` (the session's highest, reset at each game start) and
+  `AZOM.TorqueLimit` (the base's rated peak — 16 Nm on an R16).
+- **Forza Horizon compatibility toggle** (Options tab → Game Compatibility) reads and sets the
+  wheelbase's compatibility mode, including a value MOZA Pit House set.
+- **Four more AB9 shifter layouts.** The list goes from six to ten — 5+R Layout 2, R+5, R+6 and
+  R+8 fill the gaps in the firmware's own layout numbering. Each gets a bindable action
+  (`AZOM.Ab9Layout5R2`, `…R5`, `…R6`, `…R8`), and `AZOM.Ab9LayoutNext` / `…Prev` now cycle all
+  ten.
+- **AB9 status probe.** The AB9 tab reads the shifter's status register on demand or polls it
+  live, showing state, state error, MCU and the layout the device reports back.
+- **mBooster Bite Point.** A clutch effect that pulses as the pedal crosses the bite point,
+  with its own trigger level and frequency. It appears only when the selected pedal's role is
+  Clutch.
+- **mBooster Pedal Feel and the input-curve editors have been rebuilt** to mirror Pit House's
+  own layout, so the two read the same way side by side. The curves gained more nodes, and the
+  Segmented Damping plots were redrawn. The pedal-feel graph now draws all eight of its points:
+  the start point the Deadzone slider sets, the six you can drag, and a Max Force point that
+  drags up and down — sideways it stays put, at full input. The graph is plotted in kilograms,
+  so moving either slider visibly reshapes the curve instead of leaving it looking identical.
+- **Natural Friction and Segmented Damping can be switched off.** Each gained an enable toggle
+  that pushes zeroes to the hardware without discarding what you set, so switching one back on
+  restores the values the sliders already show — the same thing Pit House's own toggles do on
+  the wire.
+- **Live Input Force readout** on the mBooster pedal-feel graph, and a **Gain** control for the
+  Road Texture effect.
+
+### Fixed
+
+- **Per-zone LED brightness sliders now work.** SimHub's "Brightness limiter and balance"
+  sliders only scaled live colour frames, so a zone set to Static had no reachable dimmer at
+  all; each zone (RPM / buttons / knobs) now writes its own firmware brightness register.
+- **Knob rings no longer go dark when nothing is assigned to them.** The plugin claimed every
+  ring as soon as SimHub offered the encoders channel and held them black; they now stay on the
+  wheel's own colours until an effect actually lights them.
+- **Switching the knob LEDs to Static no longer blacks them out.** It re-sent an unread palette
+  over the wheel's colours and addressed ring LEDs by knob number; it now sends the palette you
+  saved, addresses every ring LED, and reads the wheel's colours back when you have none.
+- **A wheelbase that doesn't answer the firmware question is asked again** for ~25 s. That
+  answer unlocks LFE haptics and the 10-band equalizer, and one missed reply used to leave both
+  switched off until a restart.
+- **Wheelbase identity is latched.** A rim swap or brief reconnect blanked the base model, which
+  reverted a 6-LED base to the 9-LED wire layout mid-session — three LEDs dark and the bar spread
+  over the wrong length.
+- **The steering-angle readout no longer sits blank.** The base's in-game full-lock register was
+  never read back, and a profile that had never stored one had nothing to resolve it from, so it
+  stayed unset — blanking the Base tab's angle display along with `AZOM.MaxAngle`,
+  `AZOM.SteeringAngle` and SimHub's own steering-angle property. It is read on connect now, and
+  falls back to the mechanical limit. The two rotation registers are also written in the right
+  order, since the base rejects a full-lock write made while a higher limit still stands.
+- **Two wheel settings were tracked under the wrong command name** — RPM display mode and knob
+  brightness — so the wheel's stored value never primed the plugin's cache. Settings are also
+  verified with a read-back now.
+- **Locked wheel identity and LED caches survive a plugin reload.**
+- **The wheelbase reports its identity again after a game switch.** Model name, firmware and
+  hardware revisions and the MCU ID went blank on every reload, which emptied the SDK device
+  catalogue and made device-scoped SDK requests fail; the ambient-LED and 10-band equalizer
+  values came back empty with them, and a base that had earlier failed its firmware probe could
+  never re-resolve LFE support.
+- **The display watchdog no longer kills a live session**, and it arms again after a game
+  switch — a display that stops answering can be recovered instead of staying dark.
+- **A dashboard that came up empty and stayed that way.** Re-sending the channel definitions
+  cleared the entire retransmit queue, which also threw away the in-flight handshake that
+  commits them — and losing that one chunk left the dashboard blank for the rest of the session,
+  most often after the host woke from sleep. Only the superseded definitions are dropped now.
+  A dashboard that rendered but showed no data is fixed alongside: when the catalog moved the
+  definitions onto the other session, the wheel had acked the handshake on the old one and never
+  committed them.
+- **A CM2 on a rig with no wheel no longer reports itself "Disabled"** while it is running. The
+  dash page was reading the wheel page's enable flag and sender, and a dash-only rig has neither.
+- **A base- or hub-relayed HGP is no longer reported as an SGP.** Both answer the same settings
+  reads, so the model is now decided by the device-type reply.
+- **A channel override no longer inherits the built-in scale.** The bundled scale is calibrated
+  for its own property, so overriding one silently zeroed integer channels and saturated
+  percentages; reverting an override restores the default property *and* scale.
+- **The clutch axis reads again under Wine/Proton**, which renames it to a usage the HID reader
+  didn't track.
+- **FSR1 per-part damage now shows per-part damage.** All five gauges were fed from SimHub's
+  generic damage channels, which are one undifferentiated pool per game and can't tell a front
+  wing from a gearbox; they read the game's own per-part values now. The gauges also read green
+  when undamaged — the gauge leaves 0 unlit, so each is biased by one.
+- **More FSR1 catalog and dashboard field corrections.**
+- **Dashboard catalog chunks arriving out of order are reassembled** instead of leaving holes;
+  keepalive and buffer cleanup fixed alongside.
+- **The mBooster Deadzone slider does something again.** The pedal-feel curve's horizontal node
+  positions were being treated as relative to that pedal's own Deadzone→Max Force span, the way
+  the vertical ones are; they are absolute. Every Deadzone or Max Force edit therefore pushed a
+  badly warped curve, which read on the pedal as the Deadzone slider doing nothing at all.
+- **mBooster Pedal Feel settings no longer overwrite the wrong pedal.** Travel, end stops,
+  natural friction, segmented damping and the feel curve live on single hardware registers with
+  no per-pedal selector, so opening a passive pedal's page pushed its stored values straight
+  over the motorised pedal's real ones a moment later, and nothing you set ever stuck. Those
+  writes are now gated on the pedal that actually owns the hardware.
+- **A pedal you set to Brake no longer becomes a Throttle when you chain a second one on.** The
+  first axis reverted to the position-based default the moment the lane grew, which hid the
+  brake-only Sensor Output Ratio and Max Threshold sliders and mis-routed calibration writes.
+- **mBooster effects no longer play on the wrong pedal.** Effects are addressed to the motor that
+  holds the pedal's role, so two pedals sharing one role sent both sets to the same motor — one
+  pedal playing effects you set up on another, the other silent. The role defaults could produce
+  exactly that: a pedal set to Brake while it was the only one kept Brake when you chained a
+  second on, and that second pedal claimed Brake again as its position default. Defaults now
+  always work out to one pedal per role, and where a role is still claimed twice — a profile that
+  already saved it that way — each pedal is addressed on its own instead, with a log line naming
+  the role to fix.
+- **Effects and calibration on a lone mBooster follow the role you gave it.** A chain-capable hub
+  reports three axis slots however many pedals are plugged in, and the effect engine and
+  calibration writes worked roles out from those three rather than from the pedal actually wired.
+  A single pedal you had set to Brake could be driven as a Clutch: Brake Fade never ran, Bite
+  Point ran instead, and its calibration went to another pedal's registers. Every part of the
+  plugin now works roles out the way the pedal list shows them — including the diagnostics
+  report, which could previously name a different role than the one being played.
+- **mBooster Deadzone and Max Force cover the ranges Pit House uses** — 0–37 kg and 24–200 kg on
+  a brake, rather than 0–40 kg and 0–200 kg.
+- **The mBooster tab opens with your saved settings** rather than defaults — the UI seeded
+  itself before the profile had finished loading.
+- **The Traction Control and Wheel Spin test toggles work on a brake or clutch pedal.** Both
+  tested against live throttle position, so on any pedal that wasn't the throttle the test never
+  fired; each now tests against its own pedal's press.
+- **Road Texture no longer feels like a speedbump every two seconds.** The noise generator was
+  built to hit an oscillation rate read off an undersampled capture — a rate that isn't
+  physically plausible for a texture effect. It is two octaves and grain-dominant now.
+- **The input-curve presets are shaped correctly again.** They were sampled against the old node
+  spacing and never resampled when the Max Force fix corrected it, so Linear came out bunched
+  instead of evenly spaced. The presets and the node positions now derive from one source.
+- **An mBooster on the wheelbase's own pedal port is detected.**
+- **An mBooster on the pedal port survives a game switch.** Switching games reloads the plugin,
+  and the routed pedal lane was only ever found on first detection — so the mBooster tab
+  disappeared, listed no devices when shown, and the newly selected profile's settings and
+  effects never reached the pedal until SimHub was restarted.
+- **Your CRP/SRP pedal calibration is no longer written to an mBooster.** Both answer the same
+  registers, so applying a profile could push plain-pedal travel, range and curve values at a
+  motorized pedal. The guard that already covered the pedal sliders now covers profile applies
+  too, and the plugin remembers which pedal port holds an mBooster across restarts so the
+  protection is in place before the device has finished identifying.
+- **Each mBooster gets its own send lane**, so one pedal's effects can't queue up behind
+  another's on a multi-pedal rig.
+- **Max Force and Max Threshold agree with the hardware again**, including an overflow that
+  could wrap a high max-force value.
+- **A serial port that stops answering is no longer re-probed every sweep.** A port whose open
+  hangs — a half-attached device, or one another program is holding — now backs off from 10 s
+  out to 5 minutes instead of stacking up a blocked probe on every reconnect pass, and starts
+  over the moment the port answers or goes away.
+- **"Report a problem" retries on a second endpoint** when the first can't be reached, and says
+  plainly when the upload was blocked in transit rather than by your connection, pointing you at
+  Export Bundle instead.
+- **Strings that were still displaying in English have been translated** across all twelve
+  non-English languages.
+- **Linux/Proton — MOZA ports are found through sysfs** by VID/PID and opened through Wine's own
+  COM mapping, which clears the resyncs and clustered chunk loss seen on the raw device path.
+- **Linux/Proton — fixed a cold-start crash** when the hardware is first attached, and the log
+  spam from device enumeration.
+- **A serial port that goes silent while still "open" is reconnected again** (sleep/resume,
+  USB stalls).
+- **Pedal, handbrake and shifter settings keep working across a game switch on hub rigs.**
+- **A wheel screen and a CM2 dash driven together no longer cross-talk** on dashboard switches.
+- **Memory no longer grows on every game switch**, and several smaller leaks were closed.
+- **The mBooster Deadzone and G-force travel boxes no longer change your value when you click
+  away**, and accept a comma decimal separator.
+- **Toggling SDK emulation just before a game switch no longer leaves port 40266 held.**
+- **Settings edits no longer race the debounced save.**
+- **A slow disconnect could trigger a spurious wheel hot-swap reset.**
+- **Timestamps in the diagnostics bundle are culture-invariant.**
+- **The in-app updater only installs from GitHub over https.**
+- **Lower UI cost while the settings pages are open**, and the diagnostics export runs off the UI
+  thread.
+- **Less overhead on the serial path**, and no more log spam during a dashboard catalog burst.
+
+### Changed
+
+- **Your old wheelbase haptics and LED settings come across on upgrade.** Up to 1.5.7 a
+  wheelbase showed up as two entries in SimHub's Devices list — "Wheelbase LFE haptics" and
+  "MOZA Wheel Base" — and both are replaced by the single model-named device, so both vanish
+  when you update. The plugin now picks up the settings they leave behind: add the model-named
+  wheelbase device (MOZA R16, MOZA R21, …) and your ShakeIt effects, gains and per-game
+  profiles are already in place. Wheelbase LFE is switched to SimHub ShakeIt for you, and a
+  notice on the plugin page explains what moved until the transfer is done. Ambient LED effects
+  transfer too, on bases whose strip is the same length as the old shared device's — a shorter
+  strip is left alone rather than handed a profile written for a longer one. If you had already
+  moved to the new device and set your effects up yourself, nothing is touched.
+- **Wheelbase LFE source needs SimHub 9.12 or newer.** The combined device is a 9.12 feature, so
+  on older SimHub the plugin's own LFE tab is used instead and the Options row now says why.
+  Updating SimHub switches you over with nothing further to do.
+- **Clear all settings now resets to first-install defaults** instead of a bare configuration, so
+  dashboard telemetry for new wheels and the wheelbase LFE source come back the way a fresh
+  install would set them.
+- **Base tab header tidied.** Calibrate Center now sits directly under the steering arc it acts
+  on, and the performance-output and graph selectors share one row instead of stacking.
+- **The diagnostics report now includes the wheelbase itself.** A "Base identity" section reports
+  the base model and firmware — including whether the firmware question was ever answered — plus
+  whether LFE haptics and the 10-band equalizer are unlocked and which condition is failing.
+- **The wheel firmware era override has been removed.** Auto mode is now the default.
+- **Legacy USB Detection options have been removed.** AB9 / AB6 detection always runs, and 
+  serial-probe fallback always remains an option.
+- **Limit updates to wheel and Always resend bitmask have been removed.** Both are now always off.
+- **The SDK tab is gone.** Its CoAP and UDP control toggles moved to the Options tab; request
+  activity is now logged to the diagnostics bundle instead of an on-screen list.
+- **The About tab is now Help**, and Updates and Report a problem swapped places between it and
+  the Options tab.
+
+## [1.5.7]
+
+### Changed
+- **Fixed antivirus false positive.** Windows Defender incorrectly flagged 1.5.6 as a virus. 
+  The plugin was never unsafe — SimHub 9.12 LED compatibility built code on the fly at startup, 
+  which Defender's heuristics mistake for malware. Now supports all versions without runtime 
+  code generation.
+
+## [1.5.6]
+
+### Fixed
+
+- **Now works with SimHub 9.12.0.** Changes in the LED device interface, stopped the plugin
+  loading at all.  Backwards compataible with prior SimHub releases.
+- **Fixed incorrect routing for some mBooster configurations**
+
+### Changed
+
+- **Bundled SimHub updated to v9.12.0** (from v9.11.22).
+
+## [1.5.5]
+
+### Added
+
+- **Every wheelbase setting is now a SimHub property and a bindable action.** Damper, friction,
+  inertia, spring, the four game-effect gains, soft limit, high-speed damping, road sensitivity,
+  the FFB equalizer bands, the FFB curve nodes and the clutch split point join the handful that
+  were already exposed — each with fine/coarse `Up`/`Down` actions, and `On`/`Off`/`Toggle` for
+  the switches. Full list in the README.
+- **mBooster G-Force (Inertial Pedal Feel)** *(experimental)* — moves the pedal under your foot in
+  proportion to live longitudinal G instead of vibrating, with Max Pedal Travel and Response Speed.
+- **mBooster Natural Friction and Segmented Damping** — two more hardware Pedal Feel settings: a
+  friction slider, and a damping profile that splits pedal travel into three draggable segments
+  with independent levels for pressed and released.
+- **mBooster profile import picks a target pedal.** A PitHouse Pedals preset now shows which pedal
+  role it carries and which attached mBooster will receive it.
+- **PitHouse Pedals presets import onto CRP / CRP2 / SRP pedals** — previously only an mBooster
+  could receive one.
+- **FSR V1 display brightness** now follows the brightness slider and actions.
+
+### Fixed
+
+- **Track temperature, and the channels sharing its update group, now display.** Track/air/fuel
+  temperature, brake temperatures and oil pressure were sent in a format this firmware rejects,
+  taking down every channel on the same update rate with them — typically best lap and last lap.
+- **Channels left over from a previously-shown dashboard no longer break a whole tier.** 
+- **A pedal set plugged into the wheelbase no longer breaks wheel detection.** 
+- **Wheelbase LFE haptics now work on bases that report their firmware differently.** 
+- **Device questions that go unanswered are retried again.** 
+- **An AB6/AB9 that drops off USB no longer goes silent.** The effects are now re-registered
+  on every reconnect.
+- **FSR V1 field corrections.** Tyre wear now reads as remaining rather than used, tyre pressures
+  use the correct corner order, and the light-stage and TC-R gauges decode properly.
+- **A lone mBooster on a chain-capable hub ignored its configured role.** 
+- **Directly-attached pedals and handbrakes showed placeholder settings.** Neither read its stored
+  calibration back on connect, so the tab showed defaults instead of what the device holds.
+
+### Changed
+
+- **The FSR V1 field editor drops its wire-boundary controls.** The byte/bit steppers and the
+  merge/split buttons are gone now that the record layouts are decoded from firmware; per-field
+  channel assignment and Reset remain.
+- **The plugin's log is less chatty.** Repeating status lines are now logged only when they change.
+
+## [1.5.4]
+
+### Added
+
+- **Português (Portuguese) language** has been added.
+- **Minimum blinker time** slider added for stalks in truck sim mode. 
+- **The bug-report reference can be selected and copied.** 
+- **Minimum steering angle lowered to 60°.** Lowest possible setting accepted by firmware.
+- **AB6 active shifter.** The AB6 (USB PID `0x1002`) is now a recognised device.
+- **10-band FFB Effect Equalizer.** On wheelbase firmware **1.2.10.10+.** 
+- **EQ sensitivity presets.** Road sensitivity presets are now supported for both 6 and 
+  10 band devices.
+
+### Fixed
+
+- SimHub log no longer floods during gameplay.
+- An AB6 shifter no longer corrupts the steering readout or the wheel's button table.
+- Diagnostics no longer shows a stale COM port for an unplugged active shifter.
+- Remembered COM port now works under Wine/Proton.
+- SimHub's Arduino scan no longer delays the wheelbase connection.
+- Standalone-USB CM2 RPM/flag LEDs work on the 2026-06 meter firmware.
+- AB9/AB6 gear shifts no longer get more violent the longer you play, and the gear-shift
+  Vibration Intensity slider now scales the whole effect.
+- AB9/AB6 FFB effect handles are read from the device instead of assumed.
+- An mBooster on the base's or hub's pedal port is now detected.
+- mBooster roles no longer stick to an axis with no pedal wired.
+- A standalone mBooster keeps its settings once its real axis resolves.
+- CM2/CM1 dash works on a rig with no wheel attached, and a bridged CM1 no longer gets
+  the CM2 device definition.
+- Paddle, knob and joystick settings no longer bleed between two wheels.
+- Display fixes for stayings dead after a game switch.
+
+### Changed
+
+- **Bundled SimHub updated to v9.11.22** (from v9.11.21).
+
+## [1.5.3] - 2026-07-30
+
+### Fixed
+
+- **RS wheel button LEDs.** The RS rim profiles (Leather/Alcantara, Round/D-Shape) now
+  carry 10 button LEDs, restoring the button-LED controls for the RS V2 — its firmware
+  reports "RS Leather # W00", which resolves to the RS Leather Round profile that
+  previously claimed no button LEDs. The RS V2 profile's count is also corrected
+  from 14 to 10.
+- **Standalone mBooster pedals are no longer mistaken for a chain.** A lone unit reports
+  the same presence bytes as a two-pedal chain, which could route its effects to the wrong
+  motor address; stale calibration the host keeps for detached pedals could also leave the
+  unit's role unresolved, and an empty HID axis could claim a role ahead of the real pedal,
+  pinning that input at 0. Chain detection, role resolution, and axis-to-input mapping now
+  follow the device's own connected-pedal diagnostic.
+- **Unknown wheel names.** Unrecognized wheel models no longer carry the firmware's
+  "# code" module suffix (e.g. "# W00") in their SimHub device name.
+
+## [1.5.2] - 2026-07-29
+
+### Added
+
+- **Outdated-firmware warning.** When a current-generation wheel (device ID 0x17/0x15)
+  answers detection like a legacy-protocol wheel — seen on an FSR V2 whose firmware never
+  replied to the telemetry-mode probe — the plugin now shows a banner recommending a wheel
+  and wheelbase firmware update in MOZA Pit House, names the affected wheel once its model
+  resolves, and records the advisory in diagnostics bundles.
+- **CM1 Racing Dash — full default channel map.** The base/hub-bridged CM1 dash's field
+  stream is now decoded and mapped: every field ships a default SimHub binding.
+- **HGP and SGP shifters can now be used at the same time.** They're fully independent devices —
+  each with its own detection, tab, and per-profile settings.
+- **HGP shifter type selector.** The HGP tab lets you switch the shifter between H-pattern
+  and Sequential — for anyone wanting to run sequential-shifting mods — and doubles as the
+  recovery path for shifters flipped by the 1.5.1 bug (see Fixed).
+- **MOZA Stalks truck-sim mode — rebindable keys.** Every key the stalks send is now set with a
+  press-a-key capture field: the wiper forward/back and light-cycle keys, both indicator keys
+  (previously fixed at P / - / L / [ / ]), and the per-button key assignments (previously a
+  fixed preset list). Captured keys are stored as layout-independent scan codes and displayed
+  using your keyboard layout's own key names, so international layouts can bind any key.
+- **Wheelbase LFE as a SimHub ShakeIt device (prototype).** A new "MOZA Wheelbase LFE
+  haptics" device in SimHub's Devices list exposes the base's three summed LFE oscillators
+  as ShakeIt Motors channels, so any ShakeIt effect can be routed to the wheelbase through
+  SimHub's full effects editor. Automatically hides legacy LFE tab when the new device is 
+  used.
+- **"Report a problem" — built-in bug reporting (About tab).** Describe the issue (with an
+  optional contact) and the plugin uploads the report together with a diagnostics bundle —
+  diagnostics snapshot, startup and rolling serial captures (hardware identifiers masked),
+  the plugin log, and the plugin's settings — and hands back a ticket ID. Oversized bundles
+  drop the rolling capture segment to fit the upload cap. The local diagnostics ZIP export
+  gains the same settings file.
+- **AB9 mechanical layout — SimHub property and actions.** `AZOM.Ab9Layout` shows the current
+  layout on dashboards/StreamDeck (and `AZOM.Ab9Connected` reports shifter presence), while new
+  bindable actions change it on the fly: `AZOM.Ab9LayoutNext` / `AZOM.Ab9LayoutPrev` cycle the
+  six layouts, and `AZOM.Ab9Layout5R1` … `AZOM.Ab9LayoutSequential` jump straight to one.
+  Closes issue #112.
+- **MOZA × Porsche Mission R and ESSENZA SCV12 wheels recognized.** The two wheels now get 
+  correct LED handling and product images.
+
+### Changed
+
+- **Per-PR development builds.** Dev-branch builds and the rolling `dev-latest` pre-release
+  are retired; CI now publishes a pre-release for every commit pushed to an open pull request
+  (newest 5 kept per PR, all deleted when the PR closes). The release-channel dropdown
+  (About > Updates) lists Stable plus every open PR — pick a PR to track its newest build,
+  and switching back to Stable offers the stable build even from a newer-numbered PR build.
+  Users on the old Development channel are migrated to Stable automatically.
+- **Base-tab temperature graph keeps its history.** MCU/MOSFET/motor temperatures are now
+  sampled by a background timer for the plugin's whole lifetime (every 0.5 s) instead of only
+  while the settings panel is open, so the graph shows its full rolling window the moment you
+  open the Base tab.
+
+### Fixed
+
+- **ES / ESX RPM LED brightness now follows the master brightness slider.** The Global
+  Brightness slider under Devices → Moza ES → LEDs had no effect (except full-off at 0):
+  old-protocol wheels dim only via a firmware register the master path never wrote, and both
+  of SimHub's fast callbacks go quiet at idle, so the write is driven from the steady poll
+  timer. The 0–100 slider is scaled into the firmware's small brightness range (it is not a
+  0–100 percentage) so the sweep no longer wraps, and a short settle absorbs the startup
+  brightness-mode churn that otherwise flickered the bar. Closes issue #113.
+- **ESX wheel detection.** The ESX reports its firmware model name as "RSX", which the
+  model table never matched; it now resolves to its own device definition and artwork.
+- **Display rotation stuck on for non-VGS display wheels.** Selecting the wrong firmware era
+  for the wheel could stream telemetry in a format the wheel misinterprets; Display wheels 
+  other than the VGS now get the rotation setting turned off on every connection.
+- **Unresponsive display fix — the "stale-session wedge."** If a prior
+  SimHub instance exited with the wheel session still open, the wheel would keep acking
+  everything the new instance sent while never re-engaging the display (no session device-init,
+  no dashboard list, no slot report), leaving the dash dead indefinitely. Cold start now detects
+  that a session-close was acked (the wheel still held a stale session), holds ~11 s of
+  session-layer silence so the firmware tears it down, then re-closes before opening fresh; the
+  DisplayWatchdog also recognizes the wedge and triggers the proven off/on recovery cycle if one
+  slips through.
+- **Dead display after a reconnect.** After a port bounce the wheel's session layer can get
+  stuck replaying a stale open-ack; the plugin's single telemetry-session open attempt timed
+  out and the pipeline came up looking active with nothing reaching the display. The open is
+  now retried at ~1 s intervals for up to 10 rounds (matching Pit House), and if the wheel
+  still refuses, the proven off/on recovery cycle runs instead of continuing into a dead lane.
+- **Dead display after power-cycling the wheel mid-session.** Rebooting the wheel while
+  telemetry was running could leave the session the dashboard binds through completely silent
+  while cached state kept every health check green — the display stayed dark until a manual
+  off/on. The DisplayWatchdog now detects the asymmetry (binding session dead while the
+  wheel's other session stays live) and triggers the recovery cycle.
+- **FSR1 default mappings — broad capture-verified correction pass.** Brake bias, the gap
+  fields, the side pages, and the layouts of several built-in dashboards now decode correctly.
+- **A bad FSR1 field mapping can no longer freeze the whole display.** One malformed
+  partition/field used to abort the entire send tick, blanking every page until a page
+  change; the bad record is now skipped (and logged) while the rest keep streaming, and
+  field writes are bounds-guarded.
+- **1.5.1 could flip an HGP shifter into sequential mode.** 1.5.1 kept one shared set of
+  shifter profile fields and one shifter "owner", so with an SGP in the picture (attached
+  alongside the HGP, or used earlier under the same profile) profile apply could write the
+  SGP's shifter-type at the HGP — the shifter stores it, so the HGP then acts as a
+  sequential shifter even outside SimHub, and MOZA's own software does not put it back.
+  The plugin no longer captures or profile-applies shifter-type at all, and the HGP
+  tab gains a **Shifter type** selector (H-pattern / Sequential) that writes the device
+  directly with a read-back — the recovery path for affected HGPs. The value each
+  shifter reports is also logged on every connect.
+- **A shifter on its own USB port no longer hides one behind the base or hub.** The
+  relayed-shifter probe (dev `0x1A`) stopped as soon as any shifter was detected anywhere,
+  so a standalone HGP suppressed detection of an SGP plugged into the wheelbase; the probe
+  and its model resolvers are now gated per pipe.
+
+## [1.5.1] - 2026-07-18
+
+### Added
+
+- **Wheel product images** — device definitions now deploy a matching wheel render, so each
+  MOZA device shows its own picture in SimHub's Devices list instead of a generic placeholder.
+  Covers ES, FSR V1, FSR V2, KS, KS Pro, CS Pro, TSW, Vision GS, CS, CS V2.1, GS, GS V2P, RS, 
+  RS V2, CM1, CM2 and Lamborghini Revuelto.  Art is also added up on already-deployed 
+  definitions at startup as needed.
+- **Next/previous-dashboard actions now work on FSR1 and CM1.** These displays don't speak
+  the same protocol, so the actions previously did nothing; they now cycle the FSR V1's
+  fixed pages and the CM1's 13, wrapping around.
+- **FSR1 default bindings for previously dead fields** — fuel remaining laps, ERS deploy left,
+  ERS harvested, fuel mix (was mislabelled "Fuel class"), and session time left.
+- **mBooster Traction Control, Wheel Spin, and Gear Shift** — three new pedal-motor effects
+  alongside the existing five. Traction Control mirrors ABS's pulse, driven by the game's TC flag;
+  Wheel Spin is its acceleration-side counterpart, triggered by a wheel-slip heuristic instead of
+  the game's own TC decision; Gear Shift fires a short pulse on every gear change, with its own
+  Vibrate on Neutral and Debounce controls, mirroring the wheelbase's own gearshift bump. All
+  three share Engine Vibration's wire slot rather than an unconfirmed effect type of their own.
+- **mBooster pedal rows are now renameable** — each connected pedal in the mBooster tab's device
+  list gets an editable display name (saved per profile), useful for telling pedals apart on a
+  multi-unit rig.
+- **"Redeploy all definitions" button** (Options tab) — force-rewrites every SimHub device
+  definition. Mostly useful for demos.
+- **"Show all tabs" option** (Options tab, advanced) — reveals every plugin tab regardless of
+  hardware detection, useful for demos.
+- **HGP and SGP shifters now get their own tabs** instead of sharing one, so both can be
+  configured independently. *(A base/hub-relayed HGP's identity discriminator isn't confirmed yet,
+  so its tab may not appear on that topology until that lands — a standalone-USB HGP and the SGP
+  on either topology are unaffected.)*
+
+### Changed
+
+- **Wheel LED writes are paced again instead of streamed.** All live wheel LED traffic (RPM,
+  button, and knob — colours and bitmasks) moved off the stream lanes back onto the paced FIFO.
+- **LED keepalive shortened to 0.75 s** (from 1.0 s) — the firmware drops live-LED ownership
+  1000 ms after the last feed, so scheduling at exactly 1.0 s always arrived late.
+- **FSR1 tyre/status record is now a background cache.** Record `0x0d` is no longer a selectable
+  page; it's appended as a secondary record to the pages that need it and sent at ~0.5 Hz, so
+  tyre temps and pressures, track/air temp, car count, and the "/total" on Position and Lap now
+  render on pages whose primary record doesn't carry them — without slowing the primary's
+  refresh. These rows are marked `(cache)` in the channel mapper.
+- **mBooster settings UI reorganized.** A single pedal-row list at the top of the mBooster tab
+  (one row per connected pedal, with its Role and — for the selected row — Display Name inline)
+  replaces the old trio of a device dropdown, a per-axis Pedal Roles panel, and a separate
+  "configure pedal" dropdown. Pedal Feel and Sim Input Mapping are now one combined, collapsible
+  card. The raw wire-level Calibration card is hidden by default (still experimental).
+- **mBooster Engine Vibration frequency is telemetry-derived again**, not a fixed user slider —
+  it now follows the same parametric model as the AB9 shifter's engine-vibration effect (frequency
+  scales with RPM toward redline), so only Intensity remains a user control.
+- **mBooster Pedal Trace is now a combined overlay.** The sparkline in the mBooster tab plots
+  Throttle/Brake/Clutch simultaneously instead of just the selected device, and the Pedals tab
+  gained its own live position graph.
+
+### Fixed
+
+- **Windows 11 timer resolution — smoother LED animations and correct display cadence.** An
+  inverted power-throttling flag told Windows to *ignore* the plugin's 1 ms timer request and pin
+  every timer to the default 15.625 ms grid, so a 20 ms worker actually fired at 31.25 ms and
+  50 Hz loops ran at ~32 Hz. 
+- **Button/knob colour ordering** — a colour could land after the bitmask that lights it, flipping
+  a group out of sync with the RPM strip; each colour now precedes its bitmask.
+- **ES wheel page simplified to a single tab-less page.** Updated settings page to better reflect
+  the capabilities of this wheel.
+- **mBooster routing on chained / multi-unit setups.** Effects and hardware calibration
+  (Direction/Min/Max, output curve, travel, endstops, sensor ratio, max threshold) were addressed
+  by HID axis index, which doesn't necessarily match the physical chain order — on a multi-pedal
+  rig this could send a setting or an effect's vibration to the wrong physical pedal. Each device's
+  role (Throttle/Brake/Clutch) is now resolved automatically from its own calibration read-back and
+  used for addressing, falling back to the old axis-index routing whenever it can't be resolved.
+- **mBooster hardware calibration now re-applies on a profile switch.** It previously only pushed
+  on (re)connect or the manual "Apply Cal" button, so switching SimHub profiles with the device
+  still connected silently left the *previous* profile's calibration live on the hardware.
+- **mBooster Gear Shift pulses could be missed** if the effect worker's own ~20 ms timer sampled
+  slower than a gear change came in — the one-tick change flag was replaced with a monotonic
+  counter each worker tracks independently, so a shift can no longer land between samples.
+- **Selected mBooster pedal no longer jumps to a different device** a couple of seconds after
+  opening settings — once a standalone unit's real wired axis resolves, the selection now follows
+  the same physical device onto the correct axis instead of falling back to the first device in
+  the list.
+- **mBooster Threshold effect no longer fires continuously** instead of only on a threshold cross.
+
+## [1.5.0] - 2026-07-12
+
+mBooster custom-effect and engine-vibration work contributed by
+[@tacodevhaydz](https://github.com/tacodevhaydz).
+
+### Added
+
+- **Wheelbase LFE (Low-Frequency Effects) — host-rendered base haptics.**
+  Requires base firmware **1.2.10.10+**. Three channels — Engine (continuous),
+  ABS, and Gearshift — are computed every frame and streamed to the base at 50 Hz.
+  - Each channel's **Trigger / Frequency / Intensity / Smoothness** can be a static
+    slider *or* a live NCalc / SimHub-property formula evaluated per tick.
+  - **Presets** — four presets (Additive Engine, Big Rig, Detuned V8,
+    Road Rumble) plus save / export / import of your own (JSON). The built-in
+    engine presets scale intensity by throttle position.
+  - Dedicated **LFE panel** with a live oscilloscope drawing each slot's amplitude
+    envelope and calculated-value readouts. LFE settings ride along in profile import.
+- **MOZA Multi-Function Stalks — Truck-sim mode.** The stalks work as a plain button
+  box, or translate stalk positions into keyboard input for ETS2/ATS (only while the
+  truck game is foreground): wiper and light-knob positions step the game's cycling
+  controls to the mapped stage, turn-signal positions tap the indicators, plus a
+  "Re-sync wipers" action.
+- **mBooster custom telemetry effects** (experimental) — user-created, formula-driven
+  vibration effects on the pedal motor. Each has a name, a live SimHub-property / NCalc
+  formula, Frequency and Intensity, threshold-pulse or continuous-proportional modes,
+  and a sustained Test toggle.
+- **Multiple mBoosters in any topology** — one controller per physical unit keyed by a
+  stable USB instance ID (settings survive replug), correct HID + CDC interface pairing,
+  and up to three axes per unit routed independently to Throttle / Brake / Clutch by
+  per-axis role.
+- **Nearly complete FSR1 dashboard support** — every built-in dashboard field ships a
+  best-guess default SimHub binding (all overridable); corrected DRS/ERS bit-packing and
+  gear bias, plus lap-time and tyre-temp scaling fixes (capture-verified).
+- **HGP / SGP shifter support** — reverse-direction toggle and paddle-sync on both;
+  SGP adds two configurable LEDs (8-color palette + brightness), HGP adds an H-pattern
+  calibration routine.
+- **Lamborghini Revuelto (W11) wheel** — a screenless, button-only wheel (16 dimming
+  backlit buttons, no RPM LEDs). Added general **non-RPM-LED wheel support**: no phantom
+  RPM/flag LED run for button-only wheels, and the max addressable button-LED count
+  raised to 16.
+- **VGS rotation-mode selector** — off / smooth / immediate for the VGS wheel's
+  self-leveling display (per-profile).
+- **Mzpreset file import** — Supports importing presets using the new mzprest file format.
+
+### Changed
+
+- **Performance** — hot-path allocations cut (catalog-hash dedup, radar reflection caches,
+  gated wire debug, retransmitter fast path, V0/string-channel throttles); radar/track-map
+  car positions computed once per game frame and shared across dual-display senders;
+  per-worker NCalc engine instances for haptics formulas.
+
+### Fixed
+
+- **Knob mode is correctly applied on profile change** instead of only applying at launch.
+- **Pedal/handbrake max travel zeroed for new users** — fixed a race that could set the
+  calibrated max travel to zero.
+- **CM2 flag LEDs** — the LED bitmask no longer incorrectly blocks flag led activation.
+- **Variable-size color packets** — button color data is sent without the previous fixed
+  padding, caused issues for some wheels.
+- **FSR1 display** now restarts correctly on reload.
+- **mBooster pedals** stay in the correct order.
+- **Concurrency races** — Interlocked 64-bit stamps, copy-on-write settings dictionaries,
+  and timer/thread teardown guards.
+- **Lifecycle leaks** — CM1 handler detach, update-banner rehook, park-retry timer dispose,
+  and LED-driver restore on plugin End.
+
+## [1.4.0] - 2026-07-05
+
+mBooster pedal feel and effects work contributed by [@tacodevhaydz](https://github.com/tacodevhaydz).
+
+### Added
+
+- **mBooster pedals — expanded into a full pedal-feel and haptic-effects system.**
+  The mBooster tab (per-unit Throttle / Brake / Clutch roles, multiple units
+  supported) gained:
+  - **Effects** — five cards, each with a live **Test** toggle that substitutes
+    pedal position so you can preview by pressing:
+    - **ABS** — pulses on ABS activation (Frequency 5–30 Hz, Intensity, Smoothness).
+    - **Engine Vibration** — continuous above idle at a fixed Frequency (60–200 Hz)
+      and Intensity (replaces the previous RPM-derived mapping).
+    - **Road Texture** (new effect type) — road-surface vibration scaled live by
+      vertical chassis G-force (roughness proxy), with a firmware-shaped Smoothness control.
+    - **Lockup** — ramps in on wheel lock under braking (Frequency now a fixed slider).
+    - **Threshold** — pulsed braking-threshold envelope (Trigger Input Level,
+      Frequency, Intensity, Vibration Decay).
+  - **Pedal Feel** — hardware calibration: dual-thumb Start/End of Travel slider, 
+    Front/End End-Stop Stiffness, plus host-side Deadzone (kg), Max Force (kg), and 
+    a 5-point input curve.
+  - **Sim Input Mapping** — Sensor Output Ratio, Max Threshold, and an output 
+    curve whose nodes can be dragged horizontally.
+  - **Brake Fade (experimental)** — as brake temperature rises past a configurable
+    onset, dynamically rewrites two real calibrations in lockstep (longer Travel End, 
+    higher Max Threshold), then restores your configured values as the brakes cool.
+  - **Pedal Trace** sparkline (last 5 s) and a live position dot on both curve splines.
+  - New reusable UI controls: `MozaRangeSlider` (dual-thumb) and an extended
+    `MozaCurveEditor` (draggable spline, Linear/S-Curve/Exponential/Parabolic
+    presets, horizontal-drag mode).
+- **CM2 Racing Dash — new-era firmware support.** Recognizes two CM2 LED firmware
+  eras (legacy RPM-ramp vs. 2026-06 indicator) with bidirectional detection so a
+  firmware downgrade recovers.
+- **Radar and track-map dashboard channels.** Closes issue #79.
+  - **Track map** — every car's position on a mini circuit map
+    (`patch/Location_0..63`); please report issues where it does not work as expected.
+  - **Radar** — close-proximity spotter data channels(`patch/ri0..63`).
+- **FSR1 mapping features** — dashboard fields can be merged, split, or sub-byte / bit-packed (two values
+  sharing a byte) with independent bit-offset/width steppers. Addresses #32.
+- **Automatic standby mode** — optionally powers the wheel/display to standby after a
+  configurable idle timeout (default 10 min), gated on no active game and no HID/UI activity.
+- **Host sleep/resume recovery** — hooks `SystemEvents.PowerModeChanged` and forces a
+  clean reconnect of the wheel and USB CM2 on resume, rebuilding sessions the firmware
+  silently drops behind a half-open serial port (fixes blank display after host sleep).
+- **LED master-brightness follows the firmware level** — the brightness slider now
+  writes the firmware group brightness (debounced), with per-frame RGB compensated so
+  it isn't applied twice.
+- **Support adjustable FFB Output sliders** — The FFB output sliders can be dragged left 
+  and right supporting full functionality.
+
+### Changed
+
+- **Bundled SimHub updated to v9.11.21** (from v9.11.17).
+- **Notification banners** in device pages.  Banner notices now appear in both locations.
+- **Background responsiveness** — new `ProcessResponsivenessManager` opts the process
+  out of Windows EcoQoS power throttling and the background timer-resolution clamp
+  while a game is active, so control writes land live instead of only after alt-tab.
+- **Dual-display routing** — a dedicated CM2 sender drives the CM2 regardless of the
+  connected wheel; the main sender is now always wheel-only, so the two can't collide
+  (CM2 wire target chosen by topology: `0x12` standalone-USB, `0x14` bus-bridged).
+- **Session lifecycle** — cold start now performs a narrow `0x01–0x03` session close
+  first; catalog-advertise bursts are debounced into a single tier-def emit.
+- **FSR1 display refresh** raised from ~29 Hz (35 ms) to ~50 Hz (20 ms), matching expected
+  active-play cadence; byte-probe now ramps 0→255→0 so every byte box visibly pulses.
+- **FFB parameters are only written when changed** — the applier diffs against a
+  per-base cache instead of re-pushing on every hot-attach.
+- **Radar/track-map channels are hidden from the channel-mapper UI** (plugin-driven).
+- CM1-vs-CM2 identification is now positive-evidence only (removed the 25 s
+  no-catalog timeout that mislabeled slow CM2s); CM1 detection is no longer persisted.
+- Serial capture moved to the Options tab; About tab updated; removed refresh button.
+
+### Fixed
+
+- **AB9 shifter mode selector** — flight-sim/shifter mode values were
+  backwards.
+- **UDP steering-lock ordering** — `base-limit` is now written before `base-max-angle`,
+  so lowering the lock (e.g. RBR 2700° → per-car) lands in one shot instead of being
+  silently clamped until the next write or alt-tab.
+- **CM2 cold-start livelock** — a fresh `Start()` is only issued when genuinely idle,
+  fixing CS-Pro + bus CM2 setups that started dark.
+- **CM2 dash dropping on wheel-rim reset** — dash detection is re-asserted after a reset.
+- **Cross-sender stall on a shared bus** — SilenceGate timestamps are per-instance, so
+  a CM2 stop no longer stalls the wheel's reopen (~11 s).
+- **DisplayWatchdog** no longer restarts a working radar/track-map dashboard on a late
+  configJson state, and waits for the live dashboard list before retrying.
+- **Dropped-catalog recovery** — re-advertised channel chunks union-fill missing
+  indexes and preserve unchanged stable channels on a saturated 115200 link.
+- **FSR1 over-throttling and gapless layout** — partitions are guaranteed gapless and
+  non-overlapping (stale configs auto-repair) so the wheel never renders a dead byte.
+- **FFB detect→reapply→reset loop** on marginal R5 / bare CS bases, via changed-only writes.
+- **Fixed import of interpolation** — interpolation no longer imports at 10x the correct value.
+- **LED fixes** — Wheel detection is no longer gated on the virtual LED driver; LED keepalive 
+  no longer pauses mid-game; LED writes are throttled during catalog negotiation so they don't
+  starve inbound radar/track-map channel chunks.
+
+
+## [1.3.0] - 2026-06-17 — Ncalc, CM2 and ES work, improved channels
+
+> **Breaking:** KS Pro users must reconfigure knob effects — 4 ghost buttons were
+> removed, shifting the knob LED index by 4. Updated ATSR profiles are available in
+> the [ATSR LED profiles guide](https://giant.orth.cc/guides/atsr-led-profiles/).
+
+### Added
+
+- **NCalc / JavaScript formula support** for dashboard channels (custom formulas).
+- **Full ES wheel detection** (move your LED profile to the new device after updating).
+- **FSR1 dashboard field editor**.
+- **Complete CM2 Racing Dash support**.
+- **Shifter/Flight mode selector** for the AB9.
+- Interpolation setting; base restart button; paddle calibration button; improved calibration.
+- Smarter notification banners; knob revert-to-stored-color / static-color-on-idle options (WIP).
+
+### Changed
+
+- LEDs now **auto-idle after 45 s** without effects (configurable timeout).
+- Dashboard telemetry now defaults on for new users.
+- Correct LED commands for CS wheels; removed unused parameter polling.
+
+### Fixed
+
+- Multiple percentage (%) data-type fixes on dashboards; timestamp and other patch channels.
+- Channel list updates correctly from UI changes; custom channel bindings load on cold-start.
+- Double USB hub detection for hub-connected setups; base/ambient LED keepalive.
+- Wheel colors read on startup every time so LEDs reflect the correct state immediately.
+
+## [1.2.2] - 2026-06-11 — AZOM
+
+- Plugin renamed to **AZOM**; guides/website launched at <https://giant.orth.cc/>.
+
+### Added
+
+- Action to calibrate wheel center.
+- 한국어 (Korean) language support.
+
+### Changed
+
+- **Breaking:** "Controls & Actions" mappings reset — re-bind any actions.
+- Bumped SimHub v9.11.14 → v9.11.15; refactor/split code cleanup; removed invalid firmware-era setting.
+
+### Fixed
+
+- Better auto-recovery for an unresponsive display at first startup.
+- Better handling for old-model wheels, with an in-plugin error notice; additional (incomplete) FSR1.
+
+## [1.2.1] - 2026-06-09 — Better support for older wheels
+
+### Changed
+
+- No longer causes connection drops with older-model wheels.
+- Better support for combined Hub + Base setups (wheel on either device).
+- CM2 display support (telemetry LEDs may be incomplete); continued FSR1/CM1 progress.
+- Updated German translations (thanks @NTenic-Hadrev).
+
+### Fixed
+
+- Only write changed settings to the wheel; more robust wheel keepalive.
+
+## [1.2.0] - 2026-06-08 — More hardware, better dashboards
+
+### Added
+
+- Direct USB-attached pedals (CRP2) and handbrakes (standalone peripheral registry).
+- CM2 support via broadcast addressing with correctly routed display sessions.
+- Additional USB PIDs; ES(X) wheels in the Control Mapper; initial FSR1/CM1 display support.
+- Independent lanes for multiple displays; actions to toggle dashboard and test mode.
+- Norwegian (bokmål) translation (thanks @synjan).
+
+### Changed
+
+- Always use the wheel-advertised catalog (removed the manual dash-folder option).
+- Gated reads from incapable wheels; throttled Control Mapper reflection and car-position updates.
+- Display probe only fires once the wheel model resolves; bumped SimHub v9.11.13 → v9.11.14.
+
+### Fixed
+
+- Corrected compression/data types for tyre pressure & temp, air/track temp, brake temp, and more.
+- String channels follow the correct session; timestamp handling; CS V2 fixes.
+- Save performance output, pedal limits, and button color overrides to profile.
+- Game-data channels map correctly on a late catalog update.
+- *(Radar and Track Map data still in progress this release.)*
+
+## [1.1.1] - 2026-06-02 — Hub Hotfix
+
+### Added
+
+- Bindable display-brightness actions; `WorkModeOff` software e-stop action.
+- New AB9 engine-vibration and intensity methods; AB9 settings follow the active profile.
+
+### Changed
+
+- **Cerberus watchdog** — combined the multiple watchdogs into one master watchdog.
+
+### Fixed
+
+- Hub-only setups work again (regression from v1.1.0); missing translation strings and typos.
+- Added Greek translation (thanks pugsang); updated French (thanks Fraustiz).
+
+## [1.1.0] - 2026-06-01 — Better dashboards, streamlined updates
+
+### Added
+
+- Combined base + hub configurations (no simultaneous multiple wheels).
+- Device axes exposed as SimHub properties; "Controls and Events" integration.
+- Auto-update flow — notification banner that restarts SimHub and shows release notes.
+- Initial CM2 device support; SDK server start/stop without quitting SimHub.
+
+### Changed
+
+- Converged recovery ladder (auto-retry after park, flap cap, screenless degraded state).
+- Cold-start catalog recovery (gap-aware ack + bounded session re-request).
+- Lock-free interlocked session watchdog; better multi-device HID reads; lower dashboard bandwidth.
+
+### Fixed
+
+- LED brightness slider; halved steering angle on profile import.
+- Moved profile import to its own tab so it can't disappear on small displays.
+
+## [1.0.0] - 2026-05-29 — first stable release (complete PitHouse replacement)
+
+Covers nearly all MOZA sim hardware — wheelbases, wheels, dashboards, hubs, the AB9
+active shifter, and the mBooster pedal. Staged through release candidates
+**rc1** (2026-05-25), **rc2** (2026-05-25), and **rc3** (2026-05-28).
+
+### Added
+
+- Completely overhauled UI; multilingual (English, Deutsch, Español, Français,
+  Italiano, Русский, Tiếng Việt, 简体中文).
+- Profile import for wheelbase and pedal profiles.
+- **Control Mapper** — add each MOZA wheel for custom layouts (requires SimHub's
+  "Recognize Simcube/Fanatec as individual controllers").
+- **360 Hz / LFE** support via optional SDK service (required for full iRacing support).
+- Legacy UDP steering control (set/read steering angle; tested with RSF for RBR).
+- **mBooster support** — multi-device aware, per-device role (Throttle/Brake/Clutch),
+  settings persisted across reconnects.
+- AB9 live engine-RPM shaker; gearshift bump through the wheelbase.
+- Dashboard hot-switching without on-disk `.mzdash` files (channels negotiated directly).
+- Reworked channel-mapping UX with live SimHub property search; automatic update notifications.
+- Exposed `Moza.*` SimHub properties (BaseConnected, McuTemp, MosfetTemp, MotorTemp,
+  BaseState, FfbStrength, MaxAngle).
+
+### Fixed (across the RC cycle)
+
+- Wheelbase connection and steering rotation persist across game switches.
+- Wheel telemetry capability no longer re-evaluated on game switch; LED/mode per-profile.
+- Gearshift vibration saved per profile; ACK priority lane for responsiveness under load.
+- Numerous dashboard session-reliability fixes; wheel hotswap; SDK game-switch bugs.
+- Corrected rejection of very small / very large packets.
+
+## [0.9.2] - 2026-05-18
+
+> **Breaking:** migrates to a new profile layout; downgrading requires reconfiguring settings.
+
+### Added
+
+- Wheel-initiated hot dashboard switching.
+- Profile-system refactor + dashboard-switch state machine (no config bleed between wheels).
+- AB9 H-pattern shifter support (device manager, frequency slider, per-profile config).
+- Wheel-base LED support ("MOZA Wheel Base" device extension); improved test-signal generator.
+- Shift-debounce / ignore-on-neutral options for gearshift vibration.
+
+### Changed / Fixed
+
+- Text/string dashboard channels with proper UTF-8; smarter already-on-dash detection.
+- Case-insensitive dashboard-folder auto-detect; new device-detection method (ID-collision fix).
+- Per-session catalog parser; fixed hub detection, in-game telemetry, and base LED padding.
+
+## [0.9.1] - 2026-05-11 — Reliability, Channel Mapping, Gearshift Vibration
+
+### Added
+
+- Channel picker searches the full SimHub property list.
+- Gearshift-vibration setting; wheel sleep color; base performance mode; button/knob mode selectors.
+
+### Fixed
+
+- Stable dashboard links (sequence locks, ACK retries, retransmit during preamble).
+- Off-by-one CRC error in dashboard framing; knob colors (broken in 0.9.0); idle effect config.
+- Knob keepalive cooldown to prevent excessive traffic when telemetry isn't flowing.
+
+## [0.9.0] - 2026-05-09 — Switching Dashboards
+
+> **Breaking:** AB9 detection is now opt-in (enable the toggle after upgrading);
+> LED keepalive now defaults on.
+
+### Added
+
+- Firmware-era auto-detection (Era2024 / Era2025 / Era2026).
+- Dashboard-folder library ("Set Folder…") + per-wheel folder auto-detect and mapping.
+- Dashboard hot-reload and channel switching; display brightness (0–100) and standby controls.
+- Per-LED knob ring colors for W17/W18 (up to 56 LEDs); knob telemetry on CSP/KSP.
+- Remember last successful COM port.
+
+### Changed
+
+- `EraPolicy` abstraction centralizes all wire-protocol axis decisions; periodic frames cached.
+- Comprehensive protocol documentation added.
+
+### Fixed
+
+- Cold-start closes sessions 01/02/03 before opening (fixes session-02 engagement failures).
+- Debounced brightness slider; thread-safe per-wheel profile slots; CSP button/LED counts.
+
+## [0.8.3] - 2026-04-26 — dashboards work for new users
+
+- Fixed new users not getting display detection to fire; added debug logging/ZIP bundle.
+- Redact serial numbers in logs and diagnostics; additional hub support.
+
+## [0.8.2] - 2026-04-25 — Bugfixes, Hubs, AB9
+
+- Addressed several memory leaks and logspam issues; changed hub-detection logic.
+- Added prototype (incomplete) AB9 support.
+
+## [0.8.1] - 2026-04-24
+
+### Added
+
+- Per-knob background + primary LED colors (KSP/CSP); RPM LEDs drive >16-LED wheels (KS/CS Pro 18).
+- Per-button "Default during telemetry"; LED test/diagnostic panel moved to main settings.
+
+### Fixed
+
+- No longer hangs on shutdown when the wheel was unplugged first; serial numbers masked in diagnostics.
+
+## [0.8.0] - 2026-04-23 — first dashboard support
+
+First release that can drive the wheel's built-in dashboards (requires the matching
+`.mzdash` file flashed on the wheel).
+
+### Added
+
+- Firmware dashboard upload path (session 0x04 file transfer: TLV paths, MD5, zlib).
+- Session 0x09 configJson RPC client (2025-11 / 2026-04 schemas); device-initiated session opens.
+- Wheel simulator harness for testing.
+
+### Changed
+
+- Heavy protocol overhaul; stronger session handshake; bumped SimHub to v9.11.11.
+
+## [0.7.0] - 2026-04-20
+
+### Added
+
+- Universal Hub support; KS Pro (W18) support with 3/N/3 flag LEDs.
+- Individual LED profiles in combined mode; idle RPM LED colors; color swatches; d-pad mode settings.
+- Experimental LED diagnostic panel; CI dev-build pipeline publishing pre-release ZIPs.
+
+### Fixed
+
+- Frame-boundary/checksum collision (byte stuffing); wheel hotswap; session ACK routing by port.
+- Startup crash when device not found; ES wheel detection; sleep/resume serial recovery.
+
+## [0.6.14] - 2026-04-15
+
+- UI shows wheel/paddle/pedals/handbrake positions; fixed a race condition.
+- Migrated non-LED settings to the plugin side for per-game profiles; individual knob-mode config.
+
+## [0.6.13] - 2026-04-15
+
+- Added advanced telemetry options to test `.mzdash` uploads (full-flow replication).
+
+## [0.6.10] – [0.6.12] - 2026-04-13 to 04-14
+
+- Safer serial startup; telemetry flag-byte handling options; protocol default changes.
+
+## [0.6.5] – [0.6.9] - 2026-04-12
+
+- Early display-protocol reverse-engineering iterations: continued telemetry init, dynamic
+  wheel-profile creation for unknown wheels, and assorted bugfixes while chasing display activation.
+
+## [0.2.0] – [0.6.4] - 2026-04-04 to 04-11
+
+- Initial development: wheelbase control and build pipeline, per-wheel profiles, first device
+  definitions, RPM range settings, blink colors, and the first telemetry/dashboard init attempts.
+
+[1.5.3]: https://github.com/giantorth/AZOM/compare/v1.5.2...v1.5.3
+[1.5.2]: https://github.com/giantorth/AZOM/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/giantorth/AZOM/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/giantorth/AZOM/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/giantorth/AZOM/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/giantorth/AZOM/compare/v1.2.2...v1.3.0
+[1.2.2]: https://github.com/giantorth/AZOM/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/giantorth/AZOM/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/giantorth/AZOM/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/giantorth/AZOM/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/giantorth/AZOM/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/giantorth/AZOM/compare/v0.9.2...v1.0.0
+[0.9.2]: https://github.com/giantorth/AZOM/compare/v0.9.1...v0.9.2
+[0.9.1]: https://github.com/giantorth/AZOM/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/giantorth/AZOM/compare/v0.8.3...v0.9.0
+[0.8.3]: https://github.com/giantorth/AZOM/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/giantorth/AZOM/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/giantorth/AZOM/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/giantorth/AZOM/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/giantorth/AZOM/compare/v0.6.14...v0.7.0
+[0.6.14]: https://github.com/giantorth/AZOM/compare/v0.6.13...v0.6.14

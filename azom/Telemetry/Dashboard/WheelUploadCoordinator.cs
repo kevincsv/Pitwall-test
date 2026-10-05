@@ -1,0 +1,1474 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using MozaPlugin.Protocol;
+using MozaPlugin.Telemetry.Era;
+using MozaPlugin.Telemetry.Frames;
+using MozaPlugin.Telemetry.Sessions;
+using MozaPlugin.Telemetry.Display;
+
+namespace MozaPlugin.Telemetry.Dashboard
+{
+    /// <summary>
+    /// Owns the wheel-side mzdash upload session lifecycle: detecting which FT
+    /// session the wheel device-inits (0x04..0x0b), waiting for the device-init
+    /// burst, sending sub-msg-1 (path registration) + sub-msg-2 (file content) +
+    /// end-marker, and consuming the post-upload directory listing the wheel
+    /// pushes back. Also handles MD5-based skip-if-already-loaded and the
+    /// 2025-11 ↔ 2026-04 wire-format auto-fallback.
+    ///
+    /// The chunk-handler in TelemetrySender forwards every relevant device event
+    /// here via <see cref="NoteDeviceInit"/>, <see cref="NoteInboundChunk"/>,
+    /// and <see cref="NoteEndMarker"/>. The coordinator owns the upload-state
+    /// fields (sessions set, wait events, seq counters, dir-listing reassembler)
+    /// rather than scattering them across TelemetrySender.
+    ///
+    /// In-progress upload code (BuildStagingBlock / BuildTransferManifest in
+    /// DashboardDownloader.cs and any helpers used here) is preserved verbatim
+    /// — this class is a MOVE not a redesign.
+    /// </summary>
+    internal sealed class WheelUploadCoordinator : IDisposable
+    {
+        private MozaSerialConnection _connection;
+        private readonly Func<bool> _shouldAbort;
+
+        /// <summary>Repoint the outbound connection (telemetry sink moved between the
+        /// wheelbase and a standalone-USB dashboard connection).</summary>
+        public void Rebind(MozaSerialConnection connection) => _connection = connection;
+        private readonly Func<EraPolicy> _getPolicy;
+        private readonly Func<WheelDashboardState?> _getConfigJsonState;
+        private readonly Action<byte, ushort> _sendSessionAck;
+        private readonly Action<byte, ushort> _sendSessionEnd;
+        /// <summary>
+        /// Send a host-initiated session-open frame
+        /// (<c>7c 00 &lt;sess&gt; 81 &lt;port:2 LE&gt; &lt;port:2 LE&gt; fd 02</c>). Without
+        /// this, the wheel-side ack session (typically 0x04) is left half-open —
+        /// the wheel device-inits its side but the host never opens its side,
+        /// so the wheel can't emit ack sub-msgs back to the host. PitHouse
+        /// always opens sess=0x04 from the host side before an upload; we
+        /// must too. Verified 2026-05-16 against PitHouse bridge capture.
+        /// </summary>
+        private readonly Action<byte, byte> _sendSessionOpen;
+        // Reliable-stream chunk emitter. Pushes the frame onto the wire AND
+        // registers it with the host-side retransmit queue so unacked
+        // session-data chunks get re-emitted by TelemetrySender's
+        // TickEmitRetransmits. Used for sub-msg 1 and sub-msg 2 so that if
+        // the wheel drops one mid-burst, the retransmit fires automatically
+        // instead of leaving the upload silently incomplete.
+        private readonly Action<byte[]> _sendAndTrackChunk;
+        /// <summary>
+        /// Send the PORT-OPEN(5,3) + FT-ACT(sess+2, sess) pair that makes the
+        /// wheel device-init a fresh file-transfer session (see
+        /// <c>SessionLifecycle.SendFileTransferActivate</c>). Type02 uploads
+        /// acquire their session through this instead of passively waiting for
+        /// the wheel's connect-time device-init burst.
+        /// </summary>
+        private readonly Action<byte> _sendFileTransferActivate;
+        /// <summary>
+        /// Current retransmit-queue depth (chunks sent via
+        /// <see cref="_sendAndTrackChunk"/> not yet cumulative-fc-acked by the
+        /// wheel). The content emit loop paces on this — the wheel's fc-ack
+        /// drain IS its receive-window flow control.
+        /// </summary>
+        private readonly Func<int> _getRetransmitBacklog;
+        /// <summary>
+        /// Monotonic count of chunks the wheel has actually ACKED
+        /// (<c>SessionRetransmitter.AckedChunkCount</c>). This — not the queue
+        /// depth — is the transfer's liveness signal: the depth also falls when
+        /// the retransmitter gives up on a chunk, and treating that as progress
+        /// is what stopped the stall abort from ever firing in bundle 8MKDKT7R.
+        /// </summary>
+        private readonly Func<long> _getAckedChunkCount;
+        /// <summary>Monotonic held-session retransmit count — the congestion
+        /// window's loss signal. See
+        /// <c>SessionRetransmitter.HeldRetransmitCount</c>.</summary>
+        private readonly Func<long> _getHeldRetransmitCount;
+        /// <summary>Mark / unmark the upload session as a reliable stream on the
+        /// retransmitter (no eviction, frontier-limited retransmits) and drop
+        /// its queue when the attempt ends. See
+        /// <c>SessionRetransmitter.HoldSession</c>.</summary>
+        private readonly Action<byte> _holdRetransmitSession;
+        private readonly Action<byte> _releaseRetransmitSession;
+
+        // FT-eligible sessions the wheel device-inited. ChooseUploadSession
+        // prefers 0x04 (legacy), then walks up looking for the first match.
+        private readonly HashSet<byte> _ftCandidateSessions = new();
+        // Session number currently in use for upload. Updated by NoteDeviceInit
+        // for legacy non-09/0a sessions (matches prior TelemetrySender behavior)
+        // and by SendDashboardUpload at upload-start.
+        public byte ActiveSession { get; private set; } = 0x04;
+
+        /// <summary>
+        /// Session the wheel uses for sub-msg acks (type=0x01 progress,
+        /// type=0x11 complete) regardless of which session the host opened
+        /// for the upload. Verified 2026-05-15 across two PitHouse uploads
+        /// in <c>sim/logs/bridge-20260514-170002.jsonl</c> — see
+        /// <c>docs/protocol/dashboard-upload/upload-handshake-2026-04.md</c>
+        /// §"Wheel-side ack session ≠ host upload session".
+        /// </summary>
+        private const byte UploadAckSession = 0x04;
+
+        // Wait events for the upload state machine. ManualResetEventSlim so the
+        // background upload thread can block briefly between phases.
+        private readonly ManualResetEventSlim _sessionOpened = new(false);
+        private readonly ManualResetEventSlim _subMsg1Response = new(false);
+        private readonly ManualResetEventSlim _subMsg2Response = new(false);
+        /// <summary>
+        /// Fired by the ack walker every time a fresh wheel-side ack sub-msg
+        /// (type=0x01 progress OR type=0x11 complete) lands. Used to implement
+        /// PitHouse's per-round flow-control: after each type=0x03 content
+        /// sub-msg, reset this event and wait on it before sending the next.
+        /// Blasting chunks without waiting saturates the wheel's serial
+        /// input and the wheel never engages the file-transfer state machine.
+        /// </summary>
+        private readonly ManualResetEventSlim _ackProgress = new(false);
+        private readonly ManualResetEventSlim _endReceived = new(false);
+
+        private int _inboundSeq;
+        private int _outboundSeq;
+        private int _inboundMsgCount;
+
+        // Dir-listing reassembler — wheel pushes a zlib-compressed directory
+        // listing on the upload session both before and after upload.
+        private readonly SessionDataReassembler _inbox = new();
+        private volatile bool _dirListingRefreshed;
+        public bool DirListingRefreshed => _dirListingRefreshed;
+
+        // ── Cross-session ack stream (b2h sess=0x04 during in-flight upload) ──
+        // The wheel acks the upload on sess=0x04 even when the host opened a
+        // different session (0x05/0x07/...) for the upload itself. We reassemble
+        // those chunks separately and walk them with the 6-byte sub-msg parser
+        // so type=0x01 (progress / ready) and type=0x11 (complete) acks fire
+        // _subMsg1Response / _subMsg2Response correctly instead of the prior
+        // chunk-count heuristic. Walker offsets are tracked per-buffer so
+        // legacy firmware (acks on ActiveSession, _inbox path) and new
+        // firmware (acks on UploadAckSession, _ackInbox path) don't collide
+        // when both reassemblers happen to see traffic for the same upload.
+        private readonly SessionDataReassembler _ackInbox = new();
+        private int _ackInboxWalkOffset;
+        private int _inboxAckWalkOffset;
+        private volatile bool _isUploadInFlight;
+        public bool IsUploadInFlight => _isUploadInFlight;
+
+        /// <summary>
+        /// Latest <c>bytes_written:u32 BE</c> decoded from a wheel-side ack
+        /// sub-msg (type=0x01 progress or type=0x11 complete). Zero before any
+        /// ack arrives; equals <see cref="LastTotalSize"/> on a clean complete.
+        /// </summary>
+        public uint LastBytesWritten { get; private set; }
+        /// <summary>
+        /// Latest <c>total_size:u32 BE</c> decoded from a wheel-side ack sub-msg.
+        /// Echoes the host's metadata total_size field (= compressed payload
+        /// byte count).
+        /// </summary>
+        public uint LastTotalSize { get; private set; }
+        /// <summary>
+        /// Last trailing XOR status byte from an ack sub-msg. Stable per
+        /// upload phase: known values include <c>0x6B</c> (in-progress) and
+        /// <c>0x25</c> (complete) on legacy firmware; varies on Type02.
+        /// </summary>
+        public byte LastStatusByte { get; private set; }
+
+        // Content-phase emit progress: type=0x03 sub-msgs handed to the wire
+        // (and drained past the retransmit backlog window) out of the total the
+        // payload was chunked into. Written on the upload worker thread, read
+        // from the telemetry tick and the UI thread.
+        private int _progressChunksSent;
+        private int _progressChunkTotal;
+
+        /// <summary>
+        /// 0..1 progress of the in-flight upload: type=0x03 content sub-msgs
+        /// emitted out of the total the payload was chunked into.
+        ///
+        /// <para>NOT <see cref="LastBytesWritten"/> / <see cref="LastTotalSize"/>.
+        /// That looks like the obvious source and is what this used to read, but
+        /// the wheel's <c>bytes_written</c> is not a monotone progress counter —
+        /// its ready-ack sometimes just echoes <c>total_size</c>. Byte-identical
+        /// payloads (md5 <c>75f037d4…</c>, 244879 B) on the same W17, minutes
+        /// apart:</para>
+        /// <list type="bullet">
+        /// <item>bundle 8RDM91JG — ready-ack <c>bw=0 total=244879</c>, status
+        /// <c>0x1D</c>, then genuine 4092-byte steps.</item>
+        /// <item>bundle NS9G817J — ready-ack <c>bw=244879 total=244879</c>,
+        /// status <c>0x2C</c>, 0.2 s in, then every later ack type=0x11 with
+        /// <c>bw=total</c> for the whole transfer.</item>
+        /// </list>
+        /// <para>On the second shape a bytes_written meter reads 100 % before a
+        /// single content chunk has gone out, which is what the RPM-bar meter
+        /// did (and, having then stopped "advancing", tripped its own stall
+        /// watch and blanked itself mid-upload).</para>
+        ///
+        /// <para>The emit fraction is always monotone from 0 and always means
+        /// something: it is how much of the payload this host has put on the
+        /// wire. It also keeps the stall watch honest — a wedged transfer stops
+        /// the emit loop in its backlog drain, so the fraction stops with it.
+        /// Reads 0 while no upload is in flight and through the metadata
+        /// handshake before the content loop starts; the meter's blinking
+        /// frontier LED covers that window.</para>
+        /// </summary>
+        public double UploadProgress
+        {
+            get
+            {
+                if (!_isUploadInFlight) return 0.0;
+                int total = Volatile.Read(ref _progressChunkTotal);
+                if (total <= 0) return 0.0;
+                int sent = Volatile.Read(ref _progressChunksSent);
+                if (sent <= 0) return 0.0;
+                if (sent >= total) return 1.0;
+                return (double)sent / total;
+            }
+        }
+
+        // Upload-related properties. TelemetrySender's setters/getters delegate here.
+        public byte[]? MzdashContent { get; set; }
+        public string MzdashName { get; set; } = "";
+        /// <summary>
+        /// Directory the active mzdash was loaded from, used to find sibling
+        /// PNG assets at <c>&lt;dir&gt;/Resource/MD5/&lt;hex&gt;.png</c> when
+        /// building the multi-file upload bundle. Empty when the mzdash came
+        /// from an embedded resource (builtin) — those uploads ship as
+        /// <c>file_count=1</c> (mzdash only) since no co-located PNG store
+        /// exists.
+        /// </summary>
+        public string MzdashSourceDirectory { get; set; } = "";
+        public bool UploadDashboard { get; set; } = true;
+        public byte UploadSessionOverride { get; set; } = 0;
+
+        /// <summary>
+        /// Outcome of the most recent upload attempt — what actually
+        /// happened from the wheel's perspective. Surfaced via
+        /// <see cref="UploadCompleted"/> so callers (TelemetrySender,
+        /// diagnostics) can see when an upload silently failed instead of
+        /// having to scan log files for the right Warn line.
+        /// </summary>
+        public enum UploadOutcome
+        {
+            /// <summary>Wheel acked the final type=0x03 chunk.</summary>
+            Succeeded,
+            /// <summary>Wheel already has the same MD5 — no upload needed.</summary>
+            SkippedHashMatch,
+            /// <summary>Wheel never device-inited an FT session inside the 60 s window.</summary>
+            NoFtSession,
+            /// <summary>Wheel never acked the path-registration sub-msg (sub-msg 1).</summary>
+            SubMsg1AckTimeout,
+            /// <summary>Wheel acked sub-msg 1 but stopped acking content chunks.</summary>
+            SubMsg2AckTimeout,
+            /// <summary>An exception unwound the upload thread.</summary>
+            ExceptionThrown,
+            /// <summary>TelemetrySender flipped to Idle while the upload was in flight.</summary>
+            Aborted,
+        }
+
+        /// <summary>
+        /// Fires once per <see cref="RunBackgroundUpload"/> attempt with the
+        /// terminal outcome. Subscribers should be fast and exception-safe;
+        /// the event is invoked on the upload worker thread.
+        /// </summary>
+        public event Action<UploadOutcome>? UploadCompleted;
+
+        private void FireUploadCompleted(UploadOutcome outcome)
+        {
+            try { UploadCompleted?.Invoke(outcome); }
+            catch (Exception ex)
+            {
+                MozaLog.Warn(
+                    $"[AZOM] UploadCompleted subscriber threw: " +
+                    $"{ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private int _disposed;
+
+        // 1 while a RunBackgroundUpload call owns this coordinator. Every
+        // per-attempt field below is single-instance — _acquireTarget,
+        // _acquireOpenSeq, _outboundSeq, the wait events, _isUploadInFlight —
+        // so two concurrent attempts corrupt each other rather than queueing.
+        private int _attemptInFlight;
+
+        public WheelUploadCoordinator(
+            MozaSerialConnection connection,
+            Func<bool> shouldAbort,
+            Func<EraPolicy> getPolicy,
+            Func<WheelDashboardState?> getConfigJsonState,
+            Action<byte, ushort> sendSessionAck,
+            Action<byte, ushort> sendSessionEnd,
+            Action<byte[]> sendAndTrackChunk,
+            Action<byte, byte> sendSessionOpen,
+            Action<byte> sendFileTransferActivate,
+            Func<int> getRetransmitBacklog,
+            Func<long> getAckedChunkCount,
+            Func<long> getHeldRetransmitCount,
+            Action<byte> holdRetransmitSession,
+            Action<byte> releaseRetransmitSession)
+        {
+            _connection = connection;
+            _shouldAbort = shouldAbort;
+            _getPolicy = getPolicy;
+            _getConfigJsonState = getConfigJsonState;
+            _sendSessionAck = sendSessionAck;
+            _sendSessionEnd = sendSessionEnd;
+            _sendAndTrackChunk = sendAndTrackChunk;
+            _sendSessionOpen = sendSessionOpen;
+            _sendFileTransferActivate = sendFileTransferActivate;
+            _getRetransmitBacklog = getRetransmitBacklog;
+            _getAckedChunkCount = getAckedChunkCount;
+            _getHeldRetransmitCount = getHeldRetransmitCount;
+            _holdRetransmitSession = holdRetransmitSession;
+            _releaseRetransmitSession = releaseRetransmitSession;
+        }
+
+        // Session-acquisition handshake state (Type02): _acquireTarget is the
+        // session an in-progress SendDashboardUploadInner asked the wheel to
+        // device-init via FT-ACT; _acquireOpenSeq records that device-init's
+        // open-seq. The upload's first data chunk must go out at open-seq + 3
+        // and the wheel's replies start at open-seq + 1 (ground truth
+        // bridge-upload-groundtruth-20260816: devinit seq=4 → metadata at 7,
+        // ready-ack chunks from 5).
+        private volatile byte _acquireTarget;
+        private volatile int _acquireOpenSeq = -1;
+
+        /// <summary>Notify the coordinator that the wheel device-inited a
+        /// session in 0x04..0x0b. Tracks it as an FT candidate, records the
+        /// open-seq when it answers an in-flight FT-ACT acquisition, and wakes
+        /// any thread waiting in <see cref="RunBackgroundUpload"/>.</summary>
+        public void NoteDeviceInit(byte session, int openSeq)
+        {
+            if (session < 0x04 || session > 0x0b) return;
+            lock (_ftCandidateSessions) _ftCandidateSessions.Add(session);
+            if (session == _acquireTarget) _acquireOpenSeq = openSeq;
+            try { _sessionOpened.Set(); } catch (ObjectDisposedException) { }
+            // While an upload is mid-flight the coordinator's session is pinned:
+            // a stray device-init on another FT session must not re-route the
+            // inbound ack stream away from the upload (the wheel re-inits its
+            // keepalive sessions while its CPU is busy writing the bundle —
+            // observed as repeated sess=0x03 device-inits during a 26-round
+            // upload on the 2026-08 W17 firmware).
+            if (_isUploadInFlight) return;
+            // Legacy: also update ActiveSession for non-configJson candidates so
+            // a wheel firmware that opens 0x05/0x07 (KS Pro on Universal Hub)
+            // gets routed for inbound chunks even before SendDashboardUpload runs.
+            if (session != 0x09 && session != 0x0a)
+            {
+                byte prevActive = ActiveSession;
+                ActiveSession = session;
+                // ActiveSession change = the host's per-session reassembler
+                // (_inbox) is now pointed at a different wheel session whose
+                // seq numbering is independent of the previous one. Without
+                // this clear, _inbox carries the prior session's _lastSeq
+                // (typically 6 from the wheel's initial open burst) and the
+                // first chunk on the new session (seq=8 in the issue #43 user
+                // bundle: wheel devinited 0x07 with type=0x81 seq=7 then
+                // pushed type=0x01 seq=8) gets flagged as a forward gap
+                // (expected 7, got 8 — 57 spurious warnings across 2 minutes).
+                // The wheel's actual upload seq starts at the next chunk
+                // after its devinit OPEN, so resetting on session change
+                // lets the reassembler accept that as the new burst's first.
+                if (prevActive != session)
+                {
+                    try { _inbox.Clear(); } catch { }
+                    _inboxAckWalkOffset = 0;
+                }
+            }
+        }
+
+        /// <summary>Notify the coordinator of an inbound chunk on the upload
+        /// session or the wheel's cross-session ack channel
+        /// (<see cref="UploadAckSession"/>). Returns true if the chunk was
+        /// consumed by the coordinator (caller already sent the 7c:00 ack via
+        /// the shared SendSessionAck path).
+        ///
+        /// Three routing cases:
+        ///   1. <c>session == UploadAckSession</c> AND upload in flight AND
+        ///      that session is NOT the host's active upload session →
+        ///      route to <see cref="_ackInbox"/>, walk for sub-msgs only.
+        ///   2. <c>session == ActiveSession</c> → existing dir-listing path
+        ///      via <see cref="_inbox"/>. If ActiveSession also happens to be
+        ///      UploadAckSession (legacy firmware case), the same buffer is
+        ///      walked for sub-msg acks alongside dir-listing decompression.
+        ///   3. Otherwise → ignore (return false).
+        /// </summary>
+        public bool NoteInboundChunk(byte session, int seq, byte[] chunkPayload)
+        {
+            bool isAckSession = session == UploadAckSession && _isUploadInFlight;
+            bool isActive = session == ActiveSession;
+            if (!isAckSession && !isActive) return false;
+
+            _inboundSeq = seq;
+            _inboundMsgCount++;
+
+            // Cross-session ack routing: sess=0x04 b2h during in-flight upload
+            // when the host opened a different session (0x05/0x07/...) for the
+            // upload. The wheel still acks on sess=0x04 — we accumulate the
+            // chunks in a dedicated reassembler and walk them with the 6-byte
+            // sub-msg parser. Dir-listing decompression is NOT run on this
+            // buffer because the cross-session 0x04 stream during upload
+            // carries only ack sub-msgs (verified in
+            // sim/logs/bridge-20260514-170002.jsonl).
+            if (isAckSession && !isActive)
+            {
+                // Wheel re-burst of chunks we already hold — drop it before the
+                // reassembler can mistake it for a new burst. See
+                // IsUploadRetransmit.
+                if (IsUploadRetransmit(_ackInbox, seq)) return true;
+                int prevLen = _ackInbox.Length;
+                _ackInbox.AddChunk(seq, chunkPayload, $"sess=0x{session:X2} ack");
+                // Restart / BufferOverflow shrinks the buffer; reset the walker.
+                if (_ackInbox.Length < prevLen) _ackInboxWalkOffset = 0;
+                WalkAckSubMsgs(_ackInbox, ref _ackInboxWalkOffset);
+                return true;
+            }
+
+            // Wheel re-burst of chunks we already hold. Only while an upload
+            // is in flight: outside one this buffer carries dir-listing zlib
+            // blobs, whose bursts legitimately restart the seq low and MUST
+            // still reach the reassembler's restart path. See
+            // IsUploadRetransmit.
+            if (_isUploadInFlight && IsUploadRetransmit(_inbox, seq)) return true;
+
+            // ActiveSession path. Dir-listing reassembler — wheel pushes a
+            // zlib-compressed directory listing on the upload session both
+            // before and after upload. Seq-aware: detect missing chunks
+            // before they corrupt the dir-listing zlib stream.
+            int prevInboxLen = _inbox.Length;
+            bool addOk = _inbox.AddChunk(seq, chunkPayload, $"sess=0x{session:X2} upload");
+
+            // During an in-flight upload, walk the ActiveSession buffer for
+            // ack sub-msgs regardless of which session it is. Two firmware
+            // shapes need this:
+            //   • Legacy 2025-11: wheel acks on the SAME session as upload
+            //     (ActiveSession ∈ {0x05, 0x06, ...}, NOT 0x04). Without this
+            //     branch the walker never runs for legacy firmware.
+            //   • New 2026-04+ where ActiveSession happens to be 0x04: walker
+            //     finds sub-msgs interleaved with dir-listing on the same
+            //     buffer.
+            // The walker only fires events on type=0x01/0x11, so running it
+            // on dir-listing-only buffers is a cheap no-op (bad pad bytes
+            // make it break out of the loop early).
+            if (_isUploadInFlight)
+            {
+                if (_inbox.Length < prevInboxLen) _inboxAckWalkOffset = 0;
+                WalkAckSubMsgs(_inbox, ref _inboxAckWalkOffset);
+            }
+
+            byte[]? dirBlob = addOk ? _inbox.TryDecompress() : null;
+            if (dirBlob != null)
+            {
+                _inbox.Clear();
+                // Dir-listing decompress clears _inbox; reset the ack-walker
+                // offset for this buffer so subsequent sub-msgs after the
+                // listing get parsed from the new buffer start.
+                _inboxAckWalkOffset = 0;
+                _dirListingRefreshed = true;
+                try
+                {
+                    string json = System.Text.Encoding.UTF8.GetString(dirBlob);
+                    MozaLog.Debug(
+                        $"[AZOM] Session 0x{session:X2} dir listing: {dirBlob.Length} bytes, " +
+                        $"children≈{CountOccurrences(json, "\"name\"")}");
+                }
+                catch (Exception ex)
+                {
+                    MozaLog.Debug(
+                        $"[AZOM] Session 0x{session:X2} dir listing decode: {ex.Message}");
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Number of chunks below the high-water mark that still count as a
+        /// re-burst rather than a genuine session restart. The wheel's receive
+        /// window is ~41 KB ≈ 765 chunks, so anything inside this covers a
+        /// full-window re-burst; a seq far below it (a real wheel-side session
+        /// restart, or a u16 seq wrap) falls through to the reassembler's own
+        /// restart handling instead of being dropped forever.
+        /// </summary>
+        private const int RetransmitWindowChunks = 1024;
+
+        /// <summary>
+        /// True when <paramref name="seq"/> is at or below
+        /// <paramref name="reassembler"/>'s contiguous high-water mark, i.e.
+        /// the wheel is re-sending chunks we already hold.
+        ///
+        /// <para>Why this guard exists. On a forward gap the wheel re-bursts
+        /// its whole unacked window, not just the missing chunk (documented in
+        /// <c>SessionDataReassembler.Insert</c>), so a seq BELOW the high-water
+        /// mark is routine mid-upload. But <c>Insert</c> classifies any
+        /// <c>seq &lt; _lastSeq</c> as a new burst: it clears the buffer and
+        /// resets the seq. For the zlib dir-listing that buffer was designed
+        /// for, that is correct. For the ack sub-msg stream it is fatal — the
+        /// clear lands MID-SUB-MSG, so the buffer then starts partway into a
+        /// body, <see cref="WalkAckSubMsgs"/>'s three-pad-byte check fails at
+        /// offset 0, and because the walk offset was reset to 0 too it fails
+        /// identically on every later chunk. The ack stream is then
+        /// permanently desynchronised and the upload hangs with the wheel
+        /// still talking: bundle 8RDM91JG stalled at 20 % after
+        /// <c>got seq=81, last was 82</c>, then took 292 further reply chunks
+        /// (~17.8 KB over 194 s) from which not one ack sub-msg was parsed.
+        ///
+        /// <para>Dropping the chunk is the whole fix: the bytes are already in
+        /// the buffer, the walker keeps its alignment, and the caller still
+        /// acks (<see cref="GetInboundAckSeq"/> re-affirms the high-water mark,
+        /// which is what tells the wheel to move past its re-burst).</para>
+        /// </summary>
+        private static bool IsUploadRetransmit(SessionDataReassembler reassembler, int seq)
+        {
+            int hw = reassembler.HighWaterSeq;
+            return hw >= 0 && seq <= hw && hw - seq < RetransmitWindowChunks;
+        }
+
+        /// <summary>
+        /// Walk the buffered b2h ack-stream bytes with the 6-byte sub-msg
+        /// parser, advancing <see cref="_ackWalkOffset"/> past consumed
+        /// messages. Fires <see cref="_subMsg1Response"/> / <see cref="_subMsg2Response"/>
+        /// on observed type=0x01 / type=0x11 boundaries (or type=0x01 with
+        /// bytes_written == total_size, the complete-via-progress firmware
+        /// variant). Decodes the body trailer to surface
+        /// <see cref="LastBytesWritten"/>, <see cref="LastTotalSize"/>, and
+        /// <see cref="LastStatusByte"/>.
+        ///
+        /// Header layout per
+        /// <c>docs/protocol/dashboard-upload/6-byte-submsg-header.md</c>:
+        /// <c>[type:1][size_LE:u16][pad:3=00 00 00]</c>. Next sub-msg starts
+        /// at <c>offset + 6 + size</c>.
+        /// </summary>
+        private void WalkAckSubMsgs(SessionDataReassembler reassembler, ref int walkOffset)
+        {
+            byte[] buf = reassembler.Snapshot();
+            while (walkOffset + 6 <= buf.Length)
+            {
+                // Validate the 3 pad bytes. Bad alignment usually means the
+                // reassembled buffer is dir-listing zlib data (no sub-msg
+                // header at this offset) — stop walking; the dir-listing
+                // decompressor handles that case separately.
+                if (buf[walkOffset + 3] != 0
+                    || buf[walkOffset + 4] != 0
+                    || buf[walkOffset + 5] != 0)
+                    break;
+
+                byte type = buf[walkOffset];
+                int size = buf[walkOffset + 1] | (buf[walkOffset + 2] << 8);
+                int total = 6 + size;
+                if (walkOffset + total > buf.Length) break; // partial; wait for more chunks
+
+                int bodyStart = walkOffset + 6;
+                OnAckSubMsg(type, buf, bodyStart, size);
+                walkOffset += total;
+            }
+        }
+
+        /// <summary>
+        /// Decode one ack sub-msg body and fire the appropriate wait events.
+        /// Body trailer layout (Type02 firmware, verified byte-exact 2026-05-15):
+        /// <c>[bytes_written:u32 BE][total_size:u32 BE][ff ff ff ff sentinel][status:u8]</c>
+        /// — i.e. the last 13 bytes of the body. fc:00 chunk-level acks do
+        /// NOT reach this path (they're a different wire-level cmd, never
+        /// routed through NoteInboundChunk).
+        /// </summary>
+        private void OnAckSubMsg(byte type, byte[] buf, int bodyStart, int size)
+        {
+            if (size >= 13 && (type == 0x01 || type == 0x11))
+            {
+                int trailerOff = bodyStart + size - 13;
+                uint bw = ReadUInt32BE(buf, trailerOff);
+                uint ts = ReadUInt32BE(buf, trailerOff + 4);
+                byte status = buf[bodyStart + size - 1];
+                LastBytesWritten = bw;
+                LastTotalSize = ts;
+                LastStatusByte = status;
+                MozaLog.Debug(
+                    $"[AZOM] Upload ack type=0x{type:X2} bw={bw} total={ts} status=0x{status:X2}");
+            }
+
+            if (type == 0x01)
+            {
+                // Degenerate ready-ack (72 B: staging-path prefix WITHOUT the
+                // md5 hex, bytes_written=0, total=0): the wheel failed to bind
+                // the metadata — a rejection, not a ready signal. Known cause:
+                // a local-path label whose length shifts the metadata's fixed
+                // field offsets (wheel reads md5 at the 144-byte-LOCAL-TLV
+                // position). Don't start the content phase off it; let the
+                // sub-msg-1 wait time out so the failure is attributed to the
+                // metadata, not a phantom content stall. Real ready-acks are
+                // ~290 B on every observed firmware.
+                if (size < 100)
+                {
+                    MozaLog.Warn(
+                        $"[AZOM] Wheel answered metadata with degenerate {size}B ready-ack " +
+                        "(no md5 echo) — metadata rejected; check local temp-path length");
+                    return;
+                }
+                if (!_subMsg1Response.IsSet)
+                {
+                    try { _subMsg1Response.Set(); } catch (ObjectDisposedException) { }
+                }
+                // Every type=0x01 (progress or ready) advances PitHouse's
+                // per-round flow control — the upload thread waits on this
+                // between content chunks.
+                try { _ackProgress.Set(); } catch (ObjectDisposedException) { }
+                // Firmware variant: type=0x01 with bytes_written == total_size
+                // is the "complete via progress" signal — wheel never emits a
+                // separate type=0x11. Treat as sub-msg 2 complete.
+                if (LastTotalSize != 0
+                    && LastBytesWritten == LastTotalSize
+                    && !_subMsg2Response.IsSet)
+                {
+                    try { _subMsg2Response.Set(); } catch (ObjectDisposedException) { }
+                }
+            }
+            else if (type == 0x11)
+            {
+                if (!_subMsg1Response.IsSet)
+                {
+                    // Some firmwares skip type=0x01 and go straight to 0x11;
+                    // unblock sub-msg 1's waiter too so the upload thread can
+                    // proceed past the metadata-ack stage.
+                    try { _subMsg1Response.Set(); } catch (ObjectDisposedException) { }
+                }
+                try { _ackProgress.Set(); } catch (ObjectDisposedException) { }
+                if (!_subMsg2Response.IsSet)
+                {
+                    try { _subMsg2Response.Set(); } catch (ObjectDisposedException) { }
+                }
+            }
+            // type=0x02 / 0x03 are host-emitted (we should never see them on b2h)
+            // and type=0x08 / 0x0a are dir-listing probes/replies — ignore.
+        }
+
+        private static uint ReadUInt32BE(byte[] buf, int off)
+        {
+            return ((uint)buf[off] << 24)
+                 | ((uint)buf[off + 1] << 16)
+                 | ((uint)buf[off + 2] << 8)
+                 | buf[off + 3];
+        }
+
+        /// <summary>
+        /// The seq the dispatcher should fc:00-ack for an inbound chunk it just
+        /// fed to <see cref="NoteInboundChunk"/>. The wheel's ack handling is
+        /// CUMULATIVE: acking a post-gap seq tells it everything below was
+        /// received and it drops the missing chunks from its retransmit buffer
+        /// permanently (observed 2026-08-16: 18 lost reply chunks, plugin acked
+        /// seq 41+, wheel never retransmitted 23-40, upload completion
+        /// deadlocked). During an in-flight upload, ack the reassembler's
+        /// contiguous high-water mark instead so the wheel re-sends the gap.
+        /// </summary>
+        public int GetInboundAckSeq(byte session, int receivedSeq)
+        {
+            if (_isUploadInFlight)
+            {
+                // Same cumulative-ack rule on whichever reassembler took the
+                // chunk. The cross-session arm was missing it: a forward gap on
+                // a 0x04 ack stream that is NOT the host's upload session got
+                // acked with the post-gap seq, which is exactly the "wheel
+                // drops the missing chunks permanently" failure the
+                // ActiveSession arm exists to avoid.
+                if (session == ActiveSession)
+                {
+                    int hw = _inbox.HighWaterSeq;
+                    if (hw >= 0) return hw;
+                }
+                else if (session == UploadAckSession)
+                {
+                    int hw = _ackInbox.HighWaterSeq;
+                    if (hw >= 0) return hw;
+                }
+            }
+            return receivedSeq;
+        }
+
+        /// <summary>Notify the coordinator of a session end-marker (type=0x00).
+        /// Wakes the upload thread so it can complete the
+        /// <see cref="RunBackgroundUpload"/> call.</summary>
+        public void NoteEndMarker(byte session)
+        {
+            if (session == ActiveSession)
+            {
+                try { _endReceived.Set(); } catch (ObjectDisposedException) { }
+            }
+        }
+
+        /// <summary>Reset all upload state. Called by TelemetrySender.Stop()
+        /// alongside the rest of its session-state reset.</summary>
+        public void Reset()
+        {
+            try { _sessionOpened.Reset(); } catch (ObjectDisposedException) { }
+            try { _subMsg1Response.Reset(); } catch (ObjectDisposedException) { }
+            try { _subMsg2Response.Reset(); } catch (ObjectDisposedException) { }
+            try { _ackProgress.Reset(); } catch (ObjectDisposedException) { }
+            try { _endReceived.Reset(); } catch (ObjectDisposedException) { }
+            lock (_ftCandidateSessions) _ftCandidateSessions.Clear();
+            ActiveSession = 0x04;
+            _inboundSeq = 0;
+            _outboundSeq = 0;
+            _inboundMsgCount = 0;
+            _dirListingRefreshed = false;
+            try { _inbox.Clear(); } catch { }
+            try { _ackInbox.Clear(); } catch { }
+            _ackInboxWalkOffset = 0;
+            _inboxAckWalkOffset = 0;
+            _isUploadInFlight = false;
+            _acquireTarget = 0;
+            _acquireOpenSeq = -1;
+            // Not Interlocked: Reset runs from Stop() on the caller's thread
+            // while any worker is already unwinding via _shouldAbort, and its
+            // finally re-clears this anyway. Clearing here keeps a worker that
+            // died without unwinding from locking uploads out for the session.
+            _attemptInFlight = 0;
+            LastBytesWritten = 0;
+            LastTotalSize = 0;
+            LastStatusByte = 0;
+            Volatile.Write(ref _progressChunksSent, 0);
+            Volatile.Write(ref _progressChunkTotal, 0);
+            // Note: MzdashSourceDirectory NOT cleared — it's a config-like
+            // property set by ApplyTelemetrySettings, not per-attempt state.
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            // Wake any worker blocked in Wait() (the FT-burst wait is up to 60s)
+            // before disposing the events, so it re-checks _shouldAbort and exits
+            // rather than racing the handle disposal. RunBackgroundUpload's
+            // catch(Exception) is the backstop if the race is still lost.
+            try { _sessionOpened.Set(); } catch (ObjectDisposedException) { }
+            try { _subMsg1Response.Set(); } catch (ObjectDisposedException) { }
+            try { _subMsg2Response.Set(); } catch (ObjectDisposedException) { }
+            try { _ackProgress.Set(); } catch (ObjectDisposedException) { }
+            try { _endReceived.Set(); } catch (ObjectDisposedException) { }
+            try { _sessionOpened.Dispose(); } catch { }
+            try { _subMsg1Response.Dispose(); } catch { }
+            try { _subMsg2Response.Dispose(); } catch { }
+            try { _ackProgress.Dispose(); } catch { }
+            try { _endReceived.Dispose(); } catch { }
+        }
+
+        /// <summary>
+        /// Background upload entry point. Runs on a worker thread so a slow-to-
+        /// open file-transfer session (KS Pro on RS21-W18-MC SW: ~11 s) doesn't
+        /// stall tier def + telemetry start. Waits up to 60 s for the wheel to
+        /// device-init any session in 0x04..0x0a, then runs the legacy upload
+        /// path. If the wait expires, logs and bails — the wheel will render a
+        /// previously-cached dashboard, or nothing if it has none.
+        ///
+        /// Aborts cleanly if the caller's <see cref="_shouldAbort"/> turns true
+        /// (TelemetrySender.Stop flips _state to Idle and the next checkpoint
+        /// here exits).
+        /// </summary>
+        public void RunBackgroundUpload()
+        {
+            // One attempt at a time. Nothing serialised these before: both
+            // TriggerManualUpload (a second click on the Files tab) and
+            // QueueBackgroundUploadIfReady (a reconnect landing mid-transfer)
+            // queue this straight onto the thread pool, and every per-attempt
+            // field on this coordinator is single-instance — so overlapping
+            // runs clobber each other's session acquisition (_acquireTarget /
+            // _acquireOpenSeq), share one outbound seq counter and one set of
+            // wait events, and each one's finally clears _isUploadInFlight out
+            // from under the other. Observed in bundle C4KX4GKK: three attempts
+            // overlapping one live transfer, two of them dying NoFtSession
+            // ~15 s in while the live one kept going.
+            //
+            // Rejecting rather than queueing is deliberate: the newcomer's
+            // content is already staged on the coordinator, so the in-flight
+            // attempt is either sending those same bytes or is about to be
+            // superseded by the user trying again.
+            //
+            // Returns WITHOUT firing UploadCompleted — this is not an attempt,
+            // and a spurious outcome would hand the LEDs back mid-transfer.
+            if (Interlocked.CompareExchange(ref _attemptInFlight, 1, 0) != 0)
+            {
+                MozaLog.Warn(
+                    "[AZOM] Dashboard upload already in progress — ignoring duplicate request");
+                return;
+            }
+
+            UploadOutcome outcome = UploadOutcome.Aborted;
+            try
+            {
+                if (_shouldAbort()) { outcome = UploadOutcome.Aborted; return; }
+
+                // Type02 firmware acquires its session actively at upload time
+                // (FT-ACT → fresh device-init inside SendDashboardUploadInner),
+                // so there is nothing to wait for here. Legacy formats wait for
+                // the wheel's connect-time device-init burst: 60 s ceiling
+                // covers the slowest firmware observed (~11 s) with headroom.
+                // If the wheel hasn't opened an FT session by then it either
+                // doesn't support uploads on this firmware or is wedged —
+                // either way, retrying won't help and host-opening 0x04 races
+                // the wheel's eventual late burst (closes session 0x02, kills
+                // telemetry).
+                if (_getPolicy().UploadWireFormat != FileTransferWireFormat.New2026_04_Type02)
+                {
+                    const int FtBurstWaitMs = 60000;
+                    if (!_sessionOpened.Wait(FtBurstWaitMs))
+                    {
+                        MozaLog.Warn(
+                            $"[AZOM] No file-transfer session device-opened within " +
+                            $"{FtBurstWaitMs}ms — skipping dashboard upload. " +
+                            "Wheel may render previously-cached dashboard.");
+                        outcome = UploadOutcome.NoFtSession;
+                        return;
+                    }
+                }
+
+                if (_shouldAbort()) { outcome = UploadOutcome.Aborted; return; }
+                outcome = SendDashboardUpload();
+            }
+            catch (Exception ex)
+            {
+                outcome = UploadOutcome.ExceptionThrown;
+                MozaLog.Warn($"[AZOM] Background dashboard upload failed: {ex.Message}");
+            }
+            finally
+            {
+                FireUploadCompleted(outcome);
+                Interlocked.Exchange(ref _attemptInFlight, 0);
+            }
+        }
+
+        /// <summary>
+        /// Pick the file-transfer session number to upload on. Priority:
+        /// (1) <see cref="UploadSessionOverride"/> if non-zero;
+        /// (2) 0x04 if the wheel device-initiated it (legacy);
+        /// (3) The first session in 0x04..0x0a the wheel device-initiated;
+        /// (4) 0x04 fallback if no candidate seen yet.
+        /// </summary>
+        public byte ChooseUploadSession()
+        {
+            if (UploadSessionOverride != 0) return UploadSessionOverride;
+            lock (_ftCandidateSessions)
+            {
+                if (_ftCandidateSessions.Contains((byte)0x04)) return 0x04;
+                foreach (byte b in new byte[] { 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a })
+                    if (_ftCandidateSessions.Contains(b)) return b;
+            }
+            return 0x04;
+        }
+
+        private UploadOutcome SendDashboardUpload()
+        {
+            var content = MzdashContent;
+            // No content / no link is "nothing to do", not a failure. Treat
+            // as Aborted so the caller can distinguish from a real attempt.
+            if (content == null || content.Length == 0) return UploadOutcome.Aborted;
+            if (!_connection.IsConnected) return UploadOutcome.Aborted;
+
+            // Pick the upload session. Type02 firmware: always target 0x04 —
+            // PitHouse's dashboard-upload convention (FT-ACT(6,4), ground truth
+            // 2026-08-16) — because the active FT-ACT acquisition makes the
+            // wheel device-init it fresh regardless of the connect-time burst.
+            // The candidate-set walk must NOT be used here: it lands on 0x05,
+            // which the plugin's own per-page display-config already
+            // FT-activates ~1 Hz (TelemetryFrameCache page-0 triple), and the
+            // wheel won't re-init an in-use display session — the acquisition
+            // then times out (observed 2026-08-16 bundle: FT-ACT(7,5) × 5, no
+            // device-init, NoFtSession). Legacy formats keep the candidate walk.
+            byte uploadSess;
+            if (_getPolicy().UploadWireFormat == FileTransferWireFormat.New2026_04_Type02)
+                uploadSess = UploadSessionOverride != 0 ? UploadSessionOverride : (byte)0x04;
+            else
+                uploadSess = ChooseUploadSession();
+            ActiveSession = uploadSess;
+
+            // Skip-if-unchanged: if the wheel already reported this dashboard
+            // as loaded (via session 0x09 state) and the MD5 matches, don't
+            // re-upload. Saves ~1 s of handshake per reconnect.
+            if (CanSkipUpload(content))
+            {
+                MozaLog.Debug(
+                    $"[AZOM] Dashboard \"{MzdashName}\" already loaded on wheel (hash match) — skipping upload");
+                return UploadOutcome.SkippedHashMatch;
+            }
+
+            // Arm the cross-session ack stream. _isUploadInFlight gates b2h
+            // sess=0x04 routing in NoteInboundChunk; clear the dedicated ack
+            // reassembler + walker so stale state from a prior upload doesn't
+            // confuse this attempt. Cleared in the finally below.
+            _ackInbox.Clear();
+            _ackInboxWalkOffset = 0;
+            _inboxAckWalkOffset = 0;
+            LastBytesWritten = 0;
+            LastTotalSize = 0;
+            LastStatusByte = 0;
+            Volatile.Write(ref _progressChunksSent, 0);
+            Volatile.Write(ref _progressChunkTotal, 0);
+            _isUploadInFlight = true;
+            // Reliable-stream hold for the whole attempt: the upload's chunks
+            // must not be dropped on retry exhaustion (an evicted chunk
+            // deadlocks the wheel's cumulative ack forever) and its retransmits
+            // must stay at the ack frontier instead of re-blasting the whole
+            // unacked span.
+            _holdRetransmitSession(uploadSess);
+            try
+            {
+                return SendDashboardUploadInner(content, uploadSess);
+            }
+            finally
+            {
+                _isUploadInFlight = false;
+                // Release the hold AND drop the queue: whatever is still
+                // unacked belongs to an attempt that is over, and left in place
+                // it keeps retransmitting into a session nobody is reading.
+                // (Session09 and DashboardDownloader already do this; the
+                // upload path never did.)
+                _releaseRetransmitSession(uploadSess);
+            }
+        }
+
+        /// <summary>
+        /// Chunk a single sub-msg (metadata or one type=0x03 content slice)
+        /// through the session-data framer and emit each wire frame via the
+        /// retransmit-tracked send path, with a per-frame delay to keep the
+        /// host's outbound rate below the wheel's serial budget
+        /// (~12 kB/s observed peak). Updates <paramref name="seq"/> in place
+        /// so the caller can advance <see cref="_outboundSeq"/>.
+        /// </summary>
+        private void EmitSubMsg(byte[] subMsg, byte sess, ref int seq, int interFrameDelayMs)
+        {
+            var frames = TierDefinitionBuilder.ChunkMessage(subMsg, sess, ref seq);
+            foreach (var frame in frames)
+            {
+                if (_shouldAbort()) return;
+                _sendAndTrackChunk(frame);
+                if (interFrameDelayMs > 0) Thread.Sleep(interFrameDelayMs);
+            }
+        }
+
+        /// <summary>
+        /// Variant of <see cref="EmitSubMsg"/> that returns the pre-built wire
+        /// frames so the caller can retransmit them with identical seq numbers
+        /// while waiting for the wheel's type=0x01 ack. PitHouse pattern: emit
+        /// the burst, then re-emit the SAME frames (same seq numbers) every
+        /// ~1.9 s until the wheel acks. The wheel treats duplicate-seq chunks
+        /// as no-ops, but the retransmissions keep its file-transfer state
+        /// machine engaged. Verified against
+        /// sim/logs/bridge-20260514-170002.jsonl upload #1: PitHouse emits
+        /// seq=7-13 at +0 ms, re-emits seq=7-13 at +102 ms, re-emits just
+        /// seq=13 at +1965 ms, wheel acks at +2018 ms (b2h sess=04 seq=06).
+        /// </summary>
+        private List<byte[]> EmitSubMsgCapturing(byte[] subMsg, byte sess, ref int seq, int interFrameDelayMs)
+        {
+            var frames = TierDefinitionBuilder.ChunkMessage(subMsg, sess, ref seq);
+            foreach (var frame in frames)
+            {
+                if (_shouldAbort()) return frames;
+                _sendAndTrackChunk(frame);
+                if (interFrameDelayMs > 0) Thread.Sleep(interFrameDelayMs);
+            }
+            return frames;
+        }
+
+        /// <summary>
+        /// Re-emit pre-built wire frames at the same per-frame cadence as
+        /// the initial emission. Used between <see cref="_subMsg1Response"/>
+        /// waits to nudge the wheel into emitting its type=0x01 ready ack.
+        /// Bypasses retransmit tracking — the frames are byte-identical
+        /// (same seq) so the retransmitter shouldn't re-register them.
+        /// </summary>
+        private void ReemitFrames(IReadOnlyList<byte[]> frames, int interFrameDelayMs)
+        {
+            foreach (var frame in frames)
+            {
+                if (_shouldAbort()) return;
+                if (_subMsg1Response.IsSet) return; // ack arrived mid-retransmit; stop early
+                _connection.Send(frame);
+                if (interFrameDelayMs > 0) Thread.Sleep(interFrameDelayMs);
+            }
+        }
+
+        private UploadOutcome SendDashboardUploadInner(byte[] content, byte uploadSess)
+        {
+
+            string dashboardName = !string.IsNullOrEmpty(MzdashName) ? MzdashName : "dashboard";
+            uint token = DashboardUploader.PickToken();
+            long tsMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            // Probe-based wire-format selection. Older wheels (VGS, GS V2P,
+            // CS V2.1, etc.) accept Legacy2025_11; newer wheels (W17 CS Pro /
+            // W18 KS Pro / W13 FSR V2 on 2026-04+ firmware) silently drop
+            // Legacy and only ack New2026_04. Identity probes carry no
+            // build/version field, so we can't pick from a string match. Try
+            // the user-configured format first (default New2026_04), and on
+            // sub-msg 1 ack timeout, fall back to the other format.
+            var policy = _getPolicy();
+            bool fellBack = false;
+            DashboardUploader.UploadPayload upload =
+                DashboardUploader.BuildUpload(content, dashboardName, token, tsMs,
+                    policy.UploadWireFormat, MzdashSourceDirectory);
+
+            // Denominator for UploadProgress. Set before any wire work so the
+            // meter has a scale from the first tick; re-set after a wire-format
+            // fallback rebuild below, which re-chunks the payload.
+            Volatile.Write(ref _progressChunkTotal, upload.SubMsg2Chunks.Count);
+
+            MozaLog.Debug(
+                $"[AZOM] Uploading dashboard \"{dashboardName}\" via session 0x{uploadSess:X2} " +
+                $"(wire={policy.UploadWireFormat}): " +
+                $"raw={upload.UncompressedSize}B md5={upload.Md5Hex} " +
+                $"compressed={upload.TotalCompressedSize}B chunks={upload.SubMsg2Chunks.Count} " +
+                $"pngs={upload.BundledPngCount} token=0x{token:X8}");
+
+            _subMsg1Response.Reset();
+            _subMsg2Response.Reset();
+            _ackProgress.Reset();
+            _endReceived.Reset();
+            _inboundMsgCount = 0;
+
+            if (policy.UploadWireFormat == FileTransferWireFormat.New2026_04_Type02)
+            {
+                // Active session acquisition (current firmware; ground truth
+                // bridge-upload-groundtruth-20260816): PORT-OPEN(5,3) +
+                // FT-ACT(sess+2, sess) makes the wheel device-init a FRESH
+                // open of the target session ~25 ms later. That fresh open
+                // rebases the seq space — host data starts at open-seq + 3,
+                // wheel replies from open-seq + 1, and the wheel acks the
+                // upload sub-msgs on this SAME session (no cross-session 0x04
+                // pairing, no host-side session-open, no dir-probe: PitHouse
+                // sends none of those at upload time on this firmware).
+                _acquireOpenSeq = -1;
+                _acquireTarget = uploadSess;
+                try { _sessionOpened.Reset(); } catch (ObjectDisposedException) { }
+                const int AcquireAttempts = 5;
+                const int AcquireWaitMs = 3000;
+                for (int attempt = 0; attempt < AcquireAttempts && !_shouldAbort(); attempt++)
+                {
+                    _sendFileTransferActivate(uploadSess);
+                    _sessionOpened.Wait(AcquireWaitMs);
+                    if (_acquireOpenSeq >= 0) break;
+                    // Woken by a device-init on some other FT session (or
+                    // timed out) — re-arm and re-activate. The wheel tolerates
+                    // repeated FT-ACTs (PitHouse spams them ~1/s at connect).
+                    try { _sessionOpened.Reset(); } catch (ObjectDisposedException) { }
+                }
+                _acquireTarget = 0;
+                if (_acquireOpenSeq < 0)
+                {
+                    MozaLog.Warn(
+                        $"[AZOM] FT-activate for session 0x{uploadSess:X2} got no device-init " +
+                        $"after {AcquireAttempts} attempts — aborting upload");
+                    return UploadOutcome.NoFtSession;
+                }
+                // Rebase outbound seq: EmitSubMsg starts at _outboundSeq + 1,
+                // and the first data chunk must go out at open-seq + 3.
+                _outboundSeq = _acquireOpenSeq + 2;
+                // Fresh open = fresh inbound seq space; drop stale reassembly
+                // state so the wheel's replies (starting open-seq + 1) don't
+                // collide with a previous burst's seq high-water mark.
+                try { _inbox.Clear(); } catch { }
+                _inboxAckWalkOffset = 0;
+                MozaLog.Debug(
+                    $"[AZOM] FT session 0x{uploadSess:X2} acquired (open-seq={_acquireOpenSeq}); " +
+                    $"first data chunk at seq {_outboundSeq + 1}");
+            }
+            else
+            {
+                // Legacy formats (2025-11 / pre-Type02 2026-04 firmware): open
+                // sess=0x04 host-side so the wheel has a return path for its
+                // cross-session acks (May-2026 behavior; see
+                // docs/protocol/dashboard-upload/upload-handshake-2026-04.md).
+                const byte AckSessionPort = 0x0E;
+                _sendSessionOpen(UploadAckSession, AckSessionPort);
+                // Small settle delay so the wheel processes the open before we
+                // start blasting metadata. Same scale as the inter-sub-msg pause.
+                Thread.Sleep(50);
+            }
+
+            // Per-frame throttle keeps host serial output under the wheel's
+            // budget (WriteBudget.TargetBytesPerWindow = 11000 B/s, against a
+            // 115200-baud wire ceiling of 11520 B/s).
+            //
+            // 6 ms was WRONG, and its "~85 % of budget" claim was arithmetic
+            // that never held: session-data frames measure 67 wire bytes, so
+            // 67 B / 6 ms = 11167 B/s = 101.5 % of the budget and, with the
+            // wheel's ~750 B/s of reply chunks, 103 % of the half-duplex wire
+            // (measured over the 30 s upload window in bundle 8RDM91JG:
+            // 10720 B/s of type=0x03 traffic alone). Oversubscribing a
+            // half-duplex link crowds out the wheel's own b2h chunks, which is
+            // what provokes the retransmits and inbound gaps that stall an
+            // upload — bundle 8RDM91JG hung at 20 %, C4KX4GKK at 95.7 %, both
+            // pinned at 97-105 % budget for the whole transfer.
+            //
+            // 8 ms → 8375 B/s = 76 % of budget, ~79 % of the wire with inbound.
+            // Slower on paper, faster in practice: at 6 ms the acked payload
+            // advanced ~2 kB/s while the host pushed 10.7 kB/s, a 5:1 waste
+            // ratio that is retransmit churn from the losses saturation causes.
+            const int InterFrameDelayMs = 8;
+            // PitHouse's per-round flow control: after each type=0x03 sub-msg
+            // the wheel emits a type=0x01 progress ack (with bytes_written
+            // advancing). The host MUST wait for it before sending the next
+            // sub-msg — without that wait the wheel's file-transfer state
+            // machine never engages. Timeout is generous because per-round
+            // processing can take 25-28 s on large uploads (decompression
+            // + filesystem write).
+            //
+            // Sm1AckTimeoutMs is the TOTAL wait budget for the ready-ack;
+            // matched to the progress-ack timeout because the wheel applies
+            // the same processing latency to sub-msg 1 as to subsequent
+            // sub-msgs (verified against PitHouse upload #1 which receives
+            // its sub-msg 1 ack at +2018 ms, but slower wheels — same
+            // firmware — can defer up to ~28 s).
+            const int InitialBurstRetransmitDelayMs = 100;
+            const int Sm1RetransmitIntervalMs = 1800;
+            const int Sm1AckTimeoutMs = 30000;
+            // Per-round progress acks on the 2026-08 W17 firmware took up to
+            // ~40 s while the wheel was busy writing/rendering (ground truth:
+            // 26-round upload, round acks 7-40 s). 60 s keeps slow rounds from
+            // aborting a healthy transfer.
+            const int ProgressAckTimeoutMs = 60000;
+            const int CompleteAckTimeoutMs = 60000;
+
+            int seq1 = _outboundSeq + 1;
+            var sm1Frames = EmitSubMsgCapturing(upload.SubMsg1PathRegistration, uploadSess, ref seq1, InterFrameDelayMs);
+            _outboundSeq = seq1;
+
+            // Sub-msg 1 wait: type=0x01 ready-ack from wheel.
+            // PitHouse pattern: emit-then-immediately-re-emit-the-whole-burst
+            // at ~100 ms (defensive against drops), then re-emit every
+            // ~1.9 s until the wheel acks. Without these retransmits the
+            // CS Pro wheel sat for 5 s with no sub-msg ack despite
+            // chunk-acking the bytes — wheel's state machine needs the
+            // periodic nudge to flush its ready-ack.
+            if (!_subMsg1Response.IsSet && InitialBurstRetransmitDelayMs > 0)
+            {
+                Thread.Sleep(InitialBurstRetransmitDelayMs);
+                if (!_subMsg1Response.IsSet)
+                {
+                    ReemitFrames(sm1Frames, InterFrameDelayMs);
+                }
+            }
+
+            DateTime sm1Deadline = DateTime.UtcNow.AddMilliseconds(Sm1AckTimeoutMs);
+            while (!_subMsg1Response.IsSet && DateTime.UtcNow < sm1Deadline && !_shouldAbort())
+            {
+                int waitMs = Math.Min(Sm1RetransmitIntervalMs,
+                    (int)Math.Max(50, (sm1Deadline - DateTime.UtcNow).TotalMilliseconds));
+                if (_subMsg1Response.Wait(waitMs)) break;
+                if (_shouldAbort()) break;
+                // No ack yet — retransmit the metadata burst with same seq numbers
+                ReemitFrames(sm1Frames, InterFrameDelayMs);
+            }
+
+            // No ack → ABORT.
+            // Optionally retry once with the fallback wire format (era policy).
+            if (!_subMsg1Response.IsSet)
+            {
+                bool retried = false;
+                if (policy.AutoFallbackUploadWireFormat)
+                {
+                    var fallback = policy.UploadWireFormat == FileTransferWireFormat.New2026_04
+                        ? FileTransferWireFormat.Legacy2025_11
+                        : FileTransferWireFormat.New2026_04;
+                    MozaLog.Warn(
+                        $"[AZOM] Session 0x{uploadSess:X2} sub-msg 1 ack timeout with " +
+                        $"wire={policy.UploadWireFormat} — retrying with wire={fallback}");
+
+                    policy.UploadWireFormat = fallback;
+                    fellBack = true;
+                    upload = DashboardUploader.BuildUpload(content, dashboardName, token, tsMs,
+                        policy.UploadWireFormat, MzdashSourceDirectory);
+                    // Re-chunked for the fallback format — new denominator.
+                    Volatile.Write(ref _progressChunkTotal, upload.SubMsg2Chunks.Count);
+
+                    _subMsg1Response.Reset();
+                    _subMsg2Response.Reset();
+                    _ackProgress.Reset();
+                    _inboundMsgCount = 0;
+
+                    // _outboundSeq already holds the next FREE seq after the
+                    // first metadata emit — continue contiguously, no +1 (the
+                    // wheel's reliable stream stalls forever on a seq gap).
+                    seq1 = _outboundSeq;
+                    var sm1FallbackFrames = EmitSubMsgCapturing(upload.SubMsg1PathRegistration, uploadSess, ref seq1, InterFrameDelayMs);
+                    _outboundSeq = seq1;
+
+                    if (!_subMsg1Response.IsSet && InitialBurstRetransmitDelayMs > 0)
+                    {
+                        Thread.Sleep(InitialBurstRetransmitDelayMs);
+                        if (!_subMsg1Response.IsSet)
+                            ReemitFrames(sm1FallbackFrames, InterFrameDelayMs);
+                    }
+                    DateTime fbDeadline = DateTime.UtcNow.AddMilliseconds(Sm1AckTimeoutMs);
+                    while (!_subMsg1Response.IsSet && DateTime.UtcNow < fbDeadline && !_shouldAbort())
+                    {
+                        int waitMs = Math.Min(Sm1RetransmitIntervalMs,
+                            (int)Math.Max(50, (fbDeadline - DateTime.UtcNow).TotalMilliseconds));
+                        if (_subMsg1Response.Wait(waitMs)) break;
+                        if (_shouldAbort()) break;
+                        ReemitFrames(sm1FallbackFrames, InterFrameDelayMs);
+                    }
+
+                    if (_subMsg1Response.IsSet)
+                    {
+                        MozaLog.Debug(
+                            $"[AZOM] Wire format auto-detected: wheel accepts {policy.UploadWireFormat} " +
+                            "(cached for this session)");
+                        retried = true;
+                    }
+                    else
+                    {
+                        MozaLog.Warn(
+                            $"[AZOM] Session 0x{uploadSess:X2} sub-msg 1 ack timeout on fallback " +
+                            $"wire={policy.UploadWireFormat} — aborting upload, no content sent");
+                    }
+                }
+                else
+                {
+                    MozaLog.Warn(
+                        $"[AZOM] Session 0x{uploadSess:X2} sub-msg 1 ack timeout with " +
+                        $"wire={policy.UploadWireFormat} — fallback disabled, aborting upload");
+                }
+
+                if (!retried)
+                {
+                    // No ready-ack → wheel hasn't created the staging file.
+                    // Sending content is guaranteed to fail; just close the
+                    // session cleanly so the wheel doesn't sit in a half-open
+                    // upload state.
+                    _sendSessionEnd(uploadSess, (ushort)_outboundSeq);
+                    return UploadOutcome.SubMsg1AckTimeout;
+                }
+            }
+            _ = fellBack;
+
+            MozaLog.Debug(
+                $"[AZOM] Session 0x{uploadSess:X2} sub-msg 1 ack received " +
+                $"(bytes_written={LastBytesWritten} total={LastTotalSize} status=0x{LastStatusByte:X2}) — " +
+                $"sending {upload.SubMsg2Chunks.Count} type=0x03 sub-msg(s)");
+
+            // Sub-msg 2: file content — ALL type=0x03 sub-msgs back-to-back,
+            // then wait for completion. The wheel's type=0x01 progress acks
+            // are PROCESSING signals, not send-gates: a payload that fits its
+            // receive window (~41 KB = 765 chunks) is buffered instantly,
+            // fc-acked, and processed only once COMPLETE — waiting for a 0x01
+            // between chunks deadlocks (observed moza-wire-20260816-113947:
+            // chunk 1/2 fully fc-acked in 0.5 s, wheel idled on keepalives
+            // waiting for the residual, no 0x01 for 60 s). PitHouse's
+            // inter-round gaps on the 104 KB ground truth were window/fc-ack
+            // driven, not 0x01 driven (round 2 went out 6.4 s AFTER round 1's
+            // 0x01). Flow control here = the retransmit backlog: emit a chunk,
+            // then drain-wait while the tracked-unacked count is high so big
+            // payloads can't overrun the wheel's window or the retransmit
+            // queue's 2048-entry cap.
+            //
+            // _outboundSeq is the next FREE seq after the metadata emit
+            // (ChunkMessage's ref ends at last-used + 1). Content must follow
+            // CONTIGUOUSLY — a +1 here skipped one seq and the wheel's
+            // reliable stream stalled forever waiting for it (692 repeated
+            // fc-acks of the metadata's last seq; moza-wire-20260816-102131).
+            // PitHouse: metadata 7..13, content 14.
+            // Chunks allowed in flight before the emit loop waits for the
+            // wheel's fc-acks to drain. This is a bandwidth-delay product:
+            // throughput = window / ack-latency, so too small a window leaves
+            // the link idle no matter how fast we are allowed to send.
+            //
+            // Congestion window, in chunks allowed in flight before the emit
+            // loop waits for the wheel's fc-acks. ACK-DRIVEN, because a fixed
+            // number is the wrong shape: the right value is a property of this
+            // wheel, this firmware and this cable, and guessing it costs real
+            // throughput in both directions. Measured on one W17 with the same
+            // 245 KB payload, by the wheel's own fc-ack rate:
+            //
+            //   fixed  96 (bundle 33E47E0M): 12.9 chunks/s acked, ~10 frames/s
+            //                                sent — balanced, but the SEND rate
+            //                                trailing the ACK rate means it was
+            //                                window-limited, i.e. idle-waiting
+            //                                with headroom left unused
+            //   fixed 512 (bundle 0NEKHQPH):  3.8 chunks/s acked, 22 frames/s
+            //                                sent — 83 % of sends wasted; past
+            //                                its capacity the wheel drops and
+            //                                the frontier retransmits eat the
+            //                                link, so throughput COLLAPSES
+            //
+            // So the useful window is somewhere above 96 and well below 512, and
+            // nothing static finds it. Slow-start from the known-good 96,
+            // doubling after every clean round, and halve on the first sign of
+            // loss — then additive-increase, so it settles just under capacity
+            // instead of oscillating. Loss is read from
+            // HeldRetransmitCount: a held chunk is only ever re-sent because
+            // the wheel did not ack it.
+            //
+            // NOTE for future tuning: judge any change by the ACK rate, never
+            // the byte rate. Overrunning the wheel makes outbound B/s go UP
+            // while useful progress goes DOWN — which is exactly how the 512
+            // experiment looked like it was working.
+            const int InitialBacklogWindow = 96;
+            const int MinBacklogWindow = 48;
+            const int MaxBacklogWindow = 512;
+            const int BacklogWindowGrowth = 16;
+            int backlogWindow = InitialBacklogWindow;
+            bool slowStart = true;
+            const int BacklogStallTimeoutMs = 90000;
+            int seq2 = _outboundSeq;
+            _ackProgress.Reset();
+            _subMsg2Response.Reset();
+            for (int chunkIdx = 0; chunkIdx < upload.SubMsg2Chunks.Count; chunkIdx++)
+            {
+                long retxBefore = _getHeldRetransmitCount();
+                EmitSubMsg(upload.SubMsg2Chunks[chunkIdx], uploadSess, ref seq2, InterFrameDelayMs);
+                if (_shouldAbort()) return UploadOutcome.Aborted;
+                Volatile.Write(ref _progressChunksSent, chunkIdx + 1);
+
+                // Window pacing: wait for the wheel's cumulative fc-acks to
+                // drain the retransmit backlog before the next sub-msg.
+                //
+                // The liveness clock resets on the ACKED-CHUNK COUNT, not on the
+                // backlog shrinking. Those look the same from the queue depth
+                // but are opposites: the depth also falls when the retransmitter
+                // evicts a chunk it has given up on. Keying on the depth meant
+                // every eviction re-armed this deadline, so the abort never
+                // fired — bundle 8MKDKT7R ran 6 minutes against a wheel ack
+                // frozen at seq 1391, emitting 1082 chunks past it, and the
+                // queue depth kept dipping as chunks aged out. The hold taken in
+                // SendDashboardUpload also stops that eviction now, so the depth
+                // is honest again; keying on real acks makes it not matter.
+                int backlog = _getRetransmitBacklog();
+                long acked = _getAckedChunkCount();
+                DateTime stallDeadline = DateTime.UtcNow.AddMilliseconds(BacklogStallTimeoutMs);
+                while (backlog > backlogWindow && !_shouldAbort())
+                {
+                    Thread.Sleep(50);
+                    backlog = _getRetransmitBacklog();
+                    long ackedNow = _getAckedChunkCount();
+                    if (ackedNow != acked)
+                    {
+                        acked = ackedNow;
+                        stallDeadline = DateTime.UtcNow.AddMilliseconds(BacklogStallTimeoutMs);
+                    }
+                    if (DateTime.UtcNow >= stallDeadline)
+                    {
+                        MozaLog.Warn(
+                            $"[AZOM] Session 0x{uploadSess:X2} sub-msg 2 chunk {chunkIdx + 1}/{upload.SubMsg2Chunks.Count}: " +
+                            $"wheel stopped fc-acking ({backlog} chunks unacked, no ack for {BacklogStallTimeoutMs}ms) — aborting upload");
+                        _outboundSeq = seq2;
+                        _sendSessionEnd(uploadSess, (ushort)_outboundSeq);
+                        return UploadOutcome.SubMsg2AckTimeout;
+                    }
+                }
+
+                // Round done — adjust the window. Any held-session retransmit
+                // during it means the wheel dropped something, so we were over
+                // capacity: leave slow-start and halve. Otherwise probe upward.
+                int prevWindow = backlogWindow;
+                if (_getHeldRetransmitCount() != retxBefore)
+                {
+                    slowStart = false;
+                    backlogWindow = Math.Max(MinBacklogWindow, backlogWindow / 2);
+                }
+                else if (slowStart)
+                {
+                    backlogWindow = Math.Min(MaxBacklogWindow, backlogWindow * 2);
+                }
+                else
+                {
+                    backlogWindow = Math.Min(MaxBacklogWindow,
+                        backlogWindow + BacklogWindowGrowth);
+                }
+                if (backlogWindow != prevWindow)
+                    MozaLog.Debug(
+                        $"[AZOM] Upload window {prevWindow} -> {backlogWindow} chunks " +
+                        $"({(slowStart ? "slow-start" : "congestion-avoidance")}, " +
+                        $"round {chunkIdx + 1}/{upload.SubMsg2Chunks.Count})");
+            }
+            _outboundSeq = seq2;
+
+            // Completion wait: type=0x11 (or type=0x01 with bw==total — the
+            // walker fires _subMsg2Response for both). Rolling liveness: every
+            // fresh type=0x01 progress ack (big payloads: one per 4092-byte
+            // stride as the wheel writes) extends the deadline; observed
+            // post-receipt completion latency is ≤10 s on small payloads and
+            // per-stride ≤40 s on the 104 KB ground truth.
+            {
+                DateTime liveDeadline = DateTime.UtcNow.AddMilliseconds(CompleteAckTimeoutMs);
+                while (!_subMsg2Response.IsSet && !_shouldAbort())
+                {
+                    if (_subMsg2Response.Wait(1000)) break;
+                    if (_ackProgress.IsSet)
+                    {
+                        _ackProgress.Reset();
+                        // Each progress ack buys the next round its own budget.
+                        liveDeadline = DateTime.UtcNow.AddMilliseconds(ProgressAckTimeoutMs);
+                        MozaLog.Debug(
+                            $"[AZOM] Session 0x{uploadSess:X2} progress: bytes_written={LastBytesWritten}/{LastTotalSize}");
+                    }
+                    if (DateTime.UtcNow >= liveDeadline)
+                    {
+                        MozaLog.Warn(
+                            $"[AZOM] Session 0x{uploadSess:X2} completion timeout " +
+                            $"(last bw={LastBytesWritten} total={LastTotalSize}) — aborting upload");
+                        _sendSessionEnd(uploadSess, (ushort)_outboundSeq);
+                        return UploadOutcome.SubMsg2AckTimeout;
+                    }
+                }
+                if (_shouldAbort()) return UploadOutcome.Aborted;
+            }
+
+            MozaLog.Debug(
+                $"[AZOM] Session 0x{uploadSess:X2} sub-msg 2 complete-ack received " +
+                $"(bytes_written={LastBytesWritten} total={LastTotalSize} status=0x{LastStatusByte:X2})");
+
+            // End marker on the upload session.
+            _sendSessionEnd(uploadSess, (ushort)_outboundSeq);
+
+            if (_endReceived.Wait(1000))
+                MozaLog.Debug($"[AZOM] Dashboard upload complete (session 0x{uploadSess:X2} closed by device)");
+            else
+                MozaLog.Debug("[AZOM] Dashboard upload finished; device did not echo end marker within 1s");
+
+            // Wheel's 2025-11 firmware fires a post-upload state refresh on
+            // the upload session (updated directory listing) and session 0x09
+            // (updated configJson state blob including the newly-uploaded
+            // dashboard). Continue pumping so OnMessageDuringPreamble can ack
+            // + consume those chunks before the preamble phase ends.
+            int preRefreshCount = _inboundMsgCount;
+            Thread.Sleep(500);
+            int refreshChunks = _inboundMsgCount - preRefreshCount;
+            if (refreshChunks > 0)
+                MozaLog.Debug(
+                    $"[AZOM] Session 0x{uploadSess:X2} post-upload state refresh: {refreshChunks} chunks");
+
+            return UploadOutcome.Succeeded;
+        }
+
+        /// <summary>
+        /// Compare the active mzdash MD5 against the wheel's reported hash from
+        /// its last session 0x09 state blob. Wheel stores hash as ASCII-hex of
+        /// ASCII-hex of MD5. Returns true when the wheel already has this exact
+        /// dashboard loaded in enableManager.
+        /// </summary>
+        private bool CanSkipUpload(byte[] content)
+        {
+            var state = _getConfigJsonState();
+            if (state == null || state.EnabledDashboards.Count == 0) return false;
+            byte[] md5 = FileTransferBuilder.ComputeMd5(content);
+            string md5Hex = FileTransferBuilder.Md5Hex(md5);
+            string wireHash = AsciiHexOfAsciiHex(md5Hex);
+            foreach (var entry in state.EnabledDashboards)
+            {
+                if (string.Equals(entry.Hash, wireHash, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static string AsciiHexOfAsciiHex(string ascii)
+        {
+            var sb = new System.Text.StringBuilder(ascii.Length * 2);
+            foreach (var c in ascii) sb.Append(((byte)c).ToString("x2"));
+            return sb.ToString();
+        }
+
+        private static int CountOccurrences(string haystack, string needle)
+        {
+            if (string.IsNullOrEmpty(haystack) || string.IsNullOrEmpty(needle)) return 0;
+            int count = 0, idx = 0;
+            while ((idx = haystack.IndexOf(needle, idx, StringComparison.Ordinal)) != -1)
+            {
+                count++;
+                idx += needle.Length;
+            }
+            return count;
+        }
+    }
+}
