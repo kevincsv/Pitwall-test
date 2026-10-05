@@ -80,6 +80,15 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), 0, 0, uintptr(nw), uintptr(nh), swpNoMove|swpNoActivate)
 		})
 	})
+	// resize from any edge: the page sends the new position and size
+	wv.Bind("pwRect", func(nx, ny, nw, nh int) {
+		if nw < 120 || nh < 50 || nw > 6000 || nh > 4000 {
+			return
+		}
+		wv.Dispatch(func() {
+			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(nx), uintptr(ny), uintptr(nw), uintptr(nh), swpNoActivate)
+		})
+	})
 	wv.Bind("pwVisible", func(on bool) {
 		wv.Dispatch(func() {
 			if on {

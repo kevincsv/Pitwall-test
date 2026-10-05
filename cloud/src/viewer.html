@@ -134,7 +134,7 @@ function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv)
   x.fillStyle=css("--muted");x.font="11px "+css("--f-data");x.fillText(CH==="speed"?Math.round(vmax)+" km/h":CH==="gear"?"8":"100%",4,12);
   [A,B].forEach((s,i)=>{if(!s)return;const plot=(f,col,dash)=>{x.strokeStyle=col;x.setLineDash(dash||[]);x.lineWidth=1.6;x.beginPath();s.d.forEach((r,k)=>{const X=k/(n-1)*w,Y=h-f(r)/vmax*(h-6)-3;k?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke();x.setLineDash([])};
     if(CH==="pedals"){plot(r=>r[1]*100,i?css("--blue"):css("--good"));plot(r=>r[2]*100,i?css("--pb"):css("--bad"),i?[4,3]:[])}else plot(val,cols[i])});
-  if(A&&B){const cum=s=>{let t=0;return s.d.map(r=>t+=s.bin/Math.max(r[0],5))};const ca=cum(A),cb=cum(B),m=Math.min(ca.length,cb.length);const dd=[...Array(m)].map((_,k)=>cb[k]-ca[k]);const lim=Math.max(.2,...dd.map(Math.abs));
+  if(A&&B){const cum=s=>{if(s.d.length&&s.d[0].length>5)return s.d.map(r=>r[5]);let t=0;return s.d.map(r=>t+=s.bin/Math.max(r[0],5))}; /* newer laps carry the exact time at each 5 m point */const ca=cum(A),cb=cum(B),m=Math.min(ca.length,cb.length);const dd=[...Array(m)].map((_,k)=>cb[k]-ca[k]);const lim=Math.max(.2,...dd.map(Math.abs));
     y.strokeStyle=css("--line");y.beginPath();y.moveTo(0,h2/2);y.lineTo(w2,h2/2);y.stroke();y.strokeStyle=css("--accent");y.lineWidth=1.6;y.beginPath();dd.forEach((v,k)=>{const X=k/(n-1)*w2,Y=h2/2-v/lim*(h2/2-4);k?y.lineTo(X,Y):y.moveTo(X,Y)});y.stroke();
     y.fillStyle=css("--muted");y.font="11px "+css("--f-data");y.fillText("+"+lim.toFixed(2)+" s",4,12);y.fillText("final "+(dd[m-1]>=0?"+":"")+dd[m-1].toFixed(3)+" s",w2-110,h2-6)}}
 addEventListener("resize",draw);

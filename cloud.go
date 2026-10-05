@@ -56,7 +56,7 @@ type cloudLap struct {
 
 type lapTrace struct {
 	Bin int          `json:"bin"`
-	D   [][5]float64 `json:"d"` // speed m/s, throttle, brake, gear, steering rad
+	D   [][6]float64 `json:"d"` // speed m/s, throttle, brake, gear, steering rad, lap time s
 }
 
 type cloudItem struct {
@@ -273,20 +273,53 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 // ---------- lap recorder ----------
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
-	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew"}
+	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime"}
 
 const lapBin = 5 // metres
 
 type lapRec struct {
-	n               int
-	bins            [][5]float64
-	filled          int
-	fuel0, vmax     float64
-	inc0            float64
-	pit, bad        bool
-	t0              float64
-	secT            []float64
-	lastPct, lastSD float64
+	n                    int
+	bins                 [][6]float64 // speed, throttle, brake, gear, steering, lap time at the 5 m point
+	fuel0, vmax          float64
+	inc0                 float64
+	pit, bad             bool
+	hasLast              bool
+	lastD, lastT, lastSp float64
+}
+
+// add records one telemetry sample at lap distance d (m) and lap time t (s).
+// Every 5 m point crossed since the previous sample gets its time
+// interpolated, so laps can be compared to the millisecond.
+func (r *lapRec) add(d, t, speed float64, ch [4]float64) {
+	if d < 0 || t < 0 || (d < 60 && t > 8) { // the previous lap's clock can linger after the line
+		return
+	}
+	if r.hasLast && t < r.lastT { // reset or tow
+		r.hasLast = false
+	}
+	b := int(d / lapBin)
+	if b > 4000 {
+		return
+	}
+	for len(r.bins) <= b {
+		r.bins = append(r.bins, [6]float64{-1})
+	}
+	set := func(k int, sp, tt float64) {
+		if r.bins[k][0] < 0 {
+			r.bins[k] = [6]float64{round(sp, 2), round(ch[0], 3), round(ch[1], 3), ch[2], round(ch[3], 3), round(tt, 4)}
+		}
+	}
+	if r.hasLast && d >= r.lastD && d-r.lastD < 150 {
+		for k := int(r.lastD/lapBin) + 1; k <= b; k++ {
+			f := (float64(k*lapBin) - r.lastD) / math.Max(d-r.lastD, 1e-6)
+			set(k, r.lastSp+(speed-r.lastSp)*f, r.lastT+(t-r.lastT)*f)
+		}
+	} else if b == 0 {
+		set(0, speed, math.Max(0, t-d/math.Max(speed, 1)))
+	} else {
+		set(b, speed, t)
+	}
+	r.hasLast, r.lastD, r.lastT, r.lastSp = true, d, t, speed
 }
 
 func lapRecorder() {
@@ -302,7 +335,7 @@ func lapRecorder() {
 		}
 		v := telNums(lapVars)
 		lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
-		onTrack, sn, stime := v[12] > 0, int(v[13]), v[14]
+		onTrack, sn := v[12] > 0, int(v[13])
 		if sn != sessNum {
 			tel.mu.RLock()
 			y := tel.session
@@ -324,22 +357,12 @@ func lapRecorder() {
 					finishLap(done, s, fuelNow)
 				}()
 			}
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], t0: stime, lastPct: pct}
+			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11]}
 		}
 		if pct < 0 || dist < 0 {
 			continue
 		}
-		b := int(dist / lapBin)
-		if b > 4000 {
-			continue
-		}
-		for len(cur.bins) <= b {
-			cur.bins = append(cur.bins, [5]float64{-1})
-		}
-		if cur.bins[b][0] < 0 {
-			cur.filled++
-		}
-		cur.bins[b] = [5]float64{round(speed, 2), round(v[4], 3), round(v[5], 3), v[6], round(v[7], 3)}
+		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
 		cur.vmax = math.Max(cur.vmax, speed)
 		if v[10] > 0 {
 			cur.pit = true
@@ -347,13 +370,6 @@ func lapRecorder() {
 		if v[11] > cur.inc0 {
 			cur.bad = true
 		}
-		// sector times at a third and two thirds of the lap
-		for k, edge := range []float64{1.0 / 3, 2.0 / 3} {
-			if len(cur.secT) == k && cur.lastPct < edge && pct >= edge && pct-cur.lastPct < 0.2 {
-				cur.secT = append(cur.secT, stime)
-			}
-		}
-		cur.lastPct = pct
 	}
 }
 
@@ -376,29 +392,39 @@ func finishLap(r *lapRec, s cloudSession, fuelNow float64) {
 			gap = 0
 		}
 	}
-	first := [5]float64{}
-	for _, b := range r.bins {
-		if b[0] >= 0 {
-			first = b
-			break
-		}
-	}
+	// holes (lost samples) are filled in a straight line between the points around them
+	prev := -1
 	for i := range r.bins {
 		if r.bins[i][0] < 0 {
-			if i > 0 {
-				r.bins[i] = r.bins[i-1]
-			} else {
-				r.bins[i] = first
+			continue
+		}
+		if prev >= 0 && i-prev > 1 {
+			for k := prev + 1; k < i; k++ {
+				f := float64(k-prev) / float64(i-prev)
+				for c := 0; c < 6; c++ {
+					r.bins[k][c] = r.bins[prev][c] + (r.bins[i][c]-r.bins[prev][c])*f
+				}
+			}
+		} else if prev < 0 {
+			for k := 0; k < i; k++ {
+				r.bins[k] = r.bins[i]
 			}
 		}
+		prev = i
+	}
+	if prev < 0 {
+		return
+	}
+	for k := prev + 1; k < len(r.bins); k++ {
+		r.bins[k] = r.bins[prev]
 	}
 	l := cloudLap{ID: fmt.Sprintf("%s-%d", s.ID, r.n), N: r.n, Time: round(lt, 3), Valid: !r.pit && !r.bad && maxGap*lapBin <= 40,
 		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Trace: &lapTrace{Bin: lapBin, D: r.bins}}
-	if len(r.secT) == 2 {
-		s1, s2 := r.secT[0]-r.t0, r.secT[1]-r.secT[0]
-		if s1 > 0 && s2 > 0 && lt-s1-s2 > 0 {
-			l.Sectors = []float64{round(s1, 3), round(s2, 3), round(lt-s1-s2, 3)}
-		}
+	// sectors: thirds of the lap distance, from the interpolated times
+	n := len(r.bins)
+	t1, t2 := r.bins[n/3][5], r.bins[2*n/3][5]
+	if t1 > 0 && t2 > t1 && lt > t2 {
+		l.Sectors = []float64{round(t1, 3), round(t2-t1, 3), round(lt-t2, 3)}
 	}
 	if l.Fuel < 0 {
 		l.Fuel = 0
