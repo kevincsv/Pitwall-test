@@ -4,7 +4,7 @@ package main
 //
 // Two ways to drive them, chosen per profile:
 //   - "simhub": SimHub's ShakeIt does the effects (it also drives Simsonn VAM
-//     Pro and, through AZOM, MOZA pedal haptics). Pitlane HQ mutes, unmutes and
+//     Pro and MOZA pedal haptics). Pitlane HQ mutes, unmutes and
 //     sets the overall strength through SimHub actions.
 //   - "engine": Pitlane HQ's own effects engine sends the effects as sound to a
 //     sound card or USB audio box wired to an amplifier and bass shakers

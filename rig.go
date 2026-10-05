@@ -1,7 +1,7 @@
 package main
 
-// Rig: SimHub (dashboards, overlays, LEDs), the AZOM plugin for MOZA wheels
-// and MOZA Pit House / Dashboard Studio, controlled from Pitlane HQ.
+// Rig: SimHub (dashboards, overlays, LEDs) and, for those who turn the MOZA tools
+// on, MOZA Pit House / Dashboard Studio, controlled from Pitlane HQ.
 //
 // None of these programs has a public control API, so Pitlane HQ uses what they
 // do offer: SimHub's command line (-triggeraction, -minimize, -switchgame),
@@ -30,10 +30,6 @@ var (
 	simhubPort   = 8888
 	simhubClient = &http.Client{Timeout: 800 * time.Millisecond}
 )
-
-// Common AZOM actions (see github.com/giantorth/AZOM, Integration/SimHubRegistrar.cs).
-var azomActions = []string{"AZOM.DashboardNext", "AZOM.DashboardPrev", "AZOM.WorkModeToggle", "AZOM.CalibrateCenter",
-	"AZOM.DisplayBrightness30", "AZOM.DisplayBrightness50", "AZOM.DisplayBrightness70", "AZOM.DisplayBrightness100"}
 
 func simhubExe() string {
 	if c, ok := catalogByID("simhub"); ok {
@@ -188,7 +184,7 @@ func mozaDashes() []mozaDash {
 	return out
 }
 
-// pitHouseRunning ignores AZOM's stand-in process, which has the same name.
+// pitHouseRunning: MOZA Pit House is open (a copy inside SimHub's folder does not count).
 func pitHouseRunning() bool {
 	for _, p := range procPaths("MOZA Pit House.exe") {
 		if !strings.Contains(strings.ToLower(p), `\simhub\`) {
@@ -244,10 +240,9 @@ func registerRigRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/simhub", func(w http.ResponseWriter, r *http.Request) {
 		dir := simhubDir()
 		running := runningProcs()
-		azom := dir != "" && (fileExists(filepath.Join(dir, "MozaPlugin.dll")) || fileExists(filepath.Join(dir, "AZOM.dll")))
 		writeJSON(w, map[string]any{
 			"installed": dir != "", "running": running["simhubwpf.exe"], "web": simhubWebUp(), "port": simhubPort,
-			"dashes": simhubDashes(dir), "azom": azom, "azomActions": azomActions, "azomPkg": azomStatus(), "pitHouse": pitHouseRunning(), "windows": appsSupported,
+			"dashes": simhubDashes(dir), "windows": appsSupported,
 		})
 	})
 	mux.HandleFunc("/api/simhub/preview", func(w http.ResponseWriter, r *http.Request) {
@@ -323,15 +318,6 @@ func registerRigRoutes(mux *http.ServeMux) {
 			} else {
 				err = errors.New("SimHub is not installed on this PC")
 			}
-		case "azomInstall", "azomRestore":
-			// installing AZOM from Pitlane HQ is switched off for now; removing still works
-			err = errors.New("installing AZOM from Pitlane HQ is not available")
-		case "azomRemove":
-			err = azomJob(strings.ToLower(strings.TrimPrefix(in.Action, "azom")))
-		case "closePitHouse": // AZOM and Pit House cannot share the wheel
-			n := killProcs("MOZA Pit House.exe", `\simhub\`)
-			writeJSON(w, map[string]any{"result": "ok", "closed": n})
-			return
 		default:
 			err = errors.New("unknown action")
 		}

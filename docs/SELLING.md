@@ -17,12 +17,11 @@
 - **Make the GitHub repository private** and host the downloads yourself (e.g. Cloudflare R2). Then set `updateRepo`/download URLs accordingly (ask Claude to switch the updater to your host).
 - **Code signing** (avoids the SmartScreen warning): Azure Trusted Signing or an OV/EV certificate; add a signing step to `.github/workflows/windows.yml` for `PitlaneHQ.exe` and `PitlaneHQ-Setup.exe`.
 - Have a lawyer review `installer/EULA.txt` and `docs/legal/PRIVACY.md`; add your company name and contact e-mail.
-- AZOM is GPL v3: it is an optional installer component with its licence; keep offering its source link.
 - Ask iRacing about commercial use of the Data API (account/results features).
 
 ## 3. Installer
 
-CI builds `PitlaneHQ-Setup.exe` (Inno Setup, `installer/PitlaneHQ.iss`): per-user install (no administrator), Start menu and desktop shortcuts, optional "start with Windows", optional AZOM component, uninstaller. The built-in updater keeps working in the installed folder.
+CI builds `PitlaneHQ-Setup.exe` (Inno Setup, `installer/PitlaneHQ.iss`): per-user install (no administrator), Start menu and desktop shortcuts, optional "start with Windows", uninstaller. The built-in updater keeps working in the installed folder.
 
 ## 4. Phone PIN
 

@@ -1,7 +1,7 @@
 package main
 
 // Per-car rig profiles: when you get in a car, Pitlane HQ applies what you
-// saved for it: which overlays open, the haptics settings and SimHub/AZOM
+// saved for it: which overlays open, the haptics settings and SimHub
 // actions to run (for example a wheel screen page or a brightness).
 
 import (

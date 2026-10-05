@@ -65,7 +65,7 @@ var appCatalog = []catalogApp{
 		Match: regexp.MustCompile(`(?i)track\s*impulse`), What: [2]string{"Overlays", "Overlays"}},
 	{ID: "simhub", Name: "SimHub", Procs: []string{"simhubwpf.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\SimHub\SimHubWPF.exe`, `%ProgramFiles%\SimHub\SimHubWPF.exe`},
-		Match: regexp.MustCompile(`(?i)^simhub$`), MinArgs: "-minimize", What: [2]string{"Dashboards, LEDs and AZOM for MOZA", "Dashboards, LEDs y AZOM para MOZA"}},
+		Match: regexp.MustCompile(`(?i)^simhub$`), MinArgs: "-minimize", What: [2]string{"Dashboards and LEDs", "Dashboards y LEDs"}},
 	{ID: "pithouse", Name: "MOZA Pit House", Procs: []string{"moza pit house.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\MOZA Pit House\MOZA Pit House.exe`, `%ProgramFiles%\MOZA Pit House\MOZA Pit House.exe`},
 		Match: regexp.MustCompile(`(?i)pit\s*house`), What: [2]string{"MOZA settings and firmware", "Ajustes y firmware de MOZA"}},
