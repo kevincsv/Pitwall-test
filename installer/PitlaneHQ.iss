@@ -59,6 +59,7 @@ Source: "..\out\PitlaneHQ.exe"; DestDir: "{app}"; Components: app; Flags: ignore
 Source: "..\out\README.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 Source: "EULA.txt"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 Source: "..\docs\legal\PRIVACY.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
+Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Components: app; Flags: ignoreversion
 Source: "..\out\MozaPlugin.dll"; DestDir: "{app}\azom"; Components: azom; Flags: ignoreversion
 Source: "..\out\AZOM-LICENSE.txt"; DestDir: "{app}\azom"; Components: azom; Flags: ignoreversion
 Source: "..\out\AZOM-README.md"; DestDir: "{app}\azom"; Components: azom; Flags: ignoreversion
