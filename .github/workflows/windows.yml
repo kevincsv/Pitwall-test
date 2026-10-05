@@ -13,9 +13,11 @@ on:
       - "azom/**"
       - "azomdist/**"
       - ".github/workflows/windows.yml"
+      - ".github/scripts/**"
+      - ".github/release-notes.md"
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   AZOM_UPSTREAM_COMMIT: 28a089ca6fd7fef0b6a18ce3ec674b2c67a0ca64
@@ -77,3 +79,11 @@ jobs:
         with:
           name: PitlaneHQ-windows
           path: out/
+
+      - name: Publish on the downloads page
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
+          bash .github/scripts/publish.sh PitlaneHQ-windows.zip

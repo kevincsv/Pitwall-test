@@ -6,17 +6,25 @@ the site from any phone, tablet or PC to see your sessions, your records for
 each track and car, and to compare two laps (speed, throttle and brake, gear,
 time difference). It runs free on Cloudflare (Workers + D1) for personal use.
 
-## Create it (once)
+## Create it with one click
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kevincsv/Pitwall-test/tree/pitlanehq-latest/cloud)
+
+Sign in to (or create) your free Cloudflare account, keep the suggested names,
+and paste the key from Pitlane HQ → Settings → Connections → Create a key when
+it asks for `PITLANE_KEY`. Cloudflare creates the database, the tables and the
+site, and gives you its address (…workers.dev) to paste in Pitlane HQ.
+
+## Create it by hand (once)
 
 Needs a free Cloudflare account and Node.js on any PC.
 
     cd cloud
     npm install
     npx wrangler login
-    npx wrangler d1 create pitlanehq      # paste the database_id into wrangler.toml
-    npm run db:init
+    npx wrangler d1 create pitlanehq      # add database_id = "…" under [[d1_databases]] in wrangler.toml
     npx wrangler secret put PITLANE_KEY   # the key from Pitlane HQ → Account → Pitlane HQ Cloud → Create a key
-    npx wrangler deploy                   # prints https://pitlanehq.<you>.workers.dev
+    npm run deploy                        # creates the tables, prints https://pitlanehq.<you>.workers.dev
 
 Then in Pitlane HQ → Account → Pitlane HQ Cloud: paste the address and the key,
 tick **Upload my laps**, save and press **Test connection**.

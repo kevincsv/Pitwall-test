@@ -5,8 +5,10 @@ compatibility_date = "2026-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "pitlanehq"
-# paste the id printed by `npx wrangler d1 create pitlanehq`
-database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+# No database_id: the "Deploy to Cloudflare" button creates the database for you.
+# Deploying by hand? Add the id printed by `npx wrangler d1 create pitlanehq`:
+# database_id = "..."
 
 # secrets (set with `npx wrangler secret put NAME`):
 #   PITLANE_KEY  key that PitlaneHQ.exe uses to upload and you use to sign in

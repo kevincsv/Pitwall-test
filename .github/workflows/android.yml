@@ -8,9 +8,11 @@ on:
       - "android/**"
       - "ios/PitWall/connect.html"
       - ".github/workflows/android.yml"
+      - ".github/scripts/**"
+      - ".github/release-notes.md"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -33,3 +35,7 @@ jobs:
         with:
           name: PitlaneHQ-android
           path: PitlaneHQ-android.apk
+      - name: Publish on the downloads page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/publish.sh PitlaneHQ-android.apk

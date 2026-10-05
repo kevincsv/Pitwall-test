@@ -2,6 +2,15 @@
 
 **English** · [Español](#español)
 
+## Download / Descargar
+
+Everything is on one page / Todo en una sola página: **https://github.com/kevincsv/Pitwall-test/releases/tag/pitlanehq-latest**
+
+- Windows: [PitlaneHQ-windows.zip](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-windows.zip)
+- Android: [PitlaneHQ-android.apk](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-android.apk)
+- iPhone / iPad: [PitlaneHQ.ipa](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ.ipa) (Sideloadly)
+- Web version / Versión web: [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kevincsv/Pitwall-test/tree/pitlanehq-latest/cloud)
+
 ## Start
 
 1. Copy `PitlaneHQ.exe` to the PC where you run iRacing (any folder, no install).

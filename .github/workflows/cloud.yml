@@ -40,8 +40,7 @@ jobs:
       - name: Publish to Cloudflare
         if: env.CLOUDFLARE_API_TOKEN != '' && env.D1_ID != ''
         run: |
-          sed -i "s/00000000-0000-0000-0000-000000000000/$D1_ID/" wrangler.toml
-          npx wrangler d1 execute pitlanehq --remote --file schema.sql
-          npx wrangler d1 execute pitlanehq --remote --file migrations/0002_team.sql || true
+          sed -i "s/^migrations_dir = \"migrations\"/migrations_dir = \"migrations\"\ndatabase_id = \"$D1_ID\"/" wrangler.toml
+          npx wrangler d1 migrations apply DB --remote
           if [ -n "$PITLANE_KEY" ]; then echo "$PITLANE_KEY" | npx wrangler secret put PITLANE_KEY; fi
           npx wrangler deploy
