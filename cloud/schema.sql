@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   air_temp REAL,
   track_temp REAL,
   laps INTEGER DEFAULT 0,
-  best REAL
+  best REAL,
+  uploader TEXT                   -- 'owner' or the team member's name
 );
 CREATE INDEX IF NOT EXISTS sessions_started ON sessions(started DESC);
 CREATE INDEX IF NOT EXISTS sessions_combo ON sessions(track, car);
@@ -29,3 +30,10 @@ CREATE TABLE IF NOT EXISTS laps (
   created INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS laps_session ON laps(session_id, n);
+
+-- team members: each has their own key (only its hash is stored)
+CREATE TABLE IF NOT EXISTS members (
+  name TEXT PRIMARY KEY,
+  key_hash TEXT NOT NULL UNIQUE,
+  created INTEGER NOT NULL
+);

@@ -22,14 +22,14 @@ var widgetRe = regexp.MustCompile(`^([a-z]{2,12}|\*)$`)
 // Default window sizes for each widget.
 var overlaySizes = map[string][2]int{"flag": {520, 90}, "dash": {560, 230}, "timing": {440, 190}, "map": {440, 480}, "relative": {600, 380}, "fuel": {420, 220},
 	"engine": {320, 260}, "tyres": {420, 260}, "inputs": {560, 210}, "standings": {720, 640}, "radar": {260, 300}, "boost": {360, 170}, "telemetry": {420, 300}, "compare": {680, 320}, "gg": {280, 300}, "deltabar": {520, 90}, "stats": {420, 220},
-	"pit": {440, 260}, "sectors": {560, 150}, "gaps": {560, 260}, "incidents": {380, 300}, "simhub": {800, 480}}
+	"pit": {440, 260}, "sectors": {560, 150}, "gaps": {560, 260}, "incidents": {380, 300}, "coach": {520, 200}, "simhub": {800, 480}}
 
 func itoa(i int) string { return strconv.Itoa(i) }
 
 // Each overlay gets its own loopback address (127.0.0.2, 127.0.0.3, ...). Browsers
 // allow only 6 open connections per host, and every overlay keeps one open for
 // the live stream, so sharing one address would freeze overlays beyond the sixth.
-var overlayOrder = []string{"flag", "dash", "timing", "map", "relative", "compare", "radar", "boost", "inputs", "fuel", "engine", "tyres", "standings", "telemetry", "gg", "deltabar", "stats", "pit", "sectors", "gaps", "incidents", "simhub"}
+var overlayOrder = []string{"flag", "dash", "timing", "map", "relative", "compare", "radar", "boost", "inputs", "fuel", "engine", "tyres", "standings", "telemetry", "gg", "deltabar", "stats", "pit", "sectors", "gaps", "incidents", "simhub", "coach"}
 
 func overlayHost(name string) string {
 	for i, n := range overlayOrder {

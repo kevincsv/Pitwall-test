@@ -90,6 +90,19 @@ You can start them minimised, change the order, start them all at once, remove t
 - **SimHub ShakeIt** (recommended for Simsonn Pro Haptics and MOZA pedal haptics through AZOM): mute, unmute and change the strength of bass shakers and motors from Pitlane HQ. Warns you when SIMSONN Manager is open, because Simsonn asks not to use it together with SimHub.
 - **Pitlane HQ engine**: Pitlane HQ's own effects for bass shakers on any sound card or USB sound box (2, 4, 6 or 8 channels): engine, gear shifts, road and kerbs (left/right), ABS, impacts and off track, each with strength, frequency, the channels it goes to and a **Feel it** test.
 
+## Coaching, strategy and more
+
+- **Voice engineer** (Settings → General): talks through your speakers or headphones: last lap time and gap to your best, fuel and whether you must stop, gaps ahead and behind, flags, incidents and one braking tip per lap. Choose what it says, voice, language and speed.
+- **Braking coach** (Race → Braking coach, and a Live widget): compares a lap with your best lap or a Garage 61 lap corner by corner: braking point (metres earlier or later), entry and minimum speed, time won or lost, and a tip for the three corners that cost the most.
+- **Exact deltas**: every lap keeps the time at each 5 m, interpolated between telemetry samples, so comparisons are accurate to about a millisecond. The delta bar can compare with your best, the session best, the optimal lap or Pitlane HQ's own recorded best, with the range you choose.
+- **Endurance strategy** (Race → Strategy): race length, drivers and their maximum stint, fuel, tank, pit loss, refuelling speed and tyre changes give a stint plan (laps, fuel to add, tyres, stop time) that follows the race live ("box in 9").
+- **Goals** (Account → Goals): iRating, licence and safety rating, races per week, incidents per race and lap time targets per track and car, with progress.
+- **Car profiles** (Rig → Car profiles): save overlays, haptics and SimHub/AZOM actions for each car; they are applied when you get in it.
+- **Setups** (Rig → Setups): every setup in Documents\iRacing\setups with notes, tags and your best lap with it at each track.
+- **Team on the web**: your Pitlane HQ Cloud can have team mates with their own keys; records per track and car for the whole team and comparison with the team's fastest lap.
+- **Settings** now holds everything you set up once: general, profiles, connections (iRacing, Garage 61, Pitlane HQ Cloud), phone and engineer view.
+- **Inputs widget**: choose gear, speed, wheel and angle, pedal bars (vertical or horizontal), values, ABS light, trace lines (incl. steering and ABS zones), trace length and height. Live blocks resize from their corner; overlays from any edge in edit mode.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -111,11 +124,11 @@ Settings → **Engineer view**.
 
 ## Garage 61 (optional)
 
-Create a personal token at https://garage61.net/developer and paste it in Account → Garage 61. Then use **+ Garage 61** in the lap comparison to load a reference lap for your car and track. The token is stored encrypted in your profile folder and only sent to Garage 61.
+Create a personal token at https://garage61.net/developer and paste it in Settings → Connections → Garage 61. Then use **+ Garage 61** in the lap comparison to load a reference lap for your car and track. The token is stored encrypted in your profile folder and only sent to Garage 61.
 
 ## iRacing account (optional)
 
-iRacing requires a registered OAuth client to read account data. As of October 2026 iRacing has **paused creating new client IDs** while it reviews third-party use (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Until then the Series tab shows a real sample season. When it reopens, request a **password limited** client for personal use. Enter the Client ID, secret, your iRacing email and password once in the Account tab. The password is only sent to iRacing and never saved; the sign-in is stored encrypted in your profile folder.
+iRacing requires a registered OAuth client to read account data. As of October 2026 iRacing has **paused creating new client IDs** while it reviews third-party use (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Until then the Series tab shows a real sample season. When it reopens, request a **password limited** client for personal use. Enter the Client ID, secret, your iRacing email and password once in Settings → Connections. The password is only sent to iRacing and never saved; the sign-in is stored encrypted in your profile folder.
 
 ## iPhone / iPad app
 
@@ -217,6 +230,19 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **SimHub ShakeIt** (recomendado para Simsonn Pro Haptics y hápticos de pedales MOZA vía AZOM): silencia, activa y cambia la intensidad de bass shakers y motores desde Pitlane HQ. Avisa si SIMSONN Manager está abierto, porque Simsonn pide no usarlo a la vez que SimHub.
 - **Motor de Pitlane HQ**: efectos propios para bass shakers en cualquier tarjeta o caja de sonido USB (2, 4, 6 u 8 canales): motor, cambios de marcha, asfalto y pianos (izquierda/derecha), ABS, impactos y fuera de pista, cada uno con fuerza, frecuencia, los canales a los que va y un botón **Probar**.
 
+## Coach, estrategia y más
+
+- **Ingeniero por voz** (Ajustes → General): habla por tus altavoces o auriculares: tiempo de la última vuelta y diferencia con tu mejor, gasolina y si tienes que parar, gaps delante y detrás, banderas, incidentes y un consejo de frenada por vuelta. Eliges qué dice, la voz, el idioma y la velocidad.
+- **Coach de frenada** (Carrera → Coach de frenada, y widget en En vivo): compara una vuelta con tu mejor vuelta o una de Garage 61 curva a curva: punto de frenada (metros antes o después), velocidad de entrada y mínima, tiempo ganado o perdido, y un consejo para las tres curvas que más cuestan.
+- **Deltas exactos**: cada vuelta guarda el tiempo cada 5 m, interpolado entre muestras de telemetría, así las comparaciones son precisas a ~1 milésima. La barra de delta puede compararse con tu mejor vuelta, la mejor de la sesión, la vuelta óptima o la mejor grabada por Pitlane HQ, con el rango que elijas.
+- **Estrategia de resistencia** (Carrera → Estrategia): duración, pilotos y su stint máximo, gasolina, depósito, pérdida en boxes, velocidad de repostaje y cambio de ruedas dan un plan de stints (vueltas, gasolina a añadir, ruedas, tiempo de parada) que sigue la carrera en vivo ("box en 9").
+- **Objetivos** (Cuenta → Objetivos): iRating, licencia y safety rating, carreras por semana, incidentes por carrera y tiempos objetivo por circuito y coche, con progreso.
+- **Perfiles por coche** (Rig → Perfiles por coche): guarda overlays, hápticos y acciones de SimHub/AZOM para cada coche; se aplican al subirte a él.
+- **Setups** (Rig → Setups): todos los setups de Documentos\iRacing\setups con notas, etiquetas y tu mejor vuelta con cada uno en cada circuito.
+- **Equipo en la web**: tu Pitlane HQ Cloud puede tener compañeros con su propia clave; récords por circuito y coche de todo el equipo y comparación con la vuelta más rápida del equipo.
+- **Ajustes** reúne todo lo que se configura una vez: general, perfiles, conexiones (iRacing, Garage 61, Pitlane HQ Cloud), móvil y vista de ingeniero.
+- **Widget de pedales**: elige marcha, velocidad, volante y ángulo, barras de pedales (verticales u horizontales), valores, aviso de ABS, líneas de la gráfica (incluido volante y zonas de ABS), duración y altura. Los bloques de En vivo cambian de tamaño desde su esquina; los overlays desde cualquier borde en modo edición.
+
 ## Transmitir los datos (OBS, dashboards, scripts)
 
 Usa las direcciones de la tabla de arriba. Añade `http://localhost:8484` como Fuente de navegador en OBS para mostrar la app en tu stream.
@@ -230,11 +256,11 @@ Ajustes → **Vista de ingeniero**.
 
 ## Garage 61 (opcional)
 
-Crea un token personal en https://garage61.net/developer y pégalo en Cuenta → Garage 61. Después usa **+ Garage 61** en la comparación de vueltas para cargar una vuelta de referencia de tu coche y circuito. El token se guarda cifrado en la carpeta de tu perfil y solo se envía a Garage 61.
+Crea un token personal en https://garage61.net/developer y pégalo en Ajustes → Conexiones → Garage 61. Después usa **+ Garage 61** en la comparación de vueltas para cargar una vuelta de referencia de tu coche y circuito. El token se guarda cifrado en la carpeta de tu perfil y solo se envía a Garage 61.
 
 ## Cuenta de iRacing (opcional)
 
-iRacing exige un cliente OAuth registrado para leer datos de la cuenta. Desde octubre de 2026 iRacing tiene **pausada la creación de nuevos Client ID** mientras revisa el uso de terceros (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Mientras tanto, la pestaña Series muestra una temporada real de ejemplo. Cuando se reabra, solicita un cliente **password limited** para uso personal. Introduce el Client ID, el secret, tu email y tu contraseña de iRacing una vez en la pestaña Cuenta. La contraseña solo se envía a iRacing y nunca se guarda.
+iRacing exige un cliente OAuth registrado para leer datos de la cuenta. Desde octubre de 2026 iRacing tiene **pausada la creación de nuevos Client ID** mientras revisa el uso de terceros (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Mientras tanto, la pestaña Series muestra una temporada real de ejemplo. Cuando se reabra, solicita un cliente **password limited** para uso personal. Introduce el Client ID, el secret, tu email y tu contraseña de iRacing una vez en Ajustes → Conexiones. La contraseña solo se envía a iRacing y nunca se guarda.
 
 ## Descargar PitlaneHQ.exe con AZOM dentro
 

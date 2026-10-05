@@ -263,3 +263,12 @@ func killProcs(name, skipDir string) int {
 	}
 	return n
 }
+
+// documentsDir is the user's Documents folder (also when moved to OneDrive).
+func documentsDir() string {
+	p, err := windows.KnownFolderPath(windows.FOLDERID_Documents, 0)
+	if err != nil {
+		return ""
+	}
+	return p
+}

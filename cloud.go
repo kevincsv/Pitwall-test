@@ -429,6 +429,9 @@ func finishLap(r *lapRec, s cloudSession, fuelNow float64) {
 	if l.Fuel < 0 {
 		l.Fuel = 0
 	}
+	if l.Valid {
+		recordSetupLap(l.Time)
+	}
 	queueLap(s, l)
 }
 
@@ -481,8 +484,8 @@ func registerCloudRoutes(mux *http.ServeMux) {
 				}
 				var me struct{ Role string }
 				json.Unmarshal(b, &me)
-				if me.Role != "owner" {
-					fail(errors.New("this key can only read; use the owner key (PITLANE_KEY)"))
+				if me.Role == "viewer" {
+					fail(errors.New("this key can only read; use your own key (PITLANE_KEY or a team key)"))
 					return
 				}
 			case "newkey":

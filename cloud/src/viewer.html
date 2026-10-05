@@ -58,7 +58,7 @@ canvas{width:100%;display:block}
 <div class="wrap">
 <header>
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
-  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true">Sesiones</button><button type="button" data-v="bests" aria-selected="false">Récords</button><button type="button" id="out">Salir</button></nav>
+  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true">Sesiones</button><button type="button" data-v="bests" aria-selected="false">Récords</button><button type="button" data-v="team" aria-selected="false">Equipo</button><button type="button" id="out">Salir</button></nav>
 </header>
 
 <form class="login panel" id="login" hidden>
@@ -72,6 +72,7 @@ canvas{width:100%;display:block}
 <main id="app" hidden>
   <section id="v-sessions"></section>
   <section id="v-bests" hidden></section>
+  <section id="v-team" hidden></section>
   <section id="v-session" hidden></section>
 </main>
 </div>
@@ -85,12 +86,12 @@ const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim
 let KEY="";try{KEY=localStorage.getItem("plq.key")||""}catch(e){}
 async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:"respuesta no válida"}));if(r.status===401){logout();throw new Error("clave incorrecta")}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
 function logout(){KEY="";try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
-let ROLE="viewer";
+let ROLE="viewer",ME="";
 $("#login").onsubmit=async e=>{e.preventDefault();KEY=$("#key").value.trim();$("#loginErr").textContent="";
-  try{const me=await get("/api/me");ROLE=me.role;try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent="No se pudo entrar: "+err.message}};
+  try{const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent="No se pudo entrar: "+err.message}};
 $("#out").onclick=logout;
 document.querySelectorAll("nav [data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
-function show(v){document.querySelectorAll("nav [data-v]").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["sessions","bests","session"].forEach(x=>$("#v-"+x).hidden=x!==v);if(v==="sessions")sessions();if(v==="bests")bests()}
+function show(v){document.querySelectorAll("nav [data-v]").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["sessions","bests","team","session"].forEach(x=>$("#v-"+x).hidden=x!==v);if(v==="sessions")sessions();if(v==="bests")bests();if(v==="team")team()}
 async function start(){$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
 
 async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="empty">Cargando…</div>`;
@@ -101,7 +102,18 @@ async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="
     box.querySelectorAll("[data-id]").forEach(r=>r.onclick=()=>openSession(r.dataset.id))}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
 async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty">Cargando…</div>`;
-  try{const list=await get("/api/bests");box.innerHTML=`<div class="panel"><h2>Tus récords por circuito y coche</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>Circuito</th><th>Coche</th><th class="r">Mejor vuelta</th><th class="r">Vueltas</th><th>Última vez</th></tr></thead><tbody>${list.map(b=>`<tr><td>${esc(b.track)}${b.track_config?` <span class="muted">${esc(b.track_config)}</span>`:""}</td><td>${esc(b.car)}</td><td class="r mono pb">${fmtT(b.best)}</td><td class="r mono">${b.laps}</td><td>${esc(day(b.last))}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Sin récords todavía.</div>`}</div>`}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+  try{const list=await get("/api/bests");const combos=new Map();list.forEach(b=>{const k=b.track+"|"+(b.track_config||"")+"|"+b.car;if(!combos.has(k))combos.set(k,{track:b.track,cfg:b.track_config,car:b.car,last:0,rows:[]});const c=combos.get(k);c.rows.push(b);c.last=Math.max(c.last,b.last)});
+    const cs=[...combos.values()].sort((a,b)=>b.last-a.last);
+    box.innerHTML=cs.length?cs.map(c=>{c.rows.sort((a,b)=>a.best-b.best);const top=c.rows[0].best;return `<div class="panel" style="margin-bottom:10px"><h2>${esc(c.track)}${c.cfg?` <span class="muted">${esc(c.cfg)}</span>`:""}</h2><div class="sub" style="margin-bottom:6px">${esc(c.car)}</div><div class="tscroll"><table><thead><tr><th>#</th><th>Piloto</th><th class="r">Mejor vuelta</th><th class="r">Diferencia</th><th class="r">Vueltas</th><th>Última vez</th></tr></thead><tbody>${c.rows.map((b,i)=>`<tr><td class="mono">${i+1}</td><td>${esc(b.driver||b.who)}${b.who===ME?' <span class="pill">tú</span>':""}</td><td class="r mono ${i===0?"pb":""}">${fmtT(b.best)}</td><td class="r mono">${i?"+"+(b.best-top).toFixed(3):"–"}</td><td class="r mono">${b.laps}</td><td>${esc(day(b.last))}</td></tr>`).join("")}</tbody></table></div></div>`}).join(""):`<div class="panel empty">Sin récords todavía.</div>`}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+
+async function team(){const box=$("#v-team");box.innerHTML=`<div class="empty">Cargando…</div>`;
+  try{const t=await get("/api/team");box.innerHTML=`<div class="panel"><h2>Tu equipo</h2><p class="sub">Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.</p>
+    ${t.members.length?`<div class="tscroll"><table><thead><tr><th>Piloto</th><th>Desde</th><th></th></tr></thead><tbody>${t.members.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(new Date(m.created).toLocaleDateString("es-ES"))}</td><td>${ROLE==="owner"?`<button class="btn" type="button" data-rm="${esc(m.name)}">Quitar</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="sub">Aún no hay compañeros.</p>`}
+    ${ROLE==="owner"?`<form class="frow" id="addM" style="margin-top:12px"><input type="text" id="mName" placeholder="Nombre del compañero" maxlength="40" required style="flex:1;min-width:180px"><button class="btn primary" type="submit">Crear su clave</button></form><div id="newKey"></div>`:""}</div>`;
+    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="¿Seguro?";return}await get("/api/team/"+encodeURIComponent(b.dataset.rm),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});team()});
+    const f=$("#addM");if(f)f.onsubmit=async e=>{e.preventDefault();try{const r=await get("/api/team",{method:"POST",headers:{authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify({name:$("#mName").value.trim()})});
+      $("#newKey").innerHTML=`<div class="panel" style="margin-top:10px;border-color:var(--accent)"><b>Clave de ${esc(r.name)}</b><p class="sub">Pásasela por privado. Solo se muestra ahora; si la pierde, quítalo y créala de nuevo.</p><div class="frow"><input type="text" readonly value="${esc(r.key)}" id="nk" class="mono"><button class="btn" type="button" id="cp">Copiar</button></div><p class="sub">Dirección del sitio: ${esc(location.origin)}</p></div>`;
+      $("#cp").onclick=()=>{const i=$("#nk");i.select();navigator.clipboard&&navigator.clipboard.writeText(i.value).catch(()=>{})}}catch(err){alert(err.message)}}}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
 let CUR=null,SEL=[],TR={},CH="speed";
 async function openSession(id){show("session");history.replaceState(null,"","#"+id);const box=$("#v-session");box.innerHTML=`<div class="empty">Cargando…</div>`;
@@ -110,11 +122,12 @@ async function openSession(id){show("session");history.replaceState(null,"","#"+
     const nS=Math.max(0,...laps.map(l=>(l.sectors||[]).length)),sb=[...Array(nS)].map((_,i)=>Math.min(...laps.filter(l=>l.valid&&l.sectors&&l.sectors[i]>0).map(l=>l.sectors[i])));
     const ideal=nS&&sb.every(isFinite)?sb.reduce((a,b)=>a+b,0):null;
     box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px"><div><button class="btn" type="button" id="back">← Sesiones</button><h1 style="margin-top:12px">${esc(s.track)}</h1><div class="sub">${esc(s.car)} · ${esc(s.kind||"")} · ${esc(day(s.started))}${s.track_temp!=null?` · pista ${(+s.track_temp).toFixed(0)} °C`:""}</div></div>
-      ${ROLE==="owner"?`<button class="btn" type="button" id="del">Borrar sesión</button>`:""}</div>
+      <div class="frow"><button class="btn" type="button" id="tb">Comparar con el mejor del equipo</button>${ROLE==="owner"||s.uploader===ME?`<button class="btn" type="button" id="del">Borrar sesión</button>`:""}</div></div>
     <div class="grid"><div class="panel s4 stat"><span class="label">Mejor vuelta</span><b class="mono pb">${fmtT(best&&best.time)}</b></div><div class="panel s4 stat"><span class="label">Vuelta ideal (mejores sectores)</span><b class="mono">${fmtT(ideal)}</b></div><div class="panel s4 stat"><span class="label">Vueltas válidas</span><b class="mono">${valid.length} / ${laps.length}</b></div>
       <div class="panel s12"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">Comparar vueltas</h2><div class="frow">${[["speed","Velocidad"],["pedals","Acelerador y freno"],["gear","Marcha"]].map(c=>`<button type="button" class="chip" data-ch="${c[0]}" aria-pressed="${CH===c[0]}">${c[1]}</button>`).join("")}</div></div>
         <div class="legend" id="lg"></div><canvas id="cv" height="240"></canvas><div class="label" style="margin:10px 0 4px">Diferencia acumulada (s) · por encima de cero, la segunda vuelta pierde tiempo</div><canvas id="dv" height="110"></canvas></div>
       <div class="panel s12"><h2>Vueltas</h2><p class="sub" style="margin:0 0 8px">Toca dos vueltas para compararlas.</p><div class="tscroll"><table><thead><tr><th>#</th><th class="r">Tiempo</th>${[...Array(nS)].map((_,i)=>`<th class="r">S${i+1}</th>`).join("")}<th class="r">Gasolina</th><th class="r">Vel. máx.</th><th></th></tr></thead><tbody>${laps.map(l=>`<tr class="click" data-lap="${esc(l.id)}"><td class="mono">${l.n}</td><td class="r mono ${best&&l.id===best.id?"pb":""}">${fmtT(l.time)}</td>${[...Array(nS)].map((_,i)=>{const v=(l.sectors||[])[i];return `<td class="r mono ${v&&v===sb[i]?"pb":""}">${v?v.toFixed(3):"–"}</td>`}).join("")}<td class="r mono">${l.fuel!=null?l.fuel.toFixed(2)+" L":"–"}</td><td class="r mono">${l.vmax?Math.round(l.vmax*3.6)+" km/h":"–"}</td><td>${l.valid?"":`<span class="pill bad">inválida</span>`} <span class="pill" data-selp="${esc(l.id)}"></span></td></tr>`).join("")}</tbody></table></div></div></div>`;
+    $("#tb").onclick=async()=>{try{const r=await get(`/api/teambest?track=${encodeURIComponent(s.track)}&config=${encodeURIComponent(s.track_config||"")}&car=${encodeURIComponent(s.car)}`);if(!r.id){alert("Todavía no hay una vuelta válida del equipo aquí.");return}TR[r.id]=await get("/api/laps/"+encodeURIComponent(r.id));SEL=[SEL[0]||r.id,r.id].filter((x,i,a)=>a.indexOf(x)===i);loadSel()}catch(e){alert(e.message)}};
     $("#back").onclick=()=>{history.replaceState(null,"","#");show("sessions")};
     const del=$("#del");if(del)del.onclick=async()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent="Pulsa otra vez para borrar";return}await get("/api/sessions/"+encodeURIComponent(id),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});history.replaceState(null,"","#");show("sessions")};
     box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{CH=b.dataset.ch;box.querySelectorAll("[data-ch]").forEach(x=>x.setAttribute("aria-pressed",x===b));draw()});
@@ -126,7 +139,7 @@ async function loadSel(){document.querySelectorAll("[data-selp]").forEach(p=>{co
 function fit(c){const d=devicePixelRatio||1,w=c.clientWidth,h=+c.getAttribute("height");c.width=w*d;c.height=h*d;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);return[x,w,h]}
 function series(l){const t=l&&l.trace;if(!t||!t.d)return null;return{bin:t.bin||5,d:t.d}}
 function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv),[y,w2,h2]=fit(dv);const A=series(TR[SEL[0]]),B=series(TR[SEL[1]]);
-  const cols=[css("--accent"),css("--blue")];$("#lg").innerHTML=SEL.map((id,i)=>{const l=TR[id];return l?`<span><i style="background:${cols[i]}"></i>${i?"B":"A"} · vuelta ${l.n} · ${fmtT(l.time)}</span>`:""}).join("");
+  const cols=[css("--accent"),css("--blue")];$("#lg").innerHTML=SEL.map((id,i)=>{const l=TR[id];return l?`<span><i style="background:${cols[i]}"></i>${i?"B":"A"} · vuelta ${l.n} · ${fmtT(l.time)}${l.session_id!==(CUR&&CUR.session.id)?" · "+esc((l.driver||l.uploader||"equipo")):""}</span>`:""}).join("");
   [x,y].forEach((c,i)=>{c.clearRect(0,0,i?w2:w,i?h2:h)});const sets=[A,B].filter(Boolean);
   if(!sets.length){x.fillStyle=css("--muted");x.font="14px "+css("--f-body");x.fillText("Esta vuelta no tiene telemetría guardada.",12,30);return}
   const n=Math.max(...sets.map(s=>s.d.length));const val=r=>CH==="speed"?r[0]*3.6:CH==="gear"?r[3]:r[1]*100;const vmax=CH==="speed"?Math.max(...sets.flatMap(s=>s.d.map(r=>r[0]*3.6)))*1.05:CH==="gear"?8:100;
@@ -138,7 +151,7 @@ function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv)
     y.strokeStyle=css("--line");y.beginPath();y.moveTo(0,h2/2);y.lineTo(w2,h2/2);y.stroke();y.strokeStyle=css("--accent");y.lineWidth=1.6;y.beginPath();dd.forEach((v,k)=>{const X=k/(n-1)*w2,Y=h2/2-v/lim*(h2/2-4);k?y.lineTo(X,Y):y.moveTo(X,Y)});y.stroke();
     y.fillStyle=css("--muted");y.font="11px "+css("--f-data");y.fillText("+"+lim.toFixed(2)+" s",4,12);y.fillText("final "+(dd[m-1]>=0?"+":"")+dd[m-1].toFixed(3)+" s",w2-110,h2-6)}}
 addEventListener("resize",draw);
-if(KEY)get("/api/me").then(me=>{ROLE=me.role;start()}).catch(()=>logout());else logout();
+if(KEY)get("/api/me").then(me=>{ROLE=me.role;ME=me.name||"";start()}).catch(()=>logout());else logout();
 </script>
 </body>
 </html>

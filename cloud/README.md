@@ -23,6 +23,24 @@ tick **Upload my laps**, save and press **Test connection**.
 
 Optional read-only key for your engineer or team: `npx wrangler secret put VIEW_KEY`.
 
+## Or let GitHub publish it
+
+Add these repository secrets (GitHub → Settings → Secrets and variables → Actions):
+`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PITLANE_D1_ID` (from `npx wrangler d1 create pitlanehq`)
+and `PITLANE_KEY`. Every change to the `cloud` folder is then published by the
+*Pitlane HQ Cloud (web version)* workflow.
+
+## Team
+
+On your site open **Equipo** and create a key for each team mate. They paste
+your site's address and their key in their Pitlane HQ (Settings → Connections →
+Pitlane HQ Cloud). Everyone's laps appear in **Récords** per track and car, and
+any session can be compared with the team's fastest lap. Members can delete
+only their own sessions; only you manage the team.
+
+Sites created before team support: run
+`npx wrangler d1 execute pitlanehq --remote --file migrations/0002_team.sql` once.
+
 ## Privacy
 
 Only you hold the keys. Data lives in your Cloudflare account. The key is

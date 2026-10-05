@@ -381,6 +381,7 @@ func main() {
 	go positionKeeper()
 	go appsOnSim()
 	go lapRecorder()
+	go carWatcher()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
@@ -448,6 +449,8 @@ func main() {
 	registerRigRoutes(mux)
 	registerHapticsRoutes(mux)
 	registerCloudRoutes(mux)
+	registerSetupRoutes(mux)
+	registerCarRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

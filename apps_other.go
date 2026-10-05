@@ -13,3 +13,5 @@ func procPaths(name string) []string              { return nil }
 func shellOpen(path, args string, min bool) error { return errNotWindows }
 func pickProgram() (string, error)                { return "", errNotWindows }
 func killProcs(name, skipDir string) int          { return 0 }
+
+func documentsDir() string { return "" }

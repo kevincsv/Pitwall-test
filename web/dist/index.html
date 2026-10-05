@@ -445,6 +445,10 @@ html.ov.edit .ovh{display:block}
 .setnav a:hover{color:var(--fg);border-color:var(--accent)}
 .sethead{font:700 22px var(--f-display);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px;scroll-margin-top:60px}
 .setsub{font:600 13px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px}
+.tiprow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.tiprow .cn{font:700 13px var(--f-data);color:var(--accent);min-width:60px}
+.stratin{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr));gap:10px 14px}.stratin .num{width:100%}
+tr.me td{background:color-mix(in srgb,var(--accent) 16%,transparent)}
 /* profiles and rig */
 .profbtn{font:600 13px/1 var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 11px 6px 6px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profbtn b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 12px var(--f-data);flex:none}
@@ -642,6 +646,10 @@ html.ov .shbox{height:calc(100vh - 40px)}
       <div class="vhead" style="margin:0 0 6px"><div class="label" data-i18n="w.simhub"></div><select id="shDashSel" class="ovhide" aria-label="SimHub dashboard"></select></div>
       <div id="shBox" class="shbox"></div>
     </div>
+    <div class="panel s6 wpanel" data-w="coach">
+      <div class="label" data-i18n="w.coach"></div>
+      <div id="coachW"></div>
+    </div>
     <div class="panel s12 empty" id="liveEmpty" hidden></div>
   </div>
 </section>
@@ -653,6 +661,38 @@ html.ov .shbox{height:calc(100vh - 40px)}
   <div class="panel" id="ovGlobal"></div>
   <div class="panel" id="ovScreenPanel" style="margin-top:10px"><h2 data-i18n="yourScreen"></h2><p class="note" id="ovScreenNote"></p><div class="screen" id="ovScreen"></div></div>
   <div class="ovcards" id="ovCards"></div>
+</section>
+
+<!-- BRAKING COACH -->
+<section class="view" id="v-coach" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.coach"></h1><div class="sub" id="coachSub"></div></div>
+    <div class="controls"><select id="coachLap" aria-label="Lap"></select><span class="muted">vs</span><select id="coachRef" aria-label="Reference"></select></div></div>
+  <div id="coachBody"></div>
+</section>
+
+<!-- ENDURANCE STRATEGY -->
+<section class="view" id="v-strategy" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.strategy"></h1><div class="sub" id="stratSub"></div></div></div>
+  <div id="stratBody"></div>
+</section>
+
+<!-- GOALS -->
+<section class="view" id="v-goals" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.goals"></h1><div class="sub" id="goalsSub"></div></div></div>
+  <div id="goalsBody"></div>
+</section>
+
+<!-- CAR PROFILES -->
+<section class="view" id="v-cars" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.cars"></h1><div class="sub" id="carsSub"></div></div></div>
+  <div id="carsBody"></div>
+</section>
+
+<!-- SETUP LIBRARY -->
+<section class="view" id="v-setups" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.setups"></h1><div class="sub" id="setupsSub"></div></div>
+    <div class="controls"><input type="search" id="setupQ" aria-label="Search"><button class="btn" type="button" id="setupFolder"></button></div></div>
+  <div id="setupsBody"></div>
 </section>
 
 <!-- CALENDAR: race scheduler -->
@@ -873,6 +913,7 @@ html.ov .shbox{height:calc(100vh - 40px)}
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
     </div>
     <div class="panel s12" id="startPanel"></div>
+    <div class="panel s12" id="voicePanel"></div>
   </div>
   <h2 class="sethead" id="set-profiles" data-i18n="profiles"></h2>
   <div id="profPanel" hidden></div>
@@ -1113,8 +1154,8 @@ function frameTick(){
   trackStats();if(lv("deltabar"))renderDeltaBar();
   if(now-lastGG>66){lastGG=now;if(lv("gg"))drawGG()}
   if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
-  trackSectors();trackIncidents();sampleGaps();
-  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps()}
+  trackSectors();trackIncidents();sampleGaps();voiceTick();
+  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -1176,7 +1217,7 @@ function recordLap(){
   if(!rec||lc!==rec.lc){
     if(rec&&lc===rec.lc+1&&rec.n>0){const done=rec,cov=done.n/(done.maxBin+1);
       setTimeout(()=>{const time=T.LapLastLapTime>0?T.LapLastLapTime:done.t;if(cov>.9&&time>0){LAPS.push({n:done.lap,time,fuel:done.f0!=null&&T.FuelLevel!=null?done.f0-T.FuelLevel:null,bins:done.bins,vmax:done.vmax,maxBin:done.maxBin});if(LAPS.length>40)LAPS.shift();
-        if(done.f0!=null&&T.FuelLevel!=null){const u=done.f0-T.FuelLevel;if(u>0&&!done.pit)fuelLog.uses.push(u)}if(CUR_VIEW==="laps")renderLaps();else lapsDirty=true}},400)}
+        if(done.f0!=null&&T.FuelLevel!=null){const u=done.f0-T.FuelLevel;if(u>0&&!done.pit)fuelLog.uses.push(u)}goalsLapDone(time);if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps();else lapsDirty=true}},400)}
     rec={lc,lap:T.Lap,n:0,bins:[],f0:T.FuelLevel,vmax:0,pit:false,t:0,maxBin:0,ld:null,lt:null};
   }
   rec.vmax=Math.max(rec.vmax,T.Speed||0);if(T.OnPitRoad)rec.pit=true;
@@ -1217,7 +1258,7 @@ function drawCmp(){const A=LAPS[$("#lapA").value],B=LAPS[$("#lapB").value];if(!A
   const secs=[[0,third],[third,2*third],[2*third,null]].map(([a,b],k)=>{const ta=(b==null?A.time:tAt(sa,b))-tAt(sa,a),tb=(b==null?B.time:tAt(sb,b))-tAt(sb,a);return[`S${k+1}`,ta,tb]});
   renderBrakeTable(A,B);
   $("#sectors tbody").innerHTML=secs.map(([nm,ta,tb])=>`<tr><td>${nm}</td><td class="r mono">${ta.toFixed(3)}</td><td class="r mono">${tb.toFixed(3)}</td><td class="r mono ${ta-tb>0?"bad":"good"}">${sgn(ta-tb)}</td></tr>`).join("")+`<tr><td><b>${Tx("Lap","Vuelta")}</b></td><td class="r mono"><b>${fmtT(A.time)}</b></td><td class="r mono"><b>${fmtT(B.time)}</b></td><td class="r mono ${A.time-B.time>0?"bad":"good"}"><b>${sgn(A.time-B.time)}</b></td></tr>`}
-$("#lapA").onchange=$("#lapB").onchange=drawCmp;
+$("#lapA").onchange=$("#lapB").onchange=drawCmp;$("#coachLap").onchange=$("#coachRef").onchange=()=>renderCoach();
 
 /* ===================== data browser ===================== */
 let DATA_TAB="data:vars",varRows=new Map(),openRows=new Set();
@@ -1268,7 +1309,7 @@ function drawAccount(){if(!MEMBER||!ACCDATA)return;renderLicences(normMember(MEM
   const lics=MEMBER.licenses||{},key={5:"sports_car",6:"formula_car",1:"oval",3:"dirt_oval",4:"dirt_road"}[CAT];const li=lics[key]||Object.values(lics).find(l=>l.category_id==CAT)||{};
   const races=ACCDATA.recent.filter(r=>!r.series_name||true);fillAccount({ir:li.irating,ttr:li.tt_rating,lic:li.group_name?(li.group_name.replace("Class ","")[0]):"",sr:li.safety_rating,cpi:li.cpi,chart:ACCDATA.chart,
     races:races.map(r=>({date:r.session_start_time,series:r.series_name,track:(r.track||{}).track_name,start:r.start_position,finish:r.finish_position,inc:r.incidents,dIr:(r.newi_rating??0)-(r.oldi_rating??0),dSr:((r.new_sub_level??0)-(r.old_sub_level??0))/100}))})}
-function fillAccount(a){
+function fillAccount(a){ACCSUM=a;
   $("#accIr").textContent=a.ir!=null?a.ir.toLocaleString():"–";const ch=a.chart||[];if(ch.length>1){const d=ch.at(-1).value-ch[0].value;$("#accIrD").innerHTML=`<span class="${d>=0?"good":"bad"}">${d>=0?"+":"−"}${Math.abs(d)}</span> ${Lp("over the period shown","en el periodo mostrado",true)}`}else $("#accIrD").textContent="";
   $("#aLic").innerHTML=a.lic?`<span class="lic ${esc(a.lic)}" style="font-size:22px;padding:5px 8px;vertical-align:middle">${esc(a.lic)}</span> <span class="mono">${a.sr!=null?Number(a.sr).toFixed(2):"–"}</span>`:"–";
   $("#aLicSub").textContent=a.cpi!=null?"CPI "+Number(a.cpi).toFixed(1):"";
@@ -1828,7 +1869,7 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","engine","tyres","standings","telemetry","simhub"];
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","engine","tyres","standings","telemetry","simhub"];
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",simhub:"simhub"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
@@ -2349,7 +2390,7 @@ function renderLock(){const b=$("#lockBtn");if(!b)return;const show=(MODE==="bri
 $("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.edit?Tx("Overlays unlocked: drag them on your screen.","Overlays desbloqueados: arrástralos por la pantalla."):Tx("Overlays locked.","Overlays bloqueados."))};
 
 /* ---------- screen editor: move overlay windows from the app or a phone ---------- */
-const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],simhub:[800,480]};
+const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200],simhub:[800,480]};
 let SCREEN=null,SCREEN_DRAG=false;
 async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
 async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
@@ -2491,15 +2532,15 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={race:["live","field","laps","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics"],account:["account","settings"]};
+const GROUPS={race:["live","field","laps","coach","strategy","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics","cars","setups"],account:["account","goals","settings"]};
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
-const VIEW_LABEL={live:"tab.live",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+const VIEW_LABEL={live:"tab.live",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars")renderCars();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
@@ -2514,7 +2555,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],traceSecs:["Trace length (s)","Duración de la gráfica (s)"],traceH:["Trace height (px)","Altura de la gráfica (px)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
    PC's profile so they follow the profile. Phones keep their own Live layout. */
-const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsrc|haptics|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsrc|haptics|goals|strategy|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
 const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
 let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
 const rawSet=store.set.bind(store);
@@ -2562,7 +2603,7 @@ async function renderProfPanel(){const box=$("#profPanel");if(!box)return;box.hi
   try{const list=await (await fetch("/api/profiles")).json();box.innerHTML=profilesHTML(list);wireProfiles(box,renderProfPanel)}catch(e){}}
 $("#profBtn").onclick=openProfiles;$("#rigProfiles").onclick=openProfiles;
 /* new widgets start hidden once, so an update does not crowd your Live screen */
-(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
+(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub","coach"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
 
 /* ===================== rig: programs, SimHub, AZOM, MOZA ===================== */
 const askOK=m=>MODE==="local"||confirm(m);
@@ -3010,6 +3051,187 @@ function renderAbout(){const box=$("#aboutPanel");if(!box)return;const v=(INFO&&
     <p class="note">${Lp("AZOM (MOZA plugin for SimHub) is free software (GPL v3) by giantorth, included in the azom folder. Sign-ins are encrypted with your Windows account. Nothing leaves this PC unless you turn on Pitlane HQ Cloud, Garage 61 or the engineer link.","AZOM (plugin de MOZA para SimHub) es software libre (GPL v3) de giantorth, incluido en la carpeta azom. Las sesiones se cifran con tu cuenta de Windows. Nada sale de este PC salvo que actives Pitlane HQ Cloud, Garage 61 o el enlace de ingeniero.")}</p>`}
 document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault();const t=$(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"})});
 
+/* ===================== voice engineer ===================== */
+Object.assign(I18N,{"tab.coach":["Braking coach","Coach de frenada"],"tab.strategy":["Strategy","Estrategia"],"tab.goals":["Goals","Objetivos"],"tab.setups":["Setups","Setups"],"tab.cars":["Car profiles","Perfiles por coche"],
+ "w.coach":["Braking coach","Coach de frenada"],"d.coach":["Where you lose time braking, with tips","Dónde pierdes tiempo frenando, con consejos"]});
+const VOICE_DEF={on:false,lang:"auto",voice:"",rate:1.05,vol:1,lap:true,fuel:true,gaps:true,pit:true,flags:true,inc:true,coach:true,last:true};
+let VOICE=Object.assign({},VOICE_DEF,store.get("pw.voice",{}));
+const VS={lap:null,lastSaid:{},gapA:null,gapB:null,flags:0,inc:null,pitOpen:false,q:[]};
+function vlang(){return VOICE.lang==="auto"?(LANG==="es"?"es":"en"):VOICE.lang}
+const VT=(en,es)=>vlang()==="es"?es:en;
+function say(text,key,minGap){if(!VOICE.on||!("speechSynthesis" in window)||OV.on)return;const now=Date.now();if(key&&VS.lastSaid[key]&&now-VS.lastSaid[key]<(minGap||20000))return;if(key)VS.lastSaid[key]=now;
+  const u=new SpeechSynthesisUtterance(text);u.lang=vlang()==="es"?"es-ES":"en-GB";u.rate=VOICE.rate;u.volume=VOICE.vol;const v=speechSynthesis.getVoices().find(x=>x.name===VOICE.voice);if(v)u.voice=v;speechSynthesis.speak(u)}
+const secTxt=s=>{s=Math.abs(s);return s<10?s.toFixed(1).replace(".",vlang()==="es"?" coma ":" point "):Math.round(s)+""};
+function lapTimeSpeech(t){const m=Math.floor(t/60),s=(t-m*60);return vlang()==="es"?`${m} ${s.toFixed(1).replace("."," coma ")}`:`${m} ${s.toFixed(1)}`}
+function voiceTick(){if(!VOICE.on||!T||T.IsOnTrack===false)return;const lc=T.LapCompleted;
+  // flags
+  const f=T.SessionFlags||0,newF=f&~VS.flags;VS.flags=f;
+  if(VOICE.flags&&newF){if(newF&0x4000||newF&0x8000)say(VT("Yellow flag ahead, careful","Bandera amarilla delante, cuidado"),"yellow",15000);else if(newF&0x20)say(VT("Blue flag, faster car behind","Bandera azul, coche más rápido detrás"),"blue",30000);else if(newF&0x1)say(VT("Checkered flag. Well done","Bandera a cuadros. Buen trabajo"),"chq",600000);else if(newF&0x2)say(VT("White flag, last lap","Bandera blanca, última vuelta"),"white",600000);else if(newF&0x4)say(VT("Green flag, go go go","Bandera verde, vamos"),"green",60000)}
+  // incidents
+  const inc=T.PlayerCarMyIncidentCount;if(VOICE.inc&&inc!=null){if(VS.inc!=null&&inc>VS.inc){const lim=+((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||0;say(VT(`Plus ${inc-VS.inc}. ${inc} incidents${lim?` of ${lim}`:""}`,`Más ${inc-VS.inc}. Llevas ${inc} incidentes${lim?` de ${lim}`:""}`),"inc",3000)}VS.inc=inc}
+  // lap completed
+  if(lc==null)return;if(VS.lap==null){VS.lap=lc;return}if(lc===VS.lap)return;VS.lap=lc;
+  setTimeout(()=>{const parts=[];const lt=T.LapLastLapTime,best=T.LapBestLapTime;
+    if(VOICE.last&&lt>0)parts.push(VT(`Last lap ${lapTimeSpeech(lt)}`,`Última vuelta ${lapTimeSpeech(lt)}`)+(best>0&&lt<=best+.001?VT(", personal best","; mejor vuelta personal"):best>0?VT(`, ${secTxt(lt-best)} off your best`,`, ${secTxt(lt-best)} más lenta que tu mejor`):""));
+    if(VOICE.fuel&&FUELPER>0&&T.FuelLevel!=null){const laps=T.FuelLevel/FUELPER,ll=lapsLeft();let s=VT(`Fuel for ${laps.toFixed(1)} laps`,`Gasolina para ${laps.toFixed(1).replace("."," coma ")} vueltas`);
+      if(ll){const left=ll.v;if(left>laps+.3)s+=VT(`. ${left} laps to go: you need to stop`,`. Quedan ${left} vueltas: tienes que parar`);else if(left<=laps)s+=VT(". Enough to the end",". Llegas al final")}parts.push(s)}
+    if(VOICE.gaps){const g=gapsNow();if(g.ahead)parts.push(VT(`Gap ahead ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", closing":", growing"):""}`,`Delante a ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", te acercas":", se aleja"):""}`));if(g.behind&&g.behind.g<1.5)parts.push(VT(`Car behind at ${secTxt(g.behind.g)}`,`Coche detrás a ${secTxt(g.behind.g)}`))}
+    if(VOICE.coach){const tip=coachTips(true)[0];if(tip&&tip.lost>.08)parts.push(tip.say)}
+    if(VOICE.lap&&parts.length)say(parts.join(". "),"lap",5000)},1500)}
+function gapsNow(){const rel=relList(),le=estLap(),pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me];if(!my)return{};
+  let ahead=null,behind=null;rel.forEach(r=>{if(r.i===me)return;const g=r.lapDiff*le;if(pos[r.i]===my-1)ahead={g:Math.abs(g),i:r.i};if(pos[r.i]===my+1)behind={g:Math.abs(g),i:r.i}});
+  if(ahead){if(VS.gapA&&VS.gapA.i===ahead.i)ahead.trend=ahead.g-VS.gapA.g;VS.gapA=ahead}return{ahead,behind}}
+function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[];
+  const t=(k,en,es)=>chk("v-"+k,VOICE[k],Lp(en,es,true));
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer","Ingeniero por voz"))}</h2>${chk("v-on",VOICE.on,Lp("On","Activado",true))}</div>
+    <p class="note">${Lp("Speaks through the speakers or headphones of this screen: lap times, fuel, gaps, flags, incidents and a braking tip after each lap. Turn it on in only one screen.","Habla por los altavoces o auriculares de esta pantalla: tiempos, gasolina, gaps, banderas, incidentes y un consejo de frenada tras cada vuelta. Actívalo solo en una pantalla.")}</p>
+    <div class="frow" style="margin:8px 0">${t("last","Lap time","Tiempo de vuelta")}${t("fuel","Fuel","Gasolina")}${t("gaps","Gaps","Gaps")}${t("flags","Flags","Banderas")}${t("inc","Incidents","Incidentes")}${t("coach","Braking tip","Consejo de frenada")}</div>
+    <div class="frow"><select id="v-lang"><option value="auto">${esc(Tx("Same as the app","Igual que la app"))}</option><option value="en">English</option><option value="es">Español</option></select>
+      <select id="v-voice" style="max-width:260px"><option value="">${esc(Tx("Default voice","Voz predeterminada"))}</option>${vs.map(v=>`<option${v.name===VOICE.voice?" selected":""}>${esc(v.name)}</option>`).join("")}</select>
+      <label class="frow" style="gap:6px"><span class="label">${esc(Tx("Speed","Velocidad"))}</span><input type="range" id="v-rate" min="70" max="150" value="${Math.round(VOICE.rate*100)}"></label>
+      <button type="button" class="btn small" id="v-test">${esc(Tx("Test","Probar"))}</button></div>${ok?"":`<p class="err">${esc(Tx("This browser cannot speak.","Este navegador no puede hablar."))}</p>`}`;
+  const sv=()=>{store.set("pw.voice",VOICE)};
+  ["on","last","fuel","gaps","flags","inc","coach"].forEach(k=>{const e=$("#v-"+k);if(e)e.onclick=()=>{VOICE[k]=!VOICE[k];sv();renderVoicePanel()}});
+  $("#v-lang").value=VOICE.lang;$("#v-lang").onchange=e=>{VOICE.lang=e.target.value;sv()};$("#v-voice").onchange=e=>{VOICE.voice=e.target.value;sv()};$("#v-rate").onchange=e=>{VOICE.rate=e.target.value/100;sv()};
+  $("#v-test").onclick=()=>{const was=VOICE.on;VOICE.on=true;say(VT("Radio check. Fuel for 8 laps, gap ahead one point two.","Prueba de radio. Gasolina para 8 vueltas, delante a uno coma dos."));VOICE.on=was}}
+if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=()=>{if(CUR_VIEW==="settings")renderVoicePanel()};
+
+/* ===================== braking coach ===================== */
+/* Compares a lap with a reference lap corner by corner: where each braking
+   zone starts, entry and minimum speed, and the time won or lost from 50 m
+   before braking to 150 m after the slowest point. */
+function brakeZones(s){const out=[];for(let i=1;i<s.length;i++){const a=s[i],b=s[i-1];if(!a||!b)continue;if(a[3]>.12&&b[3]<=.12){let k=i,vmin=a[0],imin=i;while(k<s.length&&k<i+120&&s[k]&&!(s[k][2]>.6&&s[k][3]<.05)){if(s[k][0]<vmin){vmin=s[k][0];imin=k}k++}if(a[0]-vmin>4)out.push({i,v:a[0],vmin,imin});i=k}}return out}
+function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length);
+  return zb.map((z,k)=>{const m=za.filter(q=>Math.abs(q.i-z.i)<=20).sort((p,q)=>Math.abs(p.i-z.i)-Math.abs(q.i-z.i))[0]; /* the same corner: the nearest braking point within 100 m */const i0=Math.max(0,z.i-10),i1=Math.min(n-1,z.imin+30);if(!sa[i0]||!sa[i1]||!sb[i0]||!sb[i1])return null;
+    const lost=(sa[i1][1]-sa[i0][1])-(sb[i1][1]-sb[i0][1]);const dd=m?(m.i-z.i)*BIN:null,dmin=m?spd(m.vmin)-spd(z.vmin):null;
+    let en="",es="";if(lost>.03){if(dd!=null&&dd<-6){en=`Brake ${Math.round(-dd)} m later`;es=`Frena ${Math.round(-dd)} m más tarde`}else if(dmin!=null&&dmin<-3){en=`Carry ${Math.round(-dmin)} ${spdU()} more through the corner`;es=`Pasa ${Math.round(-dmin)} ${spdU()} más rápido por la curva`}else if(dd!=null&&dd>6){en=`You braked ${Math.round(dd)} m too late and lost the exit: brake earlier`;es=`Frenaste ${Math.round(dd)} m demasiado tarde y perdiste la salida: frena antes`}else{en="Get on the throttle earlier on exit";es="Acelera antes a la salida"}}
+    return{n:k+1,d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,tip:[en,es]}}).filter(Boolean)}
+/* reference: Garage 61 lap, else my best lap; when the lap to judge is my best, the next best */
+function bestExcept(x){return LAPS.reduce((a,b)=>b!==x&&(!a||b.time<a.time)?b:a,null)}
+function coachRef(lap){if(G61REF)return G61REF;const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null);return best===lap?bestExcept(lap):best}
+function coachTips(forVoice){const last=LAPS.at(-1),ref=coachRef(last);if(!last||!ref||last===ref)return[];return coachCompare(last,ref).filter(c=>c.lost>.03&&c.tip[0]).sort((a,b)=>b.lost-a.lost).slice(0,3).map(c=>({...c,say:VT(`Corner ${c.n}: ${c.tip[0]}, ${secTxt(c.lost)} lost`,`Curva ${c.n}: ${c.tip[1]}, pierdes ${secTxt(c.lost)}`)}))}
+function renderCoach(){const box=$("#coachBody");if(!box)return;const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null);
+  if(LAPS.length<2&&!G61REF){box.innerHTML=`<div class="panel empty">${Lp("Drive two laps and the coach compares them corner by corner.","Da dos vueltas y el coach las compara curva a curva.")}</div>`;return}
+  const sel=$("#coachLap"),rsel=$("#coachRef"),pa=sel.value,pr=rsel.value;sel.innerHTML=LAPS.map((l,i)=>`<option value="${i}">${Tx("Lap","Vuelta")} ${l.n} · ${fmtT(l.time)}</option>`).join("");if(pa!==""&&LAPS[pa])sel.value=pa;else sel.value=LAPS.length-1;
+  rsel.innerHTML=`<option value="best">${esc(Tx("My best lap (or the next best)","Mi mejor vuelta (o la siguiente)"))}${best?" · "+fmtT(best.time):""}</option>${G61REF?`<option value="g61">Garage 61 · ${esc(G61REF.name||"")} ${fmtT(G61REF.time)}</option>`:""}${LAPS.map((l,i)=>`<option value="${i}">${Tx("Lap","Vuelta")} ${l.n} · ${fmtT(l.time)}</option>`).join("")}`;if(pr)rsel.value=pr;
+  const A=LAPS[sel.value],R=rsel.value==="g61"?G61REF:rsel.value==="best"?(best===LAPS[sel.value]?bestExcept(best):best):LAPS[rsel.value];if(!A||!R||A===R){box.innerHTML=`<div class="panel empty">${Lp("Choose two different laps.","Elige dos vueltas distintas.")}</div>`;return}
+  const cs=coachCompare(A,R),tot=cs.reduce((s,c)=>s+c.lost,0),top=cs.filter(c=>c.lost>.03).sort((a,b)=>b.lost-a.lost).slice(0,3);
+  box.innerHTML=`<div class="grid"><div class="panel s4"><div class="label">${esc(Tx("Time in braking zones","Tiempo en zonas de frenada"))}</div><div class="big mono ${tot>0?"bad":"good"}">${sgn(tot,2)}</div><div class="sub">${esc(Tx(`${cs.length} braking zones`,`${cs.length} zonas de frenada`))} · ${esc(Tx("lap","vuelta"))} ${sgn(A.time-R.time,3)}</div></div>
+    <div class="panel s8"><div class="label">${esc(Tx("Work on these first","Trabaja primero en estas"))}</div>${top.length?top.map(c=>`<div class="tiprow"><span class="cn">${esc(Tx("Corner","Curva"))} ${c.n}</span><span>${esc(Tx(c.tip[0],c.tip[1]))}</span><span class="mono bad">${sgn(c.lost,2)}</span></div>`).join(""):`<p class="note">${Lp("No corner loses more than 0.03 s. Nice lap.","Ninguna curva pierde más de 0,03 s. Buena vuelta.")}</p>`}</div>
+    <div class="panel s12"><div class="tscroll"><table><thead><tr><th>#</th><th class="r">${esc(Tx("At","En"))}</th><th class="r">${esc(Tx("Braking point","Punto de frenada"))}</th><th class="r">${esc(Tx("Entry speed","Vel. de entrada"))}</th><th class="r">${esc(Tx("Min. speed","Vel. mínima"))}</th><th class="r">${esc(Tx("Time","Tiempo"))}</th><th>${esc(Tx("Tip","Consejo"))}</th></tr></thead><tbody>${cs.map(c=>`<tr><td class="mono">${c.n}</td><td class="r mono">${Math.round(c.d)} m</td><td class="r mono ${c.dd==null||Math.abs(c.dd)<5?"muted":c.dd>0?"good":"bad"}">${c.dd==null?"–":Math.abs(c.dd)<5?"≈":(c.dd>0?Tx("later ","más tarde ")+"+":Tx("earlier ","antes ")+"−")+Math.abs(Math.round(c.dd))+" m"}</td><td class="r mono">${c.ve==null?"–":Math.round(c.ve)} / ${Math.round(c.vr)}</td><td class="r mono">${c.vmin==null?"–":Math.round(c.vmin)} / ${Math.round(c.vminr)}</td><td class="r mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,2)}</td><td>${esc(Tx(c.tip[0],c.tip[1]))}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">${Lp(`Speeds in ${spdU()}: this lap / reference. "Later" means you braked after the reference. Time is measured from 50 m before braking to 150 m after the slowest point.`,`Velocidades en ${spdU()}: esta vuelta / referencia. "Más tarde" significa que frenaste después que en la referencia. El tiempo se mide desde 50 m antes de frenar hasta 150 m después del punto más lento.`)}</p></div></div>`}
+function renderCoachWidget(){const box=$("#coachW");if(!box)return;const tips=coachTips();box.innerHTML=tips.length?tips.map(c=>`<div class="tiprow"><span class="cn">${esc(Tx("C","C"))}${c.n}</span><span>${esc(Tx(c.tip[0],c.tip[1]))}</span><span class="mono bad">${sgn(c.lost,2)}</span></div>`).join(""):`<p class="note">${Lp("Tips appear after your second lap.","Los consejos aparecen tras tu segunda vuelta.")}</p>`}
+
+/* ===================== endurance strategy ===================== */
+const STRAT_DEF={type:"time",len:180,lapTime:0,fuel:0,tank:0,margin:.5,pitLoss:0,refuel:2.4,tyreTime:22,tyreEvery:2,changeTime:5,drivers:[{name:"",max:60}]};
+let STRAT=Object.assign({},STRAT_DEF,store.get("pw.strategy",{}));
+function stratInputs(){const lt=STRAT.lapTime||estLap()||100,fu=STRAT.fuel||FUELPER||2.5,tank=STRAT.tank||FUELMAX||(S.DriverInfo||{}).DriverCarFuelMaxLtr||60,loss=STRAT.pitLoss||ui("pit").loss;return{lt,fu,tank,loss}}
+function planStrategy(){const{lt,fu,tank,loss}=stratInputs(),drv=STRAT.drivers.filter(d=>d.max>0);if(!drv.length)drv.push({name:"",max:999});
+  const totalLaps=STRAT.type==="laps"?Math.max(1,Math.round(STRAT.len)):Math.floor(STRAT.len*60/lt)+1;
+  const perTank=Math.max(1,Math.floor((tank-STRAT.margin)/fu)),maxDrv=Math.max(...drv.map(d=>Math.floor(d.max*60/lt)));
+  const cap=Math.max(1,Math.min(perTank,maxDrv)),n=Math.ceil(totalLaps/cap),base=Math.floor(totalLaps/n),extra=totalLaps%n;
+  const stints=[];let lap=0,clock=0,di=0,driveT=drv.map(()=>0);
+  for(let k=0;k<n;k++){const laps=base+(k<extra?1:0);let d=drv[di%drv.length];// next driver who still has time
+    for(let tries=0;tries<drv.length&&laps*lt>d.max*60+1;tries++){di++;d=drv[di%drv.length]}
+    const fuelNeed=laps*fu+STRAT.margin,first=k===0,tyres=!first&&STRAT.tyreEvery>0&&k%STRAT.tyreEvery===0;
+    const add=first?Math.min(tank,fuelNeed):Math.min(tank,fuelNeed)-STRAT.margin,stop=first?0:loss+Math.max(add/STRAT.refuel,tyres?STRAT.tyreTime:0)+(drv.length>1&&stints.length&&stints.at(-1).d!==d?STRAT.changeTime:0);
+    clock+=stop;stints.push({k:k+1,d,from:lap+1,to:lap+laps,laps,start:clock,end:clock+laps*lt,fuel:add,tyres,stop});clock+=laps*lt;lap+=laps;di++}
+  return{stints,totalLaps,stops:n-1,pitTime:stints.reduce((s,x)=>s+x.stop,0),perTank,lt,fu,tank}}
+const hmsT=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}h ${String(m).padStart(2,"0")}m`:`${m}m ${String(s%60).padStart(2,"0")}s`};
+function renderStrategy(){const box=$("#stratBody");if(!box)return;const p=planStrategy(),{lt,fu,tank,loss}=stratInputs(),lapNow=T.Lap||0,live=STATUS.connected||STATUS.demo;
+  const cur=p.stints.find(s=>lapNow>=s.from&&lapNow<=s.to);const nm=d=>d.name||Tx("Driver","Piloto");
+  const inp=(id,label,val,step,ph)=>`<label class="sl"><span>${esc(label)}</span><input type="number" class="num" id="${id}" step="${step}" value="${val||""}" placeholder="${ph}"></label>`;
+  box.innerHTML=`<div class="grid"><div class="panel s12"><h2>${esc(Tx("Race","Carrera"))}</h2><div class="stratin">
+      <label class="sl"><span>${esc(Tx("Length","Duración"))}</span><span class="frow" style="gap:4px"><input type="number" class="num" id="stLen" value="${STRAT.len}" style="width:90px"><select id="stType"><option value="time">${esc(Tx("minutes","minutos"))}</option><option value="laps">${esc(Tx("laps","vueltas"))}</option></select></span></label>
+      ${inp("stLap",Tx("Lap time (s)","Tiempo por vuelta (s)"),STRAT.lapTime,.1,lt.toFixed(1))}${inp("stFuel",Tx("Fuel per lap","Gasolina por vuelta"),STRAT.fuel,.01,fu.toFixed(2))}${inp("stTank",Tx("Tank","Depósito"),STRAT.tank,1,Math.round(tank))}
+      ${inp("stLoss",Tx("Pit lane loss (s)","Pérdida en pit lane (s)"),STRAT.pitLoss,1,loss)}${inp("stRefuel",Tx("Refuel (L/s)","Repostaje (L/s)"),STRAT.refuel,.1,"2.4")}${inp("stTyre",Tx("Tyre change (s)","Cambio de ruedas (s)"),STRAT.tyreTime,1,"22")}${inp("stTyreEv",Tx("New tyres every … stints","Ruedas nuevas cada … stints"),STRAT.tyreEvery,1,"2")}${inp("stMargin",Tx("Fuel margin","Margen de gasolina"),STRAT.margin,.1,"0.5")}</div>
+      <p class="note">${Lp("Empty boxes use what Pitlane HQ measures while you drive (lap time, fuel per lap, tank).","Las casillas vacías usan lo que Pitlane HQ mide mientras conduces (tiempo por vuelta, gasolina por vuelta, depósito).")}</p></div>
+    <div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Drivers","Pilotos"))}</h2><button type="button" class="btn small" id="stAddD">+ ${esc(Tx("Driver","Piloto"))}</button></div>
+      ${STRAT.drivers.map((d,i)=>`<div class="frow" style="margin-bottom:6px"><input type="text" data-dn="${i}" value="${esc(d.name)}" placeholder="${esc(Tx("Name","Nombre"))}" style="flex:1;min-width:140px"><label class="frow" style="gap:6px"><span class="label">${esc(Tx("Max stint (min)","Stint máx. (min)"))}</span><input type="number" class="num" data-dm="${i}" value="${d.max}" style="width:80px"></label>${STRAT.drivers.length>1?`<button type="button" class="pin" data-dx="${i}">✕</button>`:""}</div>`).join("")}</div>
+    <div class="panel s4"><div class="label">${esc(Tx("Laps","Vueltas"))}</div><div class="big mono">${p.totalLaps}</div><div class="sub">${esc(Tx(`${p.perTank} laps per tank`,`${p.perTank} vueltas por depósito`))}</div></div>
+    <div class="panel s4"><div class="label">${esc(Tx("Pit stops","Paradas"))}</div><div class="big mono">${p.stops}</div><div class="sub">${esc(Tx("time in the pits","tiempo en boxes"))} ${hmsT(p.pitTime)}</div></div>
+    <div class="panel s4"><div class="label">${esc(Tx("Now","Ahora"))}</div><div class="big mono">${cur&&live?`${Tx("Box in","Box en")} ${cur.to-lapNow+1}`:"–"}</div><div class="sub">${cur&&live?esc(Tx(`stint ${cur.k}, ${nm(cur.d)}`,`stint ${cur.k}, ${nm(cur.d)}`)):esc(Tx("shown while you race","se muestra mientras corres"))}</div></div>
+    <div class="panel s12"><div class="tscroll"><table><thead><tr><th>Stint</th><th>${esc(Tx("Driver","Piloto"))}</th><th class="r">${esc(Tx("Laps","Vueltas"))}</th><th class="r">${esc(Tx("Starts at","Empieza a"))}</th><th class="r">${esc(Tx("Ends at","Acaba a"))}</th><th class="r">${esc(Tx("Fuel","Gasolina"))}</th><th>${esc(Tx("Tyres","Ruedas"))}</th><th class="r">${esc(Tx("Stop","Parada"))}</th></tr></thead><tbody>${p.stints.map(s=>`<tr class="${cur===s&&live?"me":""}"><td class="mono">${s.k}</td><td>${esc(nm(s.d))}</td><td class="r mono">${s.from}–${s.to} (${s.laps})</td><td class="r mono">${hmsT(s.start)}</td><td class="r mono">${hmsT(s.end)}</td><td class="r mono">${s.k===1?Tx("start ","salida ")+vol(s.fuel).toFixed(1):"+"+vol(s.fuel).toFixed(1)} ${volU()}</td><td>${s.k===1?"–":s.tyres?esc(Tx("New","Nuevas")):esc(Tx("Keep","Mismas"))}</td><td class="r mono">${s.stop?s.stop.toFixed(0)+" s":"–"}</td></tr>`).join("")}</tbody></table></div>
+    <p class="note">${Lp("Stints are made as even as possible so you never carry more fuel than needed. Driver changes add the change time to the stop.","Los stints se reparten lo más iguales posible para no llevar más gasolina de la necesaria. Los cambios de piloto suman su tiempo a la parada.")}</p></div></div>`;
+  const sv=()=>{store.set("pw.strategy",STRAT);clearTimeout(renderStrategy._t);renderStrategy._t=setTimeout(renderStrategy,400)};
+  $("#stType").value=STRAT.type;$("#stType").onchange=e=>{STRAT.type=e.target.value;sv()};
+  [["stLen","len"],["stLap","lapTime"],["stFuel","fuel"],["stTank","tank"],["stLoss","pitLoss"],["stRefuel","refuel"],["stTyre","tyreTime"],["stTyreEv","tyreEvery"],["stMargin","margin"]].forEach(([id,k])=>{$("#"+id).onchange=e=>{const v=parseFloat(e.target.value);STRAT[k]=isFinite(v)&&v>=0?v:0;if(k==="refuel"&&!(STRAT[k]>0))STRAT[k]=2.4;sv()}});
+  box.querySelectorAll("[data-dn]").forEach(e=>e.onchange=()=>{STRAT.drivers[+e.dataset.dn].name=e.value.slice(0,40);sv()});
+  box.querySelectorAll("[data-dm]").forEach(e=>e.onchange=()=>{STRAT.drivers[+e.dataset.dm].max=Math.max(5,Math.min(600,+e.value||60));sv()});
+  box.querySelectorAll("[data-dx]").forEach(b=>b.onclick=()=>{STRAT.drivers.splice(+b.dataset.dx,1);sv()});
+  $("#stAddD").onclick=()=>{STRAT.drivers.push({name:"",max:60});sv()}}
+
+/* ===================== goals and progress ===================== */
+const GOAL_CATS=[["sports_car","Sports Car","Sports Car"],["formula_car","Formula","Fórmula"],["oval","Oval","Óvalo"],["dirt_oval","Dirt Oval","Óvalo tierra"],["dirt_road","Dirt Road","Tierra"]];
+let GOALS=Object.assign({cat:"sports_car",ir:0,sr:0,lic:"",races:3,inc:4,lap:{}},store.get("pw.goals",{}));
+let ACCSUM=null;
+function curMember(){if(MEMBER)return normMember(MEMBER);if(SER&&SER.member)return SER.member;return null}
+function renderGoals(){const box=$("#goalsBody");if(!box)return;if(!MEMBER&&!SER){whenSeries().then(()=>{if(CUR_VIEW==="goals")renderGoals()})}if(!ACCSUM&&!ACC.loggedIn)try{renderSampleAccount()}catch(e){}const m=curMember(),l=m&&(m.lic[GOALS.cat]||null),ir=l?+l.irating||0:null,sr=l?+l.safety_rating||0:null,letter=l?(l.group_name||"R").replace("Class ","")[0]:null;
+  const now=Date.now(),wk=weekMon(now),racesWk=(ACCSUM&&ACCSUM.races||[]).filter(r=>Date.parse(r.date)>=wk).length,avgInc=ACCSUM&&ACCSUM.races&&ACCSUM.races.length?ACCSUM.races.reduce((s,r)=>s+(r.inc||0),0)/ACCSUM.races.length:null,planned=PLAN.filter(p=>p.t>=wk&&p.t<wk+7*DAYMS).length;
+  const bar=(v,goal,lo)=>{if(v==null||!goal)return"";const pct=Math.max(0,Math.min(100,(v-(lo||0))/((goal-(lo||0))||1)*100));return `<div class="meter"><b style="width:${pct}%;background:${pct>=100?"var(--good)":"var(--accent)"}"></b></div>`};
+  const card=(title,cur,goal,body)=>`<div class="panel s6"><div class="label">${esc(title)}</div><div class="row" style="margin-top:6px"><div><div class="big mono">${cur}</div></div><div style="text-align:right"><div class="sub">${esc(Tx("Goal","Objetivo"))}</div><div class="mid mono">${goal}</div></div></div>${body}</div>`;
+  const best=Object.entries(GOALS.lap||{});
+  box.innerHTML=`<div class="frow" style="margin-bottom:10px"><span class="label">${esc(Tx("Category","Categoría"))}</span>${GOAL_CATS.map(c=>`<button type="button" class="chip" data-gc="${c[0]}" aria-pressed="${GOALS.cat===c[0]}">${esc(Tx(c[1],c[2]))}</button>`).join("")}${MEMBER?"":`<span class="pill acc">${L("sample",true)}</span>`}</div>
+    <div class="grid">
+    ${card("iRating",ir==null?"–":ir.toLocaleString(),GOALS.ir?GOALS.ir.toLocaleString():"–",`${bar(ir,GOALS.ir,Math.min(ir||0,GOALS.ir||0)-500)}<label class="frow" style="margin-top:8px"><span class="label">${esc(Tx("Target","Meta"))}</span><input type="number" class="num" id="gIr" value="${GOALS.ir||""}" step="50" placeholder="${ir?Math.ceil((ir+250)/50)*50:2000}"></label>${GOALS.ir&&ir!=null?`<p class="note">${ir>=GOALS.ir?Lp("Goal reached!","¡Objetivo conseguido!"):Lp(`${GOALS.ir-ir} to go`,`Te faltan ${GOALS.ir-ir}`)}</p>`:""}`)}
+    ${card(Tx("Licence / safety rating","Licencia / safety rating"),letter?`<span class="lic ${letter}">${letter}</span> ${sr.toFixed(2)}`:"–",GOALS.lic||GOALS.sr?`${esc(GOALS.lic||"")} ${GOALS.sr?GOALS.sr.toFixed(2):""}`:"–",`${bar(sr,GOALS.sr||4,0)}<div class="frow" style="margin-top:8px"><select id="gLic"><option value="">${esc(Tx("Licence…","Licencia…"))}</option>${["D","C","B","A"].map(x=>`<option${GOALS.lic===x?" selected":""}>${x}</option>`).join("")}</select><input type="number" class="num" id="gSr" value="${GOALS.sr||""}" step=".1" min="1" max="4.99" placeholder="3.00"></div><p class="note">${Lp("SR 3.00 promotes at the end of the season, 4.00 promotes right away.","SR 3,00 asciende al final de temporada; 4,00 asciende al momento.")}</p>`)}
+    ${card(Tx("Races this week","Carreras esta semana"),racesWk,GOALS.races,`${bar(racesWk,GOALS.races,0)}<label class="frow" style="margin-top:8px"><span class="label">${esc(Tx("Per week","Por semana"))}</span><input type="number" class="num" id="gRaces" value="${GOALS.races||""}" min="1" max="50"></label><p class="note">${Lp(`${planned} more planned in your calendar this week.`,`${planned} más planificadas en tu calendario esta semana.`)}</p>`)}
+    ${card(Tx("Incidents per race","Incidentes por carrera"),avgInc==null?"–":avgInc.toFixed(1),GOALS.inc?Tx("max ","máx. ")+GOALS.inc:"–",`${avgInc!=null&&GOALS.inc?`<div class="meter"><b style="width:${Math.min(100,avgInc/GOALS.inc*100)}%;background:${avgInc<=GOALS.inc?"var(--good)":"var(--bad)"}"></b></div>`:""}<label class="frow" style="margin-top:8px"><span class="label">${esc(Tx("Maximum","Máximo"))}</span><input type="number" class="num" id="gInc" value="${GOALS.inc||""}" min="0" max="17" step=".5"></label>`)}
+    <div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Lap time targets","Objetivos de tiempo por vuelta"))}</h2>${T&&(S.WeekendInfo||{}).TrackDisplayName?`<button type="button" class="btn small" id="gAddLap">+ ${esc(Tx("This track and car","Este circuito y coche"))}</button>`:""}</div>
+      ${best.length?`<div class="tscroll"><table><thead><tr><th>${esc(Tx("Track · car","Circuito · coche"))}</th><th class="r">${esc(Tx("Target","Meta"))}</th><th class="r">${esc(Tx("My best","Mi mejor"))}</th><th class="r">${esc(Tx("To go","Falta"))}</th><th></th></tr></thead><tbody>${best.map(([k,g])=>`<tr><td>${esc(k)}</td><td class="r mono">${fmtT(g.target)}</td><td class="r mono">${fmtT(g.best)}</td><td class="r mono ${g.best&&g.best<=g.target?"good":"bad"}">${g.best?sgn(g.best-g.target,3):"–"}</td><td><button type="button" class="pin" data-glx="${esc(k)}">✕</button></td></tr>`).join("")}</tbody></table></div>`:`<p class="note">${Lp("Set a target time for the track and car you are driving; your best laps update it automatically.","Pon un tiempo objetivo para el circuito y coche que conduces; tus mejores vueltas lo actualizan solas.")}</p>`}</div></div>`;
+  const sv=()=>{store.set("pw.goals",GOALS);renderGoals()};
+  box.querySelectorAll("[data-gc]").forEach(b=>b.onclick=()=>{GOALS.cat=b.dataset.gc;sv()});
+  $("#gIr").onchange=e=>{GOALS.ir=+e.target.value||0;sv()};$("#gSr").onchange=e=>{GOALS.sr=Math.min(4.99,+e.target.value||0);sv()};$("#gLic").onchange=e=>{GOALS.lic=e.target.value;sv()};
+  $("#gRaces").onchange=e=>{GOALS.races=+e.target.value||0;sv()};$("#gInc").onchange=e=>{GOALS.inc=+e.target.value||0;sv()};
+  box.querySelectorAll("[data-glx]").forEach(b=>b.onclick=()=>{delete GOALS.lap[b.dataset.glx];sv()});
+  const ga=$("#gAddLap");if(ga)ga.onclick=()=>{const k=goalKey(),t=prompt(Tx("Target lap time (m:ss.sss)","Tiempo objetivo (m:ss.sss)"),"");if(!t)return;const m=t.match(/^(?:(\d+):)?(\d+(?:[.,]\d+)?)$/);if(!m){toast(Tx("Use the format 1:38.500","Usa el formato 1:38.500"));return}GOALS.lap[k]={target:(+m[1]||0)*60+parseFloat(m[2].replace(",",".")),best:(GOALS.lap[k]||{}).best||null};sv()}}
+function goalKey(){const wi=S.WeekendInfo||{},me=driverBy(T.PlayerCarIdx)||{};return `${wi.TrackDisplayName||"?"}${wi.TrackConfigName?" "+wi.TrackConfigName:""} · ${me.CarScreenName||"?"}`}
+function goalsLapDone(t){const k=goalKey();const g=GOALS.lap&&GOALS.lap[k];if(!g||!(t>0))return;if(!g.best||t<g.best){g.best=t;store.set("pw.goals",GOALS);if(t<=g.target){toast(Tx("Lap time goal reached!","¡Objetivo de tiempo conseguido!"));say(VT("Target lap time reached. Great job","Tiempo objetivo conseguido. Muy bien"),"goal",60000)}}}
+
+/* ===================== per-car rig profiles ===================== */
+const CARS_DEMO={current:"mx5 mx52016",cars:[{key:"mx5 mx52016",name:"Global Mazda MX-5 Cup",profile:{name:"Global Mazda MX-5 Cup",useOverlays:true,overlays:["relative","inputs","fuel"],haptics:{mode:"engine"},actions:["AZOM.DashboardNext"],saved:new Date().toISOString()}},{key:"porsche992rgt3",name:"Porsche 911 GT3 R (992)",profile:null},{key:"dallarair18",name:"Dallara IR18",profile:null}]};
+async function renderCars(){const box=$("#carsBody");if(!box)return;$("#carsSub").innerHTML=Lp("Your overlays, haptics and wheel set up for each car, applied when you get in it","Tus overlays, hápticos y volante para cada coche, aplicados al subirte a él");
+  if(MODE!=="bridge"&&MODE!=="local"||REMOTE){box.innerHTML="";return}const d=MODE==="local"?CARS_DEMO:await rigGet("/api/cars");if(!d)return;
+  const list=d.cars||[];
+  box.innerHTML=(MODE==="local"?`<div class="callout">${Lp("Demo: example cars. In the app, every car you drive appears here.","Demo: coches de ejemplo. En la app aparece aquí cada coche que conduces.")}</div>`:"")+
+   (list.length?`<div class="grid">${list.map(c=>{const p=c.profile;return `<div class="panel s6"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(c.name||c.key)}</h2>${c.key===d.current?`<span class="pill good">${esc(Tx("In this car now","En este coche ahora"))}</span>`:""}</div>
+      ${p?`<dl class="kv"><dt>${esc(Tx("Overlays","Overlays"))}</dt><dd>${p.useOverlays?esc((p.overlays||[]).map(w=>Tx(...I18N["w."+w]||[w,w])).join(", ")||Tx("none","ninguno")):esc(Tx("not changed","no cambia"))}</dd><dt>${esc(Tx("Haptics","Hápticos"))}</dt><dd>${p.haptics?esc(Tx("saved","guardados")):esc(Tx("not changed","no cambia"))}</dd><dt>${esc(Tx("SimHub / AZOM","SimHub / AZOM"))}</dt><dd class="mono">${esc((p.actions||[]).join(", ")||"–")}</dd></dl>`:`<p class="note">${Lp("No profile yet.","Aún sin perfil.")}</p>`}
+      <details style="margin-top:8px"${p?"":" open"}><summary class="label">${esc(p?Tx("Change","Cambiar"):Tx("Create from what I use now","Crear con lo que uso ahora"))}</summary>
+        <div class="frow" style="margin:8px 0">${chk("co-"+c.key,p?p.useOverlays:true,Lp("My current overlays","Mis overlays actuales",true))}${chk("ch-"+c.key,p?!!p.haptics:true,Lp("My current haptics","Mis hápticos actuales",true))}</div>
+        <input type="text" id="ca-${esc(c.key)}" value="${esc(p?(p.actions||[]).join(", "):"")}" placeholder="AZOM.DashboardNext, AZOM.DisplayBrightness70" style="width:100%">
+        <p class="note">${Lp("SimHub actions to run when you get in this car, separated by commas (AZOM: screen page, brightness, wheel settings…).","Acciones de SimHub al subirte a este coche, separadas por comas (AZOM: página de pantalla, brillo, ajustes del volante…).")}</p>
+        <div class="frow"><button type="button" class="btn primary small" data-csave="${esc(c.key)}">${esc(Tx("Save for this car","Guardar para este coche"))}</button>${p?`<button type="button" class="btn small" data-capply="${esc(c.key)}">${esc(Tx("Apply now","Aplicar ahora"))}</button><button type="button" class="btn small" data-cdel="${esc(c.key)}">${esc(Tx("Delete","Borrar"))}</button>`:""}</div></details></div>`}).join("")}</div>`:`<div class="panel empty">${Lp("Get in a car in iRacing and it appears here.","Súbete a un coche en iRacing y aparecerá aquí.")}</div>`);
+  box.querySelectorAll(".chip[id^=co-],.chip[id^=ch-]").forEach(b=>b.onclick=()=>b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true"));
+  const post=async b=>{if(MODE==="local"){toast(Tx("Saved (demo)","Guardado (demo)"));return}if(await rigPost("/api/cars",b)){toast(Tx("Done","Hecho"));renderCars()}};
+  box.querySelectorAll("[data-csave]").forEach(b=>b.onclick=()=>{const k=b.dataset.csave,on=id=>{const e=document.getElementById(id);return e&&e.getAttribute("aria-pressed")==="true"};post({action:"save",key:k,overlays:on("co-"+k),haptics:on("ch-"+k),actions:(document.getElementById("ca-"+k).value||"").split(",").map(x=>x.trim()).filter(Boolean)})});
+  box.querySelectorAll("[data-capply]").forEach(b=>b.onclick=()=>post({action:"apply",key:b.dataset.capply}));
+  box.querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>post({action:"delete",key:b.dataset.cdel}))}
+
+/* ===================== setup library ===================== */
+const SETUPS_DEMO={root:"C:\\Users\\you\\Documents\\iRacing\\setups",current:{car:"Global Mazda MX-5 Cup",setup:"Laguna race.sto",track:"WeatherTech Raceway Laguna Seca"},cars:[{car:"mx5 mx52016",files:[{key:"mx5 mx52016/Laguna race.sto",name:"Laguna race",changed:new Date(Date.now()-864e5).toISOString(),size:4100,notes:"More rear wing, softer front ARB. Good on old tyres.",tags:["race","stable"],bests:{"WeatherTech Raceway Laguna Seca":82.913}},{key:"mx5 mx52016/Laguna quali.sto",name:"Laguna quali",changed:new Date(Date.now()-2*864e5).toISOString(),size:4100,tags:["quali"],bests:{"WeatherTech Raceway Laguna Seca":82.511}},{key:"mx5 mx52016/baseline.sto",name:"baseline",changed:new Date(Date.now()-30*864e5).toISOString(),size:4000}]},{key:"gr86",car:"toyotagr86",files:[{key:"toyotagr86/Okayama.sto",name:"Okayama",changed:new Date(Date.now()-9*864e5).toISOString(),size:3900,bests:{"Okayama International Circuit · Full Course":92.334}}]}]};
+async function renderSetups(){const box=$("#setupsBody");if(!box)return;$("#setupQ").placeholder=Tx("Search setups, notes or tags","Buscar setups, notas o etiquetas");$("#setupFolder").textContent=Tx("Open folder","Abrir carpeta");
+  const d=MODE==="local"?SETUPS_DEMO:await rigGet("/api/setups");if(!d){box.innerHTML="";return}SETUPS_DATA=d;
+  $("#setupsSub").innerHTML=d.root?esc(d.root):Lp("iRacing's setups folder was not found on this PC.","No se encontró la carpeta de setups de iRacing en este PC.");
+  const q=($("#setupQ").value||"").toLowerCase(),cur=d.current||{};
+  const cars=(d.cars||[]).map(c=>({...c,files:c.files.filter(f=>!q||(c.car+" "+f.name+" "+(f.notes||"")+" "+(f.tags||[]).join(" ")).toLowerCase().includes(q))})).filter(c=>c.files.length);
+  box.innerHTML=(MODE==="local"?`<div class="callout">${Lp("Demo: example setups. In the app you see the real ones from Documents\\iRacing\\setups.","Demo: setups de ejemplo. En la app ves los reales de Documentos\\iRacing\\setups.")}</div>`:"")+
+    (cur.setup?`<div class="panel" style="margin-bottom:10px"><div class="label">${esc(Tx("Loaded now","Cargado ahora"))}</div><div class="mid">${esc(cur.setup)}</div><div class="sub">${esc(cur.car||"")} · ${esc(cur.track||"")}</div></div>`:"")+
+    (cars.length?cars.map(c=>`<div class="panel" style="margin-bottom:10px"><h2>${esc(c.car)}</h2><div class="tscroll"><table><thead><tr><th>Setup</th><th>${esc(Tx("Best laps with it","Mejores vueltas con él"))}</th><th>${esc(Tx("Notes","Notas"))}</th><th class="r">${esc(Tx("Changed","Modificado"))}</th><th></th></tr></thead><tbody>${c.files.map(f=>`<tr><td><b>${esc(f.name)}</b>${f.folder?`<br><span class="muted" style="font-size:12px">${esc(f.folder)}</span>`:""}${(f.tags||[]).map(t=>` <span class="pill">${esc(t)}</span>`).join("")}</td>
+      <td>${Object.entries(f.bests||{}).map(([t,v])=>`<div><span class="mono pb">${fmtT(v)}</span> <span class="muted" style="font-size:12px">${esc(t)}</span></div>`).join("")||`<span class="muted">–</span>`}</td>
+      <td style="max-width:320px">${esc(f.notes||"")}</td><td class="r mono">${esc(new Date(f.changed).toLocaleDateString(locale()))}</td>
+      <td><button type="button" class="pin" data-snote="${esc(f.key)}">${esc(Tx("Notes","Notas"))}</button>${MODE==="bridge"?`<button type="button" class="pin" data-sshow="${esc(f.key)}">${esc(Tx("Show","Mostrar"))}</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`).join(""):`<div class="panel empty">${Lp("No setups found.","No se encontraron setups.")}</div>`)+
+    `<p class="note">${Lp("Pitlane HQ remembers the best valid lap you drive with each setup at each track. Setups stay where iRacing keeps them; notes and tags are saved in your profile.","Pitlane HQ recuerda la mejor vuelta válida que haces con cada setup en cada circuito. Los setups siguen donde los guarda iRacing; las notas y etiquetas se guardan en tu perfil.")}</p>`;
+  box.querySelectorAll("[data-sshow]").forEach(b=>b.onclick=()=>rigPost("/api/setups",{action:"show",key:b.dataset.sshow}));
+  box.querySelectorAll("[data-snote]").forEach(b=>b.onclick=()=>openSetupNote(b.dataset.snote))}
+let SETUPS_DATA=null;
+function openSetupNote(key){const f=(SETUPS_DATA.cars||[]).flatMap(c=>c.files).find(x=>x.key===key);if(!f)return;LAYOUT_VIEW=null;$("#dTitle").textContent=f.name;$("#dSub").textContent=key;
+  $("#dBody").innerHTML=`<form class="form" id="snForm"><label><span class="label">${esc(Tx("Notes","Notas"))}</span><textarea id="snNotes" rows="6" maxlength="4000" style="width:100%;font:14px var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px">${esc(f.notes||"")}</textarea></label>
+    <label><span class="label">${esc(Tx("Tags, separated by commas","Etiquetas, separadas por comas"))}</span><input type="text" id="snTags" value="${esc((f.tags||[]).join(", "))}" placeholder="race, quali, wet"></label><div><button class="btn primary" type="submit">${esc(Tx("Save","Guardar"))}</button></div></form>`;
+  $("#snForm").onsubmit=async e=>{e.preventDefault();const notes=$("#snNotes").value,tags=$("#snTags").value.split(",").map(x=>x.trim()).filter(Boolean);
+    if(MODE==="local"){f.notes=notes;f.tags=tags;closeDrawer();renderSetups();return}if(await rigPost("/api/setups",{action:"note",key,notes,tags})){closeDrawer();renderSetups()}};
+  if($("#drawer").hidden)$("#drawer").hidden=false}
+$("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="bridge"?rigPost("/api/setups",{action:"folder"}):toast(Tx("In the app this opens the setups folder.","En la app se abre la carpeta de setups."));
+
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
@@ -3019,7 +3241,7 @@ document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
-  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","haptics","calendar","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
+  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","haptics","calendar","coach","strategy","goals","cars","setups","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
   syncNativePlan();
   if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else Demo.start();
