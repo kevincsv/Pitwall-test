@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.12.0"
+const appVersion = "0.13.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -405,6 +405,8 @@ func main() {
 	go fieldWatcher()
 	go myLapWatcher()
 	go updateWatcher()
+	loadLicense()
+	go licenseWatcher()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
@@ -479,6 +481,8 @@ func main() {
 	registerDiscordRoutes(mux)
 	registerUpdateRoutes(mux)
 	registerNewsRoutes(mux)
+	registerPairRoutes(mux)
+	registerLicenseRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

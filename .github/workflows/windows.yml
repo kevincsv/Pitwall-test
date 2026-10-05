@@ -9,6 +9,8 @@ on:
     branches: [main, master, "claude/**"]
     paths:
       - "**.go"
+      - "installer/**"
+      - "license_plans.json"
       - "web/**"
       - "azom/**"
       - "azomdist/**"
@@ -80,6 +82,20 @@ jobs:
           name: PitlaneHQ-windows
           path: out/
 
+      - name: Build the installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          $ver = (Select-String -Path main.go -Pattern 'const appVersion = "(.*)"').Matches[0].Groups[1].Value
+          & $iscc "/DAppVersion=$ver" installer\PitlaneHQ.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PitlaneHQ-Setup
+          path: dist-installer/PitlaneHQ-Setup.exe
+
       - name: Publish on the downloads page
         shell: bash
         env:
@@ -87,6 +103,7 @@ jobs:
         run: |
           (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
           bash .github/scripts/publish.sh PitlaneHQ-windows.zip
+          bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
           # version.json goes last: the app only sees a new version once its zip is there
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           printf '{"version":"%s","build":"%s","date":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > version.json

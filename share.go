@@ -186,7 +186,7 @@ func isRemote(r *http.Request) bool {
 	return r.Header.Get("Cf-Connecting-Ip") != "" || strings.HasSuffix(strings.Split(r.Host, ":")[0], ".trycloudflare.com")
 }
 
-var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics", "/api/cloud", "/api/setups", "/api/cars", "/api/radio", "/api/voicepack", "/api/races", "/api/notes", "/api/trackbook", "/api/discord", "/api/update", "/api/news"}
+var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics", "/api/cloud", "/api/setups", "/api/cars", "/api/radio", "/api/voicepack", "/api/races", "/api/notes", "/api/trackbook", "/api/discord", "/api/update", "/api/news", "/api/devices", "/api/license"}
 
 // guard protects the app from remote viewers: they need the share key and can only read.
 func guard(next http.Handler) http.Handler {
@@ -200,6 +200,16 @@ func guard(next http.Handler) http.Handler {
 					return
 				}
 			}
+		}
+		// devices on your network must be paired with the PIN first
+		if needsPairing(r) {
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				w.WriteHeader(401)
+				writeJSON(w, map[string]string{"error": "pair this device with the PIN shown on the PC"})
+				return
+			}
+			http.Redirect(w, r, "/pair?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+			return
 		}
 		if !isRemote(r) {
 			next.ServeHTTP(w, r)

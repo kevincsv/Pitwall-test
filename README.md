@@ -144,6 +144,8 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Race analysis**: for every lap, sector times, gaps to the cars ahead and behind, % flat out, braking and with no pedal, top speed, gear changes, fuel, time in the pits and track temperature; your **ideal lap** from your best sectors, and automatic tips (least consistent sector, pace drop, time lost in traffic, coasting, where the incidents were). On the track map: **incidents** (✕) and the **coach** marking the corners where you lose time against the driver you compare with.
 - **Season → News**: iRacing news from iracing.com.
 
+- **Installer** `PitlaneHQ-Setup.exe` (no administrator needed), **phone PIN** (Settings → Phone: devices on your network pair with a PIN or QR), **Account → Subscription** (Free / Pro monthly / Pro yearly / Lifetime, licence key) — see `docs/SELLING.md`. The spotter is switched off in this version.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -315,6 +317,8 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 
 - **Análisis de carrera**: en cada vuelta, sectores, gaps con el de delante y el de detrás, % a fondo, frenando y sin pedales, velocidad punta, cambios de marcha, gasolina, tiempo en boxes y temperatura de pista; tu **vuelta ideal** con tus mejores sectores, y consejos automáticos (sector menos regular, caída de ritmo, tiempo perdido con tráfico, ir sin pedales, dónde fueron los incidentes). En el mapa: los **incidentes** (✕) y el **coach** marcando las curvas donde pierdes tiempo frente al piloto con el que comparas.
 - **Temporada → Noticias**: las noticias de iRacing desde iracing.com.
+
+- **Instalador** `PitlaneHQ-Setup.exe` (sin administrador), **PIN del móvil** (Ajustes → Móvil: los dispositivos de tu red se emparejan con un PIN o QR), **Cuenta → Suscripción** (Gratis / Pro mensual / Pro anual / De por vida, clave de licencia) — ver `docs/SELLING.md`. El spotter está desactivado en esta versión.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 

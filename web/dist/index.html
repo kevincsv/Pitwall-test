@@ -575,6 +575,11 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .newstx{display:grid;gap:6px;padding:12px 14px 14px}.newstx b{font-size:16px;line-height:1.3}.newstx span{color:var(--muted);font-size:13px;line-height:1.45}
 .insights{margin:0;padding:0;list-style:none;display:grid;gap:6px}.insights li{padding:8px 12px;border-radius:8px;background:var(--surface);border-left:3px solid var(--accent);font-size:14px}.insights li.good{border-color:var(--good)}.insights li.bad{border-color:var(--bad)}
 .rtable td.pb{color:var(--pb);font-weight:700}.lapt td,.lapt th{padding:7px 9px;white-space:nowrap}
+.progate{position:absolute;inset:0;z-index:5;display:grid;place-items:start center;padding-top:120px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(3px);text-align:center}.progate>div{max-width:420px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:22px}
+.view{position:relative}.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:12px;margin-top:12px}
+.plancard{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}.plancard.cur{border-color:var(--good)}.plancard.life{border-color:var(--accent)}
+.planprice{font:800 26px var(--f-display)}.plancard ul{margin:0;padding-left:18px;color:var(--muted);font-size:14px;flex:1}.plancard .btn{text-align:center;text-decoration:none}
+.pinbig{font-size:44px;font-weight:800;letter-spacing:.12em;color:var(--accent)}.devlist{display:grid;gap:6px;margin-top:6px}.devrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
 </style>
 
 <div class="wrap">
@@ -783,6 +788,12 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 <section class="view" id="v-news" hidden>
   <div class="vhead"><div><h1 data-i18n="tab.news"></h1><div class="sub" id="newsSub"></div></div></div>
   <div id="newsBody"></div>
+</section>
+
+<!-- SUBSCRIPTION -->
+<section class="view" id="v-plan" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.plan"></h1><div class="sub" id="planSub"></div></div></div>
+  <div id="planBody"></div>
 </section>
 
 <!-- RACES: a report after every race -->
@@ -1088,6 +1099,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
         </div>
       </div>
     </div>
+    <div class="panel s12" id="pairPanel"></div>
     <div class="panel s12" id="sharePanel" hidden></div>
   </div>
   <h2 class="sethead" id="set-about" data-i18n="set.about"></h2>
@@ -2678,21 +2690,21 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={race:["live","field","engineer","strategy","tyres"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","settings"]};
+const GROUPS={race:["live","field","engineer","strategy","tyres"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","plan","settings"]};
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
-const VIEW_LABEL={live:"tab.live",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+const VIEW_LABEL={live:"tab.live",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
+  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
 tabs.forEach(b=>b.onclick=()=>openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 /* ---------- quick search: Ctrl+K or / jumps to any page, setting or action ---------- */
 const QS_PAGES={live:"delta speed rpm gear fuel relative radar inputs dash widgets velocidad marcha gasolina relativo",field:"standings positions results classification posiciones clasificación resultados",
   engineer:"voice radio spotter crewchief audio pack wheel button voz botón volante paquete off track fuera de pista",strategy:"fuel stint pit endurance strategy gasolina parada resistencia relevo",tyres:"tyres tires temperature wear neumáticos gomas temperatura desgaste",
-  laps:"laps lap times history sectors vueltas tiempos historial sectores",coach:"braking brake coach corners tips frenada frenar curvas consejos",news:"news noticias iracing season release notes hotfix events eventos",races:"races results history report irating discord carreras resultados historial informe",tracks:"tracks notes corners fuel per lap best circuitos notas curvas consumo",data:"telemetry variables raw data sdk telemetría variables datos",
+  laps:"laps lap times history sectors vueltas tiempos historial sectores",coach:"braking brake coach corners tips frenada frenar curvas consejos",plan:"subscription plan licence license lifetime pro suscripción licencia pago",news:"news noticias iracing season release notes hotfix events eventos",races:"races results history report irating discord carreras resultados historial informe",tracks:"tracks notes corners fuel per lap best circuitos notas curvas consumo",data:"telemetry variables raw data sdk telemetría variables datos",
   calendar:"calendar schedule plan reminders add race ics calendario agenda avisos añadir carrera widget",series:"series season schedule tracks cars licence series temporada circuitos coches",goals:"goals irating safety rating targets objetivos metas",
   overlays:"overlays hud on screen stream transparent overlays pantalla",rig:"programs apps launch simhub azom moza pit house dashboard crewchief garage 61 programas abrir equipo",haptics:"haptics bass shakers simsonn pedals vibration hápticos vibración pedales",
   cars:"car profiles per car shift beep rpm gear pitido cambio marcha revoluciones perfiles por coche",setups:"setups sto library notes setups biblioteca notas",account:"account profile licence irating cpi cuenta perfil licencias",settings:"settings preferences ajustes preferencias"};
@@ -3291,6 +3303,8 @@ Object.assign(I18N,{"tab.coach":["Braking coach","Coach de frenada"],"tab.strate
  "tab.engineer":["Engineer","Ingeniero"],"w.radio":["Radio","Radio"],"d.radio":["Ask your engineer: fuel, gaps, position… (the phone works as a button box)","Pregunta al ingeniero: gasolina, gaps, posición… (el móvil sirve de botonera)"]});
 /* Per screen: on/off, voice, speed and volume (turn it on in one screen only).
    Per profile: what it says, language and audio pack. */
+/* features switched off in this version (the spotter will come back later) */
+const FEATURES={spotter:false};
 const VOICE_DEF={on:false,voice:"",rate:1.05,vol:1};
 let VOICE=Object.assign({},VOICE_DEF,store.get("pw.voice",{}));
 const RADIO_DEF={lang:"auto",pack:"",calm:true,clear:true,quiet:false,pads:{},
@@ -3359,7 +3373,7 @@ function voiceTick(){if(!VOICE.on||OV.on||!T)return;if(T.IsOnTrack===false){VS.b
   const C=RADIO.c,now=Date.now(),flags=T.SessionFlags||0,inc=T.PlayerCarMyIncidentCount,ew=T.EngineWarnings|0,pos=T.PlayerCarClassPosition||T.PlayerCarPosition;
   if(!VS.base){Object.assign(VS,{base:true,flags,inc,ew,lr:T.CarLeftRight||1,surf:T.PlayerTrackSurface,pos,posAnn:pos,posT:now,lap:T.LapCompleted,tr:T.SessionTimeRemain,onPit:!!T.OnPitRoad});return}
   /* spotter: CarLeftRight 1 clear, 2 left, 3 right, 4 both sides, 5 two left, 6 two right */
-  const lr=T.CarLeftRight;if(lr!=null&&lr!==VS.lr){const prev=VS.lr;VS.lr=lr;
+  const lr=T.CarLeftRight;if(FEATURES.spotter&&lr!=null&&lr!==VS.lr){const prev=VS.lr;VS.lr=lr;
     if(C.spot&&(T.Speed||0)>5&&!T.OnPitRoad){const side={2:"car_left",3:"car_right",4:"three_wide",5:"two_left",6:"two_right"}[lr];
       if(side){VS.lrT=now;if(VS.clr&&VS.clr.side===lr){VS.clr=null}else{VS.clr=null;say(M(side,null,undefined,{k:"spot"+lr,g:4000,u:true}))}}
       else if(lr===1&&prev>1&&RADIO.clear)VS.clr={at:now,side:prev}}}
@@ -3383,7 +3397,7 @@ function voiceTick(){if(!VOICE.on||OV.on||!T)return;if(T.IsOnTrack===false){VS.b
     say(M(k,VT(`${up?"Place gained":"Lost a place"}, P${pos}`,`${up?"Ganas una posición":"Pierdes una posición"}, vas ${pos}º`),(()=>{const n=numClips(pos);return n?[k,"position",...n]:null})(),{k:"pos",g:4000}))}VS.posAnn=pos}}
   /* minutes left in a timed race */
   const tr=T.SessionTimeRemain,lr2=T.SessionLapsRemainEx;if(C.race&&isRace()&&tr>0&&tr<600000&&VS.tr>0&&!(lr2>=0&&lr2<32000)){for(const th of[1800,900,600,300,120])if(VS.tr>th&&tr<=th){const n=th/60;say(M("minutes_left",VT(`${n} minutes left`,`Quedan ${n} minutos`),withNum("minutes_left",n),{k:"min"+th,g:120000}))}}VS.tr=tr;
-  weatherTick(now);multiTick();notesTick();
+  weatherTick(now);if(FEATURES.spotter)multiTick();notesTick();
   /* lap completed */
   const lc=T.LapCompleted;if(lc!=null&&lc!==VS.lap){const first=VS.lap==null;VS.lap=lc;if(!first&&lc>0)setTimeout(lapReport,1500)}
   pumpVoice()}
@@ -3479,22 +3493,23 @@ const CALL=[["spot",0,"Car left / right, three wide, clear","Coche a la izquierd
   ["fuel",3,"Fuel left each lap, fuel to the end","Gasolina cada vuelta, gasolina hasta el final","fuel_low"],["box",3,"Box this lap (fuel will not last)","Box esta vuelta (no llega la gasolina)","box_this_lap"],["limiter",3,"Pit limiter not on","Limitador sin activar en el pit lane","limiter"],
   ["engine",4,"Water / oil temperature, oil pressure, stalled","Temperatura agua / aceite, presión de aceite, motor calado","water_temp"],["coach",4,"Braking tip after each lap","Consejo de frenada tras cada vuelta",null],
   ["multi",0,"Multiclass: faster class behind, slower car ahead","Multiclase: clase más rápida detrás, coche más lento delante","faster_class"],["rain",1,"Rain: starts or stops, % of rain, how wet the track is, wet declared, tyres","Lluvia: empieza o para, % de lluvia, cuánto se moja la pista, pista declarada mojada, neumáticos","rain_start"],["notes",4,"Read my track notes in the first laps","Leer mis notas del circuito en las primeras vueltas",null]];
+CALL.splice(0,CALL.length,...CALL.filter(c=>FEATURES.spotter||c[1]!==0));
 const CALL_G=[["Spotter","Spotter"],["Track","Pista"],["Race","Carrera"],["Pit & fuel","Box y gasolina"],["Car & coach","Coche y coach"]];
-const PRESETS={all:["All","Todo",Object.keys(RADIO_DEF.c)],race:["Race","Carrera",["spot","multi","off","flags","rain","inc","pos","race","gaps","fuel","box","limiter","engine"]],practice:["Practice","Entreno",["off","rain","inc","last","fuel","limiter","engine","coach","notes"]],spotter:["Spotter only","Solo spotter",["spot","multi","off"]],none:["Nothing","Nada",[]]};
+const PRESETS={all:["All","Todo",Object.keys(RADIO_DEF.c)],race:["Race","Carrera",["spot","multi","off","flags","rain","inc","pos","race","gaps","fuel","box","limiter","engine"]],practice:["Practice","Entreno",["off","rain","inc","last","fuel","limiter","engine","coach","notes"]],...(FEATURES.spotter?{spotter:["Spotter only","Solo spotter",["spot","multi","off"]]}:{}),none:["Nothing","Nada",[]]};
 function callSample(k,ex){if(k==="rain")return M("rain_start",VT("Rain starting, 20 percent","Empieza a llover, 20 por ciento"),(()=>{const n=numClips(20);return n?["rain_start",...n,"percent"]:null})());if(k==="multi")return M("faster_class",VT("Faster class behind, GT3, 2 seconds","Clase más rápida detrás, GT3, a 2 segundos"),null);if(k==="notes")return{c:null,t:VT("Corner 1: third gear, use all the kerb on exit","Curva 1: tercera marcha, usa todo el piano a la salida")};if(k==="inc")return M("incidents",VT("Plus 2. 6 incidents of 17","Más 2. Llevas 6 incidentes de 17"),withNum("incidents",6));if(k==="coach")return{c:null,t:VT("Corner 3: brake a bit later, 0.2 lost","Curva 3: frena un poco más tarde, pierdes 0 coma 2")};
   if(k==="race")return M("laps_to_go",VT("5 laps to go","Quedan 5 vueltas"),withNum("laps_to_go",5));if(k==="fuel")return M("fuel_laps",VT("Fuel for 7.4 laps","Gasolina para 7 coma 4 vueltas"),withNum("fuel_laps",7));return M(ex)}
-function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer and spotter","Ingeniero por voz y spotter"))}</h2><button type="button" class="btn small" id="v-open">${esc(Tx("Open","Abrir"))}</button></div>
+function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer","Ingeniero por voz"))}</h2><button type="button" class="btn small" id="v-open">${esc(Tx("Open","Abrir"))}</button></div>
   <p class="note">${Lp("What it says, the questions you can ask, your wheel buttons and your own audio packs are in Race → Engineer.","Qué dice, las preguntas que le puedes hacer, los botones del volante y tus propios paquetes de audio están en Carrera → Ingeniero.")} ${esc(VOICE.on?Tx("On in this screen.","Activado en esta pantalla."):Tx("Off in this screen.","Desactivado en esta pantalla."))}</p>`;$("#v-open").onclick=()=>show("engineer")}
 let engLoaded=false;
 async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLoaded&&MODE==="bridge"){engLoaded=true;await Promise.all([loadPacks(),loadRadioButtons()])}
   const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[],C=RADIO.c,p=curPack();
-  $("#engSub").innerHTML=Lp("Like CrewChief: a spotter and race engineer that talks to you, and answers when you ask","Como CrewChief: un spotter e ingeniero de carrera que te habla y te responde cuando le preguntas");
+  $("#engSub").innerHTML=Lp("A race engineer that talks to you, and answers when you ask","Un ingeniero de carrera que te habla y te responde cuando le preguntas");
   $("#engCtl").innerHTML=`<button class="btn${VOICE.on?" primary":""}" type="button" id="e-on" aria-pressed="${VOICE.on}">${esc(VOICE.on?Tx("Voice on in this screen","Voz activada en esta pantalla"):Tx("Turn the voice on","Activar la voz"))}</button><button class="btn" type="button" id="e-test">${esc(Tx("Radio check","Prueba de radio"))}</button>`;
   const learning=q=>MODE==="bridge"?RB.learning===q:VS.learn&&VS.learn.q===q;
   box.innerHTML=`<div class="panel s7"><div class="vhead" style="margin:0 0 4px"><h2 style="margin:0">${esc(Tx("What it tells you","Qué te dice"))}</h2>
       <div class="frow">${Object.entries(PRESETS).map(([k,v])=>`<button type="button" class="btn small" data-preset="${k}">${esc(Tx(v[0],v[1]))}</button>`).join("")}</div></div>
-    ${CALL_G.map((g,gi)=>`<div class="callg"><div class="label">${esc(Tx(g[0],g[1]))}</div>${CALL.filter(c=>c[1]===gi).map(c=>`<div class="callrow">${chk("c-"+c[0],C[c[0]],esc(Tx(c[2],c[3])))}<button type="button" class="iconbtn" data-hear="${c[0]}" aria-label="${esc(Tx("Listen","Escuchar"))}" title="${esc(Tx("Listen","Escuchar"))}">▶</button></div>`).join("")}</div>`).join("")}
-    <div class="callg"><div class="label">${esc(Tx("How it talks","Cómo habla"))}</div><div class="frow">${chk("o-calm",RADIO.calm,esc(Tx("Wait for the straight (not while braking or turning)","Espera a la recta (no mientras frenas o giras)")))}${chk("o-clear",RADIO.clear,esc(Tx("Spotter says “clear”","El spotter dice «libre»")))}${chk("o-quiet",RADIO.quiet,esc(Tx("Quiet mode: only spotter and urgent","Modo silencio: solo spotter y lo urgente")))}</div></div></div>
+    ${CALL_G.map((g,gi)=>!CALL.some(c=>c[1]===gi)?"":`<div class="callg"><div class="label">${esc(Tx(g[0],g[1]))}</div>${CALL.filter(c=>c[1]===gi).map(c=>`<div class="callrow">${chk("c-"+c[0],C[c[0]],esc(Tx(c[2],c[3])))}<button type="button" class="iconbtn" data-hear="${c[0]}" aria-label="${esc(Tx("Listen","Escuchar"))}" title="${esc(Tx("Listen","Escuchar"))}">▶</button></div>`).join("")}</div>`).join("")}
+    <div class="callg"><div class="label">${esc(Tx("How it talks","Cómo habla"))}</div><div class="frow">${chk("o-calm",RADIO.calm,esc(Tx("Wait for the straight (not while braking or turning)","Espera a la recta (no mientras frenas o giras)")))}${FEATURES.spotter?chk("o-clear",RADIO.clear,esc(Tx("Spotter says “clear”","El spotter dice «libre»"))):""}${chk("o-quiet",RADIO.quiet,esc(Tx(FEATURES.spotter?"Quiet mode: only spotter and urgent":"Quiet mode: only what is urgent",FEATURES.spotter?"Modo silencio: solo spotter y lo urgente":"Modo silencio: solo lo urgente")))}</div></div></div>
   <div class="panel s5"><h2>${esc(Tx("Ask your engineer","Pregunta al ingeniero"))}</h2><p class="note">${Lp("Press a button here, on the phone (Live → Radio) or on your wheel.","Pulsa aquí, en el móvil (En vivo → Radio) o en un botón de tu volante.")}</p>
     <div class="askgrid">${ASKS.map(a=>`<div class="askcell"><button type="button" class="askbtn" data-ask="${a[0]}">${esc(Tx(a[1],a[2]))}</button><div class="askbind">${learning(a[0])?`<span class="warn">${esc(Tx("Press a wheel button…","Pulsa un botón del volante…"))}</span>`:bindTxt(a[0])?`<span class="mono">${esc(bindTxt(a[0]))}</span> <button type="button" class="linkbtn" data-unbind="${a[0]}">${esc(Tx("remove","quitar"))}</button>`:`<button type="button" class="linkbtn" data-bind="${a[0]}">${esc(Tx("Wheel button","Botón del volante"))}</button>`}</div></div>`).join("")}</div>
     <p class="note">${MODE==="bridge"?(RB.windows?Lp("Wheel buttons work while iRacing has the focus. Bind a button that iRacing does not use.","Los botones del volante funcionan con iRacing en primer plano. Usa un botón que iRacing no use."):Lp("Wheel buttons need the Windows app.","Los botones del volante necesitan la app de Windows.")):Lp("In the browser, wheel buttons work while this page is open. In the PC app they work with iRacing in front.","En el navegador los botones funcionan con esta página abierta. En la app del PC funcionan con iRacing delante.")}${HIDDEN.has("radio")?` <button type="button" class="linkbtn" id="e-addw">${esc(Tx("Add the Radio buttons to Live","Añadir los botones de Radio a En vivo"))}</button>`:""}</p></div>
@@ -3525,7 +3540,7 @@ async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLo
   CALL.forEach(c=>{const e=$("#c-"+c[0]);if(e)e.onclick=()=>{C[c[0]]=!C[c[0]];saveRadio();renderEngineer()}});
   box.querySelectorAll("[data-hear]").forEach(b=>b.onclick=()=>{const c=CALL.find(x=>x[0]===b.dataset.hear);stopSpeech();VS.q=[];say(Object.assign(callSample(c[0],c[4]),{k:null}),0,0,true)});
   box.querySelectorAll("[data-phr]").forEach(b=>b.onclick=()=>{stopSpeech();VS.q=[];say(M(b.dataset.phr,null,undefined,{k:null}),0,0,true)});
-  [["o-calm","calm"],["o-clear","clear"],["o-quiet","quiet"]].forEach(([id,k])=>$("#"+id).onclick=()=>{RADIO[k]=!RADIO[k];saveRadio();renderEngineer()});
+  [["o-calm","calm"],["o-clear","clear"],["o-quiet","quiet"]].forEach(([id,k])=>$("#"+id)&&($("#"+id).onclick=()=>{RADIO[k]=!RADIO[k];saveRadio();renderEngineer()}));
   box.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>askRadio(b.dataset.ask));
   box.querySelectorAll("[data-bind]").forEach(b=>b.onclick=()=>learnButton(b.dataset.bind));
   box.querySelectorAll("[data-unbind]").forEach(b=>b.onclick=()=>clearButton(b.dataset.unbind));
@@ -4125,5 +4140,44 @@ async function renderNews(force){const box=$("#newsBody");if(!box)return;$("#new
   box.innerHTML=`<div class="frow" style="margin-bottom:10px">${kinds.map(k=>`<button type="button" class="chip" data-nf="${k[0]}" aria-pressed="${NEWSF===k[0]}">${esc(Tx(k[1],k[2]))}</button>`).join("")}<button type="button" class="btn small" id="newsRef" style="margin-left:auto">${esc(Tx("Refresh","Actualizar"))}</button></div>
     ${list.length?`<div class="newsgrid">${list.map(n=>`<a class="newscard" href="${esc(n.link)}" target="_blank" rel="noopener">${n.image?`<img src="${esc(n.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<div class="newsimg" aria-hidden="true">iR</div>`}<div class="newstx"><small class="muted">${n.date?esc(new Date(n.date).toLocaleDateString(locale(),{day:"numeric",month:"short",year:"numeric"})):""}${(n.tags||[]).length?" · "+esc(n.tags.slice(0,2).join(", ")):""}</small><b>${esc(n.title)}</b><span>${esc(n.summary||"")}</span></div></a>`).join("")}</div>`:`<div class="panel empty">${esc(Tx("No news here","No hay noticias aquí"))}</div>`}`;
   box.querySelectorAll("[data-nf]").forEach(b=>b.onclick=()=>{NEWSF=b.dataset.nf;renderNews()});$("#newsRef").onclick=()=>renderNews(true)}
+
+/* ===================== subscription and licence ===================== */
+Object.assign(I18N,{"tab.plan":["Subscription","Suscripción"]});
+const LIC_DEMO={enforce:false,pro:true,active:false,plan:"",status:"",trialLeft:14,storeUrl:"https://pitlanehq.lemonsqueezy.com",demo:true,proViews:["engineer","races","tracks","coach","strategy","haptics","cars"],plans:[
+  {id:"free",name:["Free","Gratis"],price:["€0","0 €"],features:[["Live dashboard and overlays","Panel en vivo y overlays"],["Calendar and series","Calendario y series"],["Phone as a second screen","Móvil como segunda pantalla"]]},
+  {id:"monthly",name:["Pro monthly","Pro mensual"],price:["€4.99 / month","4,99 € / mes"],buy:"#",features:[["Everything in Free","Todo lo de Gratis"],["Voice engineer","Ingeniero por voz"],["Race analysis and braking coach","Análisis de carrera y coach de frenada"],["Haptics engine","Motor de hápticos"],["Web version and Discord","Versión web y Discord"]]},
+  {id:"yearly",name:["Pro yearly","Pro anual"],price:["€39.99 / year","39,99 € / año"],buy:"#",features:[["Everything in Pro","Todo lo de Pro"],["2 months free","2 meses gratis"]]},
+  {id:"lifetime",name:["Lifetime","De por vida"],price:["€99 once","99 € una vez"],buy:"#",features:[["Everything in Pro, forever","Todo lo de Pro, para siempre"],["All future updates","Todas las actualizaciones futuras"]]}]};
+let LIC=null;
+async function loadLicense(){if(MODE==="bridge"&&!REMOTE){try{LIC=await jget("/api/license")}catch(e){LIC=LIC||LIC_DEMO}}else LIC=LIC||LIC_DEMO;return LIC}
+const TT=a=>Array.isArray(a)?Tx(a[0],a[1]):String(a||"");
+function proLocked(v){return LIC&&LIC.enforce&&!LIC.pro&&(LIC.proViews||[]).includes(v)}
+function applyProGate(v){document.querySelectorAll(".progate").forEach(e=>e.remove());if(!proLocked(v))return;const sec=document.getElementById("v-"+v);if(!sec)return;
+  sec.insertAdjacentHTML("afterbegin",`<div class="progate"><div><span class="pill acc">PRO</span><h2>${esc(Tx("This is part of Pitlane HQ Pro","Esto forma parte de Pitlane HQ Pro"))}</h2><p class="note">${Lp("Subscribe or buy the lifetime licence to unlock it.","Suscríbete o compra la licencia de por vida para desbloquearlo.")}</p><button type="button" class="btn primary" id="pgGo">${esc(Tx("See plans","Ver planes"))}</button></div></div>`);$("#pgGo").onclick=()=>show("plan")}
+async function renderPlan(){const box=$("#planBody");if(!box)return;await loadLicense();const l=LIC,cur=l.active?l.plan:"";
+  $("#planSub").innerHTML=l.demo?Lp("Sample: in the PC app you activate your licence here","Ejemplo: en la app del PC aquí activas tu licencia"):Lp("Your plan and licence on this PC","Tu plan y tu licencia en este PC");
+  const status=l.active?`<span class="pill good">${esc(Tx("Active","Activa"))}</span> ${esc(TT((l.plans.find(p=>p.id===l.plan)||{}).name)||l.plan)}${l.expires?` · ${esc(Tx("renews/ends","renueva/termina"))} ${esc(new Date(l.expires).toLocaleDateString(locale()))}`:l.plan==="lifetime"?" · "+esc(Tx("forever","para siempre")):""}`
+    :l.trialLeft>0&&l.enforce?`<span class="pill acc">${esc(Tx(`Trial: ${l.trialLeft} days left`,`Prueba: quedan ${l.trialLeft} días`))}</span>`:!l.enforce?`<span class="pill good">${esc(Tx("Everything unlocked in this version","Todo desbloqueado en esta versión"))}</span>`:`<span class="pill bad">${esc(Tx("Free plan","Plan gratis"))}</span>`;
+  box.innerHTML=`<div class="panel"><div class="vhead" style="margin:0 0 8px"><h2 style="margin:0">${esc(Tx("Your plan","Tu plan"))}</h2><div>${status}</div></div>
+      <form class="frow" id="licForm" style="align-items:center"><input type="text" id="licKey" autocomplete="off" spellcheck="false" placeholder="${esc(l.key?Tx(`Licence ${l.key}`,`Licencia ${l.key}`):Tx("Paste your licence key","Pega tu clave de licencia"))}" style="flex:1;min-width:220px"><button class="btn primary" type="submit">${esc(Tx("Activate","Activar"))}</button>${l.key?`<button class="btn small" type="button" id="licChk">${esc(Tx("Check now","Comprobar ahora"))}</button><button class="btn small danger" type="button" id="licOff">${esc(Tx("Remove from this PC","Quitar de este PC"))}</button>`:""}</form>
+      ${l.error?`<p class="err">${esc(l.error)}</p>`:""}<p class="note">${Lp("The licence is checked once a day; without internet it keeps working for a few days. Removing it from this PC frees it for another one.","La licencia se comprueba una vez al día; sin internet sigue funcionando unos días. Quitarla de este PC la libera para otro.")}</p></div>
+    <div class="plans">${l.plans.map(p=>`<div class="plancard${p.id===cur||(!cur&&p.id==="free"&&l.enforce)?" cur":""}${p.id==="lifetime"?" life":""}"><div class="label">${esc(TT(p.name))}</div><div class="planprice">${esc(TT(p.price))}</div><ul>${(p.features||[]).map(f=>`<li>${esc(TT(f))}</li>`).join("")}</ul>${p.buy?`<a class="btn ${p.id==="yearly"?"primary":""}" href="${esc(p.buy)}" target="_blank" rel="noopener">${esc(p.id===cur?Tx("Your plan","Tu plan"):p.id==="lifetime"?Tx("Buy once","Comprar una vez"):Tx("Subscribe","Suscribirme"))}</a>`:""}</div>`).join("")}</div>
+    ${l.storeUrl?`<p class="note"><a class="acc" href="${esc(l.storeUrl)}" target="_blank" rel="noopener">${esc(Tx("Manage your subscription, invoices and payment method","Gestiona tu suscripción, facturas y forma de pago"))}</a></p>`:""}`;
+  const act=async(body)=>{if(l.demo){toast(Tx("Demo: nothing is checked","Demo: no se comprueba nada"));return}try{LIC=await jpost("/api/license",body);toast(Tx("Done","Hecho"))}catch(e){toast(e.message);LIC=null}renderPlan()};
+  $("#licForm").onsubmit=e=>{e.preventDefault();const k=$("#licKey").value.trim();if(k)act({action:"activate",key:k})};
+  const c=$("#licChk");if(c)c.onclick=()=>act({action:"check"});const o=$("#licOff");if(o)o.onclick=()=>{if(confirm(Tx("Remove the licence from this PC?","¿Quitar la licencia de este PC?")))act({action:"deactivate"})}}
+
+/* ===================== devices paired with the PIN ===================== */
+async function renderPairPanel(){const box=$("#pairPanel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.innerHTML=`<h2>${esc(Tx("Phone PIN","PIN del móvil"))}</h2><p class="note">${Lp("In the PC app a phone or tablet must enter a PIN shown here the first time it connects. Nobody else on your Wi-Fi can open Pitlane HQ.","En la app del PC un móvil o tablet tiene que escribir un PIN que aparece aquí la primera vez que se conecta. Nadie más de tu Wi-Fi puede abrir Pitlane HQ.")}</p>`;return}
+  let d;try{d=await jget("/api/devices")}catch(e){box.innerHTML="";return}const urls=(INFO&&INFO.urls)||[];
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Phone PIN","PIN del móvil"))}</h2>${chk("pinOn",d.pinOn,Lp("Ask for a PIN","Pedir PIN",true))}</div>
+    ${d.pinOn?`<div class="row" style="align-items:center;gap:20px"><div><div class="pinbig mono">${esc(d.pin.slice(0,3)+" "+d.pin.slice(3))}</div><small class="muted">${esc(Tx("Changes every 10 minutes and after each use","Cambia cada 10 minutos y tras cada uso"))}</small></div>${urls[0]?`<img class="qr" style="width:130px" alt="QR" src="/api/qr.png?u=${encodeURIComponent(urls[0]+"/pair?pin="+d.pin)}">`:""}<div style="flex:1;min-width:200px"><p class="note" style="margin:0">${Lp("Scan the QR with the phone (it pairs by itself), or open the address and type the PIN.","Escanea el QR con el móvil (se empareja solo), o abre la dirección y escribe el PIN.")}</p><button type="button" class="btn small" id="pinNew" style="margin-top:8px">${esc(Tx("New PIN","Nuevo PIN"))}</button></div></div>`
+      :`<p class="warn">${esc(Tx("Without a PIN, anyone on your network can open and control Pitlane HQ.","Sin PIN, cualquiera de tu red puede abrir y controlar Pitlane HQ."))}</p>`}
+    <div class="label" style="margin-top:12px">${esc(Tx("Paired devices","Dispositivos emparejados"))}</div>
+    ${d.devices.length?`<div class="devlist">${d.devices.map(x=>`<div class="devrow"><b>${esc(x.name)}</b><small class="muted">${esc(Tx("since","desde"))} ${esc(new Date(x.added).toLocaleDateString(locale()))} · ${esc(Tx("last seen","última vez"))} ${esc(new Date(x.lastSeen).toLocaleDateString(locale()))}</small><button type="button" class="btn small" data-devrm="${esc(x.id)}">${esc(Tx("Remove","Quitar"))}</button></div>`).join("")}</div>`:`<p class="note">${esc(Tx("None yet.","Ninguno todavía."))}</p>`}`;
+  const post=async b=>{try{await jpost("/api/devices",b)}catch(e){toast(e.message)}renderPairPanel()};
+  $("#pinOn").onclick=()=>{if(d.pinOn&&!confirm(Tx("Turn off the PIN? Anyone on your network could control Pitlane HQ.","¿Quitar el PIN? Cualquiera de tu red podría controlar Pitlane HQ.")))return;post({action:"pin",on:!d.pinOn})};
+  const n=$("#pinNew");if(n)n.onclick=()=>post({action:"newpin"});box.querySelectorAll("[data-devrm]").forEach(b=>b.onclick=()=>post({action:"remove",id:b.dataset.devrm}))}
+if(!OV.on)setTimeout(()=>loadLicense().then(()=>applyProGate(CUR_VIEW)),1500);
 
 </script>
