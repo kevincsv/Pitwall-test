@@ -742,7 +742,8 @@ html.maxed .winedge{display:none}
 .wpanel:has(.wtable),.panel:has(>table){overflow-x:auto}.wtable{max-width:none}
 html,body{overflow-x:clip}
 html.phone nav.tabs button{letter-spacing:0;font-size:10.5px}html.phone nav.tabs button span{text-overflow:clip}
-@media (max-width:520px){.seg{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}.seg::-webkit-scrollbar{display:none}.seg button{flex:0 0 auto;font-size:12.5px;padding:8px 11px;white-space:nowrap}}
+@media (max-width:520px){.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;max-width:100%}.seg button{min-width:0;font-size:11.5px;letter-spacing:.03em;padding:8px 6px;white-space:normal;line-height:1.15}}
+html.phone nav.tabs button{font-size:9.5px}html.phone header.top #lockBtn,html.phone header.top #fsBtn{display:none!important}
 .hm{padding-top:14px}
 </style>
 
