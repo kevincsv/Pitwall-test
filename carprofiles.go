@@ -1,7 +1,7 @@
 package main
 
 // Per-car rig profiles: when you get in a car, Pitlane HQ applies what you
-// saved for it: which overlays open, the haptics settings and SimHub
+// saved for it: which overlays open, the haptics settings
 // actions to run (for example a wheel screen page or a brightness).
 
 import (
@@ -122,14 +122,6 @@ func applyCarProfile(p carProfile) {
 			applyHapticsMode()
 		}
 	}
-	go func() {
-		for _, a := range p.Actions {
-			if simActionRe.MatchString(a) {
-				simhubCmd("-triggeraction", a)
-				time.Sleep(400 * time.Millisecond)
-			}
-		}
-	}()
 }
 
 func registerCarRoutes(mux *http.ServeMux) {
@@ -166,11 +158,6 @@ func registerCarRoutes(mux *http.ServeMux) {
 					h := hapCfg
 					hapMu.Unlock()
 					p.Haptics = &h
-				}
-				for _, a := range in.Actions {
-					if a = strings.TrimSpace(a); simActionRe.MatchString(a) && len(p.Actions) < 20 {
-						p.Actions = append(p.Actions, a)
-					}
 				}
 				cars.Profiles[in.Key] = p
 				saveCarsLocked()

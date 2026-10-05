@@ -1,14 +1,10 @@
 package main
 
-// Haptics: bass shakers, Simsonn Pro Haptics and MOZA pedal haptics.
+// Haptics: bass shakers and tactile transducers.
 //
-// Two ways to drive them, chosen per profile:
-//   - "simhub": SimHub's ShakeIt does the effects (it also drives Simsonn VAM
-//     Pro and MOZA pedal haptics). Pitlane HQ mutes, unmutes and
-//     sets the overall strength through SimHub actions.
-//   - "engine": Pitlane HQ's own effects engine sends the effects as sound to a
-//     sound card or USB audio box wired to an amplifier and bass shakers
-//     (seat, pedals). Simsonn and MOZA pedals stay with SimHub either way.
+// Pitlane HQ's own effects engine sends the effects as sound to a sound card or
+// USB audio box wired to an amplifier and bass shakers (seat, pedals). Chosen
+// per profile: "engine" or "off".
 
 import (
 	"encoding/json"
@@ -19,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -35,7 +30,7 @@ type hapEffect struct {
 }
 
 type hapConfig struct {
-	Mode     string                `json:"mode"` // "simhub", "engine" or "off"
+	Mode     string                `json:"mode"` // "engine" or "off"
 	Device   int                   `json:"device"`
 	Channels int                   `json:"channels"`
 	Master   float64               `json:"master"`
@@ -46,7 +41,7 @@ type hapConfig struct {
 var hapEffectOrder = []string{"engine", "shift", "road", "abs", "impact", "offtrack", "slip", "tc", "lock", "slide", "gforce", "bottom", "limiter", "pitlimiter"}
 
 func defaultHaptics() hapConfig {
-	return hapConfig{Mode: "simhub", Device: -1, Channels: 2, Master: 0.7, InCar: true, Effects: map[string]*hapEffect{
+	return hapConfig{Mode: "engine", Device: -1, Channels: 2, Master: 0.7, InCar: true, Effects: map[string]*hapEffect{
 		"engine":   {On: true, Gain: 0.6, Freq: 32, Ch: []int{0, 1}},
 		"shift":    {On: true, Gain: 1, Freq: 38, Ch: []int{0, 1}},
 		"road":     {On: true, Gain: 0.8, Freq: 46, Ch: []int{0, 1}},
@@ -95,8 +90,8 @@ func loadHaptics() {
 
 func cleanHaptics(c *hapConfig) {
 	d := defaultHaptics()
-	if c.Mode != "engine" && c.Mode != "off" {
-		c.Mode = "simhub"
+	if c.Mode != "off" {
+		c.Mode = "engine" // older settings may say "simhub"
 	}
 	switch c.Channels {
 	case 2, 4, 6, 8:
@@ -483,13 +478,6 @@ func toPtrs(m map[string]hapEffect) map[string]*hapEffect {
 	return o
 }
 
-// ---------- SimHub ShakeIt control ----------
-
-var shakeitActions = map[string]string{
-	"bassMute": "ShakeITBSV3Plugin.ToggleMuteFeedback", "bassUp": "ShakeITBSV3Plugin.MainFeedbackLevelIncrement", "bassDown": "ShakeITBSV3Plugin.MainFeedbackLevelDecrement",
-	"motorsMute": "ShakeITMotorsV3Plugin.ToggleMuteFeedback", "motorsUp": "ShakeITMotorsV3Plugin.MainFeedbackLevelIncrement", "motorsDown": "ShakeITMotorsV3Plugin.MainFeedbackLevelDecrement",
-}
-
 func registerHapticsRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/haptics", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -513,8 +501,6 @@ func registerHapticsRoutes(mux *http.ServeMux) {
 		hapMu.Unlock()
 		out["devices"] = audioDevices()
 		out["windows"] = appsSupported
-		out["simhub"] = runningProcs()["simhubwpf.exe"]
-		out["simsonnManager"] = simsonnManagerRunning()
 		writeJSON(w, out)
 	})
 	mux.HandleFunc("/api/haptics/levels", func(w http.ResponseWriter, r *http.Request) {
@@ -530,9 +516,7 @@ func registerHapticsRoutes(mux *http.ServeMux) {
 		var in struct{ Action, Effect string }
 		json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 		var err error
-		if a, ok := shakeitActions[in.Action]; ok {
-			err = simhubCmd("-triggeraction", a)
-		} else if in.Action == "test" {
+		if in.Action == "test" {
 			hapMu.Lock()
 			_, ok := hapCfg.Effects[in.Effect]
 			running := hapRunning
@@ -555,15 +539,6 @@ func registerHapticsRoutes(mux *http.ServeMux) {
 		}
 		writeJSON(w, map[string]string{"result": "ok"})
 	})
-}
-
-func simsonnManagerRunning() bool {
-	for p := range runningProcs() {
-		if strings.Contains(p, "simsonn") {
-			return true
-		}
-	}
-	return false
 }
 
 func sleepBlock() { time.Sleep(time.Second * hapBlock / hapRate) }

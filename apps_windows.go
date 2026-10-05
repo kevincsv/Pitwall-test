@@ -230,7 +230,7 @@ func pickProgram() (string, error) {
 }
 
 // killProcs closes every running program with that name, except copies that
-// live under skipDir (e.g. a copy of Pit House inside SimHub's folder).
+// live under skipDir (a copy of a program inside another program's folder).
 func killProcs(name, skipDir string) int {
 	n := 0
 	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
