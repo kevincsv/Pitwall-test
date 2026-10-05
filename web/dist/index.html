@@ -535,6 +535,16 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .pkfav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;text-align:left;background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer;font:inherit;font-size:13px}
 .pkfav span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pkfav small{color:var(--muted);font-size:11px}.pkfav:hover{border-color:var(--accent)}
 .nextrace.click{cursor:pointer}
+.qs{position:fixed;inset:0;z-index:40}.qs[hidden]{display:none}
+.qs-bg{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px)}
+.qs-panel{position:relative;margin:10vh auto 0;width:min(620px,calc(100% - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.qs-panel input{width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;font-size:18px;padding:16px 18px;outline:none}
+.qs-list{max-height:min(420px,60vh);overflow:auto;padding:6px}
+.qs-it{display:flex;justify-content:space-between;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;color:var(--fg);font:inherit;font-size:15px;padding:10px 12px;border-radius:8px;cursor:pointer}
+.qs-it small{color:var(--muted);font-size:12px;white-space:nowrap}
+.qs-it[aria-selected="true"],.qs-it:hover{background:var(--surface2);box-shadow:inset 3px 0 0 var(--accent)}
+.qs-foot{border-top:1px solid var(--line);padding:8px 14px;font-size:12px;color:var(--muted)}
+@media (max-width:760px){#qsBtn,#setBtn{display:none}}
 </style>
 
 <div class="wrap">
@@ -543,13 +553,14 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
   <button class="conn" id="conn" type="button">…</button>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h9l1 2h6v9h-7l-1-2H6v8z"/></svg><span data-i18n="g.race"></span></button>
-    <button role="tab" data-g="overlays" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><rect x="6" y="7" width="6" height="4" rx="1"/><rect x="13" y="12" width="5" height="3" rx="1"/></svg><span data-i18n="g.overlays"></span></button>
+    <button role="tab" data-g="analysis" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16v-5M11 16V6M16 16v-8M21 4l-5 4-5-2-5 5"/></svg><span data-i18n="g.analysis"></span></button>
     <button role="tab" data-g="season" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="g.season"></span></button>
     <button role="tab" data-g="rig" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M4.5 10h5M14.5 10h5M12 14.5V20"/></svg><span data-i18n="g.rig"></span></button>
     <button role="tab" data-g="account" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span data-i18n="g.account"></span></button>
   </nav>
   <button class="profbtn" id="profBtn" type="button" hidden></button>
   <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
+  <button class="iconbtn" id="qsBtn" type="button" title="Search (Ctrl+K)" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
@@ -1982,7 +1993,7 @@ Object.assign(I18N,{"w.radar":["Radar","Radar"],"w.boost":["DRS & push-to-pass",
 let LAYOUT_VIEW=null;
 function chk(id,on,label){return `<button type="button" class="chip" id="${id}" aria-pressed="${!!on}">${label}</button>`}
 function openLayout(){LAYOUT_VIEW=openLayout;CFG_BACK=null;
-  $("#dTitle").innerHTML=L("layout");$("#dSub").innerHTML=Lp("Choose what this screen shows. Overlay windows are set up in the Overlays tab.","Elige qué muestra esta pantalla. Las ventanas overlay se configuran en la pestaña Overlays.");
+  $("#dTitle").innerHTML=L("layout");$("#dSub").innerHTML=Lp("Choose what this screen shows. Overlay windows are set up in Rig → Overlays.","Elige qué muestra esta pantalla. Las ventanas overlay se configuran en Rig → Overlays.");
   const rows=WIDGETS.map(w=>`<div class="lyrow"><span class="s">${L("w."+w,true)}</span>
     <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${esc(HIDDEN.has(w)?Tx("Hidden","Oculto"):Tx("Shown","Visible"))}</button>
     ${w!=="flag"?`<button type="button" class="pin" data-size="${w}" title="${esc(Tx("Width","Ancho"))}">${esc(Tx("Width","Ancho"))}: ${sizeLabel(w)}</button>`:""}
@@ -2604,7 +2615,7 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={race:["live","field","laps","engineer","coach","strategy","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics","cars","setups"],account:["account","goals","settings"]};
+const GROUPS={race:["live","field","engineer","strategy","tyres"],analysis:["laps","coach","data"],season:["calendar","series","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","settings"]};
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
 const VIEW_LABEL={live:"tab.live",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
@@ -2613,7 +2624,45 @@ function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];bo
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
   if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars")renderCars();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
-tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
+function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
+tabs.forEach(b=>b.onclick=()=>openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
+/* ---------- quick search: Ctrl+K or / jumps to any page, setting or action ---------- */
+const QS_PAGES={live:"delta speed rpm gear fuel relative radar inputs dash widgets velocidad marcha gasolina relativo",field:"standings positions results classification posiciones clasificación resultados",
+  engineer:"voice radio spotter crewchief audio pack wheel button voz botón volante paquete off track fuera de pista",strategy:"fuel stint pit endurance strategy gasolina parada resistencia relevo",tyres:"tyres tires temperature wear neumáticos gomas temperatura desgaste",
+  laps:"laps lap times history sectors vueltas tiempos historial sectores",coach:"braking brake coach corners tips frenada frenar curvas consejos",data:"telemetry variables raw data sdk telemetría variables datos",
+  calendar:"calendar schedule plan reminders add race ics calendario agenda avisos añadir carrera widget",series:"series season schedule tracks cars licence series temporada circuitos coches",goals:"goals irating safety rating targets objetivos metas",
+  overlays:"overlays hud on screen stream transparent overlays pantalla",rig:"programs apps launch simhub azom moza pit house dashboard crewchief garage 61 programas abrir equipo",haptics:"haptics bass shakers simsonn pedals vibration hápticos vibración pedales",
+  cars:"car profiles per car perfiles por coche",setups:"setups sto library notes setups biblioteca notas",account:"account profile licence irating cpi cuenta perfil licencias",settings:"settings preferences ajustes preferencias"};
+const QS_SET=[["set-general","General: language, units, theme","General: idioma, unidades, tema","language idioma units unidades theme tema dark light oscuro claro"],["set-profiles","Profiles","Perfiles","profiles perfiles export import exportar importar"],
+  ["set-conn","Connections: iRacing, Garage 61, Cloudflare web, engineer link","Conexiones: iRacing, Garage 61, web de Cloudflare, enlace de ingeniero","cloudflare web cloud garage61 g61 iracing login share enlace compartir"],["set-phone","Phone apps","Apps del móvil","phone iphone android móvil app qr"],["set-about","About","Acerca de","about version versión"]];
+function qsItems(){const g=k=>L("g."+groupOf(k),true).replace(/<[^>]+>/g,"");
+  const pages=Object.keys(VIEW_LABEL).map(v=>({k:"v:"+v,label:(I18N[VIEW_LABEL[v]]||[v,v])[LANG==="es"?1:0]||v,hint:g(v),words:QS_PAGES[v]||"",run:()=>show(v)}));
+  const sets=QS_SET.map(s=>({k:"s:"+s[0],label:Tx(s[1],s[2]),hint:Tx("Settings","Ajustes"),words:s[3],run:()=>{show("settings");setTimeout(()=>{const t=document.getElementById(s[0]);if(t)t.scrollIntoView({behavior:"smooth"})},80)}}));
+  const acts=[{k:"a:race",label:Tx("Add a race to the calendar","Añadir una carrera al calendario"),words:"add race calendar añadir carrera",run:()=>{show("calendar");openRacePicker()}},
+    {k:"a:voice",label:VOICE.on?Tx("Turn the voice engineer off","Apagar el ingeniero por voz"):Tx("Turn the voice engineer on","Encender el ingeniero por voz"),words:"voice voz engineer ingeniero on off",run:()=>{VOICE.on=!VOICE.on;VS.base=false;saveVoice();if(VOICE.on)say(M("radio_check"),0,0,true);else stopSpeech();toast(VOICE.on?Tx("Voice on","Voz activada"):Tx("Voice off","Voz desactivada"));if(CUR_VIEW==="engineer")renderEngineer()}},
+    {k:"a:radio",label:Tx("Radio check","Prueba de radio"),words:"radio test prueba",run:()=>say(M("radio_check"),0,0,true)},
+    {k:"a:lang",label:LANG==="es"?"Switch to English":"Cambiar a español",words:"language idioma english español",run:()=>{LANG=LANG==="es"?"en":"es";store.set("pw.lang",LANG);applyI18n()}},
+    {k:"a:theme",label:Tx("Light / dark theme","Tema claro / oscuro"),words:"theme tema dark light claro oscuro",run:()=>{store.set("pw.theme",document.documentElement.getAttribute("data-theme")==="light"?"dark":"light");applyTheme();rerenderAll()}},
+    {k:"a:fs",label:Tx("Full screen","Pantalla completa"),words:"fullscreen pantalla completa",run:()=>$("#fsBtn").click()}];
+  return[...pages,...acts,...sets]}
+const qsNorm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+let QS={items:[],sel:0};
+function openQuick(){if(OV.on)return;let box=$("#qs");if(!box){box=document.createElement("div");box.id="qs";box.className="qs";box.innerHTML=`<div class="qs-bg"></div><div class="qs-panel" role="dialog" aria-modal="true" aria-label="Search"><input type="search" id="qsIn" autocomplete="off" spellcheck="false"><div class="qs-list" id="qsList" role="listbox"></div><div class="qs-foot"></div></div>`;document.body.appendChild(box);
+    box.querySelector(".qs-bg").onclick=closeQuick;$("#qsIn").oninput=renderQuick;
+    $("#qsIn").onkeydown=e=>{if(e.key==="ArrowDown"){QS.sel=Math.min(QS.items.length-1,QS.sel+1);paintQuick();e.preventDefault()}else if(e.key==="ArrowUp"){QS.sel=Math.max(0,QS.sel-1);paintQuick();e.preventDefault()}else if(e.key==="Enter"){const it=QS.items[QS.sel];if(it){closeQuick();it.run()}}else if(e.key==="Escape")closeQuick()}}
+  $("#qsIn").placeholder=Tx("Go to a page, setting or action…","Ir a una página, ajuste o acción…");box.querySelector(".qs-foot").textContent=Tx("↑ ↓ to choose · Enter to open · Esc to close · Ctrl+K anywhere","↑ ↓ para elegir · Enter para abrir · Esc para cerrar · Ctrl+K desde cualquier sitio");
+  box.hidden=false;$("#qsIn").value="";renderQuick();setTimeout(()=>$("#qsIn").focus(),0)}
+function closeQuick(){const b=$("#qs");if(b)b.hidden=true}
+function renderQuick(){const q=qsNorm($("#qsIn").value.trim()),all=qsItems();
+  QS.items=q?all.map(it=>{const l=qsNorm(it.label),w=qsNorm(it.words+" "+it.k);let sc=0;q.split(/\s+/).forEach(t=>{if(l.startsWith(t))sc+=5;else if(l.includes(t))sc+=3;else if(w.includes(t))sc+=1;else sc-=20});return{it,sc}}).filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc).map(x=>x.it).slice(0,12)
+    :all.filter(it=>it.k.startsWith("v:")||it.k==="a:race"||it.k==="a:voice");QS.sel=0;paintQuick()}
+function paintQuick(){const box=$("#qsList");box.innerHTML=QS.items.length?QS.items.map((it,i)=>`<button type="button" class="qs-it" role="option" aria-selected="${i===QS.sel}" data-qi="${i}"><span>${esc(it.label)}</span><small>${esc(it.hint||(it.k.startsWith("a:")?Tx("Action","Acción"):""))}</small></button>`).join(""):`<div class="empty">${esc(Tx("Nothing found","No hay resultados"))}</div>`;
+  box.querySelectorAll("[data-qi]").forEach(b=>b.onclick=()=>{const it=QS.items[+b.dataset.qi];closeQuick();it.run()});const s=box.querySelector('[aria-selected="true"]');if(s)s.scrollIntoView({block:"nearest"})}
+document.addEventListener("keydown",e=>{if(OV.on)return;const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||"")||e.target&&e.target.isContentEditable;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#qs")&&!$("#qs").hidden?closeQuick():openQuick();return}
+  if(typing)return;if(e.key==="/"){e.preventDefault();openQuick();return}
+  if(e.altKey&&/^[1-5]$/.test(e.key)){const g=Object.keys(GROUPS)[+e.key-1];if(g){e.preventDefault();openGroup(g)}}});
+$("#qsBtn").onclick=openQuick;
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
 
@@ -2902,7 +2951,7 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
     <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
 /* ===================== race scheduler (calendar) ===================== */
-Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
  "tab.calendar":["Calendar","Calendario"],"tab.rigGear":["Programs & gear","Programas y equipo"],"tab.haptics":["Haptics","Hápticos"]});
 const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
 let EVENTS=store.get("pw.events",[]),REMIND=store.get("pw.remind",[15]),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};

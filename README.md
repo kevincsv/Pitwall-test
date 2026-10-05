@@ -20,6 +20,18 @@ Everything is on one page / Todo en una sola página: **https://github.com/kevin
 
 Keep the black Pitlane HQ window open while you race. Close it to stop.
 
+## Menus
+
+| Section | Pages |
+|---|---|
+| **Race** (while you drive) | Live · Standings · Engineer · Strategy · Tyres |
+| **Analysis** (after the session) | Laps · Braking coach · Data |
+| **Season** | Calendar · Series · Goals |
+| **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
+| **Account** | Account · Settings (also the gear button) |
+
+**Ctrl+K** (or **/**, or the magnifier) opens a quick search: type "fuel", "spotter", "simhub", "cloudflare"… to jump to any page, setting or action. **Alt+1…5** switches section.
+
 ## Phone and tablet (Android, iPhone, iPad)
 
 1. Connect the phone to the same Wi-Fi as the PC.
@@ -38,7 +50,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 - **Radar**: shows cars alongside and close behind or ahead, and hides itself when nobody is near.
 - **DRS and push-to-pass**: state, time or uses left with the unit shown (IndyCar and Super Formula count seconds, shown as minutes:seconds), and how long the current boost has been on (only on cars that have them).
 - **Telemetry widget**: pin any of the ~300 iRacing variables from the Data tab and see it live with a mini graph.
-- **Overlays tab**: one place to choose which overlays open automatically, open or close them, move them on the screen and configure each one with a **live preview** that updates as you change columns or options. A phone can control the overlays on the PC.
+- **Rig → Overlays**: one place to choose which overlays open automatically, open or close them, move them on the screen and configure each one with a **live preview** that updates as you change columns or options. A phone can control the overlays on the PC.
 - **Your own Live screen**: drag any block by its ⠿ handle to move it, change its width in Layout, or hide it. The blocks always stretch to fill each row, so there are no gaps when you move things. Each device remembers its own layout.
 - **Delta bar**: a wide bar that shows at a glance whether you are gaining (green) or losing (red) against your best lap.
 - **G-force circle**: braking, acceleration and cornering grip with a trail, plus the peaks of the session.
@@ -72,7 +84,7 @@ The round button at the top right (with your initial) opens **Profiles**. Each p
 - **When iRacing starts**: starts each time the sim starts.
 - **Only by hand**: stays in the list with a Start button.
 
-You can start them minimised, change the order, start them all at once, remove them, and add any other program from the Start menu or with **Browse…**. Programs that are already open are left alone. Turn on **Start with Windows** (Overlays tab) and your whole rig starts by itself. For safety, a phone can only start programs you already added on the PC.
+You can start them minimised, change the order, start them all at once, remove them, and add any other program from the Start menu or with **Browse…**. Programs that are already open are left alone. Turn on **Start with Windows** (Rig → Overlays) and your whole rig starts by itself. For safety, a phone can only start programs you already added on the PC.
 
 **SimHub.** Start, show, minimise or close SimHub and switch it to iRacing. Every dashboard and overlay in SimHub is listed with its preview: **Open** it in a window, put it **On Live**, or open it as a Pitlane HQ **overlay** window on top of iRacing. **Import .simhubdash** sends a dashboard file to SimHub (also from your phone). The **SimHub dashboard** widget shows any SimHub dashboard live (SimHub's web server must be on, port 8888).
 
@@ -104,10 +116,10 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Voice engineer and spotter** (Race → Engineer), like CrewChief. Buttons to choose what it tells you: spotter (car left / right, three wide, clear), off track, incidents, flags, places gained or lost, laps or minutes to go, lap time and personal best, gaps, fuel, *box this lap*, pit limiter, water / oil warnings and a braking tip. Presets (All, Race, Practice, Spotter only) and *wait for the straight* so it does not talk while you brake or turn.
   - **Ask it**: fuel, gaps, position, last lap, how long left, pit stop, incidents, delta, quiet / talk. Press the buttons on the page, on the phone (Live → Radio, the phone becomes a button box) or bind them to **wheel or button box buttons** (Windows app; works while iRacing has the focus).
   - **Your own audio packs**: record each phrase with its name (`car_left.mp3`, `off_track.wav`, …; a folder such as `car_left/1.mp3`, `car_left/2.mp3` for several takes) and add a .zip or a folder. *Phrase list* shows every name with what to say (copy or save it). Numbers (`n_0` … `n_99`, `point`) are optional. Anything not recorded is said by the computer voice. Packs are kept in your profile folder.
-- **Braking coach** (Race → Braking coach, and a Live widget): compares a lap with your best lap or a Garage 61 lap corner by corner: braking point (metres earlier or later), entry and minimum speed, time won or lost, and a tip for the three corners that cost the most.
+- **Braking coach** (Analysis → Braking coach, and a Live widget): compares a lap with your best lap or a Garage 61 lap corner by corner: braking point (metres earlier or later), entry and minimum speed, time won or lost, and a tip for the three corners that cost the most.
 - **Exact deltas**: every lap keeps the time at each 5 m, interpolated between telemetry samples, so comparisons are accurate to about a millisecond. The delta bar can compare with your best, the session best, the optimal lap or Pitlane HQ's own recorded best, with the range you choose.
 - **Endurance strategy** (Race → Strategy): race length, drivers and their maximum stint, fuel, tank, pit loss, refuelling speed and tyre changes give a stint plan (laps, fuel to add, tyres, stop time) that follows the race live ("box in 9").
-- **Goals** (Account → Goals): iRating, licence and safety rating, races per week, incidents per race and lap time targets per track and car, with progress.
+- **Goals** (Season → Goals): iRating, licence and safety rating, races per week, incidents per race and lap time targets per track and car, with progress.
 - **Car profiles** (Rig → Car profiles): save overlays, haptics and SimHub/AZOM actions for each car; they are applied when you get in it.
 - **Setups** (Rig → Setups): every setup in Documents\iRacing\setups with notes, tags and your best lap with it at each track.
 - **Team on the web**: your Pitlane HQ Cloud can have team mates with their own keys; records per track and car for the whole team and comparison with the team's fastest lap.
@@ -162,6 +174,18 @@ See `source/ios/README.md` to build it for free without a Mac and install it fro
 
 Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para parar.
 
+## Menús
+
+| Sección | Páginas |
+|---|---|
+| **Carrera** (mientras conduces) | En vivo · Posiciones · Ingeniero · Estrategia · Neumáticos |
+| **Análisis** (después de la sesión) | Vueltas · Coach de frenada · Datos |
+| **Temporada** | Calendario · Series · Objetivos |
+| **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
+| **Cuenta** | Cuenta · Ajustes (también el botón del engranaje) |
+
+**Ctrl+K** (o **/**, o la lupa) abre un buscador rápido: escribe "gasolina", "spotter", "simhub", "cloudflare"… para ir a cualquier página, ajuste o acción. **Alt+1…5** cambia de sección.
+
 ## Móvil y tablet (Android, iPhone, iPad)
 
 1. Conecta el móvil a la misma WiFi que el PC.
@@ -214,7 +238,7 @@ El botón redondo de arriba a la derecha (con tu inicial) abre **Perfiles**. Cad
 - **Al abrir iRacing**: se abre cada vez que arranca el simulador.
 - **Solo a mano**: queda en la lista con un botón Iniciar.
 
-Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlos y añadir cualquier otro programa del menú Inicio o con **Buscar…**. Los que ya están abiertos no se tocan. Activa **Iniciar con Windows** (pestaña Overlays) y todo tu equipo arranca solo. Por seguridad, un móvil solo puede abrir programas que ya añadiste en el PC.
+Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlos y añadir cualquier otro programa del menú Inicio o con **Buscar…**. Los que ya están abiertos no se tocan. Activa **Iniciar con Windows** (Rig → Overlays) y todo tu equipo arranca solo. Por seguridad, un móvil solo puede abrir programas que ya añadiste en el PC.
 
 **SimHub.** Abre, muestra, minimiza o cierra SimHub y cámbialo a iRacing. Aparecen todos tus dashboards y overlays de SimHub con su vista previa: **Ábrelo** en una ventana, ponlo **En vivo** o ábrelo como **overlay** de Pitlane HQ encima de iRacing. **Importar .simhubdash** envía un dashboard a SimHub (también desde el móvil). El widget **Dashboard de SimHub** muestra cualquier dashboard en vivo (el servidor web de SimHub debe estar activo, puerto 8888).
 
@@ -246,10 +270,10 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Ingeniero por voz y spotter** (Carrera → Ingeniero), como CrewChief. Botones para elegir qué te dice: spotter (coche a la izquierda / derecha, tres en paralelo, libre), fuera de pista, incidentes, banderas, posiciones ganadas o perdidas, vueltas o minutos restantes, tiempo de vuelta y récord, gaps, gasolina, *box esta vuelta*, limitador en pit lane, avisos de agua / aceite y un consejo de frenada. Ajustes rápidos (Todo, Carrera, Entreno, Solo spotter) y *espera a la recta* para que no hable mientras frenas o giras.
   - **Pregúntale**: gasolina, gaps, posición, última vuelta, cuánto queda, parada, incidentes, delta, callar / hablar. Con los botones de la página, desde el móvil (En vivo → Radio, el móvil hace de botonera) o asignándolos a **botones del volante o de una botonera** (app de Windows; funcionan con iRacing en primer plano).
   - **Tus propios paquetes de audio**: graba cada frase con su nombre (`car_left.mp3`, `off_track.wav`, …; una carpeta como `car_left/1.mp3`, `car_left/2.mp3` para varias versiones) y añade un .zip o una carpeta. *Lista de frases* muestra todos los nombres con lo que hay que decir (cópiala o guárdala). Los números (`n_0` … `n_99`, `point`) son opcionales. Lo que no grabes lo dice la voz del ordenador. Los paquetes se guardan en la carpeta de tu perfil.
-- **Coach de frenada** (Carrera → Coach de frenada, y widget en En vivo): compara una vuelta con tu mejor vuelta o una de Garage 61 curva a curva: punto de frenada (metros antes o después), velocidad de entrada y mínima, tiempo ganado o perdido, y un consejo para las tres curvas que más cuestan.
+- **Coach de frenada** (Análisis → Coach de frenada, y widget en En vivo): compara una vuelta con tu mejor vuelta o una de Garage 61 curva a curva: punto de frenada (metros antes o después), velocidad de entrada y mínima, tiempo ganado o perdido, y un consejo para las tres curvas que más cuestan.
 - **Deltas exactos**: cada vuelta guarda el tiempo cada 5 m, interpolado entre muestras de telemetría, así las comparaciones son precisas a ~1 milésima. La barra de delta puede compararse con tu mejor vuelta, la mejor de la sesión, la vuelta óptima o la mejor grabada por Pitlane HQ, con el rango que elijas.
 - **Estrategia de resistencia** (Carrera → Estrategia): duración, pilotos y su stint máximo, gasolina, depósito, pérdida en boxes, velocidad de repostaje y cambio de ruedas dan un plan de stints (vueltas, gasolina a añadir, ruedas, tiempo de parada) que sigue la carrera en vivo ("box en 9").
-- **Objetivos** (Cuenta → Objetivos): iRating, licencia y safety rating, carreras por semana, incidentes por carrera y tiempos objetivo por circuito y coche, con progreso.
+- **Objetivos** (Temporada → Objetivos): iRating, licencia y safety rating, carreras por semana, incidentes por carrera y tiempos objetivo por circuito y coche, con progreso.
 - **Perfiles por coche** (Rig → Perfiles por coche): guarda overlays, hápticos y acciones de SimHub/AZOM para cada coche; se aplican al subirte a él.
 - **Setups** (Rig → Setups): todos los setups de Documentos\iRacing\setups con notas, etiquetas y tu mejor vuelta con cada uno en cada circuito.
 - **Equipo en la web**: tu Pitlane HQ Cloud puede tener compañeros con su propia clave; récords por circuito y coche de todo el equipo y comparación con la vuelta más rápida del equipo.
