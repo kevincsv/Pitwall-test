@@ -1,4 +1,4 @@
-# Pit Wall 0.7 — iRacing companion
+# Pit Wall 0.8 — iRacing companion
 
 **English** · [Español](#español)
 
@@ -46,6 +46,38 @@ Keep the black PitWall window open while you race. Close it to stop.
 - **Account**: iRating history, licence, recent races and an explorer for any iRacing Data API endpoint.
 - **Language**: English (default), Spanish, or both at the same time. Settings → Language.
 
+## Profiles (several people on one PC)
+
+The round button at the top right (with your initial) opens **Profiles**. Each person gets their own profile with their settings, language, overlays and their positions, Live layout, favourite series and race plan, programs to start, and their own iRacing and Garage 61 sign-ins. Switch profile and every open screen and overlay changes to that person's setup.
+
+- Everything stays on the PC in `%APPDATA%\PitWall\profiles\`. Nothing is uploaded to any cloud.
+- Sign-ins are **encrypted with Windows (DPAPI)**: only your Windows user on this PC can read them. Older plain files are encrypted automatically the first time 0.8 starts.
+- **Export** saves a profile file (settings and layouts only, never sign-ins) to copy to another PC; **Import a profile file** loads it there.
+- Phones and tablets keep their own Live layout; language, units, favourites and the rest follow the profile.
+
+## Rig tab: your programs, SimHub, AZOM and MOZA
+
+**Programs.** Pit Wall looks for iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord and OBS (known folders, Start menu and installed programs). Add the ones you want and choose for each one:
+
+- **With Pit Wall**: starts when Pit Wall opens.
+- **When iRacing starts**: starts each time the sim starts.
+- **Only by hand**: stays in the list with a Start button.
+
+You can start them minimised, change the order, start them all at once, remove them, and add any other program from the Start menu or with **Browse…**. Programs that are already open are left alone. Turn on **Start with Windows** (Overlays tab) and your whole rig starts by itself. For safety, a phone can only start programs you already added on the PC.
+
+**SimHub.** Start, show, minimise or close SimHub and switch it to iRacing. Every dashboard and overlay in SimHub is listed with its preview: **Open** it in a window, put it **On Live**, or open it as a Pit Wall **overlay** window on top of iRacing. **Import .simhubdash** sends a dashboard file to SimHub (also from your phone). The **SimHub dashboard** widget shows any SimHub dashboard live (SimHub's web server must be on, port 8888).
+
+**AZOM (MOZA wheels in SimHub).** If the [AZOM plugin](https://github.com/giantorth/AZOM) is installed, Pit Wall can change the wheel screen page, brightness, work mode and centre, and run any other SimHub action by name. Pit Wall warns you when MOZA Pit House is open (AZOM needs it closed) and can close it for you.
+
+**MOZA Pit House.** Open Pit House or Dashboard Studio, see your MOZA dashboards (`.mzdash`), add one from a file (even from your phone) and open it in Dashboard Studio to send it to the wheel. MOZA has no public API to upload dashboards, so that last click (Upload) happens in Dashboard Studio or with AZOM's upload button.
+
+## New Live widgets in 0.8
+
+- **Pit stop calculator**: stops left, pit window (first and last lap), fuel to add, and where you would rejoin given your pit loss (−/+ to adjust per track).
+- **Mini-sectors**: the lap split into 24 parts, coloured purple (best of the session), green (faster than your best lap) or yellow, with your ideal lap.
+- **Gap graph**: how the gap to the cars around you changes over the last minutes, and whether you are catching them.
+- **Incident log**: every incident with lap and place on track, against the session limit.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -67,11 +99,11 @@ Settings → **Engineer view**.
 
 ## Garage 61 (optional)
 
-Create a personal token at https://garage61.net/developer and paste it in Account → Garage 61. Then use **+ Garage 61** in the lap comparison to load a reference lap for your car and track. The token is stored in `%APPDATA%\PitWall\garage61.json` and only sent to Garage 61.
+Create a personal token at https://garage61.net/developer and paste it in Account → Garage 61. Then use **+ Garage 61** in the lap comparison to load a reference lap for your car and track. The token is stored encrypted in your profile folder and only sent to Garage 61.
 
 ## iRacing account (optional)
 
-iRacing requires a registered OAuth client to read account data. As of October 2026 iRacing has **paused creating new client IDs** while it reviews third-party use (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Until then the Series tab shows a real sample season. When it reopens, request a **password limited** client for personal use. Enter the Client ID, secret, your iRacing email and password once in the Account tab. The password is only sent to iRacing and never saved; the sign-in is stored in `%APPDATA%\PitWall\account.json`.
+iRacing requires a registered OAuth client to read account data. As of October 2026 iRacing has **paused creating new client IDs** while it reviews third-party use (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Until then the Series tab shows a real sample season. When it reopens, request a **password limited** client for personal use. Enter the Client ID, secret, your iRacing email and password once in the Account tab. The password is only sent to iRacing and never saved; the sign-in is stored encrypted in your profile folder.
 
 ## iPhone / iPad app
 
@@ -129,6 +161,38 @@ Deja abierta la ventana negra de PitWall mientras corres. Ciérrala para parar.
 - **Cuenta**: historial de iRating, licencia, carreras recientes y un explorador de cualquier endpoint de la Data API.
 - **Idioma**: inglés (por defecto), español o los dos a la vez. Ajustes → Idioma.
 
+## Perfiles (varias personas en un PC)
+
+El botón redondo de arriba a la derecha (con tu inicial) abre **Perfiles**. Cada persona tiene su perfil con sus ajustes, idioma, overlays y sus posiciones, diseño de En vivo, series favoritas y plan, programas a iniciar y sus propias sesiones de iRacing y Garage 61. Al cambiar de perfil, todas las pantallas y overlays abiertos pasan a la configuración de esa persona.
+
+- Todo se queda en el PC en `%APPDATA%\PitWall\profiles\`. No se sube nada a ninguna nube.
+- Las sesiones se **cifran con Windows (DPAPI)**: solo tu usuario de Windows en este PC puede leerlas. Los archivos antiguos sin cifrar se cifran solos la primera vez que arranca la 0.8.
+- **Exportar** guarda un archivo de perfil (solo ajustes y diseños, nunca sesiones) para llevarlo a otro PC; **Importar un archivo de perfil** lo carga allí.
+- Móviles y tablets mantienen su propio diseño de En vivo; idioma, unidades, favoritas y lo demás siguen al perfil.
+
+## Pestaña Rig: tus programas, SimHub, AZOM y MOZA
+
+**Programas.** Pit Wall busca iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord y OBS (carpetas conocidas, menú Inicio y programas instalados). Añade los que quieras y elige para cada uno:
+
+- **Con Pit Wall**: se abre al abrir Pit Wall.
+- **Al abrir iRacing**: se abre cada vez que arranca el simulador.
+- **Solo a mano**: queda en la lista con un botón Iniciar.
+
+Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlos y añadir cualquier otro programa del menú Inicio o con **Buscar…**. Los que ya están abiertos no se tocan. Activa **Iniciar con Windows** (pestaña Overlays) y todo tu equipo arranca solo. Por seguridad, un móvil solo puede abrir programas que ya añadiste en el PC.
+
+**SimHub.** Abre, muestra, minimiza o cierra SimHub y cámbialo a iRacing. Aparecen todos tus dashboards y overlays de SimHub con su vista previa: **Ábrelo** en una ventana, ponlo **En vivo** o ábrelo como **overlay** de Pit Wall encima de iRacing. **Importar .simhubdash** envía un dashboard a SimHub (también desde el móvil). El widget **Dashboard de SimHub** muestra cualquier dashboard en vivo (el servidor web de SimHub debe estar activo, puerto 8888).
+
+**AZOM (volantes MOZA en SimHub).** Si tienes el [plugin AZOM](https://github.com/giantorth/AZOM), Pit Wall puede cambiar la página de la pantalla del volante, el brillo, el modo de trabajo y el centrado, y ejecutar cualquier otra acción de SimHub por su nombre. Te avisa cuando MOZA Pit House está abierto (AZOM necesita que esté cerrado) y puede cerrarlo por ti.
+
+**MOZA Pit House.** Abre Pit House o Dashboard Studio, mira tus dashboards de MOZA (`.mzdash`), añade uno desde un archivo (incluso desde el móvil) y ábrelo en Dashboard Studio para enviarlo al volante. MOZA no tiene API pública para subir dashboards, así que ese último clic (Upload) se hace en Dashboard Studio o con el botón de subir de AZOM.
+
+## Widgets nuevos en la 0.8
+
+- **Calculadora de parada**: paradas que quedan, ventana de parada (primera y última vuelta), gasolina a añadir y dónde saldrías según tu pérdida en boxes (−/+ para ajustarla por circuito).
+- **Mini-sectores**: la vuelta en 24 partes, en morado (mejor de la sesión), verde (más rápido que tu mejor vuelta) o amarillo, con tu vuelta ideal.
+- **Gráfica de gaps**: cómo cambia el gap con los coches de alrededor en los últimos minutos y si los estás alcanzando.
+- **Registro de incidentes**: cada incidente con vuelta y punto de la pista, frente al límite de la sesión.
+
 ## Transmitir los datos (OBS, dashboards, scripts)
 
 Usa las direcciones de la tabla de arriba. Añade `http://localhost:8484` como Fuente de navegador en OBS para mostrar la app en tu stream.
@@ -142,7 +206,7 @@ Ajustes → **Vista de ingeniero**.
 
 ## Garage 61 (opcional)
 
-Crea un token personal en https://garage61.net/developer y pégalo en Cuenta → Garage 61. Después usa **+ Garage 61** en la comparación de vueltas para cargar una vuelta de referencia de tu coche y circuito. El token se guarda en `%APPDATA%\PitWall\garage61.json` y solo se envía a Garage 61.
+Crea un token personal en https://garage61.net/developer y pégalo en Cuenta → Garage 61. Después usa **+ Garage 61** en la comparación de vueltas para cargar una vuelta de referencia de tu coche y circuito. El token se guarda cifrado en la carpeta de tu perfil y solo se envía a Garage 61.
 
 ## Cuenta de iRacing (opcional)
 

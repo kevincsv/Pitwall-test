@@ -15,6 +15,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -185,11 +186,21 @@ func isRemote(r *http.Request) bool {
 	return r.Header.Get("Cf-Connecting-Ip") != "" || strings.HasSuffix(strings.Split(r.Host, ":")[0], ".trycloudflare.com")
 }
 
-var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map"}
+var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza"}
 
 // guard protects the app from remote viewers: they need the share key and can only read.
 func guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A web page open in your browser must not be able to change settings
+		// or start programs through this app: changes only from Pit Wall itself.
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			if o := r.Header.Get("Origin"); o != "" && o != "null" {
+				if u, err := url.Parse(o); err != nil || u.Host != r.Host {
+					http.Error(w, "blocked: request from another website", 403)
+					return
+				}
+			}
+		}
 		if !isRemote(r) {
 			next.ServeHTTP(w, r)
 			return

@@ -24,16 +24,14 @@ var (
 	g61User  map[string]any
 )
 
-func g61Path() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = "."
-	}
-	return filepath.Join(dir, "PitWall", "garage61.json")
-}
+func g61Path() string { return filepath.Join(activeDir(), "garage61.json") }
 
+// loadG61 reads the Garage 61 token of the active profile.
 func loadG61() {
-	b, err := os.ReadFile(g61Path())
+	g61Mu.Lock()
+	defer g61Mu.Unlock()
+	g61Token, g61User = "", nil
+	b, err := readSecret(g61Path())
 	if err != nil {
 		return
 	}
@@ -106,9 +104,8 @@ func registerG61Routes(mux *http.ServeMux) {
 		g61Mu.Lock()
 		g61Token, g61User = tok, user
 		g61Mu.Unlock()
-		os.MkdirAll(filepath.Dir(g61Path()), 0o700)
 		data, _ := json.Marshal(map[string]string{"token": tok, "saved": time.Now().Format(time.RFC3339)})
-		os.WriteFile(g61Path(), data, 0o600)
+		writeSecret(g61Path(), data)
 		writeJSON(w, map[string]any{"connected": true, "user": user})
 	})
 	// Any Garage 61 API path, e.g. /api/g61/tracks, /api/g61/laps?tracks=1&drivers=me, /api/g61/laps/ID/csv

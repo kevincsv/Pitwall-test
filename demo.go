@@ -560,7 +560,9 @@ func (d *demoSource) step(dt float64) {
 	}
 	bo("P2P_Status", p2p)
 	in("P2P_Count", int(math.Ceil(d.p2pLeft)))
-	in("PlayerCarMyIncidentCount", 2)
+	// a 1x or 2x now and then so the incident log has something to show
+	inc := 2 + int(d.t/170) + int(d.t/410)
+	in("PlayerCarMyIncidentCount", inc)
 	f("SessionTimeOfDay", 14*3600+d.t)
 	in("TrackWetness", 1)
 	bo("BrakeABSactive", brk > 0.95)

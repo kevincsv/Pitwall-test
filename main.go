@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.7.0"
+const appVersion = "0.8.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -263,7 +263,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 		}
 		if c, v := settingsSnapshot(); v != configVer {
 			configVer = v
-			if !send("config", map[string]any{"config": c, "version": v}) {
+			if !send("config", map[string]any{"config": c, "version": v, "profile": activeID(), "profileName": activeName()}) {
 				return
 			}
 		}
@@ -372,12 +372,16 @@ func main() {
 	}
 	log.SetFlags(log.Ltime)
 
-	loadConfig()
-	loadSettings()
-	loadG61()
+	initProfiles()
+	loadProfileState()
 	go reader(*demo)
 	go autoOverlays()
 	go positionKeeper()
+	go appsOnSim()
+	go func() { // programs you chose to start with Pit Wall
+		time.Sleep(2 * time.Second)
+		launchGroup("pitwall")
+	}()
 
 	sub, _ := fs.Sub(webFS, "web/dist")
 	mux := http.NewServeMux()
@@ -389,7 +393,7 @@ func main() {
 			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
 		}
-		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported})
+		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
 	})
 	mux.HandleFunc("/api/demo", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -435,6 +439,9 @@ func main() {
 	registerConfigRoutes(mux)
 	registerG61Routes(mux)
 	registerShareRoutes(mux)
+	registerProfileRoutes(mux)
+	registerAppRoutes(mux)
+	registerRigRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

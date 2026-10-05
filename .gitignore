@@ -4,3 +4,13 @@ ios/build/
 ios/PitWall.xcodeproj/
 ios/Payload/
 ios/*.ipa
+# never commit sign-ins, keys or personal profiles
+.env
+*.pem
+*.p12
+*.key
+*.mobileprovision
+account.json
+garage61.json
+profiles/
+profiles.json

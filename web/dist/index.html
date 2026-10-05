@@ -335,6 +335,36 @@ html.ov #radarC{max-width:none}
 html.ov [data-w=radar]>.label,html.ov [data-w=boost]>.label{display:none}
 html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
 @media (max-width:520px){.inrow{grid-template-columns:auto 1fr}.wheel{display:none}}
+/* profiles and rig */
+.profbtn{font:600 13px/1 var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 11px 6px 6px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profbtn b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 12px var(--f-data);flex:none}
+html.ov .profbtn{display:none!important}
+.approw{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line)}
+.approw:last-child{border-bottom:0}
+.approw .nm{flex:1 1 180px;min-width:0}
+.approw .nm small{display:block;color:var(--muted);font:12px var(--f-data);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--line);margin-right:6px;vertical-align:middle}
+.dot.on{background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 25%,transparent)}
+.seg3{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg3 button{font:600 12px var(--f-body);background:none;border:0;color:var(--muted);padding:6px 9px;cursor:pointer}
+.seg3 button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.found{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:8px;margin-top:8px}
+.found>div{border:1px dashed var(--line);border-radius:6px;padding:9px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.dashgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px;margin-top:8px}
+.dashcard{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:8px;display:grid;gap:6px;min-width:0}
+.dashcard img,.dashcard .noimg{width:100%;aspect-ratio:5/3;object-fit:contain;background:#000;border-radius:4px}
+.dashcard .noimg{display:grid;place-items:center;color:var(--muted);font-size:12px}
+.dashcard .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msec{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin:6px 0}
+.msec i{height:22px;border-radius:2px;background:var(--surface2);border:1px solid var(--line)}
+.msec i.p{background:var(--pb);border-color:var(--pb)}.msec i.g{background:var(--good);border-color:var(--good)}.msec i.y{background:var(--warn);border-color:var(--warn)}
+.msec i.now{outline:2px solid var(--fg);outline-offset:1px}
+.inclist{display:grid;gap:4px;margin-top:8px;max-height:220px;overflow:auto;font:13px var(--f-data)}
+.inclist div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:3px 0}
+.shbox{position:relative;height:360px;background:#000;border-radius:4px;overflow:hidden}
+.shbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+html.ov .shbox{height:calc(100vh - 40px)}
+.filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -345,6 +375,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
   <nav class="tabs" role="tablist">
     <button role="tab" data-v="live" aria-selected="true" data-i18n="tab.live"></button>
     <button role="tab" data-v="overlays" aria-selected="false" data-i18n="tab.overlays"></button>
+    <button role="tab" data-v="rig" aria-selected="false" data-i18n="tab.rig"></button>
     <button role="tab" data-v="tyres" aria-selected="false" data-i18n="tab.tyres"></button>
     <button role="tab" data-v="field" aria-selected="false" data-i18n="tab.field"></button>
     <button role="tab" data-v="laps" aria-selected="false" data-i18n="tab.laps"></button>
@@ -352,6 +383,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
     <button role="tab" data-v="data" aria-selected="false" data-i18n="tab.data"></button>
     <button role="tab" data-v="account" aria-selected="false" data-i18n="tab.account"></button>
   </nav>
+  <button class="profbtn" id="profBtn" type="button" hidden></button>
   <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -480,6 +512,27 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <div class="label" data-i18n="w.telemetry"></div>
       <div class="tiles" id="telBox"></div>
     </div>
+    <div class="panel s4 wpanel" data-w="pit">
+      <div class="label" data-i18n="w.pit"></div>
+      <div id="pitBox"></div>
+    </div>
+    <div class="panel s8 wpanel" data-w="sectors">
+      <div class="label" data-i18n="w.sectors"></div>
+      <div id="secBox"></div>
+    </div>
+    <div class="panel s6 wpanel" data-w="gaps">
+      <div class="label" data-i18n="w.gaps"></div>
+      <canvas id="gapC" height="200"></canvas>
+      <div class="hstrip" id="gapLegend"></div>
+    </div>
+    <div class="panel s4 wpanel" data-w="incidents">
+      <div class="label" data-i18n="w.incidents"></div>
+      <div id="incBox"></div>
+    </div>
+    <div class="panel s6 wpanel" data-w="simhub">
+      <div class="vhead" style="margin:0 0 6px"><div class="label" data-i18n="w.simhub"></div><select id="shDashSel" class="ovhide" aria-label="SimHub dashboard"></select></div>
+      <div id="shBox" class="shbox"></div>
+    </div>
     <div class="panel s12 empty" id="liveEmpty" hidden></div>
   </div>
 </section>
@@ -491,6 +544,19 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
   <div class="panel" id="ovGlobal"></div>
   <div class="panel" id="ovScreenPanel" style="margin-top:10px"><h2 data-i18n="yourScreen"></h2><p class="note" id="ovScreenNote"></p><div class="screen" id="ovScreen"></div></div>
   <div class="ovcards" id="ovCards"></div>
+</section>
+
+<!-- RIG: programs, SimHub, AZOM and MOZA -->
+<section class="view" id="v-rig" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.rig"></h1><div class="sub" id="rigSub"></div></div>
+    <div class="controls"><button class="btn" type="button" id="rigProfiles"></button></div></div>
+  <div class="callout" id="rigCallout" hidden></div>
+  <div class="grid">
+    <div class="panel s12" id="appsPanel"></div>
+    <div class="panel s6" id="simhubPanel"></div>
+    <div class="panel s6" id="azomPanel"></div>
+    <div class="panel s12" id="mozaPanel"></div>
+  </div>
 </section>
 
 <!-- TYRES -->
@@ -694,6 +760,7 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
     </div>
+    <div class="panel s12" id="profPanel" hidden></div>
     <div class="panel s12" id="sharePanel" hidden></div>
     <div class="panel s12">
       <h2 data-i18n="phoneTitle"></h2>
@@ -802,7 +869,7 @@ function connectBridge(){
   es.addEventListener("schema",e=>{SCHEMA=JSON.parse(e.data)||[];schemaChanged()});
   es.addEventListener("fields",e=>{fields=JSON.parse(e.data)||[]});
   es.addEventListener("session",e=>onSession(JSON.parse(e.data)));
-  es.addEventListener("config",e=>{try{applyServerCfg(JSON.parse(e.data).config)}catch(err){}});
+  es.addEventListener("config",e=>{try{const m=JSON.parse(e.data);profileEvent(m);applyServerCfg(m.config)}catch(err){}});
   es.addEventListener("t",e=>{const m=JSON.parse(e.data),o=wantAll?{...T}:{};fields.forEach((n,i)=>o[n]=m.v[i]);onFrame(o)});
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
   es.onopen=()=>{if(STATUS.offline){STATUS.offline=false;renderConn()}};
@@ -874,7 +941,7 @@ const Demo=(()=>{
 /* ===================== live view ===================== */
 const rpmEl=$("#rpm");for(let i=0;i<16;i++){const s=document.createElement("span");if(i>=10)s.className=i>=13?"r":"y";rpmEl.appendChild(s)}
 const rpmSeg=[...rpmEl.children];
-const hist=[];let lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0,lastCmp=0,lastGG=0,lastSt=0;
+const hist=[];let lastPit=0,lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0,lastCmp=0,lastGG=0,lastSt=0;
 const fuelLog={lap:null,startFuel:null,uses:[]};
 const FLAGS=[[0x10000,"black","Black flag","Bandera negra"],[0x10,"red","Red flag","Bandera roja"],[0x100000,"black","Repair required","Reparación obligatoria"],[0x1,"checkered","Checkered flag","Bandera a cuadros"],[0x2,"white","Last lap","Última vuelta"],[0x8,"yellow","Yellow","Amarilla"],[0x100,"yellow","Yellow waving","Amarilla agitada"],[0x4000,"yellow","Caution","Safety car"],[0x8000,"yellow","Caution","Safety car"],[0x20,"blue","Blue flag · let faster car by","Bandera azul · deja pasar"]];
 function drivers(){return(S.DriverInfo&&S.DriverInfo.Drivers)||[]}
@@ -901,6 +968,8 @@ function frameTick(){
   trackStats();if(lv("deltabar"))renderDeltaBar();
   if(now-lastGG>66){lastGG=now;if(lv("gg"))drawGG()}
   if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
+  trackSectors();trackIncidents();sampleGaps();
+  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps()}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -934,6 +1003,7 @@ function liveSlow(){
     $("#fuel").textContent=vol(fuel).toFixed(1);$("#fuelU").textContent=volU();$("#fuelBar").style.width=Math.min(100,fuel/max*100)+"%";
     $("#fpl").textContent=per?vol(per).toFixed(2):"–";const fl2=per?fuel/per:null;$("#fuelLaps").textContent=fl2?fl2.toFixed(1):"–";
     let left=null;if(rem!=null&&rem<32767&&rem>=0)left=Math.max(0,rem-(T.LapDistPct||0));else if(T.SessionTimeRemain>0&&T.SessionTimeRemain<604800&&estLap())left=T.SessionTimeRemain/estLap()+1;
+    FUELPER=per;FUELMAX=max;
     const v=$("#fuelVerdict");if(per&&left!=null){const need=left*per,add=need-fuel+per*.3;
       v.innerHTML=add<=0?`<span class="good">${Lp("Enough to finish. Spare: ","Llegas al final. Sobra: ",true)}${vol(-add).toFixed(1)} ${volU()}</span>`:`<span class="bad">${Lp("Add at the stop: ","Añade en la parada: ",true)}${vol(add).toFixed(1)} ${volU()}</span> <span class="muted">· ${left.toFixed(1)} ${Lp("laps to go","vueltas restantes",true)}</span>`}
     else v.innerHTML=Lp("Average fuel use appears after your first full lap.","El consumo medio aparece tras tu primera vuelta completa.");
@@ -1435,6 +1505,7 @@ const UI_DEFAULTS={
   rel:{cols:["pos","num","name","lic","ir","irc","last","gap"],head:["session","timeleft","sof"],foot:["irc","inc","fuel"],ahead:3,behind:3},
   std:{cols:["pos","num","name","lic","ir","irc","laps","last","best","gap","int","pit","pgain"],head:["session","lapsleft","sof"],foot:["pos","irc","inc"],top:5,around:3,myClass:true},
   radar:{range:20,autohide:true},boost:{autohide:true},
+  pit:{loss:25,margin:.3},gaps:{mins:5,cars:2},simhub:{dash:""},
   tel:{vars:["LatAccel","LongAccel","YawRate","SteeringWheelAngle","FuelUsePerHour","OilTemp","WaterTemp","Voltage"]}};
 let CFG={autoStart:false,autoWidgets:[],closeOnExit:true,engine:"webview",edit:false,alpha:255,lock:false,scale:1,startWithWindows:false,ui:{}};
 function ui(k){const d=UI_DEFAULTS[k],v=(CFG.ui||{})[k]||{};return Object.assign({},d,v)}
@@ -1580,8 +1651,8 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","engine","tyres","standings","telemetry"];
-const CONFIGURABLE={relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost"};
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","engine","tyres","standings","telemetry","simhub"];
+const CONFIGURABLE={relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",simhub:"simhub"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
@@ -1644,6 +1715,10 @@ function openWidgetCfg(w){const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(
   else if(k==="tel"){const all=SCHEMA.map(s=>s.name);body=`<div class="panel"><input type="search" id="telQ" placeholder="${esc(Tx("Search variables","Buscar variables"))}" style="width:100%"><div class="cfglist" id="telList" style="margin-top:8px"></div></div>`;
     setTimeout(()=>{const draw=()=>{const qv=($("#telQ").value||"").toLowerCase(),sel=ui("tel").vars;$("#telList").innerHTML=sel.map(n=>`<div class="cfgitem on"><span>${esc(telName(n))} <span class="mono muted" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">✕</button></div>`).join("")+all.filter(n=>!sel.includes(n)&&(!qv||n.toLowerCase().includes(qv)||telName(n).toLowerCase().includes(qv))).slice(0,60).map(n=>`<div class="cfgitem"><span class="muted">${esc(telName(n))} <span class="mono" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">+</button></div>`).join("");
       document.querySelectorAll("#telList [data-tv]").forEach(b=>b.onclick=()=>{toggleTelVar(b.dataset.tv);draw()})};$("#telQ").oninput=draw;draw()},0)}
+  else if(k==="pit")body=`<div class="panel">${num("loss","pitLoss",5,180)}<p class="note">${Lp("Time lost driving through the pit lane and stopping, compared with staying out. Depends on the track: about 20–35 s on most road courses.","Tiempo que pierdes al pasar por boxes y parar, frente a seguir en pista. Depende del circuito: unos 20–35 s en la mayoría de circuitos.")}</p></div>`;
+  else if(k==="gaps")body=`<div class="panel">${num("mins","gapMins",1,30)}${num("cars","gapCars",1,5)}</div>`;
+  else if(k==="simhub"){body=`<div class="panel"><label class="frow"><span class="label" style="min-width:150px">${Lp("Dashboard","Dashboard",true)}</span><select id="cfgShSel" style="flex:1"></select></label><p class="note">${Lp("Shows a SimHub dashboard live here and as an overlay. SimHub must be running with its web server on (port 8888).","Muestra un dashboard de SimHub en vivo aquí y como overlay. SimHub tiene que estar abierto con su servidor web activo (puerto 8888).")}</p></div>`;
+    setTimeout(async()=>{const sel=$("#cfgShSel");if(!sel)return;const d=await rigGet("/api/simhub");fillDashSelect(sel,d);sel.onchange=()=>setUI("simhub",{dash:sel.value})},0)}
   const keepPv=$("#cfgPreview")&&$("#cfgPreview").dataset.w===w&&!$("#drawer").hidden;
   if(keepPv)$("#cfgForm").innerHTML=body;
   else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="label" style="margin:12px 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div><div id="cfgForm" style="margin-top:10px">${body}</div>`;startPreview(w)}
@@ -2068,7 +2143,7 @@ function renderLock(){const b=$("#lockBtn");if(!b)return;const show=(MODE==="bri
 $("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.edit?Tx("Overlays unlocked: drag them on your screen.","Overlays desbloqueados: arrástralos por la pantalla."):Tx("Overlays locked.","Overlays bloqueados."))};
 
 /* ---------- screen editor: move overlay windows from the app or a phone ---------- */
-const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220]};
+const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],simhub:[800,480]};
 let SCREEN=null,SCREEN_DRAG=false;
 async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
 async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
@@ -2208,21 +2283,245 @@ let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
 function show(v){CUR_VIEW=v;tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings")renderSettings();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>show(b.dataset.v));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
-function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="series")renderSeries();sessionChanged()}
+function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
+
+/* ===================== profiles ===================== */
+Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
+ "w.pit":["Pit stop calculator","Calculadora de parada"],"d.pit":["Pit window, fuel to add and where you rejoin","Ventana de parada, gasolina a añadir y dónde sales"],
+ "w.sectors":["Mini-sectors","Mini-sectores"],"d.sectors":["24 coloured mini-sectors and your ideal lap","24 mini-sectores de colores y tu vuelta ideal"],
+ "w.gaps":["Gap graph","Gráfica de gaps"],"d.gaps":["How the gap to nearby cars changes","Cómo cambia el gap con los coches cercanos"],
+ "w.incidents":["Incident log","Registro de incidentes"],"d.incidents":["Every incident with lap and place on track","Cada incidente con vuelta y punto de la pista"],
+ "w.simhub":["SimHub dashboard","Dashboard de SimHub"],"d.simhub":["Any SimHub dashboard, on Live or as an overlay","Cualquier dashboard de SimHub, en En vivo o como overlay"],
+ pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
+/* Settings that belong to a person (language, favourites, layout…) live in the
+   PC's profile so they follow the profile. Phones keep their own Live layout. */
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|hiddenW|seenW)$/;
+const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
+let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
+const rawSet=store.set.bind(store);
+store.set=(k,v)=>{rawSet(k,v);if(MODE==="bridge"&&!REMOTE&&!OV.on&&PROFILE.id&&syncable(k)){PROF_PUSH[k]=v===undefined?null:v;clearTimeout(profTimer);profTimer=setTimeout(pushProfile,500)}};
+function pushProfile(){const body=PROF_PUSH;PROF_PUSH={};if(!Object.keys(body).length)return;
+  fetch("/api/profile/local",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).catch(()=>{})}
+function localKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++)out.push(localStorage.key(i))}catch(e){}return out}
+/* returns true when this screen must reload to show another profile's settings */
+async function pullProfile(){if(MODE!=="bridge"||REMOTE)return false;let j;try{j=await (await fetch("/api/profile/local")).json()}catch(e){return false}
+  PROFILE.id=j.profile;PROFILE.name=(INFO&&INFO.profileName)||"";const loc=j.local||{},keys=Object.keys(loc).filter(syncable),prev=store.get("pw.profileId",null);
+  if(prev!==j.profile){
+    if(prev===null&&!keys.length){ // first run of profiles: this screen's settings become the profile's
+      if(!OV.on){const up={};localKeys().filter(syncable).forEach(k=>up[k]=store.get(k,null));PROF_PUSH=up;pushProfile()}
+      rawSet("pw.profileId",j.profile);return false}
+    localKeys().filter(syncable).forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+    keys.forEach(k=>rawSet(k,loc[k]));rawSet("pw.profileId",j.profile);return true}
+  let changed=false;keys.forEach(k=>{if(JSON.stringify(store.get(k,null))!==JSON.stringify(loc[k])){rawSet(k,loc[k]);changed=true}});
+  return changed}
+function profileEvent(m){if(!m||!m.profile||MODE!=="bridge"||REMOTE)return;PROFILE.name=m.profileName||PROFILE.name;renderProfBtn();
+  if(PROFILE.id&&m.profile!==PROFILE.id){PROFILE.id=m.profile;toast(Tx("Profile: ","Perfil: ")+PROFILE.name);setTimeout(async()=>{await pullProfile();location.reload()},300)}}
+function renderProfBtn(){const b=$("#profBtn");if(!b)return;b.hidden=!(MODE==="bridge"&&!REMOTE&&!OV.on&&PROFILE.id);
+  const n=PROFILE.name||"?";b.innerHTML=`<b>${esc(n.trim()[0]||"?").toUpperCase()}</b><span class="hide-sm">${esc(n)}</span>`;b.title=Tx("Profile: ","Perfil: ")+n;
+  const r=$("#rigProfiles");if(r)r.innerHTML=`${L("profiles",true)}: ${esc(n)}`}
+async function profAction(q,body){const r=await fetch("/api/profiles?"+q,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});if(!r.ok)throw new Error((await r.text()).trim()||("HTTP "+r.status));return r.json()}
+function profilesHTML(list){return `<div class="panel">${list.list.map(p=>`<div class="approw"><div class="nm"><b>${esc(p.name)}</b>${p.id===list.active?` <span class="pill acc">${esc(Tx("in use","en uso"))}</span>`:""}<small>${esc(Tx("created ","creado "))}${esc(new Date(p.created).toLocaleDateString(locale()))}</small></div>
+    ${p.id!==list.active?`<button type="button" class="btn small primary" data-puse="${p.id}">${esc(Tx("Use","Usar"))}</button>`:""}
+    <button type="button" class="pin" data-pren="${p.id}">${esc(Tx("Rename","Renombrar"))}</button>
+    <a class="pin" href="/api/profile/export?id=${p.id}" download>${esc(Tx("Export","Exportar"))}</a>
+    ${list.list.length>1?`<button type="button" class="pin" data-pdel="${p.id}">✕</button>`:""}</div>`).join("")}</div>
+  <div class="panel" style="margin-top:10px"><h2>${esc(Tx("New profile","Nuevo perfil"))}</h2>
+    <form class="frow" id="pNew"><input type="text" id="pName" maxlength="40" placeholder="${esc(Tx("Name","Nombre"))}" required style="flex:1;min-width:160px">${chk("pCopy",true,Lp("Copy my current settings","Copiar mis ajustes actuales",true))}<button class="btn primary" type="submit">${esc(Tx("Create and use","Crear y usar"))}</button></form>
+    <div class="frow" style="margin-top:10px"><label class="btn filebtn">${esc(Tx("Import a profile file…","Importar un archivo de perfil…"))}<input type="file" id="pImport" accept=".json,application/json"></label></div>
+    <p class="note">${Lp("Profiles stay on this PC (in %APPDATA%\\PitWall\\profiles), nothing goes to the cloud. Each profile keeps its own settings, overlays and positions, Live layout, favourite series, programs to start and sign-ins. Sign-ins (iRacing, Garage 61) are encrypted with your Windows account and are never exported.","Los perfiles se guardan en este PC (en %APPDATA%\\PitWall\\profiles), nada va a la nube. Cada perfil guarda sus ajustes, overlays y posiciones, diseño de En vivo, series favoritas, programas a iniciar y sesiones. Las sesiones (iRacing, Garage 61) se cifran con tu cuenta de Windows y nunca se exportan.")}</p></div>`}
+async function wireProfiles(box,redraw){
+  box.querySelectorAll("[data-puse]").forEach(b=>b.onclick=async()=>{try{await profAction("action=switch&id="+b.dataset.puse)}catch(e){toast(e.message)}});
+  box.querySelectorAll("[data-pren]").forEach(b=>b.onclick=async()=>{const n=prompt(Tx("New name","Nuevo nombre"));if(!n)return;try{await profAction("action=rename&id="+b.dataset.pren,{name:n});if(b.dataset.pren===PROFILE.id){PROFILE.name=n.trim();renderProfBtn()}redraw()}catch(e){toast(e.message)}});
+  box.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=async()=>{if(!confirm(Tx("Delete this profile and its settings and sign-ins on this PC?","¿Borrar este perfil con sus ajustes y sesiones en este PC?")))return;try{await profAction("action=delete&id="+b.dataset.pdel);redraw()}catch(e){toast(e.message)}});
+  const pc=box.querySelector("#pCopy");if(pc)pc.onclick=()=>pc.setAttribute("aria-pressed",pc.getAttribute("aria-pressed")!=="true");
+  const f=box.querySelector("#pNew");if(f)f.onsubmit=async e=>{e.preventDefault();pushProfile();try{await profAction("action=create&switch=1",{name:box.querySelector("#pName").value,copyFrom:pc.getAttribute("aria-pressed")==="true"?PROFILE.id:""})}catch(err){toast(err.message)}};
+  const im=box.querySelector("#pImport");if(im)im.onchange=async()=>{const file=im.files[0];if(!file)return;const r=await fetch("/api/profile/import",{method:"POST",headers:{"Content-Type":"application/json"},body:await file.text()}).catch(()=>null);
+    if(!r||!r.ok){toast(r?(await r.text()).trim():Tx("Could not import","No se pudo importar"));return}const p=await r.json();toast(Tx("Imported: ","Importado: ")+p.name);redraw()}}
+async function openProfiles(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=L("profiles");$("#dSub").innerHTML=Lp("One per person who uses this PC. Switch at any time.","Uno por cada persona que usa este PC. Cambia cuando quieras.");
+  const list=await (await fetch("/api/profiles")).json();$("#dBody").innerHTML=profilesHTML(list);wireProfiles($("#dBody"),openProfiles);if($("#drawer").hidden){$("#drawer").hidden=false;$("#dClose").focus()}}
+async function renderProfPanel(){const box=$("#profPanel");if(!box)return;box.hidden=!(MODE==="bridge"&&!REMOTE);if(box.hidden)return;
+  try{const list=await (await fetch("/api/profiles")).json();box.innerHTML=`<h2>${L("profiles")}</h2>`+profilesHTML(list);wireProfiles(box,renderProfPanel)}catch(e){}}
+$("#profBtn").onclick=openProfiles;$("#rigProfiles").onclick=openProfiles;
+/* new widgets start hidden once, so an update does not crowd your Live screen */
+(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
+
+/* ===================== rig: programs, SimHub, AZOM, MOZA ===================== */
+async function rigGet(p){try{const r=await fetch(p);return r.ok?await r.json():null}catch(e){return null}}
+async function rigPost(p,body){const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})}).catch(()=>null);
+  let j={};try{j=await r.json()}catch(e){}if(!r||!r.ok){toast((j&&j.error)||Tx("That did not work.","No funcionó."));return null}return j}
+async function rigUpload(p,file){const fd=new FormData();fd.append("file",file);const r=await fetch(p,{method:"POST",body:fd}).catch(()=>null);let j={};try{j=await r.json()}catch(e){}
+  if(!r||!r.ok){toast((j&&j.error)||Tx("Upload failed","Error al subir"));return null}return j}
+let RIG_TIMER=0,RIG_APPS=null;
+const WHEN=[["pitwall","With Pit Wall","Con Pit Wall"],["sim","When iRacing starts","Al abrir iRacing"],["","Only by hand","Solo a mano"]];
+async function renderRig(){clearTimeout(RIG_TIMER);const ok=MODE==="bridge"&&!REMOTE;const c=$("#rigCallout");renderProfBtn();
+  $("#rigSub").innerHTML=Lp("Everything around your sim in one place","Todo lo que rodea a tu simulador en un solo sitio");
+  if(!ok){c.hidden=false;c.innerHTML=REMOTE?Lp("Not available in the engineer view.","No disponible en la vista de ingeniero."):Lp("Preview: programs, SimHub and MOZA are controlled when the app runs from PitWall.exe on your Windows PC.","Vista previa: los programas, SimHub y MOZA se controlan cuando la app funciona desde PitWall.exe en tu PC con Windows.");
+    ["#appsPanel","#simhubPanel","#azomPanel","#mozaPanel"].forEach(s=>$(s).innerHTML="");return}
+  const [apps,sh,mz]=await Promise.all([rigGet("/api/apps"),rigGet("/api/simhub"),rigGet("/api/moza")]);
+  c.hidden=!!(apps&&apps.windows);if(!c.hidden)c.innerHTML=Lp("Starting programs and controlling SimHub and MOZA only works on Windows.","Iniciar programas y controlar SimHub y MOZA solo funciona en Windows.");
+  if(apps)renderApps(apps);if(sh){renderSimhub(sh);renderAzom(sh)}if(mz)renderMoza(mz);
+  RIG_TIMER=setTimeout(pollRig,3000)}
+async function pollRig(){if(CUR_VIEW!=="rig")return;const a=await rigGet("/api/apps");if(a&&JSON.stringify(a)!==JSON.stringify(RIG_APPS))renderApps(a);RIG_TIMER=setTimeout(pollRig,3000)}
+function renderApps(d){RIG_APPS=d;const box=$("#appsPanel"),list=d.apps||[];
+  const row=(a,i)=>`<div class="approw" data-id="${esc(a.id)}"><div class="nm"><span class="dot${a.running?" on":""}" title="${esc(a.running?Tx("Running","Abierto"):Tx("Closed","Cerrado"))}"></span><b>${esc(a.name)}</b>${a.found?"":` <span class="pill bad">${esc(Tx("not found","no encontrado"))}</span>`}<small>${esc(a.file||"")}</small></div>
+    <div class="seg3" role="group" aria-label="${esc(Tx("When","Cuándo"))}">${WHEN.map(w=>`<button type="button" data-when="${w[0]}" aria-pressed="${(a.when||"")===w[0]}">${esc(Tx(w[1],w[2]))}</button>`).join("")}</div>
+    ${chk("min-"+i,a.min,Lp("Minimised","Minimizado",true))}
+    <button type="button" class="btn small" data-act="launch">${esc(a.running?Tx("Running","Abierto"):Tx("Start","Iniciar"))}</button>
+    <button type="button" class="pin" data-act="up" aria-label="Up"${i?"":" disabled"}>↑</button><button type="button" class="pin" data-act="remove" aria-label="Remove">✕</button></div>`;
+  box.innerHTML=`<div class="vhead" style="margin:0 0 4px"><h2 style="margin:0">${esc(Tx("Programs","Programas"))}</h2><div class="frow">
+      <button type="button" class="btn primary" id="appsAll">${esc(Tx("Start all now","Iniciar todos ya"))}</button>
+      <button type="button" class="btn" id="appsMenu">${esc(Tx("Add from Start menu","Añadir del menú Inicio"))}</button>
+      <button type="button" class="btn" id="appsBrowse">${esc(Tx("Browse…","Buscar…"))}</button></div></div>
+    <p class="note">${Lp("Pit Wall finds your sim-racing programs and starts the ones you choose, in this order: when Pit Wall opens, or each time iRacing starts. Programs already open are left alone.","Pit Wall encuentra tus programas de simracing y abre los que elijas, en este orden: al abrir Pit Wall o cada vez que arranca iRacing. Los que ya están abiertos no se tocan.")}${isPC()&&!CFG.startWithWindows?" "+Lp("Tip: turn on Start with Windows in the Overlays tab and everything starts by itself.","Consejo: activa Iniciar con Windows en la pestaña Overlays y todo arranca solo."):""}</p>
+    ${list.length?list.map(row).join(""):`<div class="empty">${esc(Tx("No programs yet. Add the ones found on this PC below.","Aún no hay programas. Añade abajo los que se encontraron en este PC."))}</div>`}
+    ${(d.found||[]).length?`<div class="label" style="margin-top:12px">${esc(Tx("Found on this PC","Encontrados en este PC"))}</div><div class="found">${d.found.map(f=>`<div><span><span class="dot${f.running?" on":""}"></span><b>${esc(f.name)}</b><br><span class="muted" style="font-size:12px">${esc(Tx(f.what[0],f.what[1]))}</span></span><button type="button" class="btn small" data-add="${esc(f.id)}">+ ${esc(Tx("Add","Añadir"))}</button></div>`).join("")}</div>`:""}
+    ${(d.missing||[]).length?`<details style="margin-top:10px"><summary class="label">${esc(Tx("Not found on this PC","No encontrados en este PC"))} (${d.missing.length})</summary><p class="note">${d.missing.map(m=>esc(m.name)).join(" · ")}</p><p class="note">${Lp("Installed somewhere else? Use Add from Start menu or Browse.","¿Instalado en otro sitio? Usa Añadir del menú Inicio o Buscar.")}</p></details>`:""}`;
+  const act=(action,extra)=>rigPost("/api/apps/do",Object.assign({action},extra||{})).then(j=>{if(j){if(j.result==="started")toast(Tx("Starting…","Iniciando…"));if(j.result==="running")toast(Tx("Already open","Ya está abierto"));renderAppsSoon()}return j});
+  box.querySelectorAll(".approw").forEach((r,i)=>{const id=r.dataset.id,a=list[i];
+    r.querySelectorAll("[data-when]").forEach(b=>b.onclick=()=>act("set",{id,when:b.dataset.when,min:a.min}));
+    r.querySelector("#min-"+i).onclick=()=>act("set",{id,when:a.when,min:!a.min});
+    r.querySelector('[data-act="launch"]').onclick=()=>act("launch",{id});
+    r.querySelector('[data-act="remove"]').onclick=()=>act("remove",{id});
+    r.querySelector('[data-act="up"]').onclick=()=>{const o=list.map(x=>x.id);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];act("order",{order:o})}}});
+  box.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>act("add",{id:b.dataset.add}));
+  $("#appsAll").onclick=()=>act("launchAll").then(j=>j&&toast(Tx("Starting your programs…","Iniciando tus programas…")));
+  $("#appsBrowse").onclick=()=>{toast(Tx("A file window opens on the PC.","Se abre una ventana de archivos en el PC."));act("browse")};
+  $("#appsMenu").onclick=openShortcutPicker}
+let appsSoon=0;function renderAppsSoon(){clearTimeout(appsSoon);appsSoon=setTimeout(async()=>{const a=await rigGet("/api/apps");if(a)renderApps(a)},400)}
+async function openShortcutPicker(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=Lp("Start menu","Menú Inicio");$("#dSub").innerHTML=Lp("Any program installed on this PC","Cualquier programa instalado en este PC");
+  $("#dBody").innerHTML=`<input type="search" id="scQ" placeholder="${esc(Tx("Search","Buscar"))}" style="width:100%"><div class="panel" id="scList" style="margin-top:8px"><div class="empty">…</div></div>`;if($("#drawer").hidden)$("#drawer").hidden=false;
+  const all=await rigGet("/api/apps/shortcuts")||[];const draw=()=>{const q=($("#scQ").value||"").toLowerCase();const l=all.filter(s=>!q||s.name.toLowerCase().includes(q)).slice(0,200);
+    $("#scList").innerHTML=l.length?l.map(s=>`<div class="approw"><div class="nm">${esc(s.name)}</div><button type="button" class="btn small" data-sc="${esc(s.key)}">+ ${esc(Tx("Add","Añadir"))}</button></div>`).join(""):`<div class="empty">${esc(Tx("Nothing found","No se encontró nada"))}</div>`;
+    $("#scList").querySelectorAll("[data-sc]").forEach(b=>b.onclick=async()=>{if(await rigPost("/api/apps/do",{action:"addShortcut",key:b.dataset.sc})){toast(Tx("Added","Añadido"));b.disabled=true;renderAppsSoon()}})};
+  $("#scQ").oninput=draw;draw();$("#scQ").focus()}
+function simhubHost(){const h=location.hostname;return /^127\./.test(h)?"127.0.0.1":h}
+function simhubURL(name,port,ov){return `http://${simhubHost()}:${port||8888}/Dash#${encodeURIComponent(name)}|nocontrols${ov?"|overlay":""}`}
+let SH=null;
+function fillDashSelect(sel,d){const cur=ui("simhub").dash,l=(d&&d.dashes)||[];sel.innerHTML=`<option value="">${esc(Tx("Choose a dashboard","Elige un dashboard"))}</option>`+l.map(x=>`<option${x.name===cur?" selected":""}>${esc(x.name)}</option>`).join("")+(cur&&!l.some(x=>x.name===cur)?`<option selected>${esc(cur)}</option>`:"")}
+function renderSimhub(d){SH=d;const box=$("#simhubPanel"),pill=(on,en,es)=>`<span class="pill ${on?"good":""}">${on?"✓":"✗"} ${esc(Tx(en,es))}</span>`;
+  if(!d.installed){box.innerHTML=`<h2>SimHub</h2><p class="note">${Lp("SimHub was not found on this PC. Install it from simhubdash.com to use its dashboards, LEDs and the AZOM plugin for MOZA wheels.","No se encontró SimHub en este PC. Instálalo desde simhubdash.com para usar sus dashboards, LEDs y el plugin AZOM para volantes MOZA.")}</p><div style="margin-top:12px"><a class="btn" href="https://www.simhubdash.com/download-2/" target="_blank" rel="noopener">simhubdash.com</a></div>`;return}
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">SimHub</h2><div class="frow">${pill(d.running,"Running","Abierto")}${pill(d.web,"Web dashboards","Dashboards web")}</div></div>
+    <div class="frow"><button type="button" class="btn primary" data-sh="start">${esc(d.running?Tx("Show","Mostrar"):Tx("Start","Iniciar"))}</button><button type="button" class="btn" data-sh="minimize">${esc(Tx("Minimise","Minimizar"))}</button><button type="button" class="btn" data-sh="iracing">${esc(Tx("Game: iRacing","Juego: iRacing"))}</button><button type="button" class="btn" data-sh="exit">${esc(Tx("Close","Cerrar"))}</button></div>
+    <div class="vhead" style="margin:14px 0 0"><div class="label">${esc(Tx("Dashboards and overlays","Dashboards y overlays"))} (${(d.dashes||[]).length})</div><div class="frow"><label class="btn small filebtn">${esc(Tx("Import .simhubdash","Importar .simhubdash"))}<input type="file" id="shImport" accept=".simhubdash"></label><button type="button" class="btn small" data-sh="folder">${esc(Tx("Folder","Carpeta"))}</button></div></div>
+    ${d.running&&!d.web?`<p class="note">${Lp("SimHub's web server is not answering on port 8888. Turn it on in SimHub → Settings → Web server to show dashboards here.","El servidor web de SimHub no responde en el puerto 8888. Actívalo en SimHub → Ajustes → Servidor web para ver dashboards aquí.")}</p>`:""}
+    <div class="dashgrid">${(d.dashes||[]).map(x=>`<div class="dashcard"><img loading="lazy" alt="" src="/api/simhub/preview?name=${encodeURIComponent(x.name)}" onerror="this.outerHTML='<div class=noimg>${esc(Tx("no preview","sin vista previa"))}</div>'"><div class="nm" title="${esc(x.name)}">${esc(x.name)}${x.overlay?` <span class="pill">overlay</span>`:""}</div>
+      <div class="frow"><button type="button" class="pin" data-dopen="${esc(x.name)}">${esc(Tx("Open","Abrir"))}</button><button type="button" class="pin" data-dlive="${esc(x.name)}">${esc(Tx("On Live","En vivo"))}</button>${pcOverlays()?`<button type="button" class="pin" data-dov="${esc(x.name)}">Overlay</button>`:""}</div></div>`).join("")||`<div class="empty">${esc(Tx("No dashboards yet","Aún no hay dashboards"))}</div>`}</div>`;
+  box.querySelectorAll("[data-sh]").forEach(b=>b.onclick=async()=>{if(await rigPost("/api/simhub/do",{action:b.dataset.sh}))setTimeout(renderRig,1500)});
+  box.querySelectorAll("[data-dopen]").forEach(b=>b.onclick=()=>window.open(simhubURL(b.dataset.dopen,d.port),"_blank"));
+  box.querySelectorAll("[data-dlive]").forEach(b=>b.onclick=()=>{setUI("simhub",{dash:b.dataset.dlive});HIDDEN.delete("simhub");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderSimhubWidget(true);toast(Tx("Added to Live","Añadido a En vivo"))});
+  box.querySelectorAll("[data-dov]").forEach(b=>b.onclick=async()=>{setUI("simhub",{dash:b.dataset.dov});await new Promise(r=>setTimeout(r,400));popOut("simhub")});
+  const im=$("#shImport");im.onchange=async()=>{if(!im.files[0])return;const j=await rigUpload("/api/simhub/do",im.files[0]);if(j)toast(Tx("SimHub is importing ","SimHub está importando ")+j.name)}}
+const AZOM_LABEL={"AZOM.DashboardNext":["Next screen","Pantalla siguiente"],"AZOM.DashboardPrev":["Previous screen","Pantalla anterior"],"AZOM.WorkModeToggle":["Work mode","Modo de trabajo"],"AZOM.CalibrateCenter":["Centre wheel","Centrar volante"]};
+function renderAzom(d){const box=$("#azomPanel");
+  const acts=(d.azomActions||[]).map(a=>{const m=a.match(/DisplayBrightness(\d+)/);const l=m?[`Brightness ${m[1]}%`,`Brillo ${m[1]}%`]:AZOM_LABEL[a]||[a,a];return `<button type="button" class="btn small" data-az="${esc(a)}"${d.installed?"":" disabled"}>${esc(Tx(l[0],l[1]))}</button>`}).join("");
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">AZOM · MOZA</h2><span class="pill ${d.azom?"good":""}">${d.azom?"✓ "+esc(Tx("Installed in SimHub","Instalado en SimHub")):"✗ "+esc(Tx("Not installed","No instalado"))}</span></div>
+    ${d.azom&&d.pitHouse?`<div class="callout">${Lp("MOZA Pit House is open. AZOM and Pit House cannot use the wheel at the same time; close Pit House completely so SimHub can drive the screen and LEDs.","MOZA Pit House está abierto. AZOM y Pit House no pueden usar el volante a la vez; cierra Pit House del todo para que SimHub controle la pantalla y los LEDs.")} <button type="button" class="btn small" id="azClosePH">${esc(Tx("Close Pit House","Cerrar Pit House"))}</button></div>`:""}
+    ${d.azom?"":`<p class="note">${Lp("AZOM is a free SimHub plugin that drives MOZA wheel screens, dashes and LEDs from SimHub and converts SimHub dashboards for MOZA. Copy MozaPlugin.dll into the SimHub folder (SimHub 9.12 or newer).","AZOM es un plugin gratuito de SimHub que controla las pantallas, dashes y LEDs de MOZA desde SimHub y convierte dashboards de SimHub para MOZA. Copia MozaPlugin.dll en la carpeta de SimHub (SimHub 9.12 o más nuevo).")} <a class="acc" href="https://github.com/giantorth/AZOM" target="_blank" rel="noopener">github.com/giantorth/AZOM</a></p>`}
+    <div class="label" style="margin-top:8px">${esc(Tx("Wheel controls (through SimHub)","Controles del volante (vía SimHub)"))}</div>
+    <div class="frow" style="margin-top:6px">${acts}</div>
+    <form class="frow" id="azForm" style="margin-top:10px"><input type="text" id="azAct" placeholder="AZOM.DashboardNext" style="flex:1;min-width:160px" aria-label="SimHub action" pattern="[A-Za-z0-9_.\\-]{1,80}"><button type="submit" class="btn">${esc(Tx("Run action","Ejecutar acción"))}</button></form>
+    <p class="note">${Lp("Runs any SimHub action (from AZOM or any other plugin) as if you pressed a mapped button.","Ejecuta cualquier acción de SimHub (de AZOM o de otro plugin) como si pulsaras un botón asignado.")}</p>`;
+  box.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>rigPost("/api/simhub/do",{action:"trigger",name:b.dataset.az}).then(j=>j&&toast(Tx("Sent","Enviado"))));
+  $("#azForm").onsubmit=e=>{e.preventDefault();const n=$("#azAct").value.trim();if(n)rigPost("/api/simhub/do",{action:"trigger",name:n}).then(j=>j&&toast(Tx("Sent","Enviado")))};
+  const cp=$("#azClosePH");if(cp)cp.onclick=async()=>{if(!confirm(Tx("Close MOZA Pit House now?","¿Cerrar MOZA Pit House ahora?")))return;const j=await rigPost("/api/simhub/do",{action:"closePitHouse"});if(j)setTimeout(renderRig,1200)}}
+function renderMoza(d){const box=$("#mozaPanel");const ds=d.dashes||[];
+  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">MOZA Pit House</h2><div class="frow"><span class="pill ${d.running?"good":""}">${d.running?"✓ "+esc(Tx("Open","Abierto")):"✗ "+esc(Tx("Closed","Cerrado"))}</span><span class="pill ${d.studio?"good":""}">${d.studio?"✓":"✗"} Dashboard Studio</span></div></div>
+    <div class="frow"><button type="button" class="btn" data-mz="pithouse"${d.installed?"":" disabled"}>${esc(Tx("Open Pit House","Abrir Pit House"))}</button><button type="button" class="btn" data-mz="studio"${d.studio?"":" disabled"}>${esc(Tx("Open Dashboard Studio","Abrir Dashboard Studio"))}</button>
+      <label class="btn filebtn">${esc(Tx("Add .mzdash…","Añadir .mzdash…"))}<input type="file" id="mzImport" accept=".mzdash"></label><button type="button" class="btn" data-mz="folder">${esc(Tx("Folder","Carpeta"))}</button></div>
+    <ol class="steps"><li>${Lp("Make or download a dashboard in SimHub (or get a .mzdash file).","Crea o descarga un dashboard en SimHub (o consigue un archivo .mzdash).")}</li>
+      <li>${Lp("In SimHub → AZOM → Dashboards, convert it to MOZA. It appears in the list below; a .mzdash file can be added here directly, even from your phone.","En SimHub → AZOM → Dashboards, conviértelo a MOZA. Aparece en la lista de abajo; un archivo .mzdash se puede añadir aquí directamente, incluso desde el móvil.")}</li>
+      <li>${Lp("Press Open in Studio and send it to the wheel with Upload. MOZA has no public API for this last step, so it happens in Dashboard Studio (or with AZOM's upload button in SimHub).","Pulsa Abrir en Studio y envíalo al volante con Upload. MOZA no tiene API pública para este último paso, así que se hace en Dashboard Studio (o con el botón de subir de AZOM en SimHub).")}</li></ol>
+    <div class="label" style="margin-top:10px">${esc(Tx("Your MOZA dashboards","Tus dashboards de MOZA"))} (${ds.length})</div>
+    ${ds.length?ds.map(x=>`<div class="approw"><div class="nm"><b>${esc(x.name)}</b><small>${esc(new Date(x.changed).toLocaleString(locale()))}</small></div><button type="button" class="btn small" data-mzopen="${esc(x.name)}"${d.studio?"":" disabled"}>${esc(Tx("Open in Studio","Abrir en Studio"))}</button></div>`).join(""):`<div class="empty">${esc(Tx("No MOZA dashboards found on this PC yet","Aún no hay dashboards de MOZA en este PC"))}</div>`}`;
+  box.querySelectorAll("[data-mz]").forEach(b=>b.onclick=()=>rigPost("/api/moza/do",{action:b.dataset.mz}));
+  box.querySelectorAll("[data-mzopen]").forEach(b=>b.onclick=()=>rigPost("/api/moza/do",{action:"open",name:b.dataset.mzopen}).then(j=>j&&toast(Tx("Opening in Dashboard Studio…","Abriendo en Dashboard Studio…"))));
+  const im=$("#mzImport");im.onchange=async()=>{if(!im.files[0])return;const j=await rigUpload("/api/moza/do",im.files[0]);if(j){toast(Tx("Added: ","Añadido: ")+j.name);renderRig()}}}
+
+/* ===================== SimHub dashboard widget ===================== */
+let SH_SHOWN="";
+async function renderSimhubWidget(force){const box=$("#shBox"),sel=$("#shDashSel");if(!box)return;const name=ui("simhub").dash;
+  if(MODE!=="bridge"||REMOTE){box.innerHTML=`<div class="empty" style="color:#aaa">${Lp("SimHub dashboards appear here when the app runs from PitWall.exe.","Los dashboards de SimHub aparecen aquí con PitWall.exe.")}</div>`;sel.hidden=true;return}
+  if(!SH||force)SH=await rigGet("/api/simhub");fillDashSelect(sel,SH);sel.onchange=()=>{setUI("simhub",{dash:sel.value});renderSimhubWidget()};
+  if(!name){SH_SHOWN="";box.innerHTML=`<div class="empty" style="color:#aaa">${Lp("Choose a SimHub dashboard above.","Elige arriba un dashboard de SimHub.")}</div>`;return}
+  const url=simhubURL(name,SH&&SH.port,OV.on);if(SH_SHOWN===url&&!force)return;SH_SHOWN=url;
+  box.innerHTML=SH&&SH.running===false?`<div class="empty" style="color:#aaa">${Lp("Start SimHub to see this dashboard (Rig tab).","Abre SimHub para ver este dashboard (pestaña Rig).")}</div>`:`<iframe title="SimHub" src="${esc(url)}" allow="fullscreen"></iframe>`}
+setInterval(()=>{const vis=(CUR_VIEW==="live"&&!HIDDEN.has("simhub"))||(OV.on&&OV.list.includes("simhub"));if(vis&&MODE==="bridge"){const was=SH&&SH.running;rigGet("/api/simhub").then(d=>{if(d){SH=d;renderSimhubWidget(was!==d.running||ui("simhub").dash&&!SH_SHOWN.includes(encodeURIComponent(ui("simhub").dash)))}})}},4000);
+
+/* ===================== pit stop calculator ===================== */
+let FUELPER=null,FUELMAX=null;
+function renderPit(){const box=$("#pitBox");if(!box)return;const c=ui("pit"),fuel=T.FuelLevel,per=FUELPER,ll=lapsLeft();
+  const kv=(k,v,cls)=>`<div><div class="label">${k}</div><div class="mid mono ${cls||""}">${v}</div></div>`;
+  if(fuel==null||!per){box.innerHTML=`<p class="note">${Lp("Appears after your first full lap, once fuel use is known.","Aparece tras tu primera vuelta completa, cuando se conoce el consumo.")}</p>`;return}
+  const lapNow=T.Lap||0,lapsFuel=fuel/per,tank=(FUELMAX||fuel)/per,left=ll?Math.max(0,ll.v-(T.LapDistPct||0)):null;
+  let stops=0,first=null,last=lapNow+Math.floor(lapsFuel),add=null;
+  if(left!=null){const need=left-lapsFuel;stops=need>0?Math.ceil(need/tank-1e-6):0;if(stops>0){first=lapNow+Math.max(0,Math.ceil(left-stops*tank));const atStop=Math.max(0,fuel-(first-lapNow)*per),stint=(left-(first-lapNow))*per/stops+per*c.margin;add=Math.max(0,Math.min((FUELMAX||Infinity)-atStop,stint-atStop))}}
+  // where you would rejoin: cars racing behind you within the pit loss pass you
+  const rel=relList(),le=estLap(),myPos=T.PlayerCarPosition||0;let lose=0,next=null;
+  rel.forEach(r=>{const g=r.lapDiff*le;if(g<0&&g>-c.loss){lose++;if(!next||g<next.g)next={g,r}}});
+  const rejoin=myPos?myPos+lose:null;
+  box.innerHTML=`<div class="row" style="margin-top:4px">${kv(Lp("Stops left","Paradas",true),left==null?"–":stops)}${kv(Lp("Window","Ventana",true),stops?`${first}–${last}`:left==null?"–":Tx("none","no hace falta"),stops&&lapNow>=first?"good":"")}${kv(Lp("Add","Añadir",true),add==null?"–":vol(add).toFixed(1)+" "+volU())}</div>
+    <div class="row" style="margin-top:8px">${kv(Lp("Laps of fuel","Vueltas de gasolina",true),lapsFuel.toFixed(1))}${kv(Lp("Rejoin","Sales",true),rejoin?"P"+rejoin+(lose?` <span class="unit bad">−${lose}</span>`:""):"–")}
+      <div><div class="label">${Lp("Pit loss","Pérdida",true)}</div><div class="frow" style="gap:4px"><button type="button" class="pin ovhide" data-pl="-1">−</button><span class="mid mono">${c.loss}s</span><button type="button" class="pin ovhide" data-pl="1">+</button></div></div></div>
+    <p class="note">${stops?(lapNow>=first?Lp("Pit window is open. ","La ventana de parada está abierta. "):Lp(`Window opens on lap ${first}. `,`La ventana se abre en la vuelta ${first}. `)):""}${next?Lp("You would come out near ","Saldrías cerca de ")+esc("#"+(next.r.d.CarNumber||"")+" "+(next.r.d.UserName||"")):""}</p>`;
+  box.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>{setUI("pit",{loss:Math.max(5,Math.min(180,c.loss+ +b.dataset.pl))});renderPit()})}
+
+/* ===================== mini-sectors ===================== */
+const MS={n:24,sess:null,idx:-1,t0:null,cur:[],last:[],best:[],bestLap:null,bestLapT:null};
+function trackSectors(){const p=T.LapDistPct,t=T.SessionTime;if(p==null||t==null||p<0)return;
+  if(T.SessionNum!==MS.sess||(T.IsOnTrack===false)){if(T.SessionNum!==MS.sess){MS.sess=T.SessionNum;MS.best=[];MS.bestLap=null;MS.bestLapT=null;MS.last=[]}MS.idx=-1;MS.t0=null;MS.cur=[];return}
+  const k=Math.min(MS.n-1,Math.floor(p*MS.n));if(k===MS.idx)return;
+  const prev=MS.idx;MS.idx=k;
+  const forward=prev>=0&&(k===prev+1||(prev===MS.n-1&&k===0));
+  if(forward&&MS.t0!=null){const dt=t-MS.t0,ref=MS.bestLap?MS.bestLap[prev]:null,b=MS.best[prev];
+    MS.cur[prev]={dt,c:b==null||dt<=b?"p":ref!=null&&dt<=ref?"g":"y"};if(b==null||dt<b)MS.best[prev]=dt}
+  else if(!forward)MS.cur=[];
+  if(forward&&k===0){if(MS.cur.filter(Boolean).length===MS.n){const tot=MS.cur.reduce((s,x)=>s+x.dt,0);if(MS.bestLapT==null||tot<MS.bestLapT){MS.bestLapT=tot;MS.bestLap=MS.cur.map(x=>x.dt)}}MS.last=MS.cur;MS.cur=[]}
+  MS.t0=t}
+function renderSectors(){const box=$("#secBox");if(!box)return;const cells=(a,now)=>`<div class="msec">${Array.from({length:MS.n},(_,i)=>`<i class="${a[i]?a[i].c:""}${now&&i===MS.idx?" now":""}"></i>`).join("")}</div>`;
+  const done=MS.cur.filter(Boolean),dsum=done.reduce((s,x)=>s+x.dt,0),ref=MS.bestLap?MS.cur.reduce((s,x,i)=>x?s+MS.bestLap[i]:s,0):null;
+  const ideal=MS.best.filter(x=>x!=null).length===MS.n?MS.best.reduce((s,x)=>s+x,0):null;
+  box.innerHTML=`<div class="hstrip"><div><span class="k">${L("curLap",true)}</span><span class="v mono ${ref!=null?(dsum-ref<=0?"good":"bad"):""}">${ref!=null&&done.length?sgn(dsum-ref):"–"}</span></div><div><span class="k">${Lp("Ideal lap","Vuelta ideal",true)}</span><span class="v mono pb">${fmtT(ideal)}</span></div><div><span class="k">${L("best",true)}</span><span class="v mono">${fmtT(MS.bestLapT)}</span></div></div>
+    ${cells(MS.cur,true)}${MS.last.length?`<div class="label" style="margin-top:2px">${L("last",true)}</div>${cells(MS.last)}`:""}
+    <div class="legend"><span><i style="background:var(--pb)"></i>${Lp("best of session","mejor de la sesión",true)}</span><span><i style="background:var(--good)"></i>${Lp("faster than best lap","más rápido que tu mejor vuelta",true)}</span><span><i style="background:var(--warn)"></i>${Lp("slower","más lento",true)}</span></div>`}
+
+/* ===================== gap graph ===================== */
+const GAPH=new Map();let GAP_AT=0,GAP_SESS=null;const GAPCOL=["#5c9dff","#38c97c","#ffb02e","#ff6363","#b98cff","#2ec4c4","#f28cd0","#c9d1dc","#9acd32","#ff8f45"];
+function sampleGaps(){const t=T.SessionTime;if(t==null||t-GAP_AT<1&&t>=GAP_AT)return;GAP_AT=t;if(T.SessionNum!==GAP_SESS){GAP_SESS=T.SessionNum;GAPH.clear()}
+  const le=estLap(),keep=ui("gaps").mins*60+5;relList().forEach(r=>{let a=GAPH.get(r.i);if(!a){a=[];GAPH.set(r.i,a)}a.push([t,r.lapDiff*le]);while(a.length&&a[0][0]<t-keep)a.shift()})}
+function drawGaps(){const cv=$("#gapC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1))-70);if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}
+  const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);const c=ui("gaps"),t=T.SessionTime||0,span=c.mins*60,pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me]||0;
+  const pick=[...GAPH.keys()].filter(i=>my&&pos[i]>0&&Math.abs(pos[i]-my)<=c.cars).sort((a,b)=>pos[a]-pos[b]);
+  let m=2;pick.forEach(i=>GAPH.get(i).forEach(p=>{if(p[0]>=t-span)m=Math.max(m,Math.abs(p[1]))}));m=Math.ceil(m*1.15);
+  const Y=v=>h/2-v/m*(h/2-10),X=s=>(s-(t-span))/span*(w-60);
+  x.strokeStyle=css("--line");x.lineWidth=1;x.font="11px "+css("--f-data");x.fillStyle=css("--muted");
+  [m,m/2,0,-m/2,-m].forEach(v=>{x.beginPath();x.moveTo(0,Y(v));x.lineTo(w-60,Y(v));x.stroke();x.fillText((v>0?"+":"")+v.toFixed(v%1?1:0)+"s",w-56,Y(v)+4)});
+  x.fillStyle=css("--accent");x.fillRect(0,Y(0)-1,w-60,2);
+  const leg=[];pick.forEach((i,k)=>{if(i===me)return;const a=GAPH.get(i).filter(p=>p[0]>=t-span);if(a.length<2)return;const col=GAPCOL[k%GAPCOL.length];x.strokeStyle=col;x.lineWidth=2;x.beginPath();a.forEach((p,j)=>j?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.stroke();
+    const d=driverBy(i)||{},g=a[a.length-1][1],tr=a.length>30?g-a[a.length-31][1]:null;leg.push(`<div><span class="k" style="color:${col}">P${pos[i]} #${esc(d.CarNumber||"")} ${esc((d.UserName||"").split(" ").pop())}</span><span class="v mono">${sgn(g,1)}${tr!=null?` <span class="${(g>0)===(tr<0)?"good":"bad"}">${tr<0?"▼":"▲"}${Math.abs(tr).toFixed(1)}</span>`:""}</span></div>`)});
+  const lg=$("#gapLegend");if(lg)lg.innerHTML=leg.join("")||`<div class="muted">${Lp("Gaps to the cars around you appear after a few seconds.","Los gaps con los coches cercanos aparecen en unos segundos.",true)}</div>`}
+
+/* ===================== incident log ===================== */
+const INC={sess:null,n:null,log:[]};
+function trackIncidents(){const n=T.PlayerCarMyIncidentCount;if(n==null)return;if(T.SessionNum!==INC.sess){INC.sess=T.SessionNum;INC.n=n;INC.log=[];return}
+  if(INC.n!=null&&n>INC.n)INC.log.unshift({d:n-INC.n,tot:n,lap:T.Lap,pct:T.LapDistPct,t:T.SessionTime});INC.n=n}
+function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||null,n=INC.n??T.PlayerCarMyIncidentCount??0;
+  box.innerHTML=`<div class="row" style="margin-top:4px"><div><div class="big mono ${lim&&n>=lim*.75?"bad":""}">${n}x</div><div class="sub">${lim?Lp(`of ${lim}x limit`,`de ${lim}x de límite`):Lp("no limit","sin límite")}</div></div></div>
+    ${lim?`<div class="meter"><b style="width:${Math.min(100,n/lim*100)}%;background:${n>=lim*.75?"var(--bad)":"var(--accent)"}"></b></div>`:""}
+    <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
-  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS}
+  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
-  addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();
+  addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();renderProfBtn();if(OV.on&&OV.list.includes("simhub"))renderSimhubWidget();
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
-  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
+  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
   if(NATIVE)syncNativePlan();
   if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else Demo.start();
