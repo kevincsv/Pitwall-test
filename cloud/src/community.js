@@ -83,6 +83,13 @@ export async function community(req, env, url) {
     return json({ ...JSON.parse(r.data), id: r.id, alias: r.alias, shared: true });
   }
 
+  // the current season schedule: public to read, uploaded by the accounts in SEASON_UPLOADERS
+  if (p === "/season" && m === "GET") {
+    const c = await env.DB.prepare("SELECT updated, chunks FROM season_cache WHERE k='current'").first();
+    if (!c) return err("no season schedule on this server yet", 404);
+    const r = await env.DB.prepare("SELECT data FROM season_chunks WHERE k='current' AND idx<?1 ORDER BY idx").bind(c.chunks).all();
+    return new Response('{"updated":' + c.updated + ',"season":' + (r.results || []).map((x) => x.data).join("") + "}", { headers: { ...JSONH, "cache-control": "public, max-age=900" } });
+  }
   if (p === "/setups/cars" && m === "GET") {
     const r = await env.DB.prepare("SELECT car_path AS carPath, MAX(car) AS car, COUNT(*) AS n FROM community_setups GROUP BY car_path ORDER BY n DESC LIMIT 500").all();
     return json({ cars: r.results || [] });
@@ -107,6 +114,20 @@ export async function community(req, env, url) {
   // everything below needs the driver's token
   const u = await me(req, env);
   if (!u) return err("wrong or missing token", 401);
+  if (p === "/season" && m === "POST") {
+    const allowed = String(env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
+    if (!u.account || !allowed.includes(u.id)) return err("this account cannot publish the season schedule", 403);
+    const data = JSON.stringify(body.season || null);
+    if (data.length < 100 || data.length > 12000000 || !Array.isArray(body.season.seasons)) return err("season schedule missing or too large", 400);
+    const parts = [];
+    for (let i = 0; i < data.length; i += 900000) parts.push(data.slice(i, i + 900000));
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM season_chunks WHERE k='current'"),
+      ...parts.map((d, i) => env.DB.prepare("INSERT INTO season_chunks (k, idx, data) VALUES ('current',?1,?2)").bind(i, d)),
+      env.DB.prepare("INSERT INTO season_cache (k, updated, chunks) VALUES ('current',?1,?2) ON CONFLICT(k) DO UPDATE SET updated=excluded.updated, chunks=excluded.chunks").bind(Date.now(), parts.length),
+    ]);
+    return json({ published: true, size: data.length });
+  }
   if (p === "/setups/mine" && m === "GET") {
     const r = await env.DB.prepare("SELECT id, car_path AS carPath, car, track, name, notes, size, downloads, created FROM community_setups WHERE user_id=?1 ORDER BY created DESC").bind(u.id).all();
     return json({ setups: (r.results || []).map((x) => ({ ...x, alias: u.alias, mine: true })) });

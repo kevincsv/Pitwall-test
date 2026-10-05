@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -155,5 +156,28 @@ func refreshCompanion() {
 	}
 	for _, p := range []string{"series/seasons", "track/get", "car/get", "carclass/get", "season/race_guide"} {
 		get(p, "")
+	}
+	publishSeason()
+}
+
+// publishSeason shares the season schedule (no personal data) with the Pitlane HQ
+// server so apps without an iRacing login see the real season. The server only
+// accepts it from the accounts its owner lists in SEASON_UPLOADERS.
+func publishSeason() {
+	compMu.Lock()
+	part := func(k string) json.RawMessage {
+		if e, ok := compData[k]; ok {
+			return e.Body
+		}
+		return json.RawMessage("null")
+	}
+	season := map[string]json.RawMessage{"seasons": part("series/seasons"), "tracks": part("track/get"), "cars": part("car/get"),
+		"classes": part("carclass/get"), "guide": part("season/race_guide")}
+	compMu.Unlock()
+	if string(season["seasons"]) == "null" {
+		return
+	}
+	if _, err := commCall("POST", "/season", map[string]any{"season": season}, true); err != nil && !strings.Contains(err.Error(), "cannot publish") {
+		log.Println("Season schedule:", err)
 	}
 }

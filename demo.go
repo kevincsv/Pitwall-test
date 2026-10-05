@@ -170,7 +170,7 @@ func (d *demoSource) Name() string { return "demo" }
 func (d *demoSource) Open() error {
 	d.rng = rand.New(rand.NewSource(7))
 	d.buildTrack()
-	names := []string{"Jonas Weber", "Mia Okafor", "Luca Bianchi", "Sam Reyes", "Hana Sato", "Tom Fischer", "Iván Morales", "Alex D.", "Ella Novak", "Rui Costa", "Noah Brandt", "Aiko Tanaka", "Pierre Lefèvre", "Omar Haddad", "Lena Kraus", "Diego Ruiz", "Finn O'Neill", "Sara Lind", "Marco Rossi", "Ana Duarte"}
+	names := []string{"Jonas Weber", "Mia Okafor", "Luca Bianchi", "Sam Reyes", "Hana Sato", "Tom Fischer", "Iván Morales", "Demo Driver", "Ella Novak", "Rui Costa", "Noah Brandt", "Aiko Tanaka", "Pierre Lefèvre", "Omar Haddad", "Lena Kraus", "Diego Ruiz", "Finn O'Neill", "Sara Lind", "Marco Rossi", "Ana Duarte"}
 	lics := []string{"A", "B", "B", "C", "B", "A", "C", "B", "D", "C", "B", "C", "A", "D", "B", "C", "D", "R", "B", "C"}
 	colors := map[string]string{"R": "0xff0000", "D": "0xff8c00", "C": "0xffcc00", "B": "0x00c702", "A": "0x0153db"}
 	d.cars = make([]demoCar, demoCars)

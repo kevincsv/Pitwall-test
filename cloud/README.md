@@ -89,3 +89,13 @@ Migration `0004_accounts_setups.sql` adds Pitlane HQ accounts and shared setups.
 Put the server address in **`web/dist/server.json`** (`{"url": "https://…workers.dev"}`). PitlaneHQ.exe and the iPhone and Android apps (which bundle `web/dist`) read it from there, so it is set in one place.
 
 With a Pitlane HQ account the phone app works on its own: it signs in directly against this server (the password is turned into keys on the phone, like on the PC), downloads the encrypted copy of your profile and decrypts it on the phone. That copy includes a small snapshot of your iRacing data (licences, credits, recent races, season schedule) that PitlaneHQ.exe refreshes every 6 hours while you are signed in to iRacing. Planner changes made on the phone are encrypted and uploaded the same way, and the PC picks them up. Only live telemetry and the rig need the PC, paired over the local Wi-Fi with the code it shows.
+
+### The current season for everyone
+
+iRacing only gives the season schedule to signed-in apps. So that the planner shows the real season in apps without an iRacing login (the phone without the PC, or a PC whose owner has not connected iRacing), your own PitlaneHQ.exe publishes it to the server every 6 hours: only the schedule (series, weeks, tracks, cars, session times), no personal data.
+
+1. Create your Pitlane HQ account in PitlaneHQ.exe and connect iRacing there.
+2. Find your account id: `npx wrangler d1 execute pitlanehq --remote --command "select id, display from accounts"`.
+3. In Cloudflare → the Worker → Settings → Variables add **`SEASON_UPLOADERS`** = that id (several ids separated by commas).
+
+Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
