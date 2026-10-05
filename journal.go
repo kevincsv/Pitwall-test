@@ -170,6 +170,7 @@ type raceLap struct {
 	Inc  int     `json:"i,omitempty"`
 	Pit  bool    `json:"pit,omitempty"`
 	Fuel float64 `json:"f,omitempty"`
+	*lapStat
 }
 
 type raceResult struct {
@@ -216,12 +217,22 @@ type raceReport struct {
 	DNF         bool         `json:"dnf,omitempty"`
 	Laps        []raceLap    `json:"laps"`
 	Results     []raceResult `json:"results,omitempty"` // your class
-	Brakes      []carBrakes  `json:"brakes,omitempty"`  // braking points of you and the drivers around you
+	Brakes      []carBrakes  `json:"brakes,omitempty"`
+	Incidents   []incEvent   `json:"incidents,omitempty"` // where on the lap each incident happened  // braking points of you and the drivers around you
 	TrackLen    float64      `json:"trackLen,omitempty"`
 	Posted      bool         `json:"posted,omitempty"`
 }
 
+type incEvent struct {
+	Lap  int     `json:"lap"`
+	D    float64 `json:"d"` // metres from the line
+	Pts  int     `json:"pts"`
+	Kind string  `json:"kind,omitempty"` // "off" when the car was off track
+}
+
 type raceTrack struct {
+	incs                        []incEvent
+	incPrev                     float64
 	id, kind                    string
 	meta                        carTrack
 	started                     bool
@@ -240,7 +251,7 @@ type raceTrack struct {
 	saved                       bool
 }
 
-var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack"}
+var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface"}
 
 func sessionKind(y string, sn int) string {
 	if si := listItem(y, "SessionNum", strconv.Itoa(sn)); si != "" {
@@ -288,7 +299,7 @@ func raceWatcher() {
 		now := time.Now()
 		if !cur.started && state == 4 && pos > 0 {
 			cur.started, cur.start, cur.startClass, cur.inc0, cur.fuel0, cur.lapSeen = true, pos, cpos, inc, fuel, lc
-			cur.lapInc, cur.lapFuel = inc, fuel
+			cur.lapInc, cur.lapFuel, cur.incPrev = inc, fuel, inc
 		}
 		cur.state = state
 		if !cur.started {
@@ -298,6 +309,14 @@ func raceWatcher() {
 			cur.lastPos, cur.lastClass = pos, cpos
 		}
 		cur.lastInc, cur.lastFuel = int(inc-cur.inc0), fuel
+		if inc > cur.incPrev && len(cur.incs) < 100 {
+			e := incEvent{Lap: lc + 1, D: round(math.Max(0, v[10]), 0), Pts: int(inc - cur.incPrev)}
+			if v[11] == 0 {
+				e.Kind = "off"
+			}
+			cur.incs = append(cur.incs, e)
+		}
+		cur.incPrev = inc
 		if onPit && !cur.pitPrev {
 			cur.pits++
 			cur.lapPit = true
@@ -308,7 +327,11 @@ func raceWatcher() {
 		}
 		// iRacing updates the last lap time a moment after the line
 		if cur.pending > 0 && now.Sub(cur.pendingAt) > 1500*time.Millisecond {
-			cur.laps = append(cur.laps, raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)})
+			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
+			if s, ok := myLapStat(cur.pending); ok {
+				rl.lapStat = &s
+			}
+			cur.laps = append(cur.laps, rl)
 			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit = cur.pending, 0, inc, fuel, onPit
 		}
 		if state >= 5 {
@@ -409,7 +432,7 @@ func strengthOfField(irs []int) int {
 func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	m := t.meta
 	r := &raceReport{ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
-		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, DNF: dnf, Multiclass: m.NumClasses > 1}
+		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1}
 	if r.Multiclass {
 		r.Start, r.Finish = t.startClass, t.lastClass
 	}

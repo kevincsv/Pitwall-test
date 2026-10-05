@@ -26,7 +26,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 |---|---|
 | **Race** (while you drive) | Live · Standings · Engineer · Strategy · Tyres |
 | **Analysis** (after the session) | Races · Laps · Braking coach · Tracks · Data |
-| **Season** | Calendar · Series · Goals |
+| **Season** | Calendar · Series · News · Goals |
 | **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
 | **Account** | Account · Settings (also the gear button) |
 
@@ -141,6 +141,9 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Car profiles**: a **general profile** for any car without its own; select and remove cars you do not need.
 - **Account**: recent races open their details; safety rating history, this year and career by category, and what Pitlane HQ recorded. Race reports show the **track map with your braking points and those of the drivers around you**.
 
+- **Race analysis**: for every lap, sector times, gaps to the cars ahead and behind, % flat out, braking and with no pedal, top speed, gear changes, fuel, time in the pits and track temperature; your **ideal lap** from your best sectors, and automatic tips (least consistent sector, pace drop, time lost in traffic, coasting, where the incidents were). On the track map: **incidents** (✕) and the **coach** marking the corners where you lose time against the driver you compare with.
+- **Season → News**: iRacing news from iracing.com.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -195,7 +198,7 @@ Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para para
 |---|---|
 | **Carrera** (mientras conduces) | En vivo · Posiciones · Ingeniero · Estrategia · Neumáticos |
 | **Análisis** (después de la sesión) | Carreras · Vueltas · Coach de frenada · Circuitos · Datos |
-| **Temporada** | Calendario · Series · Objetivos |
+| **Temporada** | Calendario · Series · Noticias · Objetivos |
 | **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
 | **Cuenta** | Cuenta · Ajustes (también el botón del engranaje) |
 
@@ -309,6 +312,9 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Efectos del motor háptico** como TrackImpulse: patinaje, control de tracción, bloqueo, derrape, g de frenada, tocar fondo, limitador de vueltas y de pit, cada uno con cómo se calcula a partir de la telemetría de iRacing.
 - **Perfiles por coche**: un **perfil general** para cualquier coche sin perfil propio; selecciona y quita los coches que no necesites.
 - **Cuenta**: las carreras recientes abren su detalle; historial de safety rating, este año y trayectoria por categoría, y lo registrado por Pitlane HQ. Los informes de carrera muestran el **mapa del circuito con tus puntos de frenada y los de los pilotos a tu alrededor**.
+
+- **Análisis de carrera**: en cada vuelta, sectores, gaps con el de delante y el de detrás, % a fondo, frenando y sin pedales, velocidad punta, cambios de marcha, gasolina, tiempo en boxes y temperatura de pista; tu **vuelta ideal** con tus mejores sectores, y consejos automáticos (sector menos regular, caída de ritmo, tiempo perdido con tráfico, ir sin pedales, dónde fueron los incidentes). En el mapa: los **incidentes** (✕) y el **coach** marcando las curvas donde pierdes tiempo frente al piloto con el que comparas.
+- **Temporada → Noticias**: las noticias de iRacing desde iracing.com.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 

@@ -268,3 +268,109 @@ func fieldBrakes(y string, res []raceResult) []carBrakes {
 	}
 	return out
 }
+
+// ---------- per-lap detail of your own laps (30 times a second) ----------
+
+type lapStat struct {
+	Full   float64   `json:"full"`  // share of the lap flat out
+	Brk    float64   `json:"brk"`   // share braking
+	Coast  float64   `json:"coast"` // share with no pedal
+	Vmax   float64   `json:"vmax"`
+	Shifts int       `json:"shifts"`
+	S      []float64 `json:"s,omitempty"` // three sector times
+	GapA   float64   `json:"gapA,omitempty"`
+	GapB   float64   `json:"gapB,omitempty"`
+	PitT   float64   `json:"pitT,omitempty"` // seconds on pit road
+	Track  float64   `json:"track,omitempty"`
+	Wet    int       `json:"wet,omitempty"`
+}
+
+var (
+	myMu    sync.Mutex
+	myStats = map[int]lapStat{}
+	mySess  string
+)
+
+func myLapStat(lap int) (lapStat, bool) {
+	myMu.Lock()
+	defer myMu.Unlock()
+	s, ok := myStats[lap]
+	return s, ok
+}
+
+func myLapWatcher() {
+	vars := []string{"Lap", "LapDistPct", "Throttle", "Brake", "Speed", "Gear", "SessionTime", "OnPitRoad", "IsOnTrack", "SessionNum", "PlayerCarIdx", "TrackTempCrew", "TrackWetness"}
+	var lap, n, full, brk, coast, shifts int
+	var vmax, lastT, pitT, lastPct, lastGear float64
+	var cross [3]float64
+	for range time.Tick(time.Second / 30) {
+		st := currentStatus()
+		if !st.connected() || (st.Demo && !cloudDemo) {
+			continue
+		}
+		v := telNums(vars)
+		if v[8] == 0 {
+			continue
+		}
+		y := sessionYAML()
+		id := yamlField(y, "SubSessionID") + "-" + strconv.Itoa(int(v[9]))
+		myMu.Lock()
+		if id != mySess {
+			mySess, myStats = id, map[int]lapStat{}
+			lap = -1
+		}
+		myMu.Unlock()
+		l, pct, t := int(v[0]), v[1], v[6]
+		if l != lap {
+			if lap > 0 && n > 30 {
+				s := lapStat{Full: round(float64(full)/float64(n), 3), Brk: round(float64(brk)/float64(n), 3), Coast: round(float64(coast)/float64(n), 3), Vmax: round(vmax, 1), Shifts: shifts, PitT: round(pitT, 1), Track: round(v[11], 1), Wet: int(v[12])}
+				if cross[0] > 0 && cross[1] > cross[0] && cross[2] > cross[1] {
+					s.S = []float64{round(cross[1]-cross[0], 3), round(cross[2]-cross[1], 3), round(t-cross[2], 3)}
+				}
+				// gaps to the cars just ahead and behind, from their time behind the leader
+				a := telArrays([]string{"CarIdxPosition", "CarIdxF2Time"})
+				if me := int(v[10]); a[0] != nil && a[1] != nil && me < len(a[0]) {
+					mp := a[0][me]
+					for i := range a[0] {
+						if a[0][i] == mp-1 {
+							s.GapA = round(a[1][me]-a[1][i], 3)
+						}
+						if a[0][i] == mp+1 {
+							s.GapB = round(a[1][i]-a[1][me], 3)
+						}
+					}
+				}
+				myMu.Lock()
+				myStats[lap] = s
+				myMu.Unlock()
+			}
+			lap, n, full, brk, coast, shifts, vmax, pitT = l, 0, 0, 0, 0, 0, 0, 0
+			cross = [3]float64{t, 0, 0}
+		}
+		n++
+		if v[2] > 0.98 {
+			full++
+		}
+		if v[3] > 0.05 {
+			brk++
+		}
+		if v[2] < 0.05 && v[3] < 0.05 {
+			coast++
+		}
+		vmax = math.Max(vmax, v[4])
+		if v[5] != lastGear && lastGear > 0 && v[5] > 0 {
+			shifts++
+		}
+		lastGear = v[5]
+		if v[7] > 0 && lastT > 0 && t > lastT {
+			pitT += t - lastT
+		}
+		if lastPct < 1.0/3 && pct >= 1.0/3 {
+			cross[1] = t
+		}
+		if lastPct < 2.0/3 && pct >= 2.0/3 {
+			cross[2] = t
+		}
+		lastPct, lastT = pct, t
+	}
+}

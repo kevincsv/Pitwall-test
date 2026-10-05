@@ -188,3 +188,15 @@ func TestBrakePoints(t *testing.T) {
 		t.Fatalf("brake points %v %v", d, vm)
 	}
 }
+
+func TestParseNews(t *testing.T) {
+	feed := `<?xml version="1.0"?><rss xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>
+<item><title>2026 Season 4 Release Notes &amp; more</title><link>https://www.iracing.com/2026-s4/</link><pubDate>Tue, 08 Sep 2026 15:00:00 +0000</pubDate>
+<description><![CDATA[<p>New cars and <b>tracks</b> this season.</p>]]></description><category>News</category>
+<content:encoded><![CDATA[<img src="https://www.iracing.com/img.jpg">Text]]></content:encoded></item>
+<item><title>Bad</title><link>javascript:alert(1)</link></item></channel></rss>`
+	n, err := parseNews([]byte(feed))
+	if err != nil || len(n) != 1 || n[0].Title != "2026 Season 4 Release Notes & more" || n[0].Summary != "New cars and tracks this season." || n[0].Image != "https://www.iracing.com/img.jpg" || n[0].Date == 0 {
+		t.Fatalf("news: %+v %v", n, err)
+	}
+}
