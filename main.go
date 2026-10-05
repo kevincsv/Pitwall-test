@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.22.3"
+const appVersion = "0.22.4"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -345,25 +345,52 @@ func writeJSON(w http.ResponseWriter, v any) {
 var listenPort int
 
 func lanURLs() []string {
-	var out []string
+	type cand struct {
+		url   string
+		score int
+	}
+	var list []cand
 	ifs, _ := net.Interfaces()
 	for _, ifc := range ifs {
 		if ifc.Flags&net.FlagUp == 0 || ifc.Flags&net.FlagLoopback != 0 {
 			continue
 		}
+		name := strings.ToLower(ifc.Name)
 		addrs, _ := ifc.Addrs()
 		for _, a := range addrs {
 			ipn, ok := a.(*net.IPNet)
 			if !ok || ipn.IP.To4() == nil || ipn.IP.IsLinkLocalUnicast() {
 				continue
 			}
-			out = append(out, fmt.Sprintf("http://%s:%d", ipn.IP.To4(), listenPort))
+			ip := ipn.IP.To4()
+			score := 0
+			// the home network first: 192.168.x.x, then 10.x, then 172.16-31.x
+			switch {
+			case ip[0] == 192 && ip[1] == 168:
+				score += 30
+			case ip[0] == 10:
+				score += 20
+			case ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31:
+				score += 10
+			}
+			// the real Wi-Fi or Ethernet adapter before virtual ones (WSL, Hyper-V, VPNs…)
+			for _, v := range []string{"vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "docker", "tailscale", "zerotier", "vpn", "tap", "tun", "bluetooth", "radmin", "hamachi"} {
+				if strings.Contains(name, v) {
+					score -= 100
+					break
+				}
+			}
+			if strings.Contains(name, "wi-fi") || strings.Contains(name, "wlan") || strings.Contains(name, "wireless") || strings.HasPrefix(name, "ethernet") || strings.HasPrefix(name, "eth") || strings.HasPrefix(name, "en") {
+				score += 5
+			}
+			list = append(list, cand{fmt.Sprintf("http://%s:%d", ip, listenPort), score})
 		}
 	}
-	// private home-network ranges first
-	sort.SliceStable(out, func(i, j int) bool {
-		return strings.Contains(out[i], "//192.168.") && !strings.Contains(out[j], "//192.168.")
-	})
+	sort.SliceStable(list, func(i, j int) bool { return list[i].score > list[j].score })
+	out := make([]string, len(list))
+	for i, c := range list {
+		out[i] = c.url
+	}
 	return out
 }
 
