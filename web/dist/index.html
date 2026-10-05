@@ -2982,6 +2982,11 @@ async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRA
       el.style.left=(x-vx)/vw*100+"%";el.style.top=(y-vy)/vh*100+"%";el.style.width=w/vw*100+"%";el.style.height=h/vh*100+"%";const now=performance.now();if(now-t>120){t=now;send()}};
     el.onpointerup=()=>{el.onpointermove=null;el.onpointerup=null;SCREEN_DRAG=false;send()}}})}
 
+// keep "Your screen" in step with the overlay windows (they can be dragged on the screen itself)
+async function refreshScreenRects(){if(SCREEN_DRAG||CUR_VIEW!=="overlays"||!pcOverlays())return;try{const j=await (await fetch("/api/overlay/list")).json();const r=j.rects||{};
+  let ch=false;Object.keys(r).forEach(n=>{const v=r[n];if(!v||!OVSZ[n])return;const o=(CFG.positions||{})[n];if(!o||o.join()!==v.join()){CFG.positions=Object.assign({},CFG.positions,{[n]:v});ch=true}});
+  const open=(j.open||[]).join();if(ch||open!==refreshScreenRects.open){refreshScreenRects.open=open;renderScreenEditor()}}catch(e){}}
+setInterval(refreshScreenRects,1500);
 /* ---------- live preview while configuring ---------- */
 let PREVIEW_TIMER=0;
 function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;

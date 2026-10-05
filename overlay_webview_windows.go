@@ -74,9 +74,14 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 		os.Exit(3)
 	}
 	hwnd := uintptr(wv.Window())
+	// no title bar or borders, no taskbar button, on top, never takes the focus from iRacing
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExToolWindow|wsExNoActivate|wsExTopmost)
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
+	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
+	// a resize makes WebView2 lay itself out again in the new client area
+	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h+1), swpNoActivate)
+	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
 
 	wv.Bind("pwDrag", func() {
 		wv.Dispatch(func() {

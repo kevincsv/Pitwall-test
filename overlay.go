@@ -132,6 +132,26 @@ func registerOverlayRoutes(mux *http.ServeMux) {
 		writeJSON(w, screenInfo())
 	})
 	mux.HandleFunc("/api/overlay/list", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]any{"supported": overlaysSupported, "open": listOverlays()})
+		// where the open overlay windows really are (they may have been dragged on the screen)
+		rects := overlayRects()
+		cfgMu.Lock()
+		changed := false
+		for n, rc := range rects {
+			if !widgetRe.MatchString(n) || rc[2] < 80 || rc[3] < 40 {
+				continue
+			}
+			if old, ok := cfg.Positions[n]; !ok || old != rc {
+				if cfg.Positions == nil {
+					cfg.Positions = map[string][4]int{}
+				}
+				cfg.Positions[n] = rc
+				changed = true
+			}
+		}
+		if changed {
+			saveSettingsLocked()
+		}
+		cfgMu.Unlock()
+		writeJSON(w, map[string]any{"supported": overlaysSupported, "open": listOverlays(), "rects": rects})
 	})
 }
