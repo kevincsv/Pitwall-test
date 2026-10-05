@@ -4,6 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.ConnectivityManager
@@ -75,6 +77,7 @@ class MainActivity : Activity() {
         setContentView(root)
         // always start in the phone app; the paired PC opens from Telemetry
         showCompanion()
+        handleLink(intent)
     }
 
     private fun openRemote(url: String) {
@@ -91,6 +94,33 @@ class MainActivity : Activity() {
         web.loadUrl("file:///android_asset/app/index.html")
         web.postDelayed({ web.clearHistory() }, 800)
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleLink(intent)
+    }
+
+    /** The QR code on the PC: pitlanehq://open?url=http://192.168.x.y:8484/pair?pin=… */
+    private fun handleLink(intent: Intent?) {
+        val data: Uri = intent?.data ?: return
+        if (data.scheme != "pitlanehq") return
+        val target = data.getQueryParameter("url") ?: return
+        if (!isLanURL(target)) return
+        prefs.edit().putString("pc", target.substringBefore("/pair?").trimEnd('/') + "/").apply()
+        openRemote(target)
+    }
+
+    /** Only PitlaneHQ.exe on the home network: http to a private IPv4 address. */
+    private fun isLanURL(u: String): Boolean {
+        val uri = try { Uri.parse(u) } catch (e: Exception) { return false }
+        if (uri.scheme != "http") return false
+        val p = (uri.host ?: return false).split(".").mapNotNull { it.toIntOrNull() }
+        if (p.size != 4) return false
+        return p[0] == 10 || (p[0] == 192 && p[1] == 168) || (p[0] == 172 && p[1] in 16..31)
+    }
+
+    /** The phone's own pages (bundled), not the PC's or any other site. */
+    private fun onOwnPage(): Boolean = (web.url ?: "").startsWith("file:///android_asset/")
 
     private fun callJS(fn: String, value: String) {
         val arg = JSONObject.quote(value)
@@ -124,7 +154,7 @@ class MainActivity : Activity() {
             runOnUiThread {
                 when (msg.optString("type")) {
                     "ip" -> callJS("onIP", localIPv4())
-                    "open" -> msg.optString("url").takeIf { it.startsWith("http") }?.let {
+                    "open" -> msg.optString("url").takeIf { isLanURL(it) }?.let {
                         prefs.edit().putString("pc", it).apply()
                         openRemote(it)
                     }
@@ -133,6 +163,11 @@ class MainActivity : Activity() {
                         showCompanion()
                     }
                     "companion" -> showCompanion()
+                    "lastpc" -> callJS("onLastPC", prefs.getString("pc", null) ?: "")
+                    // the account keys only go to the phone's own pages
+                    "secret-set", "secret-del", "secret-get" -> if (!onOwnPage()) return@runOnUiThread
+                }
+                when (msg.optString("type")) {
                     "secret-set" -> Secrets.put(this@MainActivity, msg.optString("key"), msg.optString("value"))
                     "secret-del" -> Secrets.remove(this@MainActivity, msg.optString("key"))
                     "secret-get" -> {

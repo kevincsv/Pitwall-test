@@ -26,7 +26,7 @@ targets:
       path: PitWall/Info.plist
       properties:
         CFBundleDisplayName: Pitlane HQ
-        CFBundleShortVersionString: "0.22.2"
+        CFBundleShortVersionString: "0.22.3"
         CFBundleVersion: "1"
         UILaunchScreen: {}
         UIRequiresFullScreen: true
@@ -42,6 +42,9 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         NSLocalNetworkUsageDescription: Pitlane HQ connects to PitlaneHQ.exe on your PC over Wi-Fi.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.pitwall.app
+            CFBundleURLSchemes: [pitlanehq]
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true
@@ -65,7 +68,7 @@ targets:
       path: PitlaneWidget/Info.plist
       properties:
         CFBundleDisplayName: Pitlane HQ
-        CFBundleShortVersionString: "0.22.2"
+        CFBundleShortVersionString: "0.22.3"
         CFBundleVersion: "1"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension

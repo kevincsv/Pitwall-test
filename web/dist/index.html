@@ -1420,7 +1420,7 @@ function renderPC(){const box=$("#pcBody");if(!box)return;
     <form id="pcForm" class="pc-form"><input id="pcCode" inputmode="numeric" autocomplete="one-time-code" placeholder="23-481 902" maxlength="14" aria-label="Code"><button class="btn primary" type="submit">${esc(Tx("Connect","Conectar","Verbinden","Conectar"))}</button></form>
     <div class="hm-bar" id="pcBar" hidden><s id="pcProg" style="width:0"></s></div><div id="pcStatus" class="note"></div><div id="pcFound" class="devlist"></div>
     ${(()=>{let u="";try{u=localStorage.getItem("pw.lastPC")||""}catch(e){}return u?`<button type="button" class="btn" id="pcLast" data-u="${esc(u)}" style="margin:0 0 10px">${esc(Tx("Open my PC","Abrir mi PC","Meinen PC öffnen","Abrir meu PC"))} · ${esc(u.replace(/^https?:\/\//,"").replace(/\/$/,""))}</button><br>`:""})()}<button type="button" class="btn small" id="pcScan">${esc(Tx("Search my Wi-Fi","Buscar en mi WiFi","Mein WLAN durchsuchen","Buscar no meu Wi-Fi"))}</button></div>`;
-  const pl=$("#pcLast");if(pl)pl.onclick=()=>cpOpenPC(pl.dataset.u);
+  const pl=$("#pcLast");if(pl)pl.onclick=()=>cpOpenPC(pl.dataset.u);if(NATIVE_RAW&&!window.__lastAsked){window.__lastAsked=1;window.onLastPC=u=>{if(!u)return;try{if(!localStorage.getItem("pw.lastPC")){localStorage.setItem("pw.lastPC",u.replace(/\/pair\?.*$/,"/"));renderPC()}}catch(e){}};NATIVE_RAW.postMessage({type:"lastpc"})}
   const st=h=>{$("#pcStatus").innerHTML=h},pair=(base,pin)=>base+"/pair?pin="+pin+"&next=%2F";
   const add=(base,info,pin)=>{const b=document.createElement("button");b.type="button";b.className="devrow linkrow";b.innerHTML=`<b>${esc(info.host||"PC")}</b><small class="muted">${esc(base.replace("http://",""))}</small><span class="pkgo">›</span>`;b.onclick=()=>cpOpenPC(pin?pair(base,pin):base+"/");$("#pcFound").appendChild(b)};
   const scan=async(sub,pin)=>{$("#pcFound").innerHTML="";$("#pcBar").hidden=false;let done=0;const hits=[],hosts=[];for(let i=1;i<255;i++)hosts.push(sub+"."+i);st(esc(Tx("Searching…","Buscando…","Suche…","Buscando…")));
@@ -2976,7 +2976,11 @@ function renderSettings(){
   else{$("#demoCtl").hidden=true;note.innerHTML=Lp("This is a preview with simulated data. To read iRacing, run PitlaneHQ.exe on the PC where you race and open the address it shows.","Esto es una vista previa con datos simulados. Para leer iRacing, ejecuta PitlaneHQ.exe en el PC donde corres y abre la dirección que muestra.")}
   $("#changePC").hidden=!NATIVE;$("#changePC").innerHTML=Lp("Change PC","Cambiar de PC",true);
   const urls=(INFO&&INFO.urls)||[];$("#urlList").innerHTML=urls.length?urls.map(u=>`<div>${esc(u)}</div>`).join(""):`<div class="muted">${Lp("Shown when running from PitlaneHQ.exe","Se muestra al usar PitlaneHQ.exe")}</div>`;
-  $("#qrBox").innerHTML=MODE==="bridge"&&urls.length?`<img class="qr" alt="QR" src="/api/qr.png?u=${encodeURIComponent(urls[0])}">`:"";
+  $("#qrBox").innerHTML=MODE==="bridge"&&urls.length?(location.hostname==="localhost"||location.hostname==="127.0.0.1"
+    ?`<img class="qr" id="qrApp" alt="QR" src="/api/qr.png?app=1&t=${Date.now()}"><p class="note" style="max-width:240px">${esc(Tx("Scan it with the phone's camera: the Pitlane HQ app opens and pairs by itself. Without the app, type the address in the browser.","Escanéalo con la cámara del móvil: se abre la app Pitlane HQ y se empareja sola. Sin la app, escribe la dirección en el navegador.","Mit der Handykamera scannen: Die Pitlane-HQ-App öffnet sich und koppelt sich selbst. Ohne App die Adresse im Browser eingeben.","Escaneie com a câmera do celular: o app Pitlane HQ abre e emparelha sozinho. Sem o app, digite o endereço no navegador."))}</p>`
+    :`<img class="qr" alt="QR" src="/api/qr.png?u=${encodeURIComponent(urls[0])}">`):"";
+  // the PIN in the code changes every 10 minutes and after each phone: keep the picture fresh
+  clearInterval(window.__qrT);window.__qrT=setInterval(()=>{const q=$("#qrApp");if(q&&q.offsetParent)q.src="/api/qr.png?app=1&t="+Date.now()},30000);
 }
 document.querySelectorAll("#langSeg button").forEach(b=>b.onclick=()=>{LANG=b.dataset.l;store.set("pw.lang",LANG);applyI18n()});
 document.querySelectorAll("#unitSeg button").forEach(b=>b.onclick=()=>{UNITS=b.dataset.u;store.set("pw.units",UNITS);$("#spdU").textContent=spdU();renderSettings();if(LAPS.length)renderLaps();rerenderAll()});

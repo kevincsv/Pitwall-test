@@ -10,8 +10,8 @@ android {
         applicationId = "com.pitlanehq.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 6
-        versionName = "0.22.2"
+        versionCode = 7
+        versionName = "0.22.3"
     }
     // The same (public, debug) key on every build, so a new .apk installs over the
     // old one without uninstalling. It only proves the updates come from this build.

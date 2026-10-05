@@ -58,6 +58,27 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
         webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
 
+    /// The QR code on the PC: pitlanehq://open?url=http://192.168.x.y:8484/pair?pin=…
+    func openLink(_ link: URL) {
+        guard link.scheme == "pitlanehq",
+              let target = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "url" })?.value,
+              Self.isLanURL(target), let url = URL(string: target) else { return }
+        let base = target.components(separatedBy: "/pair?").first ?? target
+        defaults.set(base.hasSuffix("/") ? base : base + "/", forKey: pcKey)
+        openRemote(url)
+    }
+
+    /// Only PitlaneHQ.exe on the home network: http to a private IPv4 address.
+    static func isLanURL(_ text: String) -> Bool {
+        guard let u = URL(string: text), u.scheme == "http", let host = u.host else { return false }
+        let p = host.split(separator: ".").compactMap { Int($0) }
+        guard p.count == 4 else { return false }
+        return p[0] == 10 || (p[0] == 192 && p[1] == 168) || (p[0] == 172 && (16...31).contains(p[1]))
+    }
+
+    /// The phone's own (bundled) pages, not the PC's or any other site.
+    private func onOwnPage() -> Bool { webView.url?.isFileURL ?? false }
+
     private func showConnect(error: String?) {
         loadingRemote = false
         guard let url = Bundle.main.url(forResource: "connect", withExtension: "html") else { return }
@@ -76,7 +97,7 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
         case "ip":
             callJS("onIP", localIPv4() ?? "")
         case "open":
-            if let text = body["url"] as? String, let url = URL(string: text) {
+            if let text = body["url"] as? String, Self.isLanURL(text), let url = URL(string: text) {
                 defaults.set(text, forKey: pcKey)
                 openRemote(url)
             }
@@ -85,6 +106,10 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             showCompanion()
         case "companion":
             showCompanion()
+        case "lastpc":
+            callJS("onLastPC", defaults.string(forKey: pcKey) ?? "")
+        case "secret-set", "secret-del", "secret-get" where !onOwnPage():
+            return // the account keys only go to the phone's own pages
         case "secret-set":
             if let key = body["key"] as? String, let value = body["value"] as? String { Keychain.set(key, value) }
         case "secret-del":

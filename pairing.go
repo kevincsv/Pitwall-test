@@ -16,6 +16,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 
 	"path/filepath"
 	"strings"
@@ -273,4 +274,16 @@ func registerPairRoutes(mux *http.ServeMux) {
 		pin := currentPINLocked()
 		writeJSON(w, map[string]any{"pin": pin, "codes": pairCodes(pin), "urls": lanURLs(), "pinOn": !pairs.Off, "expires": pairPINAt.Add(10 * time.Minute).UnixMilli(), "devices": list})
 	})
+}
+
+// appPairLink is the address in the QR code: the phone app opens it and pairs with the current PIN.
+func appPairLink() string {
+	urls := lanURLs()
+	if len(urls) == 0 {
+		return ""
+	}
+	pairMu.Lock()
+	pin := currentPINLocked()
+	pairMu.Unlock()
+	return "pitlanehq://open?url=" + url.QueryEscape(strings.TrimSuffix(urls[0], "/")+"/pair?pin="+pin+"&next=%2F")
 }

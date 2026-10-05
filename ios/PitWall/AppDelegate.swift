@@ -15,6 +15,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationC
         return true
     }
 
+    // The QR code shown by PitlaneHQ.exe (pitlanehq://open?url=…) opens the PC in the app.
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        (window?.rootViewController as? MainViewController)?.openLink(url)
+        return true
+    }
+
     // Show race reminders even while the app is open.
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,

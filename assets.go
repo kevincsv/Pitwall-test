@@ -18,7 +18,15 @@ import (
 func registerAssetRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/qr.png", func(w http.ResponseWriter, r *http.Request) {
 		u := r.URL.Query().Get("u")
-		if u == "" || len(u) > 200 || !strings.HasPrefix(u, "http") {
+		if r.URL.Query().Get("app") == "1" {
+			// opens the Pitlane HQ phone app, paired in one go; only for this PC's own window (it holds the PIN)
+			if !isLoopback(r) {
+				http.Error(w, "forbidden", 403)
+				return
+			}
+			u = appPairLink()
+		}
+		if u == "" || len(u) > 400 || !(strings.HasPrefix(u, "http") || strings.HasPrefix(u, "pitlanehq:")) {
 			http.Error(w, "bad url", 400)
 			return
 		}
