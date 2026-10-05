@@ -10,8 +10,18 @@ android {
         applicationId = "com.pitlanehq.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.8.0"
+        versionCode = 2
+        versionName = "0.9.0"
+    }
+    // The same (public, debug) key on every build, so a new .apk installs over the
+    // old one without uninstalling. It only proves the updates come from this build.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("pitlane-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
     buildTypes {
         release { isMinifyEnabled = false }

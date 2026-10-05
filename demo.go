@@ -91,6 +91,8 @@ var baseDemoVars = []demoVar{
 	{name: "P2P_Status", desc: "Push2Pass active or not", typ: TypeBool},
 	{name: "P2P_Count", desc: "Push2Pass count of usage (or remaining in Race)", typ: TypeInt},
 	{name: "PlayerCarMyIncidentCount", desc: "Players own incident count for this session", typ: TypeInt},
+	{name: "PlayerTrackSurface", desc: "Players car track surface type", unit: "irsdk_TrkLoc", typ: TypeInt},
+	{name: "EngineWarnings", desc: "Bitfield for warning lights", unit: "irsdk_EngineWarnings", typ: TypeInt},
 	{name: "SessionTimeOfDay", desc: "Time of day in seconds", unit: "s", typ: TypeFloat},
 	{name: "TrackWetness", desc: "How wet is the average track surface", unit: "irsdk_TrackWetness", typ: TypeInt},
 	{name: "BrakeABSactive", desc: "true if abs is currently reducing brake force pressure", typ: TypeBool},
@@ -563,6 +565,13 @@ func (d *demoSource) step(dt float64) {
 	// a 1x or 2x now and then so the incident log has something to show
 	inc := 2 + int(d.t/170) + int(d.t/410)
 	in("PlayerCarMyIncidentCount", inc)
+	// two seconds off track just before each 1x, so the spotter has something to say
+	surface := 3
+	if m := math.Mod(d.t, 170); d.t > 170 && m > 168 {
+		surface = 0
+	}
+	in("PlayerTrackSurface", surface)
+	in("EngineWarnings", 0)
 	f("SessionTimeOfDay", 14*3600+d.t)
 	in("TrackWetness", 1)
 	bo("BrakeABSactive", brk > 0.95)

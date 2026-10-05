@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.8.0"
+const appVersion = "0.9.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -234,6 +234,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, "retry: 2000\n\n")
 	schemaVer, sessionVer, configVer := -1, -1, -1
+	_, radioSeen := radioSince(-1) // only questions asked after this screen connected
 	var lastTick int32 = -1
 	var want []int
 	var lastStatus statusMsg
@@ -260,6 +261,14 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			lastStatus = st
+		}
+		if evs, seq := radioSince(radioSeen); seq != radioSeen {
+			for _, e := range evs {
+				if !send("radio", e) {
+					return
+				}
+			}
+			radioSeen = seq
 		}
 		if c, v := settingsSnapshot(); v != configVer {
 			configVer = v
@@ -382,6 +391,7 @@ func main() {
 	go appsOnSim()
 	go lapRecorder()
 	go carWatcher()
+	go joyWatcher()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
@@ -451,6 +461,7 @@ func main() {
 	registerCloudRoutes(mux)
 	registerSetupRoutes(mux)
 	registerCarRoutes(mux)
+	registerRadioRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

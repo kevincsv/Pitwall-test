@@ -482,6 +482,20 @@ html.ov .shbox{height:calc(100vh - 40px)}
 .azgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:4px 14px;margin-top:6px}.azgrid>div{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:3px 0;font-size:14px}
 .filebtn{position:relative;overflow:hidden}.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.askgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.askcell{display:flex;flex-direction:column;gap:4px}
+.askbtn{font:600 14px/1.2 var(--f-body);background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:14px 8px;cursor:pointer;min-height:52px;transition:background .15s,border-color .15s}
+.askbtn:hover{border-color:var(--accent)}.askbtn:active,.askbtn.hit{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.askbind{font-size:11px;color:var(--muted);min-height:16px;text-align:center}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.callg{margin-top:12px}.callg>.label{margin-bottom:6px}
+.callrow{display:inline-flex;align-items:center;gap:4px;margin:0 8px 8px 0}
+.callrow .iconbtn,.phr .iconbtn{width:28px;height:28px;font-size:11px;border-radius:50%}
+.phrases{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 16px;max-height:340px;overflow:auto;margin-top:10px;border-top:1px solid var(--line)}
+.phr{display:grid;grid-template-columns:minmax(96px,auto) 1fr auto auto;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
+.phr .mono{font-size:11px;color:var(--muted)}.phr.has .mono{color:var(--good)}
+label.btn{display:inline-flex;align-items:center;cursor:pointer}
 </style>
 
 <div class="wrap">
@@ -651,6 +665,10 @@ html.ov .shbox{height:calc(100vh - 40px)}
       <div class="label" data-i18n="w.coach"></div>
       <div id="coachW"></div>
     </div>
+    <div class="panel s4 wpanel" data-w="radio">
+      <div class="label" data-i18n="w.radio"></div>
+      <div id="radioW"></div>
+    </div>
     <div class="panel s12 empty" id="liveEmpty" hidden></div>
   </div>
 </section>
@@ -669,6 +687,12 @@ html.ov .shbox{height:calc(100vh - 40px)}
   <div class="vhead"><div><h1 data-i18n="tab.coach"></h1><div class="sub" id="coachSub"></div></div>
     <div class="controls"><select id="coachLap" aria-label="Lap"></select><span class="muted">vs</span><select id="coachRef" aria-label="Reference"></select></div></div>
   <div id="coachBody"></div>
+</section>
+
+<!-- ENGINEER: voice radio, spotter and audio packs -->
+<section class="view" id="v-engineer" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.engineer"></h1><div class="sub" id="engSub"></div></div><div class="controls" id="engCtl"></div></div>
+  <div class="grid" id="engBody"></div>
 </section>
 
 <!-- ENDURANCE STRATEGY -->
@@ -1039,7 +1063,7 @@ function parseYaml(text){
 }
 
 /* ===================== feeds ===================== */
-const LIVE_VARS="SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
+const LIVE_VARS="SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
 let T={},S={},SCHEMA=[],STATUS={connected:false,source:"",demo:false},MODE="probe",INFO=null;
 let wantAll=false,es=null;
 
@@ -1056,6 +1080,7 @@ function connectBridge(){
   es.addEventListener("fields",e=>{fields=JSON.parse(e.data)||[]});
   es.addEventListener("session",e=>onSession(JSON.parse(e.data)));
   es.addEventListener("config",e=>{try{const m=JSON.parse(e.data);profileEvent(m);applyServerCfg(m.config)}catch(err){}});
+  es.addEventListener("radio",e=>{try{onRadioEvent(JSON.parse(e.data))}catch(err){}});
   es.addEventListener("t",e=>{const m=JSON.parse(e.data),o=wantAll?{...T}:{};fields.forEach((n,i)=>o[n]=m.v[i]);onFrame(o)});
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
   es.onopen=()=>{if(STATUS.offline){STATUS.offline=false;renderConn()}};
@@ -1114,7 +1139,7 @@ const Demo=(()=>{
   let P2PL=168,P2PT=null;
   function demoExtras(cars,ME,pct,lap,brk,t){let nl=0,nr=0;const md=cars[ME].dist;cars.forEach((c,i)=>{if(i===ME)return;let g=((c.dist-md)%LEN+LEN*1.5)%LEN-LEN/2;if(Math.abs(g)<4.5){i%2?nr++:nl++}});
     const lr=nl&&nr?4:nl>1?5:nr>1?6:nl?2:nr?3:1,pp=pct/LEN,p2=pp>.04&&pp<.11&&P2PL>0;if(p2&&P2PT!=null)P2PL-=Math.max(0,t-P2PT);P2PT=t;
-    return{CarLeftRight:lr,DRS_Status:pp>.9&&pp<.97?1:(pp>=.97||pp<.02)?2:pp<.14?3:0,P2P_Status:p2,P2P_Count:Math.ceil(P2PL),PlayerCarMyIncidentCount:2,SessionTimeOfDay:14*3600+t,TrackWetness:1,BrakeABSactive:brk>.95,CarIdxTireCompound:Array.from({length:64},(_,i)=>i<N?0:-1)}}
+    return{CarLeftRight:lr,DRS_Status:pp>.9&&pp<.97?1:(pp>=.97||pp<.02)?2:pp<.14?3:0,P2P_Status:p2,P2P_Count:Math.ceil(P2PL),PlayerCarMyIncidentCount:2+(t>=45?Math.floor((t-45)/120)+1:0),PlayerTrackSurface:t>30&&(t+75)%120>118?0:3,EngineWarnings:0,SessionTimeOfDay:14*3600+t,TrackWetness:1,BrakeABSactive:brk>.95,CarIdxTireCompound:Array.from({length:64},(_,i)=>i<N?0:-1)}}
   /* preview only: a map "saved from an earlier session", so the demo shows it straight away */
   function demoMap(){const N=720,o={x:[],y:[],v:[],b:[],th:[],t:[]};for(let i=0;i<N;i++){const d=Math.floor(i/N*LEN),a=sp(d+3)-sp(d);o.x.push(gx[d]);o.y.push(gy[d]);o.v.push(sp(d));o.b.push(a<-.02?Math.min(1,-a/.7):0);o.th.push(a<-.02?0:1);o.t.push(tB[d])}
     o.time=98.214;o.brakes=brakePts(o);o.st=[];for(let m=0;m<40;m++){const a=Math.floor(m*N/40),b=Math.floor((m+1)*N/40);o.st.push((b>=N?o.time:o.t[b])-o.t[a])}
@@ -1871,7 +1896,7 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","engine","tyres","standings","telemetry","simhub"];
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","radio","engine","tyres","standings","telemetry","simhub"];
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",simhub:"simhub"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
@@ -2537,15 +2562,15 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={race:["live","field","laps","coach","strategy","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics","cars","setups"],account:["account","goals","settings"]};
+const GROUPS={race:["live","field","laps","engineer","coach","strategy","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics","cars","setups"],account:["account","goals","settings"]};
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
-const VIEW_LABEL={live:"tab.live",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+const VIEW_LABEL={live:"tab.live",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars")renderCars();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars")renderCars();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
@@ -2560,7 +2585,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],traceSecs:["Trace length (s)","Duración de la gráfica (s)"],traceH:["Trace height (px)","Altura de la gráfica (px)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
    PC's profile so they follow the profile. Phones keep their own Live layout. */
-const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsrc|haptics|goals|strategy|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsrc|haptics|goals|strategy|radio|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
 const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
 let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
 const rawSet=store.set.bind(store);
@@ -2608,7 +2633,7 @@ async function renderProfPanel(){const box=$("#profPanel");if(!box)return;box.hi
   try{const list=await (await fetch("/api/profiles")).json();box.innerHTML=profilesHTML(list);wireProfiles(box,renderProfPanel)}catch(e){}}
 $("#profBtn").onclick=openProfiles;$("#rigProfiles").onclick=openProfiles;
 /* new widgets start hidden once, so an update does not crowd your Live screen */
-(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub","coach"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
+(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub","coach","radio"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
 
 /* ===================== rig: programs, SimHub, AZOM, MOZA ===================== */
 const askOK=m=>MODE==="local"||confirm(m);
@@ -3058,48 +3083,245 @@ document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault
 
 /* ===================== voice engineer ===================== */
 Object.assign(I18N,{"tab.coach":["Braking coach","Coach de frenada"],"tab.strategy":["Strategy","Estrategia"],"tab.goals":["Goals","Objetivos"],"tab.setups":["Setups","Setups"],"tab.cars":["Car profiles","Perfiles por coche"],
- "w.coach":["Braking coach","Coach de frenada"],"d.coach":["Where you lose time braking, with tips","Dónde pierdes tiempo frenando, con consejos"]});
-const VOICE_DEF={on:false,lang:"auto",voice:"",rate:1.05,vol:1,lap:true,fuel:true,gaps:true,pit:true,flags:true,inc:true,coach:true,last:true};
+ "w.coach":["Braking coach","Coach de frenada"],"d.coach":["Where you lose time braking, with tips","Dónde pierdes tiempo frenando, con consejos"],
+ "tab.engineer":["Engineer","Ingeniero"],"w.radio":["Radio","Radio"],"d.radio":["Ask your engineer: fuel, gaps, position… (the phone works as a button box)","Pregunta al ingeniero: gasolina, gaps, posición… (el móvil sirve de botonera)"]});
+/* Per screen: on/off, voice, speed and volume (turn it on in one screen only).
+   Per profile: what it says, language and audio pack. */
+const VOICE_DEF={on:false,voice:"",rate:1.05,vol:1};
 let VOICE=Object.assign({},VOICE_DEF,store.get("pw.voice",{}));
-const VS={lap:null,lastSaid:{},gapA:null,gapB:null,flags:0,inc:null,pitOpen:false,q:[]};
-function vlang(){return VOICE.lang==="auto"?(LANG==="es"?"es":"en"):VOICE.lang}
+const RADIO_DEF={lang:"auto",pack:"",calm:true,clear:true,quiet:false,pads:{},
+  c:{spot:true,off:true,flags:true,inc:true,pos:true,race:true,last:true,gaps:true,fuel:true,box:true,limiter:true,engine:true,coach:true}};
+let RADIO=Object.assign({},RADIO_DEF,store.get("pw.radio",{}));RADIO.c=Object.assign({},RADIO_DEF.c,RADIO.c||{});RADIO.pads=RADIO.pads||{};
+(function(){const o=store.get("pw.voice",{});if(store.get("pw.radio",null))return;["last","fuel","gaps","flags","inc","coach"].forEach(k=>{if(o[k]===false)RADIO.c[k]=false});if(o.lang)RADIO.lang=o.lang})();
+const saveVoice=()=>store.set("pw.voice",VOICE),saveRadio=()=>store.set("pw.radio",RADIO);
+const VS={q:[],busy:false,tok:0,lastSaid:{},base:false,lap:null,flags:0,inc:null,lr:1,lrT:0,surf:null,ew:0,pos:null,posT:0,posAnn:null,tr:null,pitIn:0,onPit:false,fuelOk:false,gapA:null,learn:null};
+function vlang(){return RADIO.lang==="auto"?(LANG==="es"?"es":"en"):RADIO.lang}
 const VT=(en,es)=>vlang()==="es"?es:en;
-function say(text,key,minGap){if(!VOICE.on||!("speechSynthesis" in window)||OV.on)return;const now=Date.now();if(key&&VS.lastSaid[key]&&now-VS.lastSaid[key]<(minGap||20000))return;if(key)VS.lastSaid[key]=now;
-  const u=new SpeechSynthesisUtterance(text);u.lang=vlang()==="es"?"es-ES":"en-GB";u.rate=VOICE.rate;u.volume=VOICE.vol;const v=speechSynthesis.getVoices().find(x=>x.name===VOICE.voice);if(v)u.voice=v;speechSynthesis.speak(u)}
 const secTxt=s=>{s=Math.abs(s);return s<10?s.toFixed(1).replace(".",vlang()==="es"?" coma ":" point "):Math.round(s)+""};
 function lapTimeSpeech(t){const m=Math.floor(t/60),s=(t-m*60);return vlang()==="es"?`${m} ${s.toFixed(1).replace("."," coma ")}`:`${m} ${s.toFixed(1)}`}
-function voiceTick(){if(!VOICE.on||!T||T.IsOnTrack===false)return;const lc=T.LapCompleted;
-  // flags
-  const f=T.SessionFlags||0,newF=f&~VS.flags;VS.flags=f;
-  if(VOICE.flags&&newF){if(newF&0x4000||newF&0x8000)say(VT("Yellow flag ahead, careful","Bandera amarilla delante, cuidado"),"yellow",15000);else if(newF&0x20)say(VT("Blue flag, faster car behind","Bandera azul, coche más rápido detrás"),"blue",30000);else if(newF&0x1)say(VT("Checkered flag. Well done","Bandera a cuadros. Buen trabajo"),"chq",600000);else if(newF&0x2)say(VT("White flag, last lap","Bandera blanca, última vuelta"),"white",600000);else if(newF&0x4)say(VT("Green flag, go go go","Bandera verde, vamos"),"green",60000)}
-  // incidents
-  const inc=T.PlayerCarMyIncidentCount;if(VOICE.inc&&inc!=null){if(VS.inc!=null&&inc>VS.inc){const lim=+((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||0;say(VT(`Plus ${inc-VS.inc}. ${inc} incidents${lim?` of ${lim}`:""}`,`Más ${inc-VS.inc}. Llevas ${inc} incidentes${lim?` de ${lim}`:""}`),"inc",3000)}VS.inc=inc}
-  // lap completed
-  if(lc==null)return;if(VS.lap==null){VS.lap=lc;return}if(lc===VS.lap)return;VS.lap=lc;
-  setTimeout(()=>{const parts=[];const lt=T.LapLastLapTime,best=T.LapBestLapTime;
-    if(VOICE.last&&lt>0)parts.push(VT(`Last lap ${lapTimeSpeech(lt)}`,`Última vuelta ${lapTimeSpeech(lt)}`)+(best>0&&lt<=best+.001?VT(", personal best","; mejor vuelta personal"):best>0?VT(`, ${secTxt(lt-best)} off your best`,`, ${secTxt(lt-best)} más lenta que tu mejor`):""));
-    if(VOICE.fuel&&FUELPER>0&&T.FuelLevel!=null){const laps=T.FuelLevel/FUELPER,ll=lapsLeft();let s=VT(`Fuel for ${laps.toFixed(1)} laps`,`Gasolina para ${laps.toFixed(1).replace("."," coma ")} vueltas`);
-      if(ll){const left=ll.v;if(left>laps+.3)s+=VT(`. ${left} laps to go: you need to stop`,`. Quedan ${left} vueltas: tienes que parar`);else if(left<=laps)s+=VT(". Enough to the end",". Llegas al final")}parts.push(s)}
-    if(VOICE.gaps){const g=gapsNow();if(g.ahead)parts.push(VT(`Gap ahead ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", closing":", growing"):""}`,`Delante a ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", te acercas":", se aleja"):""}`));if(g.behind&&g.behind.g<1.5)parts.push(VT(`Car behind at ${secTxt(g.behind.g)}`,`Coche detrás a ${secTxt(g.behind.g)}`))}
-    if(VOICE.coach){const tip=coachTips(true)[0];if(tip&&tip.lost>.08)parts.push(tip.say)}
-    if(VOICE.lap&&parts.length)say(parts.join(". "),"lap",5000)},1500)}
+
+/* Phrases: the computer voice says the text; an audio pack can replace each one
+   with a recording named like the key (car_left.mp3, or a car_left folder with variants). */
+const PHR={car_left:["Car left","Coche a la izquierda"],car_right:["Car right","Coche a la derecha"],three_wide:["Three wide, you're in the middle","Tres en paralelo, estás en medio"],two_left:["Two cars left","Dos coches a la izquierda"],two_right:["Two cars right","Dos coches a la derecha"],
+  clear:["Clear","Libre"],clear_left:["Clear left","Libre por la izquierda"],clear_right:["Clear right","Libre por la derecha"],car_behind:["Car right behind you","Coche justo detrás"],
+  off_track:["Off track","Fuera de pista"],incidents:["Incidents","Incidentes"],
+  yellow_flag:["Yellow flag, careful","Bandera amarilla, cuidado"],full_course_yellow:["Full course yellow","Amarilla en todo el circuito"],blue_flag:["Blue flag, let them by","Bandera azul, deja pasar"],green_flag:["Green flag, go go go","Bandera verde, vamos"],
+  white_flag:["White flag, last lap","Bandera blanca, última vuelta"],checkered_flag:["Checkered flag, well done","Bandera a cuadros, buen trabajo"],black_flag:["Black flag, serve your penalty","Bandera negra, cumple la penalización"],repair_flag:["Repair flag, box for repairs","Bandera de reparación, entra a reparar"],
+  position:["Position","Posición"],gained_place:["Good job, place gained","Bien, ganas una posición"],lost_place:["Lost a place","Pierdes una posición"],laps_to_go:["Laps to go","Vueltas restantes"],last_lap:["Last lap","Última vuelta"],minutes_left:["Minutes left","Minutos restantes"],personal_best:["Personal best!","¡Mejor vuelta personal!"],
+  fuel_laps:["Fuel for laps","Gasolina para vueltas"],fuel_low:["Fuel is low","Queda poca gasolina"],fuel_enough:["You have fuel to the end","Tienes gasolina hasta el final"],box_this_lap:["Box this lap, box box","Box esta vuelta, box box"],limiter:["Limiter! Limiter!","¡Limitador! ¡Limitador!"],
+  water_temp:["Water temperature is high","Temperatura del agua alta"],oil_temp:["Oil temperature is high","Temperatura del aceite alta"],oil_pressure:["Oil pressure is low","Presión de aceite baja"],stalled:["Engine stalled, restart","Motor calado, arranca"],
+  radio_check:["Radio check, loud and clear","Prueba de radio, te recibo alto y claro"],quiet_on:["OK, I'll keep quiet","Vale, me callo"],quiet_off:["I'm back on the radio","Vuelvo a la radio"],no_data:["I don't have that yet","Todavía no tengo ese dato"]};
+const P=k=>{const p=PHR[k];return p?VT(p[0],p[1]):k};
+/* message: t = text for the computer voice, c = recordings to play instead, k/g = do not repeat within g ms, u = urgent (spotter) */
+function M(key,text,clips,opt){return Object.assign({k:key,t:text||P(key),c:clips===undefined?[key]:clips},opt||{})}
+function numClips(x,dec){if(!(x>=0)||x>=100)return null;if(!dec)return["n_"+Math.round(x)];const i=Math.floor(x),d=Math.min(9,Math.round((x-i)*10));return["n_"+i,"point","n_"+d]}
+function withNum(key,n,dec){const c=numClips(n,dec);return c?[key,...c]:null}
+
+/* ---------- audio packs ---------- */
+let PACKS=[];
+function curPack(){return RADIO.pack?PACKS.find(p=>p.name===RADIO.pack):null}
+function clipUrl(p,key){const f=p&&p.files[key];if(!f||!f.length)return null;const x=f[Math.floor(Math.random()*f.length)];return p.local?x:"/api/voicepack/"+encodeURIComponent(p.name)+"/"+x.split("/").map(encodeURIComponent).join("/")}
+function clipKey(rel){const n=x=>x.trim().toLowerCase().replace(/[- ]/g,"_");const parts=rel.split("/"),f=parts.at(-1);let k=n(f.replace(/\.[^.]+$/,""));
+  if(parts.length>1){const par=n(parts.at(-2));if(/^\d*$/.test(k)||k===par||k.startsWith(par+"_")&&/^\d*$/.test(k.slice(par.length+1)))k=par}return /^[a-z0-9_]{1,40}$/.test(k)?k:""}
+const isAudio=n=>/\.(mp3|wav|ogg|m4a)$/i.test(n);
+async function loadPacks(){if(MODE!=="bridge")return;try{const r=await fetch("/api/voicepacks");const j=await r.json();PACKS=(j.packs||[]).concat(PACKS.filter(p=>p.local))}catch(e){}}
+
+/* ---------- speaking ---------- */
+let AUD=null;
+function stopSpeech(){VS.tok++;VS.busy=false;try{speechSynthesis.cancel()}catch(e){}if(AUD){AUD.onended=AUD.onerror=null;AUD.pause();AUD=null}}
+function playMsg(m){return new Promise(res=>{const p=curPack(),urls=p&&m.c?m.c.map(k=>clipUrl(p,k)):null;
+  if(urls&&urls.length&&urls.every(Boolean)){let i=0,w=0;const next=()=>{clearTimeout(w);if(i>=urls.length){AUD=null;return res()}const a=new Audio(urls[i++]);AUD=a;a.volume=VOICE.vol;let done=false;const go=()=>{if(!done){done=true;next()}};a.onended=a.onerror=go;
+    a.onloadedmetadata=()=>{clearTimeout(w);w=setTimeout(go,(isFinite(a.duration)?a.duration*1000:6000)+600)};w=setTimeout(go,8000);a.play().catch(go)};next();return}
+  if(!("speechSynthesis" in window))return res();
+  const u=new SpeechSynthesisUtterance(m.t);u.lang=vlang()==="es"?"es-ES":"en-GB";u.rate=VOICE.rate;u.volume=VOICE.vol;const v=speechSynthesis.getVoices().find(x=>x.name===VOICE.voice);if(v)u.voice=v;
+  u.onend=u.onerror=()=>res();speechSynthesis.speak(u);setTimeout(res,Math.max(4000,m.t.length*130))})}
+function inCorner(){return T&&T.IsOnTrack!==false&&((T.Brake||0)>.15||Math.abs(T.SteeringWheelAngle||0)>.35)}
+function pumpVoice(){if(VS.busy||!VS.q.length)return;const m=VS.q[0];m.at=m.at||Date.now();
+  if(RADIO.calm&&!m.u&&!m.ask&&inCorner()&&Date.now()-m.at<8000)return;
+  VS.q.shift();if(Date.now()-m.at>20000&&!m.ask)return pumpVoice();
+  VS.busy=true;const tok=++VS.tok;playMsg(m).then(()=>{if(tok!==VS.tok)return;VS.busy=false;setTimeout(pumpVoice,120)})}
+/* say(message) or the old say(text, key, minGap) */
+function say(m,key,gap,force){if(typeof m==="string")m={t:m,c:null,k:key,g:gap};
+  if(!force&&(!VOICE.on||OV.on))return;const now=Date.now();
+  if(m.k&&VS.lastSaid[m.k]&&now-VS.lastSaid[m.k]<(m.g??20000))return;if(m.k)VS.lastSaid[m.k]=now;
+  if(RADIO.quiet&&!m.u&&!m.ask&&!force)return;
+  if(m.u){VS.q=VS.q.filter(x=>!x.u);stopSpeech();VS.q.unshift(m)}else VS.q.push(m);
+  if(VS.q.length>8)VS.q.splice(1,VS.q.length-8);pumpVoice()}
+
+/* ---------- what it says by itself ---------- */
+function isRace(){const s=((S.SessionInfo||{}).Sessions||[]).find(x=>x.SessionNum===T.SessionNum);return /race/i.test((s&&s.SessionType)||"")}
+function incLimit(){return +((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||0}
+function voiceTick(){if(!VOICE.on||OV.on||!T)return;if(T.IsOnTrack===false){VS.base=false;pumpVoice();return}
+  const C=RADIO.c,now=Date.now(),flags=T.SessionFlags||0,inc=T.PlayerCarMyIncidentCount,ew=T.EngineWarnings|0,pos=T.PlayerCarClassPosition||T.PlayerCarPosition;
+  if(!VS.base){Object.assign(VS,{base:true,flags,inc,ew,lr:T.CarLeftRight||1,surf:T.PlayerTrackSurface,pos,posAnn:pos,posT:now,lap:T.LapCompleted,tr:T.SessionTimeRemain,onPit:!!T.OnPitRoad});return}
+  /* spotter: CarLeftRight 1 clear, 2 left, 3 right, 4 both sides, 5 two left, 6 two right */
+  const lr=T.CarLeftRight;if(lr!=null&&lr!==VS.lr){const prev=VS.lr;VS.lr=lr;
+    if(C.spot&&(T.Speed||0)>5&&!T.OnPitRoad){const side={2:"car_left",3:"car_right",4:"three_wide",5:"two_left",6:"two_right"}[lr];
+      if(side){VS.lrT=now;say(M(side,null,undefined,{k:"spot"+lr,g:1500,u:true}))}
+      else if(lr===1&&prev>1&&RADIO.clear&&now-VS.lrT>700)say(M(prev===2||prev===5?"clear_left":prev===3||prev===6?"clear_right":"clear",null,undefined,{k:"spotclear",g:900,u:true}))}}
+  /* off track: PlayerTrackSurface 0 = off track, 3 = on track */
+  const surf=T.PlayerTrackSurface;if(surf!=null){if(C.off&&surf===0&&VS.surf===3&&(T.Speed||0)>8)say(M("off_track",null,undefined,{g:5000,u:true}));VS.surf=surf}
+  /* pit lane: limiter reminder in the first seconds on pit road */
+  const onPit=!!T.OnPitRoad;if(onPit&&!VS.onPit)VS.pitIn=now;VS.onPit=onPit;
+  if(C.limiter&&onPit&&now-VS.pitIn<6000&&(T.Speed||0)>4&&T.EngineWarnings!=null&&!(ew&0x10)&&T.PlayerTrackSurface!==1)say(M("limiter",null,undefined,{g:4000,u:true}));
+  /* engine lights */
+  const nw=ew&~VS.ew;VS.ew=ew;if(C.engine&&nw){if(nw&0x08)say(M("stalled",null,undefined,{g:15000,u:true}));else{if(nw&0x01)say(M("water_temp",null,undefined,{g:60000}));if(nw&0x40)say(M("oil_temp",null,undefined,{g:60000}));if(nw&0x04)say(M("oil_pressure",null,undefined,{g:60000}))}}
+  /* flags */
+  const newF=flags&~VS.flags;VS.flags=flags;
+  if(C.flags&&newF){if(newF&0x10000)say(M("black_flag",null,undefined,{g:30000,u:true}));else if(newF&0x100000)say(M("repair_flag",null,undefined,{g:60000}));else if(newF&0xC000)say(M("full_course_yellow",null,undefined,{g:30000}));
+    else if(newF&0x108)say(M("yellow_flag",null,undefined,{g:15000}));else if(newF&0x20)say(M("blue_flag",null,undefined,{g:30000}));else if(newF&0x1)say(M("checkered_flag",null,undefined,{g:600000}));
+    else if(newF&0x2)say(M("white_flag",null,undefined,{k:"last_lap",g:120000}));else if(newF&0x4)say(M("green_flag",null,undefined,{g:60000}))}
+  /* incidents */
+  if(inc!=null){if(C.inc&&VS.inc!=null&&inc>VS.inc){const lim=incLimit();say(M("incidents",VT(`Plus ${inc-VS.inc}. ${inc} incidents${lim?` of ${lim}`:""}`,`Más ${inc-VS.inc}. Llevas ${inc} incidentes${lim?` de ${lim}`:""}`),withNum("incidents",inc),{g:2500}))}VS.inc=inc}
+  /* places gained or lost (held for 2.5 s so a pass-and-repass is not announced) */
+  if(pos>0){if(pos!==VS.pos){VS.pos=pos;VS.posT=now}else if(pos!==VS.posAnn&&now-VS.posT>2500){if(C.pos&&isRace()&&T.SessionState===4&&VS.posAnn>0){const up=pos<VS.posAnn,k=up?"gained_place":"lost_place";
+    say(M(k,VT(`${up?"Place gained":"Lost a place"}, P${pos}`,`${up?"Ganas una posición":"Pierdes una posición"}, vas ${pos}º`),(()=>{const n=numClips(pos);return n?[k,"position",...n]:null})(),{k:"pos",g:4000}))}VS.posAnn=pos}}
+  /* minutes left in a timed race */
+  const tr=T.SessionTimeRemain,lr2=T.SessionLapsRemainEx;if(C.race&&isRace()&&tr>0&&tr<600000&&VS.tr>0&&!(lr2>=0&&lr2<32000)){for(const th of[1800,900,600,300,120])if(VS.tr>th&&tr<=th){const n=th/60;say(M("minutes_left",VT(`${n} minutes left`,`Quedan ${n} minutos`),withNum("minutes_left",n),{k:"min"+th,g:120000}))}}VS.tr=tr;
+  /* lap completed */
+  const lc=T.LapCompleted;if(lc!=null&&lc!==VS.lap){const first=VS.lap==null;VS.lap=lc;if(!first&&lc>0)setTimeout(lapReport,1500)}
+  pumpVoice()}
+function fuelInfo(){if(!(FUELPER>0)||T.FuelLevel==null)return null;const laps=T.FuelLevel/FUELPER,ll=lapsLeft();return{laps,left:ll?ll.v:null,need:ll?Math.max(0,(ll.v+.3)*FUELPER-T.FuelLevel):null}}
+function lapReport(){const C=RADIO.c,lt=T.LapLastLapTime,best=T.LapBestLapTime,f=fuelInfo(),ll=lapsLeft();
+  if(C.box&&f&&f.left!=null&&f.left>f.laps&&f.laps<1.8&&isRace())say(M("box_this_lap",null,undefined,{k:"box",g:60000}));
+  if(C.last&&lt>0){const pb=best>0&&lt<=best+.001;say({k:"lap",g:5000,c:null,t:VT(`Last lap ${lapTimeSpeech(lt)}`,`Última vuelta ${lapTimeSpeech(lt)}`)+(!pb&&best>0?VT(`, ${secTxt(lt-best)} off your best`,`, ${secTxt(lt-best)} más lenta que tu mejor`):"")});if(pb)say(M("personal_best",null,undefined,{g:5000}))}
+  if(C.fuel&&f){if(f.left!=null&&f.need===0&&!VS.fuelOk){VS.fuelOk=true;say(M("fuel_enough",null,undefined,{g:300000}))}
+    else{const low=f.laps<3,n=numClips(Math.floor(f.laps));say(M(low?"fuel_low":"fuel_laps",(low?P("fuel_low")+". ":"")+VT(`Fuel for ${f.laps.toFixed(1)} laps`,`Gasolina para ${f.laps.toFixed(1).replace("."," coma ")} vueltas`)+(f.need>0&&f.left!=null?VT(`. ${f.left} laps to go: you need to stop`,`. Quedan ${f.left} vueltas: tienes que parar`):""),n?(low?["fuel_low","fuel_laps",...n]:["fuel_laps",...n]):null,{k:"fuel",g:5000}))}}
+  if(C.gaps){const g=gapsNow();if(g.ahead)say({k:"gapA",g:5000,c:null,t:VT(`Gap ahead ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", closing":", growing"):""}`,`Delante a ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", te acercas":", se aleja"):""}`)});
+    if(g.behind&&g.behind.g<.6)say(M("car_behind",null,undefined,{g:30000}));else if(g.behind&&g.behind.g<1.5)say({k:"gapB",g:5000,c:null,t:VT(`Car behind at ${secTxt(g.behind.g)}`,`Coche detrás a ${secTxt(g.behind.g)}`)})}
+  if(C.race&&isRace()&&ll&&!ll.est){const r=ll.v;if(r===1)say(M("last_lap",null,undefined,{g:120000}));else if([2,3,5,10].includes(r))say(M("laps_to_go",VT(`${r} laps to go`,`Quedan ${r} vueltas`),withNum("laps_to_go",r),{k:"ltg"+r,g:120000}))}
+  if(C.coach){const tip=coachTips(true)[0];if(tip&&tip.lost>.08)say({k:"coach",g:5000,c:null,t:tip.say})}}
 function gapsNow(){const rel=relList(),le=estLap(),pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me];if(!my)return{};
   let ahead=null,behind=null;rel.forEach(r=>{if(r.i===me)return;const g=r.lapDiff*le;if(pos[r.i]===my-1)ahead={g:Math.abs(g),i:r.i};if(pos[r.i]===my+1)behind={g:Math.abs(g),i:r.i}});
   if(ahead){if(VS.gapA&&VS.gapA.i===ahead.i)ahead.trend=ahead.g-VS.gapA.g;VS.gapA=ahead}return{ahead,behind}}
-function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[];
-  const t=(k,en,es)=>chk("v-"+k,VOICE[k],Lp(en,es,true));
-  box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer","Ingeniero por voz"))}</h2>${chk("v-on",VOICE.on,Lp("On","Activado",true))}</div>
-    <p class="note">${Lp("Speaks through the speakers or headphones of this screen: lap times, fuel, gaps, flags, incidents and a braking tip after each lap. Turn it on in only one screen.","Habla por los altavoces o auriculares de esta pantalla: tiempos, gasolina, gaps, banderas, incidentes y un consejo de frenada tras cada vuelta. Actívalo solo en una pantalla.")}</p>
-    <div class="frow" style="margin:8px 0">${t("last","Lap time","Tiempo de vuelta")}${t("fuel","Fuel","Gasolina")}${t("gaps","Gaps","Gaps")}${t("flags","Flags","Banderas")}${t("inc","Incidents","Incidentes")}${t("coach","Braking tip","Consejo de frenada")}</div>
-    <div class="frow"><select id="v-lang"><option value="auto">${esc(Tx("Same as the app","Igual que la app"))}</option><option value="en">English</option><option value="es">Español</option></select>
-      <select id="v-voice" style="max-width:260px"><option value="">${esc(Tx("Default voice","Voz predeterminada"))}</option>${vs.map(v=>`<option${v.name===VOICE.voice?" selected":""}>${esc(v.name)}</option>`).join("")}</select>
-      <label class="frow" style="gap:6px"><span class="label">${esc(Tx("Speed","Velocidad"))}</span><input type="range" id="v-rate" min="70" max="150" value="${Math.round(VOICE.rate*100)}"></label>
-      <button type="button" class="btn small" id="v-test">${esc(Tx("Test","Probar"))}</button></div>${ok?"":`<p class="err">${esc(Tx("This browser cannot speak.","Este navegador no puede hablar."))}</p>`}`;
-  const sv=()=>{store.set("pw.voice",VOICE)};
-  ["on","last","fuel","gaps","flags","inc","coach"].forEach(k=>{const e=$("#v-"+k);if(e)e.onclick=()=>{VOICE[k]=!VOICE[k];sv();renderVoicePanel()}});
-  $("#v-lang").value=VOICE.lang;$("#v-lang").onchange=e=>{VOICE.lang=e.target.value;sv()};$("#v-voice").onchange=e=>{VOICE.voice=e.target.value;sv()};$("#v-rate").onchange=e=>{VOICE.rate=e.target.value/100;sv()};
-  $("#v-test").onclick=()=>{const was=VOICE.on;VOICE.on=true;say(VT("Radio check. Fuel for 8 laps, gap ahead one point two.","Prueba de radio. Gasolina para 8 vueltas, delante a uno coma dos."));VOICE.on=was}}
-if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=()=>{if(CUR_VIEW==="settings")renderVoicePanel()};
+
+/* ---------- questions: from the buttons, the phone or the wheel ---------- */
+const ASKS=[["fuel","Fuel","Gasolina"],["gaps","Gaps","Gaps"],["position","Position","Posición"],["last","Last lap","Última vuelta"],["remaining","How long left","Cuánto queda"],["pit","Pit stop","Parada"],["incidents","Incidents","Incidentes"],["delta","Delta","Delta"],["mute","Quiet / talk","Callar / hablar"]];
+function answer(q,force){const nd=()=>say(M("no_data",null,undefined,{ask:true,k:null}),0,0,force),A=(m)=>say(Object.assign(m,{ask:true,k:null}),0,0,force);
+  if(q==="mute"){RADIO.quiet=!RADIO.quiet;saveRadio();A(M(RADIO.quiet?"quiet_on":"quiet_off"));if(CUR_VIEW==="engineer")renderEngineer();return}
+  if(q==="fuel"){const f=fuelInfo();if(!f)return nd();const l=f.laps;A(M("fuel_laps",VT(`Fuel for ${l.toFixed(1)} laps, ${vol(T.FuelLevel).toFixed(1)} ${UNITS==="imperial"?"gallons":"litres"}`,`Gasolina para ${l.toFixed(1).replace("."," coma ")} vueltas, ${vol(T.FuelLevel).toFixed(1).replace("."," coma ")} ${UNITS==="imperial"?"galones":"litros"}`)+(f.need>0?VT(`. You need ${Math.ceil(vol(f.need))} more to finish`,`. Te faltan ${Math.ceil(vol(f.need))} para acabar`):f.left!=null?VT(". Enough to the end",". Llegas al final"):""),f.need>0||f.left==null?withNum("fuel_laps",Math.floor(l)):(()=>{const n=numClips(Math.floor(l));return n?["fuel_laps",...n,"fuel_enough"]:null})()));return}
+  if(q==="gaps"){const g=gapsNow();if(!g.ahead&&!g.behind)return nd();A({c:null,t:[g.ahead?VT(`Ahead ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", closing":", growing"):""}`,`Delante a ${secTxt(g.ahead.g)}${g.ahead.trend!=null?(g.ahead.trend<0?", te acercas":", se aleja"):""}`):VT("Nobody ahead, you lead","Nadie delante, vas primero"),g.behind?VT(`behind ${secTxt(g.behind.g)}`,`detrás a ${secTxt(g.behind.g)}`):""].filter(Boolean).join(", ")});return}
+  if(q==="position"){const p=T.PlayerCarClassPosition||T.PlayerCarPosition;if(!(p>0))return nd();const n=(S.DriverInfo&&S.DriverInfo.Drivers||[]).filter(d=>!d.IsSpectator&&!d.CarIsPaceCar).length;A(M("position",VT(`P${p}${n?` of ${n}`:""}`,`Vas ${p}º${n?` de ${n}`:""}`),withNum("position",p)));return}
+  if(q==="last"){const lt=T.LapLastLapTime,b=T.LapBestLapTime;if(!(lt>0))return nd();A({c:null,t:VT(`Last lap ${lapTimeSpeech(lt)}`,`Última vuelta ${lapTimeSpeech(lt)}`)+(b>0?(lt<=b+.001?VT(", your best",", tu mejor vuelta"):VT(`, ${secTxt(lt-b)} off your best`,`, ${secTxt(lt-b)} más lenta que tu mejor`)):"")});return}
+  if(q==="remaining"){const r=T.SessionLapsRemainEx,tr=T.SessionTimeRemain;if(r>=0&&r<32000){A(r===1?M("last_lap"):M("laps_to_go",VT(`${r} laps to go`,`Quedan ${r} vueltas`),withNum("laps_to_go",r)));return}
+    if(tr>0&&tr<600000){const n=Math.ceil(tr/60);A(M("minutes_left",VT(`${n} minutes left`,`Quedan ${n} minutos`),withNum("minutes_left",n)));return}return nd()}
+  if(q==="pit"){const f=fuelInfo();if(!f||f.left==null)return nd();A({c:null,t:f.need>0?VT(`To finish, add ${Math.ceil(vol(f.need))} ${UNITS==="imperial"?"gallons":"litres"}`,`Para acabar, pon ${Math.ceil(vol(f.need))} ${UNITS==="imperial"?"galones":"litros"}`)+(f.laps<f.left?VT(`. Fuel runs out in ${Math.floor(f.laps)} laps`,`. Te quedas sin gasolina en ${Math.floor(f.laps)} vueltas`):""):VT("No fuel needed, you can make it to the end","No necesitas gasolina, llegas al final")});return}
+  if(q==="incidents"){const i=T.PlayerCarMyIncidentCount;if(i==null)return nd();const lim=incLimit();A(M("incidents",VT(`${i} incidents${lim?` of ${lim}`:""}`,`Llevas ${i} incidentes${lim?` de ${lim}`:""}`),withNum("incidents",i)));return}
+  if(q==="delta"){const d=deltaNow();if(d==null)return nd();A({c:null,t:VT(`${d<0?"Minus":"Plus"} ${secTxt(d)} to your reference`,`${d<0?"Menos":"Más"} ${secTxt(d)} respecto a tu referencia`)});return}}
+function askRadio(q){flashAsk(q);if(MODE==="bridge"){fetch("/api/radio/ask?q="+encodeURIComponent(q),{method:"POST"}).catch(()=>{});if(!VOICE.on)toast(Tx("Asked. The screen with the voice on answers.","Preguntado. Responde la pantalla con la voz activada."));return}answer(q,true)}
+function onRadioEvent(m){flashAsk(m.ask);if(VOICE.on&&!OV.on)answer(m.ask)}
+function flashAsk(q){document.querySelectorAll(`[data-ask="${q}"]`).forEach(b=>{b.classList.add("hit");setTimeout(()=>b.classList.remove("hit"),600)})}
+
+/* ---------- wheel and button box buttons ---------- */
+let RB={bindings:{},learning:"",devices:[],windows:false};
+async function loadRadioButtons(post){if(MODE!=="bridge")return;try{const r=await fetch("/api/radio/buttons",post?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(post)}:{});RB=await r.json()}catch(e){}}
+function bindTxt(q){if(MODE==="bridge"){const b=RB.bindings&&RB.bindings[q];if(!b)return"";const d=(RB.devices||[]).find(x=>x.id===b.joy);return Tx("Button","Botón")+" "+b.button+(d&&d.name?" · "+d.name:"")}
+  const p=RADIO.pads[q];return p?Tx("Button","Botón")+" "+(p.b+1)+" · "+p.id.replace(/\(.*$/,"").trim().slice(0,28):""}
+async function learnButton(q){if(MODE==="bridge"){await loadRadioButtons({action:"learn",ask:q});renderEngineer();const t0=Date.now();const poll=async()=>{await loadRadioButtons();if(RB.learning&&Date.now()-t0<16000)return setTimeout(poll,500);renderEngineer();if(RB.bindings[q])toast(Tx("Button saved","Botón guardado"))};setTimeout(poll,500);return}
+  VS.learn={q,t:Date.now(),prev:padState()};padLoop();renderEngineer()}
+async function clearButton(q){if(MODE==="bridge"){await loadRadioButtons({action:"clear",ask:q})}else{delete RADIO.pads[q];saveRadio()}renderEngineer()}
+/* in the browser (demo or any screen without the PC app) the Gamepad API reads wheels and controllers */
+function padState(){const o={};try{[...(navigator.getGamepads?navigator.getGamepads():[])].forEach(g=>{if(g)o[g.index]={id:g.id,b:g.buttons.map(b=>b.pressed)}})}catch(e){}return o}
+let padTimer=null,padPrev={};
+function padLoop(){if(padTimer||MODE==="bridge")return;padPrev=padState();padTimer=setInterval(()=>{const now=padState();
+  Object.keys(now).forEach(i=>{const was=padPrev[i]||{b:[]};now[i].b.forEach((p,b)=>{if(!p||was.b[b])return;
+    if(VS.learn){RADIO.pads[VS.learn.q]={id:now[i].id,b};saveRadio();VS.learn=null;renderEngineer();toast(Tx("Button saved","Botón guardado"));return}
+    Object.entries(RADIO.pads).forEach(([q,x])=>{if(x.id===now[i].id&&x.b===b)askRadio(q)})})});
+  padPrev=now;if(VS.learn&&Date.now()-VS.learn.t>15000){VS.learn=null;renderEngineer()}
+  if(!VS.learn&&!Object.keys(RADIO.pads).length){clearInterval(padTimer);padTimer=null}},40)}
+if(Object.keys(RADIO.pads).length)setTimeout(padLoop,500);
+
+/* ---------- audio pack upload ---------- */
+async function unzip(buf){const dv=new DataView(buf),u8=new Uint8Array(buf);let e=buf.byteLength-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error(Tx("This is not a .zip file","No es un archivo .zip"));
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out=[];
+  for(let i=0;i<n;i++){if(dv.getUint32(p,true)!==0x02014b50)break;const meth=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(u8.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;if(!isAudio(name))continue;
+    const st=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true),data=u8.subarray(st,st+csz);let blob=null;
+    if(meth===0)blob=new Blob([data]);else if(meth===8&&"DecompressionStream" in window)blob=await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob();
+    if(blob)out.push({path:name,blob})}
+  return out}
+const audioType=n=>({mp3:"audio/mpeg",wav:"audio/wav",ogg:"audio/ogg",m4a:"audio/mp4"})[n.split(".").pop().toLowerCase()]||"";
+async function addPack(fileList,folder){const files=[...fileList];if(!files.length)return;
+  const zip=files.length===1&&/\.zip$/i.test(files[0].name);let name=zip?files[0].name.replace(/\.zip$/i,""):folder&&files[0].webkitRelativePath?files[0].webkitRelativePath.split("/")[0]:(RADIO.pack||Tx("My pack","Mi paquete"));
+  name=name.replace(/[^A-Za-z0-9 _.\-]/g,"").trim().slice(0,40)||"My pack";
+  const relOf=f=>{const r=f.webkitRelativePath||f.name;return folder?r.split("/").slice(1).join("/")||f.name:r};
+  if(MODE==="bridge"){const fd=new FormData();fd.append("name",name);if(zip)fd.append("file",files[0]);else files.filter(f=>isAudio(f.name)).forEach(f=>{fd.append("file",f);fd.append("path",relOf(f))});
+    toast(Tx("Uploading…","Subiendo…"));const r=await fetch("/api/voicepacks",{method:"POST",body:fd}).catch(()=>null);const j=r?await r.json().catch(()=>({})):{error:"offline"};
+    if(!r||!r.ok){toast(j.error||Tx("Could not add the pack","No se pudo añadir el paquete"));return}PACKS=(j.packs||[]).concat(PACKS.filter(p=>p.local))}
+  else{let list;try{list=zip?await unzip(await files[0].arrayBuffer()):files.filter(f=>isAudio(f.name)).map(f=>({path:relOf(f),blob:f}))}catch(e){toast(e.message);return}
+    let p=PACKS.find(x=>x.name===name&&x.local);if(!p||zip){PACKS=PACKS.filter(x=>x.name!==name);p={name,local:true,files:{}};PACKS.push(p)}
+    list.forEach(({path,blob})=>{const parts=path.split("/"),k=clipKey(parts.slice(-2).join("/"));if(!k)return;(p.files[k]=p.files[k]||[]).push(URL.createObjectURL(blob.type?blob:new Blob([blob],{type:audioType(path)})))});
+    if(!Object.keys(p.files).length){PACKS=PACKS.filter(x=>x!==p);toast(Tx("No recordings with a phrase name found","No hay grabaciones con nombre de frase"));return}}
+  RADIO.pack=name;saveRadio();const p=curPack(),n=p?Object.keys(p.files).filter(k=>PHR[k]).length:0;toast(Tx(`Pack “${name}”: ${n} phrases recorded`,`Paquete «${name}»: ${n} frases grabadas`));renderEngineer()}
+async function deletePack(name){if(MODE==="bridge"){const r=await fetch("/api/voicepacks",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",name})}).catch(()=>null);if(r&&r.ok)PACKS=((await r.json()).packs||[]).concat(PACKS.filter(p=>p.local))}else PACKS=PACKS.filter(p=>p.name!==name);
+  if(RADIO.pack===name){RADIO.pack="";saveRadio()}renderEngineer()}
+function phraseList(){const L2=vlang()==="es";const rows=Object.keys(PHR).map(k=>`${k}.mp3\t${PHR[k][L2?1:0]}`);
+  return[L2?"Paquete de audio de Pitlane HQ: graba cada frase con este nombre de archivo (.mp3, .wav, .ogg o .m4a) y mételas en un .zip.":"Pitlane HQ audio pack: record each phrase with this file name (.mp3, .wav, .ogg or .m4a) and put them in a .zip.",
+    L2?"Varias versiones de una frase: una carpeta con su nombre (car_left/1.mp3, car_left/2.mp3) y elige una al azar.":"Several takes of a phrase: a folder with its name (car_left/1.mp3, car_left/2.mp3); one is picked at random.",
+    L2?"Lo que no grabes lo dice la voz del ordenador.":"Anything you do not record is said by the computer voice.","",...rows,"",
+    L2?"Opcional, para frases con números (posición, vueltas, incidentes): n_0.mp3 … n_99.mp3 (\"cero\" … \"noventa y nueve\") y point.mp3 (\"coma\").":"Optional, for phrases with numbers (position, laps, incidents): n_0.mp3 … n_99.mp3 (\"zero\" … \"ninety nine\") and point.mp3 (\"point\")."].join("\r\n")}
+function downloadPhrases(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+phraseList()],{type:"text/plain;charset=utf-8"}));a.download="pitlane-voice-pack-phrases.txt";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+
+/* ---------- engineer page ---------- */
+const CALL=[["spot",0,"Car left / right, three wide, clear","Coche a la izquierda / derecha, tres en paralelo, libre","car_left"],["off",1,"Off track","Fuera de pista","off_track"],["inc",1,"Incidents (+1, +2, total)","Incidentes (+1, +2, total)",null],["flags",1,"Flags: yellow, blue, black, white, checkered","Banderas: amarilla, azul, negra, blanca, a cuadros","yellow_flag"],
+  ["pos",2,"Places gained or lost","Posiciones ganadas o perdidas","gained_place"],["race",2,"Laps / minutes to go, last lap","Vueltas / minutos restantes, última vuelta","last_lap"],["last",2,"Lap time and personal best","Tiempo de vuelta y récord personal","personal_best"],["gaps",2,"Gaps ahead and behind, car right behind","Gaps delante y detrás, coche justo detrás","car_behind"],
+  ["fuel",3,"Fuel left each lap, fuel to the end","Gasolina cada vuelta, gasolina hasta el final","fuel_low"],["box",3,"Box this lap (fuel will not last)","Box esta vuelta (no llega la gasolina)","box_this_lap"],["limiter",3,"Pit limiter not on","Limitador sin activar en el pit lane","limiter"],
+  ["engine",4,"Water / oil temperature, oil pressure, stalled","Temperatura agua / aceite, presión de aceite, motor calado","water_temp"],["coach",4,"Braking tip after each lap","Consejo de frenada tras cada vuelta",null]];
+const CALL_G=[["Spotter","Spotter"],["Track","Pista"],["Race","Carrera"],["Pit & fuel","Box y gasolina"],["Car & coach","Coche y coach"]];
+const PRESETS={all:["All","Todo",Object.keys(RADIO_DEF.c)],race:["Race","Carrera",["spot","off","flags","inc","pos","race","gaps","fuel","box","limiter","engine"]],practice:["Practice","Entreno",["off","inc","last","fuel","limiter","engine","coach"]],spotter:["Spotter only","Solo spotter",["spot","off"]],none:["Nothing","Nada",[]]};
+function callSample(k,ex){if(k==="inc")return M("incidents",VT("Plus 2. 6 incidents of 17","Más 2. Llevas 6 incidentes de 17"),withNum("incidents",6));if(k==="coach")return{c:null,t:VT("Corner 3: brake a bit later, 0.2 lost","Curva 3: frena un poco más tarde, pierdes 0 coma 2")};
+  if(k==="race")return M("laps_to_go",VT("5 laps to go","Quedan 5 vueltas"),withNum("laps_to_go",5));if(k==="fuel")return M("fuel_laps",VT("Fuel for 7.4 laps","Gasolina para 7 coma 4 vueltas"),withNum("fuel_laps",7));return M(ex)}
+function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer and spotter","Ingeniero por voz y spotter"))}</h2><button type="button" class="btn small" id="v-open">${esc(Tx("Open","Abrir"))}</button></div>
+  <p class="note">${Lp("What it says, the questions you can ask, your wheel buttons and your own audio packs are in Race → Engineer.","Qué dice, las preguntas que le puedes hacer, los botones del volante y tus propios paquetes de audio están en Carrera → Ingeniero.")} ${esc(VOICE.on?Tx("On in this screen.","Activado en esta pantalla."):Tx("Off in this screen.","Desactivado en esta pantalla."))}</p>`;$("#v-open").onclick=()=>show("engineer")}
+let engLoaded=false;
+async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLoaded&&MODE==="bridge"){engLoaded=true;await Promise.all([loadPacks(),loadRadioButtons()])}
+  const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[],C=RADIO.c,p=curPack();
+  $("#engSub").innerHTML=Lp("Like CrewChief: a spotter and race engineer that talks to you, and answers when you ask","Como CrewChief: un spotter e ingeniero de carrera que te habla y te responde cuando le preguntas");
+  $("#engCtl").innerHTML=`<button class="btn${VOICE.on?" primary":""}" type="button" id="e-on" aria-pressed="${VOICE.on}">${esc(VOICE.on?Tx("Voice on in this screen","Voz activada en esta pantalla"):Tx("Turn the voice on","Activar la voz"))}</button><button class="btn" type="button" id="e-test">${esc(Tx("Radio check","Prueba de radio"))}</button>`;
+  const learning=q=>MODE==="bridge"?RB.learning===q:VS.learn&&VS.learn.q===q;
+  box.innerHTML=`<div class="panel s7"><div class="vhead" style="margin:0 0 4px"><h2 style="margin:0">${esc(Tx("What it tells you","Qué te dice"))}</h2>
+      <div class="frow">${Object.entries(PRESETS).map(([k,v])=>`<button type="button" class="btn small" data-preset="${k}">${esc(Tx(v[0],v[1]))}</button>`).join("")}</div></div>
+    ${CALL_G.map((g,gi)=>`<div class="callg"><div class="label">${esc(Tx(g[0],g[1]))}</div>${CALL.filter(c=>c[1]===gi).map(c=>`<div class="callrow">${chk("c-"+c[0],C[c[0]],esc(Tx(c[2],c[3])))}<button type="button" class="iconbtn" data-hear="${c[0]}" aria-label="${esc(Tx("Listen","Escuchar"))}" title="${esc(Tx("Listen","Escuchar"))}">▶</button></div>`).join("")}</div>`).join("")}
+    <div class="callg"><div class="label">${esc(Tx("How it talks","Cómo habla"))}</div><div class="frow">${chk("o-calm",RADIO.calm,esc(Tx("Wait for the straight (not while braking or turning)","Espera a la recta (no mientras frenas o giras)")))}${chk("o-clear",RADIO.clear,esc(Tx("Spotter says “clear”","El spotter dice «libre»")))}${chk("o-quiet",RADIO.quiet,esc(Tx("Quiet mode: only spotter and urgent","Modo silencio: solo spotter y lo urgente")))}</div></div></div>
+  <div class="panel s5"><h2>${esc(Tx("Ask your engineer","Pregunta al ingeniero"))}</h2><p class="note">${Lp("Press a button here, on the phone (Live → Radio) or on your wheel.","Pulsa aquí, en el móvil (En vivo → Radio) o en un botón de tu volante.")}</p>
+    <div class="askgrid">${ASKS.map(a=>`<div class="askcell"><button type="button" class="askbtn" data-ask="${a[0]}">${esc(Tx(a[1],a[2]))}</button><div class="askbind">${learning(a[0])?`<span class="warn">${esc(Tx("Press a wheel button…","Pulsa un botón del volante…"))}</span>`:bindTxt(a[0])?`<span class="mono">${esc(bindTxt(a[0]))}</span> <button type="button" class="linkbtn" data-unbind="${a[0]}">${esc(Tx("remove","quitar"))}</button>`:`<button type="button" class="linkbtn" data-bind="${a[0]}">${esc(Tx("Wheel button","Botón del volante"))}</button>`}</div></div>`).join("")}</div>
+    <p class="note">${MODE==="bridge"?(RB.windows?Lp("Wheel buttons work while iRacing has the focus. Bind a button that iRacing does not use.","Los botones del volante funcionan con iRacing en primer plano. Usa un botón que iRacing no use."):Lp("Wheel buttons need the Windows app.","Los botones del volante necesitan la app de Windows.")):Lp("In the browser, wheel buttons work while this page is open. In the PC app they work with iRacing in front.","En el navegador los botones funcionan con esta página abierta. En la app del PC funcionan con iRacing delante.")}${HIDDEN.has("radio")?` <button type="button" class="linkbtn" id="e-addw">${esc(Tx("Add the Radio buttons to Live","Añadir los botones de Radio a En vivo"))}</button>`:""}</p></div>
+  <div class="panel s7"><h2>${esc(Tx("Your own audio packs","Tus paquetes de audio"))}</h2>
+    <p class="note">${Lp("Record your own voice (or anyone's) and the engineer uses it. Name each recording like the phrase: car_left.mp3, off_track.wav… Put them in a .zip or a folder. Phrases you do not record are said by the computer voice.","Graba tu voz (o la de quien quieras) y el ingeniero la usa. Nombra cada grabación como la frase: car_left.mp3, off_track.wav… Mételas en un .zip o en una carpeta. Lo que no grabes lo dice la voz del ordenador.")}</p>
+    <div class="frow"><select id="e-pack"><option value="">${esc(Tx("Computer voice","Voz del ordenador"))}</option>${PACKS.map(x=>`<option${x.name===RADIO.pack?" selected":""}>${esc(x.name)}</option>`).join("")}</select>
+      <label class="btn small">${esc(Tx("Add .zip","Añadir .zip"))}<input type="file" id="e-zip" accept=".zip,application/zip" hidden></label>
+      <label class="btn small">${esc(Tx("Add folder","Añadir carpeta"))}<input type="file" id="e-dir" webkitdirectory multiple hidden></label>
+      <label class="btn small">${esc(Tx("Add recordings","Añadir grabaciones"))}<input type="file" id="e-files" accept="audio/*,.mp3,.wav,.ogg,.m4a" multiple hidden></label>
+      <button type="button" class="btn small" id="e-list">${esc(Tx("Phrase list (.txt)","Lista de frases (.txt)"))}</button>${p?`<button type="button" class="btn small danger" id="e-del">${esc(Tx("Delete pack","Borrar paquete"))}</button>`:""}</div>
+    ${MODE!=="bridge"?`<p class="note">${Lp("In this demo the pack stays only while the page is open. In the PC app it is saved in your profile.","En esta demo el paquete solo dura mientras la página está abierta. En la app del PC se guarda en tu perfil.")}</p>`:""}
+    <div class="phrases">${Object.keys(PHR).map(k=>{const has=p&&p.files[k]&&p.files[k].length;return`<div class="phr${has?" has":""}"><span class="mono">${k}</span><span>${esc(P(k))}</span><span class="${has?"good":"muted"}">${has?(p.files[k].length>1?p.files[k].length+"×":"✓"):"–"}</span><button type="button" class="iconbtn" data-phr="${k}" aria-label="${esc(Tx("Listen","Escuchar"))}">▶</button></div>`}).join("")}</div>
+    ${p?`<p class="note">${esc(Tx(`${Object.keys(PHR).filter(k=>p.files[k]).length} of ${Object.keys(PHR).length} phrases recorded; numbers: ${Array.from({length:100},(_,i)=>"n_"+i).filter(k=>p.files[k]).length} of 100.`,`${Object.keys(PHR).filter(k=>p.files[k]).length} de ${Object.keys(PHR).length} frases grabadas; números: ${Array.from({length:100},(_,i)=>"n_"+i).filter(k=>p.files[k]).length} de 100.`))}</p>`:""}</div>
+  <div class="panel s5"><h2>${esc(Tx("Voice","Voz"))}</h2><div class="frow" style="flex-direction:column;align-items:stretch;gap:10px">
+      <select id="e-lang"><option value="auto">${esc(Tx("Language: same as the app","Idioma: igual que la app"))}</option><option value="en">English</option><option value="es">Español</option></select>
+      <select id="e-voice"><option value="">${esc(Tx("Default computer voice","Voz del ordenador predeterminada"))}</option>${vs.map(v=>`<option${v.name===VOICE.voice?" selected":""}>${esc(v.name)}</option>`).join("")}</select>
+      <label class="frow" style="gap:8px"><span class="label" style="min-width:80px">${esc(Tx("Speed","Velocidad"))}</span><input type="range" id="e-rate" min="70" max="150" value="${Math.round(VOICE.rate*100)}" style="flex:1"></label>
+      <label class="frow" style="gap:8px"><span class="label" style="min-width:80px">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="e-vol" min="10" max="100" value="${Math.round(VOICE.vol*100)}" style="flex:1"></label></div>
+    <p class="note">${Lp("It speaks through the speakers or headphones of the screen where you turn it on. Turn it on in one screen only (the PC, or the phone with headphones).","Habla por los altavoces o auriculares de la pantalla donde lo actives. Actívalo solo en una (el PC, o el móvil con auriculares).")}</p>${ok?"":`<p class="err">${esc(Tx("This browser cannot speak; only audio packs will play.","Este navegador no puede hablar; solo sonarán los paquetes de audio."))}</p>`}</div>`;
+  $("#e-on").onclick=()=>{VOICE.on=!VOICE.on;VS.base=false;saveVoice();if(VOICE.on)say(M("radio_check"),0,0,true);else stopSpeech();renderEngineer()};
+  $("#e-test").onclick=()=>say(M("radio_check"),0,0,true);
+  box.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{const on=PRESETS[b.dataset.preset][2];Object.keys(C).forEach(k=>C[k]=on.includes(k));saveRadio();renderEngineer()});
+  CALL.forEach(c=>{const e=$("#c-"+c[0]);if(e)e.onclick=()=>{C[c[0]]=!C[c[0]];saveRadio();renderEngineer()}});
+  box.querySelectorAll("[data-hear]").forEach(b=>b.onclick=()=>{const c=CALL.find(x=>x[0]===b.dataset.hear);stopSpeech();VS.q=[];say(Object.assign(callSample(c[0],c[4]),{k:null}),0,0,true)});
+  box.querySelectorAll("[data-phr]").forEach(b=>b.onclick=()=>{stopSpeech();VS.q=[];say(M(b.dataset.phr,null,undefined,{k:null}),0,0,true)});
+  [["o-calm","calm"],["o-clear","clear"],["o-quiet","quiet"]].forEach(([id,k])=>$("#"+id).onclick=()=>{RADIO[k]=!RADIO[k];saveRadio();renderEngineer()});
+  box.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>askRadio(b.dataset.ask));
+  box.querySelectorAll("[data-bind]").forEach(b=>b.onclick=()=>learnButton(b.dataset.bind));
+  box.querySelectorAll("[data-unbind]").forEach(b=>b.onclick=()=>clearButton(b.dataset.unbind));
+  const aw=$("#e-addw");if(aw)aw.onclick=()=>{HIDDEN.delete("radio");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderRadioWidget();toast(Tx("Added to Live","Añadido a En vivo"));renderEngineer()};
+  $("#e-pack").onchange=e=>{RADIO.pack=e.target.value;saveRadio();renderEngineer()};
+  $("#e-zip").onchange=e=>{addPack(e.target.files,false);e.target.value=""};$("#e-dir").onchange=e=>{addPack(e.target.files,true);e.target.value=""};$("#e-files").onchange=e=>{addPack(e.target.files,false);e.target.value=""};
+  $("#e-list").onclick=downloadPhrases;const del=$("#e-del");if(del)del.onclick=()=>{if(confirm(Tx(`Delete the pack “${RADIO.pack}”?`,`¿Borrar el paquete «${RADIO.pack}»?`)))deletePack(RADIO.pack)};
+  $("#e-lang").value=RADIO.lang;$("#e-lang").onchange=e=>{RADIO.lang=e.target.value;saveRadio();renderEngineer()};
+  $("#e-voice").onchange=e=>{VOICE.voice=e.target.value;saveVoice()};$("#e-rate").onchange=e=>{VOICE.rate=e.target.value/100;saveVoice()};$("#e-vol").onchange=e=>{VOICE.vol=e.target.value/100;saveVoice();say(M("radio_check",null,undefined,{k:null}),0,0,true)}}
+function renderRadioWidget(){const box=$("#radioW");if(!box||box.dataset.lang===LANG+MODE)return;box.dataset.lang=LANG+MODE;
+  box.innerHTML=`<div class="askgrid">${ASKS.map(a=>`<button type="button" class="askbtn" data-ask="${a[0]}">${esc(Tx(a[1],a[2]))}</button>`).join("")}</div>`;
+  box.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>askRadio(b.dataset.ask))}
+if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=()=>{if(CUR_VIEW==="engineer")renderEngineer()};
 
 /* ===================== braking coach ===================== */
 /* Compares a lap with a reference lap corner by corner: where each braking
