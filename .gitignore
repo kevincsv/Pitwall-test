@@ -21,3 +21,7 @@ azom/obj/
 azom/CoapStub/bin/
 azom/CoapStub/obj/
 azom/libs/SimHub/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties

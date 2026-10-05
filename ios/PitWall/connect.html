@@ -48,7 +48,7 @@ ol{margin:0;padding-left:20px;color:var(--muted)}
   </div>
 </div>
 <script>
-const native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall;
+const native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall||(window.PitlaneAndroid?{postMessage:m=>window.PitlaneAndroid.post(JSON.stringify(m))}:null);
 const $=s=>document.querySelector(s);
 function open(url){if(native)native.postMessage({type:"open",url});else location.href=url}
 window.onError=msg=>{$("#status").innerHTML='<span class="err">Could not reach the PC · No se pudo conectar con el PC</span>'};

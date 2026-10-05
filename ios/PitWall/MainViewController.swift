@@ -1,6 +1,7 @@
 import UIKit
 import WebKit
 import UserNotifications
+import WidgetKit
 
 /// Shows the Pit Wall app served by PitWall.exe on the PC, or the bundled
 /// connect screen that finds the PC on the Wi-Fi network.
@@ -71,7 +72,10 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             defaults.removeObject(forKey: pcKey)
             showConnect(error: nil)
         case "notify":
-            scheduleReminders(body["items"] as? [[String: Any]] ?? [])
+            let items = body["items"] as? [[String: Any]] ?? []
+            let leads = (body["leads"] as? [Any])?.compactMap { ($0 as? NSNumber)?.intValue } ?? [15]
+            scheduleReminders(items, leads: leads, spanish: (body["lang"] as? String) == "es")
+            shareWithWidget(items)
         default:
             break
         }
@@ -119,25 +123,47 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
         return result
     }
 
-    /// Reminders 15 minutes before each race in the plan.
-    private func scheduleReminders(_ items: [[String: Any]]) {
+    /// Reminders before each race in the calendar (the minutes chosen in the app).
+    private func scheduleReminders(_ items: [[String: Any]], leads: [Int], spanish: Bool) {
         let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             guard granted else { return }
             center.removeAllPendingNotificationRequests()
-            for item in items.prefix(60) {
+            var count = 0
+            for item in items {
                 guard let ms = item["t"] as? Double, let title = item["title"] as? String else { continue }
-                let fire = Date(timeIntervalSince1970: ms / 1000).addingTimeInterval(-15 * 60)
-                if fire <= Date() { continue }
-                let content = UNMutableNotificationContent()
-                content.title = title
-                content.body = (item["body"] as? String) ?? ""
-                content.sound = .default
-                let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
-                center.add(UNNotificationRequest(identifier: "race-\(Int64(ms))", content: content, trigger: trigger))
+                for lead in (leads.isEmpty ? [15] : leads) {
+                    let fire = Date(timeIntervalSince1970: ms / 1000).addingTimeInterval(-Double(lead) * 60)
+                    if fire <= Date() || count >= 60 { continue } // iOS keeps at most 64
+                    let content = UNMutableNotificationContent()
+                    content.title = title
+                    let when = spanish ? "Empieza en \(lead) min" : "Starts in \(lead) min"
+                    let extra = (item["body"] as? String) ?? ""
+                    content.body = extra.isEmpty ? when : "\(when) · \(extra)"
+                    content.sound = .default
+                    content.threadIdentifier = "races"
+                    let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: fire)
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
+                    center.add(UNNotificationRequest(identifier: "race-\(Int64(ms))-\(lead)", content: content, trigger: trigger))
+                    count += 1
+                }
             }
         }
+    }
+
+    /// The home-screen widget reads the next races from the shared app group.
+    private func shareWithWidget(_ items: [[String: Any]]) {
+        guard let shared = UserDefaults(suiteName: SharedRaces.group) else { return }
+        let races = items.compactMap { item -> SharedRaces.Race? in
+            guard let ms = item["t"] as? Double, let title = item["title"] as? String else { return nil }
+            return SharedRaces.Race(start: Date(timeIntervalSince1970: ms / 1000),
+                                    minutes: (item["mins"] as? NSNumber)?.intValue ?? 60,
+                                    title: title, detail: (item["body"] as? String) ?? "")
+        }
+        if let data = try? JSONEncoder().encode(races) {
+            shared.set(data, forKey: SharedRaces.key)
+        }
+        if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
     }
 }
 

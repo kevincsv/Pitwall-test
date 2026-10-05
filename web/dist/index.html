@@ -1407,7 +1407,7 @@ function renderSeriesList(){if(!SER)return;const list=filtered(),now=Date.now();
 }
 function toggleFav(sid){FAV.has(sid)?FAV.delete(sid):FAV.add(sid);store.set("pw.fav",[...FAV])}
 function inPlan(sid,t){return PLAN.some(p=>p.sid===sid&&p.t===t)}
-const NATIVE=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall?window.webkit.messageHandlers.pitwall:null;
+const NATIVE=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall?window.webkit.messageHandlers.pitwall:window.PitlaneAndroid?{postMessage:m=>window.PitlaneAndroid.post(JSON.stringify(m))}:null;
 function togglePlan(s,w,t){if(inPlan(s.sid,t))PLAN=PLAN.filter(p=>!(p.sid===s.sid&&p.t===t));else PLAN.push({sid:s.sid,id:s.id,t,name:s.name,track:trackInfo(w).name,mins:(w.rtd&&w.rtd.sl)||w.mins||60});PLAN.sort((a,b)=>a.t-b.t);store.set("pw.plan",PLAN);syncNativePlan()}
 function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);if(!s)return;const now=Date.now(),w=curWeek(s)||s.weeks[0],wi=weekIdx(s);
   $("#dTitle").textContent=s.name;$("#dSub").innerHTML=`${licBadge(s.lic)} · ${esc(s.desc||"")}`;
@@ -2771,7 +2771,7 @@ let WEBREM=[];function scheduleWebReminders(){WEBREM.forEach(clearTimeout);WEBRE
   calItems(now,now+DAYMS).filter(i=>i.k!=="busy").forEach(i=>REMIND.forEach(m=>{const at=i.t-m*6e4-now;if(at>0&&at<DAYMS)WEBREM.push(setTimeout(()=>{try{new Notification(i.title,{body:Tx(`Starts in ${m} min`,`Empieza en ${m} min`)+(i.sub?" · "+i.sub:"")})}catch(e){}},at))}))}
 /* the phone apps get every race (for reminders and the home-screen widget) */
 function syncNativePlan(){scheduleWebReminders();const now=Date.now(),items=calItems(now-36e5,now+60*DAYMS).filter(i=>i.k!=="busy").map(i=>({t:i.t,mins:i.mins,title:i.title,body:(i.sub||"")+" · "+hm(i.t),kind:i.k}));
-  const msg={type:"notify",items,leads:REMIND,lang:LANG};if(NATIVE)NATIVE.postMessage(msg);if(window.PitlaneAndroid)try{window.PitlaneAndroid.schedule(JSON.stringify(msg))}catch(e){}}
+  const msg={type:"notify",items,leads:REMIND,lang:LANG};if(NATIVE)try{NATIVE.postMessage(msg)}catch(e){}}
 $("#calPrev").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()-1);return d.getTime()})():addDays(CAL.day,innerWidth<760?-3:-7);renderCalendar()};
 $("#calNext").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()+1);return d.getTime()})():addDays(CAL.day,innerWidth<760?3:7);renderCalendar()};
 $("#calToday").onclick=()=>{CAL.day=Date.now();renderCalendar()};$("#calAdd").onclick=()=>openEventForm(null);
