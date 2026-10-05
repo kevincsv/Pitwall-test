@@ -1,20 +1,20 @@
-# Pit Wall 0.8 — iRacing companion
+# Pitlane HQ 0.8 — iRacing companion
 
 **English** · [Español](#español)
 
 ## Start
 
-1. Copy `PitWall.exe` to the PC where you run iRacing (any folder, no install).
+1. Copy `PitlaneHQ.exe` to the PC where you run iRacing (any folder, no install).
 2. Double-click it. If Windows SmartScreen appears, click **More info → Run anyway** (the app is not signed yet).
 3. If the Windows Firewall asks, tick **Private networks** and click **Allow**. This lets your phone connect.
-4. A Pit Wall window opens. Start iRacing and get in the car: telemetry appears automatically.
+4. A Pitlane HQ window opens. Start iRacing and get in the car: telemetry appears automatically.
 
-Keep the black PitWall window open while you race. Close it to stop.
+Keep the black Pitlane HQ window open while you race. Close it to stop.
 
 ## Phone and tablet (Android, iPhone, iPad)
 
 1. Connect the phone to the same Wi-Fi as the PC.
-2. In Pit Wall on the PC, open **Settings** (gear icon) and scan the QR code, or type the address shown in the black window (for example `http://192.168.1.20:8484`).
+2. In Pitlane HQ on the PC, open **Settings** (gear icon) and scan the QR code, or type the address shown in the black window (for example `http://192.168.1.20:8484`).
 3. Install it as an app:
    - **iPhone/iPad**: Safari → Share → *Add to Home Screen*.
    - **Android**: Chrome → ⋮ → *Add to Home screen* / *Install app*.
@@ -22,9 +22,9 @@ Keep the black PitWall window open while you race. Close it to stop.
 ## What it does
 
 - **Live**: gear, speed, shift lights from the car's real RPM points, pedals, lap timing and delta, fuel per lap and fuel to add, engine temps, tyres, flags, relative and track position.
-- **Track map**: drawn automatically from your own car on the first clean lap (iRacing does not provide map coordinates, so Pit Wall traces it), then saved and shared with every device. Shows every car live, your line this lap coloured by throttle and brake, your best lap, braking points with how many metres earlier or later you braked, and an estimated ideal line built from your fastest mini-sectors. Every layer can be switched off; the map can be rotated or mirrored.
-- **Overlays (RaceLab style)**: relative, standings, radar, car inputs, gear/speed/RPM, DRS and push-to-pass, track map, fuel, tyres, flags, timing and any telemetry value. Each opens in a frameless window that stays on top of iRacing (borderless/windowed mode) without taking focus. The **padlock** at the top of the app (on the PC or the phone) unlocks every overlay so you can drag and resize it, and locks them all again. The **Overlays** tab also shows your screen in miniature: drag the boxes there and the real windows move. PitWall remembers where you left each one.
-- **Automatic**: choose your overlays once (Layout → Auto) and they open by themselves when you get in the car, and close when iRacing closes. PitWall can also start with Windows.
+- **Track map**: drawn automatically from your own car on the first clean lap (iRacing does not provide map coordinates, so Pitlane HQ traces it), then saved and shared with every device. Shows every car live, your line this lap coloured by throttle and brake, your best lap, braking points with how many metres earlier or later you braked, and an estimated ideal line built from your fastest mini-sectors. Every layer can be switched off; the map can be rotated or mirrored.
+- **Overlays (RaceLab style)**: relative, standings, radar, car inputs, gear/speed/RPM, DRS and push-to-pass, track map, fuel, tyres, flags, timing and any telemetry value. Each opens in a frameless window that stays on top of iRacing (borderless/windowed mode) without taking focus. The **padlock** at the top of the app (on the PC or the phone) unlocks every overlay so you can drag and resize it, and locks them all again. The **Overlays** tab also shows your screen in miniature: drag the boxes there and the real windows move. Pitlane HQ remembers where you left each one.
+- **Automatic**: choose your overlays once (Layout → Auto) and they open by themselves when you get in the car, and close when iRacing closes. Pitlane HQ can also start with Windows.
 - **Relative and standings you build yourself**: pick and order the columns (position, class position, number, driver, car, licence, iRating, estimated iRating change, laps, last/best lap, gap, interval, pit stops, places gained, tyre compound, incidents) and the header and footer items (session, time left, laps left, lap, position, SOF, your iRating change, incidents vs limit, fuel laps, delta, track/air temperature, track wetness, real and sim time).
 - **Radar**: shows cars alongside and close behind or ahead, and hides itself when nobody is near.
 - **DRS and push-to-pass**: state, time or uses left with the unit shown (IndyCar and Super Formula count seconds, shown as minutes:seconds), and how long the current boost has been on (only on cars that have them).
@@ -50,24 +50,24 @@ Keep the black PitWall window open while you race. Close it to stop.
 
 The round button at the top right (with your initial) opens **Profiles**. Each person gets their own profile with their settings, language, overlays and their positions, Live layout, favourite series and race plan, programs to start, and their own iRacing and Garage 61 sign-ins. Switch profile and every open screen and overlay changes to that person's setup.
 
-- Everything stays on the PC in `%APPDATA%\PitWall\profiles\`. Nothing is uploaded to any cloud.
+- Everything stays on the PC in `%APPDATA%\PitlaneHQ\profiles\`. Nothing is uploaded to any cloud.
 - Sign-ins are **encrypted with Windows (DPAPI)**: only your Windows user on this PC can read them. Older plain files are encrypted automatically the first time 0.8 starts.
 - **Export** saves a profile file (settings and layouts only, never sign-ins) to copy to another PC; **Import a profile file** loads it there.
 - Phones and tablets keep their own Live layout; language, units, favourites and the rest follow the profile.
 
 ## Rig tab: your programs, SimHub, AZOM and MOZA
 
-**Programs.** Pit Wall looks for iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord and OBS (known folders, Start menu and installed programs). Add the ones you want and choose for each one:
+**Programs.** Pitlane HQ looks for iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord and OBS (known folders, Start menu and installed programs). Add the ones you want and choose for each one:
 
-- **With Pit Wall**: starts when Pit Wall opens.
+- **With Pitlane HQ**: starts when Pitlane HQ opens.
 - **When iRacing starts**: starts each time the sim starts.
 - **Only by hand**: stays in the list with a Start button.
 
 You can start them minimised, change the order, start them all at once, remove them, and add any other program from the Start menu or with **Browse…**. Programs that are already open are left alone. Turn on **Start with Windows** (Overlays tab) and your whole rig starts by itself. For safety, a phone can only start programs you already added on the PC.
 
-**SimHub.** Start, show, minimise or close SimHub and switch it to iRacing. Every dashboard and overlay in SimHub is listed with its preview: **Open** it in a window, put it **On Live**, or open it as a Pit Wall **overlay** window on top of iRacing. **Import .simhubdash** sends a dashboard file to SimHub (also from your phone). The **SimHub dashboard** widget shows any SimHub dashboard live (SimHub's web server must be on, port 8888).
+**SimHub.** Start, show, minimise or close SimHub and switch it to iRacing. Every dashboard and overlay in SimHub is listed with its preview: **Open** it in a window, put it **On Live**, or open it as a Pitlane HQ **overlay** window on top of iRacing. **Import .simhubdash** sends a dashboard file to SimHub (also from your phone). The **SimHub dashboard** widget shows any SimHub dashboard live (SimHub's web server must be on, port 8888).
 
-**AZOM (MOZA wheels in SimHub).** Pit Wall carries its own copy of the AZOM plugin (source in the `azom` folder, copied from [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Install in SimHub** closes SimHub, copies the plugin into its folder (Windows asks for permission once if SimHub is in Program Files), keeps the previous version as a backup and opens SimHub again; **Update**, **Remove** and **Previous version** work the same way. With AZOM installed, Pit Wall controls the wheel screen (page, on/off, telemetry, brightness), the wheelbase (FFB strength, torque, rotation, damper, friction, inertia, spring and more, in fine or big steps), switches like reverse FFB and hands-off protection, centre calibration and LEDs. It can also change the wheel screen page, brightness, work mode and centre, and run any other SimHub action by name. Pit Wall warns you when MOZA Pit House is open (AZOM needs it closed) and can close it for you.
+**AZOM (MOZA wheels in SimHub).** Pitlane HQ carries its own copy of the AZOM plugin (source in the `azom` folder, copied from [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Install in SimHub** closes SimHub, copies the plugin into its folder (Windows asks for permission once if SimHub is in Program Files), keeps the previous version as a backup and opens SimHub again; **Update**, **Remove** and **Previous version** work the same way. With AZOM installed, Pitlane HQ controls the wheel screen (page, on/off, telemetry, brightness), the wheelbase (FFB strength, torque, rotation, damper, friction, inertia, spring and more, in fine or big steps), switches like reverse FFB and hands-off protection, centre calibration and LEDs. It can also change the wheel screen page, brightness, work mode and centre, and run any other SimHub action by name. Pitlane HQ warns you when MOZA Pit House is open (AZOM needs it closed) and can close it for you.
 
 **MOZA Pit House.** Open Pit House or Dashboard Studio, see your MOZA dashboards (`.mzdash`), add one from a file (even from your phone) and open it in Dashboard Studio to send it to the wheel. MOZA has no public API to upload dashboards, so that last click (Upload) happens in Dashboard Studio or with AZOM's upload button.
 
@@ -95,7 +95,7 @@ Add `http://localhost:8484` as a Browser Source in OBS to show the app on stream
 Settings → **Engineer view**.
 
 - **Same network**: open the address shown there (it ends in `/?view=engineer`) or scan its QR code on the other device.
-- **From another house**: press **Create link**. PitWall downloads Cloudflare's free `cloudflared` tool once and gives you a private `https://….trycloudflare.com` link with a secret key. Send it to your engineer. The link only lets them watch (telemetry, map, relative, laps, tyres); they cannot change settings, overlays or see your account. It stops working when you press **Stop sharing** or close PitWall, and a new link is different every time.
+- **From another house**: press **Create link**. Pitlane HQ downloads Cloudflare's free `cloudflared` tool once and gives you a private `https://….trycloudflare.com` link with a secret key. Send it to your engineer. The link only lets them watch (telemetry, map, relative, laps, tyres); they cannot change settings, overlays or see your account. It stops working when you press **Stop sharing** or close Pitlane HQ, and a new link is different every time.
 
 ## Garage 61 (optional)
 
@@ -111,7 +111,7 @@ See `source/ios/README.md` to build it for free without a Mac and install it fro
 
 ## Options
 
-`PitWall.exe -port 9000` uses another port. `-demo` starts with a simulated race. `-no-browser` does not open the window.
+`PitlaneHQ.exe -port 9000` uses another port. `-demo` starts with a simulated race. `-no-browser` does not open the window.
 
 ---
 
@@ -119,17 +119,17 @@ See `source/ios/README.md` to build it for free without a Mac and install it fro
 
 ## Arrancar
 
-1. Copia `PitWall.exe` al PC donde usas iRacing (cualquier carpeta, no se instala).
+1. Copia `PitlaneHQ.exe` al PC donde usas iRacing (cualquier carpeta, no se instala).
 2. Haz doble clic. Si aparece Windows SmartScreen, pulsa **Más información → Ejecutar de todas formas** (la app aún no está firmada).
 3. Si el Firewall de Windows pregunta, marca **Redes privadas** y pulsa **Permitir**. Así el móvil puede conectarse.
-4. Se abre la ventana de Pit Wall. Abre iRacing y súbete al coche: la telemetría aparece sola.
+4. Se abre la ventana de Pitlane HQ. Abre iRacing y súbete al coche: la telemetría aparece sola.
 
-Deja abierta la ventana negra de PitWall mientras corres. Ciérrala para parar.
+Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para parar.
 
 ## Móvil y tablet (Android, iPhone, iPad)
 
 1. Conecta el móvil a la misma WiFi que el PC.
-2. En Pit Wall en el PC, abre **Ajustes** (icono de engranaje) y escanea el código QR, o escribe la dirección que muestra la ventana negra (por ejemplo `http://192.168.1.20:8484`).
+2. En Pitlane HQ en el PC, abre **Ajustes** (icono de engranaje) y escanea el código QR, o escribe la dirección que muestra la ventana negra (por ejemplo `http://192.168.1.20:8484`).
 3. Instálala como app:
    - **iPhone/iPad**: Safari → Compartir → *Añadir a pantalla de inicio*.
    - **Android**: Chrome → ⋮ → *Añadir a pantalla de inicio* / *Instalar app*.
@@ -137,9 +137,9 @@ Deja abierta la ventana negra de PitWall mientras corres. Ciérrala para parar.
 ## Qué hace
 
 - **En vivo**: marcha, velocidad, luces de cambio con las RPM reales del coche, pedales, tiempos y delta, consumo por vuelta y combustible a añadir, temperaturas, neumáticos, banderas, relative y posición en pista.
-- **Mapa del circuito**: se dibuja solo con tu coche en la primera vuelta limpia (iRacing no da coordenadas del circuito, así que Pit Wall lo traza), se guarda y se comparte con todos tus dispositivos. Muestra todos los coches en vivo, tu trazada de esta vuelta coloreada por acelerador y freno, tu mejor vuelta, los puntos de frenada con cuántos metros antes o después frenaste, y una línea ideal estimada con tus mini-sectores más rápidos. Cada capa se puede desactivar; el mapa se puede girar o reflejar.
-- **Overlays (estilo RaceLab)**: relative, clasificación, radar, pedales, marcha/velocidad/RPM, DRS y push-to-pass, mapa, combustible, neumáticos, banderas, tiempos y cualquier valor de telemetría. Cada uno se abre en una ventana sin bordes que queda encima de iRacing (modo ventana o sin bordes) sin quitarle el foco. El **candado** de arriba de la app (en el PC o en el móvil) desbloquea todos los overlays para moverlos y cambiar su tamaño, y los vuelve a bloquear. La pestaña **Overlays** también muestra tu pantalla en miniatura: arrastra los recuadros y las ventanas reales se mueven. PitWall recuerda dónde dejaste cada uno.
-- **Automático**: elige tus overlays una vez (Diseño → Auto) y se abren solos al subirte al coche, y se cierran al cerrar iRacing. PitWall también puede iniciarse con Windows.
+- **Mapa del circuito**: se dibuja solo con tu coche en la primera vuelta limpia (iRacing no da coordenadas del circuito, así que Pitlane HQ lo traza), se guarda y se comparte con todos tus dispositivos. Muestra todos los coches en vivo, tu trazada de esta vuelta coloreada por acelerador y freno, tu mejor vuelta, los puntos de frenada con cuántos metros antes o después frenaste, y una línea ideal estimada con tus mini-sectores más rápidos. Cada capa se puede desactivar; el mapa se puede girar o reflejar.
+- **Overlays (estilo RaceLab)**: relative, clasificación, radar, pedales, marcha/velocidad/RPM, DRS y push-to-pass, mapa, combustible, neumáticos, banderas, tiempos y cualquier valor de telemetría. Cada uno se abre en una ventana sin bordes que queda encima de iRacing (modo ventana o sin bordes) sin quitarle el foco. El **candado** de arriba de la app (en el PC o en el móvil) desbloquea todos los overlays para moverlos y cambiar su tamaño, y los vuelve a bloquear. La pestaña **Overlays** también muestra tu pantalla en miniatura: arrastra los recuadros y las ventanas reales se mueven. Pitlane HQ recuerda dónde dejaste cada uno.
+- **Automático**: elige tus overlays una vez (Diseño → Auto) y se abren solos al subirte al coche, y se cierran al cerrar iRacing. Pitlane HQ también puede iniciarse con Windows.
 - **Relative y clasificación a tu medida**: elige y ordena las columnas (posición, posición en clase, número, piloto, coche, licencia, iRating, cambio de iRating estimado, vueltas, última/mejor vuelta, gap, intervalo, paradas, posiciones ganadas, compuesto, incidentes) y lo que va en la cabecera y el pie (sesión, tiempo restante, vueltas restantes, vuelta, posición, SOF, tu cambio de iRating, incidentes vs límite, vueltas de gasolina, delta, temperatura de pista/aire, humedad de pista, hora real y del simulador).
 - **Radar**: muestra los coches a tu lado y cerca por delante o por detrás, y se oculta solo cuando no hay nadie cerca.
 - **DRS y push-to-pass**: estado, tiempo o usos restantes con su unidad (IndyCar y Super Formula cuentan segundos, mostrados como minutos:segundos), y cuánto tiempo lleva activo (solo en coches que lo tienen).
@@ -165,24 +165,24 @@ Deja abierta la ventana negra de PitWall mientras corres. Ciérrala para parar.
 
 El botón redondo de arriba a la derecha (con tu inicial) abre **Perfiles**. Cada persona tiene su perfil con sus ajustes, idioma, overlays y sus posiciones, diseño de En vivo, series favoritas y plan, programas a iniciar y sus propias sesiones de iRacing y Garage 61. Al cambiar de perfil, todas las pantallas y overlays abiertos pasan a la configuración de esa persona.
 
-- Todo se queda en el PC en `%APPDATA%\PitWall\profiles\`. No se sube nada a ninguna nube.
+- Todo se queda en el PC en `%APPDATA%\PitlaneHQ\profiles\`. No se sube nada a ninguna nube.
 - Las sesiones se **cifran con Windows (DPAPI)**: solo tu usuario de Windows en este PC puede leerlas. Los archivos antiguos sin cifrar se cifran solos la primera vez que arranca la 0.8.
 - **Exportar** guarda un archivo de perfil (solo ajustes y diseños, nunca sesiones) para llevarlo a otro PC; **Importar un archivo de perfil** lo carga allí.
 - Móviles y tablets mantienen su propio diseño de En vivo; idioma, unidades, favoritas y lo demás siguen al perfil.
 
 ## Pestaña Rig: tus programas, SimHub, AZOM y MOZA
 
-**Programas.** Pit Wall busca iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord y OBS (carpetas conocidas, menú Inicio y programas instalados). Añade los que quieras y elige para cada uno:
+**Programas.** Pitlane HQ busca iRacing, Steam, Crew Chief, Garage 61, TrackImpulse, SimHub, MOZA Pit House, RaceLab, Coach Dave Delta, Track Titan, VRS, iOverlay, Kapps, Discord y OBS (carpetas conocidas, menú Inicio y programas instalados). Añade los que quieras y elige para cada uno:
 
-- **Con Pit Wall**: se abre al abrir Pit Wall.
+- **Con Pitlane HQ**: se abre al abrir Pitlane HQ.
 - **Al abrir iRacing**: se abre cada vez que arranca el simulador.
 - **Solo a mano**: queda en la lista con un botón Iniciar.
 
 Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlos y añadir cualquier otro programa del menú Inicio o con **Buscar…**. Los que ya están abiertos no se tocan. Activa **Iniciar con Windows** (pestaña Overlays) y todo tu equipo arranca solo. Por seguridad, un móvil solo puede abrir programas que ya añadiste en el PC.
 
-**SimHub.** Abre, muestra, minimiza o cierra SimHub y cámbialo a iRacing. Aparecen todos tus dashboards y overlays de SimHub con su vista previa: **Ábrelo** en una ventana, ponlo **En vivo** o ábrelo como **overlay** de Pit Wall encima de iRacing. **Importar .simhubdash** envía un dashboard a SimHub (también desde el móvil). El widget **Dashboard de SimHub** muestra cualquier dashboard en vivo (el servidor web de SimHub debe estar activo, puerto 8888).
+**SimHub.** Abre, muestra, minimiza o cierra SimHub y cámbialo a iRacing. Aparecen todos tus dashboards y overlays de SimHub con su vista previa: **Ábrelo** en una ventana, ponlo **En vivo** o ábrelo como **overlay** de Pitlane HQ encima de iRacing. **Importar .simhubdash** envía un dashboard a SimHub (también desde el móvil). El widget **Dashboard de SimHub** muestra cualquier dashboard en vivo (el servidor web de SimHub debe estar activo, puerto 8888).
 
-**AZOM (volantes MOZA en SimHub).** Pit Wall lleva su propia copia del plugin AZOM (código en la carpeta `azom`, copiado de [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Instalar en SimHub** cierra SimHub, copia el plugin en su carpeta (Windows pide permiso una vez si SimHub está en Archivos de programa), guarda la versión anterior como copia y vuelve a abrir SimHub; **Actualizar**, **Quitar** y **Versión anterior** funcionan igual. Con AZOM instalado, Pit Wall controla la pantalla del volante (página, encendido, telemetría, brillo), la base (fuerza FFB, par, rotación, amortiguación, fricción, inercia, muelle y más, en pasos finos o grandes), interruptores como invertir FFB y protección sin manos, el centrado y los LEDs. También puede cambiar la página de la pantalla del volante, el brillo, el modo de trabajo y el centrado, y ejecutar cualquier otra acción de SimHub por su nombre. Te avisa cuando MOZA Pit House está abierto (AZOM necesita que esté cerrado) y puede cerrarlo por ti.
+**AZOM (volantes MOZA en SimHub).** Pitlane HQ lleva su propia copia del plugin AZOM (código en la carpeta `azom`, copiado de [giantorth/AZOM](https://github.com/giantorth/AZOM), GPL v3). **Instalar en SimHub** cierra SimHub, copia el plugin en su carpeta (Windows pide permiso una vez si SimHub está en Archivos de programa), guarda la versión anterior como copia y vuelve a abrir SimHub; **Actualizar**, **Quitar** y **Versión anterior** funcionan igual. Con AZOM instalado, Pitlane HQ controla la pantalla del volante (página, encendido, telemetría, brillo), la base (fuerza FFB, par, rotación, amortiguación, fricción, inercia, muelle y más, en pasos finos o grandes), interruptores como invertir FFB y protección sin manos, el centrado y los LEDs. También puede cambiar la página de la pantalla del volante, el brillo, el modo de trabajo y el centrado, y ejecutar cualquier otra acción de SimHub por su nombre. Te avisa cuando MOZA Pit House está abierto (AZOM necesita que esté cerrado) y puede cerrarlo por ti.
 
 **MOZA Pit House.** Abre Pit House o Dashboard Studio, mira tus dashboards de MOZA (`.mzdash`), añade uno desde un archivo (incluso desde el móvil) y ábrelo en Dashboard Studio para enviarlo al volante. MOZA no tiene API pública para subir dashboards, así que ese último clic (Upload) se hace en Dashboard Studio o con el botón de subir de AZOM.
 
@@ -202,7 +202,7 @@ Usa las direcciones de la tabla de arriba. Añade `http://localhost:8484` como F
 Ajustes → **Vista de ingeniero**.
 
 - **Misma red**: abre la dirección que aparece ahí (termina en `/?view=engineer`) o escanea su código QR en el otro dispositivo.
-- **Desde otra casa**: pulsa **Crear enlace**. PitWall descarga una vez la herramienta gratuita `cloudflared` de Cloudflare y te da un enlace privado `https://….trycloudflare.com` con una clave secreta. Envíaselo a tu ingeniero. Solo puede mirar (telemetría, mapa, relative, vueltas, neumáticos); no puede cambiar ajustes ni overlays ni ver tu cuenta. Deja de funcionar al pulsar **Dejar de compartir** o al cerrar PitWall, y cada enlace nuevo es distinto.
+- **Desde otra casa**: pulsa **Crear enlace**. Pitlane HQ descarga una vez la herramienta gratuita `cloudflared` de Cloudflare y te da un enlace privado `https://….trycloudflare.com` con una clave secreta. Envíaselo a tu ingeniero. Solo puede mirar (telemetría, mapa, relative, vueltas, neumáticos); no puede cambiar ajustes ni overlays ni ver tu cuenta. Deja de funcionar al pulsar **Dejar de compartir** o al cerrar Pitlane HQ, y cada enlace nuevo es distinto.
 
 ## Garage 61 (opcional)
 
@@ -212,10 +212,10 @@ Crea un token personal en https://garage61.net/developer y pégalo en Cuenta →
 
 iRacing exige un cliente OAuth registrado para leer datos de la cuenta. Desde octubre de 2026 iRacing tiene **pausada la creación de nuevos Client ID** mientras revisa el uso de terceros (https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials). Mientras tanto, la pestaña Series muestra una temporada real de ejemplo. Cuando se reabra, solicita un cliente **password limited** para uso personal. Introduce el Client ID, el secret, tu email y tu contraseña de iRacing una vez en la pestaña Cuenta. La contraseña solo se envía a iRacing y nunca se guarda.
 
-## Descargar PitWall.exe con AZOM dentro
+## Descargar PitlaneHQ.exe con AZOM dentro
 
-Cada cambio en GitHub compila en Windows el plugin AZOM y PitWall.exe con el plugin dentro (Actions → *Build PitWall.exe with AZOM* → Artifacts → **PitWall-windows**). / Every push builds AZOM and PitWall.exe with the plugin inside on Windows (Actions → *Build PitWall.exe with AZOM* → Artifacts → **PitWall-windows**).
+Cada cambio en GitHub compila en Windows el plugin AZOM y PitlaneHQ.exe con el plugin dentro (Actions → *Build PitlaneHQ.exe with AZOM* → Artifacts → **Pitlane HQ-windows**). / Every push builds AZOM and PitlaneHQ.exe with the plugin inside on Windows (Actions → *Build PitlaneHQ.exe with AZOM* → Artifacts → **Pitlane HQ-windows**).
 
 ## Compilar desde el código
 
-Requiere Go 1.22+: `GOOS=windows GOARCH=amd64 go build -mod=vendor -ldflags "-s -w" -o PitWall.exe .`
+Requiere Go 1.22+: `GOOS=windows GOARCH=amd64 go build -mod=vendor -ldflags "-s -w" -o PitlaneHQ.exe .`

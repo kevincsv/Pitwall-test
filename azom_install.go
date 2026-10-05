@@ -1,8 +1,8 @@
 package main
 
-// AZOM plugin carried inside PitWall.exe: the Windows build compiles it from
-// ./azom and puts MozaPlugin.dll in ./azomdist before building Pit Wall.
-// Pit Wall copies it into the SimHub folder (asking Windows for permission
+// AZOM plugin carried inside PitlaneHQ.exe: the Windows build compiles it from
+// ./azom and puts MozaPlugin.dll in ./azomdist before building Pitlane HQ.
+// Pitlane HQ copies it into the SimHub folder (asking Windows for permission
 // when SimHub lives in Program Files), restarting SimHub around the copy.
 
 import (
@@ -22,8 +22,8 @@ var azomFS embed.FS
 
 const azomDLL = "MozaPlugin.dll"
 
-// bundledAZOM returns the plugin carried by this Pit Wall, or one placed next
-// to PitWall.exe (handy when building the plugin yourself).
+// bundledAZOM returns the plugin carried by this Pitlane HQ, or one placed next
+// to PitlaneHQ.exe (handy when building the plugin yourself).
 func bundledAZOM() ([]byte, string) {
 	if b, err := azomFS.ReadFile("azomdist/" + azomDLL); err == nil && len(b) > 0 {
 		v, _ := azomFS.ReadFile("azomdist/VERSION.txt")
@@ -31,7 +31,7 @@ func bundledAZOM() ([]byte, string) {
 	}
 	if exe, err := os.Executable(); err == nil {
 		if b, err := os.ReadFile(filepath.Join(filepath.Dir(exe), azomDLL)); err == nil && len(b) > 0 {
-			return b, "next to PitWall.exe"
+			return b, "next to PitlaneHQ.exe"
 		}
 	}
 	return nil, ""
@@ -132,7 +132,7 @@ func azomDo(action string) error {
 	if action == "install" {
 		data, _ = bundledAZOM()
 		if data == nil {
-			return errors.New("this Pit Wall does not carry the AZOM plugin (use the build from GitHub Actions)")
+			return errors.New("this Pitlane HQ does not carry the AZOM plugin (use the build from GitHub Actions)")
 		}
 	}
 	setAzomMsg("closing SimHub")

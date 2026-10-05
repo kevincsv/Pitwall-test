@@ -378,7 +378,7 @@ func main() {
 	go autoOverlays()
 	go positionKeeper()
 	go appsOnSim()
-	go func() { // programs you chose to start with Pit Wall
+	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
 		launchGroup("pitwall")
 	}()
@@ -442,6 +442,7 @@ func main() {
 	registerProfileRoutes(mux)
 	registerAppRoutes(mux)
 	registerRigRoutes(mux)
+	registerHapticsRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

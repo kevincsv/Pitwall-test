@@ -1,6 +1,6 @@
-name: Build PitWall.exe with AZOM
+name: Build PitlaneHQ.exe with AZOM
 
-# Compiles the AZOM SimHub plugin from ./azom, puts it inside PitWall.exe and
+# Compiles the AZOM SimHub plugin from ./azom, puts it inside PitlaneHQ.exe and
 # uploads both as a download on the run page (Actions → this run → Artifacts).
 
 on:
@@ -60,20 +60,20 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build PitWall.exe
+      - name: Build PitlaneHQ.exe
         shell: pwsh
         env:
           GOOS: windows
           GOARCH: amd64
         run: |
-          go build -mod=vendor -ldflags "-s -w" -o PitWall.exe .
+          go build -mod=vendor -ldflags "-s -w" -o PitlaneHQ.exe .
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item PitWall.exe, README.md out/
+          Copy-Item PitlaneHQ.exe, README.md out/
           Copy-Item azomdist/MozaPlugin.dll out/
           Copy-Item azom/LICENSE out/AZOM-LICENSE.txt
           Copy-Item azom/UPSTREAM.md out/AZOM-README.md
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PitWall-windows
+          name: PitlaneHQ-windows
           path: out/

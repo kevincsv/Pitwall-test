@@ -1,7 +1,7 @@
 package main
 
 // Engineer sharing. On the same network anyone can open the PC's address.
-// For another house, Pit Wall starts a free Cloudflare quick tunnel
+// For another house, Pitlane HQ starts a free Cloudflare quick tunnel
 // (cloudflared, downloaded from Cloudflare's GitHub releases on first use)
 // and gives a private link. Remote viewers need the key in that link and get a
 // read-only view: no settings, overlays or account data.
@@ -51,7 +51,7 @@ func cloudflaredPath() string {
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
-	return filepath.Join(dir, "PitWall", name)
+	return filepath.Join(dir, "PitlaneHQ", name)
 }
 
 func ensureCloudflared() (string, error) {
@@ -186,13 +186,13 @@ func isRemote(r *http.Request) bool {
 	return r.Header.Get("Cf-Connecting-Ip") != "" || strings.HasSuffix(strings.Split(r.Host, ":")[0], ".trycloudflare.com")
 }
 
-var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza"}
+var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics"}
 
 // guard protects the app from remote viewers: they need the share key and can only read.
 func guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// A web page open in your browser must not be able to change settings
-		// or start programs through this app: changes only from Pit Wall itself.
+		// or start programs through this app: changes only from Pitlane HQ itself.
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			if o := r.Header.Get("Origin"); o != "" && o != "null" {
 				if u, err := url.Parse(o); err != nil || u.Host != r.Host {
@@ -215,7 +215,7 @@ func guard(next http.Handler) http.Handler {
 		if !ok {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(403)
-			fmt.Fprint(w, `<!doctype html><meta name="viewport" content="width=device-width"><body style="font:16px system-ui;background:#11151b;color:#e7ebf1;padding:24px"><h2>Pit Wall</h2><p>This link has expired. Ask the driver for a new one.<br>Este enlace ha caducado. Pide uno nuevo al piloto.</p>`)
+			fmt.Fprint(w, `<!doctype html><meta name="viewport" content="width=device-width"><body style="font:16px system-ui;background:#11151b;color:#e7ebf1;padding:24px"><h2>Pitlane HQ</h2><p>This link has expired. Ask the driver for a new one.<br>Este enlace ha caducado. Pide uno nuevo al piloto.</p>`)
 			return
 		}
 		if r.URL.Query().Get("k") == key {

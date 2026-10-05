@@ -1,9 +1,9 @@
 package main
 
-// Profiles: each person who uses Pit Wall on this PC gets their own settings,
+// Profiles: each person who uses Pitlane HQ on this PC gets their own settings,
 // overlay layout, Live layout, favourite series, apps to start, iRacing and
 // Garage 61 sign-ins. Everything stays on this PC under
-// %APPDATA%\PitWall\profiles\<id>\ — nothing goes to any cloud.
+// %APPDATA%\PitlaneHQ\profiles\<id>\ — nothing goes to any cloud.
 
 import (
 	"crypto/rand"
@@ -48,7 +48,20 @@ func dataDir() string {
 	if err != nil {
 		dir = "."
 	}
-	return filepath.Join(dir, "PitWall")
+	return filepath.Join(dir, "PitlaneHQ")
+}
+
+// migrateDataDir moves the data of versions called Pit Wall to the new folder.
+func migrateDataDir() {
+	old := filepath.Join(filepath.Dir(dataDir()), "PitWall")
+	if _, err := os.Stat(dataDir()); err == nil {
+		return
+	}
+	if _, err := os.Stat(old); err == nil {
+		if err := os.Rename(old, dataDir()); err != nil {
+			log.Println("Could not move your Pit Wall data:", err)
+		}
+	}
 }
 
 func profileDir(id string) string { return filepath.Join(dataDir(), "profiles", id) }
@@ -105,6 +118,7 @@ func defaultProfileName() string {
 // initProfiles loads the profile list. The first time, the files from older
 // versions (settings, sign-ins) move into the first profile.
 func initProfiles() {
+	migrateDataDir()
 	profMu.Lock()
 	defer profMu.Unlock()
 	if b, err := os.ReadFile(filepath.Join(dataDir(), "profiles.json")); err == nil {
@@ -134,6 +148,7 @@ func loadProfileState() {
 	loadConfig()
 	loadG61()
 	loadApps()
+	loadHaptics()
 }
 
 func switchProfile(id string) error {
@@ -195,7 +210,7 @@ func uniqueNameLocked(n string) string {
 }
 
 // profile files that can be copied or exported (never the sign-ins)
-var shareableFiles = []string{"settings.json", "local.json", "apps.json"}
+var shareableFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json"}
 
 func createProfile(name, copyFrom string) (profileMeta, error) {
 	profMu.Lock()
@@ -364,7 +379,7 @@ func registerProfileRoutes(mux *http.ServeMux) {
 			}
 			return r
 		}, name)
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="PitWall profile - %s.json"`, fn))
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="Pitlane HQ profile - %s.json"`, fn))
 		writeJSON(w, pf)
 	})
 
@@ -375,7 +390,7 @@ func registerProfileRoutes(mux *http.ServeMux) {
 		}
 		var pf profileFile
 		if err := json.NewDecoder(io.LimitReader(r.Body, 4<<20)).Decode(&pf); err != nil || pf.Kind != "pitwall-profile" {
-			http.Error(w, "this is not a Pit Wall profile file", 400)
+			http.Error(w, "this is not a Pitlane HQ profile file", 400)
 			return
 		}
 		p, err := createProfile(pf.Name, "")

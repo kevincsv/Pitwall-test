@@ -1,11 +1,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pit Wall</title>
+<title>Pitlane HQ</title>
 <meta name="theme-color" content="#11151b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Pit Wall">
+<meta name="apple-mobile-web-app-title" content="Pitlane HQ">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -217,7 +217,12 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 .pin{font:600 12px var(--f-data);background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:6px 8px;cursor:pointer;white-space:nowrap}
 .pin[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:10px}
-.lcard{background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:12px}
+.lchead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.carart{width:104px;height:38px;flex:none;--c:var(--lic-p)}
+.carart.lic-R{--c:var(--lic-r)}.carart.lic-D{--c:var(--lic-d)}.carart.lic-C{--c:var(--lic-c)}.carart.lic-B{--c:var(--lic-b)}.carart.lic-A{--c:var(--lic-a)}.carart.lic-P{--c:var(--lic-p)}
+.carart .b{fill:var(--c)}.carart .w{fill:var(--surface);opacity:.75}.carart .n{stroke:var(--surface);stroke-width:1.6;fill:none}
+.carart .t{fill:var(--bg);stroke:var(--c);stroke-width:1.5}.carart .h{fill:var(--c);opacity:.6}
+.lcard{background:linear-gradient(135deg,color-mix(in srgb,var(--surface2) 100%,transparent),var(--surface2));border:1px solid var(--line);border-radius:6px;padding:12px}
 .srbar{position:relative;height:8px;border-radius:4px;background:var(--surface);border:1px solid var(--line);margin-top:8px;overflow:visible}
 .srbar b{display:block;height:100%;border-radius:4px;background:var(--good)}
 .srbar i{position:absolute;top:-4px;width:2px;height:14px;background:var(--muted)}
@@ -335,6 +340,79 @@ html.ov #radarC{max-width:none}
 html.ov [data-w=radar]>.label,html.ov [data-w=boost]>.label{display:none}
 html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
 @media (max-width:520px){.inrow{grid-template-columns:auto 1fr}.wheel{display:none}}
+/* sections and sub-pages */
+nav.tabs button{display:inline-flex;align-items:center;gap:7px}
+nav.tabs button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;flex:none}
+nav.subtabs{display:flex;gap:4px;margin:0 0 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
+nav.subtabs::-webkit-scrollbar{display:none}
+nav.subtabs button{font:600 14px/1 var(--f-body);background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:10px 12px 9px;cursor:pointer;white-space:nowrap}
+nav.subtabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+nav.subtabs button:hover:not([aria-selected="true"]){color:var(--fg)}
+nav.subtabs[hidden]{display:none}
+html.ov nav.subtabs{display:none!important}
+@media (max-width:760px){nav.tabs button{flex-direction:column;gap:3px;font-size:11px}nav.tabs button svg{width:20px;height:20px}}
+/* overlay looks: glass (default), carbon, minimal */
+html.ov .panel{border-radius:10px}
+html.ov.ovt-glass,html.ov.ovt-glass body,html.ov.ovt-minimal,html.ov.ovt-minimal body{background:transparent!important}
+html.ov.ovt-glass .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--fg) 10%,transparent)}
+html.ov.ovt-glass .panel>.label:first-child,html.ov.ovt-glass .panel .vhead .label{display:flex;align-items:center;gap:6px}
+html.ov.ovt-glass .panel>.label:first-child::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+html.ov.ovt-carbon .panel{background:repeating-linear-gradient(45deg,var(--surface) 0 3px,color-mix(in srgb,var(--surface) 85%,var(--bg)) 3px 6px);border:1px solid var(--line);border-top:2px solid var(--accent)}
+html.ov.ovt-minimal .panel{background:transparent;border-color:transparent;box-shadow:none}
+html.ov.ovt-minimal .panel *{text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
+html.ov.ovt-minimal .panel>.label:first-child{display:none}
+html.ov .wtable tr.me td{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+html.ov .wtable td{padding-top:4px;padding-bottom:4px}
+html.ov .wtable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--fg) 4%,transparent)}
+html.ov .gear{text-shadow:0 0 18px color-mix(in srgb,var(--accent) 40%,transparent)}
+/* calendar */
+.calwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;align-items:start}
+@media (max-width:1020px){.calwrap{grid-template-columns:minmax(0,1fr)}}
+.calmain{padding:0;overflow:hidden}
+.calside{display:grid;gap:10px}
+.wk{display:grid;grid-template-columns:52px repeat(var(--days),minmax(0,1fr))}
+.wk .dh{position:sticky;top:0;z-index:2;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 6px;font:600 13px var(--f-body);text-align:center;color:var(--muted)}
+.wk .dh b{display:block;font:700 20px var(--f-display);color:var(--fg)}
+.wk .dh.today b{color:var(--accent-ink);background:var(--accent);border-radius:4px;display:inline-block;padding:0 7px}
+.wkscroll{max-height:640px;overflow-y:auto;position:relative}
+.wkbody{display:grid;grid-template-columns:52px repeat(var(--days),minmax(0,1fr));position:relative}
+.wkhours div{height:var(--rh);font:11px var(--f-data);color:var(--muted);text-align:right;padding:2px 6px 0 0;border-top:1px solid var(--line)}
+.wkday{position:relative;border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--rh) - 1px),var(--line) calc(var(--rh) - 1px),var(--line) var(--rh));cursor:copy}
+.wkday.today{background-color:color-mix(in srgb,var(--accent) 5%,transparent)}
+.ev{z-index:1;position:absolute;left:2px;right:2px;border-radius:5px;padding:3px 6px;font:600 12px/1.25 var(--f-body);overflow:hidden;cursor:pointer;border:1px solid transparent;color:var(--fg);text-align:left}
+.ev small{display:block;font:500 11px var(--f-body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev.plan{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border-color:var(--accent)}
+.ev.race{background:color-mix(in srgb,var(--blue) 22%,var(--surface));border-color:var(--blue)}
+.ev.practice{background:color-mix(in srgb,var(--good) 18%,var(--surface));border-color:var(--good)}
+.ev.busy{background:repeating-linear-gradient(135deg,var(--surface2) 0 6px,var(--surface) 6px 12px);border-color:var(--line);color:var(--muted)}
+.ev.ghost{z-index:0;background:transparent;border:1px dashed var(--line);color:var(--muted);font-weight:500}
+.ev.ghost:hover{border-color:var(--accent);color:var(--fg)}
+.ev.clash{box-shadow:0 0 0 2px var(--bad)}
+.nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:1;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.mo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.mo .dh{padding:8px;font:600 12px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+.mo .cell{min-height:104px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;cursor:pointer;display:grid;align-content:start;gap:3px;min-width:0}
+.mo .cell.out{opacity:.45}.mo .cell.today .dn{background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:0 5px}
+.mo .dn{font:700 15px var(--f-display);justify-self:start}
+.mo .it{font:12px/1.2 var(--f-body);padding:2px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--accent);background:var(--surface2)}
+.mo .it.race{border-color:var(--blue)}.mo .it.practice{border-color:var(--good)}.mo .it.busy{border-color:var(--line);color:var(--muted)}
+.nextrace{display:grid;gap:2px;padding:8px 0;border-bottom:1px solid var(--line)}
+.nextrace:last-child{border-bottom:0}
+.nextrace .cd{font:700 22px var(--f-display);color:var(--accent)}
+/* haptics */
+.hapmodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px}
+.hapmode{display:grid;gap:4px;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:12px;color:var(--fg);cursor:pointer;font:14px var(--f-body)}
+.hapmode span{color:var(--muted);font-size:13px}
+.hapmode[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface2))}
+.hapfx{display:grid;gap:2px}
+.hapfx-row{display:grid;grid-template-columns:minmax(170px,1.3fr) 90px minmax(120px,1fr) minmax(120px,1fr) auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.hapfx-row .nm{display:flex;gap:8px;align-items:center;min-width:0}.hapfx-row .nm small{display:block;color:var(--muted);font-size:12px}
+.hapfx-row .nm .chip{padding:0;width:22px;height:22px;justify-content:center}.hapfx-row .nm .chip[aria-pressed="true"]::after{content:"✓";font-size:12px}
+.hapm{margin:0;height:8px}.hapm b{transition:width .1s linear}
+.sl{display:grid;gap:3px;font-size:12px;color:var(--muted)}.sl i{font-style:normal;color:var(--fg)}.sl input{width:100%}
+.chs{gap:3px}.chs .pin{padding:4px 6px;font-size:11px}.chs .pin[aria-pressed="true"]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+@media (max-width:900px){.hapfx-row{grid-template-columns:1fr 1fr}.hapfx-row .nm{grid-column:1/-1}}
 /* profiles and rig */
 .profbtn{font:600 13px/1 var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 11px 6px 6px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profbtn b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 12px var(--f-data);flex:none}
@@ -371,24 +449,22 @@ html.ov .shbox{height:calc(100vh - 40px)}
 
 <div class="wrap">
 <header class="top">
-  <div class="brand"><i aria-hidden="true"></i>Pit Wall</div>
+  <div class="brand"><i aria-hidden="true"></i>Pitlane HQ</div>
   <button class="conn" id="conn" type="button">…</button>
-  <nav class="tabs" role="tablist">
-    <button role="tab" data-v="live" aria-selected="true" data-i18n="tab.live"></button>
-    <button role="tab" data-v="overlays" aria-selected="false" data-i18n="tab.overlays"></button>
-    <button role="tab" data-v="rig" aria-selected="false" data-i18n="tab.rig"></button>
-    <button role="tab" data-v="tyres" aria-selected="false" data-i18n="tab.tyres"></button>
-    <button role="tab" data-v="field" aria-selected="false" data-i18n="tab.field"></button>
-    <button role="tab" data-v="laps" aria-selected="false" data-i18n="tab.laps"></button>
-    <button role="tab" data-v="series" aria-selected="false" data-i18n="tab.series"></button>
-    <button role="tab" data-v="data" aria-selected="false" data-i18n="tab.data"></button>
-    <button role="tab" data-v="account" aria-selected="false" data-i18n="tab.account"></button>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4h9l1 2h6v9h-7l-1-2H6v8z"/></svg><span data-i18n="g.race"></span></button>
+    <button role="tab" data-g="overlays" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><rect x="6" y="7" width="6" height="4" rx="1"/><rect x="13" y="12" width="5" height="3" rx="1"/></svg><span data-i18n="g.overlays"></span></button>
+    <button role="tab" data-g="season" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span data-i18n="g.season"></span></button>
+    <button role="tab" data-g="rig" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M4.5 10h5M14.5 10h5M12 14.5V20"/></svg><span data-i18n="g.rig"></span></button>
+    <button role="tab" data-g="account" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg><span data-i18n="g.account"></span></button>
   </nav>
   <button class="profbtn" id="profBtn" type="button" hidden></button>
   <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
+
+<nav class="subtabs" id="subtabs" aria-label="Pages"></nav>
 
 <!-- LIVE -->
 <section class="view" id="v-live">
@@ -545,6 +621,26 @@ html.ov .shbox{height:calc(100vh - 40px)}
   <div class="panel" id="ovGlobal"></div>
   <div class="panel" id="ovScreenPanel" style="margin-top:10px"><h2 data-i18n="yourScreen"></h2><p class="note" id="ovScreenNote"></p><div class="screen" id="ovScreen"></div></div>
   <div class="ovcards" id="ovCards"></div>
+</section>
+
+<!-- CALENDAR: race scheduler -->
+<section class="view" id="v-calendar" hidden>
+  <div class="vhead"><div><h1 id="calTitle" data-i18n="tab.calendar"></h1><div class="sub" id="calSub"></div></div>
+    <div class="controls">
+      <div class="seg" id="calMode"><button type="button" data-m="week" aria-pressed="true"></button><button type="button" data-m="month" aria-pressed="false"></button></div>
+      <button class="btn" type="button" id="calPrev" aria-label="Previous">‹</button><button class="btn" type="button" id="calToday"></button><button class="btn" type="button" id="calNext" aria-label="Next">›</button>
+      <button class="btn primary" type="button" id="calAdd"></button>
+    </div></div>
+  <div class="callout" id="calWarn" hidden></div>
+  <div class="calwrap"><div class="panel calmain" id="calMain"></div><aside class="calside" id="calSide"></aside></div>
+</section>
+
+<!-- HAPTICS: bass shakers and pedal haptics -->
+<section class="view" id="v-haptics" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.haptics"></h1><div class="sub" id="hapSub"></div></div>
+    <div class="controls"><button class="btn primary" type="button" id="hapMaster"></button></div></div>
+  <div class="callout" id="hapCallout" hidden></div>
+  <div class="grid" id="hapBody"></div>
 </section>
 
 <!-- RIG: programs, SimHub, AZOM and MOZA -->
@@ -806,7 +902,7 @@ const I18N={
  ph2:["Scan the code or type the address in the browser.","Escanea el código o escribe la dirección en el navegador."],
  ph3:["iPhone/iPad: Safari → Share → Add to Home Screen.","iPhone/iPad: Safari → Compartir → Añadir a pantalla de inicio."],
  ph4:["Android: Chrome → ⋮ menu → Add to Home screen / Install app.","Android: Chrome → menú ⋮ → Añadir a pantalla de inicio / Instalar app."],
- phNote:["Set your phone's screen timeout to Never while racing so it stays on. If the phone cannot connect, allow PitWall in the Windows Firewall prompt for private networks.","Pon el bloqueo de pantalla del móvil en Nunca mientras corres. Si el móvil no conecta, permite PitWall en el aviso del Firewall de Windows para redes privadas."],
+ phNote:["Set your phone's screen timeout to Never while racing so it stays on. If the phone cannot connect, allow Pitlane HQ in the Windows Firewall prompt for private networks.","Pon el bloqueo de pantalla del móvil en Nunca mientras corres. Si el móvil no conecta, permite Pitlane HQ en el aviso del Firewall de Windows para redes privadas."],
  signInTitle:["Connect your iRacing account","Conecta tu cuenta de iRacing"],clientId:["Client ID","Client ID"],clientSecret:["Client secret","Client secret"],email:["iRacing email","Email de iRacing"],password:["iRacing password","Contraseña de iRacing"],
  signIn:["Sign in","Iniciar sesión"],signOut:["Sign out","Cerrar sesión"],howCreds:["Where the Client ID comes from","De dónde sale el Client ID"],
  cred1:["iRacing only lets registered apps read account data. Each app needs its own Client ID and secret from iRacing.","iRacing solo deja leer datos de la cuenta a apps registradas. Cada app necesita su propio Client ID y secret de iRacing."],
@@ -877,10 +973,10 @@ function connectBridge(){
 }
 function setWantAll(v){if(v===wantAll)return;wantAll=v;if(MODE==="bridge")connectBridge()}
 
-/* In-browser demo (used when the page is opened without PitWall.exe) */
+/* In-browser demo (used when the page is opened without PitlaneHQ.exe) */
 const Demo=(()=>{
   const LEN=3602,N=20,ME=7,VMAX=188/3.6;
-  /* fictional circuit: Catmull-Rom spline through control points (same as PitWall.exe demo) */
+  /* fictional circuit: Catmull-Rom spline through control points (same as PitlaneHQ.exe demo) */
   const CP=[[0,0],[520,0],[700,40],[760,170],[690,280],[560,250],[470,330],[540,470],[420,560],[300,500],[330,400],[180,330],[-80,330],[-230,230],[-210,70]];
   const head=new Float32Array(LEN),kap=new Float32Array(LEN),prof=new Float32Array(LEN),gx=new Float64Array(LEN),gy=new Float64Array(LEN);
   {const n=CP.length,px=[],py=[],cr=(a,b,c,d,t)=>.5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t*t*t);
@@ -899,7 +995,7 @@ const Demo=(()=>{
   const lics="ABBCBACBDCBCADBCDRBC",nums=[17,42,23,91,5,33,12,8,64,2,71,19,3,88,27,55,9,46,11,30];
   const cars=names.map((n,i)=>{const pace=i===ME?1:0.992+i*0.0011+R()*0.002,dist=LEN*6+0.62*LEN-i*9;return{pace,dist,lapStart:-tB[Math.floor(dist%LEN)]*pace,last:98.6*pace,best:98.2*pace}});
   let t=0,fuel=29.6,lapF=1.004,tgt=1.004,steer=0;
-  const session={WeekendInfo:{TrackID:9001,TrackDisplayName:"Pit Wall Demo Circuit",TrackDisplayShortName:"Demo Circuit",TrackConfigName:"Full Course",TrackLength:"3.60 km",TrackSkies:"Partly Cloudy",TrackAirTemp:"19.40 C",TrackSurfaceTemp:"27.80 C",EventType:"Race",Category:"SportsCar",Official:1,RaceWeek:3,WeekendOptions:{IncidentLimit:17}},
+  const session={WeekendInfo:{TrackID:9001,TrackDisplayName:"Pitlane HQ Demo Circuit",TrackDisplayShortName:"Demo Circuit",TrackConfigName:"Full Course",TrackLength:"3.60 km",TrackSkies:"Partly Cloudy",TrackAirTemp:"19.40 C",TrackSurfaceTemp:"27.80 C",EventType:"Race",Category:"SportsCar",Official:1,RaceWeek:3,WeekendOptions:{IncidentLimit:17}},
     SessionInfo:{CurrentSessionNum:2,Sessions:[{SessionNum:0,SessionType:"Practice",SessionName:"PRACTICE"},{SessionNum:1,SessionType:"Lone Qualify",SessionName:"QUALIFY"},{SessionNum:2,SessionType:"Race",SessionName:"RACE",SessionLaps:20}]},
     QualifyResultsInfo:{Results:names.map((n,i)=>({Position:(i*7+3)%N,ClassPosition:(i*7+3)%N,CarIdx:i}))},
     DriverInfo:{DriverCarIdx:ME,DriverCarRedLine:7500,DriverCarFuelKgPerLtr:0.75,DriverCarFuelMaxLtr:45,DriverCarSLFirstRPM:5200,DriverCarSLShiftRPM:7000,DriverCarSLLastRPM:6900,DriverCarSLBlinkRPM:7200,DriverCarEstLapTime:98.214,
@@ -933,7 +1029,7 @@ const Demo=(()=>{
   /* preview only: a map "saved from an earlier session", so the demo shows it straight away */
   function demoMap(){const N=720,o={x:[],y:[],v:[],b:[],th:[],t:[]};for(let i=0;i<N;i++){const d=Math.floor(i/N*LEN),a=sp(d+3)-sp(d);o.x.push(gx[d]);o.y.push(gy[d]);o.v.push(sp(d));o.b.push(a<-.02?Math.min(1,-a/.7):0);o.th.push(a<-.02?0:1);o.t.push(tB[d])}
     o.time=98.214;o.brakes=brakePts(o);o.st=[];for(let m=0;m<40;m++){const a=Math.floor(m*N/40),b=Math.floor((m+1)*N/40);o.st.push((b>=N?o.time:o.t[b])-o.t[a])}
-    return{key:"demo_9001",name:"Pit Wall Demo Circuit",N,src:"dr",len:LEN,laps:3,x:o.x,y:o.y,ideal:o,best:{...o}}}
+    return{key:"demo_9001",name:"Pitlane HQ Demo Circuit",N,src:"dr",len:LEN,laps:3,x:o.x,y:o.y,ideal:o,best:{...o}}}
   let timer=null,lastNow=0;
   return{start(){STATUS={connected:true,source:"demo",demo:true,local:true};if(!store.get("pw.map.demo_9001",null))store.set("pw.map.demo_9001",demoMap());SCHEMA=schema.filter(v=>!/^(LF|RF|LR|RR)(temp|wear)/.test(v.name)).concat(TYRE_VARS.filter(n=>!/pressure$|temp[LMR]$/.test(n)||/coldPressure/.test(n)).map(n=>({name:n,desc:"",unit:"",type:"float",count:1})));S=session;SESSION_RAW="";renderConn();schemaChanged();sessionChanged();lastNow=performance.now();
       const loop=now=>{const dt=Math.min(.1,(now-lastNow)/1000);lastNow=now;onFrame(step(dt));timer=requestAnimationFrame(loop)};timer=requestAnimationFrame(loop)}};
@@ -1132,7 +1228,7 @@ $("#loginForm").onsubmit=async e=>{e.preventDefault();const btn=$("#loginBtn");b
   catch(err){$("#loginErr").textContent=err.message}finally{btn.disabled=false}};
 $("#logoutBtn").onclick=async()=>{await fetch("/api/account/logout",{method:"POST"}).catch(()=>{});ACC={loggedIn:false};MEMBER=null;ACCDATA=null;accLoaded=false;renderAccount()};
 $("#exForm").onsubmit=async e=>{e.preventDefault();const out=$("#exOut");out.hidden=false;out.textContent="…";
-  if(MODE!=="bridge"){out.textContent=Tx("Available when the app runs from PitWall.exe with your account connected.","Disponible cuando la app funciona desde PitWall.exe con tu cuenta conectada.");return}
+  if(MODE!=="bridge"){out.textContent=Tx("Available when the app runs from PitlaneHQ.exe with your account connected.","Disponible cuando la app funciona desde PitlaneHQ.exe con tu cuenta conectada.");return}
   try{const j=await api($("#exPath").value.trim().replace(/^\/+/,"").replace(/^data\//,""));out.textContent=JSON.stringify(j,null,2).slice(0,200000)}catch(err){out.textContent=err.message}};
 
 /* ===================== more i18n ===================== */
@@ -1312,7 +1408,6 @@ function renderSeriesList(){if(!SER)return;const list=filtered(),now=Date.now();
 function toggleFav(sid){FAV.has(sid)?FAV.delete(sid):FAV.add(sid);store.set("pw.fav",[...FAV])}
 function inPlan(sid,t){return PLAN.some(p=>p.sid===sid&&p.t===t)}
 const NATIVE=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall?window.webkit.messageHandlers.pitwall:null;
-function syncNativePlan(){if(NATIVE)NATIVE.postMessage({type:"notify",items:PLAN.map(p=>({t:p.t,title:p.name,body:(p.track||"")+" · "+hm(p.t)}))})}
 function togglePlan(s,w,t){if(inPlan(s.sid,t))PLAN=PLAN.filter(p=>!(p.sid===s.sid&&p.t===t));else PLAN.push({sid:s.sid,id:s.id,t,name:s.name,track:trackInfo(w).name,mins:(w.rtd&&w.rtd.sl)||w.mins||60});PLAN.sort((a,b)=>a.t-b.t);store.set("pw.plan",PLAN);syncNativePlan()}
 function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);if(!s)return;const now=Date.now(),w=curWeek(s)||s.weeks[0],wi=weekIdx(s);
   $("#dTitle").textContent=s.name;$("#dSub").innerHTML=`${licBadge(s.lic)} · ${esc(s.desc||"")}`;
@@ -1341,7 +1436,7 @@ $("#dClose").onclick=closeDrawer;$("#drawerBg").onclick=closeDrawer;document.add
 function renderAgenda(){const now=Date.now();PLAN=PLAN.filter(p=>p.t>now-3*3600e3);
   $("#planList").innerHTML=PLAN.length?PLAN.map(p=>`<div class="agrow"><span class="t">${hm(p.t)}</span><span class="s"><div>${esc(p.name)}</div><div class="muted" style="font-size:13px">${esc(new Date(p.t).toLocaleDateString(locale(),{weekday:"short",day:"numeric",month:"short"}))} · ${esc(p.track)} · ${esc(until(p.t))}</div></span><button type="button" class="pin" aria-pressed="true" data-rm="${p.sid}@${p.t}">✕</button></div>`).join(""):`<p class="note">${Lp("Add sessions from the list to build your plan.","Añade sesiones de la lista para montar tu plan.")}</p>`;
   document.querySelectorAll("#planList [data-rm]").forEach(b=>b.onclick=()=>{const[sid,t]=b.dataset.rm.split("@").map(Number);PLAN=PLAN.filter(p=>!(p.sid===sid&&p.t===t));store.set("pw.plan",PLAN);syncNativePlan();renderAgenda()});
-  $("#icsBtn").hidden=MODE!=="bridge"||!!NATIVE;$("#icsNote").innerHTML=NATIVE?Lp("The app reminds you 15 minutes before each race in your plan.","La app te avisa 15 minutos antes de cada carrera de tu plan."):MODE==="bridge"?Lp("Downloads a calendar file with a reminder 15 minutes before each race. On iPhone it opens straight in Calendar.","Descarga un archivo de calendario con aviso 15 minutos antes de cada carrera. En iPhone se abre directamente en Calendario."):Lp("Calendar export works in the app running from PitWall.exe.","La exportación al calendario funciona en la app desde PitWall.exe.");
+  $("#icsBtn").hidden=MODE!=="bridge"||!!NATIVE;$("#icsNote").innerHTML=NATIVE?Lp("The app reminds you 15 minutes before each race in your plan.","La app te avisa 15 minutos antes de cada carrera de tu plan."):MODE==="bridge"?Lp("Downloads a calendar file with a reminder 15 minutes before each race. On iPhone it opens straight in Calendar.","Descarga un archivo de calendario con aviso 15 minutos antes de cada carrera. En iPhone se abre directamente en Calendario."):Lp("Calendar export works in the app running from PitlaneHQ.exe.","La exportación al calendario funciona en la app desde PitlaneHQ.exe.");
   const src=$("#agSrc").value||"fav",range=+($("#agRange").value||24);
   let pool=src==="fav"?SER.seasons.filter(s=>FAV.has(s.sid)):filtered().map(x=>x.s).slice(0,40);
   if(!pool.length){$("#agenda").innerHTML=`<p class="note">${src==="fav"?Lp("Star series in the Series tab to see their races here.","Marca series con la estrella para ver aquí sus carreras."):Lp("No series match your filters.","Ninguna serie cumple tus filtros.")}</p>`;return}
@@ -1355,9 +1450,7 @@ function agendaControls(){const v1=$("#agSrc").value,v2=$("#agRange").value;$("#
   $("#agRange").innerHTML=[[6,"Next 6 h","Próximas 6 h"],[24,"Next 24 h","Próximas 24 h"],[72,"Next 3 days","Próximos 3 días"],[168,"Next 7 days","Próximos 7 días"]].map(([v,en,es])=>`<option value="${v}">${esc(Tx(en,es))}</option>`).join("");
   $("#agSrc").value=v1||(FAV.size?"fav":"filt");$("#agRange").value=v2||"24"}
 $("#agSrc").onchange=()=>renderSeries();$("#agRange").onchange=()=>renderAgenda();
-$("#icsBtn").onclick=()=>{if(!PLAN.length)return;const z=t=>new Date(t).toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
-  const ev=PLAN.map(p=>["BEGIN:VEVENT",`UID:${p.sid}-${p.t}@pitwall`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(p.t)}`,`DTEND:${z(p.t+(p.mins||60)*60e3)}`,`SUMMARY:${p.name.replace(/[,;]/g," ")}`,`LOCATION:${(p.track||"").replace(/[,;]/g," ")}`,"BEGIN:VALARM","TRIGGER:-PT15M","ACTION:DISPLAY","DESCRIPTION:iRacing","END:VALARM","END:VEVENT"].join("\r\n"));
-  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//PitWall//EN",...ev,"END:VCALENDAR"].join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="pitwall-races.ics";document.body.appendChild(a);a.click();a.remove()};
+$("#icsBtn").onclick=exportICS;
 function renderSeasonPlan(){const now=Date.now();let pool=SER.seasons.filter(s=>FAV.has(s.sid));const usingFav=pool.length>0;if(!usingFav)pool=filtered().map(x=>x.s).slice(0,15);
   const nW=Math.max(...pool.map(s=>s.weeks.length),12);
   $("#seasonGrid").innerHTML=pool.length?`<thead><tr><th>${esc(Tx("Series","Serie"))}</th>${[...Array(Math.min(nW,13))].map((_,i)=>`<th>${esc(Tx("Wk","Sem"))} ${i+1}</th>`).join("")}<th class="r">${esc(Tx("Can race","Puedes"))}</th></tr></thead><tbody>${pool.map(s=>{const rem=s.weeks.filter(w=>weekEnd(w)>now);const can=rem.filter(ownsTrack).length;
@@ -1382,11 +1475,21 @@ document.querySelectorAll("#serSeg button").forEach(b=>b.onclick=()=>{SER_TAB=b.
 setInterval(()=>{if(CUR_VIEW==="series"&&SER&&$("#drawer").hidden&&document.activeElement!==$("#fq")){if(SER_TAB==="browse")renderSeriesList();if(SER_TAB==="agenda")renderAgenda()}},30000);
 
 /* ===================== licences (account) ===================== */
+/* side views of the car type of each licence */
+const CARSVG={
+ oval:'<path class="b" d="M5 33 L7 25 L30 23 L44 13 L78 13 L90 22 L112 23 L115 33 Z"/><path class="w" d="M47 15 L74 15 L84 22 L45 22 Z"/><path class="n" d="M18 27 h18 M58 27 h22"/>',
+ sports_car:'<path class="b" d="M5 33 C5 27 13 25 26 24 L42 23 C51 15 63 12 76 13 C86 14 94 19 101 22 L112 24 C117 25 117 31 115 33 Z"/><path class="w" d="M53 17 C60 15 70 15 78 16 L86 22 L48 22 Z"/><path class="b" d="M102 17 L117 16 L117 19 L104 20 Z"/>',
+ formula_car:'<path class="b" d="M6 31 L30 28 L48 25 L57 19 L66 18 L72 24 L98 25 L104 21 L111 21 L111 31 Z"/><path class="b" d="M1 30 L19 30 L19 33 L1 33 Z M104 12 L118 12 L118 17 L104 17 Z"/><path class="n" d="M110 17 L108 24"/>',
+ dirt_oval:'<path class="b" d="M44 3 L104 1 L104 19 L44 21 Z"/><path class="n" d="M58 21 L62 26 M92 19 L90 25"/><path class="b" d="M12 31 L30 27 L60 27 L70 23 L94 23 L106 29 L106 33 L12 33 Z"/><path class="b" d="M4 25 L22 25 L22 28 L4 28 Z"/>',
+ dirt_road:'<path class="b" d="M7 32 L9 23 L30 20 L42 11 L80 10 L94 19 L111 21 L113 32 Z"/><path class="w" d="M45 13 L78 12 L88 19 L42 20 Z"/><path class="b" d="M58 7 L72 7 L70 10 L60 10 Z"/><path class="n" d="M36 33 L36 38 M104 33 L104 38"/>'};
+const WHEELS={oval:[[27,33,7],[92,33,7]],sports_car:[[28,33,7],[93,33,7]],formula_car:[[25,32,8],[94,31,9]],dirt_oval:[[24,34,7],[92,32,10]],dirt_road:[[28,33,7],[94,33,7]]};
+function carArt(kind,letter){const w=(WHEELS[kind]||WHEELS.sports_car).map(([x,y,r])=>`<circle class="t" cx="${x}" cy="${y}" r="${r}"/><circle class="h" cx="${x}" cy="${y}" r="${r*.42}"/>`).join("");
+  return `<svg class="carart lic-${letter}" viewBox="0 0 120 44" aria-hidden="true">${CARSVG[kind]||CARSVG.sports_car}${w}</svg>`}
 function renderLicences(m){const box=$("#licCards");if(!box)return;const order=[["oval","Oval","Óvalo"],["sports_car","Sports Car","Sports Car"],["formula_car","Formula","Fórmula"],["dirt_oval","Dirt Oval","Óvalo tierra"],["dirt_road","Dirt Road","Tierra"]];
   box.innerHTML=order.map(([k,en,es])=>{const l=m.lic[k]||(k==="sports_car"?m.lic.road:null);if(!l)return"";const letter=(l.group_name||"R").replace("Class ","")[0];const sr=+l.safety_rating||0;
     const goal=letter==="A"||letter==="P"?null:sr>=3?Tx("Promotion at season end (SR 3.00+)","Asciende al cierre de temporada (SR 3.00+)"):Tx(`${(3-sr).toFixed(2)} SR to promotion`,`${(3-sr).toFixed(2)} de SR para ascender`);
     const fast=letter!=="A"&&letter!=="P"?(sr>=4?Tx("Fast-track promotion now","Ascenso inmediato"):Tx(`${(4-sr).toFixed(2)} SR to fast-track`,`${(4-sr).toFixed(2)} de SR para ascenso inmediato`)):"";
-    return `<div class="lcard"><div class="label">${esc(Tx(en,es))}</div><div style="display:flex;gap:10px;align-items:baseline;margin-top:6px"><span class="lic ${letter==="P"?"P":letter}" style="font-size:18px;padding:4px 7px">${letter==="P"?"Pro":letter}</span><span class="mid mono" style="margin:0">${sr.toFixed(2)}</span></div>
+    return `<div class="lcard"><div class="lchead"><div class="label">${esc(Tx(en,es))}</div>${carArt(k,letter==="P"?"P":letter)}</div><div style="display:flex;gap:10px;align-items:baseline;margin-top:6px"><span class="lic ${letter==="P"?"P":letter}" style="font-size:18px;padding:4px 7px">${letter==="P"?"Pro":letter}</span><span class="mid mono" style="margin:0">${sr.toFixed(2)}</span></div>
       <div class="srbar"><b style="width:${Math.min(100,sr/4.99*100)}%"></b><i style="left:${3/4.99*100}%"></i><i style="left:${4/4.99*100}%"></i></div>
       <dl class="kv" style="margin-top:10px;font-size:13px"><dt>iRating</dt><dd>${l.irating??"–"}</dd><dt>CPI</dt><dd>${l.cpi!=null?(+l.cpi).toFixed(1):"–"}</dd>${l.tt_rating?`<dt>TT</dt><dd>${l.tt_rating}</dd>`:""}</dl>
       ${goal?`<p class="note">${esc(goal)}${fast?"<br>"+esc(fast):""}</p>`:""}</div>`}).join("")}
@@ -1517,7 +1620,7 @@ function saveCfg(){if(REMOTE){store.set("pw.cfg",CFG);cfgChanged();return}const 
     fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json()).then(j=>{if(seq===cfgSeq){cfgPending=false;applyServerCfg(j.config,true)}}).catch(()=>{if(seq===cfgSeq)cfgPending=false})}
     else store.set("pw.cfg",CFG)},250);cfgChanged()}
 function applyServerCfg(c,force){if(!c||(cfgPending&&!force))return;if(REMOTE){const keepUI=store.get("pw.cfg",null);if(keepUI&&keepUI.ui)c=Object.assign({},c,{ui:keepUI.ui})}const before=JSON.stringify((CFG.ui||{}).tel);CFG=Object.assign(CFG,c);if(!CFG.ui)CFG.ui={};cfgChanged();if(before!==JSON.stringify((CFG.ui||{}).tel)&&MODE==="bridge")connectBridge()}
-function cfgChanged(){if(typeof renderLock==="function")renderLock();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit&&!OV.preview));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
+function cfgChanged(){if(OV.on){const t=((CFG.ui||{}).ovlook||{}).t||"glass";["glass","carbon","minimal"].forEach(x=>document.documentElement.classList.toggle("ovt-"+x,x===t))}if(typeof renderLock==="function")renderLock();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit&&!OV.preview));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
 
 /* ===================== race maths ===================== */
 const BR1=1600/Math.LN2;
@@ -1680,7 +1783,7 @@ function ovChrome(){if(!OV.on)return;let bar=$("#ovBar");if(!bar){bar=document.c
   $("#ovRes").hidden=!frameless}
 Object.assign(I18N,{"w.radar":["Radar","Radar"],"w.boost":["DRS & push-to-pass","DRS y push-to-pass"],"w.telemetry":["Telemetry","Telemetría"],
  lyScreen:["On this screen","En esta pantalla"],lyOverlays:["Overlays on your PC","Overlays en tu PC"],autoOpen:["Open my overlays when I get in the car","Abrir mis overlays al subirme al coche"],
- closeExit:["Close them when iRacing closes","Cerrarlos al cerrar iRacing"],editPos:["Edit positions","Editar posiciones"],startWin:["Start PitWall with Windows","Iniciar PitWall con Windows"],
+ closeExit:["Close them when iRacing closes","Cerrarlos al cerrar iRacing"],editPos:["Edit positions","Editar posiciones"],startWin:["Start Pitlane HQ with Windows","Iniciar Pitlane HQ con Windows"],
  engineSel:["Window type","Tipo de ventana"],engWv:["Frameless (recommended)","Sin bordes (recomendado)"],engEdge:["Edge window","Ventana de Edge"],openSel:["Open selected now","Abrir seleccionados ahora"],
  resetPos:["Reset positions","Restablecer posiciones"],experimental:["Experimental","Experimental"],configure:["Configure","Configurar"],auto:["Auto","Auto"],open:["Open","Abrir"],close:["Close","Cerrar"],
  columns:["Columns","Columnas"],header:["Header","Cabecera"],footer:["Footer","Pie"],rowsAhead:["Cars ahead","Coches delante"],rowsBehind:["Cars behind","Coches detrás"],topN:["Top positions","Primeras posiciones"],around:["Around me","Alrededor mío"],myClass:["Only my class","Solo mi clase"],
@@ -1711,7 +1814,7 @@ function openWidgetCfg(w){const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(
   let body="";
   if(k==="rel"||k==="std"){body=`<div class="grid"><div class="panel s4"><h2>${L("columns")}</h2>${listEd("cols",COLS,"col.")}</div><div class="panel s4"><h2>${L("header")}</h2>${listEd("head",ITEMS,"it.")}</div><div class="panel s4"><h2>${L("footer")}</h2>${listEd("foot",ITEMS,"it.")}</div>
     <div class="panel s12">${k==="rel"?num("ahead","rowsAhead",0,8)+num("behind","rowsBehind",0,8):num("top","topN",0,30)+num("around","around",0,10)+`<div class="frow" style="margin-top:6px">${chk("cMyClass",c.myClass,L("myClass",true))}</div>`}</div></div>`}
-  else if(k==="radar")body=`<div class="panel">${num("range","range",10,60)}<div class="frow" style="margin-top:6px">${chk("cAH",c.autohide,L("autohideRadar",true))}</div><p class="note">${Lp("iRacing tells PitWall when a car is alongside (left or right) and how far each car is along the track; the radar combines both.","iRacing indica cuándo hay un coche al lado (izquierda o derecha) y a qué distancia está cada coche en la pista; el radar combina ambas cosas.")}</p></div>`;
+  else if(k==="radar")body=`<div class="panel">${num("range","range",10,60)}<div class="frow" style="margin-top:6px">${chk("cAH",c.autohide,L("autohideRadar",true))}</div><p class="note">${Lp("iRacing tells Pitlane HQ when a car is alongside (left or right) and how far each car is along the track; the radar combines both.","iRacing indica cuándo hay un coche al lado (izquierda o derecha) y a qué distancia está cada coche en la pista; el radar combina ambas cosas.")}</p></div>`;
   else if(k==="boost")body=`<div class="panel"><div class="frow">${chk("cAH",c.autohide,L("autohideBoost",true))}</div></div>`;
   else if(k==="tel"){const all=SCHEMA.map(s=>s.name);body=`<div class="panel"><input type="search" id="telQ" placeholder="${esc(Tx("Search variables","Buscar variables"))}" style="width:100%"><div class="cfglist" id="telList" style="margin-top:8px"></div></div>`;
     setTimeout(()=>{const draw=()=>{const qv=($("#telQ").value||"").toLowerCase(),sel=ui("tel").vars;$("#telList").innerHTML=sel.map(n=>`<div class="cfgitem on"><span>${esc(telName(n))} <span class="mono muted" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">✕</button></div>`).join("")+all.filter(n=>!sel.includes(n)&&(!qv||n.toLowerCase().includes(qv)||telName(n).toLowerCase().includes(qv))).slice(0,60).map(n=>`<div class="cfgitem"><span class="muted">${esc(telName(n))} <span class="mono" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">+</button></div>`).join("");
@@ -1733,7 +1836,7 @@ function openWidgetCfg(w){const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(
   if($("#drawer").hidden){$("#drawer").hidden=false}}
 $("#layoutBtn").onclick=openLayout;
 Object.assign(I18N,{opacity:["Opacity","Opacidad"],clickThrough:["Click-through","Atravesar clics"],closeAll:["Close all","Cerrar todos"],
- ovLocal:["Overlays work in the app running from PitWall.exe.","Los overlays funcionan en la app desde PitWall.exe."],
+ ovLocal:["Overlays work in the app running from PitlaneHQ.exe.","Los overlays funcionan en la app desde PitlaneHQ.exe."],
  obsNote:["For OBS, add a Browser Source with an address like","Para OBS, añade una Fuente de navegador con una dirección como"]});
 
 /* ===================== overlays tab ===================== */
@@ -1744,10 +1847,10 @@ Object.assign(I18N,{"tab.overlays":["Overlays","Overlays"],ovGlobal:["How overla
  "d.boost":["DRS, push-to-pass and hybrid","DRS, push-to-pass e híbrido"],"d.inputs":["Throttle, brake, clutch, wheel and gear","Acelerador, freno, embrague, volante y marcha"],"d.fuel":["Fuel left, per lap and to add","Combustible restante, por vuelta y a añadir"],
  "d.engine":["Water, oil, voltage and temperatures","Agua, aceite, voltaje y temperaturas"],"d.tyres":["Tyre temperatures and wear","Temperatura y desgaste de neumáticos"],"d.standings":["Race order with the columns you choose","Clasificación con las columnas que elijas"],"d.telemetry":["Any telemetry values you pick","Los valores de telemetría que elijas"]});
 let CFG_BACK=null;
-function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreenEditor();$("#ovScreenNote").innerHTML=pcOverlays()?Lp("Drag a box to move that overlay on your PC screen, or its corner to resize it. The windows move as you drag.","Arrastra un recuadro para mover ese overlay en la pantalla del PC, o su esquina para cambiar el tamaño. Las ventanas se mueven mientras arrastras."):Lp("Preview of where your overlays sit on the PC screen. Moving them here moves the real windows when the app runs from PitWall.exe.","Vista de dónde están tus overlays en la pantalla del PC. Al moverlos aquí se mueven las ventanas reales cuando la app funciona desde PitWall.exe.");const pc=isPC(),remote=pcOverlays(),auto=new Set(CFG.autoWidgets||[]);
+function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreenEditor();$("#ovScreenNote").innerHTML=pcOverlays()?Lp("Drag a box to move that overlay on your PC screen, or its corner to resize it. The windows move as you drag.","Arrastra un recuadro para mover ese overlay en la pantalla del PC, o su esquina para cambiar el tamaño. Las ventanas se mueven mientras arrastras."):Lp("Preview of where your overlays sit on the PC screen. Moving them here moves the real windows when the app runs from PitlaneHQ.exe.","Vista de dónde están tus overlays en la pantalla del PC. Al moverlos aquí se mueven las ventanas reales cuando la app funciona desde PitlaneHQ.exe.");const pc=isPC(),remote=pcOverlays(),auto=new Set(CFG.autoWidgets||[]);
   const c=$("#ovCallout");
-  c.innerHTML=MODE!=="bridge"?Lp("Preview: overlay windows open when the app runs from PitWall.exe on your Windows PC. You can set them up here already.","Vista previa: las ventanas overlay se abren cuando la app funciona desde PitWall.exe en tu PC con Windows. Ya puedes configurarlas aquí.")
-    :!remote?Lp("Overlay windows need PitWall.exe running on Windows.","Las ventanas overlay necesitan PitWall.exe en Windows.")
+  c.innerHTML=MODE!=="bridge"?Lp("Preview: overlay windows open when the app runs from PitlaneHQ.exe on your Windows PC. You can set them up here already.","Vista previa: las ventanas overlay se abren cuando la app funciona desde PitlaneHQ.exe en tu PC con Windows. Ya puedes configurarlas aquí.")
+    :!remote?Lp("Overlay windows need PitlaneHQ.exe running on Windows.","Las ventanas overlay necesitan PitlaneHQ.exe en Windows.")
     :pc?Lp("Overlays stay on top of iRacing in borderless or windowed mode. Turn on Edit positions to drag and resize them; turn it off to lock them.","Los overlays quedan encima de iRacing en modo ventana o sin bordes. Activa Editar posiciones para moverlos y cambiar su tamaño; desactívalo para fijarlos.")
     :Lp("Changes here apply to the overlays on your PC.","Los cambios aquí se aplican a los overlays de tu PC.");
   $("#ovSub").textContent=Tx(`${auto.size} open automatically`,`${auto.size} se abren automáticamente`);
@@ -1756,6 +1859,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}${chk("oStart",CFG.startWithWindows,L("startWin",true))}</div>
     <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="oOpenSel"${dis}>${L("openSel",true)}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div>
     <div class="frow" style="margin-top:12px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select></div>
+    <div class="frow" style="margin-top:12px"><span class="label">${esc(Tx("Look","Estilo"))}</span><span class="seg3" id="oLook">${[["glass","Glass","Cristal"],["carbon","Carbon","Carbono"],["minimal","Minimal","Mínimo"]].map(x=>`<button type="button" data-look="${x[0]}" aria-pressed="${(((CFG.ui||{}).ovlook||{}).t||"glass")===x[0]}">${esc(Tx(x[1],x[2]))}</button>`).join("")}</span></div>
     <details style="margin-top:10px"><summary class="label">${L("experimental",true)}</summary><div class="frow" style="margin:8px 0"><label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="flex:1;max-width:260px"></div><div class="frow">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details>`;
   box.innerHTML=WIDGETS.map(w=>`<div class="ovcard${auto.has(w)?" on":""}">
     <div class="top"><div><div class="nm">${L("w."+w)}</div><div class="sub">${L("d."+w)}</div></div>
@@ -1766,6 +1870,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     ${MODE==="bridge"?`<div class="obs mono hide-sm" title="OBS">${esc(location.origin)}/?overlay=${w}&amp;bg=transparent</div>`:""}</div>`).join("");
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
+  document.querySelectorAll("#oLook [data-look]").forEach(b=>b.onclick=()=>{CFG.ui=CFG.ui||{};CFG.ui.ovlook={t:b.dataset.look};saveCfg();renderOverlaysTab()});
   q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oAlpha").onchange=e=>{CFG.alpha=+e.target.value;saveCfg()};
   q("#oOpenSel").onclick=async()=>{if(!(CFG.autoWidgets||[]).length){toast(Tx("Mark some overlays with Auto first.","Marca primero algunos overlays con Auto."));return}for(const w of CFG.autoWidgets){await openOverlayOnPC(w)}toast(Tx("Opened on your PC.","Abiertos en tu PC."))};
   q("#oCloseAll").onclick=()=>fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{});
@@ -2165,7 +2270,7 @@ async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRA
 let PREVIEW_TIMER=0;
 function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;
   if(MODE==="bridge"&&!REMOTE){if(!pv.querySelector("iframe")){const sz=OVSZ[w]||[460,260];pv.innerHTML=`<iframe title="preview" src="/?overlay=${w}&preview=1" style="height:${Math.min(sz[1],420)}px"></iframe>`}return}
-  const draw=()=>{if(w==="relative")renderRelative(pv);else if(w==="standings")renderStandingsWidget(pv);else pv.innerHTML=`<p class="note">${Lp("The preview appears here when the app runs from PitWall.exe; the block on Live already shows your changes.","La vista previa aparece aquí con PitWall.exe; el bloque en En vivo ya muestra tus cambios.")}</p>`};draw();PREVIEW_TIMER=setInterval(draw,500)}
+  const draw=()=>{if(w==="relative")renderRelative(pv);else if(w==="standings")renderStandingsWidget(pv);else pv.innerHTML=`<p class="note">${Lp("The preview appears here when the app runs from PitlaneHQ.exe; the block on Live already shows your changes.","La vista previa aparece aquí con PitlaneHQ.exe; el bloque en En vivo ya muestra tus cambios.")}</p>`};draw();PREVIEW_TIMER=setInterval(draw,500)}
 
 /* ---------- new widgets: delta bar, G-G circle, driving stats ---------- */
 let DB_HIST=[];
@@ -2203,7 +2308,7 @@ async function g61Status(){if(MODE!=="bridge"||REMOTE)return G61;try{G61=await (
 async function g61Get(path){if(G61CACHE[path])return G61CACHE[path];const r=await fetch("/api/g61/"+path);if(!r.ok){let m="HTTP "+r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}const ct=r.headers.get("Content-Type")||"";const v=ct.includes("json")?await r.json():await r.text();if(!path.includes("/csv"))G61CACHE[path]=v;return v}
 const listOf=v=>Array.isArray(v)?v:(v&&(v.items||v.data||v.results))||[];
 function g61UserName(u){if(!u)return"";return u.nickName||u.name||[u.firstName,u.lastName].filter(Boolean).join(" ")||u.slug||""}
-async function renderG61Panel(){const box=$("#g61Panel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.innerHTML=`<h2>${L("g61")}</h2><p class="note">${Lp("Connect Garage 61 in the app running from PitWall.exe.","Conecta Garage 61 en la app desde PitWall.exe.")}</p>`;return}
+async function renderG61Panel(){const box=$("#g61Panel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.innerHTML=`<h2>${L("g61")}</h2><p class="note">${Lp("Connect Garage 61 in the app running from PitlaneHQ.exe.","Conecta Garage 61 en la app desde PitlaneHQ.exe.")}</p>`;return}
   await g61Status();box.innerHTML=`<h2>${L("g61")}</h2>`+(G61.connected?`<p>${Lp("Connected","Conectado",true)}${G61.user?": <b>"+esc(g61UserName(G61.user))+"</b>":""}</p><p class="note">${Lp("Load a Garage 61 lap as a reference in Live → Lap comparison.","Carga una vuelta de Garage 61 como referencia en En vivo → Comparación de vueltas.")}</p><button class="btn" id="g61Off" type="button">${L("disconnect",true)}</button>`
    :`<p class="note">${Lp("Use your laps (or your team's) from Garage 61 as the reference while you drive. Create a personal token at garage61.net/developer and paste it here.","Usa tus vueltas (o las de tu equipo) de Garage 61 como referencia mientras conduces. Crea un token personal en garage61.net/developer y pégalo aquí.")}</p>
      <form class="frow" id="g61Form"><input type="password" id="g61Tok" placeholder="Token" style="flex:1;min-width:200px" autocomplete="off"><button class="btn primary" type="submit">${L("connect",true)}</button></form><div class="err" id="g61Err"></div>
@@ -2241,7 +2346,7 @@ async function renderShare(){const box=$("#sharePanel");if(!box)return;if(MODE!=
    <div class="s6"><div class="label">${L("internet",true)}</div>${st.link?`<div class="frow" style="margin-top:6px"><input type="text" id="shareLink" readonly value="${esc(st.link)}" style="flex:1;min-width:200px"><button class="btn" type="button" id="shareCopy">${L("copy",true)}</button></div>
       <img class="qr" style="margin-top:8px;width:150px" alt="QR" src="/api/qr.png?u=${encodeURIComponent(st.link)}"><div style="margin-top:8px"><button class="btn" type="button" id="shareStop">${L("stopLink",true)}</button></div>`
      :st.starting?`<p class="note">${Lp("Creating the link… the first time this downloads a small tool from Cloudflare.","Creando el enlace… la primera vez descarga una pequeña herramienta de Cloudflare.")}</p>`
-     :`<div style="margin-top:6px"><button class="btn primary" type="button" id="shareStart">${L("startLink",true)}</button></div>${st.error?`<p class="err">${esc(st.error)}</p>`:""}<p class="note">${Lp("A private link through Cloudflare (free). It stops working when you press Stop or close PitWall.","Un enlace privado a través de Cloudflare (gratis). Deja de funcionar al pulsar Dejar de compartir o al cerrar PitWall.")}</p>`}</div></div>`;
+     :`<div style="margin-top:6px"><button class="btn primary" type="button" id="shareStart">${L("startLink",true)}</button></div>${st.error?`<p class="err">${esc(st.error)}</p>`:""}<p class="note">${Lp("A private link through Cloudflare (free). It stops working when you press Stop or close Pitlane HQ.","Un enlace privado a través de Cloudflare (gratis). Deja de funcionar al pulsar Dejar de compartir o al cerrar Pitlane HQ.")}</p>`}</div></div>`;
   if($("#shareStart"))$("#shareStart").onclick=async()=>{await fetch("/api/share?action=start",{method:"POST"});renderShare();pollShare()};
   if($("#shareStop"))$("#shareStop").onclick=async()=>{await fetch("/api/share?action=stop",{method:"POST"});renderShare()};
   if($("#shareCopy"))$("#shareCopy").onclick=()=>{const i=$("#shareLink");navigator.clipboard.writeText(i.value).then(()=>toast(Tx("Link copied","Enlace copiado"))).catch(()=>{i.select()})};
@@ -2262,10 +2367,10 @@ function renderSettings(){
   const th=store.get("pw.theme","dark");document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===th));
   const note=$("#srcNote"),btn=$("#demoBtn");
   if(MODE==="bridge"){$("#demoCtl").hidden=false;btn.innerHTML=STATUS.demo?Lp("Use iRacing","Usar iRacing",true):Lp("Start demo","Iniciar demo",true);
-    note.innerHTML=STATUS.demo?Lp("Showing a simulated race. Switch back to read iRacing.","Mostrando una carrera simulada. Vuelve a iRacing para leer el simulador."):STATUS.connected?Lp("Reading iRacing telemetry from this PC.","Leyendo la telemetría de iRacing en este PC."):Lp("PitWall is running. Start iRacing and get in the car; data appears automatically.","PitWall está funcionando. Abre iRacing y súbete al coche; los datos aparecen solos.")}
-  else{$("#demoCtl").hidden=true;note.innerHTML=Lp("This is a preview with simulated data. To read iRacing, run PitWall.exe on the PC where you race and open the address it shows.","Esto es una vista previa con datos simulados. Para leer iRacing, ejecuta PitWall.exe en el PC donde corres y abre la dirección que muestra.")}
+    note.innerHTML=STATUS.demo?Lp("Showing a simulated race. Switch back to read iRacing.","Mostrando una carrera simulada. Vuelve a iRacing para leer el simulador."):STATUS.connected?Lp("Reading iRacing telemetry from this PC.","Leyendo la telemetría de iRacing en este PC."):Lp("Pitlane HQ is running. Start iRacing and get in the car; data appears automatically.","Pitlane HQ está funcionando. Abre iRacing y súbete al coche; los datos aparecen solos.")}
+  else{$("#demoCtl").hidden=true;note.innerHTML=Lp("This is a preview with simulated data. To read iRacing, run PitlaneHQ.exe on the PC where you race and open the address it shows.","Esto es una vista previa con datos simulados. Para leer iRacing, ejecuta PitlaneHQ.exe en el PC donde corres y abre la dirección que muestra.")}
   $("#changePC").hidden=!NATIVE;$("#changePC").innerHTML=Lp("Change PC","Cambiar de PC",true);
-  const urls=(INFO&&INFO.urls)||[];$("#urlList").innerHTML=urls.length?urls.map(u=>`<div>${esc(u)}</div>`).join(""):`<div class="muted">${Lp("Shown when running from PitWall.exe","Se muestra al usar PitWall.exe")}</div>`;
+  const urls=(INFO&&INFO.urls)||[];$("#urlList").innerHTML=urls.length?urls.map(u=>`<div>${esc(u)}</div>`).join(""):`<div class="muted">${Lp("Shown when running from PitlaneHQ.exe","Se muestra al usar PitlaneHQ.exe")}</div>`;
   $("#qrBox").innerHTML=MODE==="bridge"&&urls.length?`<img class="qr" alt="QR" src="/api/qr.png?u=${encodeURIComponent(urls[0])}">`:"";
 }
 document.querySelectorAll("#langSeg button").forEach(b=>b.onclick=()=>{LANG=b.dataset.l;store.set("pw.lang",LANG);applyI18n()});
@@ -2282,10 +2387,16 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-function show(v){CUR_VIEW=v;tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));$("#setBtn").setAttribute("aria-pressed",v==="settings");
+const GROUPS={race:["live","field","laps","tyres","data"],overlays:["overlays"],season:["calendar","series"],rig:["rig","haptics"],account:["account","settings"]};
+const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
+const VIEW_LABEL={live:"tab.live",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
+  box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
+function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
-tabs.forEach(b=>b.onclick=()=>show(b.dataset.v));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
+  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
+tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
 
@@ -2299,7 +2410,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
    PC's profile so they follow the profile. Phones keep their own Live layout. */
-const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|hiddenW|seenW)$/;
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|haptics|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|hiddenW|seenW)$/;
 const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
 let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
 const rawSet=store.set.bind(store);
@@ -2332,7 +2443,7 @@ function profilesHTML(list){return `<div class="panel">${list.list.map(p=>`<div 
   <div class="panel" style="margin-top:10px"><h2>${esc(Tx("New profile","Nuevo perfil"))}</h2>
     <form class="frow" id="pNew"><input type="text" id="pName" maxlength="40" placeholder="${esc(Tx("Name","Nombre"))}" required style="flex:1;min-width:160px">${chk("pCopy",true,Lp("Copy my current settings","Copiar mis ajustes actuales",true))}<button class="btn primary" type="submit">${esc(Tx("Create and use","Crear y usar"))}</button></form>
     <div class="frow" style="margin-top:10px"><label class="btn filebtn">${esc(Tx("Import a profile file…","Importar un archivo de perfil…"))}<input type="file" id="pImport" accept=".json,application/json"></label></div>
-    <p class="note">${Lp("Profiles stay on this PC (in %APPDATA%\\PitWall\\profiles), nothing goes to the cloud. Each profile keeps its own settings, overlays and positions, Live layout, favourite series, programs to start and sign-ins. Sign-ins (iRacing, Garage 61) are encrypted with your Windows account and are never exported.","Los perfiles se guardan en este PC (en %APPDATA%\\PitWall\\profiles), nada va a la nube. Cada perfil guarda sus ajustes, overlays y posiciones, diseño de En vivo, series favoritas, programas a iniciar y sesiones. Las sesiones (iRacing, Garage 61) se cifran con tu cuenta de Windows y nunca se exportan.")}</p></div>`}
+    <p class="note">${Lp("Profiles stay on this PC (in %APPDATA%\\PitlaneHQ\\profiles), nothing goes to the cloud. Each profile keeps its own settings, overlays and positions, Live layout, favourite series, programs to start and sign-ins. Sign-ins (iRacing, Garage 61) are encrypted with your Windows account and are never exported.","Los perfiles se guardan en este PC (en %APPDATA%\\PitlaneHQ\\profiles), nada va a la nube. Cada perfil guarda sus ajustes, overlays y posiciones, diseño de En vivo, series favoritas, programas a iniciar y sesiones. Las sesiones (iRacing, Garage 61) se cifran con tu cuenta de Windows y nunca se exportan.")}</p></div>`}
 async function wireProfiles(box,redraw){
   box.querySelectorAll("[data-puse]").forEach(b=>b.onclick=async()=>{try{await profAction("action=switch&id="+b.dataset.puse)}catch(e){toast(e.message)}});
   box.querySelectorAll("[data-pren]").forEach(b=>b.onclick=async()=>{const n=prompt(Tx("New name","Nuevo nombre"));if(!n)return;try{await profAction("action=rename&id="+b.dataset.pren,{name:n});if(b.dataset.pren===PROFILE.id){PROFILE.name=n.trim();renderProfBtn()}redraw()}catch(e){toast(e.message)}});
@@ -2396,13 +2507,13 @@ async function rigPost(p,body){if(MODE==="local")return DEMO_RIG.post(p,body);co
 async function rigUpload(p,file){if(MODE==="local")return DEMO_RIG.upload(p,file);const fd=new FormData();fd.append("file",file);const r=await fetch(p,{method:"POST",body:fd}).catch(()=>null);let j={};try{j=await r.json()}catch(e){}
   if(!r||!r.ok){toast((j&&j.error)||Tx("Upload failed","Error al subir"));return null}return j}
 let RIG_TIMER=0,RIG_APPS=null;
-const WHEN=[["pitwall","With Pit Wall","Con Pit Wall"],["sim","When iRacing starts","Al abrir iRacing"],["","Only by hand","Solo a mano"]];
+const WHEN=[["pitwall","With Pitlane HQ","Con Pitlane HQ"],["sim","When iRacing starts","Al abrir iRacing"],["","Only by hand","Solo a mano"]];
 async function renderRig(){clearTimeout(RIG_TIMER);const ok=(MODE==="bridge"&&!REMOTE)||MODE==="local";const c=$("#rigCallout");renderProfBtn();
   $("#rigSub").innerHTML=Lp("Everything around your sim in one place","Todo lo que rodea a tu simulador en un solo sitio");
-  if(!ok){c.hidden=false;c.innerHTML=REMOTE?Lp("Not available in the engineer view.","No disponible en la vista de ingeniero."):Lp("Preview: programs, SimHub and MOZA are controlled when the app runs from PitWall.exe on your Windows PC.","Vista previa: los programas, SimHub y MOZA se controlan cuando la app funciona desde PitWall.exe en tu PC con Windows.");
+  if(!ok){c.hidden=false;c.innerHTML=REMOTE?Lp("Not available in the engineer view.","No disponible en la vista de ingeniero."):Lp("Preview: programs, SimHub and MOZA are controlled when the app runs from PitlaneHQ.exe on your Windows PC.","Vista previa: los programas, SimHub y MOZA se controlan cuando la app funciona desde PitlaneHQ.exe en tu PC con Windows.");
     ["#appsPanel","#simhubPanel","#azomPanel","#mozaPanel"].forEach(s=>$(s).innerHTML="");return}
   const [apps,sh,mz]=await Promise.all([rigGet("/api/apps"),rigGet("/api/simhub"),rigGet("/api/moza")]);
-  c.hidden=!!(apps&&apps.windows)&&MODE!=="local";if(MODE==="local")c.innerHTML=Lp("Demo: this is a simulated PC. With PitWall.exe on your Windows PC these buttons start your real programs, SimHub and MOZA.","Demo: esto es un PC simulado. Con PitWall.exe en tu PC con Windows estos botones abren tus programas reales, SimHub y MOZA.");else if(!c.hidden)c.innerHTML=Lp("Starting programs and controlling SimHub and MOZA only works on Windows.","Iniciar programas y controlar SimHub y MOZA solo funciona en Windows.");
+  c.hidden=!!(apps&&apps.windows)&&MODE!=="local";if(MODE==="local")c.innerHTML=Lp("Demo: this is a simulated PC. With PitlaneHQ.exe on your Windows PC these buttons start your real programs, SimHub and MOZA.","Demo: esto es un PC simulado. Con PitlaneHQ.exe en tu PC con Windows estos botones abren tus programas reales, SimHub y MOZA.");else if(!c.hidden)c.innerHTML=Lp("Starting programs and controlling SimHub and MOZA only works on Windows.","Iniciar programas y controlar SimHub y MOZA solo funciona en Windows.");
   if(apps)renderApps(apps);if(sh){renderSimhub(sh);renderAzom(sh)}if(mz)renderMoza(mz);
   RIG_TIMER=setTimeout(pollRig,3000)}
 async function pollRig(){if(CUR_VIEW!=="rig")return;const a=await rigGet("/api/apps");if(a&&JSON.stringify(a)!==JSON.stringify(RIG_APPS))renderApps(a);RIG_TIMER=setTimeout(pollRig,3000)}
@@ -2416,7 +2527,7 @@ function renderApps(d){RIG_APPS=d;const box=$("#appsPanel"),list=d.apps||[];
       <button type="button" class="btn primary" id="appsAll">${esc(Tx("Start all now","Iniciar todos ya"))}</button>
       <button type="button" class="btn" id="appsMenu">${esc(Tx("Add from Start menu","Añadir del menú Inicio"))}</button>
       <button type="button" class="btn" id="appsBrowse">${esc(Tx("Browse…","Buscar…"))}</button></div></div>
-    <p class="note">${Lp("Pit Wall finds your sim-racing programs and starts the ones you choose, in this order: when Pit Wall opens, or each time iRacing starts. Programs already open are left alone.","Pit Wall encuentra tus programas de simracing y abre los que elijas, en este orden: al abrir Pit Wall o cada vez que arranca iRacing. Los que ya están abiertos no se tocan.")}${isPC()&&!CFG.startWithWindows?" "+Lp("Tip: turn on Start with Windows in the Overlays tab and everything starts by itself.","Consejo: activa Iniciar con Windows en la pestaña Overlays y todo arranca solo."):""}</p>
+    <p class="note">${Lp("Pitlane HQ finds your sim-racing programs and starts the ones you choose, in this order: when Pitlane HQ opens, or each time iRacing starts. Programs already open are left alone.","Pitlane HQ encuentra tus programas de simracing y abre los que elijas, en este orden: al abrir Pitlane HQ o cada vez que arranca iRacing. Los que ya están abiertos no se tocan.")}${isPC()&&!CFG.startWithWindows?" "+Lp("Tip: turn on Start with Windows in the Overlays tab and everything starts by itself.","Consejo: activa Iniciar con Windows en la pestaña Overlays y todo arranca solo."):""}</p>
     ${list.length?list.map(row).join(""):`<div class="empty">${esc(Tx("No programs yet. Add the ones found on this PC below.","Aún no hay programas. Añade abajo los que se encontraron en este PC."))}</div>`}
     ${(d.found||[]).length?`<div class="label" style="margin-top:12px">${esc(Tx("Found on this PC","Encontrados en este PC"))}</div><div class="found">${d.found.map(f=>`<div><span><span class="dot${f.running?" on":""}"></span><b>${esc(f.name)}</b><br><span class="muted" style="font-size:12px">${esc(Tx(f.what[0],f.what[1]))}</span></span><button type="button" class="btn small" data-add="${esc(f.id)}">+ ${esc(Tx("Add","Añadir"))}</button></div>`).join("")}</div>`:""}
     ${(d.missing||[]).length?`<details style="margin-top:10px"><summary class="label">${esc(Tx("Not found on this PC","No encontrados en este PC"))} (${d.missing.length})</summary><p class="note">${d.missing.map(m=>esc(m.name)).join(" · ")}</p><p class="note">${Lp("Installed somewhere else? Use Add from Start menu or Browse.","¿Instalado en otro sitio? Usa Añadir del menú Inicio o Buscar.")}</p></details>`:""}`;
@@ -2455,7 +2566,7 @@ function renderSimhub(d){SH=d;const box=$("#simhubPanel"),pill=(on,en,es)=>`<spa
   box.querySelectorAll("[data-dlive]").forEach(b=>b.onclick=()=>{setUI("simhub",{dash:b.dataset.dlive});HIDDEN.delete("simhub");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderSimhubWidget(true);toast(Tx("Added to Live","Añadido a En vivo"))});
   box.querySelectorAll("[data-dov]").forEach(b=>b.onclick=async()=>{setUI("simhub",{dash:b.dataset.dov});await new Promise(r=>setTimeout(r,400));popOut("simhub")});
   const im=$("#shImport");im.onchange=async()=>{if(!im.files[0])return;const j=await rigUpload("/api/simhub/do",im.files[0]);if(j)toast(Tx("SimHub is importing ","SimHub está importando ")+j.name)}}
-/* AZOM: the MOZA plugin for SimHub that Pit Wall carries and installs */
+/* AZOM: the MOZA plugin for SimHub that Pitlane HQ carries and installs */
 const AZ_BASE=[["FfbStrength","FFB strength","Fuerza FFB","%"],["Torque","Torque","Par","%"],["Rotation","Rotation","Rotación","°"],["Damper","Damper","Amortiguación",""],["Friction","Friction","Fricción",""],["Inertia","Inertia","Inercia",""],["Spring","Spring","Muelle",""],["SpeedDamping","Speed damping","Amortig. por velocidad",""],["NaturalInertia","Natural inertia","Inercia natural",""],["WheelSpeedLimit","Max wheel speed","Vel. máx. volante",""],["GameDamper","Game damper","Amortig. del juego","%"],["GameFriction","Game friction","Fricción del juego","%"],["GameSpring","Game spring","Muelle del juego","%"],["GameInertia","Game inertia","Inercia del juego","%"],["SoftLimitStiffness","Soft-lock stiffness","Rigidez del tope",""]];
 const AZ_TOG=[["FfbReverse","Reverse FFB","Invertir FFB"],["Protection","Hands-off protection","Protección sin manos"],["SoftLimitRetain","Keep soft lock","Mantener tope"],["BaseStatusLed","Base status LED","LED de la base"]];
 const AZ_SCREEN=[["DashboardPrev","◀ Screen","◀ Pantalla"],["DashboardNext","Screen ▶","Pantalla ▶"],["DisplayToggle","Screen on/off","Pantalla on/off"],["DashboardTelemetryToggle","Telemetry on/off","Telemetría on/off"],["DisplayBrightnessDown","Brightness −","Brillo −"],["DisplayBrightnessUp","Brightness +","Brillo +"]];
@@ -2467,7 +2578,7 @@ function renderAzom(d){const box=$("#azomPanel"),p=d.azomPkg||{},ok=d.azom,dis=o
   box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">AZOM · MOZA</h2>${state}</div>
     <div class="frow">${p.bundled?`<button type="button" class="btn ${ok&&p.upToDate?"":"primary"}" data-azi="azomInstall"${p.busy||!d.installed?" disabled":""}>${esc(ok?(p.upToDate?Tx("Reinstall","Reinstalar"):Tx("Update in SimHub","Actualizar en SimHub")):Tx("Install in SimHub","Instalar en SimHub"))}</button>`:""}
       ${ok?`<button type="button" class="btn" data-azi="azomRemove"${p.busy?" disabled":""}>${esc(Tx("Remove","Quitar"))}</button>`:""}${p.backup&&!p.busy?`<button type="button" class="btn" data-azi="azomRestore">${esc(Tx("Previous version","Versión anterior"))}</button>`:""}</div>
-    <p class="note">${p.bundled?Lp(`Pit Wall carries its own copy of AZOM (${p.version}). Installing closes SimHub, copies the plugin into its folder (Windows may ask for permission) and opens SimHub again.`,`Pit Wall lleva su propia copia de AZOM (${p.version}). Al instalar se cierra SimHub, se copia el plugin en su carpeta (Windows puede pedir permiso) y SimHub se vuelve a abrir.`):Lp("This Pit Wall was built without the plugin inside. Use the PitWall.exe built by GitHub Actions (it carries AZOM), or put MozaPlugin.dll next to PitWall.exe.","Este Pit Wall se compiló sin el plugin dentro. Usa el PitWall.exe que compila GitHub Actions (lleva AZOM), o pon MozaPlugin.dll junto a PitWall.exe.")}${p.message&&!p.busy?` <b>${esc(p.message)}</b>`:""}</p>
+    <p class="note">${p.bundled?Lp(`Pitlane HQ carries its own copy of AZOM (${p.version}). Installing closes SimHub, copies the plugin into its folder (Windows may ask for permission) and opens SimHub again.`,`Pitlane HQ lleva su propia copia de AZOM (${p.version}). Al instalar se cierra SimHub, se copia el plugin en su carpeta (Windows puede pedir permiso) y SimHub se vuelve a abrir.`):Lp("This Pitlane HQ was built without the plugin inside. Use the PitlaneHQ.exe built by GitHub Actions (it carries AZOM), or put MozaPlugin.dll next to PitlaneHQ.exe.","Este Pitlane HQ se compiló sin el plugin dentro. Usa el PitlaneHQ.exe que compila GitHub Actions (lleva AZOM), o pon MozaPlugin.dll junto a PitlaneHQ.exe.")}${p.message&&!p.busy?` <b>${esc(p.message)}</b>`:""}</p>
     ${ok&&d.pitHouse?`<div class="callout">${Lp("MOZA Pit House is open. AZOM and Pit House cannot use the wheel at the same time; close Pit House completely so SimHub can drive the wheel.","MOZA Pit House está abierto. AZOM y Pit House no pueden usar el volante a la vez; cierra Pit House del todo para que SimHub controle el volante.")} <button type="button" class="btn small" id="azClosePH">${esc(Tx("Close Pit House","Cerrar Pit House"))}</button></div>`:""}
     ${ok&&!d.running?`<p class="note">${Lp("Start SimHub to use the controls.","Abre SimHub para usar los controles.")}</p>`:""}
     <div class="label" style="margin-top:10px">${esc(Tx("Wheel screen","Pantalla del volante"))}</div>
@@ -2479,7 +2590,7 @@ function renderAzom(d){const box=$("#azomPanel"),p=d.azomPkg||{},ok=d.azom,dis=o
     <details style="margin-top:10px"><summary class="label">${esc(Tx("Any SimHub action","Cualquier acción de SimHub"))}</summary>
     <form class="frow" id="azForm" style="margin-top:8px"><input type="text" id="azAct" placeholder="AZOM.TorqueUp" style="flex:1;min-width:160px" aria-label="SimHub action" pattern="[A-Za-z0-9_.\-]{1,80}"><button type="submit" class="btn">${esc(Tx("Run","Ejecutar"))}</button></form>
     <p class="note">${Lp("Runs any SimHub action (AZOM or any other plugin) as if you pressed a mapped button. The new value shows on the wheel and in SimHub.","Ejecuta cualquier acción de SimHub (AZOM u otro plugin) como si pulsaras un botón asignado. El nuevo valor se ve en el volante y en SimHub.")}</p></details>
-    <p class="note">${Lp("AZOM is free software (GPL v3) originally made by giantorth; Pit Wall's copy lives in the azom folder of this project.","AZOM es software libre (GPL v3) creado originalmente por giantorth; la copia de Pit Wall está en la carpeta azom de este proyecto.")}</p>`;
+    <p class="note">${Lp("AZOM is free software (GPL v3) originally made by giantorth; Pitlane HQ's copy lives in the azom folder of this project.","AZOM es software libre (GPL v3) creado originalmente por giantorth; la copia de Pitlane HQ está en la carpeta azom de este proyecto.")}</p>`;
   box.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>rigPost("/api/simhub/do",{action:"trigger",name:b.dataset.az}).then(j=>j&&toast(Tx("Sent to the wheel","Enviado al volante"))));
   box.querySelectorAll("[data-azi]").forEach(b=>b.onclick=async()=>{if(b.dataset.azi==="azomRemove"&&!askOK(Tx("Remove AZOM from SimHub? SimHub will restart.","¿Quitar AZOM de SimHub? SimHub se reiniciará.")))return;if(await rigPost("/api/simhub/do",{action:b.dataset.azi})){toast(Tx("Working… SimHub will restart.","Trabajando… SimHub se reiniciará."));pollAzom()}});
   $("#azForm").onsubmit=e=>{e.preventDefault();const n=$("#azAct").value.trim();if(n)rigPost("/api/simhub/do",{action:"trigger",name:n}).then(j=>j&&toast(Tx("Sent","Enviado")))};
@@ -2502,7 +2613,7 @@ function renderMoza(d){const box=$("#mozaPanel");const ds=d.dashes||[];
 /* ===================== SimHub dashboard widget ===================== */
 let SH_SHOWN="";
 async function renderSimhubWidget(force){const box=$("#shBox"),sel=$("#shDashSel");if(!box)return;const name=ui("simhub").dash;
-  if(MODE!=="bridge"||REMOTE){box.innerHTML=`<div class="empty" style="color:#aaa">${Lp("SimHub dashboards appear here when the app runs from PitWall.exe.","Los dashboards de SimHub aparecen aquí con PitWall.exe.")}</div>`;sel.hidden=true;return}
+  if(MODE!=="bridge"||REMOTE){box.innerHTML=`<div class="empty" style="color:#aaa">${Lp("SimHub dashboards appear here when the app runs from PitlaneHQ.exe.","Los dashboards de SimHub aparecen aquí con PitlaneHQ.exe.")}</div>`;sel.hidden=true;return}
   if(!SH||force)SH=await rigGet("/api/simhub");fillDashSelect(sel,SH);sel.onchange=()=>{setUI("simhub",{dash:sel.value});renderSimhubWidget()};
   if(!name){SH_SHOWN="";box.innerHTML=`<div class="empty" style="color:#aaa">${Lp("Choose a SimHub dashboard above.","Elige arriba un dashboard de SimHub.")}</div>`;return}
   const url=simhubURL(name,SH&&SH.port,OV.on);if(SH_SHOWN===url&&!force)return;SH_SHOWN=url;
@@ -2571,6 +2682,168 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
     ${lim?`<div class="meter"><b style="width:${Math.min(100,n/lim*100)}%;background:${n>=lim*.75?"var(--bad)":"var(--accent)"}"></b></div>`:""}
     <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
+/* ===================== race scheduler (calendar) ===================== */
+Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
+ "tab.calendar":["Calendar","Calendario"],"tab.rigGear":["Programs & gear","Programas y equipo"],"tab.haptics":["Haptics","Hápticos"]});
+const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
+let EVENTS=store.get("pw.events",[]),REMIND=store.get("pw.remind",[15]),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),ghosts:store.get("pw.calghost",true)};
+const DAYMS=864e5,startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()},weekMon=t=>{const d=new Date(startOfDay(t));const k=(d.getDay()+6)%7;return d.getTime()-k*DAYMS};
+const addDays=(t,n)=>{const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime()};
+function calItems(from,to){const out=[];
+  PLAN.forEach(p=>{if(p.t<to&&p.t+(p.mins||60)*6e4>from)out.push({k:"plan",t:p.t,mins:p.mins||60,title:p.name,sub:p.track,ref:p})});
+  EVENTS.forEach(e=>{if(e.t<to&&e.t+e.mins*6e4>from)out.push({k:e.kind,t:e.t,mins:e.mins,title:e.title,sub:e.note||"",ref:e})});
+  out.sort((a,b)=>a.t-b.t);
+  const live=out.filter(x=>x.k!=="busy");live.forEach(a=>{a.clash=live.some(b=>b!==a&&b.t<a.t+a.mins*6e4&&a.t<b.t+b.mins*6e4)});
+  out.forEach(a=>{if(a.k!=="busy"&&out.some(b=>b.k==="busy"&&b.t<a.t+a.mins*6e4&&a.t<b.t+b.mins*6e4))a.clash=true});
+  return out}
+/* suggested sessions of starred series: at most one every 2 hours per series */
+function ghostItems(from,to){if(!CAL.ghosts||!SER)return[];const out=[];SER.seasons.filter(s=>FAV.has(s.sid)).forEach(s=>{let last=-Infinity;s.weeks.forEach(w=>sessions(w,from,to).forEach(t=>{if(t-last<2*36e5||inPlan(s.sid,t))return;last=t;out.push({k:"ghost",t,mins:Math.min(60,(w.rtd&&w.rtd.sl)||w.mins||45),title:s.name,sub:trackInfo(w).name,s,w})}))});return out.slice(0,300)}
+function saveEvents(){EVENTS=EVENTS.filter(e=>e.t+e.mins*6e4>Date.now()-30*DAYMS).sort((a,b)=>a.t-b.t);store.set("pw.events",EVENTS);syncNativePlan()}
+/* lays out overlapping blocks side by side */
+function lanes(items){const res=[];let group=[],end=0;const flush=()=>{const cols=[];group.forEach(it=>{let c=cols.findIndex(e=>e<=it.t);if(c<0){c=cols.length;cols.push(0)}cols[c]=it.t+it.mins*6e4;it.col=c});group.forEach(it=>it.ncol=cols.length);res.push(...group);group=[]};
+  items.forEach(it=>{if(group.length&&it.t>=end)flush();group.push(it);end=Math.max(end,it.t+it.mins*6e4)});flush();return res}
+function renderCalendar(){if(!SER&&MODE!=="bridge"||!SER){loadSeries().then(()=>{if(CUR_VIEW==="calendar")renderCalendar()})}
+  document.querySelectorAll("#calMode button").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.m===CAL.mode);b.textContent=b.dataset.m==="week"?Tx("Week","Semana"):Tx("Month","Mes")});
+  $("#calToday").textContent=Tx("Today","Hoy");$("#calAdd").textContent="+ "+Tx("Add","Añadir");
+  CAL.mode==="month"?renderMonth():renderWeek();renderCalSide()}
+function renderWeek(){const narrow=innerWidth<760,days=narrow?3:7,start=narrow?startOfDay(CAL.day):weekMon(CAL.day),end=addDays(start,days),now=Date.now(),RH=narrow?44:40;
+  const items=calItems(start,end),ghosts=ghostItems(Math.max(start,now),end),H0=Math.min(6,...items.map(i=>new Date(i.t).getHours())),H1=24;
+  const fmtD=t=>new Date(t).toLocaleDateString(locale(),{day:"numeric",month:"short"});
+  $("#calSub").textContent=fmtD(start)+" – "+fmtD(addDays(end,-1))+" · "+Tx(`${(items.filter(i=>i.k!=="busy").reduce((s,i)=>s+i.mins,0)/60).toFixed(1)} h of racing planned`,`${(items.filter(i=>i.k!=="busy").reduce((s,i)=>s+i.mins,0)/60).toFixed(1)} h de carreras planificadas`);
+  const cl=items.filter(i=>i.clash).length;$("#calWarn").hidden=!cl;$("#calWarn").innerHTML=Lp(`${cl} races overlap or fall when you are not available (red outline).`,`${cl} carreras se solapan o caen cuando no estás disponible (borde rojo).`);
+  let head=`<div class="dh"></div>`,cols="";
+  for(let d=0;d<days;d++){const t0=addDays(start,d),t1=addDays(t0,1),isT=now>=t0&&now<t1,dt=new Date(t0);
+    head+=`<div class="dh${isT?" today":""}">${esc(dt.toLocaleDateString(locale(),{weekday:"short"}))}<b>${dt.getDate()}</b></div>`;
+    const top=t=>((t-t0)/36e5-H0)*RH;
+    const evs=[...lanes(ghosts.filter(i=>i.t>=t0&&i.t<t1)),...lanes(items.filter(i=>i.t>=t0&&i.t<t1))].map(i=>{const w=100/i.ncol;const h=Math.max(18,i.mins/60*RH-2);
+      return `<button type="button" class="ev ${i.k}${i.clash?" clash":""}" data-ev="${items.includes(i)?"i"+items.indexOf(i):"g"+ghosts.indexOf(i)}" style="top:${top(i.t)}px;height:${h}px;left:calc(${i.col*w}% + 2px);right:auto;width:calc(${w}% - 4px)" title="${esc(i.title+" · "+hm(i.t))}">${i.k==="ghost"?"+ ":""}${esc(i.title)}${h>30?`<small>${esc(hm(i.t))}${i.sub?" · "+esc(i.sub):""}</small>`:""}</button>`}).join("");
+    cols+=`<div class="wkday${isT?" today":""}" data-day="${t0}" style="height:${(H1-H0)*RH}px">${evs}${isT?`<div class="nowline" style="top:${top(now)}px"></div>`:""}</div>`}
+  $("#calMain").innerHTML=`<div class="wk" style="--days:${days}">${head}</div><div class="wkscroll" id="wkScroll"><div class="wkbody" style="--days:${days};--rh:${RH}px"><div class="wkhours">${Array.from({length:H1-H0},(_,h)=>`<div>${String(h+H0).padStart(2,"0")}:00</div>`).join("")}</div>${cols}</div></div>`;
+  const sc=$("#wkScroll");sc.scrollTop=Math.max(0,((items.find(i=>i.t>=now)||{t:0}).t?new Date(items.find(i=>i.t>=now).t).getHours():17)-H0-2)*RH;
+  document.querySelectorAll("#calMain .wkday").forEach(c=>c.onclick=e=>{if(e.target!==c)return;const r=c.getBoundingClientRect(),mins=Math.round(((e.clientY-r.top)/RH+H0)*60/15)*15;openEventForm(null,+c.dataset.day+mins*6e4)});
+  document.querySelectorAll("#calMain [data-ev]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.ev,i=k[0]==="i"?items[+k.slice(1)]:ghosts[+k.slice(1)];openCalItem(i)})}
+function renderMonth(){const d=new Date(CAL.day);d.setDate(1);const first=weekMon(d.getTime()),month=d.getMonth(),now=Date.now();
+  $("#calSub").textContent=d.toLocaleDateString(locale(),{month:"long",year:"numeric"});
+  const items=calItems(first,addDays(first,42));const cl=items.filter(i=>i.clash).length;$("#calWarn").hidden=!cl;$("#calWarn").innerHTML=Lp(`${cl} races overlap or fall when you are not available.`,`${cl} carreras se solapan o caen cuando no estás disponible.`);
+  let h=[0,1,2,3,4,5,6].map(k=>`<div class="dh">${esc(new Date(addDays(first,k)).toLocaleDateString(locale(),{weekday:"short"}))}</div>`).join("");
+  for(let k=0;k<42;k++){const t0=addDays(first,k),t1=addDays(t0,1),dt=new Date(t0),its=items.filter(i=>i.t>=t0&&i.t<t1);
+    h+=`<div class="cell${dt.getMonth()!==month?" out":""}${now>=t0&&now<t1?" today":""}" data-day="${t0}"><span class="dn">${dt.getDate()}</span>${its.slice(0,3).map(i=>`<div class="it ${i.k}">${esc(hm(i.t))} ${esc(i.title)}</div>`).join("")}${its.length>3?`<div class="muted" style="font-size:12px">+${its.length-3}</div>`:""}</div>`}
+  $("#calMain").innerHTML=`<div class="mo">${h}</div>`;
+  document.querySelectorAll("#calMain .cell").forEach(c=>c.onclick=()=>{CAL.day=+c.dataset.day;CAL.mode="week";store.set("pw.calmode","week");renderCalendar()})}
+function renderCalSide(){const now=Date.now(),next=calItems(now-3*36e5,now+60*DAYMS).filter(i=>i.k!=="busy"&&i.t+i.mins*6e4>now).slice(0,5);
+  const cd=t=>{const m=Math.round((t-now)/6e4);if(m<=0)return Tx("now","ahora");if(m<60)return m+" min";const h=Math.floor(m/60);if(h<48)return h+" h "+(m%60)+" min";return Math.floor(h/24)+Tx(" days"," días")};
+  $("#calSide").innerHTML=`<div class="panel"><h2>${esc(Tx("Next up","Próximas"))}</h2>${next.map(i=>`<div class="nextrace"><span class="cd">${esc(cd(i.t))}</span><b>${esc(i.title)}</b><span class="muted" style="font-size:13px">${esc(dayName(i.t))} · ${esc(hm(i.t))}${i.sub?" · "+esc(i.sub):""}</span></div>`).join("")||`<p class="note">${Lp("Nothing planned. Tap a time on the calendar, or add races from Series.","Nada planificado. Toca una hora en el calendario o añade carreras desde Series.")}</p>`}</div>
+    <div class="panel"><h2>${esc(Tx("Reminders","Avisos"))}</h2><div class="frow">${[5,15,30,60].map(m=>`<button type="button" class="chip" data-rem="${m}" aria-pressed="${REMIND.includes(m)}">${m} min</button>`).join("")}</div>
+      <p class="note">${NATIVE?Lp("Your phone reminds you before each race, even with the app closed.","Tu móvil te avisa antes de cada carrera, aunque la app esté cerrada."):Lp("This screen shows a notification while it is open. The iPhone and Android apps remind you even when closed.","Esta pantalla muestra un aviso mientras está abierta. Las apps de iPhone y Android avisan aunque estén cerradas.")}</p>
+      ${!NATIVE&&"Notification" in window&&Notification.permission!=="granted"?`<button type="button" class="btn small" id="calNotif">${esc(Tx("Allow notifications","Permitir avisos"))}</button>`:""}</div>
+    <div class="panel"><h2>${esc(Tx("Show","Mostrar"))}</h2><div class="frow">${chk("calGhost",CAL.ghosts,Lp("Sessions of my favourite series","Sesiones de mis series favoritas",true))}</div>
+      <p class="note">${Lp("Dashed blocks are upcoming sessions of your starred series: tap one to add it to your plan.","Los bloques con línea discontinua son próximas sesiones de tus series con estrella: toca uno para añadirlo a tu plan.")}</p>
+      <div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="calIcs">${esc(Tx("Export to my calendar (.ics)","Exportar a mi calendario (.ics)"))}</button></div></div>`;
+  document.querySelectorAll("#calSide [data-rem]").forEach(b=>b.onclick=()=>{const m=+b.dataset.rem;REMIND=REMIND.includes(m)?REMIND.filter(x=>x!==m):[...REMIND,m].sort((a,b)=>a-b);store.set("pw.remind",REMIND);syncNativePlan();renderCalSide()});
+  $("#calGhost").onclick=()=>{CAL.ghosts=!CAL.ghosts;store.set("pw.calghost",CAL.ghosts);renderCalendar()};
+  $("#calIcs").onclick=exportICS;const n=$("#calNotif");if(n)n.onclick=()=>Notification.requestPermission().then(()=>{scheduleWebReminders();renderCalSide()})}
+function openCalItem(i){LAYOUT_VIEW=null;$("#dTitle").textContent=i.title;$("#dSub").textContent=dayName(i.t)+" · "+hm(i.t)+" – "+hm(i.t+i.mins*6e4)+(i.sub?" · "+i.sub:"");
+  if(i.k==="ghost"){$("#dBody").innerHTML=`<div class="frow"><button type="button" class="btn primary" id="ciAdd">${esc(Tx("Add to my plan","Añadir a mi plan"))}</button><button type="button" class="btn" id="ciSer">${esc(Tx("Series details","Detalles de la serie"))}</button></div>`;
+    $("#ciAdd").onclick=()=>{togglePlan(i.s,i.w,i.t);closeDrawer();renderCalendar()};$("#ciSer").onclick=()=>openSeries(i.s.id)}
+  else if(i.k==="plan"){$("#dBody").innerHTML=`${i.clash?`<div class="callout">${Lp("This race overlaps another one or a time you marked as not available.","Esta carrera se solapa con otra o con un rato que marcaste como no disponible.")}</div>`:""}<div class="frow"><button type="button" class="btn" id="ciRm">${esc(Tx("Remove from plan","Quitar del plan"))}</button>${SER&&SER.seasons.some(x=>x.id===i.ref.id)?`<button type="button" class="btn" id="ciSer">${esc(Tx("Series details","Detalles de la serie"))}</button>`:""}</div>`;
+    $("#ciRm").onclick=()=>{PLAN=PLAN.filter(p=>p!==i.ref);store.set("pw.plan",PLAN);syncNativePlan();closeDrawer();renderCalendar()};const sb=$("#ciSer");if(sb)sb.onclick=()=>openSeries(i.ref.id)}
+  else{openEventForm(i.ref);return}
+  if($("#drawer").hidden)$("#drawer").hidden=false}
+function openEventForm(ev,t){LAYOUT_VIEW=null;const e=ev||{id:"e"+Date.now().toString(36),t:t||Math.ceil(Date.now()/9e5)*9e5,mins:60,title:"",kind:"race",note:""};const dt=new Date(e.t),pad=n=>String(n).padStart(2,"0");
+  $("#dTitle").textContent=ev?Tx("Edit","Editar"):Tx("Add to calendar","Añadir al calendario");$("#dSub").textContent="";
+  $("#dBody").innerHTML=`<form class="form" id="evForm"><label><span class="label">${esc(Tx("What","Qué"))}</span><input type="text" id="evTitle" maxlength="80" required value="${esc(e.title)}" placeholder="${esc(Tx("e.g. League round 4, Spa","p. ej. Liga ronda 4, Spa"))}"></label>
+    <div class="frow">${EVKIND.map(k=>`<button type="button" class="chip" data-k="${k[0]}" aria-pressed="${e.kind===k[0]}">${esc(Tx(k[1],k[2]))}</button>`).join("")}</div>
+    <div class="frow"><label><span class="label">${esc(Tx("Day","Día"))}</span><input type="date" id="evDate" value="${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}" required></label><label><span class="label">${esc(Tx("Start","Inicio"))}</span><input type="time" id="evTime" step="300" value="${pad(dt.getHours())}:${pad(dt.getMinutes())}" required></label><label><span class="label">${esc(Tx("Minutes","Minutos"))}</span><input type="number" id="evMins" class="num" min="5" max="1440" step="5" value="${e.mins}"></label></div>
+    <label><span class="label">${esc(Tx("Notes","Notas"))}</span><input type="text" id="evNote" maxlength="120" value="${esc(e.note||"")}"></label>
+    <div class="frow"><button type="submit" class="btn primary">${esc(Tx("Save","Guardar"))}</button>${ev?`<button type="button" class="btn" id="evDel">${esc(Tx("Delete","Borrar"))}</button>`:""}</div></form>`;
+  let kind=e.kind;document.querySelectorAll("#evForm [data-k]").forEach(b=>b.onclick=()=>{kind=b.dataset.k;document.querySelectorAll("#evForm [data-k]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+  $("#evForm").onsubmit=x=>{x.preventDefault();const[y,mo,d]=$("#evDate").value.split("-").map(Number),[hh,mm]=$("#evTime").value.split(":").map(Number);
+    const n={...e,title:$("#evTitle").value.trim(),kind,t:new Date(y,mo-1,d,hh,mm).getTime(),mins:Math.max(5,Math.min(1440,+$("#evMins").value||60)),note:$("#evNote").value.trim()};
+    EVENTS=EVENTS.filter(z=>z.id!==e.id);EVENTS.push(n);saveEvents();closeDrawer();CAL.day=n.t;renderCalendar();toast(Tx("Saved","Guardado"))};
+  const del=$("#evDel");if(del)del.onclick=()=>{EVENTS=EVENTS.filter(z=>z.id!==e.id);saveEvents();closeDrawer();renderCalendar()};
+  if($("#drawer").hidden)$("#drawer").hidden=false;$("#evTitle").focus()}
+function exportICS(){const all=[...PLAN.map(p=>({id:p.sid+"-"+p.t,t:p.t,mins:p.mins||60,title:p.name,loc:p.track||""})),...EVENTS.filter(e=>e.kind!=="busy").map(e=>({id:e.id,t:e.t,mins:e.mins,title:e.title,loc:e.note||""}))];
+  if(!all.length){toast(Tx("Nothing to export yet","Aún no hay nada que exportar"));return}const z=t=>new Date(t).toISOString().replace(/[-:]/g,"").replace(/\.\d+/,""),c=s=>String(s).replace(/[,;\\]/g," ").replace(/\n/g," ");
+  const ev=all.map(p=>["BEGIN:VEVENT",`UID:${p.id}@pitlanehq`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(p.t)}`,`DTEND:${z(p.t+p.mins*6e4)}`,`SUMMARY:${c(p.title)}`,`LOCATION:${c(p.loc)}`,...REMIND.flatMap(m=>["BEGIN:VALARM",`TRIGGER:-PT${m}M`,"ACTION:DISPLAY","DESCRIPTION:iRacing","END:VALARM"]),"END:VEVENT"].join("\r\n"));
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//PitlaneHQ//EN",...ev,"END:VCALENDAR"].join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="pitlanehq-races.ics";document.body.appendChild(a);a.click();a.remove()}
+/* notifications in the browser while this screen is open */
+let WEBREM=[];function scheduleWebReminders(){WEBREM.forEach(clearTimeout);WEBREM=[];if(NATIVE||!("Notification" in window)||Notification.permission!=="granted"||OV.on)return;const now=Date.now();
+  calItems(now,now+DAYMS).filter(i=>i.k!=="busy").forEach(i=>REMIND.forEach(m=>{const at=i.t-m*6e4-now;if(at>0&&at<DAYMS)WEBREM.push(setTimeout(()=>{try{new Notification(i.title,{body:Tx(`Starts in ${m} min`,`Empieza en ${m} min`)+(i.sub?" · "+i.sub:"")})}catch(e){}},at))}))}
+/* the phone apps get every race (for reminders and the home-screen widget) */
+function syncNativePlan(){scheduleWebReminders();const now=Date.now(),items=calItems(now-36e5,now+60*DAYMS).filter(i=>i.k!=="busy").map(i=>({t:i.t,mins:i.mins,title:i.title,body:(i.sub||"")+" · "+hm(i.t),kind:i.k}));
+  const msg={type:"notify",items,leads:REMIND,lang:LANG};if(NATIVE)NATIVE.postMessage(msg);if(window.PitlaneAndroid)try{window.PitlaneAndroid.schedule(JSON.stringify(msg))}catch(e){}}
+$("#calPrev").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()-1);return d.getTime()})():addDays(CAL.day,innerWidth<760?-3:-7);renderCalendar()};
+$("#calNext").onclick=()=>{CAL.day=CAL.mode==="month"?(()=>{const d=new Date(CAL.day);d.setDate(1);d.setMonth(d.getMonth()+1);return d.getTime()})():addDays(CAL.day,innerWidth<760?3:7);renderCalendar()};
+$("#calToday").onclick=()=>{CAL.day=Date.now();renderCalendar()};$("#calAdd").onclick=()=>openEventForm(null);
+document.querySelectorAll("#calMode button").forEach(b=>b.onclick=()=>{CAL.mode=b.dataset.m;store.set("pw.calmode",CAL.mode);renderCalendar()});
+addEventListener("resize",()=>{if(CUR_VIEW==="calendar"&&CAL.mode==="week")renderWeek()});
+setInterval(()=>{if(CUR_VIEW==="calendar")renderCalSide()},30000);
+
+/* ===================== haptics ===================== */
+const HAP_NAMES={engine:["Engine","Motor","Vibration that follows the revs","Vibración que sigue a las revoluciones"],shift:["Gear shift","Cambio de marcha","A kick on every gear change","Un golpe en cada cambio"],road:["Road and kerbs","Asfalto y pianos","Bumps and kerbs, left and right","Baches y pianos, izquierda y derecha"],
+ abs:["ABS","ABS","Pulses while ABS works","Pulsos mientras actúa el ABS"],impact:["Impacts","Impactos","Hard landings and hits","Aterrizajes y golpes fuertes"],offtrack:["Off track","Fuera de pista","Rumble on grass and gravel","Vibración en hierba y grava"]};
+const CHNAMES={2:[["L","I"],["R","D"]],4:[["Seat L","Asiento I"],["Seat R","Asiento D"],["Pedals L","Pedales I"],["Pedals R","Pedales D"]],6:[["Front L","Del. I"],["Front R","Del. D"],["Centre","Centro"],["Sub","Sub"],["Rear L","Tras. I"],["Rear R","Tras. D"]],8:[["Front L","Del. I"],["Front R","Del. D"],["Centre","Centro"],["Sub","Sub"],["Rear L","Tras. I"],["Rear R","Tras. D"],["Side L","Lat. I"],["Side R","Lat. D"]]};
+let HAP=null,hapTimer=0,hapSave=0;
+const HAP_DEMO={config:{mode:"engine",device:-1,channels:4,master:.7,inCar:true,effects:{engine:{on:true,gain:.6,freq:32,ch:[0,1]},shift:{on:true,gain:1,freq:38,ch:[0,1,2,3]},road:{on:true,gain:.8,freq:46,ch:[0,1]},abs:{on:true,gain:.9,freq:55,ch:[2]},impact:{on:true,gain:1,freq:28,ch:[0,1]},offtrack:{on:true,gain:.7,freq:24,ch:[0,1]}}},
+  order:["engine","shift","road","abs","impact","offtrack"],devices:[{id:0,name:"Speakers (Realtek Audio)",channels:2},{id:1,name:"USB Sound Card 7.1 (Bass shakers)",channels:8}],windows:true,simhub:true,simsonnManager:false,running:true,levels:{}};
+async function hapGet(){if(MODE==="local")return HAP_DEMO;return rigGet("/api/haptics")}
+function demoLevels(){const g=T.Gear,lv={engine:(T.RPM>300?.25+.75*(T.Throttle||0):0)*.6,shift:HAP_DEMO._g!==undefined&&g!==HAP_DEMO._g?1:0,road:Math.min(1,Math.abs(T.LatAccel||0)/25)*.8,abs:T.BrakeABSactive?.9:0,impact:0,offtrack:0};HAP_DEMO._g=g;return lv}
+async function renderHaptics(){clearTimeout(hapTimer);const d=await hapGet();HAP=d;const box=$("#hapBody"),c=$("#hapCallout");
+  $("#hapSub").innerHTML=Lp("Bass shakers, Simsonn Pro Haptics and MOZA pedals","Bass shakers, Simsonn Pro Haptics y pedales MOZA");
+  if(!d){c.hidden=false;c.innerHTML=REMOTE?Lp("Not available in the engineer view.","No disponible en la vista de ingeniero."):Lp("Haptics are controlled from PitlaneHQ.exe on your Windows PC.","Los hápticos se controlan desde PitlaneHQ.exe en tu PC con Windows.");box.innerHTML="";$("#hapMaster").hidden=true;return}
+  c.hidden=MODE!=="local"&&d.windows;c.innerHTML=MODE==="local"?Lp("Demo: a simulated PC with a 7.1 USB sound card. The meters follow the demo race.","Demo: un PC simulado con una tarjeta de sonido USB 7.1. Los medidores siguen la carrera de demo."):Lp("Sending effects to a sound output only works on Windows.","Enviar efectos a una salida de sonido solo funciona en Windows.");
+  const cf=d.config,mode=cf.mode;$("#hapMaster").hidden=false;$("#hapMaster").textContent=mode==="off"?Tx("Turn haptics on","Activar hápticos"):Tx("Turn haptics off","Desactivar hápticos");
+  $("#hapMaster").onclick=()=>{cf.mode=mode==="off"?(cf._last||"simhub"):"off";if(mode!=="off")cf._last=mode;saveHap(true)};
+  const modeBtn=(m,en,es,den,des)=>`<button type="button" class="hapmode" data-mode="${m}" aria-pressed="${mode===m}"><b>${esc(Tx(en,es))}</b><span>${esc(Tx(den,des))}</span></button>`;
+  const sh=(k,en,es)=>`<button type="button" class="btn small" data-sh="${k}"${d.simhub?"":" disabled"}>${esc(Tx(en,es))}</button>`;
+  let html=`<div class="panel s12"><h2>${esc(Tx("Who makes the effects","Quién genera los efectos"))}</h2><div class="hapmodes">
+    ${modeBtn("simhub","SimHub ShakeIt","SimHub ShakeIt","Recommended for Simsonn and MOZA pedals. Pitlane HQ controls it.","Recomendado para Simsonn y pedales MOZA. Pitlane HQ lo controla.")}
+    ${modeBtn("engine","Pitlane HQ engine","Motor de Pitlane HQ","For bass shakers on a sound card, without SimHub.","Para bass shakers en una tarjeta de sonido, sin SimHub.")}
+    ${modeBtn("off","Off","Apagado","No effects from Pitlane HQ.","Sin efectos desde Pitlane HQ.")}</div></div>`;
+  html+=`<div class="panel s6"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">SimHub ShakeIt</h2><span class="pill ${d.simhub?"good":""}">${d.simhub?"✓ "+esc(Tx("SimHub open","SimHub abierto")):"✗ "+esc(Tx("SimHub closed","SimHub cerrado"))}</span></div>
+    ${d.simsonnManager?`<div class="callout">${Lp("SIMSONN Manager is open. Simsonn asks not to run it together with SimHub; close it so SimHub drives the pedals.","SIMSONN Manager está abierto. Simsonn pide no usarlo a la vez que SimHub; ciérralo para que SimHub controle los pedales.")}</div>`:""}
+    <div class="label">${esc(Tx("Bass shakers","Bass shakers"))}</div><div class="frow" style="margin:6px 0 10px">${sh("bassMute","Mute / unmute","Silenciar / activar")}${sh("bassDown","Strength −","Intensidad −")}${sh("bassUp","Strength +","Intensidad +")}</div>
+    <div class="label">${esc(Tx("Pedal haptics and motors (Simsonn Pro Haptics, MOZA pedals via AZOM)","Hápticos de pedales y motores (Simsonn Pro Haptics, pedales MOZA vía AZOM)"))}</div><div class="frow" style="margin:6px 0 10px">${sh("motorsMute","Mute / unmute","Silenciar / activar")}${sh("motorsDown","Strength −","Intensidad −")}${sh("motorsUp","Strength +","Intensidad +")}</div>
+    ${d.simhub?"":`<button type="button" class="btn" id="hapStartSH">${esc(Tx("Start SimHub","Abrir SimHub"))}</button>`}
+    <ol class="steps"><li>${Lp("Simsonn VAM Pro: SimHub 9.9.2 or newer finds it in ShakeIt Motors.","Simsonn VAM Pro: SimHub 9.9.2 o más nuevo lo encuentra en ShakeIt Motors.")}</li><li>${Lp("MOZA pedal haptics: install AZOM (Rig → Programs & gear) and they appear in ShakeIt.","Hápticos de pedales MOZA: instala AZOM (Rig → Programas y equipo) y aparecen en ShakeIt.")}</li><li>${Lp("Bass shakers: in ShakeIt Bass Shakers choose the sound output of your amplifier.","Bass shakers: en ShakeIt Bass Shakers elige la salida de sonido de tu amplificador.")}</li></ol></div>`;
+  const nCh=cf.channels,chn=CHNAMES[nCh]||CHNAMES[2];
+  html+=`<div class="panel s6"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Pitlane HQ engine","Motor de Pitlane HQ"))}</h2><span class="pill ${mode==="engine"&&d.running?"good":""}">${mode==="engine"?(d.running?"✓ "+esc(Tx("Playing","Funcionando")):esc(Tx("Stopped","Parado"))):esc(Tx("Not in use","Sin usar"))}</span></div>
+    ${d.error?`<div class="callout">${esc(d.error)}</div>`:""}
+    <label class="frow"><span class="label" style="min-width:110px">${esc(Tx("Sound output","Salida de sonido"))}</span><select id="hapDev" style="flex:1;min-width:0"><option value="-1">${esc(Tx("Windows default","Predeterminada de Windows"))}</option>${(d.devices||[]).map(x=>`<option value="${x.id}"${x.id===cf.device?" selected":""}>${esc(x.name)} (${x.channels} ch)</option>`).join("")}</select></label>
+    <label class="frow" style="margin-top:6px"><span class="label" style="min-width:110px">${esc(Tx("Channels","Canales"))}</span><span class="seg3">${[2,4,6,8].map(n=>`<button type="button" data-nch="${n}" aria-pressed="${n===nCh}">${n===2?"2 (stereo)":n===6?"6 (5.1)":n===8?"8 (7.1)":n}</button>`).join("")}</span></label>
+    <label class="frow" style="margin-top:6px"><span class="label" style="min-width:110px">${esc(Tx("Overall","General"))}</span><input type="range" id="hapMasterVol" min="0" max="100" value="${Math.round(cf.master*100)}" style="flex:1"><span class="mono" id="hapMasterV">${Math.round(cf.master*100)}%</span></label>
+    <div class="frow" style="margin-top:6px">${chk("hapInCar",cf.inCar,Lp("Only while driving","Solo mientras conduzco",true))}</div>
+    <p class="note">${Lp("Use a sound output only for the shakers (a USB sound card is fine), not the one with your game sound. With 4 or more channels you can put shakers on the seat and on the pedals separately.","Usa una salida de sonido solo para los shakers (vale una tarjeta USB), no la del sonido del juego. Con 4 o más canales puedes poner shakers en el asiento y en los pedales por separado.")}</p></div>`;
+  html+=`<div class="panel s12"${mode==="engine"?"":" hidden"}><h2>${esc(Tx("Effects","Efectos"))}</h2><div class="hapfx">${(d.order||Object.keys(cf.effects)).map(k=>{const e=cf.effects[k],n=HAP_NAMES[k];return `<div class="hapfx-row" data-fx="${k}">
+      <div class="nm">${chk("fx-on-"+k,e.on,"")}<div><b>${esc(Tx(n[0],n[1]))}</b><small>${esc(Tx(n[2],n[3]))}</small></div></div>
+      <div class="meter hapm"><b id="hm-${k}" style="width:0"></b></div>
+      <label class="sl"><span>${esc(Tx("Strength","Fuerza"))} <i class="mono" id="hg-${k}">${Math.round(e.gain*100)}%</i></span><input type="range" min="0" max="150" value="${Math.round(e.gain*100)}" data-g="${k}"></label>
+      <label class="sl"><span>${esc(Tx("Frequency","Frecuencia"))} <i class="mono" id="hf-${k}">${Math.round(e.freq)} Hz</i></span><input type="range" min="10" max="120" value="${Math.round(e.freq)}" data-f="${k}"></label>
+      <div class="frow chs">${chn.map((x,i)=>`<button type="button" class="pin" data-ch="${k}:${i}" aria-pressed="${e.ch.includes(i)}">${esc(Tx(x[0],x[1]))}</button>`).join("")}</div>
+      <button type="button" class="btn small" data-test="${k}">${esc(Tx("Feel it","Probar"))}</button></div>`}).join("")}</div>
+    <p class="note">${Lp("Most bass shakers feel best between 25 and 60 Hz. Start with the overall strength low and raise it while driving.","La mayoría de bass shakers se sienten mejor entre 25 y 60 Hz. Empieza con la fuerza general baja y súbela mientras conduces.")}</p></div>`;
+  box.innerHTML=html;
+  box.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{cf.mode=b.dataset.mode;saveHap(true)});
+  box.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>MODE==="local"?toast(Tx("Sent to SimHub","Enviado a SimHub")):rigPost("/api/haptics/do",{action:b.dataset.sh}).then(j=>j&&toast(Tx("Sent to SimHub","Enviado a SimHub"))));
+  const ss=$("#hapStartSH");if(ss)ss.onclick=()=>rigPost("/api/simhub/do",{action:"start"}).then(()=>setTimeout(renderHaptics,2500));
+  $("#hapDev").onchange=e=>{cf.device=+e.target.value;const dv=(d.devices||[]).find(x=>x.id===cf.device);if(dv&&dv.channels<cf.channels)cf.channels=[2,4,6,8].filter(n=>n<=dv.channels).pop()||2;saveHap(true)};
+  box.querySelectorAll("[data-nch]").forEach(b=>b.onclick=()=>{cf.channels=+b.dataset.nch;saveHap(true)});
+  $("#hapMasterVol").oninput=e=>{cf.master=e.target.value/100;$("#hapMasterV").textContent=e.target.value+"%";saveHap()};
+  $("#hapInCar").onclick=()=>{cf.inCar=!cf.inCar;saveHap(true)};
+  box.querySelectorAll("[data-fx]").forEach(r=>{const k=r.dataset.fx,e=cf.effects[k];
+    r.querySelector("#fx-on-"+k).onclick=()=>{e.on=!e.on;saveHap(true)};
+    r.querySelector("[data-g]").oninput=x=>{e.gain=x.target.value/100;$("#hg-"+k).textContent=x.target.value+"%";saveHap()};
+    r.querySelector("[data-f]").oninput=x=>{e.freq=+x.target.value;$("#hf-"+k).textContent=x.target.value+" Hz";saveHap()};
+    r.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{const i=+b.dataset.ch.split(":")[1];e.ch=e.ch.includes(i)?e.ch.filter(x=>x!==i):[...e.ch,i].sort();saveHap(true)});
+    r.querySelector("[data-test]").onclick=()=>MODE==="local"?toast(Tx("Your shakers would play this effect for a second","Tus shakers tocarían este efecto un segundo")):rigPost("/api/haptics/do",{action:"test",effect:k})});
+  hapTick()}
+function saveHap(redraw){clearTimeout(hapSave);if(MODE==="local"){if(redraw)renderHaptics();return}hapSave=setTimeout(async()=>{const r=await fetch("/api/haptics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(HAP.config)}).catch(()=>null);
+  if(r&&r.ok&&redraw){HAP=await r.json();renderHaptics()}},redraw?50:250)}
+async function hapTick(){if(CUR_VIEW!=="haptics"||!HAP)return;let lv=null;
+  if(MODE==="local")lv=demoLevels();else{const j=await rigGet("/api/haptics/levels");lv=j&&j.levels}
+  if(lv)Object.keys(HAP_NAMES).forEach(k=>{const b=$("#hm-"+k);if(b)b.style.width=Math.min(100,(lv[k]||0)*100)+"%"});
+  hapTimer=setTimeout(hapTick,120)}
+
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
@@ -2580,8 +2853,8 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
-  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
-  if(NATIVE)syncNativePlan();
+  const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","rig","haptics","calendar","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
+  syncNativePlan();
   if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else Demo.start();
 })();

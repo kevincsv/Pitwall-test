@@ -3,7 +3,7 @@
 package main
 
 // Frameless overlay window, run as a child process of PitWall:
-//   PitWall.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
+//   PitlaneHQ.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
 // The window has no title bar or taskbar button, stays on top, does not take
 // focus away from iRacing, and is moved/resized from the page in edit mode.
 
@@ -53,7 +53,7 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
-	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitWall", "WebView2")
+	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2")
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      data,
 		WindowOptions: webview2.WindowOptions{Title: overlayTitlePrefix + name, Width: uint(w), Height: uint(h)},

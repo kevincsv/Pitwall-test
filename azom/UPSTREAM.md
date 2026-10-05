@@ -1,12 +1,12 @@
-# AZOM inside Pit Wall
+# AZOM inside Pitlane HQ
 
 This folder is a local copy of the AZOM SimHub plugin for MOZA Racing hardware,
-built and installed into SimHub by Pit Wall (Rig tab → AZOM).
+built and installed into SimHub by Pitlane HQ (Rig tab → AZOM).
 
 - Original project: https://github.com/giantorth/AZOM (by giantorth)
 - Copied from commit `28a089ca6fd7fef0b6a18ce3ec674b2c67a0ca64` (4 Oct 2026)
 - Licence: GNU GPL v3 (see LICENSE). You may change and share this copy; if you
-  share PitWall.exe with the plugin inside, share this source with it and keep
+  share PitlaneHQ.exe with the plugin inside, share this source with it and keep
   the licence and credits.
 
 Not copied: `docs/` (pictures and protocol notes, see the original project) and

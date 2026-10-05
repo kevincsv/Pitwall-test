@@ -1,9 +1,9 @@
 package main
 
 // Rig: SimHub (dashboards, overlays, LEDs), the AZOM plugin for MOZA wheels
-// and MOZA Pit House / Dashboard Studio, controlled from Pit Wall.
+// and MOZA Pit House / Dashboard Studio, controlled from Pitlane HQ.
 //
-// None of these programs has a public control API, so Pit Wall uses what they
+// None of these programs has a public control API, so Pitlane HQ uses what they
 // do offer: SimHub's command line (-triggeraction, -minimize, -switchgame),
 // its web server on port 8888 for showing dashboards, the dashboard folders on
 // disk, and MOZA Dashboard Studio's command line to open .mzdash files.

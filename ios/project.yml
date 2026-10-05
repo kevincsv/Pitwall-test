@@ -13,7 +13,7 @@ targets:
     info:
       path: PitWall/Info.plist
       properties:
-        CFBundleDisplayName: Pit Wall
+        CFBundleDisplayName: Pitlane HQ
         CFBundleShortVersionString: "0.5.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}
@@ -29,7 +29,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocalNetworkUsageDescription: Pit Wall connects to PitWall.exe on your PC over Wi-Fi.
+        NSLocalNetworkUsageDescription: Pitlane HQ connects to PitlaneHQ.exe on your PC over Wi-Fi.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true

@@ -2,7 +2,7 @@ package main
 
 // App launcher: finds your sim-racing programs (iRacing, Steam, CrewChief,
 // Garage 61, TrackImpulse, SimHub, MOZA Pit House…) and starts the ones you
-// pick when Pit Wall opens or when iRacing starts.
+// pick when Pitlane HQ opens or when iRacing starts.
 //
 // Safety: the app never accepts a program path from the network. Paths come
 // only from this PC's Start menu, known install folders, or a file dialog
