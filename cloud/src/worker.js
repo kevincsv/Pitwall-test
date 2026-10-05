@@ -1,5 +1,6 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
+import { news } from "./news.js";
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
@@ -176,8 +177,9 @@ async function api(req, env, url) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    if (url.pathname === "/news") return news(req, env, ctx);
     if (url.pathname.startsWith("/community/")) {
       try {
         return await community(req, env, url);
@@ -218,7 +220,8 @@ export default {
     return new Response(VIEWER, {
       headers: {
         "content-type": "text/html; charset=utf-8",
-        "content-security-policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
+        // shown inside the Pitlane HQ apps with embed=1 (then it only uses the session handed in the address)
+        "content-security-policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; frame-ancestors " + (url.searchParams.get("embed") === "1" ? "*" : "'none'"),
         "referrer-policy": "no-referrer",
       },
     });

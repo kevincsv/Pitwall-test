@@ -34,7 +34,7 @@ var (
 )
 
 const (
-	overlayTitlePrefix = "PitWall Overlay · "
+	overlayTitlePrefix = "Pitlane HQ overlay · "
 	wsExLayered        = 0x00080000
 	wsExTransparent    = 0x00000020
 	lwaAlpha           = 0x2

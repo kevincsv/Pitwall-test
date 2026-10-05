@@ -545,7 +545,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .qs-it small{color:var(--muted);font-size:12px;white-space:nowrap}
 .qs-it[aria-selected="true"],.qs-it:hover{background:var(--surface2);box-shadow:inset 3px 0 0 var(--accent)}
 .qs-foot{border-top:1px solid var(--line);padding:8px 14px;font-size:12px;color:var(--muted)}
-@media (max-width:760px){#qsBtn,#setBtn{display:none}}
+@media (max-width:760px){#qsBtn,#setBtn{display:none}html.phone #setBtn{display:inline-flex}}
 .rtable{width:100%;border-collapse:collapse;font-size:14px}.rtable th{font:600 11px/1 var(--f-data);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 .rtable td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}.rtable td small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.rtable tbody tr[data-rid]{cursor:pointer}.rtable tbody tr[data-rid]:hover{background:var(--surface2)}.rtable tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .rkeys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.rk{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:3px}.rk b{font-size:22px}.rk small{color:var(--muted);font-size:12px}
@@ -633,7 +633,7 @@ nav.tabs button[data-g=home],nav.tabs button[data-g=more]{display:none}
 .bell{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--muted);display:grid;place-items:center;cursor:pointer;flex:none}
 .bell svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .bell[aria-pressed=true]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
-.hm-rr{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(186px,62%);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+.hm-rr{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(186px,62%);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0;padding:0 0 2px;border-radius:16px}
 .hm-rr::-webkit-scrollbar{display:none}
 .hm-race{scroll-snap-align:start;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:9px;min-width:0}
 .hm-race:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
@@ -705,6 +705,7 @@ html:not(.ov)::before{content:"";position:fixed;top:0;left:0;right:0;height:env(
   nav.tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 nav.tabs button[data-g=rig]{display:none!important}
+html.pcapp nav.tabs button[data-g=season]{display:none!important}
 .carcards{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
 .carcard{margin:0;background:var(--surface2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .carcard img,.carcard .noimg{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface)}
@@ -750,6 +751,15 @@ html.phone nav.tabs button{font-size:9.5px}html.phone header.top #lockBtn,html.p
 html.ownframe .drawer,html.ownframe .uidlg,html.ownframe .msheet{top:53px}
 .trkic{display:grid;place-items:center}.trkic svg{width:30px;height:30px;fill:none;stroke:var(--muted);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .carill{display:grid;place-items:center;background:radial-gradient(120% 90% at 50% 100%,var(--surface2),var(--surface))!important}.carill .carart{width:88%;height:62%;align-self:center}
+.osm{position:relative;margin-top:10px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface2);min-height:60px;display:grid;place-items:center}
+.osm-big{position:absolute;right:8px;bottom:8px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;text-decoration:none}
+.osm-trk{position:absolute;inset:0;width:100%;height:100%}.osm-trk polyline{fill:none;stroke:#fff;stroke-width:5;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}.osm-trk polyline.pit{stroke-width:2.5;stroke-dasharray:4 4;opacity:.8}.osm-trk circle{fill:var(--accent);stroke:#fff;stroke-width:2}
+.osm-attr{position:absolute;left:6px;bottom:6px;font-size:10px;color:#cfd6df;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px;text-decoration:none}
+html.phone header.top{flex-wrap:nowrap;gap:8px}html.phone header.top .brand{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:0 1 auto}html.phone header.top #setBtn{flex:none;width:40px;height:40px;padding:0;justify-content:center;align-items:center}
+html.phone #langSeg{display:grid!important;grid-template-columns:repeat(3,1fr)!important}html.phone #langSeg button{padding:10px 4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{width:var(--ovdw);transform:scale(var(--ovz));transform-origin:0 0}
+.ovcard.live{border-color:var(--accent)}.ovcard .pin[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.ovcard .pin:disabled{opacity:.4;cursor:default}
+iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:520px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 </style>
 
 <div class="wrap">
@@ -1132,6 +1142,12 @@ html.ownframe .drawer,html.ownframe .uidlg,html.ownframe .msheet{top:53px}
   </div>
 </section>
 
+<!-- MY LAPS ON THE SERVER: sessions, records and lap comparison of the laps your PC uploads -->
+<section class="view" id="v-cloudlaps" hidden>
+  <div class="vhead"><div><h1 data-i18n="tab.cloudlaps"></h1><div class="sub" data-i18n="cloudlapsSub"></div></div></div>
+  <div id="cloudLapsBox"></div>
+</section>
+
 <!-- PHONE & SHARING TELEMETRY (filled from Settings at start) -->
 <section class="view" id="v-share" hidden>
   <div class="vhead"><div><h1 data-i18n="set.phone"></h1><div class="sub" data-i18n="shareSub"></div></div></div>
@@ -1257,6 +1273,7 @@ html.ownframe .drawer,html.ownframe .uidlg,html.ownframe .msheet{top:53px}
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
     </div>
+    <div class="panel s6" id="notifPanel"></div>
     <div class="panel s12" id="startPanel"></div>
     <div class="panel s12" id="appsPanel"></div>
     <div class="panel s12" id="hapWrap"></div>
@@ -1445,6 +1462,7 @@ async function cpRoute(url,method,raw){await cpReady;const u=new URL(url,"https:
   if(p==="/api/sync"){if(method==="POST")return ok(await cpAccount(B()));return ok(cpStatus())}
   if(p==="/api/community"){if(method==="POST")return no(cpNeedPC());const a=CP.acc;return ok({ready:!!CP.server,account:!!a,alias:a?a.display:"",nameKind:a?a.nameKind:"nick",shareTimes:false,shareTraces:false,shareReports:false,registered:!!a,shared:0,companion:true})}
   if(p==="/api/community/setups"){if(method==="POST")return no(cpNeedPC());const mine=q.get("mine")==="1";q.delete("mine");return ok(await cpCall("GET","/community/setups"+(mine?"/mine":"")+(q.toString()?"?"+q:""),null,mine))}
+  if(p==="/api/news")return ok(await cpCall("GET","/news"+(q.get("refresh")==="1"?"?refresh=1":""),null,false));
   if(p==="/api/community/season")return ok(await cpCall("GET","/community/season",null,false));
   const cm=p.match(/^\/api\/community\/(combos|laps|reports)$/);if(cm){const id=q.get("id");return ok(await cpCall("GET","/community/"+cm[1]+(id?"/"+encodeURIComponent(id):q.toString()?"?"+q:""),null,false))}
   return no(cpNeedPC())}
@@ -1463,8 +1481,19 @@ if(COMPANION){window.fetch=async(input,init={})=>{const url=typeof input==="stri
   setTimeout(cpRefresh,1500);setInterval(cpRefresh,5*60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)cpRefresh()})}
 
 /* the phone app without the PC only shows the settings that apply to the phone */
-function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=true;[...sec.children].forEach(el=>{if(el.classList.contains("sethead"))keep=el.id==="set-general";if(el.classList.contains("vhead"))return;if(el.id==="setNav"){el.hidden=true;return}el.hidden=!keep});
-  const g=$("#set-general")&&$("#set-general").nextElementSibling;if(g)[...g.children].forEach((p,i)=>p.hidden=i>0)}
+function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=true;[...sec.children].forEach(el=>{if(el.classList.contains("sethead"))keep=el.id==="set-general"||el.id==="set-about";if(el.classList.contains("vhead"))return;if(el.id==="setNav"){el.hidden=true;return}el.hidden=!keep});
+  const g=$("#set-general")&&$("#set-general").nextElementSibling;if(g)[...g.children].forEach((p,i)=>p.hidden=i>0&&p.id!=="notifPanel");const u=$("#updPanel");if(u)u.hidden=true}
+/* race reminders and the account, also reachable from Settings (the phone has no Account tab) */
+function renderNotifPanel(){const box=$("#notifPanel");if(!box)return;
+  const perm=!NATIVE&&"Notification" in window?Notification.permission:"";
+  box.innerHTML=`<div class="label">${esc(Tx("Race reminders","Avisos de carrera","Rennerinnerungen","Lembretes de corrida"))}</div>
+    <p class="note" style="margin-top:6px">${esc(Tx("How long before each race in your plan you get a notification.","Cuánto antes de cada carrera de tu plan recibes el aviso.","Wie lange vor jedem Rennen in deinem Plan du benachrichtigt wirst.","Quanto tempo antes de cada corrida do seu plano você recebe o aviso."))}</p>
+    <div class="frow" style="margin-top:8px">${[5,15,30,60].map(m=>`<button type="button" class="chip" data-nrem="${m}" aria-pressed="${REMIND.includes(m)}">${m} min</button>`).join("")}</div>
+    ${perm&&perm!=="granted"?`<p class="note" style="margin-top:10px">${esc(perm==="denied"?Tx("Notifications are blocked for this page; allow them in the browser settings.","Los avisos están bloqueados para esta página; permítelos en los ajustes del navegador.","Benachrichtigungen sind für diese Seite blockiert; erlaube sie in den Browsereinstellungen.","As notificações estão bloqueadas para esta página; permita-as nas configurações do navegador."):Tx("Allow notifications so this page can remind you.","Permite los avisos para que esta página te recuerde.","Erlaube Benachrichtigungen, damit diese Seite dich erinnern kann.","Permita notificações para que esta página possa lembrar você."))}</p>${perm==="default"?`<button type="button" class="btn small" id="nAllow">${esc(Tx("Allow notifications","Permitir avisos","Benachrichtigungen erlauben","Permitir notificações"))}</button>`:""}`:""}
+    ${PHONE?`<div class="label" style="margin-top:16px">${esc(Tx("Account","Cuenta","Konto","Conta"))}</div><div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="nMe">${esc(Tx("My account","Mi cuenta","Mein Konto","Minha conta"))}</button></div>`:""}`;
+  box.querySelectorAll("[data-nrem]").forEach(b=>b.onclick=()=>{const m=+b.dataset.nrem;REMIND=REMIND.includes(m)?REMIND.filter(x=>x!==m):[...REMIND,m].sort((a,b)=>a-b);store.set("pw.remind",REMIND);syncNativePlan();renderNotifPanel()});
+  const a=$("#nAllow");if(a)a.onclick=()=>Notification.requestPermission().then(()=>{scheduleWebReminders();renderNotifPanel()});
+  const me=$("#nMe");if(me)me.onclick=()=>show("me")}
 /* live telemetry and the rig: pair with the PC using the code it shows (local Wi-Fi only) */
 function cpProbe(base,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);return cpOrigFetch(base+"/api/info",{signal:c.signal,cache:"no-store"}).then(r=>r.json()).then(j=>{clearTimeout(t);return j&&j.app==="PitWall"?j:null}).catch(()=>null)}
 let cpIpWait=null;window.onIP=ip=>{if(cpIpWait){const r=cpIpWait;cpIpWait=null;r(ip)}};
@@ -1500,7 +1529,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 /* languages: English, Spanish, German, Portuguese (Brazil); "both" shows English and Spanish together */
 const LANGS=[["en","English"],["es","Español"],["de","Deutsch"],["pt","Português"]];
 function trX(en,es,de,pt){const i=LANG==="de"?0:1,inl=LANG==="de"?de:pt;if(inl!=null&&inl!==0)return inl;const d=I18N_X.get(en+"\u0001"+es)||I18N_X.get(en);return d?d[i]:en}
-[["Connect your phone to your live telemetry, or share it with someone else","Verbinde dein Handy mit deiner Live-Telemetrie oder teile sie mit jemand anderem","Conecte seu celular à sua telemetria ao vivo ou compartilhe com outra pessoa"],["Phone & sharing","Handy & Teilen","Celular e compartilhar"],["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Wir warten darauf, dass iRacing die offizielle OAuth-Anmeldung für Apps freischaltet. Sobald sie bereit ist, verbindest du dein iRacing-Konto hier mit einem Klick.","Aguardando o iRacing ativar o login OAuth oficial para apps. Quando estiver pronto, conectar sua conta do iRacing será um clique aqui."],["Phone & sharing telemetry","Handy & Telemetrie teilen","Celular e compartilhar telemetria"],["Connect your phone or tablet to your live telemetry","Verbinde Handy oder Tablet mit deiner Live-Telemetrie","Conecte seu celular ou tablet à sua telemetria ao vivo"],["Share your live telemetry with someone (engineer view)","Teile deine Live-Telemetrie mit jemandem (Ingenieursansicht)","Compartilhe sua telemetria ao vivo com outra pessoa (visão de engenheiro)"]].forEach(([en,de,pt])=>I18N_X.set(en,[de,pt]));
+[["My laps","Meine Runden","Minhas voltas"],["Every lap your PC uploads to your account: sessions, records and lap comparison","Jede Runde, die dein PC in dein Konto hochlädt: Sitzungen, Rekorde und Rundenvergleich","Cada volta que seu PC envia para sua conta: sessões, recordes e comparação de voltas"],["Connect your phone to your live telemetry, or share it with someone else","Verbinde dein Handy mit deiner Live-Telemetrie oder teile sie mit jemand anderem","Conecte seu celular à sua telemetria ao vivo ou compartilhe com outra pessoa"],["Phone & sharing","Handy & Teilen","Celular e compartilhar"],["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Wir warten darauf, dass iRacing die offizielle OAuth-Anmeldung für Apps freischaltet. Sobald sie bereit ist, verbindest du dein iRacing-Konto hier mit einem Klick.","Aguardando o iRacing ativar o login OAuth oficial para apps. Quando estiver pronto, conectar sua conta do iRacing será um clique aqui."],["Phone & sharing telemetry","Handy & Telemetrie teilen","Celular e compartilhar telemetria"],["Connect your phone or tablet to your live telemetry","Verbinde Handy oder Tablet mit deiner Live-Telemetrie","Conecte seu celular ou tablet à sua telemetria ao vivo"],["Share your live telemetry with someone (engineer view)","Teile deine Live-Telemetrie mit jemandem (Ingenieursansicht)","Compartilhe sua telemetria ao vivo com outra pessoa (visão de engenheiro)"]].forEach(([en,de,pt])=>I18N_X.set(en,[de,pt]));
 function pair(en,es,inline,de,pt){if(LANG==="es")return esc(es);if(LANG==="de"||LANG==="pt")return esc(trX(en,es,de,pt));if(LANG==="en"||en===es)return esc(en);return `<span class="${inline?"inl":""}">${esc(en)}<span class="t2">${esc(es)}</span></span>`}
 const L=(k,inline)=>{const p=I18N[k];return p?pair(p[0],p[1],inline):k};
 const Lp=(en,es,inline,de,pt)=>pair(en,es,inline,de,pt);
@@ -1953,7 +1982,7 @@ function trackMapHTML(id){const L=trackMap(id);return L&&L.length?`<div class="t
 // a panel with the picture, map and facts of one track configuration (used in Series)
 function trackCardHTML(id,panel){const t=IR.tracks.find(x=>x.track_id===id),a=IR.ta[id];if(!t&&!a)return"";const pic=trackPic(id,true),map=trackMapHTML(id);if(!pic&&!map&&!t)return"";
   const body=`<div class="trkgrid">${pic?`<img class="trkpic" loading="lazy" alt="" src="${esc(pic)}">`:""}${map}<div>${t?trackFacts(t):""}${a&&a.detail_copy?`<p class="note">${esc(a.detail_copy)}</p>`:""}</div></div>`;
-  return panel?`<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(t?t.track_name+(t.config_name?" · "+t.config_name:""):Tx("Track","Circuito"))}</div>${body}</div>`:body}
+  return panel?`<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(t?t.track_name+(t.config_name?" · "+t.config_name:""):Tx("Track","Circuito"))}</div>${body}${t?osmHTML(t.track_name,t.location):""}</div>`:body}
 function trackFacts(t){const own=t.free_with_subscription||(SER&&SER.member&&SER.member.tp.has(t.package_id));const types=(t.track_types||[]).map(x=>x.track_type).filter(Boolean);
   return `<dl class="kv">${trkLen(t)!=="–"?`<dt>${esc(Tx("Length","Longitud","Länge","Comprimento"))}</dt><dd>${esc(trkLen(t))}</dd>`:""}
     ${t.corners_per_lap?`<dt>${esc(Tx("Corners","Curvas","Kurven","Curvas"))}</dt><dd>${t.corners_per_lap}</dd>`:""}
@@ -1964,6 +1993,31 @@ function trackFacts(t){const own=t.free_with_subscription||(SER&&SER.member&&SER
     ${t.night_lighting?`<dt>${esc(Tx("Night","Noche","Nacht","Noite"))}</dt><dd>${esc(Tx("Lights","Con luces","Beleuchtet","Com luzes"))}</dd>`:""}
     <dt>${esc(Tx("Price","Precio","Preis","Preço"))}</dt><dd>${t.free_with_subscription?esc(Tx("Included","Incluido","Inklusive","Incluso")):t.price?"$"+(+t.price).toFixed(2):"–"}${SER&&SER.member&&!SER.member.unknown?` <span class="own ${own?"y":"n"}">${own?"✓":"✗"}</span>`:""}</dd></dl>
     ${t.site_url?`<p class="note"><a class="acc" href="${esc(t.site_url)}" target="_blank" rel="noopener">${esc(Tx("Official website","Web oficial","Offizielle Website","Site oficial"))}</a></p>`:""}`}
+/* where the track is, on OpenStreetMap (like Garage 61): the place is looked up once and remembered */
+let GEO=store.get("pw.geo",{});
+async function geoFind(name,loc){const k=name+"|"+(loc||"");if(GEO[k]!==undefined)return GEO[k];
+  const ask=async q=>{try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+encodeURIComponent(q),{referrerPolicy:"origin",headers:{"Accept-Language":LANG}});const j=await r.json();return j&&j[0]?[+j[0].lat,+j[0].lon,(j[0].type==="city"||j[0].addresstype==="city"||j[0].addresstype==="town")?0:1]:null}catch(e){return undefined}};
+  let g=await ask(name+(loc?", "+loc.split(",").slice(-1)[0]:""));if(g===undefined)return null;if(!g&&loc)g=await ask(loc);
+  GEO[k]=g||null;store.set("pw.geo",GEO);return GEO[k]}
+function osmHTML(name,loc){return `<div class="osm" data-geo="${esc(name)}" data-loc="${esc(loc||"")}"><span class="muted">${esc(Tx("Loading the layout…","Cargando el trazado…","Streckenverlauf wird geladen…","Carregando o traçado…"))}</span></div>`}
+// the track itself as drawn on OpenStreetMap (ways tagged highway=raceway), remembered on this device
+async function raceways(lat,lon,rad){const k="pw.rw."+lat.toFixed(4)+","+lon.toFixed(4);try{const c=localStorage.getItem(k);if(c)return JSON.parse(c)}catch(e){}
+  try{const q=`[out:json][timeout:20];way(around:${rad||2500},${lat},${lon})[highway=raceway];out geom;`;
+    const r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
+    const j=await r.json();const ways=(j.elements||[]).filter(e=>e.geometry&&e.geometry.length>1).map(e=>({p:e.geometry.map(g=>[+g.lat.toFixed(6),+g.lon.toFixed(6)]),pit:/pit/i.test((e.tags||{}).name||"")||(e.tags||{}).service==="pit_lane"}));
+    try{localStorage.setItem(k,JSON.stringify(ways))}catch(e){}return ways}catch(e){return null}}
+// the track's shape, drawn from OpenStreetMap data (only the layout, no map behind it)
+function osmDraw(el,ways){const W=el.clientWidth||600,H=260;
+  const main=ways.filter(w=>!w.pit),use=main.length?main:ways,pts=use.flatMap(w=>w.p);
+  const lat0=pts.reduce((a,q)=>a+q[0],0)/pts.length,k=Math.cos(lat0*Math.PI/180),P=q=>[q[1]*k,-q[0]];
+  const a=ways.flatMap(w=>w.p).map(P),xs=a.map(q=>q[0]),ys=a.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sc=Math.min((W-40)/((x1-x0)||1e-6),(H-40)/((y1-y0)||1e-6)),ox=(W-(x1-x0)*sc)/2,oy=(H-(y1-y0)*sc)/2;
+  const line=w=>w.p.map(q=>{const[x,y]=P(q);return (ox+(x-x0)*sc).toFixed(1)+","+(oy+(y-y0)*sc).toFixed(1)}).join(" ");
+  el.style.height=H+"px";
+  el.innerHTML=`<svg class="osm-trk" viewBox="0 0 ${W} ${H}">${ways.map(w=>`<polyline class="${w.pit?"pit":""}" points="${line(w)}"/>`).join("")}</svg><a class="osm-attr" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>`}
+async function fillOsm(root){for(const el of (root||document).querySelectorAll(".osm[data-geo]:not([data-done])")){el.dataset.done="1";
+  const g=await geoFind(el.dataset.geo,el.dataset.loc);if(!g){el.innerHTML=`<span class="muted">${esc(Tx("Not found on the map","No se encontró en el mapa","Nicht auf der Karte gefunden","Não encontrado no mapa"))}</span>`;continue}
+  const ways=await raceways(g[0],g[1],g[2]?2500:8000);if(!ways||!ways.length){el.innerHTML=`<span class="muted">${esc(Tx("The layout of this track is not available yet","El trazado de este circuito aún no está disponible","Der Streckenverlauf ist noch nicht verfügbar","O traçado desta pista ainda não está disponível"))}</span>`;continue}osmDraw(el,ways)}}
 /* Tracks → All tracks: every iRacing track, without having driven it */
 let TRK_TAB=store.get("pw.trkTab","all"),TRK_Q="";
 function renderTrackCat(){const box=$("#trkCat"),seg=$("#trkSeg");if(!box||!seg)return;
@@ -1979,7 +2033,8 @@ function renderTrackCat(){const box=$("#trkCat"),seg=$("#trkSeg");if(!box||!seg)
     <div class="trklist">${list.map(([n,cs])=>{const f=cs[0],pic=trackPic(f.track_id),free=cs.some(c=>c.free_with_subscription);
       const ic=CAT_ICON[cs.map(c=>c.category).find(Boolean)||((cs[0].track_types||[])[0]||{}).track_type]||CAT_ICON.sports_car;
       return `<details class="trk"><summary>${pic?`<img loading="lazy" alt="" src="${esc(pic)}">`:`<div class="noimg trkic"><svg viewBox="0 0 24 24">${ic}</svg></div>`}<div><b>${esc(n)}</b><small class="muted">${esc(f.location||"")}${f.location?" · ":""}${cs.length} ${esc(cs.length===1?Tx("layout","trazado","Layout","traçado"):Tx("layouts","trazados","Layouts","traçados"))}${free?" · "+esc(Tx("included","incluido","inklusive","incluso")):""}</small></div></summary>
-        <div class="trkbody">${cs.sort((a,b)=>(a.config_name||"").localeCompare(b.config_name||"")).map(c=>`<div class="trkcfg"><h3>${esc(c.config_name||n)}</h3>${trackCardHTML(c.track_id,false)}</div>`).join("")}</div></details>`}).join("")}</div>`;
+        <div class="trkbody">${osmHTML(n,f.location)}${cs.sort((a,b)=>(a.config_name||"").localeCompare(b.config_name||"")).map(c=>`<div class="trkcfg"><h3>${esc(c.config_name||n)}</h3>${trackCardHTML(c.track_id,false)}</div>`).join("")}</div></details>`}).join("")}</div>`;
+  box.querySelectorAll("details.trk").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)fillOsm(d)}));
   const qi=$("#trkQ");qi.oninput=()=>{TRK_Q=qi.value;clearTimeout(qi._t);qi._t=setTimeout(()=>{renderTrackCat();const n=$("#trkQ");n.focus();n.setSelectionRange(n.value.length,n.value.length)},250)}}
 function setIR(t,c,ta,ca){IR={tracks:Array.isArray(t)?t:[],cars:Array.isArray(c)?c:[],ta:ta&&typeof ta==="object"?ta:{},ca:ca&&typeof ca==="object"?ca:{}};IR.tracks.forEach(x=>{if(!x.location)x.location=trackLoc(x.track_name)});if(CUR_VIEW==="tracks")renderTrackCat()}
 /* where each track is (for the catalog built into the app) */
@@ -2107,11 +2162,12 @@ function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);
     <div class="panel s6"><div class="label">${Lp("Next 7 days (your time) · tap Add to put a race in your calendar","Próximos 7 días (tu hora) · pulsa Añadir para ponerla en tu calendario",true)}</div>
       <div style="max-height:420px;overflow:auto">${today.length?today.map((tt,k)=>`${k===0||new Date(today[k-1]).toDateString()!==new Date(tt).toDateString()?`<div class="agday">${esc(dayName(tt))}</div>`:""}<div class="agrow"><span class="t">${hm(tt)}</span><span class="s muted">${esc(new Date(tt).toLocaleDateString(locale(),{weekday:"short"}))} · ${esc(until(tt))}</span><button type="button" class="pin" data-t="${tt}" aria-pressed="${inPlan(s.sid,tt)}">${esc(inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir"))}</button></div>`).join(""):`<p class="note">${Lp("No more sessions this week.","No hay más sesiones esta semana.")}</p>`}</div></div>
     ${cars.length?`<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(Tx("The cars","Los coches","Die Autos","Os carros"))}</div><div class="carcards">${cars.map(c=>{const u=carPic(c.id,true),own=c.free||SER.member.cp.has(c.pkg);const kind={oval:"oval",dirt_oval:"dirt_oval",dirt_road:"dirt_road",formula_car:"formula_car"}[seasonCat(s)]||"sports_car";return `<figure class="carcard">${u?`<img loading="lazy" alt="" src="${esc(u)}">`:`<div class="noimg carill">${carArt(kind,"RDCBAP"[Math.max(0,Math.min(5,(s.lic||1)-1))])}</div>`}<figcaption><b>${esc(c.name)}</b>${SER.member.unknown?"":` <span class="own ${own?"y":"n"}">${own?"✓":"✗"}</span>`}</figcaption></figure>`}).join("")}</div></div>`:""}
-    ${trackCardHTML(w.tr,true)}
+    ${trackCardHTML(w.tr,true)||(()=>{const tt=trackInfo(w);return `<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(tt.name+(tt.cfg?" · "+tt.cfg:""))}</div>${osmHTML(tt.name.replace(/^\[Legacy\] /,""),trackLoc(tt.name))}</div>`})()}
     <div class="panel s12"><div class="label" style="margin-bottom:4px">${Lp("Season schedule","Calendario de la temporada",true)}</div><div class="tscroll"><table><thead><tr><th>${esc(Tx("Wk","Sem"))}</th><th>${esc(Tx("Dates","Fechas"))}</th><th>${esc(Tx("Track","Circuito"))}</th><th>${esc(Tx("Length","Duración"))}</th><th>${esc(Tx("Owned","Comprado"))}</th></tr></thead><tbody>
       ${s.weeks.map((x,i)=>{const ti=trackInfo(x),o=ownsTrack(x);const ds=new Date(weekStart(x)),de=new Date(weekEnd(x)-1);return `<tr class="${i===wi?"me":""}" style="${weekEnd(x)<now?"opacity:.5":""}"><td class="mono">${i+1}</td><td class="mono">${ds.toLocaleDateString(locale(),{day:"2-digit",month:"short"})} – ${de.toLocaleDateString(locale(),{day:"2-digit",month:"short"})}</td><td>${esc(ti.name)}${ti.cfg?` <span class="muted">· ${esc(ti.cfg)}</span>`:""}</td><td class="mono">${esc(lenText(x))}</td><td>${o?'<span class="own y">✓</span>':`<span class="own n">✗</span> <span class="muted mono">${ti.price?"$"+ti.price:""}</span>`}</td></tr>`}).join("")}</tbody></table></div>
       <p class="note">${(()=>{const rem=s.weeks.filter(x=>weekEnd(x)>now),can=rem.filter(ownsTrack).length;return Lp(`You can race ${can} of the ${rem.length} remaining weeks with your tracks.`,`Puedes correr ${can} de las ${rem.length} semanas restantes con tus circuitos.`,0,`Mit deinen Strecken kannst du ${can} der ${rem.length} verbleibenden Wochen fahren.`,`Com suas pistas você pode correr ${can} das ${rem.length} semanas restantes.`)})()}</p></div>
    </div>`;
+  fillOsm($("#dBody"));
   document.querySelectorAll("#dBody .pin").forEach(b=>b.onclick=()=>{const tt=+b.dataset.t,w=s.weeks.find(x=>tt>=weekStart(x)&&tt<weekEnd(x))||s.weeks[0];togglePlan(s,w,tt);b.setAttribute("aria-pressed",inPlan(s.sid,tt));b.textContent=inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir")});
   $("#drawer").hidden=false;$("#dClose").focus()}
 function closeDrawer(){$("#drawer").hidden=true;LAYOUT_VIEW=null;clearInterval(PREVIEW_TIMER);if(CUR_VIEW==="series")renderSeries()}
@@ -2457,15 +2513,30 @@ function drawRadar(){const cv=$("#radarC");if(!cv||cv.closest("[hidden]")&&!OV.o
   const put=(c,l)=>{if(c)c.lat=l};if(lr===2)put(side[0],-1);else if(lr===3)put(side[0],1);else if(lr===4){put(side[0],-1);put(side[1],1)}else if(lr===5){put(side[0],-1);put(side[1],-1)}else if(lr===6){put(side[0],1);put(side[1],1)}
   const busy=near.some(c=>Math.abs(c.dm)<R)||lr>=2;const now=performance.now();if(busy)RADAR.clearSince=0;else if(!RADAR.clearSince)RADAR.clearSince=now;
   const show=busy||!RADAR.clearSince||now-RADAR.clearSince<1500;radarVisible(show||!cfg.autohide||CFG.edit);
-  const sz=Math.min(cv.clientWidth||240,OV.on?innerHeight-20:300);if(+cv.getAttribute("height")!==Math.round(sz))cv.setAttribute("height",Math.round(sz));const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
-  const cx=w/2,cy=h/2,ppm=(h/2-10)/R,acc=css("--accent"),bad=css("--bad"),warn=css("--warn"),fg=css("--fg"),line=css("--line");
-  x.strokeStyle=line;x.lineWidth=1;x.setLineDash([3,4]);[R/2,R].forEach(m=>{[cy-m*ppm,cy+m*ppm].forEach(y=>{x.beginPath();x.moveTo(cx-w*.35,y);x.lineTo(cx+w*.35,y);x.stroke()})});x.setLineDash([]);
-  const LW=2.6,CL=4.6,CW=1.9;const car=(dx,dy,col,a)=>{x.globalAlpha=a??1;x.fillStyle=col;const X=cx+dx*ppm-CW*ppm/2,Y=cy-dy*ppm-CL*ppm/2;x.beginPath();x.roundRect?x.roundRect(X,Y,CW*ppm,CL*ppm,3):x.rect(X,Y,CW*ppm,CL*ppm);x.fill();x.globalAlpha=1};
-  if(lr===2||lr===4||lr===5){const g=x.createLinearGradient(0,0,cx,0);g.addColorStop(0,bad);g.addColorStop(1,"rgba(0,0,0,0)");x.globalAlpha=.35;x.fillStyle=g;x.fillRect(0,0,cx-CW*ppm,h);x.globalAlpha=1}
-  if(lr===3||lr===4||lr===6){const g=x.createLinearGradient(w,0,cx,0);g.addColorStop(0,bad);g.addColorStop(1,"rgba(0,0,0,0)");x.globalAlpha=.35;x.fillStyle=g;x.fillRect(cx+CW*ppm,0,w,h);x.globalAlpha=1}
-  near.forEach(c=>{if(Math.abs(c.dm)>R+3)return;const close=Math.abs(c.dm)<CL*1.2;const col=c.lat?bad:close?bad:Math.abs(c.dm)<10?warn:css("--muted");car(c.lat*LW,c.dm,col,c.lat||!close?1:.55)});
-  car(0,0,css("--blue"));
-  if(!busy){x.fillStyle=css("--muted");x.font="600 11px "+css("--f-data");x.textAlign="center";x.fillText(Tx("CLEAR","DESPEJADO"),cx,h-6)}}
+  // square, as wide as its panel (in a fitted overlay window the window scales it, so it never feeds back on the window height)
+  const sz=Math.min(cv.clientWidth||240,OV.on&&!OVFIT.dw?innerHeight-20:OV.on?2000:300);if(+cv.getAttribute("height")!==Math.round(sz))cv.setAttribute("height",Math.round(sz));const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
+  const cx=w/2,cy=h/2,rad=Math.min(w,h)/2-2,ppm=(rad-8)/R,bad=css("--bad"),warn=css("--warn"),fg=css("--fg"),line=css("--line"),blue=css("--blue");
+  // the dish: dark glass circle, range rings and a cross
+  const bg=x.createRadialGradient(cx,cy,rad*.1,cx,cy,rad);bg.addColorStop(0,"rgba(22,28,36,.92)");bg.addColorStop(1,"rgba(10,13,18,.82)");
+  x.beginPath();x.arc(cx,cy,rad,0,Math.PI*2);x.fillStyle=bg;x.fill();x.lineWidth=1.5;x.strokeStyle="rgba(255,255,255,.14)";x.stroke();
+  x.save();x.beginPath();x.arc(cx,cy,rad-1,0,Math.PI*2);x.clip();
+  x.strokeStyle="rgba(255,255,255,.08)";x.lineWidth=1;x.setLineDash([2,5]);[R/2,R].forEach(m=>{x.beginPath();x.arc(cx,cy,m*ppm,0,Math.PI*2);x.stroke()});
+  x.beginPath();x.moveTo(cx,cy-rad);x.lineTo(cx,cy+rad);x.moveTo(cx-rad,cy);x.lineTo(cx+rad,cy);x.stroke();x.setLineDash([]);
+  const LW=2.7,CL=4.6,CW=1.9;
+  // someone alongside: that whole side glows
+  const sideGlow=dir=>{const g=x.createLinearGradient(cx+dir*rad,0,cx,0);g.addColorStop(0,bad);g.addColorStop(1,"rgba(0,0,0,0)");x.globalAlpha=.45;x.fillStyle=g;x.beginPath();x.moveTo(cx,cy-rad);x.arc(cx,cy,rad,-Math.PI/2,Math.PI/2,dir<0);x.closePath();x.fill();x.globalAlpha=1};
+  if(lr===2||lr===4||lr===5)sideGlow(-1);if(lr===3||lr===4||lr===6)sideGlow(1);
+  const car=(dx,dy,col,a,mine)=>{const X=cx+dx*ppm-CW*ppm/2,Y=cy-dy*ppm-CL*ppm/2,W=CW*ppm,H=CL*ppm,r=Math.min(W,H)*.32;x.globalAlpha=a??1;
+    x.shadowColor=col;x.shadowBlur=mine?0:10;x.fillStyle=col;x.beginPath();x.roundRect?x.roundRect(X,Y,W,H,r):x.rect(X,Y,W,H);x.fill();x.shadowBlur=0;
+    x.lineWidth=mine?2:1;x.strokeStyle=mine?"#fff":"rgba(0,0,0,.55)";x.stroke();
+    x.fillStyle="rgba(0,0,0,.35)";x.fillRect(X+W*.18,Y+H*.24,W*.64,H*.2);x.globalAlpha=1};
+  near.forEach(c=>{if(Math.abs(c.dm)>R+3)return;const close=Math.abs(c.dm)<CL*1.2;const col=c.lat||close?bad:Math.abs(c.dm)<10?warn:"#9aa6b4";car(c.lat*LW,c.dm,col,c.lat||!close?1:.6)});
+  car(0,0,blue,1,true);
+  // the nearest car's distance
+  const n=near.filter(c=>!c.lat&&Math.abs(c.dm)<=R).sort((a,b)=>Math.abs(a.dm)-Math.abs(b.dm))[0];
+  x.restore();x.textAlign="center";x.font="700 "+Math.max(10,Math.round(rad*.11))+"px "+css("--f-data");
+  if(n){x.fillStyle=Math.abs(n.dm)<10?warn:fg;x.fillText((n.dm>0?"▲ ":"▼ ")+Math.abs(n.dm).toFixed(1)+" m",cx,n.dm>0?cy+rad*.62:cy-rad*.52)}
+  if(!busy){x.fillStyle=css("--muted");x.fillText(Tx("CLEAR","DESPEJADO"),cx,cy+rad*.62)}}
 function radarVisible(on){if(!OV.on||RADAR.native===on)return;RADAR.native=on;nativeVisible("radar",on)}
 function nativeVisible(w,on){if(typeof window.pwVisible==="function")window.pwVisible(on);else if(MODE==="bridge"&&OV.win)fetch(`/api/overlay/visible?w=${w}&on=${on?1:0}`,{method:"POST"}).catch(()=>{});else document.body.style.visibility=on?"":"hidden"}
 
@@ -2505,7 +2576,7 @@ let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
   if(!v)return;OV.on=true;OV.preview=q.get("preview")==="1";OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
-  document.documentElement.classList.add("ov");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="PitWall Overlay · "+OV.list.join("+")})();
+  document.documentElement.classList.add("ov");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="Pitlane HQ overlay · "+OV.list.join("+")})();
 // frameless Edge overlay windows (fl=1): Pitlane HQ moves and resizes them for the page
 if(OV.on&&new URLSearchParams(location.search).get("fl")==="1"&&typeof window.pwDrag!=="function")(function(){
   const name=OV.list[0]||"",dpr=()=>window.devicePixelRatio||1;let busy=false,pend=null;
@@ -2528,6 +2599,12 @@ function pcOverlays(){return MODE==="bridge"&&INFO&&INFO.overlays}
 async function openOverlayOnPC(w){const r=await fetch(`/api/overlay/open?w=${w}`,{method:"POST"}).catch(()=>null);if(!r||!r.ok){toast(Tx("Could not open the overlay window.","No se pudo abrir la ventana overlay."));return false}return true}
 async function popOut(w){if(pcOverlays()){if(!await openOverlayOnPC(w))return;if(isPC()&&w!=="standings"){HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}toast(isPC()?Tx("Opened as an overlay. Bring it back here from Layout.","Abierto como overlay. Recupéralo aquí desde Diseño."):Tx("Opened on your PC.","Abierto en tu PC."))}
   else if(MODE==="bridge")window.open(`/?overlay=${w}`,"_blank")}
+/* My laps: the server's lap pages inside the app, signed in with this app's session */
+async function renderCloudLaps(){const box=$("#cloudLapsBox");if(!box)return;let srv="",tok="";
+  if(COMPANION){await cpReady;srv=CP.server||"";tok=CP.acc&&CP.acc.token||""}
+  if(!srv||!tok){box.innerHTML=`<div class="panel empty">${esc(Tx("Sign in with your Pitlane HQ account to see the laps your PC uploads.","Inicia sesión con tu cuenta de Pitlane HQ para ver las vueltas que sube tu PC.","Melde dich mit deinem Pitlane-HQ-Konto an, um die Runden zu sehen, die dein PC hochlädt.","Entre com sua conta Pitlane HQ para ver as voltas que seu PC envia."))} <button type="button" class="btn small" id="clSign">${esc(Tx("Sign in","Iniciar sesión","Anmelden","Entrar"))}</button></div>`;const b=$("#clSign");if(b)b.onclick=()=>show("me");return}
+  const src=srv+"/?embed=1&lang="+LANG+"#k="+encodeURIComponent(tok);if(box.dataset.src===srv+LANG)return;box.dataset.src=srv+LANG;
+  box.innerHTML=`<iframe class="cloudlaps" title="${esc(Tx("My laps","Mis vueltas"))}" src="${esc(src)}"></iframe>`}
 /* the PC window: the header works as the title bar (drag, double-click, buttons) */
 function ownFrame(){const H=document.documentElement,hd=$("header.top");H.classList.add("ownframe");$("#winCtl").hidden=false;$("#winEdge").hidden=false;
   const pad=()=>H.style.setProperty("--padx",getComputedStyle(document.body).paddingLeft);pad();addEventListener("resize",pad);
@@ -2559,8 +2636,10 @@ function ovChrome(){if(!OV.on)return;let bar=$("#ovBar");if(!bar){bar=document.c
     h.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();h.setPointerCapture(e.pointerId);const sx=e.screenX,sy=e.screenY,x0=window.screenX,y0=window.screenY,w0=outerWidth,h0=outerHeight;let t=0;
       const mv=ev=>{const now=performance.now();if(now-t<25)return;t=now;const dx=ev.screenX-sx,dy=ev.screenY-sy;let x=x0,y=y0,w=w0,hh=h0;
         if(ed.includes("e"))w=w0+dx;if(ed.includes("s"))hh=h0+dy;if(ed.includes("w")){w=w0-dx;x=x0+dx}if(ed.includes("n")){hh=h0-dy;y=y0+dy}
-        w=Math.max(120,w);hh=Math.max(50,hh);if(typeof window.pwRect==="function")window.pwRect(Math.round(x),Math.round(y),Math.round(w),Math.round(hh));else window.pwSize(Math.round(w),Math.round(hh))};
-      const up=()=>{h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up)};h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up)})})}
+        w=Math.max(120,w);hh=Math.max(50,hh);
+        if(OVFIT.dw){OVFIT.busy=1;const ch=outerHeight-innerHeight,nh=OVFIT.nh||1;if(ed==="n"||ed==="s")w=(hh-ch)/nh*OVFIT.dw;w=Math.max(OVFIT.dw*OVFIT.min,Math.min(OVFIT.dw*OVFIT.max,w));hh=Math.ceil(nh*w/OVFIT.dw)+ch;if(ed.includes("w"))x=x0+w0-w;if(ed.includes("n"))y=y0+h0-hh}
+        if(typeof window.pwRect==="function")window.pwRect(Math.round(x),Math.round(y),Math.round(w),Math.round(hh));else window.pwSize(Math.round(w),Math.round(hh))};
+      const up=()=>{OVFIT.busy=0;h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up)};h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up)})})}
   const frameless=typeof window.pwDrag==="function";bar.innerHTML=`<b>${esc(OV.list.map(w=>Tx(...I18N["w."+w]||[w,w])).join(" + "))}</b> · ${esc(frameless?Tx("drag to move, any edge or corner to resize","arrastra para mover, cualquier borde o esquina para redimensionar"):Tx("move it by its title bar","muévelo por la barra de título"))}`;
   $("#ovRes").hidden=true}
 Object.assign(I18N,{"w.radar":["Radar","Radar"],"w.boost":["DRS & push-to-pass","DRS y push-to-pass"],"w.telemetry":["Telemetry","Telemetría"],
@@ -2649,13 +2728,16 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     :Lp("Changes here apply to the overlays on your PC.","Los cambios aquí se aplican a los overlays de tu PC.");
   $("#ovSub").textContent=Tx(`${auto.size} open automatically`,`${auto.size} se abren automáticamente`,`${auto.size} öffnen sich automatisch`,`${auto.size} abrem automaticamente`);
   const dis=remote?"":" disabled";
+  const ovExp=ovExpOn(),list=WIDGETS.filter(w=>ovExp||OV_BASIC.includes(w));
+  if(!ovExp&&(CFG.autoWidgets||[]).some(w=>!OV_BASIC.includes(w))&&MODE==="bridge"){CFG.autoWidgets=CFG.autoWidgets.filter(w=>OV_BASIC.includes(w));saveCfg()}
   $("#ovGlobal").innerHTML=`<h2>${L("ovGlobal")}</h2>
     <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}${chk("oStart",CFG.startWithWindows,L("startWin",true))}</div>
     <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="oOpenSel"${dis}>${L("openSel",true)}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div>
     <div class="frow" style="margin-top:12px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select></div>
     <div class="frow" style="margin-top:12px"><span class="label">${esc(Tx("Look","Estilo"))}</span><span class="seg3" id="oLook">${[["glass","Glass","Cristal"],["carbon","Carbon","Carbono"],["minimal","Minimal","Mínimo"]].map(x=>`<button type="button" data-look="${x[0]}" aria-pressed="${(((CFG.ui||{}).ovlook||{}).t||"glass")===x[0]}">${esc(Tx(x[1],x[2]))}</button>`).join("")}</span></div>
+    <div class="frow" style="margin-top:12px">${chk("oExp",ovExp,esc(Tx("Show the experimental overlays (dash, map, inputs, fuel…)","Mostrar los overlays experimentales (dash, mapa, inputs, combustible…)","Experimentelle Overlays anzeigen (Dash, Karte, Inputs, Benzin…)","Mostrar os overlays experimentais (dash, mapa, inputs, combustível…)")))}</div>
     <details style="margin-top:10px"><summary class="label">${L("experimental",true)}</summary><div class="frow" style="margin:8px 0"><label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="flex:1;max-width:260px"></div><div class="frow">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details>`;
-  box.innerHTML=WIDGETS.map(w=>`<div class="ovcard${auto.has(w)?" on":""}">
+  box.innerHTML=list.map(w=>`<div class="ovcard${auto.has(w)?" on":""}">
     <div class="top"><div><div class="nm">${L("w."+w)}</div><div class="sub">${L("d."+w)}</div></div>
       <button type="button" class="chip" data-auto="${w}" aria-pressed="${auto.has(w)}">${L("auto",true)}</button></div>
     <div class="frow">${remote?`<button type="button" class="pin" data-open="${w}">${L("open",true)}</button><button type="button" class="pin" data-close="${w}">${L("close",true)}</button>`:MODE==="bridge"?`<button type="button" class="pin" data-view="${w}">${L("openHere",true)}</button>`:""}
@@ -2663,15 +2745,17 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
       <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${L("showHere",true)}: ${esc(HIDDEN.has(w)?Tx("off","no"):Tx("on","sí"))}</button></div>
     ${MODE==="bridge"?`<div class="obs mono hide-sm" title="OBS">${esc(location.origin)}/?overlay=${w}&amp;bg=transparent</div>`:""}</div>`).join("");
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
+  {const e=q("#oExp");if(e)e.onclick=()=>{const on=!ovExpOn();store.set("pw.ovExp",on);if(!on){CFG.autoWidgets=(CFG.autoWidgets||[]).filter(w=>OV_BASIC.includes(w));saveCfg();WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}))}renderOverlaysTab()}}
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
   document.querySelectorAll("#oLook [data-look]").forEach(b=>b.onclick=()=>{CFG.ui=CFG.ui||{};CFG.ui.ovlook={t:b.dataset.look};saveCfg();renderOverlaysTab()});
   q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oAlpha").onchange=e=>{CFG.alpha=+e.target.value;saveCfg()};
   q("#oOpenSel").onclick=async()=>{if(!(CFG.autoWidgets||[]).length){toast(Tx("Mark some overlays with Auto first.","Marca primero algunos overlays con Auto."));return}for(const w of CFG.autoWidgets){await openOverlayOnPC(w)}toast(Tx("Opened on your PC.","Abiertos en tu PC."))};
-  q("#oCloseAll").onclick=()=>fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{});
+  q("#oCloseAll").onclick=()=>{OV_OPEN.clear();markOvOpen();fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))};
   q("#oReset").onclick=()=>fetch("/api/overlay/reset",{method:"POST"}).then(()=>toast(Tx("Positions reset. Reopen overlays to apply.","Posiciones restablecidas. Vuelve a abrir los overlays.")));
   box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
-  box.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>popOut(b.dataset.open));
-  box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>fetch(`/api/overlay/close?w=${b.dataset.close}`,{method:"POST"}).catch(()=>{}));
+  box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const w=b.dataset.open;if(OV_OPEN.has(w))return;await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600)});
+  box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const w=b.dataset.close;OV_OPEN.delete(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
+  markOvOpen();
   box.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>window.open(`/?overlay=${b.dataset.view}`,"_blank"));
   box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg)});
   box.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderOverlaysTab()});
@@ -3075,8 +3159,24 @@ async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRA
 // keep "Your screen" in step with the overlay windows (they can be dragged on the screen itself)
 async function refreshScreenRects(){if(SCREEN_DRAG||CUR_VIEW!=="overlays"||!pcOverlays())return;try{const j=await (await fetch("/api/overlay/list")).json();const r=j.rects||{};
   let ch=false;Object.keys(r).forEach(n=>{const v=r[n];if(!v||!OVSZ[n])return;const o=(CFG.positions||{})[n];if(!o||o.join()!==v.join()){CFG.positions=Object.assign({},CFG.positions,{[n]:v});ch=true}});
-  const open=(j.open||[]).join();if(ch||open!==refreshScreenRects.open){refreshScreenRects.open=open;renderScreenEditor()}}catch(e){}}
+  const open=(j.open||[]).join();OV_OPEN=new Set(j.open||[]);markOvOpen();if(ch||open!==refreshScreenRects.open){refreshScreenRects.open=open;renderScreenEditor()}}catch(e){}}
 setInterval(refreshScreenRects,1500);
+/* overlay windows keep their look: each widget is drawn at its own width and scaled with the
+   window, and the window's height follows the content (no scroll bars, nothing cut off).
+   Resizing keeps the proportions, between half and two and a half times the normal size. */
+const OVFIT={dw:0,nh:0,z:1,busy:0,min:.5,max:2.5};
+function ovFit(){if(!OV.on||!OV.win||OV.list.length!==1)return;const sz=OVSZ[OV.list[0]],sec=document.querySelector("section.view:not([hidden])");if(!sz||!sec)return;
+  const H=document.documentElement;OVFIT.dw=sz[0];H.classList.add("ovfit");H.style.setProperty("--ovdw",sz[0]+"px");
+  const z=Math.max(OVFIT.min,Math.min(OVFIT.max,innerWidth/sz[0]));OVFIT.z=z;H.style.setProperty("--ovz",z);
+  OVFIT.nh=sec.offsetHeight;const want=Math.ceil(OVFIT.nh*z);
+  if(!OVFIT.busy&&typeof window.pwSize==="function"&&Math.abs(want-innerHeight)>3)window.pwSize(Math.round(outerWidth),Math.min(screen.availHeight||2000,want+(outerHeight-innerHeight)))}
+if(OV.on&&OV.win){addEventListener("resize",()=>ovFit());setTimeout(ovFit,300);setInterval(ovFit,1000)}
+/* which overlays are open on the PC right now (shown on the Overlays cards) */
+let OV_OPEN=new Set();
+/* the overlays that are ready; the rest stay behind the "experimental" switch */
+const OV_BASIC=["radar","deltabar","relative","standings"];
+function ovExpOn(){return !!store.get("pw.ovExp",false)}
+function markOvOpen(){document.querySelectorAll("#ovCards [data-open]").forEach(b=>{const on=OV_OPEN.has(b.dataset.open);b.setAttribute("aria-pressed",on);b.textContent=on?"● "+Tx("Open","Abierto","Offen","Aberto"):L("open",true);const c=b.closest(".ovcard");if(c)c.classList.toggle("live",on);const x=c&&c.querySelector("[data-close]");if(x)x.disabled=!on})}
 /* ---------- live preview while configuring ---------- */
 let PREVIEW_TIMER=0;
 function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;
@@ -3221,16 +3321,19 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["tracks","races"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=["tracks","races","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+// the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
+const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
+if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}
 if(!FEATURES.voice)GROUPS.race=GROUPS.race.filter(v=>v!=="engineer");if(!FEATURES.subscription)GROUPS.account=GROUPS.account.filter(v=>v!=="plan");
 // Connections (iRacing, Garage 61, own site, Discord) and the iRacing page: only for admins of the Pitlane HQ server
 const isAdmin=()=>!!(typeof ME!=="undefined"&&ME&&ME.admin);
 GROUPS.account=GROUPS.account.filter(v=>v!=="account");
 function applyAdmin(){const on=isAdmin(),g=GROUPS.account,has=g.includes("account");document.documentElement.classList.toggle("admin",on);
-  if(on&&!has)g.splice(1,0,"account");if(!on&&has)g.splice(g.indexOf("account"),1);
+  if(on&&!has&&!PCAPP)g.splice(1,0,"account");if(!on&&has)g.splice(g.indexOf("account"),1);
   if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW){if(!on&&CUR_VIEW==="account")show("me");else if(groupOf(CUR_VIEW)==="account")renderSubtabs(CUR_VIEW);if(CUR_VIEW==="settings"&&!on&&SET_SEC==="set-conn")setSection("set-general")}}
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
-const VIEW_LABEL={share:"tab.share",me:"tab.me",home:"tab.home",live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
+const VIEW_LABEL={cloudlaps:"tab.cloudlaps",share:"tab.share",me:"tab.me",home:"tab.home",live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
@@ -3244,11 +3347,11 @@ var VIEW_HIST=[];
     if(s0.edge&&dx>0){const v=VIEW_HIST.pop();if(v){show.back=true;show(v);scrollTo(0,0)}return}
     if(skip(s0.el))return;const list=(GROUPS[groupOf(CUR_VIEW)]||[]),i=list.indexOf(CUR_VIEW);if(i<0)return;
     const n=list[i+(dx<0?1:-1)];if(n){show(n);scrollTo(0,0)}},{passive:true})})();
-function show(v){if(v==="strategy"&&!FEATURES.strategy)v="live";if(v==="haptics"&&!PHONE){SET_SEC="set-general";rawSet("pw.setSec","set-general");v="settings"}if(PHONE&&["haptics","rig","cars"].includes(v))v="settings";if(v==="goals"&&!FEATURES.goals)v="calendar";if(!show.back&&VIEW_HIST&&CUR_VIEW&&CUR_VIEW!==v){VIEW_HIST.push(CUR_VIEW);if(VIEW_HIST.length>30)VIEW_HIST.shift()}show.back=false;CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
+function show(v){if(v==="strategy"&&!FEATURES.strategy)v="live";if(PCAPP&&PC_OFF.includes(v))v="live";if(v==="haptics"&&!PHONE){SET_SEC="set-general";rawSet("pw.setSec","set-general");v="settings"}if(PHONE&&["haptics","rig","cars"].includes(v))v="settings";if(v==="goals"&&!FEATURES.goals)v="calendar";if(!show.back&&VIEW_HIST&&CUR_VIEW&&CUR_VIEW!==v){VIEW_HIST.push(CUR_VIEW);if(VIEW_HIST.length>30)VIEW_HIST.shift()}show.back=false;CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(COMPANION&&(g==="race"||["haptics","rig","cars"].includes(v))){document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-pc");$("#subtabs").hidden=true;renderPC();return}if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="share"){renderSettings();renderPairPanel();renderShare()}if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
+  if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings"){renderShare();renderNotifPanel()}if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="share"){renderSettings();renderPairPanel();renderShare()}if(v==="cloudlaps")renderCloudLaps();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
-tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
+tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?(VIEW_HIST&&VIEW_HIST.length?VIEW_HIST[VIEW_HIST.length-1]:PHONE?"home":"live"):"settings");
 /* ---------- quick search: Ctrl+K or / jumps to any page, setting or action ---------- */
 const QS_PAGES={me:"account sign in register login sync password security nickname cuenta registro iniciar sesión sincronizar contraseña seguridad apodo",home:"home dashboard inicio panel credits créditos participation participación upcoming próximas",live:"delta speed rpm gear fuel relative radar inputs dash widgets velocidad marcha gasolina relativo",field:"standings positions results classification posiciones clasificación resultados",
   engineer:"voice radio spotter crewchief audio pack wheel button voz botón volante paquete off track fuera de pista",strategy:"fuel stint pit endurance strategy gasolina parada resistencia relevo",tyres:"tyres tires temperature wear neumáticos gomas temperatura desgaste",
@@ -4914,7 +5017,7 @@ function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div")
   const f=m.querySelector("button");if(f)f.focus()}
 
 /* ===================== my account: Pitlane HQ sign-in, encrypted sync, public name ===================== */
-Object.assign(I18N,{"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría"],"g.season":["Planner","Planner"],"g.rig":["Rig & haptics","Rig y hápticos"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"tab.cloudlaps":["My laps","Mis vueltas"],"cloudlapsSub":["Every lap your PC uploads to your account: sessions, records and lap comparison","Cada vuelta que tu PC sube a tu cuenta: sesiones, récords y comparación de vueltas"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría"],"g.season":["Planner","Planner"],"g.rig":["Rig & haptics","Rig y hápticos"],"g.account":["Account","Cuenta"],
  "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.rigGear":["SimHub & MOZA","SimHub y MOZA"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
 let ME=null,SETUP_TAB="mine";
 function nameChoice(px,kind,nick){return `<div class="namech" id="${px}K"><label><input type="radio" name="${px}nk" value="iracing"${kind==="iracing"?" checked":""}> ${esc(Tx("My iRacing name (read from your connected iRacing account)","Mi nombre de iRacing (de tu cuenta de iRacing conectada)"))}</label>

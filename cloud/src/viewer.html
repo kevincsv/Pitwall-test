@@ -60,6 +60,7 @@ a{color:var(--accent)}
 .dlgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .dlc{display:grid;gap:3px;text-decoration:none;color:var(--fg);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:12px}
 .dlc:hover{border-color:var(--accent)}.dlc b{font:700 18px var(--f-display);text-transform:uppercase;letter-spacing:.04em}.dlc span{color:var(--muted);font-size:13px}
+html.embed header .brand,html.embed #out,html.embed nav a.btn,html.embed .langsel,html.embed #downloads{display:none!important}html.embed .wrap{padding-block:6px 20px}html.embed nav{margin-left:0}
 </style>
 </head>
 <body>
@@ -217,7 +218,7 @@ const I18N={
 "Planner y comunidad":["Planner & community","Planer & Community","Planner e comunidade"],
 "Abrir la app en el navegador (planner, comunidad, cuenta)":["Open the app in the browser (planner, community, account)","App im Browser öffnen (Planer, Community, Konto)","Abrir o app no navegador (planner, comunidade, conta)"],
 };
-let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}
+let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}{const ql=new URLSearchParams(location.search).get("lang");if(ql)LANG=ql}
 if(!["en","es","de","pt"].includes(LANG))LANG="en";
 const T=k=>{if(LANG==="es")return k;const v=I18N[k];return v?v[{en:0,de:1,pt:2}[LANG]]:k};
 const LOC=()=>({en:"en-GB",es:"es-ES",de:"de-DE",pt:"pt-BR"}[LANG]);
@@ -226,9 +227,11 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const fmtT=t=>{if(!(t>0))return"–";const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(3)};
 const day=t=>new Date(t).toLocaleString(LOC(),{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-let KEY="";try{KEY=localStorage.getItem("plq.key")||""}catch(e){}
+// inside the Pitlane HQ app (embed=1): the app hands its session in the address (#k=…), nothing is kept here
+const EMBED=new URLSearchParams(location.search).get("embed")==="1";
+let KEY="";if(EMBED){const m=location.hash.match(/^#k=([A-Za-z0-9._-]{20,200})$/);if(m)KEY=m[1];history.replaceState(null,"",location.pathname+location.search);document.documentElement.classList.add("embed")}else{try{KEY=localStorage.getItem("plq.key")||""}catch(e){}}
 async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:T("respuesta no válida")}));if(r.status===401){logout();throw new Error(T("clave incorrecta"))}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
-function logout(){KEY="";$("#downloads").hidden=false;$("#accLogin").hidden=false;$("#accReg").hidden=true;try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
+function logout(){if(EMBED){KEY="";document.body.innerHTML="";return}KEY="";$("#downloads").hidden=false;$("#accLogin").hidden=false;$("#accReg").hidden=true;try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
 let ROLE="viewer",ME="";
 // sign in with the Pitlane HQ account: the password becomes keys here (same as the app), only the login key is sent
 async function accountAuth(email,password){const te=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");

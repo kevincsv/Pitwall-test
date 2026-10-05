@@ -4,7 +4,7 @@ package main
 
 // Frameless overlay window, run as a child process of PitWall:
 //   PitlaneHQ.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
-// The window has no title bar or taskbar button, stays on top, does not take
+// The window has no title bar, has a taskbar button, stays on top, does not take
 // focus away from iRacing, and is moved/resized from the page in edit mode.
 
 import (
@@ -22,7 +22,7 @@ import (
 const (
 	wsPopup         = 0x80000000
 	wsVisible       = 0x10000000
-	wsExToolWindow  = 0x00000080
+	wsExAppWindow   = 0x00040000
 	wsExNoActivate  = 0x08000000
 	wsExTopmost     = 0x00000008
 	swpFrameChanged = 0x0020
@@ -74,9 +74,10 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 		os.Exit(3)
 	}
 	hwnd := uintptr(wv.Window())
-	// no title bar or borders, no taskbar button, on top, never takes the focus from iRacing
+	// no title bar or borders, on top, never takes the focus from iRacing; it has its own
+	// taskbar button (like RaceLab), so it can also be closed from the taskbar
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
-	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExToolWindow|wsExNoActivate|wsExTopmost)
+	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
 	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
 	// a resize makes WebView2 lay itself out again in the new client area
