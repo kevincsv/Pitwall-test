@@ -1,6 +1,7 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import VIEWER from "./viewer.html";
+import { community } from "./community.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -172,6 +173,13 @@ async function api(req, env, url) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
+    if (url.pathname.startsWith("/community/")) {
+      try {
+        return await community(req, env, url);
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } });
+      }
+    }
     if (url.pathname.startsWith("/api/")) {
       try {
         return await api(req, env, url);

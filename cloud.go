@@ -433,6 +433,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow float64) {
 		recordSetupLap(l.Time)
 	}
 	recordBookLap(l.Time, l.Fuel, l.Valid)
+	shareLap(l)
 	queueLap(s, l)
 }
 

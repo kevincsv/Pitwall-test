@@ -155,6 +155,7 @@ func loadProfileState() {
 	loadRadio()
 	loadJournal()
 	loadDiscord()
+	loadCommunity()
 }
 
 func switchProfile(id string) error {

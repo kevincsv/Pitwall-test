@@ -28,6 +28,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 | **Analysis** (after the session) | Races · Laps · Braking coach · Tracks · Data |
 | **Season** | Calendar · Series · News · Goals |
 | **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
+| **Community** | Leaderboards, shared laps and analyses |
 | **Account** | Account · Settings (also the gear button) |
 
 **Ctrl+K** (or **/**, or the magnifier) opens a quick search: type "fuel", "spotter", "simhub", "cloudflare"… to jump to any page, setting or action. **Alt+1…5** switches section.
@@ -148,6 +149,8 @@ You can start them minimised, change the order, start them all at once, remove t
 
 > **This version (0.14):** telemetry and analysis only. The voice engineer, the spotter and the subscription page are switched off (`FEATURES` in `web/dist/index.html`); the shift and braking beeps stay.
 
+- **Community** (new tab): you decide what to share (nothing by default): your best lap times, the whole lap (telemetry) and your race analyses (other drivers' names are removed). Leaderboards per track and car, shared race analyses, and **Compare** loads someone's lap as the reference in the braking coach. Server set-up: `cloud/README.md`.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -204,6 +207,7 @@ Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para para
 | **Análisis** (después de la sesión) | Carreras · Vueltas · Coach de frenada · Circuitos · Datos |
 | **Temporada** | Calendario · Series · Noticias · Objetivos |
 | **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
+| **Comunidad** | Clasificaciones, vueltas y análisis compartidos |
 | **Cuenta** | Cuenta · Ajustes (también el botón del engranaje) |
 
 **Ctrl+K** (o **/**, o la lupa) abre un buscador rápido: escribe "gasolina", "spotter", "simhub", "cloudflare"… para ir a cualquier página, ajuste o acción. **Alt+1…5** cambia de sección.
@@ -323,6 +327,8 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Instalador** `PitlaneHQ-Setup.exe` (sin administrador), **PIN del móvil** (Ajustes → Móvil: los dispositivos de tu red se emparejan con un PIN o QR), **Cuenta → Suscripción** (Gratis / Pro mensual / Pro anual / De por vida, clave de licencia) — ver `docs/SELLING.md`.
 
 > **Esta versión (0.14):** solo telemetría y análisis. El ingeniero por voz, el spotter y la página de suscripción están desactivados (`FEATURES` en `web/dist/index.html`); los pitidos de cambio y de frenada se quedan.
+
+- **Comunidad** (pestaña nueva): tú decides qué compartes (nada por defecto): tus mejores tiempos, la vuelta completa (telemetría) y tus análisis de carrera (sin los nombres de los demás pilotos). Clasificaciones por circuito y coche, análisis compartidos, y **Comparar** carga la vuelta de otro piloto como referencia en el coach de frenada. Montar el servidor: `cloud/README.md`.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 

@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.14.0"
+const appVersion = "0.15.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -483,6 +483,7 @@ func main() {
 	registerNewsRoutes(mux)
 	registerPairRoutes(mux)
 	registerLicenseRoutes(mux)
+	registerCommunityRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

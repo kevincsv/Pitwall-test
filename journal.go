@@ -533,6 +533,7 @@ func saveRace(r *raceReport) {
 	journalMu.Unlock()
 	log.Printf("Race report: P%d from P%d at %s", r.Finish, r.Start, r.Track)
 	go discordRace(r)
+	shareReport(r)
 }
 
 // ---------- notices to open screens (a new race report) ----------
