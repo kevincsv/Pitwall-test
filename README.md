@@ -137,6 +137,10 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Discord** (Settings → Connections): your results posted automatically, and "Share on Discord" for your next races. The webhook link is stored encrypted.
 - **Updates**: the Windows app checks the downloads page and updates itself with one click (Settings → About, or the banner).
 
+- **Haptics engine effects** like TrackImpulse: wheelspin, traction control, wheel lock, slide, braking g, bottoming, rev limiter and pit limiter, each with how it is worked out from iRacing's telemetry.
+- **Car profiles**: a **general profile** for any car without its own; select and remove cars you do not need.
+- **Account**: recent races open their details; safety rating history, this year and career by category, and what Pitlane HQ recorded. Race reports show the **track map with your braking points and those of the drivers around you**.
+
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
 | Address | What you get |
@@ -301,6 +305,10 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Ingeniero: multiclase y lluvia**: «clase más rápida detrás, a 2 segundos», «coche más lento delante»; empieza a llover / llueve más / menos / ha parado con el **% de precipitación** de iRacing, el nivel de **mojado de la pista** (seca … extremadamente mojada), **pista declarada mojada** y cuándo pensar en neumáticos de lluvia o slicks. Pregúntale «tiempo».
 - **Discord** (Ajustes → Conexiones): tus resultados se publican solos, y «Compartir en Discord» para tus próximas carreras. El enlace del webhook se guarda cifrado.
 - **Actualizaciones**: la app de Windows mira la página de descargas y se actualiza con un clic (Ajustes → Acerca de, o el aviso de arriba).
+
+- **Efectos del motor háptico** como TrackImpulse: patinaje, control de tracción, bloqueo, derrape, g de frenada, tocar fondo, limitador de vueltas y de pit, cada uno con cómo se calcula a partir de la telemetría de iRacing.
+- **Perfiles por coche**: un **perfil general** para cualquier coche sin perfil propio; selecciona y quita los coches que no necesites.
+- **Cuenta**: las carreras recientes abren su detalle; historial de safety rating, este año y trayectoria por categoría, y lo registrado por Pitlane HQ. Los informes de carrera muestran el **mapa del circuito con tus puntos de frenada y los de los pilotos a tu alrededor**.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 

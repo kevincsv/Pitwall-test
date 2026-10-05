@@ -216,6 +216,8 @@ type raceReport struct {
 	DNF         bool         `json:"dnf,omitempty"`
 	Laps        []raceLap    `json:"laps"`
 	Results     []raceResult `json:"results,omitempty"` // your class
+	Brakes      []carBrakes  `json:"brakes,omitempty"`  // braking points of you and the drivers around you
+	TrackLen    float64      `json:"trackLen,omitempty"`
 	Posted      bool         `json:"posted,omitempty"`
 }
 
@@ -473,6 +475,7 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 		}
 	}
 	r.Field, r.SOF, r.Results = len(cls), strengthOfField(irs), cls
+	r.Brakes, r.TrackLen = fieldBrakes(y, cls), round(trackLength(y), 0)
 	if r.Field == 0 {
 		r.Field = len(listDrivers(y))
 	}

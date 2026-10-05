@@ -41,6 +41,9 @@ var (
 	carKeyRe   = regexp.MustCompile(`^[A-Za-z0-9 _.\-]{1,80}$`)
 )
 
+// generalKey is the profile used for every car that has none of its own.
+const generalKey = "*"
+
 func carsPath() string { return filepath.Join(activeDir(), "carprofiles.json") }
 
 func loadCars() {
@@ -134,6 +137,7 @@ func registerCarRoutes(mux *http.ServeMux) {
 		if r.Method == http.MethodPost {
 			var in struct {
 				Action, Key       string
+				Keys              []string
 				Overlays, Haptics bool
 				Actions           []string
 			}
@@ -142,11 +146,14 @@ func registerCarRoutes(mux *http.ServeMux) {
 			carsMu.Lock()
 			switch in.Action {
 			case "save": // current overlays and haptics become this car's
-				if !carKeyRe.MatchString(in.Key) {
+				if !carKeyRe.MatchString(in.Key) && in.Key != generalKey {
 					err = errors.New("unknown car")
 					break
 				}
 				p := &carProfile{Name: cars.Seen[in.Key], UseOv: in.Overlays, Saved: time.Now()}
+				if in.Key == generalKey {
+					p.Name = "General"
+				}
 				if p.Name == "" {
 					p.Name = in.Key
 				}
@@ -169,6 +176,14 @@ func registerCarRoutes(mux *http.ServeMux) {
 				saveCarsLocked()
 			case "delete":
 				delete(cars.Profiles, in.Key)
+				saveCarsLocked()
+			case "forget", "forgetMany": // remove cars (and their profiles) from the list
+				keys := append([]string{in.Key}, in.Keys...)
+				for _, k := range keys {
+					delete(cars.Profiles, k)
+					delete(cars.Seen, k)
+				}
+				carApplied = ""
 				saveCarsLocked()
 			case "apply":
 				p := cars.Profiles[in.Key]
@@ -205,7 +220,7 @@ func registerCarRoutes(mux *http.ServeMux) {
 				list = append(list, row{k, p.Name, p})
 			}
 		}
-		cur := carCurrent
+		cur, gen := carCurrent, cars.Profiles[generalKey]
 		carsMu.Unlock()
 		sort.Slice(list, func(i, j int) bool {
 			if (list[i].Key == cur) != (list[j].Key == cur) {
@@ -213,6 +228,6 @@ func registerCarRoutes(mux *http.ServeMux) {
 			}
 			return strings.ToLower(list[i].Name) < strings.ToLower(list[j].Name)
 		})
-		writeJSON(w, map[string]any{"current": cur, "cars": list})
+		writeJSON(w, map[string]any{"current": cur, "cars": list, "general": gen})
 	})
 }

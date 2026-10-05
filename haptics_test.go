@@ -50,3 +50,30 @@ func TestHapticsSynthBlock(t *testing.T) {
 		t.Fatalf("expected sound, peak %v", peak)
 	}
 }
+
+func TestHapticsSlipLockSlide(t *testing.T) {
+	c := defaultHaptics()
+	var s hapState
+	// RPM, Thr, Gear, shocks x4, ABS, Vert, surf, speed, onTrack, Brake, LongAccel, Vx, Vy, warn, TC, Clutch, ride x4
+	v := func(rpm, thr, brk, speed, vy float64, warn float64) []float64 {
+		return []float64{rpm, thr, 3, 0, 0, 0, 0, 0, 9.81, 3, speed, 1, brk, 0, speed, vy, warn, 2, 1, .05, .05, .05, .05}
+	}
+	for i := 0; i < 50; i++ { // learn third gear: 5000 rpm at 40 m/s
+		s.step(v(5000, .5, 0, 40, 0, 0), c, .01)
+	}
+	if tg := s.step(v(5000, .5, 0, 40, 0, 0), c, .01); tg.amp["slip"][0] != 0 {
+		t.Fatal("no slip with grip")
+	}
+	if tg := s.step(v(6000, 1, 0, 40, 0, 0), c, .01); tg.amp["slip"][0] <= 0 {
+		t.Fatal("RPM up 20% at the same speed is wheelspin")
+	}
+	if tg := s.step(v(4000, 0, .9, 40, 0, 0), c, .01); tg.amp["lock"][0] <= 0 {
+		t.Fatal("RPM down 20% under braking is a lock-up")
+	}
+	if tg := s.step(v(5000, .5, 0, 40, 6, 0), c, .01); tg.amp["slide"][0] <= 0 {
+		t.Fatal("8 degrees of slip angle is a slide")
+	}
+	if tg := s.step(v(5000, .5, 0, 40, 0, 0x20), c, .01); tg.amp["limiter"][0] <= 0 {
+		t.Fatal("rev limiter")
+	}
+}

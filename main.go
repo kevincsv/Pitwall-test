@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.10.0"
+const appVersion = "0.11.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -402,6 +402,7 @@ func main() {
 	go carWatcher()
 	go joyWatcher()
 	go raceWatcher()
+	go fieldWatcher()
 	go updateWatcher()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ

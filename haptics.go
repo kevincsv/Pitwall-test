@@ -43,7 +43,7 @@ type hapConfig struct {
 	Effects  map[string]*hapEffect `json:"effects"`
 }
 
-var hapEffectOrder = []string{"engine", "shift", "road", "abs", "impact", "offtrack"}
+var hapEffectOrder = []string{"engine", "shift", "road", "abs", "impact", "offtrack", "slip", "tc", "lock", "slide", "gforce", "bottom", "limiter", "pitlimiter"}
 
 func defaultHaptics() hapConfig {
 	return hapConfig{Mode: "simhub", Device: -1, Channels: 2, Master: 0.7, InCar: true, Effects: map[string]*hapEffect{
@@ -53,6 +53,15 @@ func defaultHaptics() hapConfig {
 		"abs":      {On: true, Gain: 0.9, Freq: 55, Ch: []int{0, 1}},
 		"impact":   {On: true, Gain: 1, Freq: 28, Ch: []int{0, 1}},
 		"offtrack": {On: true, Gain: 0.7, Freq: 24, Ch: []int{0, 1}},
+		// like TrackImpulse: traction loss, TC, lock-ups, slides, braking g, bottoming, limiters
+		"slip":       {On: true, Gain: 0.9, Freq: 42, Ch: []int{0, 1}},
+		"tc":         {On: true, Gain: 0.7, Freq: 50, Ch: []int{0, 1}},
+		"lock":       {On: true, Gain: 1, Freq: 62, Ch: []int{0, 1}},
+		"slide":      {On: true, Gain: 0.7, Freq: 36, Ch: []int{0, 1}},
+		"gforce":     {On: false, Gain: 0.6, Freq: 18, Ch: []int{0, 1}},
+		"bottom":     {On: true, Gain: 0.9, Freq: 26, Ch: []int{0, 1}},
+		"limiter":    {On: true, Gain: 0.6, Freq: 70, Ch: []int{0, 1}},
+		"pitlimiter": {On: true, Gain: 0.4, Freq: 30, Ch: []int{0, 1}},
 	}}
 }
 
@@ -174,7 +183,8 @@ func applyHapticsMode() {
 
 // ---------- telemetry to effect levels ----------
 
-var hapVars = []string{"RPM", "Throttle", "Gear", "LFshockVel", "RFshockVel", "LRshockVel", "RRshockVel", "BrakeABSactive", "VertAccel", "PlayerTrackSurface", "Speed", "IsOnTrack"}
+var hapVars = []string{"RPM", "Throttle", "Gear", "LFshockVel", "RFshockVel", "LRshockVel", "RRshockVel", "BrakeABSactive", "VertAccel", "PlayerTrackSurface", "Speed", "IsOnTrack",
+	"Brake", "LongAccel", "VelocityX", "VelocityY", "EngineWarnings", "dcTractionControl", "Clutch", "LFrideHeight", "RFrideHeight", "LRrideHeight", "RRrideHeight"}
 
 func telNums(names []string) []float64 {
 	out := make([]float64, len(names))
@@ -215,6 +225,9 @@ func toF(v any) float64 {
 
 // hapState turns telemetry into a level (0..1) per effect and side.
 type hapState struct {
+	ratio            map[int]float64 // RPM per m/s in each gear, learned while the tyres grip
+	tcPhase          float64
+	bottomT          float64
 	rpmMax, lastGear float64
 	shiftT, impactT  float64 // seconds left of a burst
 	impactAmp        float64
@@ -283,7 +296,100 @@ func (s *hapState) step(v []float64, c hapConfig, dt float64) hapTargets {
 		t.amp["offtrack"] = [2]float64{0.8, 0.8}
 		t.noise["offtrack"] = 0.8
 	}
+	s.stepExtra(v, dt, &t)
 	return t
+}
+
+// stepExtra: effects worked out from iRacing's telemetry, as TrackImpulse-style tools do
+// (iRacing does not send wheel speeds, so slip comes from the engine and the car's motion).
+func (s *hapState) stepExtra(v []float64, dt float64, t *hapTargets) {
+	at := func(i int) float64 {
+		if i < len(v) {
+			return v[i]
+		}
+		return 0
+	}
+	if len(v) < 23 {
+		return
+	}
+	rpm, thr, gear, speed := v[0], v[1], int(v[2]), v[10]
+	brk, long, vx, vy, warn, tc, clutch := at(12), at(13), at(14), at(15), int(at(16)), at(17), at(18)
+	if s.ratio == nil {
+		s.ratio = map[int]float64{}
+	}
+	// wheelspin and lock-ups: the driven wheels turn the engine, so RPM against road speed
+	// rises when they spin and drops when they lock
+	slip := 0.0
+	if gear >= 1 && speed > 6 && rpm > 800 && clutch > 0.9 {
+		r := rpm / speed
+		if base := s.ratio[gear]; base > 0 {
+			slip = r/base - 1
+		}
+		if thr > 0.15 && thr < 0.9 && brk < 0.05 || s.ratio[gear] == 0 {
+			if s.ratio[gear] == 0 {
+				s.ratio[gear] = r
+			} else if math.Abs(slip) < 0.05 {
+				s.ratio[gear] += (r - s.ratio[gear]) * 0.02
+			}
+		}
+	}
+	if thr > 0.4 && slip > 0.05 {
+		a := clampF((slip-0.04)/0.15, 0, 1)
+		t.amp["slip"] = [2]float64{a, a}
+		t.noise["slip"] = 0.35
+		if tc > 0 { // traction control cutting in: a fast stutter while it limits the spin
+			s.tcPhase += dt * 12
+			p := 0.0
+			if math.Mod(s.tcPhase, 1) < 0.5 {
+				p = 0.9
+			}
+			t.amp["tc"] = [2]float64{p, p}
+		}
+	}
+	if brk > 0.3 && slip < -0.07 && v[7] == 0 {
+		a := clampF((-slip-0.05)/0.2, 0.3, 1)
+		t.amp["lock"] = [2]float64{a, a}
+		t.noise["lock"] = 0.6
+	}
+	// slides: angle between where the car points and where it goes
+	if speed > 12 && vx > 1 {
+		ang := math.Abs(math.Atan2(vy, vx)) * 180 / math.Pi
+		if ang > 4 {
+			a := clampF((ang-4)/10, 0, 1)
+			l, r := a, a*0.5
+			if vy < 0 {
+				l, r = r, l
+			}
+			t.amp["slide"] = [2]float64{l, r}
+			t.noise["slide"] = 0.25
+		}
+	}
+	// heavy braking: a low rumble that grows with the deceleration
+	if long < -6 {
+		a := clampF((-long-6)/20, 0, 1)
+		t.amp["gforce"] = [2]float64{a, a}
+	}
+	// bottoming: a corner of the car touches the ground
+	minRide := math.Min(math.Min(at(19), at(20)), math.Min(at(21), at(22)))
+	if minRide > -1 && minRide < 0.004 && speed > 10 && s.bottomT <= 0 && (at(19) != 0 || at(21) != 0) {
+		s.bottomT = 0.12
+	}
+	if s.bottomT > 0 {
+		s.bottomT -= dt
+		a := clampF(s.bottomT/0.12, 0, 1)
+		t.amp["bottom"] = [2]float64{a, a}
+	}
+	if warn&0x20 != 0 { // rev limiter
+		t.amp["limiter"] = [2]float64{0.8, 0.8}
+	}
+	if warn&0x10 != 0 && speed > 1 { // pit limiter: a slow pulse
+		s.tcPhase += dt * 2
+		p := 0.0
+		if math.Mod(s.tcPhase, 1) < 0.3 {
+			p = 0.6
+		}
+		t.amp["pitlimiter"] = [2]float64{p, p}
+	}
 }
 
 // hapSynth mixes the effects into interleaved float samples.

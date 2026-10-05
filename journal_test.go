@@ -168,3 +168,23 @@ func TestDriverBlockSkipsFastestLap(t *testing.T) {
 		t.Fatalf("driver block: %q", d)
 	}
 }
+
+func TestBrakePoints(t *testing.T) {
+	// 60 m/s, braking at 500 m down to 25 m/s by 600 m, then back up; a hole in the data
+	v := make([]float32, 200)
+	for i := range v {
+		d := float64(i) * fieldBin
+		s := 60.0
+		if d >= 500 && d < 600 {
+			s = 60 - (d-500)*0.35
+		} else if d >= 600 && d < 900 {
+			s = 25 + (d-600)*0.1
+		}
+		v[i] = float32(s)
+	}
+	v[30] = 0
+	d, vm := brakePoints(v)
+	if len(d) != 1 || d[0] < 480 || d[0] > 510 || vm[0] > 27 {
+		t.Fatalf("brake points %v %v", d, vm)
+	}
+}
