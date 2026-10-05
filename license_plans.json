@@ -8,11 +8,11 @@
   "graceDays": 7,
   "plans": [
     {"id": "free", "name": ["Free", "Gratis"], "price": ["€0", "0 €"], "features": [["Live dashboard and overlays", "Panel en vivo y overlays"], ["Calendar and series", "Calendario y series"], ["Phone as a second screen", "Móvil como segunda pantalla"]]},
-    {"id": "monthly", "name": ["Pro monthly", "Pro mensual"], "price": ["€4.99 / month", "4,99 € / mes"], "buy": "https://pitlanehq.lemonsqueezy.com/checkout/buy/MONTHLY", "features": [["Everything in Free", "Todo lo de Gratis"], ["Voice engineer", "Ingeniero por voz"], ["Race analysis and braking coach", "Análisis de carrera y coach de frenada"], ["Haptics engine", "Motor de hápticos"], ["Web version and Discord", "Versión web y Discord"]]},
+    {"id": "monthly", "name": ["Pro monthly", "Pro mensual"], "price": ["€4.99 / month", "4,99 € / mes"], "buy": "https://pitlanehq.lemonsqueezy.com/checkout/buy/MONTHLY", "features": [["Everything in Free", "Todo lo de Gratis"], ["Voice engineer", "Ingeniero por voz"], ["Race analysis and braking coach", "Análisis de carrera y coach de frenada"], ["Your laps on the web and the phone", "Tus vueltas en la web y el móvil"]]},
     {"id": "yearly", "name": ["Pro yearly", "Pro anual"], "price": ["€39.99 / year", "39,99 € / año"], "buy": "https://pitlanehq.lemonsqueezy.com/checkout/buy/YEARLY", "features": [["Everything in Pro", "Todo lo de Pro"], ["2 months free", "2 meses gratis"]]},
     {"id": "lifetime", "name": ["Lifetime", "De por vida"], "price": ["€99 once", "99 € una vez"], "buy": "https://pitlanehq.lemonsqueezy.com/checkout/buy/LIFETIME", "features": [["Everything in Pro, forever", "Todo lo de Pro, para siempre"], ["All future updates", "Todas las actualizaciones futuras"]]}
   ],
   "variantPlans": {"month": "monthly", "year": "yearly", "annual": "yearly", "lifetime": "lifetime"},
-  "proViews": ["engineer", "races", "tracks", "coach", "strategy", "haptics", "cars"],
+  "proViews": ["engineer", "races", "tracks", "coach", "cars"],
   "proFeatures": ["cloud", "discord", "shiftBeep", "brakeMarkers", "voicePacks"]
 }
