@@ -76,6 +76,11 @@ func commBase() string {
 	if u == "" {
 		u = bundledServer()
 	}
+	if u == "" { // your own Pitlane HQ Cloud site is also your server
+		cloudMu.Lock()
+		u = cloudCfg.URL
+		cloudMu.Unlock()
+	}
 	return strings.TrimRight(u, "/")
 }
 

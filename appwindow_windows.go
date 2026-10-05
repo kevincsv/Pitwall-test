@@ -7,19 +7,26 @@ package main
 // Links to other websites open in your normal browser.
 
 import (
+	_ "embed"
+	"encoding/binary"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
 )
 
+//go:embed assets/pitlanehq.ico
+var appIconICO []byte
+
 var (
-	mainWV                  webview2.WebView
-	mainHwnd                uintptr
-	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
+	procCreateIconFromResourceEx = user32.NewProc("CreateIconFromResourceEx")
+	mainWV                       webview2.WebView
+	mainHwnd                     uintptr
+	procSetForegroundWindow      = user32.NewProc("SetForegroundWindow")
 )
 
 const externalLinks = `(function(){var ext=function(u){try{var x=new URL(u,location.href);return x.origin!==location.origin&&/^https?:$/.test(x.protocol)}catch(e){return false}};
@@ -40,6 +47,7 @@ func runMainWindow(url string, minimized bool) bool {
 		return false
 	}
 	mainWV, mainHwnd = wv, uintptr(wv.Window())
+	setWindowIcon(mainHwnd)
 	procShowWindow.Call(mainHwnd, 3) // SW_MAXIMIZE: use the whole screen
 	if minimized {
 		procShowWindow.Call(mainHwnd, 6) // SW_MINIMIZE
@@ -77,4 +85,50 @@ func openExternal(u string) {
 // logToFile: without a console the log goes to %LOCALAPPDATA%\PitlaneHQ\pitlanehq.log.
 func logFilePath() string {
 	return filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "pitlanehq.log")
+}
+
+// iconFromICO makes a Windows icon of the given size from the embedded .ico.
+func iconFromICO(size int) uintptr {
+	if len(appIconICO) < 6 {
+		return 0
+	}
+	n := int(binary.LittleEndian.Uint16(appIconICO[4:]))
+	best, bestDiff := -1, 1<<30
+	for i := 0; i < n; i++ {
+		e := appIconICO[6+16*i:]
+		w := int(e[0])
+		if w == 0 {
+			w = 256
+		}
+		d := w - size
+		if d < 0 {
+			d = -d * 2 // prefer a larger image scaled down
+		}
+		if d < bestDiff {
+			best, bestDiff = i, d
+		}
+	}
+	if best < 0 {
+		return 0
+	}
+	e := appIconICO[6+16*best:]
+	ln := int(binary.LittleEndian.Uint32(e[8:]))
+	off := int(binary.LittleEndian.Uint32(e[12:]))
+	if off+ln > len(appIconICO) {
+		return 0
+	}
+	data := appIconICO[off : off+ln]
+	h, _, _ := procCreateIconFromResourceEx.Call(uintptr(unsafe.Pointer(&data[0])), uintptr(ln), 1, 0x00030000, uintptr(size), uintptr(size), 0)
+	return h
+}
+
+// setWindowIcon puts the Pitlane HQ icon on the window title and taskbar button.
+func setWindowIcon(hwnd uintptr) {
+	const wmSetIcon = 0x0080
+	if h := iconFromICO(16); h != 0 {
+		procSendMessageW.Call(hwnd, wmSetIcon, 0, h) // ICON_SMALL
+	}
+	if h := iconFromICO(48); h != 0 {
+		procSendMessageW.Call(hwnd, wmSetIcon, 1, h) // ICON_BIG
+	}
 }

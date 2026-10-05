@@ -14,6 +14,12 @@ migrations_dir = "migrations"
 #   PITLANE_KEY  key that PitlaneHQ.exe uses to upload and you use to sign in
 #   VIEW_KEY     optional read-only key to share with your engineer or team
 
+[vars]
+# accounts, end-to-end encrypted sync, community and shared setups on this server
+COMMUNITY = "1"
+# your Pitlane HQ account id(s), separated by commas, to publish the season schedule
+SEASON_UPLOADERS = ""
+
 [[rules]]
 type = "Text"
 globs = ["**/*.html"]

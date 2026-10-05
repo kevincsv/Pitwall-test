@@ -6,6 +6,18 @@ the site from any phone, tablet or PC to see your sessions, your records for
 each track and car, and to compare two laps (speed, throttle and brake, gear,
 time difference). It runs free on Cloudflare (Workers + D1) for personal use.
 
+## Personal use: everything on one server (quick guide)
+
+One Cloudflare Worker + D1 database does it all for you: your laps on the web, your Pitlane HQ account (end-to-end encrypted sync between PC and phone), the community and shared setups, and the season schedule. Free plan is enough.
+
+1. Create the site with the button below (or by hand). Keep the names it suggests. When it asks for `PITLANE_KEY`, paste the key from Pitlane HQ → Account → Settings → Connections → Pitlane HQ Cloud → **Create a key**.
+2. In Pitlane HQ on the PC: Settings → Connections → **Pitlane HQ Cloud**: paste the site address (`https://pitlanehq.<you>.workers.dev`) and the key, save, **Test connection**. That address is now also your account and community server.
+3. Account → **My account** → create your account.
+4. Phone: My account → **Server** → paste the same address → sign in.
+5. Optional, real season for the phone without iRacing: Cloudflare dashboard → Workers → pitlanehq → Settings → Variables → `SEASON_UPLOADERS` = your account id (`npx wrangler d1 execute pitlanehq --remote --command "select id, display from accounts"`).
+
+If it already existed from an older version, apply the new tables once: `npx wrangler d1 migrations apply DB --remote` (or push to GitHub with the secrets below and the workflow does it). Errors like "accounts are not enabled" mean `COMMUNITY` is not `1` (it is set in `wrangler.toml` now; redeploy). "no such table" means the migrations were not applied.
+
 ## Create it with one click
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kevincsv/Pitwall-test/tree/pitlanehq-latest/cloud)

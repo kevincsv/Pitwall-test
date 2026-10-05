@@ -14,6 +14,7 @@ on:
       - "web/**"
       - "azom/**"
       - "azomdist/**"
+      - "assets/**"
       - ".github/workflows/windows.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"
@@ -73,9 +74,6 @@ jobs:
           go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o PitlaneHQ.exe .
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item PitlaneHQ.exe, README.md out/
-          Copy-Item azomdist/MozaPlugin.dll out/
-          Copy-Item azom/LICENSE out/AZOM-LICENSE.txt
-          Copy-Item azom/UPSTREAM.md out/AZOM-README.md
 
       - uses: actions/upload-artifact@v4
         with:
