@@ -102,17 +102,19 @@ func findProfileLocked(id string) int {
 	return -1
 }
 
-func defaultProfileName() string {
+// defaultProfileName is generic: nothing personal (like the Windows user name) is shown.
+func defaultProfileName() string { return "Profile 1" }
+
+// osUserName is the Windows user name; older versions named the first profile after it.
+func osUserName() string {
 	if u, err := user.Current(); err == nil {
 		n := u.Username
 		if i := strings.LastIndexAny(n, `\/`); i >= 0 {
 			n = n[i+1:]
 		}
-		if n = strings.TrimSpace(n); n != "" && len(n) <= 40 {
-			return n
-		}
+		return strings.TrimSpace(n)
 	}
-	return "Driver 1"
+	return ""
 }
 
 // initProfiles loads the profile list. The first time, the files from older
@@ -125,6 +127,19 @@ func initProfiles() {
 		if json.Unmarshal(b, &profs) == nil && len(profs.List) > 0 {
 			if findProfileLocked(profs.Active) < 0 {
 				profs.Active = profs.List[0].ID
+			}
+			// profiles that older versions named after the Windows user get a generic name
+			if u := osUserName(); u != "" {
+				changed := false
+				for i := range profs.List {
+					if strings.EqualFold(profs.List[i].Name, u) {
+						profs.List[i].Name = uniqueNameLocked(fmt.Sprintf("Profile %d", i+1))
+						changed = true
+					}
+				}
+				if changed {
+					saveProfilesLocked()
+				}
 			}
 			return
 		}

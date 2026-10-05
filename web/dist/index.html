@@ -39,7 +39,8 @@
 html,body{background:var(--bg)}
 body{margin:0}
 body{color:var(--fg);font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:0 104px;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:1240px;margin:0 auto}
+.wrap{max-width:none;margin:0 auto}
+@media (min-width:1300px){body{padding-inline:clamp(16px,2.2vw,44px)}}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;padding-block:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .brand{font:700 24px/1 var(--f-display);letter-spacing:.03em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
 .brand i{display:inline-block;width:14px;height:14px;background:repeating-conic-gradient(var(--fg) 0 25%,transparent 0 50%) 0 0/7px 7px;border:1px solid var(--fg)}
