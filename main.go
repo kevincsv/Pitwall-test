@@ -543,7 +543,6 @@ func main() {
 	registerShareRoutes(mux)
 	registerProfileRoutes(mux)
 	registerAppRoutes(mux)
-	registerHapticsRoutes(mux)
 	registerCloudRoutes(mux)
 	registerSetupRoutes(mux)
 	registerCarRoutes(mux)

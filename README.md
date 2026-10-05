@@ -27,7 +27,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 | **Race** (while you drive) | Live · Standings · Strategy · Tyres |
 | **Analysis** (after the session) | Races · Laps · Braking coach · Tracks · Data |
 | **Season** | Calendar · Series · News · Goals |
-| **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
+| **Rig** | Overlays · Programs · Car profiles · Setups |
 | **Community** | Leaderboards, shared laps and analyses |
 | **Account** | Account · Settings (also the gear button) |
 
@@ -101,10 +101,6 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Android app**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (install the .apk). Same reminders and a **Next races** home-screen widget with a live countdown.
 - **Pitlane HQ Cloud** (see `cloud/README.md`): your own free website on Cloudflare. Pitlane HQ records every lap (even with the screen closed) and uploads it; open the site anywhere to see sessions, records per track and car, and compare laps.
 
-## Haptics (Settings → General)
-
-- **Pitlane HQ engine**: Pitlane HQ's own effects for bass shakers on any sound card or USB sound box (2, 4, 6 or 8 channels): engine, gear shifts, road and kerbs (left/right), ABS, impacts and off track, each with strength, frequency, the channels it goes to and a **Feel it** test.
-
 ## Coaching, strategy and more
 
 - **Voice engineer and spotter** (Race → Engineer), like CrewChief. Buttons to choose what it tells you: spotter (car left / right, three wide, clear), off track, incidents, flags, places gained or lost, laps or minutes to go, lap time and personal best, gaps, fuel, *box this lap*, pit limiter, water / oil warnings and a braking tip. Presets (All, Race, Practice, Spotter only) and *wait for the straight* so it does not talk while you brake or turn.
@@ -114,7 +110,7 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Exact deltas**: every lap keeps the time at each 5 m, interpolated between telemetry samples, so comparisons are accurate to about a millisecond. The delta bar can compare with your best, the session best, the optimal lap or Pitlane HQ's own recorded best, with the range you choose.
 - **Endurance strategy** (Race → Strategy): race length, drivers and their maximum stint, fuel, tank, pit loss, refuelling speed and tyre changes give a stint plan (laps, fuel to add, tyres, stop time) that follows the race live ("box in 9").
 - **Goals** (Season → Goals): iRating, licence and safety rating, races per week, incidents per race and lap time targets per track and car, with progress.
-- **Car profiles** (Settings → Per-car settings): save overlays and haptics for each car; they are applied when you get in it.
+- **Car profiles** (Settings → Per-car settings): save overlays for each car; they are applied when you get in it.
 - **Setups** (Rig → Setups): every setup in Documents\iRacing\setups with notes, tags and your best lap with it at each track.
 - **Team on the web**: your Pitlane HQ Cloud can have team mates with their own keys; records per track and car for the whole team and comparison with the team's fastest lap.
 - **Settings** now holds everything you set up once: general, profiles, connections (iRacing, Garage 61, Pitlane HQ Cloud), phone and engineer view.
@@ -131,7 +127,6 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Discord** (Settings → Connections): your results posted automatically, and "Share on Discord" for your next races. The webhook link is stored encrypted.
 - **Updates**: the Windows app checks the downloads page and updates itself with one click (Settings → About, or the banner).
 
-- **Haptics engine effects** like TrackImpulse: wheelspin, traction control, wheel lock, slide, braking g, bottoming, rev limiter and pit limiter, each with how it is worked out from iRacing's telemetry.
 - **Car profiles**: a **general profile** for any car without its own; select and remove cars you do not need.
 - **Account**: recent races open their details; safety rating history, this year and career by category, and what Pitlane HQ recorded. Race reports show the **track map with your braking points and those of the drivers around you**.
 
@@ -199,7 +194,7 @@ Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para para
 | **Carrera** (mientras conduces) | En vivo · Posiciones · Estrategia · Neumáticos |
 | **Análisis** (después de la sesión) | Carreras · Vueltas · Coach de frenada · Circuitos · Datos |
 | **Temporada** | Calendario · Series · Noticias · Objetivos |
-| **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
+| **Rig** | Overlays · Programas · Perfiles por coche · Setups |
 | **Comunidad** | Clasificaciones, vueltas y análisis compartidos |
 | **Cuenta** | Cuenta · Ajustes (también el botón del engranaje) |
 
@@ -273,10 +268,6 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **App de Android**: GitHub Actions → *Build Android app* → **PitlaneHQ-android** (instala el .apk). Los mismos avisos y un widget **Próximas carreras** con cuenta atrás en vivo.
 - **Pitlane HQ Cloud** (mira `cloud/README.md`): tu propia web gratuita en Cloudflare. Pitlane HQ graba cada vuelta (aunque la pantalla esté cerrada) y la sube; abre la web desde cualquier sitio para ver sesiones, récords por circuito y coche, y comparar vueltas.
 
-## Hápticos (Ajustes → General)
-
-- **Motor de Pitlane HQ**: efectos propios para bass shakers en cualquier tarjeta o caja de sonido USB (2, 4, 6 u 8 canales): motor, cambios de marcha, asfalto y pianos (izquierda/derecha), ABS, impactos y fuera de pista, cada uno con fuerza, frecuencia, los canales a los que va y un botón **Probar**.
-
 ## Coach, estrategia y más
 
 - **Ingeniero por voz y spotter** (Carrera → Ingeniero), como CrewChief. Botones para elegir qué te dice: spotter (coche a la izquierda / derecha, tres en paralelo, libre), fuera de pista, incidentes, banderas, posiciones ganadas o perdidas, vueltas o minutos restantes, tiempo de vuelta y récord, gaps, gasolina, *box esta vuelta*, limitador en pit lane, avisos de agua / aceite y un consejo de frenada. Ajustes rápidos (Todo, Carrera, Entreno, Solo spotter) y *espera a la recta* para que no hable mientras frenas o giras.
@@ -286,7 +277,7 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Deltas exactos**: cada vuelta guarda el tiempo cada 5 m, interpolado entre muestras de telemetría, así las comparaciones son precisas a ~1 milésima. La barra de delta puede compararse con tu mejor vuelta, la mejor de la sesión, la vuelta óptima o la mejor grabada por Pitlane HQ, con el rango que elijas.
 - **Estrategia de resistencia** (Carrera → Estrategia): duración, pilotos y su stint máximo, gasolina, depósito, pérdida en boxes, velocidad de repostaje y cambio de ruedas dan un plan de stints (vueltas, gasolina a añadir, ruedas, tiempo de parada) que sigue la carrera en vivo ("box en 9").
 - **Objetivos** (Temporada → Objetivos): iRating, licencia y safety rating, carreras por semana, incidentes por carrera y tiempos objetivo por circuito y coche, con progreso.
-- **Perfiles por coche** (Ajustes → Ajustes por coche): guarda overlays y hápticos para cada coche; se aplican al subirte a él.
+- **Perfiles por coche** (Ajustes → Ajustes por coche): guarda overlays para cada coche; se aplican al subirte a él.
 - **Setups** (Rig → Setups): todos los setups de Documentos\iRacing\setups con notas, etiquetas y tu mejor vuelta con cada uno en cada circuito.
 - **Equipo en la web**: tu Pitlane HQ Cloud puede tener compañeros con su propia clave; récords por circuito y coche de todo el equipo y comparación con la vuelta más rápida del equipo.
 - **Ajustes** reúne todo lo que se configura una vez: general, perfiles, conexiones (iRacing, Garage 61, Pitlane HQ Cloud), móvil y vista de ingeniero.
@@ -303,7 +294,6 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Discord** (Ajustes → Conexiones): tus resultados se publican solos, y «Compartir en Discord» para tus próximas carreras. El enlace del webhook se guarda cifrado.
 - **Actualizaciones**: la app de Windows mira la página de descargas y se actualiza con un clic (Ajustes → Acerca de, o el aviso de arriba).
 
-- **Efectos del motor háptico** como TrackImpulse: patinaje, control de tracción, bloqueo, derrape, g de frenada, tocar fondo, limitador de vueltas y de pit, cada uno con cómo se calcula a partir de la telemetría de iRacing.
 - **Perfiles por coche**: un **perfil general** para cualquier coche sin perfil propio; selecciona y quita los coches que no necesites.
 - **Cuenta**: las carreras recientes abren su detalle; historial de safety rating, este año y trayectoria por categoría, y lo registrado por Pitlane HQ. Los informes de carrera muestran el **mapa del circuito con tus puntos de frenada y los de los pilotos a tu alrededor**.
 

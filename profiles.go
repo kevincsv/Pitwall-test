@@ -163,7 +163,6 @@ func loadProfileState() {
 	loadConfig()
 	loadG61()
 	loadApps()
-	loadHaptics()
 	loadCloud()
 	loadSetups()
 	loadCars()

@@ -1,8 +1,7 @@
 package main
 
 // Per-car rig profiles: when you get in a car, Pitlane HQ applies what you
-// saved for it: which overlays open, the haptics settings
-// actions to run (for example a wheel screen page or a brightness).
+// saved for it: which overlays open.
 
 import (
 	"encoding/json"
@@ -20,12 +19,11 @@ import (
 )
 
 type carProfile struct {
-	Name     string     `json:"name"`
-	Overlays []string   `json:"overlays,omitempty"`
-	UseOv    bool       `json:"useOverlays"`
-	Haptics  *hapConfig `json:"haptics,omitempty"`
-	Actions  []string   `json:"actions,omitempty"`
-	Saved    time.Time  `json:"saved"`
+	Name     string    `json:"name"`
+	Overlays []string  `json:"overlays,omitempty"`
+	UseOv    bool      `json:"useOverlays"`
+	Actions  []string  `json:"actions,omitempty"`
+	Saved    time.Time `json:"saved"`
 }
 
 type carFile struct {
@@ -110,18 +108,6 @@ func applyCarProfile(p carProfile) {
 		closeOverlays("*")
 		profileEpoch.Add(1) // the overlay watcher opens this car's overlays
 	}
-	if p.Haptics != nil {
-		h := *p.Haptics
-		cleanHaptics(&h)
-		hapMu.Lock()
-		restart := h.Mode != hapCfg.Mode || h.Device != hapCfg.Device || h.Channels != hapCfg.Channels
-		hapCfg = h
-		hapMu.Unlock()
-		saveHaptics()
-		if restart {
-			applyHapticsMode()
-		}
-	}
 }
 
 func registerCarRoutes(mux *http.ServeMux) {
@@ -130,14 +116,14 @@ func registerCarRoutes(mux *http.ServeMux) {
 			var in struct {
 				Action, Key       string
 				Keys              []string
-				Overlays, Haptics bool
+				Overlays, Haptics bool // Haptics: ignored (haptics were removed)
 				Actions           []string
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&in)
 			var err error
 			carsMu.Lock()
 			switch in.Action {
-			case "save": // current overlays and haptics become this car's
+			case "save": // current overlays become this car's
 				if !carKeyRe.MatchString(in.Key) && in.Key != generalKey {
 					err = errors.New("unknown car")
 					break
@@ -152,12 +138,6 @@ func registerCarRoutes(mux *http.ServeMux) {
 				if in.Overlays {
 					c, _ := settingsSnapshot()
 					p.Overlays = c.AutoWidgets
-				}
-				if in.Haptics {
-					hapMu.Lock()
-					h := hapCfg
-					hapMu.Unlock()
-					p.Haptics = &h
 				}
 				cars.Profiles[in.Key] = p
 				saveCarsLocked()

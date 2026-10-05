@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	winmm          = windows.NewLazySystemDLL("winmm.dll")
 	pJoyGetNumDevs = winmm.NewProc("joyGetNumDevs")
 	pJoyGetPosEx   = winmm.NewProc("joyGetPosEx")
 	pJoyGetDevCaps = winmm.NewProc("joyGetDevCapsW")
