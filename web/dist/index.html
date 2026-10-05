@@ -2653,17 +2653,23 @@ Object.assign(I18N,{"w.radar":["Radar","Radar"],"w.boost":["DRS & push-to-pass",
  lyNoteRemote:["You can open and close overlays on your PC from here.","Desde aquí puedes abrir y cerrar los overlays de tu PC."]});
 let LAYOUT_VIEW=null;
 function chk(id,on,label){return `<button type="button" class="chip" id="${id}" aria-pressed="${!!on}">${label}</button>`}
+/* the Live screen's recommended set, as an engineer for an amateur driver would pick it:
+   flags, lap times and the delta, who is around and the gaps, fuel and tyres for the stint,
+   incidents (safety rating) and the inputs to coach braking and throttle */
+const LIVE_REC=["flag","timing","deltabar","relative","gaps","fuel","tyres","incidents","inputs"];
 function openLayout(){LAYOUT_VIEW=openLayout;CFG_BACK=null;
   $("#dTitle").innerHTML=L("layout");$("#dSub").innerHTML=Lp("Choose what this screen shows. Overlay windows are set up in Rig → Overlays.","Elige qué muestra esta pantalla. Las ventanas overlay se configuran en Rig → Overlays.");
   const rows=WIDGETS.map(w=>`<div class="lyrow"><span class="s">${L("w."+w,true)}</span>
     <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${esc(HIDDEN.has(w)?Tx("Hidden","Oculto"):Tx("Shown","Visible"))}</button>
     ${w!=="flag"?`<button type="button" class="pin" data-size="${w}" title="${esc(Tx("Width","Ancho"))}">${esc(Tx("Width","Ancho"))}: ${sizeLabel(w)}</button>`:""}
     ${CONFIGURABLE[w]?`<button type="button" class="pin" data-cfg="${w}">${L("configure",true)}</button>`:""}</div>`).join("");
-  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><p class="note" style="margin:0 0 10px">${Lp("Tip: drag the ⠿ handle on any block to move it.","Consejo: arrastra el asa ⠿ de cualquier bloque para moverlo.")}</p><div class="panel">${rows}</div>
+  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><div class="frow" style="margin:0 0 10px"><button type="button" class="btn small" id="lyRec">★ ${esc(Tx("Recommended","Recomendados","Empfohlen","Recomendados"))}</button><button type="button" class="btn small" id="lyNone">${esc(Tx("Hide all","Desactivar todos","Alle ausblenden","Desativar todos"))}</button><button type="button" class="btn small" id="lyAll">${esc(Tx("Show all","Mostrar todos","Alle anzeigen","Mostrar todos"))}</button></div><p class="note" style="margin:0 0 10px">${Lp("Tip: drag the ⠿ handle on any block to move it.","Consejo: arrastra el asa ⠿ de cualquier bloque para moverlo.")}</p><div class="panel">${rows}</div>
    <div style="margin-top:10px"><button type="button" class="btn" id="resetOrder">${esc(Tx("Reset order and widths","Restablecer orden y anchos"))}</button></div>`;
   document.querySelectorAll("#dBody [data-size]").forEach(b=>b.onclick=()=>{cycleSize(b.dataset.size);openLayout()});
   $("#resetOrder").onclick=()=>{ORDER=null;WSIZE={};WHGT={};store.set("pw.order",null);store.set("pw.sizes",{});store.set("pw.heights",{});location.reload()};
   $("#toOverlays").onclick=()=>{closeDrawer();show("overlays")};
+  const setShown=keep=>{const all=new Set([...WIDGETS,...[...document.querySelectorAll("#v-live .wpanel[data-w]")].map(p=>p.dataset.w)]);HIDDEN=new Set([...all].filter(w=>!keep.includes(w)));store.set("pw.hiddenW",[...HIDDEN]);applyLayout();openLayout()};
+  $("#lyRec").onclick=()=>setShown(LIVE_REC);$("#lyNone").onclick=()=>setShown([]);$("#lyAll").onclick=()=>setShown(WIDGETS);
   document.querySelectorAll("#dBody [data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();openLayout()});
   document.querySelectorAll("#dBody [data-cfg]").forEach(b=>b.onclick=()=>openWidgetCfg(b.dataset.cfg));
   if($("#drawer").hidden){$("#drawer").hidden=false;$("#dClose").focus()}}
