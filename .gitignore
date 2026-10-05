@@ -1,0 +1,6 @@
+pw-linux
+*.exe
+ios/build/
+ios/PitWall.xcodeproj/
+ios/Payload/
+ios/*.ipa
