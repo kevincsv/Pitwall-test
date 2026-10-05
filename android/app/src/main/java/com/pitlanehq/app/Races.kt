@@ -19,7 +19,7 @@ object Races {
     fun save(c: Context, msg: JSONObject) {
         prefs(c).edit()
             .putString("items", (msg.optJSONArray("items") ?: JSONArray()).toString())
-            .putString("leads", (msg.optJSONArray("leads") ?: JSONArray("[15]")).toString())
+            .putString("leads", (msg.optJSONArray("leads") ?: JSONArray("[5]")).toString())
             .putBoolean("es", msg.optString("lang") == "es")
             .apply()
     }
@@ -35,7 +35,7 @@ object Races {
     }
 
     private fun leads(c: Context): List<Int> {
-        val arr = try { JSONArray(prefs(c).getString("leads", "[15]")) } catch (e: Exception) { JSONArray("[15]") }
+        val arr = try { JSONArray(prefs(c).getString("leads", "[5]")) } catch (e: Exception) { JSONArray("[5]") }
         return (0 until arr.length()).map { arr.optInt(it) }.filter { it > 0 }.ifEmpty { listOf(15) }
     }
 

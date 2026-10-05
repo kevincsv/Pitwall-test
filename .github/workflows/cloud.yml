@@ -16,6 +16,7 @@ on:
     branches: [main, master, "claude/**"]
     paths:
       - "cloud/**"
+      - "web/dist/**"
       - ".github/workflows/cloud.yml"
 
 permissions:

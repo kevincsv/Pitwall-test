@@ -22,6 +22,12 @@ SEASON_UPLOADERS = ""
 # admin account id(s): they see Connections (iRacing, Garage 61, own site, Discord) in the app; empty = the SEASON_UPLOADERS
 ADMINS = ""
 
+# the full app (web/dist) is served at /app/ by the worker
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+run_worker_first = true
+
 [[rules]]
 type = "Text"
 globs = ["**/*.html"]

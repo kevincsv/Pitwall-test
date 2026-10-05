@@ -22,7 +22,7 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px
 .brand i{width:16px;height:16px;background:conic-gradient(var(--fg) 25%,transparent 0 50%,var(--fg) 0 75%,transparent 0) 0 0/8px 8px}
 .brand small{font:600 12px var(--f-data);color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:2px 5px}
 nav{display:flex;gap:4px;margin-left:auto}
-nav button,.btn{font:600 14px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer}
+nav button,.btn{text-decoration:none;display:inline-block;font:600 14px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer}
 nav button[aria-selected=true],.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn:focus-visible,nav button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1{font:700 32px/1.05 var(--f-display);text-transform:uppercase;margin:0 0 4px;text-wrap:balance}
@@ -66,7 +66,7 @@ a{color:var(--accent)}
 <div class="wrap">
 <header>
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
-  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><button type="button" id="out" data-t="Salir"></button></nav>
+  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><a class="btn" href="/app/?companion=1" data-t="Planner y comunidad"></a><button type="button" id="out" data-t="Salir"></button></nav>
   <label class="langsel"><span class="sr" data-t="Idioma"></span><select id="lang" aria-label="Language / Idioma"><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="pt">Português</option></select></label>
 </header>
 
@@ -102,6 +102,7 @@ a{color:var(--accent)}
 </div>
 
 <section class="dl panel" id="downloads">
+  <p style="margin:0 0 12px"><a class="btn primary" href="/app/?companion=1" data-t="Abrir la app en el navegador (planner, comunidad, cuenta)"></a></p>
   <h2 data-t="Descargar Pitlane HQ"></h2>
   <p class="sub" data-t="Gratis. Usa la misma cuenta en el PC, el móvil y esta web."></p>
   <div class="dlgrid">
@@ -211,6 +212,8 @@ const I18N={
 "Creando la cuenta…":["Creating the account…","Konto wird erstellt…","Criando a conta…"],
 "No se pudo crear la cuenta: ":["Could not create the account: ","Konto konnte nicht erstellt werden: ","Não foi possível criar a conta: "],
 "Última versión":["Latest version","Neueste Version","Última versão"],
+"Planner y comunidad":["Planner & community","Planer & Community","Planner e comunidade"],
+"Abrir la app en el navegador (planner, comunidad, cuenta)":["Open the app in the browser (planner, community, account)","App im Browser öffnen (Planer, Community, Konto)","Abrir o app no navegador (planner, comunidade, conta)"],
 };
 let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}
 if(!["en","es","de","pt"].includes(LANG))LANG="en";

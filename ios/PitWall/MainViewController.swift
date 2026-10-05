@@ -122,7 +122,7 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             }
         case "notify":
             let items = body["items"] as? [[String: Any]] ?? []
-            let leads = (body["leads"] as? [Any])?.compactMap { ($0 as? NSNumber)?.intValue } ?? [15]
+            let leads = (body["leads"] as? [Any])?.compactMap { ($0 as? NSNumber)?.intValue } ?? [5]
             scheduleReminders(items, leads: leads, spanish: (body["lang"] as? String) == "es")
             shareWithWidget(items)
         default:
@@ -181,7 +181,7 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             var count = 0
             for item in items {
                 guard let ms = item["t"] as? Double, let title = item["title"] as? String else { continue }
-                for lead in (leads.isEmpty ? [15] : leads) {
+                for lead in (leads.isEmpty ? [5] : leads) {
                     let fire = Date(timeIntervalSince1970: ms / 1000).addingTimeInterval(-Double(lead) * 60)
                     if fire <= Date() || count >= 60 { continue } // iOS keeps at most 64
                     let content = UNMutableNotificationContent()

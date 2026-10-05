@@ -1412,6 +1412,8 @@ async function cpRoute(url,method,raw){await cpReady;const u=new URL(url,"https:
   return no(cpNeedPC())}
 const cpReady=COMPANION?(async()=>{try{const s=await (await cpLocal("server.json")).json();CP.server=String(s.url||"").replace(/\/+$/,"")}catch(e){}
   try{const own=localStorage.getItem("pw.server");if(own)CP.server=own}catch(e){}
+  // served by a Pitlane HQ server itself (https://…/app/): that server
+  if(location.protocol==="https:"&&location.pathname.startsWith("/app/"))CP.server=location.origin;
   try{const a=await cpSecret.get("account");if(a)CP.acc=JSON.parse(a)}catch(e){}
   if(CP.acc){try{const c=await cpIdbGet("bundle");if(c&&c.blob){CP.files=cpDecode(await cpGunz(await cpOpen(cpUnhex(CP.acc.dataKey),c.blob)));CP.ver=c.v;CP.lastSync=c.t||0}}catch(e){}}})():Promise.resolve();
 if(COMPANION){window.fetch=async(input,init={})=>{const url=typeof input==="string"?input:input.url;if(!/^\/api\//.test(url))return /^[a-z]+:/i.test(url)?cpOrigFetch(input,init):cpLocal(url);
@@ -3434,7 +3436,7 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
 Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
  "tab.calendar":["Calendar","Calendario"],"tab.rigGear":["Programs & gear","Programas y equipo"],"tab.haptics":["Haptics","Hápticos"]});
 const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
-let EVENTS=store.get("pw.events",[]),REMIND=store.get("pw.remind",[15]),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
+let EVENTS=store.get("pw.events",[]),REMIND=(()=>{let r=store.get("pw.remind",[5]);if(!store.get("pw.remind5",false)){store.set("pw.remind5",true);if(JSON.stringify(r)==="[15]"){r=[5];store.set("pw.remind",r)}}return r})(),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
 const DAYMS=864e5,startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()},weekMon=t=>{const d=new Date(startOfDay(t));const k=(d.getDay()+6)%7;return d.getTime()-k*DAYMS};
 const addDays=(t,n)=>{const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime()};
 function calItems(from,to){const out=[];
