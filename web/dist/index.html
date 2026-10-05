@@ -439,6 +439,12 @@ html.ov.edit .ovh{display:block}
 .cdrow .s{min-width:0}.cdrow .s b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cdrow .s small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cdrow .t{color:var(--accent);font-weight:600}.cdrow .star.on{color:var(--accent);border-color:var(--accent)}
 .wk .dh[data-d]{cursor:pointer}.wk .dh.picked{box-shadow:inset 0 -2px 0 var(--accent)}
+/* settings page */
+.setnav{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);z-index:4;background:var(--bg);padding:8px 0;margin-bottom:4px}
+.setnav a{font:600 13px var(--f-body);color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.setnav a:hover{color:var(--fg);border-color:var(--accent)}
+.sethead{font:700 22px var(--f-display);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px;scroll-margin-top:60px}
+.setsub{font:600 13px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 8px}
 /* profiles and rig */
 .profbtn{font:600 13px/1 var(--f-body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:6px 11px 6px 6px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profbtn b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 12px var(--f-data);flex:none}
@@ -827,27 +833,7 @@ html.ov .shbox{height:calc(100vh - 40px)}
 <section class="view" id="v-account" hidden>
   <div class="vhead"><div><h1 id="accName" data-i18n="tab.account"></h1><div class="sub" id="accSub"></div></div>
     <div class="controls" id="accCtl" hidden><select id="catSel" aria-label="Category"></select><button class="btn" id="logoutBtn" data-i18n="signOut"></button></div></div>
-  <div id="accLogin" class="grid" hidden>
-    <div class="panel s6">
-      <h2 data-i18n="signInTitle"></h2>
-      <form class="form" id="loginForm">
-        <label><span class="label" data-i18n="clientId"></span><input type="text" id="fClient" autocomplete="off" required></label>
-        <label><span class="label" data-i18n="clientSecret"></span><input type="password" id="fSecret" autocomplete="off" required></label>
-        <label><span class="label" data-i18n="email"></span><input type="email" id="fUser" autocomplete="username" required></label>
-        <label><span class="label" data-i18n="password"></span><input type="password" id="fPass" autocomplete="current-password" required></label>
-        <div class="err" id="loginErr" role="alert"></div>
-        <div><button class="btn primary" type="submit" id="loginBtn" data-i18n="signIn"></button></div>
-      </form>
-    </div>
-    <div class="panel s6">
-      <h2 data-i18n="howCreds"></h2>
-      <ol class="steps"><li data-i18n="cred1"></li><li data-i18n="cred2"></li><li data-i18n="cred3"></li></ol>
-      <p class="note"><a href="https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials" target="_blank" rel="noopener" class="acc" data-i18n="credDocs"></a></p>
-      <p class="note" data-i18n="credPrivacy"></p>
-    </div>
-  </div>
-  <div class="panel" id="g61Panel" style="margin-bottom:10px"></div>
-  <div class="panel" id="cloudPanel" style="margin-bottom:10px"></div>
+  <div class="callout" id="accConnect" hidden></div>
   <div id="accBody" class="grid" hidden>
     <div class="panel s12"><div class="label" style="margin-bottom:8px" data-i18n="licences"></div><div class="lcards" id="licCards"></div></div>
     <div class="panel s3"><div class="label">iRating</div><div class="big mono" id="accIr">–</div><div class="sub" id="accIrD"></div></div>
@@ -866,9 +852,11 @@ html.ov .shbox{height:calc(100vh - 40px)}
   </div>
 </section>
 
-<!-- SETTINGS -->
+<!-- SETTINGS: everything you set up once -->
 <section class="view" id="v-settings" hidden>
-  <div class="vhead"><div><h1 data-i18n="settings"></h1></div></div>
+  <div class="vhead"><div><h1 data-i18n="settings"></h1><div class="sub" id="setSub"></div></div></div>
+  <nav class="setnav" id="setNav"><a href="#set-general" data-i18n="set.general"></a><a href="#set-profiles" data-i18n="profiles"></a><a href="#set-conn" data-i18n="set.conn"></a><a href="#set-phone" data-i18n="set.phone"></a><a href="#set-about" data-i18n="set.about"></a></nav>
+  <h2 class="sethead" id="set-general" data-i18n="set.general"></h2>
   <div class="grid">
     <div class="panel s6">
       <div class="label" data-i18n="language"></div>
@@ -884,8 +872,37 @@ html.ov .shbox{height:calc(100vh - 40px)}
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
     </div>
-    <div class="panel s12" id="profPanel" hidden></div>
-    <div class="panel s12" id="sharePanel" hidden></div>
+    <div class="panel s12" id="startPanel"></div>
+  </div>
+  <h2 class="sethead" id="set-profiles" data-i18n="profiles"></h2>
+  <div id="profPanel" hidden></div>
+  <h2 class="sethead" id="set-conn" data-i18n="set.conn"></h2>
+  <h3 class="setsub">iRacing</h3>
+  <div id="accLogin" class="grid">
+    <div class="panel s6">
+      <h2 data-i18n="signInTitle"></h2>
+      <form class="form" id="loginForm">
+        <label><span class="label" data-i18n="clientId"></span><input type="text" id="fClient" autocomplete="off" required></label>
+        <label><span class="label" data-i18n="clientSecret"></span><input type="password" id="fSecret" autocomplete="off" required></label>
+        <label><span class="label" data-i18n="email"></span><input type="email" id="fUser" autocomplete="username" required></label>
+        <label><span class="label" data-i18n="password"></span><input type="password" id="fPass" autocomplete="current-password" required></label>
+        <div class="err" id="loginErr" role="alert"></div>
+        <div><button class="btn primary" type="submit" id="loginBtn" data-i18n="signIn"></button></div>
+      </form>
+    </div>
+    <div class="panel s6">
+      <h2 data-i18n="howCreds"></h2>
+      <ol class="steps"><li data-i18n="cred1"></li><li data-i18n="cred2"></li><li data-i18n="cred3"></li></ol>
+      <p class="note"><a href="https://support.iracing.com/support/solutions/articles/31000177790-oauth-client-credentials" target="_blank" rel="noopener" class="acc" data-i18n="credDocs"></a></p>
+      <p class="note" data-i18n="credPrivacy"></p>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div class="panel s12" id="g61Panel"></div>
+    <div class="panel s12" id="cloudPanel"></div>
+  </div>
+  <h2 class="sethead" id="set-phone" data-i18n="set.phone"></h2>
+  <div class="grid">
     <div class="panel s12">
       <h2 data-i18n="phoneTitle"></h2>
       <div class="row" style="align-items:flex-start;gap:24px">
@@ -897,7 +914,10 @@ html.ov .shbox{height:calc(100vh - 40px)}
         </div>
       </div>
     </div>
+    <div class="panel s12" id="sharePanel" hidden></div>
   </div>
+  <h2 class="sethead" id="set-about" data-i18n="set.about"></h2>
+  <div class="grid"><div class="panel s12" id="aboutPanel"></div></div>
 </section>
 </div>
 
@@ -1233,8 +1253,9 @@ async function api(p){const r=await fetch("/api/iracing/"+p);const j=await r.jso
 function renderAccount(){
   $("#catSel").innerHTML=CATS.map(([id,en,es])=>`<option value="${id}">${esc(Tx(en,es))}</option>`).join("");$("#catSel").value=CAT;
   if(MODE!=="bridge"){$("#accLogin").hidden=true;$("#accBody").hidden=false;$("#accCtl").hidden=true;$("#accSub").innerHTML=`<span class="pill acc">${L("sample",true)}</span>`;renderSampleAccount();return}
-  $("#accLogin").hidden=ACC.loggedIn;$("#accBody").hidden=!ACC.loggedIn;$("#accCtl").hidden=!ACC.loggedIn;
-  if(!ACC.loggedIn){$("#accName").innerHTML=L("tab.account");$("#accSub").innerHTML=Lp("Optional · telemetry works without it","Opcional · la telemetría funciona sin esto");return}
+  $("#accLogin").hidden=ACC.loggedIn;$("#accBody").hidden=!ACC.loggedIn;if(ACC.loggedIn&&$("#accConnect"))$("#accConnect").hidden=true;$("#accCtl").hidden=!ACC.loggedIn;
+  const ac=$("#accConnect");if(ac){ac.hidden=ACC.loggedIn;ac.innerHTML=`${Lp("Connect your iRacing account in Settings → Connections to see your own licences, iRating and races here.","Conecta tu cuenta de iRacing en Ajustes → Conexiones para ver aquí tus licencias, iRating y carreras.")} <button type="button" class="btn small" id="toConn">${esc(Tx("Go to Settings","Ir a Ajustes"))}</button>`;const b=$("#toConn");if(b)b.onclick=()=>{show("settings");setTimeout(()=>$("#set-conn").scrollIntoView(),50)}}
+  if(!ACC.loggedIn){$("#accName").innerHTML=L("tab.account");$("#accSub").innerHTML=Lp("Optional · telemetry works without it","Opcional · la telemetría funciona sin esto");$("#accBody").hidden=false;$("#accSub").innerHTML+=` <span class="pill acc">${L("sample",true)}</span>`;renderSampleAccount();return}
   if(!accLoaded)loadAccount();else drawAccount();
 }
 let ACCDATA=null;
@@ -2478,7 +2499,7 @@ function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];bo
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 function show(v){CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel();renderCloudPanel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="rig")renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderAbout()}if(v==="live"&&!HIDDEN.has("simhub"))renderSimhubWidget();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>{const g=b.dataset.g;show(store.get("pw.grp."+g,GROUPS[g][0]))});$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="rig")renderRig();if(CUR_VIEW==="series")renderSeries();renderProfBtn();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
@@ -2538,7 +2559,7 @@ async function wireProfiles(box,redraw){
 async function openProfiles(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=L("profiles");$("#dSub").innerHTML=Lp("One per person who uses this PC. Switch at any time.","Uno por cada persona que usa este PC. Cambia cuando quieras.");
   const list=await (await fetch("/api/profiles")).json();$("#dBody").innerHTML=profilesHTML(list);wireProfiles($("#dBody"),openProfiles);if($("#drawer").hidden){$("#drawer").hidden=false;$("#dClose").focus()}}
 async function renderProfPanel(){const box=$("#profPanel");if(!box)return;box.hidden=!(MODE==="bridge"&&!REMOTE);if(box.hidden)return;
-  try{const list=await (await fetch("/api/profiles")).json();box.innerHTML=`<h2>${L("profiles")}</h2>`+profilesHTML(list);wireProfiles(box,renderProfPanel)}catch(e){}}
+  try{const list=await (await fetch("/api/profiles")).json();box.innerHTML=profilesHTML(list);wireProfiles(box,renderProfPanel)}catch(e){}}
 $("#profBtn").onclick=openProfiles;$("#rigProfiles").onclick=openProfiles;
 /* new widgets start hidden once, so an update does not crowd your Live screen */
 (function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","simhub"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
@@ -2977,6 +2998,17 @@ async function renderCloudPanel(){const box=$("#cloudPanel");if(!box)return;
   $("#cloudForm").onsubmit=async e=>{e.preventDefault();const j=await rigPost("/api/cloud",{action:"save",url:$("#cUrl").value,key:$("#cKey").value,enabled:on.getAttribute("aria-pressed")==="true"});if(j){toast(Tx("Saved","Guardado"));renderCloudPanel()}};
   $("#cTest").onclick=async()=>{$("#cErr").textContent="";const r=await fetch("/api/cloud",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"test"})}).catch(()=>null);const j=r?await r.json().catch(()=>({})):{};
     if(r&&r.ok)toast(Tx("Connected to your Pitlane HQ Cloud","Conectado a tu Pitlane HQ Cloud"));else $("#cErr").textContent=(j&&j.error)||Tx("Could not connect","No se pudo conectar")}}
+
+/* ===================== settings: start-up and about ===================== */
+Object.assign(I18N,{"set.general":["General","General"],"set.conn":["Connections","Conexiones"],"set.phone":["Phone and engineer","Móvil e ingeniero"],"set.about":["About","Acerca de"]});
+function renderStartPanel(){const box=$("#startPanel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.hidden=true;return}box.hidden=false;
+  box.innerHTML=`<div class="label">${esc(Tx("When the PC starts","Al encender el PC"))}</div><div class="frow" style="margin-top:8px">${chk("sStart",CFG.startWithWindows,L("startWin",true))}</div>
+    <p class="note">${Lp("Pitlane HQ starts minimised with Windows, opens the programs you chose (Rig → Programs & gear) and your overlays when you get in the car.","Pitlane HQ se inicia minimizado con Windows, abre los programas que elegiste (Rig → Programas y equipo) y tus overlays al subirte al coche.")}</p>`;
+  $("#sStart").onclick=()=>{CFG.startWithWindows=!CFG.startWithWindows;saveCfg();renderStartPanel()}}
+function renderAbout(){const box=$("#aboutPanel");if(!box)return;const v=(INFO&&INFO.version)||"";
+  box.innerHTML=`<dl class="kv"><dt>${esc(Tx("Version","Versión"))}</dt><dd class="mono">Pitlane HQ ${esc(v||"web")}</dd><dt>${esc(Tx("Your data","Tus datos"))}</dt><dd class="mono">%APPDATA%\\PitlaneHQ</dd><dt>${esc(Tx("Profile","Perfil"))}</dt><dd>${esc(PROFILE.name||"–")}</dd></dl>
+    <p class="note">${Lp("AZOM (MOZA plugin for SimHub) is free software (GPL v3) by giantorth, included in the azom folder. Sign-ins are encrypted with your Windows account. Nothing leaves this PC unless you turn on Pitlane HQ Cloud, Garage 61 or the engineer link.","AZOM (plugin de MOZA para SimHub) es software libre (GPL v3) de giantorth, incluido en la carpeta azom. Las sesiones se cifran con tu cuenta de Windows. Nada sale de este PC salvo que actives Pitlane HQ Cloud, Garage 61 o el enlace de ingeniero.")}</p>`}
+document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault();const t=$(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth"})});
 
 /* ===================== boot ===================== */
 (async function boot(){
