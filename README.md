@@ -1,4 +1,4 @@
-# Pit Wall 0.5 — iRacing companion
+# Pit Wall 0.6 — iRacing companion
 
 **English** · [Español](#español)
 
@@ -29,7 +29,10 @@ Keep the black PitWall window open while you race. Close it to stop.
 - **Radar**: shows cars alongside and close behind or ahead, and hides itself when nobody is near.
 - **DRS and push-to-pass**: state, uses or seconds left, and how long the current boost has been on (only on cars that have them).
 - **Telemetry widget**: pin any of the ~300 iRacing variables from the Data tab and see it live with a mini graph.
-- **Layout**: hide any Live widget on each screen. A phone can open and close the overlays on the PC.
+- **Overlays tab**: one place to choose which overlays open automatically, open or close them, edit their positions and configure each one. A phone can control the overlays on the PC.
+- **Your own Live screen**: drag any block by its ⠿ handle to move it, change its width in Layout, or hide it. Each device remembers its own layout.
+- **Lap comparison**: your best lap of the session (it updates every time you go faster), your last lap and the lap you are driving, overlaid by distance: speed, throttle and brake, time delta, gear, steering or RPM, with a live "now vs best" delta. "Follow me" zooms in around where you are.
+- **Readable telemetry**: every iRacing variable shows a plain name (for example "Brake bias" instead of dcBrakeBias), in English or Spanish, with the original code underneath.
 - **Tyres**: inner/middle/outer temperature per tyre with a heat map, tread per zone, cold pressures, live brake pressure, front/rear and left/right balance, camber and pressure hints, and a log of every pit reading. iRacing only sends tyre data when you stop in your pit box.
 - **Series**: every active series with filters (category, licence, what your licence allows, what you own, setup, length, favourites, starting soon), next race countdown, weather, full 12-week schedule per series.
 - **Schedule**: upcoming races of your favourites, a personal plan, and export to your phone's calendar with a reminder 15 minutes before.
@@ -95,7 +98,10 @@ Deja abierta la ventana negra de PitWall mientras corres. Ciérrala para parar.
 - **Radar**: muestra los coches a tu lado y cerca por delante o por detrás, y se oculta solo cuando no hay nadie cerca.
 - **DRS y push-to-pass**: estado, usos o segundos restantes, y cuánto tiempo lleva activo (solo en coches que lo tienen).
 - **Widget de telemetría**: fija cualquiera de las ~300 variables de iRacing desde la pestaña Datos y mírala en vivo con una mini gráfica.
-- **Diseño**: oculta cualquier widget de En vivo en cada pantalla. Desde el móvil puedes abrir y cerrar los overlays del PC.
+- **Pestaña Overlays**: un solo sitio para elegir qué overlays se abren solos, abrirlos o cerrarlos, editar sus posiciones y configurar cada uno. Desde el móvil puedes controlar los overlays del PC.
+- **Tu propia pantalla En vivo**: arrastra cualquier bloque por su asa ⠿ para moverlo, cambia su ancho en Diseño u ocúltalo. Cada dispositivo recuerda su diseño.
+- **Comparación de vueltas**: tu mejor vuelta de la sesión (se actualiza cada vez que mejoras), tu última vuelta y la que estás dando, superpuestas por distancia: velocidad, acelerador y freno, diferencia de tiempo, marcha, volante o RPM, con el delta "ahora vs mejor" en vivo. "Seguirme" hace zoom donde estás.
+- **Telemetría legible**: cada variable de iRacing muestra un nombre claro (por ejemplo "Reparto de frenada" en vez de dcBrakeBias), en inglés o español, con el código original debajo.
 - **Neumáticos**: temperatura interior/centro/exterior de cada rueda con mapa de calor, desgaste por zona, presiones en frío, presión de freno en vivo, balance delante/detrás e izquierda/derecha, consejos de caída y presión, y registro de cada lectura en boxes. iRacing solo envía datos de neumáticos al parar en tu box.
 - **Series**: todas las series activas con filtros (categoría, licencia, lo que tu licencia permite, lo que tienes comprado, setup, duración, favoritas, empieza pronto), cuenta atrás, clima y calendario de 12 semanas.
 - **Agenda**: próximas carreras de tus favoritas, tu plan personal y exportación al calendario del móvil con aviso 15 minutos antes.

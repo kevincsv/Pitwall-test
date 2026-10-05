@@ -249,6 +249,19 @@ html.ov #liveGrid{display:flex;flex-direction:column;gap:6px}
 html.ov .flag{margin:0 0 6px}
 html.ov-clear,html.ov-clear body{background:transparent!important}
 html.ov-clear .panel{background:color-mix(in srgb,var(--surface) 80%,transparent)}
+/* drag to reorder */
+.grip{position:absolute;top:6px;right:36px;width:26px;height:26px;display:grid;place-items:center;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:grab;touch-action:none;opacity:.75}
+html.sorting,html.sorting *{user-select:none!important;-webkit-user-select:none!important;cursor:grabbing!important}
+.grip:hover{opacity:1;color:var(--accent);border-color:var(--accent)}
+.grip svg{width:14px;height:14px;pointer-events:none}
+.wpanel>.vhead:first-child,.wpanel>.label:first-child{padding-right:66px}
+.wpanel[data-w=dash] .bars{margin-right:62px}
+.wpanel.dragging{position:fixed!important;z-index:60;pointer-events:none;opacity:.92;box-shadow:0 14px 40px rgba(0,0,0,.45);margin:0}
+.ph{border:2px dashed var(--accent)!important;background:transparent!important;border-radius:6px}
+.tile .label{cursor:grab;touch-action:none}
+.tile.dragging{position:fixed!important;z-index:60;pointer-events:none;opacity:.92;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.vn{font-size:14px}
+html.ov .grip{display:none}
 /* overlays tab */
 .ovcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px;margin-top:10px}
 .ovcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:10px;min-width:0}
@@ -370,6 +383,11 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <div class="vhead" style="margin:0"><div class="label" data-i18n="relative"></div><div class="legend"><span><i style="background:var(--bad)"></i><span data-i18n="lapAhead"></span></span><span><i style="background:var(--blue)"></i><span data-i18n="lapBehind"></span></span></div></div>
       <div class="track" id="trackStrip"><div class="sf"></div></div>
       <div id="relBox"></div>
+    </div>
+    <div class="panel s12 wpanel" data-w="compare">
+      <div class="vhead" style="margin:0 0 4px"><div class="label" data-i18n="w.compare"></div><div class="frow" id="cmpCtl"></div></div>
+      <div class="hstrip" id="cmpHead"></div>
+      <canvas id="cmpLive" height="220"></canvas>
     </div>
     <div class="panel s3 wpanel" data-w="radar">
       <div class="label" data-i18n="w.radar"></div>
@@ -816,7 +834,7 @@ const Demo=(()=>{
 /* ===================== live view ===================== */
 const rpmEl=$("#rpm");for(let i=0;i<16;i++){const s=document.createElement("span");if(i>=10)s.className=i>=13?"r":"y";rpmEl.appendChild(s)}
 const rpmSeg=[...rpmEl.children];
-const hist=[];let lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0;
+const hist=[];let lastDraw=0,lastRel=0,lastField=0,lastTy=0,lastMap=0,lastRadar=0,lastSlow=0,lastStd=0,lastCmp=0;
 const fuelLog={lap:null,startFuel:null,uses:[]};
 const FLAGS=[[0x10000,"black","Black flag","Bandera negra"],[0x10,"red","Red flag","Bandera roja"],[0x100000,"black","Repair required","Reparación obligatoria"],[0x1,"checkered","Checkered flag","Bandera a cuadros"],[0x2,"white","Last lap","Última vuelta"],[0x8,"yellow","Yellow","Amarilla"],[0x100,"yellow","Yellow waving","Amarilla agitada"],[0x4000,"yellow","Caution","Safety car"],[0x8000,"yellow","Caution","Safety car"],[0x20,"blue","Blue flag · let faster car by","Bandera azul · deja pasar"]];
 function drivers(){return(S.DriverInfo&&S.DriverInfo.Drivers)||[]}
@@ -839,6 +857,7 @@ function frameTick(){
   if(now-lastRadar>66){lastRadar=now;if(lv("radar"))drawRadar();if(lv("inputs")&&(OV.on||view!=="live"))drawTrace()}
   if(now-lastSlow>200){lastSlow=now;if(lv("boost"))renderBoost();if(lv("telemetry"))renderTelemetry()}
   if(now-lastStd>500){lastStd=now;if(lv("standings"))renderStandingsWidget()}
+  if(now-lastCmp>100){lastCmp=now;if(lv("compare"))drawCompare()}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -898,7 +917,7 @@ function recordLap(){
       var rec0=rec}
     rec={lc,lap:T.Lap,n:0,bins:[],f0:T.FuelLevel,vmax:0,pit:false,t:0,maxBin:0};
   }
-  const b=Math.floor(d/BIN);if(b>=0&&b<12000&&!rec.bins[b]){rec.bins[b]=[T.Speed||0,T.LapCurrentLapTime||0,T.Throttle||0,T.Brake||0];rec.n++;if(b>rec.maxBin)rec.maxBin=b}
+  const b=Math.floor(d/BIN);if(b>=0&&b<12000&&!rec.bins[b]){rec.bins[b]=[T.Speed||0,T.LapCurrentLapTime||0,T.Throttle||0,T.Brake||0,T.Gear,T.SteeringWheelAngle,T.RPM];rec.n++;if(b>rec.maxBin)rec.maxBin=b}
   rec.vmax=Math.max(rec.vmax,T.Speed||0);rec.t=T.LapCurrentLapTime||rec.t;if(T.OnPitRoad)rec.pit=true;
 }
 let lapsDirty=false;
@@ -930,9 +949,9 @@ $("#lapA").onchange=$("#lapB").onchange=drawCmp;
 let DATA_TAB="data:vars",varRows=new Map(),openRows=new Set();
 function schemaChanged(){renderVarTable()}
 function renderVarTable(){const q=($("#varSearch").value||"").toLowerCase();const tb=$("#varTable tbody");varRows=new Map();
-  const list=SCHEMA.filter(v=>!q||v.name.toLowerCase().includes(q)||(v.desc||"").toLowerCase().includes(q));
+  const list=SCHEMA.filter(v=>!q||v.name.toLowerCase().includes(q)||(v.desc||"").toLowerCase().includes(q)||telName(v.name).toLowerCase().includes(q));
   $("#dataSub").textContent=SCHEMA.length+" "+Tx("variables","variables")+(STATUS.tickRate?" · "+STATUS.tickRate+" Hz":"");
-  const tv=ui("tel").vars;tb.innerHTML=list.map(v=>`<tr class="vrow${openRows.has(v.name)?" open":""}" data-n="${esc(v.name)}"><td class="mono"><button type="button" class="pinvar" data-pv="${esc(v.name)}" aria-pressed="${tv.includes(v.name)}" title="${esc(Tx("Show in the Telemetry widget","Mostrar en el widget Telemetría"))}">★</button>${esc(v.name)}${v.count>1?`<span class="muted">[${v.count}]</span>`:""}</td><td class="mono val">–</td><td class="muted">${esc(v.unit)}</td><td class="wrap muted">${esc(v.desc)}</td></tr>`).join("")||`<tr><td colspan="4" class="empty">${Lp("No variables yet. Start iRacing and get in the car.","Aún no hay variables. Abre iRacing y súbete al coche.")}</td></tr>`;
+  const tv=ui("tel").vars;tb.innerHTML=list.map(v=>`<tr class="vrow${openRows.has(v.name)?" open":""}" data-n="${esc(v.name)}"><td><div style="display:flex;gap:4px;align-items:flex-start"><button type="button" class="pinvar" data-pv="${esc(v.name)}" aria-pressed="${tv.includes(v.name)}" title="${esc(Tx("Show in the Telemetry widget","Mostrar en el widget Telemetría"))}">★</button><div><div class="vn">${esc(telName(v.name))}</div><div class="mono muted" style="font-size:11px">${esc(v.name)}</div></div></div>${v.count>1?`<span class="muted">[${v.count}]</span>`:""}</td><td class="mono val">–</td><td class="muted">${esc(v.unit)}</td><td class="wrap muted">${esc(v.desc)}</td></tr>`).join("")||`<tr><td colspan="4" class="empty">${Lp("No variables yet. Start iRacing and get in the car.","Aún no hay variables. Abre iRacing y súbete al coche.")}</td></tr>`;
   tb.querySelectorAll("[data-pv]").forEach(b=>b.onclick=e=>{e.stopPropagation();toggleTelVar(b.dataset.pv);b.setAttribute("aria-pressed",ui("tel").vars.includes(b.dataset.pv));if(HIDDEN.has("telemetry")){HIDDEN.delete("telemetry");store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}});
   tb.querySelectorAll("tr.vrow").forEach(tr=>{varRows.set(tr.dataset.n,tr.children[1]);tr.onclick=()=>{const n=tr.dataset.n;openRows.has(n)?openRows.delete(n):openRows.add(n);tr.classList.toggle("open")}});updateVarValues()}
 function fmtVal(v,open){if(v==null)return"–";if(Array.isArray(v)){const s=v.map(x=>typeof x==="number"?+x.toFixed(3):x);return open?s.join(", "):s.slice(0,8).join(", ")+(s.length>8?" …":"")}if(typeof v==="number")return Number.isInteger(v)?String(v):(+v.toFixed(4)).toString();return String(v)}
@@ -1520,7 +1539,7 @@ let BOOSTV=null;function boostVisible(on){if(!OV.on||!OV.list.includes("boost")|
 const TELH={};
 function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]"))return;const vars=ui("tel").vars;
   if(!vars.length){box.innerHTML=`<p class="note">${Lp("Add variables from Data, or with Layout → Telemetry.","Añade variables desde Datos o con Diseño → Telemetría.")}</p>`;return}
-  if(box.dataset.k!==vars.join()){box.dataset.k=vars.join();box.innerHTML=vars.map(n=>`<div class="tile" data-n="${esc(n)}"><div class="label">${esc(n)}</div><div class="mid mono tv">–</div><canvas height="28"></canvas></div>`).join("")}
+  if(box.dataset.k!==vars.join()+LANG){box.dataset.k=vars.join()+LANG;box.innerHTML=vars.map(n=>`<div class="tile" data-n="${esc(n)}"><div class="label" title="${esc(n)}">${esc(telName(n))}</div><div class="mid mono tv">–</div><canvas height="28"></canvas></div>`).join("")}
   box.querySelectorAll(".tile").forEach(t=>{const n=t.dataset.n,v=T[n],sch=SCHEMA.find(s=>s.name===n);t.querySelector(".tv").innerHTML=v==null?"–":(typeof v==="number"?(Number.isInteger(v)?v:(+v.toFixed(Math.abs(v)<10?3:1))):Array.isArray(v)?esc(String(v[T.PlayerCarIdx]??v[0])):esc(String(v)))+(sch&&sch.unit?` <span class="unit">${esc(sch.unit)}</span>`:"");
     const hs=TELH[n]||(TELH[n]=[]);if(typeof v==="number"){hs.push(v);if(hs.length>120)hs.shift()}else if(typeof v==="boolean"){hs.push(v?1:0);if(hs.length>120)hs.shift()}
     const cv=t.querySelector("canvas"),[x,w,h]=fitCanvas(cv);if(!x||hs.length<2)return;x.clearRect(0,0,w,h);let mn=Math.min(...hs),mx=Math.max(...hs);if(mx===mn){mx+=1;mn-=1}
@@ -1528,14 +1547,14 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","map","relative","radar","boost","inputs","fuel","engine","tyres","standings","telemetry"];
+const WIDGETS=["flag","dash","timing","map","relative","compare","radar","boost","inputs","fuel","engine","tyres","standings","telemetry"];
 const CONFIGURABLE={relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
   if(!v)return;OV.on=true;OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
   document.documentElement.classList.add("ov");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="PitWall Overlay · "+OV.list.join("+")})();
-function applyLayout(){if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
+function applyLayout(){if(!OV.on)applyOrderAndSizes();if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
   document.querySelectorAll("#v-live .wpanel").forEach(p=>{p.hidden=HIDDEN.has(p.dataset.w)});
   const vis=WIDGETS.filter(w=>!HIDDEN.has(w)&&w!=="flag");$("#liveEmpty").hidden=vis.length>0;$("#liveEmpty").innerHTML=Lp("Every widget is in an overlay or hidden. Use Layout to bring them back.","Todos los widgets están en overlays u ocultos. Usa Diseño para recuperarlos.")}
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
@@ -1569,8 +1588,12 @@ function openLayout(){LAYOUT_VIEW=openLayout;CFG_BACK=null;
   $("#dTitle").innerHTML=L("layout");$("#dSub").innerHTML=Lp("Choose what this screen shows. Overlay windows are set up in the Overlays tab.","Elige qué muestra esta pantalla. Las ventanas overlay se configuran en la pestaña Overlays.");
   const rows=WIDGETS.map(w=>`<div class="lyrow"><span class="s">${L("w."+w,true)}</span>
     <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${esc(HIDDEN.has(w)?Tx("Hidden","Oculto"):Tx("Shown","Visible"))}</button>
+    ${w!=="flag"?`<button type="button" class="pin" data-size="${w}" title="${esc(Tx("Width","Ancho"))}">${esc(Tx("Width","Ancho"))}: ${sizeLabel(w)}</button>`:""}
     ${CONFIGURABLE[w]?`<button type="button" class="pin" data-cfg="${w}">${L("configure",true)}</button>`:""}</div>`).join("");
-  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><div class="panel">${rows}</div>`;
+  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><p class="note" style="margin:0 0 10px">${Lp("Tip: drag the ⠿ handle on any block to move it.","Consejo: arrastra el asa ⠿ de cualquier bloque para moverlo.")}</p><div class="panel">${rows}</div>
+   <div style="margin-top:10px"><button type="button" class="btn" id="resetOrder">${esc(Tx("Reset order and widths","Restablecer orden y anchos"))}</button></div>`;
+  document.querySelectorAll("#dBody [data-size]").forEach(b=>b.onclick=()=>{cycleSize(b.dataset.size);openLayout()});
+  $("#resetOrder").onclick=()=>{ORDER=null;WSIZE={};store.set("pw.order",null);store.set("pw.sizes",{});location.reload()};
   $("#toOverlays").onclick=()=>{closeDrawer();show("overlays")};
   document.querySelectorAll("#dBody [data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();openLayout()});
   document.querySelectorAll("#dBody [data-cfg]").forEach(b=>b.onclick=()=>openWidgetCfg(b.dataset.cfg));
@@ -1586,7 +1609,7 @@ function openWidgetCfg(w){const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(
   else if(k==="radar")body=`<div class="panel">${num("range","range",10,60)}<div class="frow" style="margin-top:6px">${chk("cAH",c.autohide,L("autohideRadar",true))}</div><p class="note">${Lp("iRacing tells PitWall when a car is alongside (left or right) and how far each car is along the track; the radar combines both.","iRacing indica cuándo hay un coche al lado (izquierda o derecha) y a qué distancia está cada coche en la pista; el radar combina ambas cosas.")}</p></div>`;
   else if(k==="boost")body=`<div class="panel"><div class="frow">${chk("cAH",c.autohide,L("autohideBoost",true))}</div></div>`;
   else if(k==="tel"){const all=SCHEMA.map(s=>s.name);body=`<div class="panel"><input type="search" id="telQ" placeholder="${esc(Tx("Search variables","Buscar variables"))}" style="width:100%"><div class="cfglist" id="telList" style="margin-top:8px"></div></div>`;
-    setTimeout(()=>{const draw=()=>{const qv=($("#telQ").value||"").toLowerCase(),sel=ui("tel").vars;$("#telList").innerHTML=sel.map(n=>`<div class="cfgitem on"><span class="mono">${esc(n)}</span><button type="button" class="pin" data-tv="${esc(n)}">✕</button></div>`).join("")+all.filter(n=>!sel.includes(n)&&(!qv||n.toLowerCase().includes(qv))).slice(0,60).map(n=>`<div class="cfgitem"><span class="mono muted">${esc(n)}</span><button type="button" class="pin" data-tv="${esc(n)}">+</button></div>`).join("");
+    setTimeout(()=>{const draw=()=>{const qv=($("#telQ").value||"").toLowerCase(),sel=ui("tel").vars;$("#telList").innerHTML=sel.map(n=>`<div class="cfgitem on"><span>${esc(telName(n))} <span class="mono muted" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">✕</button></div>`).join("")+all.filter(n=>!sel.includes(n)&&(!qv||n.toLowerCase().includes(qv)||telName(n).toLowerCase().includes(qv))).slice(0,60).map(n=>`<div class="cfgitem"><span class="muted">${esc(telName(n))} <span class="mono" style="font-size:11px">${esc(n)}</span></span><button type="button" class="pin" data-tv="${esc(n)}">+</button></div>`).join("");
       document.querySelectorAll("#telList [data-tv]").forEach(b=>b.onclick=()=>{toggleTelVar(b.dataset.tv);draw()})};$("#telQ").oninput=draw;draw()},0)}
   $("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div style="margin-top:10px">${body}</div>`;
   $("#cfgBack").onclick=()=>{const b=CFG_BACK;CFG_BACK=null;(b||openLayout)()};
@@ -1644,6 +1667,323 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;const pc=isP
   box.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderOverlaysTab()});
 }
 
+/* ===================== readable names for iRacing variables ===================== */
+const TELN=(()=>{const t={};`SessionTime|Session time|Tiempo de sesión
+SessionTick|Telemetry update number|Número de actualización
+SessionNum|Session number|Número de sesión
+SessionState|Session state|Estado de la sesión
+SessionUniqueID|Session ID|ID de sesión
+SessionFlags|Flags shown|Banderas activas
+SessionTimeRemain|Session time left|Tiempo restante de sesión
+SessionLapsRemain|Laps left (old)|Vueltas restantes (antiguo)
+SessionLapsRemainEx|Laps left|Vueltas restantes
+SessionTimeTotal|Session length|Duración de la sesión
+SessionLapsTotal|Total laps|Vueltas totales
+SessionJokerLapsRemain|Joker laps left|Vueltas joker restantes
+SessionOnJokerLap|On joker lap|En vuelta joker
+SessionTimeOfDay|Time of day on track|Hora del día en pista
+RadioTransmitCarIdx|Car talking on radio|Coche hablando por radio
+DisplayUnits|Display units|Unidades
+DriverMarker|Driver marker pressed|Marcador del piloto
+PushToTalk|Push to talk|Pulsar para hablar
+PushToPass|Push to pass button|Botón push to pass
+ManualBoost|Manual boost|Boost manual
+IsOnTrack|Driving on track|En pista conduciendo
+IsOnTrackCar|In the car|En el coche
+IsInGarage|In the garage|En el garaje
+IsGarageVisible|Garage screen open|Pantalla de garaje abierta
+IsReplayPlaying|Watching a replay|Viendo una repetición
+ReplayFrameNum|Replay frame|Fotograma de repetición
+IsDiskLoggingEnabled|Telemetry recording on|Grabación de telemetría activada
+IsDiskLoggingActive|Telemetry recording now|Grabando telemetría ahora
+FrameRate|Frame rate|Fotogramas por segundo
+CpuUsageFG|CPU use (main)|Uso de CPU (principal)
+CpuUsageBG|CPU use (background)|Uso de CPU (segundo plano)
+GpuUsage|GPU use|Uso de GPU
+ChanLatency|Network latency|Latencia de red
+ChanAvgLatency|Average network latency|Latencia media de red
+ChanQuality|Connection quality|Calidad de conexión
+ChanPartnerQuality|Server connection quality|Calidad de conexión del servidor
+ChanClockSkew|Clock difference with server|Desfase de reloj con el servidor
+PlayerCarPosition|My position|Mi posición
+PlayerCarClassPosition|My class position|Mi posición en clase
+PlayerCarClass|My car class|Mi clase
+PlayerTrackSurface|Where my car is|Dónde está mi coche
+PlayerTrackSurfaceMaterial|Surface under my car|Superficie bajo mi coche
+PlayerCarIdx|My car index|Índice de mi coche
+PlayerCarTeamIncidentCount|Team incidents|Incidentes del equipo
+PlayerCarMyIncidentCount|My incidents|Mis incidentes
+PlayerCarDriverIncidentCount|Current driver incidents|Incidentes del piloto actual
+PlayerCarWeightPenalty|Weight penalty|Lastre
+PlayerCarPowerAdjust|Power adjustment|Ajuste de potencia
+PlayerCarDryTireSetLimit|Dry tyre sets allowed|Juegos de seco permitidos
+PlayerCarTowTime|Tow time left|Tiempo de grúa restante
+PlayerCarInPitStall|In my pit box|En mi box
+PlayerCarPitSvStatus|Pit service status|Estado del servicio en boxes
+PlayerTireCompound|My tyre compound|Mi compuesto
+PlayerFastRepairsUsed|Fast repairs used|Reparaciones rápidas usadas
+PlayerCarSLFirstRPM|Shift lights start RPM|RPM inicio luces de cambio
+PlayerCarSLShiftRPM|Shift RPM|RPM de cambio
+PlayerCarSLLastRPM|Shift lights last RPM|RPM última luz de cambio
+PlayerCarSLBlinkRPM|Shift lights blink RPM|RPM parpadeo luces de cambio
+OnPitRoad|On pit road|En el pit lane
+PaceMode|Pace car mode|Modo safety car
+SteeringWheelAngle|Steering angle|Ángulo de volante
+SteeringWheelAngleMax|Max steering angle|Ángulo máximo de volante
+SteeringWheelTorque|Steering torque|Par en el volante
+SteeringWheelPctTorque|Force feedback %|Force feedback %
+SteeringWheelPctTorqueSign|Force feedback % (signed)|Force feedback % (con signo)
+SteeringWheelPctDamper|Wheel damper %|Amortiguación del volante %
+SteeringWheelLimiter|Force feedback clipping|Saturación del force feedback
+SteeringWheelMaxForceNm|Wheel max force|Fuerza máxima del volante
+SteeringWheelPeakForceNm|Wheel peak force|Fuerza pico del volante
+Throttle|Throttle|Acelerador
+Brake|Brake|Freno
+Clutch|Clutch (1 = released)|Embrague (1 = suelto)
+ThrottleRaw|Throttle pedal (raw)|Pedal de acelerador (bruto)
+BrakeRaw|Brake pedal (raw)|Pedal de freno (bruto)
+ClutchRaw|Clutch pedal (raw)|Pedal de embrague (bruto)
+HandbrakeRaw|Handbrake|Freno de mano
+BrakeABSactive|ABS working|ABS actuando
+BrakeABScutPct|ABS brake reduction|Reducción de freno por ABS
+Gear|Gear|Marcha
+RPM|Engine RPM|RPM del motor
+Speed|Speed|Velocidad
+Lap|Current lap|Vuelta actual
+LapCompleted|Laps completed|Vueltas completadas
+LapDist|Distance into lap|Distancia en la vuelta
+LapDistPct|Lap progress|Progreso de vuelta
+RaceLaps|Race laps|Vueltas de carrera
+CarDistAhead|Distance to car ahead|Distancia al coche de delante
+CarDistBehind|Distance to car behind|Distancia al coche de detrás
+LapBestLap|Best lap number|Número de mejor vuelta
+LapBestLapTime|Best lap time|Mejor vuelta
+LapLastLapTime|Last lap time|Última vuelta
+LapCurrentLapTime|Current lap time|Tiempo de vuelta actual
+LapLasNLapSeq|Consecutive clean laps|Vueltas limpias seguidas
+LapLastNLapTime|Average of last laps|Media de últimas vueltas
+LapBestNLapLap|Best average lap|Mejor media de vueltas
+LapBestNLapTime|Best average time|Mejor tiempo medio
+LapDeltaToBestLap|Delta to my best lap|Delta con mi mejor vuelta
+LapDeltaToBestLap_DD|Delta to best lap (rate)|Delta con mejor vuelta (ritmo)
+LapDeltaToBestLap_OK|Delta to best lap valid|Delta con mejor vuelta válido
+LapDeltaToOptimalLap|Delta to my optimal lap|Delta con mi vuelta óptima
+LapDeltaToOptimalLap_DD|Delta to optimal lap (rate)|Delta con vuelta óptima (ritmo)
+LapDeltaToOptimalLap_OK|Delta to optimal lap valid|Delta con vuelta óptima válido
+LapDeltaToSessionBestLap|Delta to session best|Delta con la mejor de la sesión
+LapDeltaToSessionBestLap_DD|Delta to session best (rate)|Delta con la mejor de la sesión (ritmo)
+LapDeltaToSessionBestLap_OK|Delta to session best valid|Delta con la mejor de la sesión válido
+LapDeltaToSessionOptimalLap|Delta to session optimal|Delta con la óptima de la sesión
+LapDeltaToSessionOptimalLap_DD|Delta to session optimal (rate)|Delta con la óptima de la sesión (ritmo)
+LapDeltaToSessionOptimalLap_OK|Delta to session optimal valid|Delta con la óptima de la sesión válido
+LapDeltaToSessionLastlLap|Delta to session last lap|Delta con la última de la sesión
+LapDeltaToSessionLastlLap_DD|Delta to session last lap (rate)|Delta con la última de la sesión (ritmo)
+LapDeltaToSessionLastlLap_OK|Delta to session last lap valid|Delta con la última de la sesión válido
+Yaw|Heading|Orientación
+YawNorth|Heading from north|Orientación respecto al norte
+Pitch|Pitch|Cabeceo
+Roll|Roll|Balanceo
+Lat|Latitude|Latitud
+Lon|Longitude|Longitud
+Alt|Altitude|Altitud
+VelocityX|Forward speed|Velocidad longitudinal
+VelocityY|Sideways speed|Velocidad lateral
+VelocityZ|Vertical speed|Velocidad vertical
+LatAccel|Lateral g-force|Fuerza g lateral
+LongAccel|Braking and acceleration g-force|Fuerza g de frenada y aceleración
+VertAccel|Vertical g-force|Fuerza g vertical
+YawRate|Rotation rate (yaw)|Velocidad de giro (guiñada)
+PitchRate|Pitch rate|Velocidad de cabeceo
+RollRate|Roll rate|Velocidad de balanceo
+EnterExitReset|Enter/exit/reset button|Botón entrar/salir/reiniciar
+TrackTemp|Track temperature|Temperatura de pista
+TrackTempCrew|Track temperature (crew)|Temperatura de pista (equipo)
+AirTemp|Air temperature|Temperatura del aire
+TrackWetness|Track wetness|Humedad de pista
+Skies|Sky|Cielo
+AirDensity|Air density|Densidad del aire
+AirPressure|Air pressure|Presión atmosférica
+WindVel|Wind speed|Velocidad del viento
+WindDir|Wind direction|Dirección del viento
+RelativeHumidity|Humidity|Humedad
+FogLevel|Fog|Niebla
+Precipitation|Rain|Lluvia
+SolarAltitude|Sun height|Altura del sol
+SolarAzimuth|Sun direction|Dirección del sol
+WeatherDeclaredWet|Race declared wet|Carrera declarada en mojado
+PitsOpen|Pits open|Boxes abiertos
+PitRepairLeft|Required repair time left|Reparación obligatoria restante
+PitOptRepairLeft|Optional repair time left|Reparación opcional restante
+PitstopActive|Pit stop in progress|Parada en curso
+FastRepairUsed|Fast repairs used|Reparaciones rápidas usadas
+FastRepairAvailable|Fast repairs left|Reparaciones rápidas restantes
+TireSetsUsed|Tyre sets used|Juegos de neumáticos usados
+TireSetsAvailable|Tyre sets left|Juegos de neumáticos restantes
+LeftTireSetsUsed|Left tyre sets used|Juegos izquierdos usados
+RightTireSetsUsed|Right tyre sets used|Juegos derechos usados
+FrontTireSetsUsed|Front tyre sets used|Juegos delanteros usados
+RearTireSetsUsed|Rear tyre sets used|Juegos traseros usados
+LeftTireSetsAvailable|Left tyre sets left|Juegos izquierdos restantes
+RightTireSetsAvailable|Right tyre sets left|Juegos derechos restantes
+FrontTireSetsAvailable|Front tyre sets left|Juegos delanteros restantes
+RearTireSetsAvailable|Rear tyre sets left|Juegos traseros restantes
+CamCarIdx|Car on camera|Coche en cámara
+CamCameraNumber|Camera number|Número de cámara
+CamGroupNumber|Camera group|Grupo de cámaras
+CamCameraState|Camera state|Estado de cámara
+ShiftIndicatorPct|Shift light %|Luz de cambio %
+ShiftPowerPct|Shift power %|Potencia de cambio %
+ShiftGrindRPM|Gear grind RPM|RPM de rascado de marcha
+Engine0_RPM|Engine RPM|RPM del motor
+EngineWarnings|Engine warnings|Avisos del motor
+FuelLevel|Fuel left|Combustible restante
+FuelLevelPct|Fuel left %|Combustible restante %
+FuelPress|Fuel pressure|Presión de combustible
+FuelUsePerHour|Fuel use per hour|Consumo por hora
+WaterTemp|Water temperature|Temperatura del agua
+WaterLevel|Water level|Nivel de agua
+OilTemp|Oil temperature|Temperatura del aceite
+OilPress|Oil pressure|Presión de aceite
+OilLevel|Oil level|Nivel de aceite
+Voltage|Battery voltage|Voltaje de batería
+ManifoldPress|Intake pressure (boost)|Presión de admisión (turbo)
+PitSvFlags|Pit service requested|Servicio de boxes pedido
+PitSvLFP|Pit: left front pressure|Boxes: presión delantera izq.
+PitSvRFP|Pit: right front pressure|Boxes: presión delantera der.
+PitSvLRP|Pit: left rear pressure|Boxes: presión trasera izq.
+PitSvRRP|Pit: right rear pressure|Boxes: presión trasera der.
+PitSvFuel|Pit: fuel to add|Boxes: combustible a añadir
+PitSvTireCompound|Pit: tyre compound|Boxes: compuesto
+CarLeftRight|Car alongside|Coche al lado
+DRS_Status|DRS state|Estado del DRS
+DRS_Count|DRS uses|Usos del DRS
+P2P_Status|Push to pass active|Push to pass activo
+P2P_Count|Push to pass left|Push to pass restante
+EnergyERSBattery|Hybrid battery energy|Energía de batería híbrida
+EnergyERSBatteryPct|Hybrid battery %|Batería híbrida %
+EnergyBatteryToMGU_KLap|Hybrid energy used this lap|Energía híbrida usada esta vuelta
+EnergyMGU_KLapDeployPct|Hybrid deploy left this lap|Despliegue híbrido restante esta vuelta
+PowerMGU_K|Hybrid power (MGU-K)|Potencia híbrida (MGU-K)
+PowerMGU_H|Hybrid power (MGU-H)|Potencia híbrida (MGU-H)
+TorqueMGU_K|Hybrid torque (MGU-K)|Par híbrido (MGU-K)
+dcStarter|Starter button|Botón de arranque
+dcPitSpeedLimiterToggle|Pit limiter|Limitador de boxes
+dcHeadlightFlash|Headlight flash|Ráfaga de luces
+dcBrakeBias|Brake bias|Reparto de frenada
+dcBrakeBiasFine|Brake bias fine|Reparto de frenada fino
+dcPeakBrakeBias|Peak brake bias|Reparto de frenada pico
+dcABS|ABS setting|Ajuste de ABS
+dcTractionControl|Traction control|Control de tracción
+dcTractionControl2|Traction control 2|Control de tracción 2
+dcTractionControlToggle|Traction control on/off|Control de tracción on/off
+dcThrottleShape|Throttle map|Mapa de acelerador
+dcFuelMixture|Fuel mixture|Mezcla de combustible
+dcEngineBraking|Engine braking|Freno motor
+dcAntiRollFront|Front anti-roll bar|Barra estabilizadora delantera
+dcAntiRollRear|Rear anti-roll bar|Barra estabilizadora trasera
+dcDashPage|Dash page|Página del display
+dcToggleWindshieldWipers|Wipers|Limpiaparabrisas
+dcLowFuelAccept|Low fuel warning accepted|Aviso de poco combustible aceptado
+dcMGUKDeployMode|Hybrid deploy mode|Modo de despliegue híbrido
+dcMGUKRegenGain|Hybrid regen level|Nivel de regeneración híbrida
+dcDRSToggle|DRS button|Botón DRS
+dcPushToPass|Push to pass button|Botón push to pass
+dpLFTireChange|Pit: change left front|Boxes: cambiar delantera izq.
+dpRFTireChange|Pit: change right front|Boxes: cambiar delantera der.
+dpLRTireChange|Pit: change left rear|Boxes: cambiar trasera izq.
+dpRRTireChange|Pit: change right rear|Boxes: cambiar trasera der.
+dpFuelFill|Pit: refuel|Boxes: repostar
+dpFuelAddKg|Pit: fuel to add|Boxes: combustible a añadir
+dpFastRepair|Pit: fast repair|Boxes: reparación rápida
+dpWindshieldTearoff|Pit: clean windscreen|Boxes: limpiar parabrisas
+dpWingFront|Pit: front wing|Boxes: alerón delantero
+dpWingRear|Pit: rear wing|Boxes: alerón trasero`.split("\n").forEach(l=>{const[k,en,es]=l.split("|");t[k]=[en,es]});return t})();
+const CORNER={LF:["Left front","Delantera izq."],RF:["Right front","Delantera der."],LR:["Left rear","Trasera izq."],RR:["Right rear","Trasera der."],CF:["Centre front","Central delantera"],CR:["Centre rear","Central trasera"],HF:["Front heave","Heave delantero"],HR:["Rear heave","Heave trasero"]};
+const CSUF={tempCL:["tyre temp (left edge)","temp. neumático (borde izq.)"],tempCM:["tyre temp (middle)","temp. neumático (centro)"],tempCR:["tyre temp (right edge)","temp. neumático (borde der.)"],
+  tempL:["tyre surface temp (left)","temp. superficie (izq.)"],tempM:["tyre surface temp (middle)","temp. superficie (centro)"],tempR:["tyre surface temp (right)","temp. superficie (der.)"],
+  wearL:["tread left (left edge)","goma restante (borde izq.)"],wearM:["tread left (middle)","goma restante (centro)"],wearR:["tread left (right edge)","goma restante (borde der.)"],
+  coldPressure:["cold tyre pressure","presión en frío"],pressure:["tyre pressure","presión del neumático"],shockDefl:["shock travel","recorrido del amortiguador"],shockVel:["shock speed","velocidad del amortiguador"],
+  rideHeight:["ride height","altura"],brakeLinePress:["brake pressure","presión de freno"],speed:["wheel speed","velocidad de rueda"],TiresUsed:["tyres used","neumáticos usados"],TiresAvailable:["tyres left","neumáticos restantes"],
+  shockDefl_ST:["shock travel (fast)","recorrido amortiguador (rápido)"],shockVel_ST:["shock speed (fast)","velocidad amortiguador (rápida)"],tempC:["tyre temp","temp. neumático"]};
+function humanize(s){return s.replace(/_/g," ").replace(/([a-z0-9])([A-Z])/g,"$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g,"$1 $2").replace(/\s+/g," ").trim().toLowerCase().replace(/^./,c=>c.toUpperCase())}
+const telNameCache={};
+function telPair(n){if(telNameCache[n])return telNameCache[n];let r=null;
+  if(TELN[n])r=TELN[n];
+  else{let m=n.match(/^CarIdx(.+)$/);if(m){const b=telPair(m[1]);r=[b[0]+" (every car)",b[1]+" (cada coche)"]}
+  else if((m=n.match(/^(LF|RF|LR|RR|CF|CR|HF|HR)(.+)$/))&&(CSUF[m[2]]||/^[a-zA-Z]/.test(m[2]))){const c=CORNER[m[1]],s=CSUF[m[2]]||[humanize(m[2]).toLowerCase(),humanize(m[2]).toLowerCase()];r=[c[0]+" "+s[0],c[1]+": "+s[1]]}
+  else if((m=n.match(/^dp(.+)$/))){const h=humanize(m[1]);r=["Pit: "+h.toLowerCase(),"Boxes: "+h.toLowerCase()]}
+  else if((m=n.match(/^dc(.+)$/))){const h=humanize(m[1]);r=[h+" (car control)",h+" (control del coche)"]}
+  else{const d=(SCHEMA.find(s=>s.name===n)||{}).desc;const h=d?d.trim().replace(/^./,c=>c.toUpperCase()):humanize(n);r=[h,h]}}
+  telNameCache[n]=r;return r}
+function telName(n){const p=telPair(n);return LANG==="es"?p[1]:LANG==="en"?p[0]:p[0]+" / "+p[1]}
+
+/* ===================== drag to reorder ===================== */
+function sortable(container,itemSel,handleSel,keyOf,onDone){
+  container.addEventListener("pointerdown",e=>{const h=e.target.closest(handleSel);if(!h||!container.contains(h)||e.button>0)return;const item=h.closest(itemSel);if(!item||item.parentElement!==container)return;
+    e.preventDefault();document.documentElement.classList.add("sorting");const r=item.getBoundingClientRect(),dx=e.clientX-r.left,dy=e.clientY-r.top,keep=item.getAttribute("style")||"";
+    const ph=document.createElement("div");ph.className=item.className.replace(/\bwpanel\b|\bdragging\b/g,"")+" ph";ph.style.height=r.height+"px";container.insertBefore(ph,item);
+    item.classList.add("dragging");Object.assign(item.style,{width:r.width+"px",height:r.height+"px",left:r.left+"px",top:r.top+"px"});
+    let scrollV=0,raf=0;const tick=()=>{if(scrollV){scrollBy(0,scrollV);raf=requestAnimationFrame(tick)}else raf=0};
+    const move=ev=>{item.style.left=(ev.clientX-dx)+"px";item.style.top=(ev.clientY-dy)+"px";
+      scrollV=ev.clientY<70?-10:ev.clientY>innerHeight-90?10:0;if(scrollV&&!raf)raf=requestAnimationFrame(tick);
+      const over=document.elementFromPoint(ev.clientX,ev.clientY),tgt=over&&over.closest(itemSel+",.ph");if(!tgt||tgt===ph||tgt===item||tgt.parentElement!==container)return;
+      const tr=tgt.getBoundingClientRect(),after=(ev.clientX-tr.left)/tr.width+(ev.clientY-tr.top)/tr.height>1;container.insertBefore(ph,after?tgt.nextSibling:tgt)};
+    const up=()=>{document.documentElement.classList.remove("sorting");removeEventListener("pointermove",move);removeEventListener("pointerup",up);removeEventListener("pointercancel",up);scrollV=0;
+      container.insertBefore(item,ph);ph.remove();item.classList.remove("dragging");item.setAttribute("style",keep);onDone([...container.querySelectorAll(itemSel)].filter(x=>x.parentElement===container).map(keyOf))};
+    addEventListener("pointermove",move);addEventListener("pointerup",up);addEventListener("pointercancel",up)})}
+const SIZES=[3,4,6,8,12];let ORDER=store.get("pw.order",null),WSIZE=store.get("pw.sizes",{});
+function applyOrderAndSizes(){if(OV.on)return;const grid=$("#liveGrid"),panels=[...grid.querySelectorAll(":scope>.wpanel")];
+  panels.forEach(p=>{if(!p.dataset.def)p.dataset.def=(p.className.match(/\bs(\d+)\b/)||[0,12])[1];const n=WSIZE[p.dataset.w]||+p.dataset.def;p.className=p.className.replace(/\bs\d+\b/g,"").trim()+" s"+n});
+  if(ORDER){const by=Object.fromEntries(panels.map(p=>[p.dataset.w,p]));const seq=ORDER.filter(w=>by[w]).concat(panels.map(p=>p.dataset.w).filter(w=>!ORDER.includes(w)));const empty=$("#liveEmpty");seq.forEach(w=>grid.insertBefore(by[w],empty))}}
+function addGrips(){if(OV.on)return;document.querySelectorAll("#liveGrid>.wpanel").forEach(p=>{if(p.querySelector(".grip"))return;const g=document.createElement("button");g.type="button";g.className="grip";
+  g.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+  g.title=Tx("Drag to move","Arrastra para mover");g.setAttribute("aria-label",g.title);p.appendChild(g)})}
+function cycleSize(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="${w}"]`);const cur=WSIZE[w]||+(p&&p.dataset.def||12);const i=SIZES.indexOf(cur);WSIZE[w]=SIZES[(i+1)%SIZES.length];store.set("pw.sizes",WSIZE);applyOrderAndSizes();drawMapSoon()}
+function sizeLabel(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="${w}"]`);const n=WSIZE[w]||+(p&&p.dataset.def||12);return{3:"S",4:"M",6:"L",8:"XL",12:"Full"}[n]||n}
+
+/* ===================== live lap comparison: best vs last vs current ===================== */
+Object.assign(I18N,{"w.compare":["Lap comparison","Comparación de vueltas"],"d.compare":["Best, last and current lap traces","Trazas de mejor, última y actual"],follow:["Follow me","Seguirme"],
+ "it.cmpbest":["Best","Mejor"],"it.cmplast":["Last","Última"],"it.cmpnow":["Now vs best","Ahora vs mejor"]});
+UI_DEFAULTS.cmp={ch:"speed",follow:false};
+const CMPCH=[["speed","Speed","Velocidad"],["pedals","Throttle & brake","Acelerador y freno"],["delta","Time delta","Diferencia de tiempo"],["gear","Gear","Marcha"],["steer","Steering","Volante"],["rpm","RPM","RPM"]];
+function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const k=c.ch+"|"+c.follow+"|"+LANG;if(box.dataset.k===k)return;box.dataset.k=k;
+  box.innerHTML=CMPCH.map(([v,en,es])=>`<button type="button" class="chip" data-ch="${v}" aria-pressed="${c.ch===v}">${esc(Tx(en,es))}</button>`).join("")+`<button type="button" class="chip" data-follow aria-pressed="${!!c.follow}">${esc(Tx("Follow me","Seguirme"))}</button>`;
+  box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{setUI("cmp",{ch:b.dataset.ch});cmpCtl();drawCompare()});
+  box.querySelector("[data-follow]").onclick=()=>{setUI("cmp",{follow:!ui("cmp").follow});cmpCtl();drawCompare()}}
+function serOf(l){if(!l._ser||l._serN!==l.bins.length){l._ser=lapSeries(l).arr;l._serN=l.bins.length}return l._ser}
+function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;cmpCtl();if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1)-cv.getBoundingClientRect().top-16));if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}const c=ui("cmp");
+  const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null),last=LAPS.length?LAPS.at(-1):null,cur=rec;
+  const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null;
+  const curD=T.LapDist||0,len=Math.max(trackLenM(),(bs?bs.length:0)*BIN);
+  // header: lap times and live delta
+  let now=null;if(bs&&cur&&cur.bins){const i=Math.floor(curD/BIN);let k=i;while(k>0&&!cur.bins[k])k--;if(cur.bins[k]&&bs[k])now=cur.bins[k][1]-bs[k][1]}
+  $("#cmpHead").innerHTML=`<div><span class="k" style="color:var(--pb)">${L("it.cmpbest",true)}</span><span class="v">${best?Tx("L","V")+best.n+" "+fmtT(best.time):"–"}</span></div>
+    <div><span class="k">${L("it.cmplast",true)}</span><span class="v">${last?Tx("L","V")+last.n+" "+fmtT(last.time):"–"}</span></div>
+    <div><span class="k" style="color:var(--accent)">${L("it.cmpnow",true)}</span><span class="v ${now==null?"":now<=0?"good":"bad"}">${now==null?"–":sgn(now,2)}</span></div>`;
+  const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
+  if(!best){x.fillStyle=css("--muted");x.font="13px "+css("--f-body");x.textAlign="center";x.fillText(Tx("Complete a lap to start comparing.","Completa una vuelta para empezar a comparar."),w/2,h/2);return}
+  let d0=0,d1=len;if(c.follow){d0=Math.max(0,curD-300);d1=Math.min(len,d0+500)}
+  // channel definition: value from a bin, y range
+  const ch=c.ch,acc={speed:b=>spd(b[0]),gear:b=>b[4],steer:b=>b[5]==null?null:b[5]*180/Math.PI,rpm:b=>b[6]}[ch];
+  let lo=0,hi=1,fmtY=v=>v;
+  const collect=[];const push=v=>{if(v!=null&&isFinite(v))collect.push(v)};
+  const i0=Math.floor(d0/BIN),i1=Math.ceil(d1/BIN);
+  if(ch==="pedals"){lo=-1;hi=1;fmtY=v=>Math.round(Math.abs(v)*100)+"%"}
+  else if(ch==="delta"){[ls,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){const a=arr[i],b=bs[i];if(a&&b)push(a[1]-b[1])}});const m=Math.max(.2,...collect.map(Math.abs));lo=-m;hi=m;fmtY=v=>(v>0?"+":"")+v.toFixed(2)}
+  else{[bs,ls,cur&&cur.bins].forEach(arr=>{if(!arr)return;for(let i=i0;i<=i1;i++){if(arr[i])push(acc(arr[i]))}});if(collect.length){lo=Math.min(...collect);hi=Math.max(...collect)}if(ch==="speed"){lo=Math.max(0,Math.floor(lo/20)*20);hi=Math.ceil(hi/20)*20}else if(ch==="gear"){lo=Math.min(0,Math.floor(lo));hi=Math.max(1,Math.ceil(hi))}else{const p=(hi-lo)*.08||1;lo-=p;hi+=p}fmtY=v=>ch==="rpm"?Math.round(v/100)*100:ch==="steer"?Math.round(v)+"°":Math.round(v)}
+  const pl=46,pr=8,pt=8,pb=18,X=d=>pl+(d-d0)/((d1-d0)||1)*(w-pl-pr),Y=v=>pt+(1-(v-lo)/((hi-lo)||1))*(h-pt-pb);
+  x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.lineWidth=1;x.textAlign="right";
+  const ticks=ch==="pedals"?[-1,0,1]:ch==="delta"?[lo,0,hi]:[lo,(lo+hi)/2,hi];ticks.forEach(v=>{const y=Y(v);x.beginPath();x.moveTo(pl,y);x.lineTo(w-pr,y);x.stroke();x.fillText(fmtY(v),pl-6,y+4)});
+  x.textAlign="center";const step=(d1-d0)>2500?1000:(d1-d0)>1000?500:100;for(let d=Math.ceil(d0/step)*step;d<=d1;d+=step)x.fillText(d+" m",X(d),h-4);
+  const line=(arr,valOf,col,wd,upto,dash)=>{if(!arr)return;x.beginPath();let on=false;const end=Math.min(i1,upto??i1);let lastI=-99;for(let i=i0;i<=end;i++){const b=arr[i];const v=b?valOf(b,i):null;if(v==null||!isFinite(v))continue;if(i-lastI>12)on=false;const px=X(i*BIN),py=Y(v);on?x.lineTo(px,py):x.moveTo(px,py);on=true;lastI=i}
+    x.setLineDash(dash||[]);x.strokeStyle=col;x.lineWidth=wd;x.stroke();x.setLineDash([])};
+  const PB=css("--pb"),MU=css("--blue"),AC=css("--accent"),curEnd=cur&&cur.maxBin!=null?cur.maxBin:-1;
+  if(ch==="pedals"){const th=b=>b[2],br=b=>-b[3];[[bs,PB,1.6],[ls,MU,1.4],[cur&&cur.bins,AC,2.2,curEnd]].forEach(([a,col,wd,up])=>{line(a,th,col,wd,up);line(a,br,col,wd,up,[4,3])})}
+  else if(ch==="delta"){line(bs,()=>0,PB,1.4);line(ls,(b,i)=>bs[i]?b[1]-bs[i][1]:null,MU,1.6);line(cur&&cur.bins,(b,i)=>bs[i]?b[1]-bs[i][1]:null,AC,2.4,curEnd)}
+  else{line(bs,acc,PB,1.6);line(ls,acc,MU,1.6);line(cur&&cur.bins,acc,AC,2.4,curEnd)}
+  if(curD>=d0&&curD<=d1){x.strokeStyle=AC;x.globalAlpha=.6;x.beginPath();x.moveTo(X(curD),pt);x.lineTo(X(curD),h-pb);x.stroke();x.globalAlpha=1}
+  if(ch==="pedals"){x.fillStyle=css("--muted");x.textAlign="left";x.fillText(Tx("throttle ↑  brake ↓ (dashed)","acelerador ↑  freno ↓ (discontinuo)"),pl+4,pt+10)}}
+
 /* ===================== settings & connection ===================== */
 function renderConn(){const c=$("#conn");let cls,en,es;
   if(STATUS.offline){cls="wait";en="PC offline";es="PC sin conexión"}
@@ -1689,7 +2029,9 @@ window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW
   applyTheme();
   try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
-  addPopButtons();applyI18n();ovChrome();cfgChanged();
+  addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();
+  if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
+  sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
   const start=OV.on?"live":(location.hash||"").slice(1)||store.get("pw.tab","live");show(["live","overlays","tyres","field","laps","series","data","account","settings"].includes(start)?start:"live");
   if(NATIVE)syncNativePlan();
