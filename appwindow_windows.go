@@ -50,6 +50,7 @@ func runMainWindow(url string, minimized bool) bool {
 	mainWV, mainHwnd = wv, uintptr(wv.Window())
 	setWindowIcon(mainHwnd)
 	styleTitleBar(mainHwnd)
+	ownTitleBar(mainHwnd)
 	procShowWindow.Call(mainHwnd, 3) // SW_MAXIMIZE: use the whole screen
 	if minimized {
 		procShowWindow.Call(mainHwnd, 6) // SW_MINIMIZE
@@ -58,6 +59,33 @@ func runMainWindow(url string, minimized bool) bool {
 		if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
 			openExternal(u)
 		}
+	})
+	// the app's header is the title bar: drag it, double-click it, its buttons minimise, maximise and close
+	wv.Bind("pwWin", func(a string) bool {
+		zoomed := func() bool { z, _, _ := procIsZoomed.Call(mainHwnd); return z != 0 }
+		switch a {
+		case "min":
+			wv.Dispatch(func() { procShowWindow.Call(mainHwnd, 6) }) // SW_MINIMIZE
+		case "max":
+			z := zoomed()
+			wv.Dispatch(func() {
+				if z {
+					procShowWindow.Call(mainHwnd, 9) // SW_RESTORE
+				} else {
+					procShowWindow.Call(mainHwnd, 3) // SW_MAXIMIZE
+				}
+			})
+			return !z
+		case "close":
+			procPostMessageW.Call(mainHwnd, wmClose, 0, 0)
+		case "drag", "top", "topleft", "topright":
+			hit := map[string]uintptr{"drag": htCaption, "top": 12, "topleft": 13, "topright": 14}[a]
+			wv.Dispatch(func() {
+				procReleaseCapture.Call()
+				procSendMessageW.Call(mainHwnd, wmNCLButtonDown, hit, 0)
+			})
+		}
+		return zoomed()
 	})
 	wv.Init(externalLinks)
 	wv.Navigate(url)
@@ -172,4 +200,62 @@ func styleTitleBar(hwnd uintptr) {
 	set(36, 0x00F1EBE7)                                                                                  // DWMWA_TEXT_COLOR: #e7ebf1
 	set(33, 2)                                                                                           // DWMWA_WINDOW_CORNER_PREFERENCE: round
 	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate|0x0004|swpFrameChanged) // redraw the frame
+}
+
+var (
+	procIsZoomed               = user32.NewProc("IsZoomed")
+	procCallWindowProcW        = user32.NewProc("CallWindowProcW")
+	procGetDpiForWindow        = user32.NewProc("GetDpiForWindow")
+	procGetSystemMetricsForDpi = user32.NewProc("GetSystemMetricsForDpi")
+	origMainProc               uintptr
+	mainProcCB                 uintptr
+)
+
+type ncCalcSizeParams struct {
+	Rgrc  [3]winRect
+	Lppos uintptr
+}
+
+// frameSize is the width of the (invisible) resize border Windows keeps around the window.
+func frameSize(hwnd uintptr) (int32, int32) {
+	m := func(i uintptr) int32 { v, _, _ := procGetSystemMetrics.Call(i); return int32(v) }
+	if procGetDpiForWindow.Find() == nil && procGetSystemMetricsForDpi.Find() == nil {
+		dpi, _, _ := procGetDpiForWindow.Call(hwnd)
+		if dpi != 0 {
+			md := func(i uintptr) int32 { v, _, _ := procGetSystemMetricsForDpi.Call(i, dpi); return int32(v) }
+			pad := md(92)                     // SM_CXPADDEDBORDER
+			return md(32) + pad, md(33) + pad // SM_CXSIZEFRAME, SM_CYSIZEFRAME
+		}
+	}
+	pad := m(92)
+	return m(32) + pad, m(33) + pad
+}
+
+// ownTitleBar removes Windows' title bar: the app's own header takes its place.
+// The window keeps its frame styles, so Windows still resizes it from the edges,
+// snaps it to the sides, animates and shadows it.
+func ownTitleBar(hwnd uintptr) {
+	mainProcCB = syscall.NewCallback(func(h, msg, wp, lp uintptr) uintptr {
+		if msg == 0x0083 && wp != 0 { // WM_NCCALCSIZE: the client area covers the title bar
+			p := (*ncCalcSizeParams)(unsafe.Pointer(lp))
+			bx, by := frameSize(h)
+			if z, _, _ := procIsZoomed.Call(h); z != 0 {
+				// maximised windows hang over the screen by the frame size on every side
+				p.Rgrc[0].Left += bx
+				p.Rgrc[0].Right -= bx
+				p.Rgrc[0].Top += by
+				p.Rgrc[0].Bottom -= by
+			} else {
+				// the resize borders stay at the sides and the bottom (they are invisible)
+				p.Rgrc[0].Left += bx
+				p.Rgrc[0].Right -= bx
+				p.Rgrc[0].Bottom -= by
+			}
+			return 0
+		}
+		r, _, _ := procCallWindowProcW.Call(origMainProc, h, msg, wp, lp)
+		return r
+	})
+	origMainProc, _, _ = procSetWindowLongPtrW.Call(hwnd, ^uintptr(3), mainProcCB) // GWLP_WNDPROC (-4)
+	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate|0x0004|swpFrameChanged)
 }

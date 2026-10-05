@@ -730,6 +730,20 @@ nav.tabs button[data-g=rig]{display:none!important}
 .sa-opt:has(input:checked){border-color:var(--accent)}.sa-opt b{display:block}.sa-opt small{color:var(--muted)}.sa-opt input{margin-top:3px}
 /* phone companion: Home, Planner, Tracks, Community, then Live */
 html.phone nav.tabs button[data-g=home]{order:1}html.phone nav.tabs button[data-g=season]{order:2}html.phone nav.tabs button[data-g=analysis]{order:3}html.phone nav.tabs button[data-g=community]{order:4}html.phone nav.tabs button[data-g=race]{order:5}
+/* the PC window has no Windows title bar: the header is the title bar */
+html.ownframe header.top{margin-inline:calc(-1 * var(--padx,16px));padding-left:var(--padx,16px);padding-right:0;padding-block:0;min-height:52px;flex-wrap:nowrap;user-select:none;-webkit-user-select:none}
+html.ownframe header.top>*{flex:none}html.ownframe header.top nav.tabs{flex:0 1 auto;min-width:0}
+.winctl{display:flex;align-self:stretch;margin-left:6px}.winctl button{width:46px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.winctl button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6}.winctl button:hover{background:var(--surface2);color:var(--fg)}.winctl button.x:hover{background:#e81123;color:#fff}
+html.maxed .winctl [data-w=max] svg rect{x:7px;y:4px;width:13px;height:13px}
+.winedge{position:fixed;top:0;left:0;right:0;height:4px;z-index:60;display:grid;grid-template-columns:8px 1fr 8px}.winedge i{cursor:ns-resize}.winedge i:first-child{cursor:nwse-resize}.winedge i:last-child{cursor:nesw-resize}
+html.maxed .winedge{display:none}
+/* wide tables (relative, standings…) scroll inside their panel instead of pushing the page */
+.wpanel:has(.wtable),.panel:has(>table){overflow-x:auto}.wtable{max-width:none}
+html,body{overflow-x:clip}
+html.phone nav.tabs button{letter-spacing:0;font-size:10.5px}html.phone nav.tabs button span{text-overflow:clip}
+@media (max-width:520px){.seg{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}.seg::-webkit-scrollbar{display:none}.seg button{flex:0 0 auto;font-size:12.5px;padding:8px 11px;white-space:nowrap}}
+.hm{padding-top:14px}
 </style>
 
 <div class="wrap">
@@ -752,7 +766,9 @@ html.phone nav.tabs button[data-g=home]{order:1}html.phone nav.tabs button[data-
   <button class="iconbtn" id="qsBtn" type="button" title="Search (Ctrl+K)" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></svg></button>
+  <div class="winctl" id="winCtl" hidden><button type="button" data-w="min" aria-label="Minimise"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button><button type="button" data-w="max" aria-label="Maximise"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/></svg></button><button type="button" data-w="close" class="x" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
 </header>
+<div class="winedge" id="winEdge" hidden><i data-e="topleft"></i><i data-e="top"></i><i data-e="topright"></i></div>
 
 <nav class="subtabs" id="subtabs" aria-label="Pages"></nav>
 
@@ -1944,8 +1960,9 @@ function trackFacts(t){const own=t.free_with_subscription||(SER&&SER.member&&SER
 let TRK_TAB=store.get("pw.trkTab","all"),TRK_Q="";
 function renderTrackCat(){const box=$("#trkCat"),seg=$("#trkSeg");if(!box||!seg)return;
   seg.querySelectorAll("button").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.k===TRK_TAB);b.textContent=b.dataset.k==="all"?Tx("All tracks","Todos los circuitos","Alle Strecken","Todas as pistas"):Tx("My tracks and notes","Mis circuitos y notas","Meine Strecken und Notizen","Minhas pistas e notas");
-    b.onclick=()=>{TRK_TAB=b.dataset.k;store.set("pw.trkTab",TRK_TAB);renderTrackCat()}});
-  box.hidden=TRK_TAB!=="all";$("#tracksBody").hidden=TRK_TAB==="all";if(TRK_TAB!=="all")return;
+    b.onclick=()=>{TRK_TAB=b.dataset.k;store.set("pw.trkTab",TRK_TAB);renderTrackCat();if(TRK_TAB!=="all")renderTracks()}});
+  box.hidden=TRK_TAB!=="all";$("#tracksBody").hidden=TRK_TAB==="all";if(TRK_TAB!=="all"){renderTracks.sub&&0;return}
+  $("#tracksSub").textContent=Tx("Every iRacing track: picture, map, length, corners and more","Todos los circuitos de iRacing: foto, mapa, longitud, curvas y más","Alle iRacing-Strecken: Bild, Karte, Länge, Kurven und mehr","Todas as pistas do iRacing: foto, mapa, comprimento, curvas e mais");
   if(!SER){box.innerHTML=`<p class="note">${esc(Tx("Loading…","Cargando…","Wird geladen…","Carregando…"))}</p>`;loadSeries();return}
   if(!IR.tracks.length){box.innerHTML=`<p class="note">${esc(Tx("The list of every iRacing track comes from the Pitlane HQ server; it is not there yet. Your own tracks and notes are in the other tab.","La lista de todos los circuitos de iRacing llega desde el servidor de Pitlane HQ; todavía no está. Tus circuitos y notas están en la otra pestaña.","Die Liste aller iRacing-Strecken kommt vom Pitlane-HQ-Server; sie ist noch nicht da. Deine Strecken und Notizen sind im anderen Tab.","A lista de todas as pistas do iRacing vem do servidor do Pitlane HQ; ainda não está lá. Suas pistas e notas estão na outra aba."))}</p>`;return}
   const g=new Map();IR.tracks.filter(t=>!t.retired).forEach(t=>{if(!g.has(t.track_name))g.set(t.track_name,[]);g.get(t.track_name).push(t)});
@@ -2446,6 +2463,14 @@ function pcOverlays(){return MODE==="bridge"&&INFO&&INFO.overlays}
 async function openOverlayOnPC(w){const r=await fetch(`/api/overlay/open?w=${w}`,{method:"POST"}).catch(()=>null);if(!r||!r.ok){toast(Tx("Could not open the overlay window.","No se pudo abrir la ventana overlay."));return false}return true}
 async function popOut(w){if(pcOverlays()){if(!await openOverlayOnPC(w))return;if(isPC()&&w!=="standings"){HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}toast(isPC()?Tx("Opened as an overlay. Bring it back here from Layout.","Abierto como overlay. Recupéralo aquí desde Diseño."):Tx("Opened on your PC.","Abierto en tu PC."))}
   else if(MODE==="bridge")window.open(`/?overlay=${w}`,"_blank")}
+/* the PC window: the header works as the title bar (drag, double-click, buttons) */
+function ownFrame(){const H=document.documentElement,hd=$("header.top");H.classList.add("ownframe");$("#winCtl").hidden=false;$("#winEdge").hidden=false;
+  const pad=()=>H.style.setProperty("--padx",getComputedStyle(document.body).paddingLeft);pad();addEventListener("resize",pad);
+  const state=z=>H.classList.toggle("maxed",!!z);window.pwWin("state").then(state).catch(()=>{});addEventListener("resize",()=>window.pwWin("state").then(state).catch(()=>{}));
+  $("#winCtl").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>window.pwWin(b.dataset.w).then(state).catch(()=>{}));
+  hd.addEventListener("mousedown",e=>{if(e.button!==0||e.target.closest("button,a,input,select,textarea,nav.tabs button,.conn"))return;e.preventDefault();window.pwWin("drag")});
+  hd.addEventListener("dblclick",e=>{if(e.target.closest("button,a,input,select,textarea"))return;window.pwWin("max").then(state).catch(()=>{})});
+  $("#winEdge").querySelectorAll("[data-e]").forEach(x=>x.onmousedown=e=>{e.preventDefault();window.pwWin(x.dataset.e)})}
 /* the app's own dialogs (the browser's ones say "localhost says…") */
 function uiDialog(msg,input,def){return new Promise(res=>{const d=document.createElement("div");d.className="uidlg";d.innerHTML=`<div class="bg"></div><div class="pn" role="dialog" aria-modal="true"><div class="uidlg-t">Pitlane HQ</div><p></p>${input?`<input type="text">`:""}<div class="uidlg-b"><button type="button" class="btn" data-a="0"></button><button type="button" class="btn primary" data-a="1"></button></div></div>`;
   d.querySelector("p").textContent=msg;const inp=d.querySelector("input");if(inp)inp.value=def||"";
@@ -3128,7 +3153,7 @@ if(PHONE)GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].inclu
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["tracks","races"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Tracks","Circuitos"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=["tracks","races"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
 if(!FEATURES.voice)GROUPS.race=GROUPS.race.filter(v=>v!=="engineer");if(!FEATURES.subscription)GROUPS.account=GROUPS.account.filter(v=>v!=="plan");
 // Connections (iRacing, Garage 61, own site, Discord) and the iRacing page: only for admins of the Pitlane HQ server
 const isAdmin=()=>!!(typeof ME!=="undefined"&&ME&&ME.admin);
@@ -4171,6 +4196,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
   if(OV.on&&typeof window.pwReady==="function")window.pwReady(); // the frameless overlay window: the page loaded
+  if(!OV.on&&typeof window.pwWin==="function")ownFrame();
   if(!OV.on)loadMe().catch(()=>{});
   // the phone app showing the PC's page: a way back to the phone app
   if(NATIVE_RAW&&!COMPANION&&!OV.on){const lp=$("#leavePC");lp.hidden=false;lp.textContent="‹ "+Tx("Phone app","App del móvil","Handy-App","App do celular");lp.onclick=()=>NATIVE_RAW.postMessage({type:"companion"})}
@@ -4450,7 +4476,7 @@ function raceAnalysisHTML(r){if(MODE!=="bridge")demoLapDetail(r);const a=raceAna
 
 /* ---------- tracks: what you know about each one, and your notes ---------- */
 async function renderTracks(){const box=$("#tracksBody");if(!box)return;renderTrackCat();await Promise.all([loadTB(),loadNotes()]);
-  $("#tracksSub").innerHTML=Lp("Best lap and fuel per lap for each car, learned while you drive, and your notes for each corner","Mejor vuelta y gasolina por vuelta de cada coche, aprendidas mientras conduces, y tus notas de cada curva");
+  if(TRK_TAB!=="all")$("#tracksSub").innerHTML=Lp("Best lap and fuel per lap for each car, learned while you drive, and your notes for each corner","Mejor vuelta y gasolina por vuelta de cada coche, aprendidas mientras conduces, y tus notas de cada curva");
   const by=new Map();(TB||[]).forEach(e=>{if(!by.has(e.trackId))by.set(e.trackId,{id:e.trackId,name:e.track,cars:[]});by.get(e.trackId).cars.push(e)});
   Object.values(NOTES).forEach(n=>{if(!by.has(n.trackId))by.set(n.trackId,{id:n.trackId,name:n.track,cars:[]})});
   const cur=(S.WeekendInfo||{}).TrackID;if(cur&&!by.has(cur))by.set(cur,{id:cur,name:(S.WeekendInfo.TrackDisplayName||"")+(S.WeekendInfo.TrackConfigName?" · "+S.WeekendInfo.TrackConfigName:""),cars:[]});
@@ -4821,7 +4847,7 @@ function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div")
 
 /* ===================== my account: Pitlane HQ sign-in, encrypted sync, public name ===================== */
 Object.assign(I18N,{"g.race":["Telemetry","Telemetría"],"g.season":["Planner","Planner"],"g.rig":["Rig & haptics","Rig y hápticos"],"g.account":["Account","Cuenta"],
- "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.rigGear":["Programs","Programas"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
+ "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.rigGear":["SimHub & MOZA","SimHub y MOZA"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
 let ME=null,SETUP_TAB="mine";
 function nameChoice(px,kind,nick){return `<div class="namech" id="${px}K"><label><input type="radio" name="${px}nk" value="iracing"${kind==="iracing"?" checked":""}> ${esc(Tx("My iRacing name (read from your connected iRacing account)","Mi nombre de iRacing (de tu cuenta de iRacing conectada)"))}</label>
   <label><input type="radio" name="${px}nk" value="nick"${kind!=="iracing"?" checked":""}> ${esc(Tx("A nickname","Un apodo"))}</label><input type="text" id="${px}Nick" maxlength="32" value="${esc(kind!=="iracing"?nick||"":"")}" placeholder="${esc(Tx("Your nickname","Tu apodo"))}" style="width:100%"${kind==="iracing"?" hidden":""}></div>`}
