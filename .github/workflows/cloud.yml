@@ -7,7 +7,8 @@ name: Pitlane HQ Cloud (web version)
 #   CLOUDFLARE_ACCOUNT_ID
 #   PITLANE_KEY            optional: the older key sign-in of the lap site (owner/team keys)
 # Optional: PITLANE_D1_ID secret (an existing database) and the repository
-# variable SEASON_UPLOADERS (your Pitlane HQ account id).
+# variables SEASON_UPLOADERS and ADMINS (your Pitlane HQ account id) and
+# CUSTOM_DOMAIN (your own domain in Cloudflare, e.g. pitlanehq.com).
 
 on:
   workflow_dispatch:
@@ -29,6 +30,8 @@ jobs:
       D1_ID: ${{ secrets.PITLANE_D1_ID }}
       PITLANE_KEY: ${{ secrets.PITLANE_KEY }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
+      ADMINS: ${{ vars.ADMINS }}
+      CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
     defaults:
       run:
         working-directory: cloud
@@ -53,9 +56,13 @@ jobs:
           sed -i "s/^migrations_dir = \"migrations\"/migrations_dir = \"migrations\"\ndatabase_id = \"$DB_ID\"/" wrangler.toml
           npx wrangler d1 migrations apply DB --remote
           if [ -n "$SEASON_UPLOADERS" ]; then sed -i "s/^SEASON_UPLOADERS = \"\"/SEASON_UPLOADERS = \"$SEASON_UPLOADERS\"/" wrangler.toml; fi
+          if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \"\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
+          # your own domain (for example pitlanehq.com), once it is in your Cloudflare account
+          if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
           npx wrangler deploy | tee deploy.log
           if [ -n "$PITLANE_KEY" ]; then echo "$PITLANE_KEY" | npx wrangler secret put PITLANE_KEY; fi
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
+          if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
           {
             echo "## Pitlane HQ server is ready"
             echo

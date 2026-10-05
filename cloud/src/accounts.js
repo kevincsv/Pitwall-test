@@ -77,6 +77,9 @@ async function deleteAccount(env, id) {
   ]);
 }
 
+// admins of this server: the account ids in ADMINS (or SEASON_UPLOADERS); they see the Connections settings in the app
+export const isAdmin = (env, id) => String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean).includes(id);
+
 export async function accounts(req, env, url) {
   if (env.COMMUNITY !== "1") return err("accounts are not enabled on this server", 404);
   const p = url.pathname.replace(/^\/account/, ""), m = req.method;
@@ -102,7 +105,7 @@ export async function accounts(req, env, url) {
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
     const token = await newSession(env, id, body.device);
-    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey });
+    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id) });
   }
   if (p === "/login" && m === "POST") {
     if (typeof body.email !== "string" || !isKey(body.auth)) return err("missing email or key", 400);
@@ -114,14 +117,14 @@ export async function accounts(req, env, url) {
       return err("wrong email or password", 401);
     }
     const token = await newSession(env, a.id, body.device);
-    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, wrappedKey: a.wrapped_key });
+    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id) });
   }
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, created: a.created });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, created: a.created, admin: isAdmin(env, a.id) });
   if (p === "/me" && m === "POST") {
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);

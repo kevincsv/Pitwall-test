@@ -135,7 +135,9 @@ func openOverlay(o overlayReq, url, engine string) error {
 		n := len(listOverlays())
 		o.X, o.Y = 80+n*40, 80+n*40
 	}
-	if engine != "edge" {
+	// WebView2 draws nothing (a white box) in a see-through or click-through
+	// (layered) window, so those overlays always open in an Edge window
+	if engine != "edge" && !needsLayer(o) {
 		exe, err := os.Executable()
 		if err == nil {
 			cmd := exec.Command(exe, "-overlay-window", o.Widget, "-url", url, "-x", itoa(o.X), "-y", itoa(o.Y), "-w", itoa(o.Width), "-h", itoa(o.Height))
@@ -148,7 +150,8 @@ func openOverlay(o overlayReq, url, engine string) error {
 				go func() {
 					err := cmd.Wait()
 					procsMu.Lock()
-					if procs[o.Widget] == cmd {
+					mine := procs[o.Widget] == cmd // false when Pitlane HQ closed it on purpose
+					if mine {
 						delete(procs, o.Widget)
 					}
 					procsMu.Unlock()
@@ -156,14 +159,11 @@ func openOverlay(o overlayReq, url, engine string) error {
 					if cmd.ProcessState != nil {
 						code = cmd.ProcessState.ExitCode()
 					}
-					if err != nil && (code == 3 || time.Since(started) < 6*time.Second) {
+					if mine && err != nil && (code == 3 || time.Since(started) < 6*time.Second) {
 						log.Printf("Frameless overlay %s could not start (%v); using an Edge window", o.Widget, err)
 						openEdgeOverlay(o, url)
 					}
 				}()
-				if o.Alpha < 255 || o.Lock {
-					go styleWhenReady(o)
-				}
 				return nil
 			}
 		}
@@ -269,11 +269,22 @@ func minimizeConsole() {
 	}
 }
 
+func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock }
+
 func setOverlays(o overlayReq) int {
 	n := 0
 	for h, name := range overlayWindows() {
 		if o.Widget == "*" || name == o.Widget {
-			applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
+			procsMu.Lock()
+			_, webview := procs[name]
+			procsMu.Unlock()
+			if webview && needsLayer(o) {
+				// reopen it as an Edge window, which can be see-through and click-through
+				closeOverlays(name)
+				go func(name string) { time.Sleep(300 * time.Millisecond); openNamedOverlay(name) }(name)
+			} else {
+				applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
+			}
 			n++
 		}
 	}

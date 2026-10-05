@@ -113,3 +113,8 @@ iRacing only gives the season schedule to signed-in apps. So that the planner sh
 3. In Cloudflare → the Worker → Settings → Variables add **`SEASON_UPLOADERS`** = that id (several ids separated by commas).
 
 Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
+
+## Admins and your own domain
+
+- **Admins** see *Settings → Connections* (iRacing, Garage 61, own site, Discord) and the iRacing page in the app; everyone else does not. In GitHub → Settings → Secrets and variables → Actions → **Variables**, add `ADMINS` with your Pitlane HQ account id (My account shows it; several ids separated by commas). Without `ADMINS`, the ids in `SEASON_UPLOADERS` are the admins. Run the workflow again, then sign out and in once in the app (or wait a few hours).
+- **Your own domain**: add the domain to your Cloudflare account (buy it in Cloudflare → Domain Registration, or add one you own and change its nameservers to Cloudflare's). Give the API token **Zone · Workers Routes · Edit** and **Zone · DNS · Edit** for that zone. Then add the repository variable `CUSTOM_DOMAIN` (for example `pitlanehq.com` or `app.pitlanehq.com`) and run the workflow: the server answers on that address too. Put the new address in `web/dist/server.json`.

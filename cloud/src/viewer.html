@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -52,31 +52,65 @@ canvas{width:100%;display:block}
 .chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .frow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .stat{display:grid;gap:2px}.stat b{font:700 30px var(--f-display)}
+.langsel select{width:auto;padding:7px 8px;font-size:13px}
+nav:not([hidden])+.langsel{margin-left:0}.langsel{margin-left:auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+a{color:var(--accent)}
+.dl{max-width:900px;margin:22px auto 0}
+.dlgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.dlc{display:grid;gap:3px;text-decoration:none;color:var(--fg);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:12px}
+.dlc:hover{border-color:var(--accent)}.dlc b{font:700 18px var(--f-display);text-transform:uppercase;letter-spacing:.04em}.dlc span{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
-  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true">Sesiones</button><button type="button" data-v="bests" aria-selected="false">Récords</button><button type="button" data-v="team" aria-selected="false">Equipo</button><button type="button" id="out">Salir</button></nav>
+  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><button type="button" id="out" data-t="Salir"></button></nav>
+  <label class="langsel"><span class="sr" data-t="Idioma"></span><select id="lang" aria-label="Language / Idioma"><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="pt">Português</option></select></label>
 </header>
 
 <div id="login" hidden>
 <form class="login panel" id="accLogin">
-  <h1>Tus vueltas, en cualquier sitio</h1>
-  <p class="sub">PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ.</p>
-  <label><span class="label">Email</span><input type="email" id="aEmail" autocomplete="username" required></label>
-  <label><span class="label">Contraseña</span><input type="password" id="aPass" autocomplete="current-password" required></label>
+  <h1 data-t="Tus vueltas, en cualquier sitio"></h1>
+  <p class="sub" data-t="PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ."></p>
+  <label><span class="label" data-t="Email"></span><input type="email" id="aEmail" autocomplete="username" required></label>
+  <label><span class="label" data-t="Contraseña"></span><input type="password" id="aPass" autocomplete="current-password" required></label>
   <div class="err" id="accErr" role="alert"></div>
-  <button class="btn primary" type="submit">Entrar</button>
+  <button class="btn primary" type="submit" data-t="Entrar"></button>
+  <p class="sub" style="margin:0"><span data-t="¿No tienes cuenta?"></span> <a href="#" id="toReg" data-t="Crear una cuenta gratis"></a></p>
 </form>
-<details class="login panel" style="margin-top:12px"><summary class="sub">Entrar con una clave (dueño del servidor, equipo o solo lectura)</summary>
+<form class="login panel" id="accReg" hidden>
+  <h1 data-t="Crear cuenta"></h1>
+  <p class="sub" data-t="Gratis. Tu contraseña nunca sale de este navegador: con ella se crean aquí las claves que cifran tus datos."></p>
+  <label><span class="label" data-t="Email"></span><input type="email" id="rEmail" autocomplete="username" required></label>
+  <label><span class="label" data-t="Contraseña (mínimo 10 caracteres)"></span><input type="password" id="rPass" autocomplete="new-password" minlength="10" required></label>
+  <label><span class="label" data-t="Repite la contraseña"></span><input type="password" id="rPass2" autocomplete="new-password" minlength="10" required></label>
+  <label><span class="label" data-t="Nombre público"></span><input type="text" id="rName" maxlength="32" required></label>
+  <label class="frow" style="font-size:14px"><input type="checkbox" id="rIr" style="width:auto"> <span data-t="Es mi nombre de iRacing"></span></label>
+  <p class="sub" style="margin:0" data-t="Si olvidas la contraseña no se pueden recuperar tus datos cifrados: guárdala bien."></p>
+  <div class="err" id="regErr" role="alert"></div>
+  <button class="btn primary" type="submit" data-t="Crear cuenta"></button>
+  <p class="sub" style="margin:0"><span data-t="¿Ya tienes cuenta?"></span> <a href="#" id="toLogin" data-t="Entrar"></a></p>
+</form>
+<details class="login panel" style="margin-top:12px"><summary class="sub" data-t="Entrar con una clave (dueño del servidor, equipo o solo lectura)"></summary>
 <form id="keyLogin" style="margin-top:10px">
-  <label><span class="label">Clave</span><input type="password" id="key" autocomplete="current-password" required></label>
+  <label><span class="label" data-t="Clave"></span><input type="password" id="key" autocomplete="current-password" required></label>
   <div class="err" id="loginErr" role="alert"></div>
-  <button class="btn" type="submit">Entrar con clave</button>
+  <button class="btn" type="submit" data-t="Entrar con clave"></button>
 </form></details>
 </div>
+
+<section class="dl panel" id="downloads">
+  <h2 data-t="Descargar Pitlane HQ"></h2>
+  <p class="sub" data-t="Gratis. Usa la misma cuenta en el PC, el móvil y esta web."></p>
+  <div class="dlgrid">
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-Setup.exe"><b>Windows</b><span data-t="Instalador (recomendado)"></span></a>
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-windows.zip"><b>Windows · ZIP</b><span data-t="Portátil, sin instalar"></span></a>
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-android.apk"><b>Android</b><span data-t="APK: ábrelo en el móvil y permite instalar"></span></a>
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ.ipa"><b>iPhone / iPad</b><span data-t="IPA para instalar con Sideloadly"></span></a>
+  </div>
+</section>
 
 <main id="app" hidden>
   <section id="v-sessions"></section>
@@ -88,13 +122,108 @@ canvas{width:100%;display:block}
 <script>
 "use strict";
 const $=s=>document.querySelector(s);
+// languages: English by default, the choice is remembered in this browser. Keys are the Spanish text; values are [en,de,pt].
+const I18N={
+"Acelerador y freno":["Throttle and brake","Gas und Bremse","Acelerador e freio"],
+"Aún no hay compañeros.":["No teammates yet.","Noch keine Teamkollegen.","Ainda não há colegas."],
+"Aún no hay sesiones. En Pitlane HQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.":["No sessions yet. In Pitlane HQ: Account → My account → turn on “Keep my laps in my account” and drive a few laps in iRacing.","Noch keine Sitzungen. In Pitlane HQ: Konto → Mein Konto → „Meine Runden im Konto speichern“ einschalten und ein paar Runden in iRacing fahren.","Ainda não há sessões. No Pitlane HQ: Conta → Minha conta → ative “Guardar minhas voltas na conta” e dê algumas voltas no iRacing."],
+"Borrar sesión":["Delete session","Sitzung löschen","Apagar sessão"],
+"Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.":["Each teammate uses their own key in Pitlane HQ (Settings → Connections → Pitlane HQ Cloud) and their laps show up here, in Records and for comparing.","Jeder Teamkollege nutzt seinen eigenen Schlüssel in Pitlane HQ (Einstellungen → Verbindungen → Pitlane HQ Cloud); seine Runden erscheinen hier, in den Rekorden und zum Vergleichen.","Cada colega usa a sua própria chave no Pitlane HQ (Configurações → Conexões → Pitlane HQ Cloud) e as voltas aparecem aqui, em Recordes e para comparar."],
+"Cargando…":["Loading…","Wird geladen…","Carregando…"],
+"Circuito":["Track","Strecke","Pista"],
+"Clave de":["Key for","Schlüssel für","Chave de"],
+"Coche":["Car","Auto","Carro"],
+"Comparar vueltas":["Compare laps","Runden vergleichen","Comparar voltas"],
+"Comparar con el mejor del equipo":["Compare with the team best","Mit der Team-Bestzeit vergleichen","Comparar com a melhor da equipe"],
+"Comparar con mi mejor vuelta":["Compare with my best lap","Mit meiner besten Runde vergleichen","Comparar com minha melhor volta"],
+"Comprobando…":["Checking…","Wird geprüft…","Verificando…"],
+"Copiar":["Copy","Kopieren","Copiar"],
+"Crear su clave":["Create their key","Schlüssel erstellen","Criar a chave"],
+"Desde":["Since","Seit","Desde"],
+"Diferencia acumulada (s) · por encima de cero, la segunda vuelta pierde tiempo":["Cumulative gap (s) · above zero, the second lap is losing time","Kumulierter Abstand (s) · über null verliert die zweite Runde Zeit","Diferença acumulada (s) · acima de zero, a segunda volta perde tempo"],
+"Diferencia":["Gap","Abstand","Diferença"],
+"Dirección del sitio:":["Site address:","Adresse der Seite:","Endereço do site:"],
+"Esta vuelta no tiene telemetría guardada.":["This lap has no saved telemetry.","Für diese Runde ist keine Telemetrie gespeichert.","Esta volta não tem telemetria salva."],
+"Fecha":["Date","Datum","Data"],
+"Gasolina":["Fuel","Kraftstoff","Combustível"],
+"Marcha":["Gear","Gang","Marcha"],
+"Mejor vuelta":["Best lap","Beste Runde","Melhor volta"],
+"Mejor":["Best","Beste","Melhor"],
+"No se pudo entrar: ":["Could not sign in: ","Anmeldung fehlgeschlagen: ","Não foi possível entrar: "],
+"Nombre del compañero":["Teammate name","Name des Teamkollegen","Nome do colega"],
+"Piloto":["Driver","Fahrer","Piloto"],
+"Pulsa otra vez para borrar":["Press again to delete","Zum Löschen erneut drücken","Toque de novo para apagar"],
+"Pásasela por privado. Solo se muestra ahora; si la pierde, quítalo y créala de nuevo.":["Send it privately. It is only shown now; if it is lost, remove them and create it again.","Privat weitergeben. Er wird nur jetzt angezeigt; geht er verloren, entfernen und neu erstellen.","Envie em privado. Só aparece agora; se perder, remova e crie de novo."],
+"Quitar":["Remove","Entfernen","Remover"],
+"Sesiones":["Sessions","Sitzungen","Sessões"],
+"Sin récords todavía.":["No records yet.","Noch keine Rekorde.","Ainda sem recordes."],
+"Tiempo":["Time","Zeit","Tempo"],
+"Tipo":["Type","Typ","Tipo"],
+"Toca dos vueltas para compararlas.":["Tap two laps to compare them.","Zwei Runden antippen, um sie zu vergleichen.","Toque em duas voltas para compará-las."],
+"Todavía no hay una vuelta válida del equipo aquí.":["There is no valid lap to compare here yet.","Hier gibt es noch keine gültige Vergleichsrunde.","Ainda não há uma volta válida para comparar aqui."],
+"Tu equipo":["Your team","Dein Team","Sua equipe"],
+"Vel. máx.":["Top speed","Höchstgeschw.","Vel. máx."],
+"Velocidad":["Speed","Geschwindigkeit","Velocidade"],
+"Vuelta ideal (mejores sectores)":["Ideal lap (best sectors)","Ideale Runde (beste Sektoren)","Volta ideal (melhores setores)"],
+"Vueltas válidas":["Valid laps","Gültige Runden","Voltas válidas"],
+"Vueltas":["Laps","Runden","Voltas"],
+"clave incorrecta":["wrong key or signed out","falscher Schlüssel oder abgemeldet","chave incorreta ou sessão encerrada"],
+"equipo":["team","Team","equipe"],
+"final":["end","Ende","final"],
+"inválida":["invalid","ungültig","inválida"],
+"pista":["track","Strecke","pista"],
+"respuesta no válida":["invalid response","ungültige Antwort","resposta inválida"],
+"tú":["you","du","você"],
+"vuelta":["lap","Runde","volta"],
+"¿Seguro?":["Sure?","Sicher?","Certeza?"],
+"Última vez":["Last time","Zuletzt","Última vez"],
+"Última":["Latest","Letzte","Última"],
+"APK: ábrelo en el móvil y permite instalar":["APK: open it on the phone and allow installing","APK: auf dem Handy öffnen und Installation erlauben","APK: abra no celular e permita instalar"],
+"Clave":["Key","Schlüssel","Chave"],
+"Contraseña (mínimo 10 caracteres)":["Password (at least 10 characters)","Passwort (mindestens 10 Zeichen)","Senha (mínimo 10 caracteres)"],
+"Contraseña":["Password","Passwort","Senha"],
+"Crear cuenta":["Create account","Konto erstellen","Criar conta"],
+"Crear una cuenta gratis":["Create a free account","Kostenloses Konto erstellen","Criar uma conta grátis"],
+"Descargar Pitlane HQ":["Download Pitlane HQ","Pitlane HQ herunterladen","Baixar Pitlane HQ"],
+"Email":["Email","E-Mail","Email"],
+"Entrar con clave":["Sign in with key","Mit Schlüssel anmelden","Entrar com chave"],
+"Entrar con una clave (dueño del servidor, equipo o solo lectura)":["Sign in with a key (server owner, team or read-only)","Mit einem Schlüssel anmelden (Server-Besitzer, Team oder nur lesen)","Entrar com uma chave (dono do servidor, equipe ou só leitura)"],
+"Entrar":["Sign in","Anmelden","Entrar"],
+"Equipo":["Team","Team","Equipe"],
+"Es mi nombre de iRacing":["It is my iRacing name","Das ist mein iRacing-Name","É meu nome do iRacing"],
+"Gratis. Tu contraseña nunca sale de este navegador: con ella se crean aquí las claves que cifran tus datos.":["Free. Your password never leaves this browser: it creates the keys that encrypt your data right here.","Kostenlos. Dein Passwort verlässt nie diesen Browser: Hier entstehen daraus die Schlüssel, die deine Daten verschlüsseln.","Grátis. Sua senha nunca sai deste navegador: com ela são criadas aqui as chaves que criptografam seus dados."],
+"Gratis. Usa la misma cuenta en el PC, el móvil y esta web.":["Free. Use the same account on your PC, your phone and this website.","Kostenlos. Dasselbe Konto auf PC, Handy und dieser Website.","Grátis. Use a mesma conta no PC, no celular e neste site."],
+"IPA para instalar con Sideloadly":["IPA to install with Sideloadly","IPA zum Installieren mit Sideloadly","IPA para instalar com Sideloadly"],
+"Idioma":["Language","Sprache","Idioma"],
+"Instalador (recomendado)":["Installer (recommended)","Installer (empfohlen)","Instalador (recomendado)"],
+"Nombre público":["Public name","Öffentlicher Name","Nome público"],
+"PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ.":["PitlaneHQ.exe uploads every lap you drive in iRacing here. Sign in with your Pitlane HQ account.","PitlaneHQ.exe lädt jede Runde, die du in iRacing fährst, hierher hoch. Melde dich mit deinem Pitlane-HQ-Konto an.","O PitlaneHQ.exe envia para cá cada volta que você dá no iRacing. Entre com sua conta Pitlane HQ."],
+"Portátil, sin instalar":["Portable, no install","Portabel, ohne Installation","Portátil, sem instalar"],
+"Repite la contraseña":["Repeat the password","Passwort wiederholen","Repita a senha"],
+"Récords":["Records","Rekorde","Recordes"],
+"Salir":["Sign out","Abmelden","Sair"],
+"Si olvidas la contraseña no se pueden recuperar tus datos cifrados: guárdala bien.":["If you forget the password your encrypted data cannot be recovered: keep it safe.","Wenn du das Passwort vergisst, lassen sich deine verschlüsselten Daten nicht wiederherstellen: gut aufbewahren.","Se esquecer a senha, seus dados criptografados não podem ser recuperados: guarde-a bem."],
+"Tus vueltas, en cualquier sitio":["Your laps, anywhere","Deine Runden, überall","Suas voltas, em qualquer lugar"],
+"¿No tienes cuenta?":["No account yet?","Noch kein Konto?","Não tem conta?"],
+"¿Ya tienes cuenta?":["Already have an account?","Schon ein Konto?","Já tem conta?"],
+"Las contraseñas no coinciden.":["The passwords do not match.","Die Passwörter stimmen nicht überein.","As senhas não coincidem."],
+"La contraseña necesita al menos 10 caracteres.":["The password needs at least 10 characters.","Das Passwort braucht mindestens 10 Zeichen.","A senha precisa de pelo menos 10 caracteres."],
+"Creando la cuenta…":["Creating the account…","Konto wird erstellt…","Criando a conta…"],
+"No se pudo crear la cuenta: ":["Could not create the account: ","Konto konnte nicht erstellt werden: ","Não foi possível criar a conta: "],
+"Última versión":["Latest version","Neueste Version","Última versão"],
+};
+let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}
+if(!["en","es","de","pt"].includes(LANG))LANG="en";
+const T=k=>{if(LANG==="es")return k;const v=I18N[k];return v?v[{en:0,de:1,pt:2}[LANG]]:k};
+const LOC=()=>({en:"en-GB",es:"es-ES",de:"de-DE",pt:"pt-BR"}[LANG]);
+function applyLang(){document.documentElement.lang=LANG;$("#lang").value=LANG;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t))}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmtT=t=>{if(!(t>0))return"–";const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(3)};
-const day=t=>new Date(t).toLocaleString("es-ES",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const day=t=>new Date(t).toLocaleString(LOC(),{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 let KEY="";try{KEY=localStorage.getItem("plq.key")||""}catch(e){}
-async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:"respuesta no válida"}));if(r.status===401){logout();throw new Error("clave incorrecta")}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
-function logout(){KEY="";try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
+async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:T("respuesta no válida")}));if(r.status===401){logout();throw new Error(T("clave incorrecta"))}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
+function logout(){KEY="";$("#downloads").hidden=false;$("#accLogin").hidden=false;$("#accReg").hidden=true;try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
 let ROLE="viewer",ME="";
 // sign in with the Pitlane HQ account: the password becomes keys here (same as the app), only the login key is sent
 async function accountAuth(email,password){const te=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -103,53 +232,80 @@ async function accountAuth(email,password){const te=new TextEncoder(),hex=b=>[..
   const master=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000},k,256);
   const hk=await crypto.subtle.importKey("raw",master,"HKDF",false,["deriveBits"]);
   return hex(await crypto.subtle.deriveBits({name:"HKDF",hash:"SHA-256",salt:new Uint8Array(0),info:te.encode("pitlanehq auth")},hk,256))}
-$("#accLogin").onsubmit=async e=>{e.preventDefault();const er=$("#accErr");er.textContent="Comprobando…";
+$("#accLogin").onsubmit=async e=>{e.preventDefault();const er=$("#accErr");er.textContent=T("Comprobando…");
   try{const auth=await accountAuth($("#aEmail").value,$("#aPass").value);const r=await fetch("/account/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:$("#aEmail").value.trim().toLowerCase(),auth,device:"Web"})});const j=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(j.error||("HTTP "+r.status));KEY=j.token;const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(x){}er.textContent="";start()}
-  catch(err){er.textContent="No se pudo entrar: "+err.message}};
+  catch(err){er.textContent=T("No se pudo entrar: ")+err.message}};
 $("#keyLogin").onsubmit=async e=>{e.preventDefault();KEY=$("#key").value.trim();$("#loginErr").textContent="";
-  try{const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent="No se pudo entrar: "+err.message}};
+  try{const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(e){}start()}catch(err){$("#loginErr").textContent=T("No se pudo entrar: ")+err.message}};
 $("#out").onclick=logout;
+// create an account here: same keys as the app (PBKDF2 → HKDF "auth" to sign in, "wrap" to lock a new random data key)
+async function accountKeys(email,password){const te=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+  const salt=await crypto.subtle.digest("SHA-256",te.encode("pitlanehq-account-v1:"+email.trim().toLowerCase()));
+  const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);
+  const master=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:600000},k,256);
+  const hk=await crypto.subtle.importKey("raw",master,"HKDF",false,["deriveBits"]);
+  const d=info=>crypto.subtle.deriveBits({name:"HKDF",hash:"SHA-256",salt:new Uint8Array(0),info:te.encode(info)},hk,256);
+  return{auth:hex(await d("pitlanehq auth")),wrap:await d("pitlanehq wrap")}}
+async function sealKey(wrap,plain){const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await crypto.subtle.importKey("raw",wrap,"AES-GCM",false,["encrypt"]);
+  const c=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:new TextEncoder().encode("pitlanehq-v1")},key,plain));
+  const o=new Uint8Array(12+c.length);o.set(iv);o.set(c,12);let b="";o.forEach(x=>b+=String.fromCharCode(x));return btoa(b)}
+function regMode(on){$("#accLogin").hidden=on;$("#accReg").hidden=!on;$(on?"#rEmail":"#aEmail").focus()}
+$("#toReg").onclick=e=>{e.preventDefault();regMode(true)};
+$("#toLogin").onclick=e=>{e.preventDefault();regMode(false)};
+$("#accReg").onsubmit=async e=>{e.preventDefault();const er=$("#regErr"),pw=$("#rPass").value;
+  if(pw.length<10){er.textContent=T("La contraseña necesita al menos 10 caracteres.");return}
+  if(pw!==$("#rPass2").value){er.textContent=T("Las contraseñas no coinciden.");return}
+  er.textContent=T("Creando la cuenta…");
+  try{const email=$("#rEmail").value.trim().toLowerCase(),k=await accountKeys(email,pw),wrappedKey=await sealKey(k.wrap,crypto.getRandomValues(new Uint8Array(32)));
+    const r=await fetch("/account/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,auth:k.auth,wrappedKey,display:$("#rName").value.trim(),nameKind:$("#rIr").checked?"iracing":"nick",device:"Web"})});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
+    KEY=j.token;const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(x){}er.textContent="";start()}
+  catch(err){er.textContent=T("No se pudo crear la cuenta: ")+err.message}};
+$("#lang").onchange=()=>{LANG=$("#lang").value;try{localStorage.setItem("plq.lang",LANG)}catch(e){}applyLang();
+  if(!$("#app").hidden){const v=document.querySelector('nav [aria-selected="true"]');if(!$("#v-session").hidden&&CUR)openSession(CUR.session.id);else show(v?v.dataset.v:"sessions")}};
+applyLang();
 document.querySelectorAll("nav [data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 function show(v){document.querySelectorAll("nav [data-v]").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["sessions","bests","team","session"].forEach(x=>$("#v-"+x).hidden=x!==v);if(v==="sessions")sessions();if(v==="bests")bests();if(v==="team")team()}
-async function start(){const tb=document.querySelector(`#nav [data-v="team"]`);if(tb)tb.hidden=ROLE==="account";$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
+async function start(){$("#downloads").hidden=true;const tb=document.querySelector(`#nav [data-v="team"]`);if(tb)tb.hidden=ROLE==="account";$("#login").hidden=true;$("#app").hidden=false;$("#nav").hidden=false;const h=(location.hash||"").slice(1);if(/^[A-Za-z0-9_.:-]{6,80}$/.test(h))openSession(h);else show("sessions")}
 
-async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="empty">Cargando…</div>`;
+async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
   try{const list=await get("/api/sessions?limit=120");
     const laps=list.reduce((s,x)=>s+(x.laps||0),0);
-    box.innerHTML=`<div class="grid" style="margin-bottom:10px"><div class="panel s4 stat"><span class="label">Sesiones</span><b class="mono">${list.length}</b></div><div class="panel s4 stat"><span class="label">Vueltas</span><b class="mono">${laps}</b></div><div class="panel s4 stat"><span class="label">Última</span><b style="font-size:20px">${list[0]?esc(day(list[0].started)):"–"}</b></div></div>
-    <div class="panel"><h2>Sesiones</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>Fecha</th><th>Circuito</th><th>Coche</th><th>Tipo</th><th class="r">Vueltas</th><th class="r">Mejor</th></tr></thead><tbody>${list.map(s=>`<tr class="click" data-id="${esc(s.id)}"><td>${esc(day(s.started))}</td><td>${esc(s.track)}${s.track_config?` <span class="muted">${esc(s.track_config)}</span>`:""}</td><td>${esc(s.car)}</td><td><span class="pill">${esc(s.kind||"–")}</span></td><td class="r mono">${s.laps||0}</td><td class="r mono">${fmtT(s.best)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">Aún no hay sesiones. En Pitlane HQ: Cuenta → Pitlane HQ Cloud → activa “Subir mis vueltas” y da unas vueltas en iRacing.</div>`}</div>`;
+    box.innerHTML=`<div class="grid" style="margin-bottom:10px"><div class="panel s4 stat"><span class="label">${T("Sesiones")}</span><b class="mono">${list.length}</b></div><div class="panel s4 stat"><span class="label">${T("Vueltas")}</span><b class="mono">${laps}</b></div><div class="panel s4 stat"><span class="label">${T("Última")}</span><b style="font-size:20px">${list[0]?esc(day(list[0].started)):"–"}</b></div></div>
+    <div class="panel"><h2>${T("Sesiones")}</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>${T("Fecha")}</th><th>${T("Circuito")}</th><th>${T("Coche")}</th><th>${T("Tipo")}</th><th class="r">${T("Vueltas")}</th><th class="r">${T("Mejor")}</th></tr></thead><tbody>${list.map(s=>`<tr class="click" data-id="${esc(s.id)}"><td>${esc(day(s.started))}</td><td>${esc(s.track)}${s.track_config?` <span class="muted">${esc(s.track_config)}</span>`:""}</td><td>${esc(s.car)}</td><td><span class="pill">${esc(s.kind||"–")}</span></td><td class="r mono">${s.laps||0}</td><td class="r mono">${fmtT(s.best)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">${T("Aún no hay sesiones. En Pitlane HQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.")}</div>`}</div>`;
     box.querySelectorAll("[data-id]").forEach(r=>r.onclick=()=>openSession(r.dataset.id))}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
-async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty">Cargando…</div>`;
+async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
   try{const list=await get("/api/bests");const combos=new Map();list.forEach(b=>{const k=b.track+"|"+(b.track_config||"")+"|"+b.car;if(!combos.has(k))combos.set(k,{track:b.track,cfg:b.track_config,car:b.car,last:0,rows:[]});const c=combos.get(k);c.rows.push(b);c.last=Math.max(c.last,b.last)});
     const cs=[...combos.values()].sort((a,b)=>b.last-a.last);
-    box.innerHTML=cs.length?cs.map(c=>{c.rows.sort((a,b)=>a.best-b.best);const top=c.rows[0].best;return `<div class="panel" style="margin-bottom:10px"><h2>${esc(c.track)}${c.cfg?` <span class="muted">${esc(c.cfg)}</span>`:""}</h2><div class="sub" style="margin-bottom:6px">${esc(c.car)}</div><div class="tscroll"><table><thead><tr><th>#</th><th>Piloto</th><th class="r">Mejor vuelta</th><th class="r">Diferencia</th><th class="r">Vueltas</th><th>Última vez</th></tr></thead><tbody>${c.rows.map((b,i)=>`<tr><td class="mono">${i+1}</td><td>${esc(b.driver||b.who)}${b.who===ME?' <span class="pill">tú</span>':""}</td><td class="r mono ${i===0?"pb":""}">${fmtT(b.best)}</td><td class="r mono">${i?"+"+(b.best-top).toFixed(3):"–"}</td><td class="r mono">${b.laps}</td><td>${esc(day(b.last))}</td></tr>`).join("")}</tbody></table></div></div>`}).join(""):`<div class="panel empty">Sin récords todavía.</div>`}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+    box.innerHTML=cs.length?cs.map(c=>{c.rows.sort((a,b)=>a.best-b.best);const top=c.rows[0].best;return `<div class="panel" style="margin-bottom:10px"><h2>${esc(c.track)}${c.cfg?` <span class="muted">${esc(c.cfg)}</span>`:""}</h2><div class="sub" style="margin-bottom:6px">${esc(c.car)}</div><div class="tscroll"><table><thead><tr><th>#</th><th>${T("Piloto")}</th><th class="r">${T("Mejor vuelta")}</th><th class="r">${T("Diferencia")}</th><th class="r">${T("Vueltas")}</th><th>${T("Última vez")}</th></tr></thead><tbody>${c.rows.map((b,i)=>`<tr><td class="mono">${i+1}</td><td>${esc(b.driver||b.who)}${b.who===ME?' <span class="pill">'+T("tú")+'</span>':""}</td><td class="r mono ${i===0?"pb":""}">${fmtT(b.best)}</td><td class="r mono">${i?"+"+(b.best-top).toFixed(3):"–"}</td><td class="r mono">${b.laps}</td><td>${esc(day(b.last))}</td></tr>`).join("")}</tbody></table></div></div>`}).join(""):`<div class="panel empty">${T("Sin récords todavía.")}</div>`}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
-async function team(){const box=$("#v-team");box.innerHTML=`<div class="empty">Cargando…</div>`;
-  try{const t=await get("/api/team");box.innerHTML=`<div class="panel"><h2>Tu equipo</h2><p class="sub">Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.</p>
-    ${t.members.length?`<div class="tscroll"><table><thead><tr><th>Piloto</th><th>Desde</th><th></th></tr></thead><tbody>${t.members.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(new Date(m.created).toLocaleDateString("es-ES"))}</td><td>${ROLE==="owner"?`<button class="btn" type="button" data-rm="${esc(m.name)}">Quitar</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="sub">Aún no hay compañeros.</p>`}
-    ${ROLE==="owner"?`<form class="frow" id="addM" style="margin-top:12px"><input type="text" id="mName" placeholder="Nombre del compañero" maxlength="40" required style="flex:1;min-width:180px"><button class="btn primary" type="submit">Crear su clave</button></form><div id="newKey"></div>`:""}</div>`;
-    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent="¿Seguro?";return}await get("/api/team/"+encodeURIComponent(b.dataset.rm),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});team()});
+async function team(){const box=$("#v-team");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
+  try{const t=await get("/api/team");box.innerHTML=`<div class="panel"><h2>${T("Tu equipo")}</h2><p class="sub">${T("Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.")}</p>
+    ${t.members.length?`<div class="tscroll"><table><thead><tr><th>${T("Piloto")}</th><th>${T("Desde")}</th><th></th></tr></thead><tbody>${t.members.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(new Date(m.created).toLocaleDateString(LOC()))}</td><td>${ROLE==="owner"?`<button class="btn" type="button" data-rm="${esc(m.name)}">${T("Quitar")}</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="sub">${T("Aún no hay compañeros.")}</p>`}
+    ${ROLE==="owner"?`<form class="frow" id="addM" style="margin-top:12px"><input type="text" id="mName" placeholder="${T("Nombre del compañero")}" maxlength="40" required style="flex:1;min-width:180px"><button class="btn primary" type="submit">${T("Crear su clave")}</button></form><div id="newKey"></div>`:""}</div>`;
+    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent=T("¿Seguro?");return}await get("/api/team/"+encodeURIComponent(b.dataset.rm),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});team()});
     const f=$("#addM");if(f)f.onsubmit=async e=>{e.preventDefault();try{const r=await get("/api/team",{method:"POST",headers:{authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify({name:$("#mName").value.trim()})});
-      $("#newKey").innerHTML=`<div class="panel" style="margin-top:10px;border-color:var(--accent)"><b>Clave de ${esc(r.name)}</b><p class="sub">Pásasela por privado. Solo se muestra ahora; si la pierde, quítalo y créala de nuevo.</p><div class="frow"><input type="text" readonly value="${esc(r.key)}" id="nk" class="mono"><button class="btn" type="button" id="cp">Copiar</button></div><p class="sub">Dirección del sitio: ${esc(location.origin)}</p></div>`;
+      $("#newKey").innerHTML=`<div class="panel" style="margin-top:10px;border-color:var(--accent)"><b>${T("Clave de")} ${esc(r.name)}</b><p class="sub">${T("Pásasela por privado. Solo se muestra ahora; si la pierde, quítalo y créala de nuevo.")}</p><div class="frow"><input type="text" readonly value="${esc(r.key)}" id="nk" class="mono"><button class="btn" type="button" id="cp">${T("Copiar")}</button></div><p class="sub">${T("Dirección del sitio:")} ${esc(location.origin)}</p></div>`;
       $("#cp").onclick=()=>{const i=$("#nk");i.select();navigator.clipboard&&navigator.clipboard.writeText(i.value).catch(()=>{})}}catch(err){alert(err.message)}}}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
 let CUR=null,SEL=[],TR={},CH="speed";
-async function openSession(id){show("session");history.replaceState(null,"","#"+id);const box=$("#v-session");box.innerHTML=`<div class="empty">Cargando…</div>`;
+async function openSession(id){show("session");history.replaceState(null,"","#"+id);const box=$("#v-session");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
   try{CUR=await get("/api/sessions/"+encodeURIComponent(id));SEL=[];TR={};const s=CUR.session,laps=CUR.laps;const valid=laps.filter(l=>l.valid);const best=valid.reduce((a,l)=>!a||l.time<a.time?l:a,null);
     if(best)SEL=[best.id];const last=laps[laps.length-1];if(last&&last.id!==(best&&best.id))SEL.push(last.id);
     const nS=Math.max(0,...laps.map(l=>(l.sectors||[]).length)),sb=[...Array(nS)].map((_,i)=>Math.min(...laps.filter(l=>l.valid&&l.sectors&&l.sectors[i]>0).map(l=>l.sectors[i])));
     const ideal=nS&&sb.every(isFinite)?sb.reduce((a,b)=>a+b,0):null;
-    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px"><div><button class="btn" type="button" id="back">← Sesiones</button><h1 style="margin-top:12px">${esc(s.track)}</h1><div class="sub">${esc(s.car)} · ${esc(s.kind||"")} · ${esc(day(s.started))}${s.track_temp!=null?` · pista ${(+s.track_temp).toFixed(0)} °C`:""}</div></div>
-      <div class="frow"><button class="btn" type="button" id="tb">Comparar con el mejor del equipo</button>${ROLE==="owner"||s.uploader===ME?`<button class="btn" type="button" id="del">Borrar sesión</button>`:""}</div></div>
-    <div class="grid"><div class="panel s4 stat"><span class="label">Mejor vuelta</span><b class="mono pb">${fmtT(best&&best.time)}</b></div><div class="panel s4 stat"><span class="label">Vuelta ideal (mejores sectores)</span><b class="mono">${fmtT(ideal)}</b></div><div class="panel s4 stat"><span class="label">Vueltas válidas</span><b class="mono">${valid.length} / ${laps.length}</b></div>
-      <div class="panel s12"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">Comparar vueltas</h2><div class="frow">${[["speed","Velocidad"],["pedals","Acelerador y freno"],["gear","Marcha"]].map(c=>`<button type="button" class="chip" data-ch="${c[0]}" aria-pressed="${CH===c[0]}">${c[1]}</button>`).join("")}</div></div>
-        <div class="legend" id="lg"></div><canvas id="cv" height="240"></canvas><div class="label" style="margin:10px 0 4px">Diferencia acumulada (s) · por encima de cero, la segunda vuelta pierde tiempo</div><canvas id="dv" height="110"></canvas></div>
-      <div class="panel s12"><h2>Vueltas</h2><p class="sub" style="margin:0 0 8px">Toca dos vueltas para compararlas.</p><div class="tscroll"><table><thead><tr><th>#</th><th class="r">Tiempo</th>${[...Array(nS)].map((_,i)=>`<th class="r">S${i+1}</th>`).join("")}<th class="r">Gasolina</th><th class="r">Vel. máx.</th><th></th></tr></thead><tbody>${laps.map(l=>`<tr class="click" data-lap="${esc(l.id)}"><td class="mono">${l.n}</td><td class="r mono ${best&&l.id===best.id?"pb":""}">${fmtT(l.time)}</td>${[...Array(nS)].map((_,i)=>{const v=(l.sectors||[])[i];return `<td class="r mono ${v&&v===sb[i]?"pb":""}">${v?v.toFixed(3):"–"}</td>`}).join("")}<td class="r mono">${l.fuel!=null?l.fuel.toFixed(2)+" L":"–"}</td><td class="r mono">${l.vmax?Math.round(l.vmax*3.6)+" km/h":"–"}</td><td>${l.valid?"":`<span class="pill bad">inválida</span>`} <span class="pill" data-selp="${esc(l.id)}"></span></td></tr>`).join("")}</tbody></table></div></div></div>`;
-    $("#tb").onclick=async()=>{try{const r=await get(`/api/teambest?track=${encodeURIComponent(s.track)}&config=${encodeURIComponent(s.track_config||"")}&car=${encodeURIComponent(s.car)}`);if(!r.id){alert("Todavía no hay una vuelta válida del equipo aquí.");return}TR[r.id]=await get("/api/laps/"+encodeURIComponent(r.id));SEL=[SEL[0]||r.id,r.id].filter((x,i,a)=>a.indexOf(x)===i);loadSel()}catch(e){alert(e.message)}};
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px"><div><button class="btn" type="button" id="back">← ${T("Sesiones")}</button><h1 style="margin-top:12px">${esc(s.track)}</h1><div class="sub">${esc(s.car)} · ${esc(s.kind||"")} · ${esc(day(s.started))}${s.track_temp!=null?` · ${T("pista")} ${(+s.track_temp).toFixed(0)} °C`:""}</div></div>
+      <div class="frow"><button class="btn" type="button" id="tb">${T(ROLE==="account"?"Comparar con mi mejor vuelta":"Comparar con el mejor del equipo")}</button>${ROLE==="owner"||s.uploader===ME?`<button class="btn" type="button" id="del">${T("Borrar sesión")}</button>`:""}</div></div>
+    <div class="grid"><div class="panel s4 stat"><span class="label">${T("Mejor vuelta")}</span><b class="mono pb">${fmtT(best&&best.time)}</b></div><div class="panel s4 stat"><span class="label">${T("Vuelta ideal (mejores sectores)")}</span><b class="mono">${fmtT(ideal)}</b></div><div class="panel s4 stat"><span class="label">${T("Vueltas válidas")}</span><b class="mono">${valid.length} / ${laps.length}</b></div>
+      <div class="panel s12"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">${T("Comparar vueltas")}</h2><div class="frow">${[["speed",T("Velocidad")],["pedals",T("Acelerador y freno")],["gear",T("Marcha")]].map(c=>`<button type="button" class="chip" data-ch="${c[0]}" aria-pressed="${CH===c[0]}">${c[1]}</button>`).join("")}</div></div>
+        <div class="legend" id="lg"></div><canvas id="cv" height="240"></canvas><div class="label" style="margin:10px 0 4px">${T("Diferencia acumulada (s) · por encima de cero, la segunda vuelta pierde tiempo")}</div><canvas id="dv" height="110"></canvas></div>
+      <div class="panel s12"><h2>${T("Vueltas")}</h2><p class="sub" style="margin:0 0 8px">${T("Toca dos vueltas para compararlas.")}</p><div class="tscroll"><table><thead><tr><th>#</th><th class="r">${T("Tiempo")}</th>${[...Array(nS)].map((_,i)=>`<th class="r">S${i+1}</th>`).join("")}<th class="r">${T("Gasolina")}</th><th class="r">${T("Vel. máx.")}</th><th></th></tr></thead><tbody>${laps.map(l=>`<tr class="click" data-lap="${esc(l.id)}"><td class="mono">${l.n}</td><td class="r mono ${best&&l.id===best.id?"pb":""}">${fmtT(l.time)}</td>${[...Array(nS)].map((_,i)=>{const v=(l.sectors||[])[i];return `<td class="r mono ${v&&v===sb[i]?"pb":""}">${v?v.toFixed(3):"–"}</td>`}).join("")}<td class="r mono">${l.fuel!=null?l.fuel.toFixed(2)+" L":"–"}</td><td class="r mono">${l.vmax?Math.round(l.vmax*3.6)+" km/h":"–"}</td><td>${l.valid?"":`<span class="pill bad">${T("inválida")}</span>`} <span class="pill" data-selp="${esc(l.id)}"></span></td></tr>`).join("")}</tbody></table></div></div></div>`;
+    $("#tb").onclick=async()=>{try{const r=await get(`/api/teambest?track=${encodeURIComponent(s.track)}&config=${encodeURIComponent(s.track_config||"")}&car=${encodeURIComponent(s.car)}`);if(!r.id){alert(T("Todavía no hay una vuelta válida del equipo aquí."));return}TR[r.id]=await get("/api/laps/"+encodeURIComponent(r.id));SEL=[SEL[0]||r.id,r.id].filter((x,i,a)=>a.indexOf(x)===i);loadSel()}catch(e){alert(e.message)}};
     $("#back").onclick=()=>{history.replaceState(null,"","#");show("sessions")};
-    const del=$("#del");if(del)del.onclick=async()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent="Pulsa otra vez para borrar";return}await get("/api/sessions/"+encodeURIComponent(id),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});history.replaceState(null,"","#");show("sessions")};
+    const del=$("#del");if(del)del.onclick=async()=>{if(del.dataset.sure!=="1"){del.dataset.sure="1";del.textContent=T("Pulsa otra vez para borrar");return}await get("/api/sessions/"+encodeURIComponent(id),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});history.replaceState(null,"","#");show("sessions")};
     box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{CH=b.dataset.ch;box.querySelectorAll("[data-ch]").forEach(x=>x.setAttribute("aria-pressed",x===b));draw()});
     box.querySelectorAll("[data-lap]").forEach(r=>r.onclick=()=>{const k=r.dataset.lap;SEL=SEL.includes(k)?SEL.filter(x=>x!==k):[...SEL,k].slice(-2);loadSel()});
     loadSel()}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
@@ -159,9 +315,9 @@ async function loadSel(){document.querySelectorAll("[data-selp]").forEach(p=>{co
 function fit(c){const d=devicePixelRatio||1,w=c.clientWidth,h=+c.getAttribute("height");c.width=w*d;c.height=h*d;c.style.height=h+"px";const x=c.getContext("2d");x.setTransform(d,0,0,d,0,0);return[x,w,h]}
 function series(l){const t=l&&l.trace;if(!t||!t.d)return null;return{bin:t.bin||5,d:t.d}}
 function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv),[y,w2,h2]=fit(dv);const A=series(TR[SEL[0]]),B=series(TR[SEL[1]]);
-  const cols=[css("--accent"),css("--blue")];$("#lg").innerHTML=SEL.map((id,i)=>{const l=TR[id];return l?`<span><i style="background:${cols[i]}"></i>${i?"B":"A"} · vuelta ${l.n} · ${fmtT(l.time)}${l.session_id!==(CUR&&CUR.session.id)?" · "+esc((l.driver||l.uploader||"equipo")):""}</span>`:""}).join("");
+  const cols=[css("--accent"),css("--blue")];$("#lg").innerHTML=SEL.map((id,i)=>{const l=TR[id];return l?`<span><i style="background:${cols[i]}"></i>${i?"B":"A"} · ${T("vuelta")} ${l.n} · ${fmtT(l.time)}${l.session_id!==(CUR&&CUR.session.id)?" · "+esc((l.driver||l.uploader||T("equipo"))):""}</span>`:""}).join("");
   [x,y].forEach((c,i)=>{c.clearRect(0,0,i?w2:w,i?h2:h)});const sets=[A,B].filter(Boolean);
-  if(!sets.length){x.fillStyle=css("--muted");x.font="14px "+css("--f-body");x.fillText("Esta vuelta no tiene telemetría guardada.",12,30);return}
+  if(!sets.length){x.fillStyle=css("--muted");x.font="14px "+css("--f-body");x.fillText(T("Esta vuelta no tiene telemetría guardada."),12,30);return}
   const n=Math.max(...sets.map(s=>s.d.length));const val=r=>CH==="speed"?r[0]*3.6:CH==="gear"?r[3]:r[1]*100;const vmax=CH==="speed"?Math.max(...sets.flatMap(s=>s.d.map(r=>r[0]*3.6)))*1.05:CH==="gear"?8:100;
   x.strokeStyle=css("--line");x.lineWidth=1;for(let k=1;k<4;k++){x.beginPath();x.moveTo(0,h*k/4);x.lineTo(w,h*k/4);x.stroke()}
   x.fillStyle=css("--muted");x.font="11px "+css("--f-data");x.fillText(CH==="speed"?Math.round(vmax)+" km/h":CH==="gear"?"8":"100%",4,12);
@@ -169,7 +325,7 @@ function draw(){const cv=$("#cv"),dv=$("#dv");if(!cv)return;const[x,w,h]=fit(cv)
     if(CH==="pedals"){plot(r=>r[1]*100,i?css("--blue"):css("--good"));plot(r=>r[2]*100,i?css("--pb"):css("--bad"),i?[4,3]:[])}else plot(val,cols[i])});
   if(A&&B){const cum=s=>{if(s.d.length&&s.d[0].length>5)return s.d.map(r=>r[5]);let t=0;return s.d.map(r=>t+=s.bin/Math.max(r[0],5))}; /* newer laps carry the exact time at each 5 m point */const ca=cum(A),cb=cum(B),m=Math.min(ca.length,cb.length);const dd=[...Array(m)].map((_,k)=>cb[k]-ca[k]);const lim=Math.max(.2,...dd.map(Math.abs));
     y.strokeStyle=css("--line");y.beginPath();y.moveTo(0,h2/2);y.lineTo(w2,h2/2);y.stroke();y.strokeStyle=css("--accent");y.lineWidth=1.6;y.beginPath();dd.forEach((v,k)=>{const X=k/(n-1)*w2,Y=h2/2-v/lim*(h2/2-4);k?y.lineTo(X,Y):y.moveTo(X,Y)});y.stroke();
-    y.fillStyle=css("--muted");y.font="11px "+css("--f-data");y.fillText("+"+lim.toFixed(2)+" s",4,12);y.fillText("final "+(dd[m-1]>=0?"+":"")+dd[m-1].toFixed(3)+" s",w2-110,h2-6)}}
+    y.fillStyle=css("--muted");y.font="11px "+css("--f-data");y.fillText("+"+lim.toFixed(2)+" s",4,12);y.fillText(T("final")+" "+(dd[m-1]>=0?"+":"")+dd[m-1].toFixed(3)+" s",w2-110,h2-6)}}
 addEventListener("resize",draw);
 if(KEY)get("/api/me").then(me=>{ROLE=me.role;ME=me.name||"";start()}).catch(()=>logout());else logout();
 </script>

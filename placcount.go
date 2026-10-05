@@ -53,6 +53,7 @@ type plAccount struct {
 	SyncErr  string    `json:"syncErr,omitempty"`
 	Conflict bool      `json:"conflict,omitempty"`
 	NoLaps   bool      `json:"noLaps,omitempty"` // do not keep my laps on the server
+	Admin    bool      `json:"admin,omitempty"`  // an admin of the Pitlane HQ server (sees Connections)
 }
 
 var (
@@ -363,6 +364,7 @@ func syncWatcher() {
 
 func plSignedIn(r struct {
 	ID, Token, Display, NameKind, WrappedKey string
+	Admin                                    bool
 }, email string, wrap []byte, newKey []byte) error {
 	key := newKey
 	if key == nil {
@@ -373,7 +375,7 @@ func plSignedIn(r struct {
 		key = k
 	}
 	plMu.Lock()
-	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true}
+	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin}
 	savePLLocked()
 	plMu.Unlock()
 	return nil
@@ -385,7 +387,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -394,6 +396,12 @@ func plStatus() map[string]any {
 
 func registerPLRoutes(mux *http.ServeMux) {
 	go syncWatcher()
+	go func() { // keep the admin flag (and public name) up to date
+		for {
+			plRefreshMe()
+			time.Sleep(6 * time.Hour)
+		}
+	}()
 	go companionRefresher()
 	mux.HandleFunc("/api/sync", func(w http.ResponseWriter, r *http.Request) {
 		loadPL()
@@ -436,7 +444,10 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				var res struct{ ID, Token, Display, NameKind, WrappedKey string }
+				var res struct {
+					ID, Token, Display, NameKind, WrappedKey string
+					Admin                                    bool
+				}
 				json.Unmarshal(b, &res)
 				if err = plSignedIn(res, in.Email, wrap, key); err == nil {
 					go func() {
@@ -456,7 +467,10 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				var res struct{ ID, Token, Display, NameKind, WrappedKey string }
+				var res struct {
+					ID, Token, Display, NameKind, WrappedKey string
+					Admin                                    bool
+				}
 				json.Unmarshal(b, &res)
 				if err = plSignedIn(res, in.Email, wrap, nil); err != nil {
 					break
@@ -581,4 +595,32 @@ func registerPLRoutes(mux *http.ServeMux) {
 		}
 		writeJSON(w, plStatus())
 	})
+}
+
+// plRefreshMe asks the server whether this account is an admin.
+func plRefreshMe() {
+	loadPL()
+	plMu.Lock()
+	tok := plAcc.Token
+	plMu.Unlock()
+	if tok == "" {
+		return
+	}
+	b, err := commRequest("GET", "/account/me", nil, tok)
+	if err != nil {
+		return
+	}
+	var me struct {
+		ID    string `json:"id"`
+		Admin bool   `json:"admin"`
+	}
+	if json.Unmarshal(b, &me) != nil || me.ID == "" {
+		return
+	}
+	plMu.Lock()
+	if plAcc.ID == me.ID && plAcc.Admin != me.Admin {
+		plAcc.Admin = me.Admin
+		savePLLocked()
+	}
+	plMu.Unlock()
 }

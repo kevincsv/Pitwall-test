@@ -19,6 +19,8 @@ migrations_dir = "migrations"
 COMMUNITY = "1"
 # your Pitlane HQ account id(s), separated by commas, to publish the season schedule
 SEASON_UPLOADERS = ""
+# admin account id(s): they see Connections (iRacing, Garage 61, own site, Discord) in the app; empty = the SEASON_UPLOADERS
+ADMINS = ""
 
 [[rules]]
 type = "Text"
