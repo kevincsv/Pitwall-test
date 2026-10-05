@@ -68,6 +68,10 @@ Name: "{userdesktop}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"; Tasks: deskto
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PitlaneHQ"; ValueData: """{app}\PitlaneHQ.exe"" -minimized"; Tasks: startup; Flags: uninsdeletevalue
 ; the start-with-Windows switch inside the app uses this name
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "PitWall"; Flags: dontcreatekey uninsdeletevalue
+; pitlanehq-pc:// links (the web version's "Start the telemetry agent" button) open the app
+Root: HKCU; Subkey: "Software\Classes\pitlanehq-pc"; ValueType: string; ValueName: ""; ValueData: "URL:Pitlane HQ"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\pitlanehq-pc"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\pitlanehq-pc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\PitlaneHQ.exe"" ""%1"""
 
 [Run]
 Filename: "{app}\PitlaneHQ.exe"; Description: "{cm:LaunchProgram,Pitlane HQ}"; Flags: nowait postinstall skipifsilent

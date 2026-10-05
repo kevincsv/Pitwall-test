@@ -26,7 +26,7 @@ func registerAssetRoutes(mux *http.ServeMux) {
 			}
 			u = appPairLink()
 		}
-		if u == "" || len(u) > 400 || !(strings.HasPrefix(u, "http") || strings.HasPrefix(u, "pitlanehq:")) {
+		if u == "" || len(u) > 600 || !(strings.HasPrefix(u, "http") || strings.HasPrefix(u, "pitlanehq:")) {
 			http.Error(w, "bad url", 400)
 			return
 		}

@@ -441,6 +441,7 @@ func main() {
 
 	initProfiles()
 	loadProfileState()
+	go registerURLProtocol()
 	go reader(*demo)
 	go autoOverlays()
 	go positionKeeper()

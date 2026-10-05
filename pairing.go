@@ -285,5 +285,13 @@ func appPairLink() string {
 	pairMu.Lock()
 	pin := currentPINLocked()
 	pairMu.Unlock()
-	return "pitlanehq://open?url=" + url.QueryEscape(strings.TrimSuffix(urls[0], "/")+"/pair?pin="+pin+"&next=%2F")
+	target := strings.TrimSuffix(urls[0], "/") + "/pair?pin=" + pin + "&next=%2F"
+	// phone cameras (Android's above all) only open https links from a QR code, so the
+	// code points to a small page on the Pitlane HQ server that opens the app, or this
+	// PC in the browser without it. The PC's address and the PIN go after "#": the
+	// browser never sends that part to the server.
+	if srv := bundledServer(); strings.HasPrefix(srv, "https://") {
+		return srv + "/go#u=" + url.QueryEscape(target)
+	}
+	return "pitlanehq://open?url=" + url.QueryEscape(target)
 }

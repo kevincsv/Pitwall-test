@@ -1,6 +1,7 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { news } from "./news.js";
+import { goPage } from "./go.js";
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
@@ -180,6 +181,7 @@ export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === "/news") return news(req, env, ctx);
+    if (url.pathname === "/go") return goPage();
     if (url.pathname.startsWith("/community/")) {
       try {
         return await community(req, env, url);

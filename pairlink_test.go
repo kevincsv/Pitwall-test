@@ -11,11 +11,19 @@ func TestAppPairLink(t *testing.T) {
 	if l == "" {
 		t.Skip("no network address here")
 	}
-	u, err := url.Parse(l)
-	if err != nil || u.Scheme != "pitlanehq" || u.Host != "open" {
-		t.Fatalf("bad link %q", l)
+	var target string
+	if srv := bundledServer(); strings.HasPrefix(srv, "https://") {
+		if !strings.HasPrefix(l, srv+"/go#u=") {
+			t.Fatalf("bad link %q", l)
+		}
+		target, _ = url.QueryUnescape(strings.TrimPrefix(l, srv+"/go#u="))
+	} else {
+		u, err := url.Parse(l)
+		if err != nil || u.Scheme != "pitlanehq" || u.Host != "open" {
+			t.Fatalf("bad link %q", l)
+		}
+		target = u.Query().Get("url")
 	}
-	target := u.Query().Get("url")
 	pairMu.Lock()
 	pin := currentPINLocked()
 	pairMu.Unlock()
