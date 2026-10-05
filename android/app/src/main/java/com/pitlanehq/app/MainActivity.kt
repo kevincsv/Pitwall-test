@@ -163,6 +163,9 @@ class MainActivity : Activity() {
                         showCompanion()
                     }
                     "companion" -> showCompanion()
+                    "browser" -> msg.optString("url").takeIf { it.startsWith("https://") }?.let {
+                        try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) } catch (e: Exception) {}
+                    }
                     "lastpc" -> callJS("onLastPC", prefs.getString("pc", null) ?: "")
                     // the account keys only go to the phone's own pages
                     "secret-set", "secret-del", "secret-get" -> if (!onOwnPage()) return@runOnUiThread

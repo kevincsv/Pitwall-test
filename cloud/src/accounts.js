@@ -4,6 +4,8 @@
 // already encrypted with a key the server never has. Emails are stored only
 // as a hash, so the database holds nothing readable about you but your
 // public name. Turned on with the variable COMMUNITY = "1".
+import { mailReady, sendVerify, sendReset, lang } from "./email.js";
+import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pages.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -64,6 +66,29 @@ export async function sessionAccount(req, env) {
   return s;
 }
 
+// one-use links sent by email: only their hash is stored
+async function newEmailToken(env, accountId, kind, ttl) {
+  const t = rid(24);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM email_tokens WHERE (account_id=?1 AND kind=?2) OR expires<?3").bind(accountId, kind, Date.now()),
+    env.DB.prepare("INSERT INTO email_tokens (token_hash, account_id, kind, expires) VALUES (?1,?2,?3,?4)").bind(await sha256(t), accountId, kind, Date.now() + ttl),
+  ]);
+  return t;
+}
+async function useEmailToken(env, t, kind, consume) {
+  if (typeof t !== "string" || !/^[0-9a-f]{48}$/.test(t)) return null;
+  const h = await sha256(t);
+  const r = await env.DB.prepare("SELECT account_id, expires FROM email_tokens WHERE token_hash=?1 AND kind=?2").bind(h, kind).first();
+  if (!r || r.expires < Date.now()) return null;
+  if (consume) await env.DB.prepare("DELETE FROM email_tokens WHERE token_hash=?1").bind(h).run();
+  return r.account_id;
+}
+async function mailVerify(env, url, accountId, email, l) {
+  if (!mailReady(env)) return false;
+  const t = await newEmailToken(env, accountId, "verify", 7 * 86400e3);
+  return sendVerify(env, email, url.origin + "/account/verify?t=" + t + "&lang=" + lang(l), l);
+}
+
 async function deleteAccount(env, id) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1").bind(id),
@@ -73,6 +98,7 @@ async function deleteAccount(env, id) {
     env.DB.prepare("DELETE FROM account_sync_chunks WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
   ]);
 }
@@ -86,6 +112,53 @@ export async function accounts(req, env, url) {
   if (m === "OPTIONS") return new Response(null, { status: 204, headers: { ...JSONH, "access-control-allow-methods": "GET,POST,PUT,DELETE", "access-control-allow-headers": "authorization,content-type", "access-control-max-age": "86400" } });
   const body = m === "POST" || m === "PUT" ? await req.json().catch(() => ({})) : {};
   const ip = "ip:" + (await sha256(ipOf(req)));
+
+  // pages opened from the emails
+  if (p === "/verify" && m === "GET") {
+    const id = await useEmailToken(env, url.searchParams.get("t"), "verify", true);
+    if (id) await env.DB.prepare("UPDATE accounts SET verified=1 WHERE id=?1").bind(id).run();
+    return messagePage(pageLang(req, url), !!id);
+  }
+  if (p === "/forgot" && m === "GET") return forgotPage(pageLang(req, url), mailReady(env));
+  if (p === "/reset" && m === "GET") {
+    const t = url.searchParams.get("t") || "";
+    if (!(await useEmailToken(env, t, "reset", false))) return badLinkPage(pageLang(req, url));
+    return resetPage(pageLang(req, url), t);
+  }
+  if (p === "/forgot" && m === "POST") {
+    if (!mailReady(env)) return err("password reset by email is not set up on this server", 503);
+    if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return err("write a valid email", 400);
+    const eh = await emailHash(env, body.email);
+    if (await tooMany(env, ["mail:" + ip, "mail:" + eh], [10, 3])) return err("too many emails: try again in 15 minutes", 429);
+    await fail(env, ["mail:" + ip, "mail:" + eh]);
+    const a = await env.DB.prepare("SELECT id FROM accounts WHERE email_hash=?1").bind(eh).first();
+    if (a) {
+      const t = await newEmailToken(env, a.id, "reset", 3600e3);
+      await sendReset(env, body.email.trim(), url.origin + "/account/reset?t=" + t + "&lang=" + lang(body.lang), body.lang);
+    }
+    return json({ ok: true }); // the same answer whether the account exists or not
+  }
+  if (p === "/reset" && m === "POST") {
+    if (await tooMany(env, ["reset:" + ip], [10])) return err("too many tries: wait 15 minutes", 429);
+    const id = await useEmailToken(env, body.token, "reset", false);
+    if (!id) return err("this link is not valid any more: ask for a new one", 400);
+    if (typeof body.email !== "string" || !isKey(body.auth) || !isB64(body.wrappedKey, 200)) return err("missing email or key", 400);
+    const a = await env.DB.prepare("SELECT id, email_hash FROM accounts WHERE id=?1").bind(id).first();
+    if (!a || !same(await emailHash(env, body.email), a.email_hash)) {
+      await fail(env, ["reset:" + ip]);
+      return err("this is not the email of that account", 400);
+    }
+    const salt = rid(16);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET auth_salt=?2, auth_hash=?3, wrapped_key=?4, verified=1 WHERE id=?1").bind(id, salt, await authHash(salt, body.auth), body.wrappedKey),
+      // the synced copy was encrypted with the old password: the PCs upload it again
+      env.DB.prepare("DELETE FROM account_sync_chunks WHERE account_id=?1").bind(id),
+      env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
+      env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id),
+      env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
+    ]);
+    return json({ ok: true });
+  }
 
   if (p === "/register" && m === "POST") {
     if (await tooMany(env, ["reg:" + ip], [5])) return err("too many new accounts from this network, try later", 429);
@@ -105,7 +178,8 @@ export async function accounts(req, env, url) {
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
     const token = await newSession(env, id, body.device);
-    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id) });
+    const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
+    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id), verified: false, mailed });
   }
   if (p === "/login" && m === "POST") {
     if (typeof body.email !== "string" || !isKey(body.auth)) return err("missing email or key", 400);
@@ -117,14 +191,14 @@ export async function accounts(req, env, url) {
       return err("wrong email or password", 401);
     }
     const token = await newSession(env, a.id, body.device);
-    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id) });
+    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified });
   }
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, created: a.created, admin: isAdmin(env, a.id) });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, created: a.created, admin: isAdmin(env, a.id), verified: !!a.verified, mail: mailReady(env) });
   if (p === "/me" && m === "POST") {
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);
@@ -133,6 +207,14 @@ export async function accounts(req, env, url) {
       env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(a.id, display),
     ]);
     return json({ ok: true });
+  }
+  if (p === "/verify/resend" && m === "POST") {
+    if (a.verified) return json({ ok: true, verified: true });
+    if (!mailReady(env)) return err("emails are not set up on this server", 503);
+    if (typeof body.email !== "string" || !same(await emailHash(env, body.email), a.email_hash)) return err("this is not the email of your account", 400);
+    if (await tooMany(env, ["mail:" + a.id], [3])) return err("too many emails: try again in 15 minutes", 429);
+    await fail(env, ["mail:" + a.id]);
+    return json({ ok: await mailVerify(env, url, a.id, body.email.trim(), body.lang) });
   }
   if (p === "/logout" && m === "POST") {
     await env.DB.prepare("DELETE FROM account_sessions WHERE id=?1").bind(a.sid).run();

@@ -79,7 +79,7 @@ func updateStatus() map[string]any {
 	return m
 }
 
-// updateWatcher checks a minute after start and then every hour; a new
+// updateWatcher checks a minute after start and then every 12 hours; a new
 // version also shows a Windows notification (once per version).
 func updateWatcher() {
 	cleanOldFiles()
@@ -105,7 +105,7 @@ func updateWatcher() {
 				}
 			}
 		}
-		time.Sleep(time.Hour)
+		time.Sleep(12 * time.Hour)
 	}
 }
 

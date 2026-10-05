@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   wrapped_key TEXT NOT NULL,
   display TEXT NOT NULL,
   name_kind TEXT NOT NULL DEFAULT 'nick',
-  created INTEGER NOT NULL
+  created INTEGER NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS account_sessions (
   id TEXT PRIMARY KEY,
@@ -140,3 +141,14 @@ CREATE TABLE IF NOT EXISTS season_chunks (
   data TEXT NOT NULL,
   PRIMARY KEY (k, idx)
 );
+
+CREATE TABLE IF NOT EXISTS email_tokens (
+  token_hash TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  expires INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS email_tokens_acc ON email_tokens(account_id, kind);
+
+ALTER TABLE community_laps ADD COLUMN anon INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE community_reports ADD COLUMN anon INTEGER NOT NULL DEFAULT 0;

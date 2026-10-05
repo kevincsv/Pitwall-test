@@ -106,6 +106,10 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             showCompanion()
         case "companion":
             showCompanion()
+        case "browser": // a page of the Pitlane HQ server (forgot password) in Safari
+            if let text = body["url"] as? String, let url = URL(string: text), url.scheme == "https" {
+                UIApplication.shared.open(url)
+            }
         case "lastpc":
             callJS("onLastPC", defaults.string(forKey: pcKey) ?? "")
         case "secret-set", "secret-del", "secret-get" where !onOwnPage():

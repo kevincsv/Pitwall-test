@@ -78,6 +78,7 @@ a{color:var(--accent)}
   <label><span class="label" data-t="Contraseña"></span><input type="password" id="aPass" autocomplete="current-password" required></label>
   <div class="err" id="accErr" role="alert"></div>
   <button class="btn primary" type="submit" data-t="Entrar"></button>
+  <p class="sub" style="margin:0"><a href="/account/forgot" id="forgot" data-t="¿Olvidaste tu contraseña?"></a></p>
   <p class="sub" style="margin:0"><span data-t="¿No tienes cuenta?"></span> <a href="#" id="toReg" data-t="Crear una cuenta gratis"></a></p>
 </form>
 <form class="login panel" id="accReg" hidden>
@@ -206,6 +207,7 @@ const I18N={
 "Si olvidas la contraseña no se pueden recuperar tus datos cifrados: guárdala bien.":["If you forget the password your encrypted data cannot be recovered: keep it safe.","Wenn du das Passwort vergisst, lassen sich deine verschlüsselten Daten nicht wiederherstellen: gut aufbewahren.","Se esquecer a senha, seus dados criptografados não podem ser recuperados: guarde-a bem."],
 "Tus vueltas, en cualquier sitio":["Your laps, anywhere","Deine Runden, überall","Suas voltas, em qualquer lugar"],
 "¿No tienes cuenta?":["No account yet?","Noch kein Konto?","Não tem conta?"],
+"¿Olvidaste tu contraseña?":["Forgot your password?","Passwort vergessen?","Esqueceu a senha?"],
 "¿Ya tienes cuenta?":["Already have an account?","Schon ein Konto?","Já tem conta?"],
 "Las contraseñas no coinciden.":["The passwords do not match.","Die Passwörter stimmen nicht überein.","As senhas não coincidem."],
 "La contraseña necesita al menos 10 caracteres.":["The password needs at least 10 characters.","Das Passwort braucht mindestens 10 Zeichen.","A senha precisa de pelo menos 10 caracteres."],
@@ -219,7 +221,7 @@ let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}
 if(!["en","es","de","pt"].includes(LANG))LANG="en";
 const T=k=>{if(LANG==="es")return k;const v=I18N[k];return v?v[{en:0,de:1,pt:2}[LANG]]:k};
 const LOC=()=>({en:"en-GB",es:"es-ES",de:"de-DE",pt:"pt-BR"}[LANG]);
-function applyLang(){document.documentElement.lang=LANG;$("#lang").value=LANG;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t))}
+function applyLang(){const fl=document.getElementById("forgot");if(fl)fl.href="/account/forgot?lang="+LANG;document.documentElement.lang=LANG;$("#lang").value=LANG;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T(e.dataset.t))}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmtT=t=>{if(!(t>0))return"–";const m=Math.floor(t/60),s=t-m*60;return m+":"+(s<10?"0":"")+s.toFixed(3)};
 const day=t=>new Date(t).toLocaleString(LOC(),{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -262,7 +264,7 @@ $("#accReg").onsubmit=async e=>{e.preventDefault();const er=$("#regErr"),pw=$("#
   if(pw!==$("#rPass2").value){er.textContent=T("Las contraseñas no coinciden.");return}
   er.textContent=T("Creando la cuenta…");
   try{const email=$("#rEmail").value.trim().toLowerCase(),k=await accountKeys(email,pw),wrappedKey=await sealKey(k.wrap,crypto.getRandomValues(new Uint8Array(32)));
-    const r=await fetch("/account/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,auth:k.auth,wrappedKey,display:$("#rName").value.trim(),nameKind:$("#rIr").checked?"iracing":"nick",device:"Web"})});
+    const r=await fetch("/account/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,auth:k.auth,wrappedKey,display:$("#rName").value.trim(),nameKind:$("#rIr").checked?"iracing":"nick",device:"Web",lang:LANG})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));
     KEY=j.token;const me=await get("/api/me");ROLE=me.role;ME=me.name||"";try{localStorage.setItem("plq.key",KEY)}catch(x){}er.textContent="";start()}
   catch(err){er.textContent=T("No se pudo crear la cuenta: ")+err.message}};

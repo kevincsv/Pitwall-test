@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,6 +41,9 @@ type commConfig struct {
 	Token        string `json:"token,omitempty"`
 	Shared       int    `json:"shared"`
 	LastErr      string `json:"lastErr,omitempty"`
+	Anonymous    bool   `json:"anonymous,omitempty"`   // others see "Anonymous" instead of the name
+	DeleteAfter  string `json:"deleteAfter,omitempty"` // shared race analyses leave this PC: "now", "1d", "2d", "7d" ("" keeps them)
+	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 }
 
 var (
@@ -183,7 +187,7 @@ func commNote(err error) {
 // shareLap: called for every valid lap; sends it only when it beats what you shared for that car and track.
 func shareLap(l cloudLap) {
 	commMu.Lock()
-	on, traces := commCfg.ShareTimes, commCfg.ShareTraces
+	on, traces, anon := commCfg.ShareTimes, commCfg.ShareTraces, commCfg.Anonymous
 	commMu.Unlock()
 	if !on || !l.Valid {
 		return
@@ -205,7 +209,7 @@ func shareLap(l cloudLap) {
 			commNote(err)
 			return
 		}
-		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors}
+		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon}
 		if traces && l.Trace != nil {
 			body["trace"] = l.Trace
 		}
@@ -217,7 +221,7 @@ func shareLap(l cloudLap) {
 // shareReport sends a race analysis without the other drivers' names.
 func shareReport(r *raceReport) {
 	commMu.Lock()
-	on := commCfg.ShareReports
+	on, anon := commCfg.ShareReports, commCfg.Anonymous
 	commMu.Unlock()
 	if !on {
 		return
@@ -243,12 +247,48 @@ func shareReport(r *raceReport) {
 			commNote(err)
 			return
 		}
-		_, err := commCall("POST", "/reports", map[string]any{"report": cp}, true)
+		_, err := commCall("POST", "/reports", map[string]any{"report": cp, "anon": anon}, true)
 		commNote(err)
 	}()
 }
 
+// pruneShared removes race analyses already shared with the community from this PC, after the chosen time.
+func pruneShared() {
+	commMu.Lock()
+	after, on := commCfg.DeleteAfter, commCfg.ShareReports
+	commMu.Unlock()
+	keep := map[string]time.Duration{"now": 0, "1d": 24 * time.Hour, "2d": 48 * time.Hour, "7d": 7 * 24 * time.Hour}
+	d, ok := keep[after]
+	if !ok || !on {
+		return
+	}
+	journalMu.Lock()
+	defer journalMu.Unlock()
+	kept := races[:0]
+	n := 0
+	for _, x := range races {
+		if t := raceTime(x); !t.IsZero() && time.Since(t) >= d {
+			n++
+			continue
+		}
+		kept = append(kept, x)
+	}
+	if n > 0 {
+		races = kept
+		writeJSONFile(journalFile("races.json"), races)
+		log.Printf("Removed %d shared race analyses from this PC", n)
+	}
+}
+
+func shareCleaner() {
+	for {
+		time.Sleep(10 * time.Minute)
+		pruneShared()
+	}
+}
+
 func registerCommunityRoutes(mux *http.ServeMux) {
+	go shareCleaner()
 	mux.HandleFunc("/api/community", func(w http.ResponseWriter, r *http.Request) {
 		fail := func(err error) {
 			w.WriteHeader(400)
@@ -256,8 +296,8 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		}
 		if r.Method == http.MethodPost {
 			var in struct {
-				Action, Alias, URL, NameKind          string
-				ShareTimes, ShareTraces, ShareReports bool
+				Action, Alias, URL, NameKind, DeleteAfter        string
+				ShareTimes, ShareTraces, ShareReports, Anonymous bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
@@ -284,6 +324,13 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				commCfg.NameKind = in.NameKind
 				commCfg.Alias, commCfg.URL = cleanText(in.Alias, 32), in.URL
 				commCfg.ShareTimes, commCfg.ShareTraces, commCfg.ShareReports = in.ShareTimes, in.ShareTraces && in.ShareTimes, in.ShareReports
+				commCfg.Anonymous, commCfg.Asked = in.Anonymous, true
+				switch in.DeleteAfter {
+				case "now", "1d", "2d", "7d":
+					commCfg.DeleteAfter = in.DeleteAfter
+				default:
+					commCfg.DeleteAfter = ""
+				}
 				saveCommLocked()
 				reg := commCfg.Token != "" && oldAlias != commCfg.Alias
 				alias := commCfg.Alias
@@ -308,7 +355,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		c := commCfg
 		commMu.Unlock()
 		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "server": commBase(), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
-			"shareReports": c.ShareReports, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
+			"shareReports": c.ShareReports, "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {
@@ -537,4 +584,11 @@ func firstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+func raceTime(r *raceReport) time.Time {
+	if r == nil || r.When <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(r.When)
 }

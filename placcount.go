@@ -52,8 +52,10 @@ type plAccount struct {
 	LastSync time.Time `json:"lastSync"`
 	SyncErr  string    `json:"syncErr,omitempty"`
 	Conflict bool      `json:"conflict,omitempty"`
-	NoLaps   bool      `json:"noLaps,omitempty"` // do not keep my laps on the server
-	Admin    bool      `json:"admin,omitempty"`  // an admin of the Pitlane HQ server (sees Connections)
+	NoLaps   bool      `json:"noLaps,omitempty"`   // do not keep my laps on the server
+	Admin    bool      `json:"admin,omitempty"`    // an admin of the Pitlane HQ server (sees Connections)
+	Verified bool      `json:"verified,omitempty"` // the email was confirmed
+	Mail     bool      `json:"mail,omitempty"`     // the server can send emails
 }
 
 var (
@@ -364,7 +366,8 @@ func syncWatcher() {
 
 func plSignedIn(r struct {
 	ID, Token, Display, NameKind, WrappedKey string
-	Admin                                    bool
+	Admin, Verified                          bool
+	Mailed                                   *bool
 }, email string, wrap []byte, newKey []byte) error {
 	key := newKey
 	if key == nil {
@@ -375,7 +378,7 @@ func plSignedIn(r struct {
 		key = k
 	}
 	plMu.Lock()
-	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin}
+	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil}
 	savePLLocked()
 	plMu.Unlock()
 	return nil
@@ -387,7 +390,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "verified": a.Verified, "mail": a.Mail, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -411,8 +414,8 @@ func registerPLRoutes(mux *http.ServeMux) {
 		}
 		if r.Method == http.MethodPost {
 			var in struct {
-				Action, Email, Password, NewPassword, Nick, NameKind, ID string
-				On                                                       bool
+				Action, Email, Password, NewPassword, Nick, NameKind, ID, Lang string
+				On                                                             bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&in)
 			host, _ := os.Hostname()
@@ -439,14 +442,15 @@ func registerPLRoutes(mux *http.ServeMux) {
 				key := make([]byte, 32)
 				rand.Read(key)
 				wrapped, _ := sealAES(wrap, key)
-				b, e := commRequest("POST", "/account/register", map[string]any{"email": normEmail(in.Email), "auth": auth, "wrappedKey": wrapped, "display": name, "nameKind": kind, "device": host}, "")
+				b, e := commRequest("POST", "/account/register", map[string]any{"email": normEmail(in.Email), "auth": auth, "wrappedKey": wrapped, "display": name, "nameKind": kind, "device": host, "lang": in.Lang}, "")
 				if e != nil {
 					err = e
 					break
 				}
 				var res struct {
 					ID, Token, Display, NameKind, WrappedKey string
-					Admin                                    bool
+					Admin, Verified                          bool
+					Mailed                                   *bool
 				}
 				json.Unmarshal(b, &res)
 				if err = plSignedIn(res, in.Email, wrap, key); err == nil {
@@ -469,7 +473,8 @@ func registerPLRoutes(mux *http.ServeMux) {
 				}
 				var res struct {
 					ID, Token, Display, NameKind, WrappedKey string
-					Admin                                    bool
+					Admin, Verified                          bool
+					Mailed                                   *bool
 				}
 				json.Unmarshal(b, &res)
 				if err = plSignedIn(res, in.Email, wrap, nil); err != nil {
@@ -538,6 +543,13 @@ func registerPLRoutes(mux *http.ServeMux) {
 				savePLLocked()
 				plMu.Unlock()
 				kickCloud()
+			case "refresh": // read the account again (email confirmed, admin)
+				plRefreshMe()
+			case "verify": // send the confirmation email again
+				plMu.Lock()
+				email, tok := plAcc.Email, plAcc.Token
+				plMu.Unlock()
+				_, err = commRequest("POST", "/account/verify/resend", map[string]any{"email": email, "lang": in.Lang}, tok)
 			case "autosync":
 				plMu.Lock()
 				plAcc.AutoSync = in.On
@@ -611,15 +623,17 @@ func plRefreshMe() {
 		return
 	}
 	var me struct {
-		ID    string `json:"id"`
-		Admin bool   `json:"admin"`
+		ID       string `json:"id"`
+		Admin    bool   `json:"admin"`
+		Verified bool   `json:"verified"`
+		Mail     bool   `json:"mail"`
 	}
 	if json.Unmarshal(b, &me) != nil || me.ID == "" {
 		return
 	}
 	plMu.Lock()
-	if plAcc.ID == me.ID && plAcc.Admin != me.Admin {
-		plAcc.Admin = me.Admin
+	if plAcc.ID == me.ID && (plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail) {
+		plAcc.Admin, plAcc.Verified, plAcc.Mail = me.Admin, me.Verified, me.Mail
 		savePLLocked()
 	}
 	plMu.Unlock()

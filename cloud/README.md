@@ -118,3 +118,15 @@ Everyone reads it from `GET /community/season`; if it is not there yet, the apps
 
 - **Admins** see *Settings → Connections* (iRacing, Garage 61, own site, Discord) and the iRacing page in the app; everyone else does not. In GitHub → Settings → Secrets and variables → Actions → **Variables**, add `ADMINS` with your Pitlane HQ account id (My account shows it; several ids separated by commas). Without `ADMINS`, the ids in `SEASON_UPLOADERS` are the admins. Run the workflow again, then sign out and in once in the app (or wait a few hours).
 - **Your own domain**: add the domain to your Cloudflare account (buy it in Cloudflare → Domain Registration, or add one you own and change its nameservers to Cloudflare's). Give the API token **Zone · Workers Routes · Edit** and **Zone · DNS · Edit** for that zone. Then add the repository variable `CUSTOM_DOMAIN` (for example `pitlanehq.com` or `app.pitlanehq.com`) and run the workflow: the server answers on that address too. Put the new address in `web/dist/server.json`.
+
+## Emails: confirm the address and reset the password
+
+Pitlane HQ sends two emails: one to confirm the address after creating an account, and one with a link to choose a new password ("Forgot your password?" in the app and on the website). The address is still not stored: the email goes to the address typed at that moment.
+
+1. You need your own domain in Cloudflare (see "Your own domain" above).
+2. Create a free account at resend.com (3,000 emails a month). Add your domain under **Domains** and press the button to add its DNS records to Cloudflare (or copy them by hand), then wait until it shows **Verified**.
+3. In Resend → **API Keys**, create a key with "Sending access".
+4. In GitHub → Settings → Secrets and variables → Actions: add the secret `RESEND_API_KEY` with that key, and the variable `EMAIL_FROM`, for example `Pitlane HQ <no-reply@your-domain.com>`.
+5. Run the "Pitlane HQ Cloud (web version)" workflow again.
+
+Resetting the password keeps the account, name, laps and setups. The synced copy was encrypted with the old password, so it is replaced: the next time you sign in on your PC with the new password, the PC uploads your data again.
