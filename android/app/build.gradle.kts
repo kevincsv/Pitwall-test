@@ -10,8 +10,8 @@ android {
         applicationId = "com.pitlanehq.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.17.0"
+        versionCode = 4
+        versionName = "0.18.0"
     }
     // The same (public, debug) key on every build, so a new .apk installs over the
     // old one without uninstalling. It only proves the updates come from this build.
@@ -31,12 +31,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    // the connect screen is shared with the iPhone app
+    // the app pages are the same ones PitlaneHQ.exe serves (web/dist), bundled in assets/app
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/connect"))
 }
 
 val copyConnect by tasks.registering(Copy::class) {
     from("../../ios/PitWall/connect.html")
+    from("../../web/dist") {
+        include("index.html", "demo-series.json", "server.json")
+        into("app")
+    }
     into(layout.buildDirectory.dir("generated/connect"))
 }
 tasks.named("preBuild") { dependsOn(copyConnect) }

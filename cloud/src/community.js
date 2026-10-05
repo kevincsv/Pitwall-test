@@ -41,7 +41,7 @@ async function countUpload(env, u) {
 export async function community(req, env, url) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
-  if (m === "OPTIONS") return new Response(null, { headers: { ...JSONH, "access-control-allow-methods": "GET,POST,DELETE", "access-control-allow-headers": "authorization,content-type" } });
+  if (m === "OPTIONS") return new Response(null, { headers: { ...JSONH, "access-control-allow-methods": "GET,POST,DELETE", "access-control-max-age": "86400", "access-control-allow-headers": "authorization,content-type" } });
   const body = m === "POST" ? await req.json().catch(() => ({})) : {};
 
   if (p === "/register" && m === "POST") {

@@ -7,6 +7,7 @@ on:
     paths:
       - "android/**"
       - "ios/PitWall/connect.html"
+      - "web/dist/**"
       - ".github/workflows/android.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"

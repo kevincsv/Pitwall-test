@@ -2,9 +2,12 @@ import UIKit
 import WebKit
 import UserNotifications
 import WidgetKit
+import Security
 
-/// Shows the Pit Wall app served by PitWall.exe on the PC, or the bundled
-/// connect screen that finds the PC on the Wi-Fi network.
+/// Opens the Pitlane HQ app bundled with the phone (account, planner, races,
+/// community: no PC needed). Live telemetry and the rig open the page served by
+/// PitlaneHQ.exe on the PC once it is paired with the code it shows; without the
+/// PC it falls back to the bundled app.
 final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavigationDelegate {
     private var webView: WKWebView!
     private let defaults = UserDefaults.standard
@@ -23,6 +26,8 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
                                               forMainFrameOnly: true))
         config.userContentController = controller
         config.allowsInlineMediaPlayback = true
+        // the bundled app reads its own files (server.json, sample data)
+        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.isOpaque = false
@@ -37,13 +42,23 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
         if let saved = defaults.string(forKey: pcKey), let url = URL(string: saved) {
             openRemote(url)
         } else {
-            showConnect(error: nil)
+            showCompanion()
         }
     }
 
     private func openRemote(_ url: URL) {
         loadingRemote = true
         webView.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6))
+    }
+
+    /// The app pages bundled with the phone (the same ones PitlaneHQ.exe serves).
+    private func showCompanion() {
+        loadingRemote = false
+        guard let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "dist") else {
+            showConnect(error: nil)
+            return
+        }
+        webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
 
     private func showConnect(error: String?) {
@@ -70,7 +85,19 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
             }
         case "reset":
             defaults.removeObject(forKey: pcKey)
-            showConnect(error: nil)
+            showCompanion()
+        case "companion":
+            showCompanion()
+        case "secret-set":
+            if let key = body["key"] as? String, let value = body["value"] as? String { Keychain.set(key, value) }
+        case "secret-del":
+            if let key = body["key"] as? String { Keychain.remove(key) }
+        case "secret-get":
+            if let key = body["key"] as? String {
+                let out: [String: Any] = ["key": key, "value": Keychain.get(key) ?? NSNull()]
+                let data = (try? JSONSerialization.data(withJSONObject: out)) ?? Data()
+                callJS("onSecret", String(data: data, encoding: .utf8) ?? "{}")
+            }
         case "notify":
             let items = body["items"] as? [[String: Any]] ?? []
             let leads = (body["leads"] as? [Any])?.compactMap { ($0 as? NSNumber)?.intValue } ?? [15]
@@ -92,11 +119,11 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        if loadingRemote { showConnect(error: error.localizedDescription) }
+        if loadingRemote { showCompanion() }
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        if loadingRemote { showConnect(error: error.localizedDescription) }
+        if loadingRemote { showCompanion() }
     }
 
     /// The phone's Wi-Fi address, used by the connect screen to search the network.
@@ -173,5 +200,39 @@ final class WeakMessageHandler: NSObject, WKScriptMessageHandler {
     init(_ target: WKScriptMessageHandler) { self.target = target }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         target?.userContentController(userContentController, didReceive: message)
+    }
+}
+
+/// Small secrets (the Pitlane HQ session and data key) in the iOS Keychain,
+/// readable only by this app on this device after the first unlock.
+enum Keychain {
+    private static let service = "com.pitwall.app.secrets"
+
+    private static func query(_ key: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: service,
+         kSecAttrAccount as String: key]
+    }
+
+    static func set(_ key: String, _ value: String) {
+        let data = Data(value.utf8)
+        var q = query(key)
+        SecItemDelete(q as CFDictionary)
+        q[kSecValueData as String] = data
+        q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(q as CFDictionary, nil)
+    }
+
+    static func get(_ key: String) -> String? {
+        var q = query(key)
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess, let data = out as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func remove(_ key: String) {
+        SecItemDelete(query(key) as CFDictionary)
     }
 }

@@ -339,6 +339,9 @@ func registerAccountRoutes(mux *http.ServeMux) {
 			return
 		}
 		b, code, err := dataGet(path, r.URL.RawQuery)
+		if err == nil && code < 300 && r.Method == http.MethodGet {
+			companionStore(path, r.URL.RawQuery, b)
+		}
 		if err != nil {
 			w.WriteHeader(code)
 			writeJSON(w, map[string]string{"error": err.Error()})

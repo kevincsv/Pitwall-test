@@ -18,7 +18,12 @@ import android.webkit.WebViewClient
 import org.json.JSONObject
 import java.net.Inet4Address
 
-/** Shows the Pitlane HQ app served by PitlaneHQ.exe on the PC, or the connect screen that finds it. */
+/**
+ * Opens the Pitlane HQ app bundled with the phone (account, planner, races, community:
+ * no PC needed). Live telemetry and the rig open the page served by PitlaneHQ.exe on
+ * the PC once it is paired with the code it shows; without the PC it falls back to the
+ * bundled app.
+ */
 class MainActivity : Activity() {
     private lateinit var web: WebView
     private var loadingRemote = false
@@ -35,30 +40,33 @@ class MainActivity : Activity() {
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
             @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = true // the connect screen probes the PC on the Wi-Fi
+            allowUniversalAccessFromFileURLs = true // the bundled app probes the PC on the Wi-Fi and reads its own files
+            @Suppress("DEPRECATION")
+            allowFileAccessFromFileURLs = true
             allowFileAccess = true
         }
         web.addJavascriptInterface(Bridge(), "PitlaneAndroid")
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) { loadingRemote = false }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame && loadingRemote) showConnect(error.description.toString())
+                if (request.isForMainFrame && loadingRemote) showCompanion()
             }
         }
         setContentView(web)
         val saved = prefs.getString("pc", null)
-        if (saved != null) openRemote(saved) else showConnect(null)
+        if (saved != null) openRemote(saved) else showCompanion()
     }
 
     private fun openRemote(url: String) {
         loadingRemote = true
         web.loadUrl(url)
+        // the PC did not answer in time: show the app without it
+        web.postDelayed({ if (loadingRemote) showCompanion() }, 6000)
     }
 
-    private fun showConnect(error: String?) {
+    private fun showCompanion() {
         loadingRemote = false
-        web.loadUrl("file:///android_asset/connect.html")
-        if (error != null) web.postDelayed({ callJS("onError", error) }, 800)
+        web.loadUrl("file:///android_asset/app/index.html")
     }
 
     private fun callJS(fn: String, value: String) {
@@ -98,7 +106,15 @@ class MainActivity : Activity() {
                     }
                     "reset" -> {
                         prefs.edit().remove("pc").apply()
-                        showConnect(null)
+                        showCompanion()
+                    }
+                    "companion" -> showCompanion()
+                    "secret-set" -> Secrets.put(this@MainActivity, msg.optString("key"), msg.optString("value"))
+                    "secret-del" -> Secrets.remove(this@MainActivity, msg.optString("key"))
+                    "secret-get" -> {
+                        val key = msg.optString("key")
+                        val out = JSONObject().put("key", key).put("value", Secrets.get(this@MainActivity, key) ?: JSONObject.NULL)
+                        callJS("onSecret", out.toString())
                     }
                     "notify" -> {
                         askNotifications()

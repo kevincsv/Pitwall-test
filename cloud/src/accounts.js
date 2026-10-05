@@ -4,7 +4,8 @@
 // already encrypted with a key the server never has. Emails are stored only
 // as a hash, so the database holds nothing readable about you but your
 // public name. Turned on with the variable COMMUNITY = "1".
-const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
+// the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
+const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -79,6 +80,7 @@ async function deleteAccount(env, id) {
 export async function accounts(req, env, url) {
   if (env.COMMUNITY !== "1") return err("accounts are not enabled on this server", 404);
   const p = url.pathname.replace(/^\/account/, ""), m = req.method;
+  if (m === "OPTIONS") return new Response(null, { status: 204, headers: { ...JSONH, "access-control-allow-methods": "GET,POST,PUT,DELETE", "access-control-allow-headers": "authorization,content-type", "access-control-max-age": "86400" } });
   const body = m === "POST" || m === "PUT" ? await req.json().catch(() => ({})) : {};
   const ip = "ip:" + (await sha256(ipOf(req)));
 

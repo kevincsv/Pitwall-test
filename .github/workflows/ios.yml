@@ -6,6 +6,7 @@ on:
     branches: [master, main, "claude/**"]
     paths:
       - "ios/**"
+      - "web/dist/**"
       - ".github/workflows/ios.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"

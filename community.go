@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -71,6 +72,9 @@ func commBase() string {
 	u := commCfg.URL
 	if u == "" {
 		u = communityURL
+	}
+	if u == "" {
+		u = bundledServer()
 	}
 	return strings.TrimRight(u, "/")
 }
@@ -298,7 +302,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		commMu.Lock()
 		c := commCfg
 		commMu.Unlock()
-		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": communityURL, "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
+		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
 			"shareReports": c.ShareReports, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
@@ -502,4 +506,29 @@ func handleCommSetups(w http.ResponseWriter, r *http.Request) {
 	default:
 		fail(400, errors.New("unknown action"))
 	}
+}
+
+// bundledServer is the Pitlane HQ server written in web/dist/server.json
+// (the same file the phone apps read), so the address lives in one place.
+var bundledServerOnce sync.Once
+var bundledServerURL string
+
+func bundledServer() string {
+	bundledServerOnce.Do(func() {
+		if b, err := fs.ReadFile(webFS, "web/dist/server.json"); err == nil {
+			var c struct{ URL string }
+			json.Unmarshal(b, &c)
+			bundledServerURL = strings.TrimRight(strings.TrimSpace(c.URL), "/")
+		}
+	})
+	return bundledServerURL
+}
+
+func firstNonEmpty(v ...string) string {
+	for _, s := range v {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }

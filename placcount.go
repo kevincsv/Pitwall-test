@@ -173,7 +173,7 @@ func plCall(method, path string, body any) ([]byte, error) {
 
 // ---------- the synced data: the active profile's files ----------
 
-var syncFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "trackbook.json", "races.json", "notes.json"}
+var syncFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "trackbook.json", "races.json", "notes.json", "companion.json"}
 
 func syncBundle() ([]byte, string) {
 	files := map[string][]byte{}
@@ -393,6 +393,7 @@ func plStatus() map[string]any {
 
 func registerPLRoutes(mux *http.ServeMux) {
 	go syncWatcher()
+	go companionRefresher()
 	mux.HandleFunc("/api/sync", func(w http.ResponseWriter, r *http.Request) {
 		loadPL()
 		fail := func(err error) {

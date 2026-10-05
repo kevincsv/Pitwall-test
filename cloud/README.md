@@ -83,3 +83,9 @@ Migration `0004_accounts_setups.sql` adds Pitlane HQ accounts and shared setups.
   - Emails are stored only as a hash. Optionally set a secret `EMAIL_PEPPER` (`npx wrangler secret put EMAIL_PEPPER`) **before** the first account is created.
   - 5 wrong passwords per email (30 per network) lock sign-in for 15 minutes; 5 new accounts per network per 15 minutes. Sessions expire after 180 idle days and can be closed one by one; changing the password closes all other sessions.
 - **Setups** (`/community/setups…`): `GET /setups?car&track&q`, `GET /setups/cars`, `GET /setups/:id`, `GET /setups/mine` (token), `POST /setups` (token, `.sto` up to 400 KB with its SHA-256), `DELETE /setups/:id` (token, own only). The PC app checks the checksum and only writes `.sto` files inside `Documents\iRacing\setups\<car>\Pitlane Community`.
+
+### The phone apps without the PC
+
+Put the server address in **`web/dist/server.json`** (`{"url": "https://…workers.dev"}`). PitlaneHQ.exe and the iPhone and Android apps (which bundle `web/dist`) read it from there, so it is set in one place.
+
+With a Pitlane HQ account the phone app works on its own: it signs in directly against this server (the password is turned into keys on the phone, like on the PC), downloads the encrypted copy of your profile and decrypts it on the phone. That copy includes a small snapshot of your iRacing data (licences, credits, recent races, season schedule) that PitlaneHQ.exe refreshes every 6 hours while you are signed in to iRacing. Planner changes made on the phone are encrypted and uploaded the same way, and the PC picks them up. Only live telemetry and the rig need the PC, paired over the local Wi-Fi with the code it shows.
