@@ -79,19 +79,33 @@ func updateStatus() map[string]any {
 	return m
 }
 
-// updateWatcher checks a minute after start and then every 6 hours.
+// updateWatcher checks a minute after start and then every hour; a new
+// version also shows a Windows notification (once per version).
 func updateWatcher() {
 	cleanOldFiles()
 	time.Sleep(time.Minute)
+	told := ""
 	for {
 		if buildID != "dev" {
 			if err := checkUpdate(); err != nil {
 				updMu.Lock()
 				updErr = err.Error()
 				updMu.Unlock()
+			} else if st := updateStatus(); st["available"] == true {
+				updMu.Lock()
+				l := *updLatest
+				updMu.Unlock()
+				if l.Build != told {
+					told = l.Build
+					v := l.Version
+					if v == "" {
+						v = "new"
+					}
+					notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
+				}
 			}
 		}
-		time.Sleep(6 * time.Hour)
+		time.Sleep(time.Hour)
 	}
 }
 

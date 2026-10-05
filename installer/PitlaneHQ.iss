@@ -60,7 +60,7 @@ Source: "..\docs\legal\PRIVACY.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"
+Name: "{group}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"; AppUserModelID: "PitlaneHQ.App"
 Name: "{group}\{cm:UninstallProgram,Pitlane HQ}"; Filename: "{uninstallexe}"
 Name: "{userdesktop}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"; Tasks: desktopicon
 
