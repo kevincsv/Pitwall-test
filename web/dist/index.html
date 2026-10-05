@@ -1183,6 +1183,8 @@ function parseYaml(text){
 }
 
 /* ===================== feeds ===================== */
+/* features switched off in this version: telemetry and analysis only (voice, spotter and subscription come back later) */
+const FEATURES={spotter:false,voice:false,subscription:false};
 const LIVE_VARS="SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,Precipitation,WeatherDeclaredWet,PlayerTireCompound,PlayerCarSLShiftRPM,LongAccel,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
 let T={},S={},SCHEMA=[],STATUS={connected:false,source:"",demo:false},MODE="probe",INFO=null;
 let wantAll=false,es=null;
@@ -2025,6 +2027,7 @@ function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(
 
 /* ===================== layout & overlays ===================== */
 const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","radio","engine","tyres","standings","telemetry","simhub"];
+if(!FEATURES.voice)WIDGETS.splice(WIDGETS.indexOf("radio"),1);
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",simhub:"simhub"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
@@ -2691,6 +2694,7 @@ document.addEventListener("visibilitychange",keepAwake);
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
 const GROUPS={race:["live","field","engineer","strategy","tyres"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["overlays","rig","haptics","cars","setups"],account:["account","plan","settings"]};
+if(!FEATURES.voice)GROUPS.race=GROUPS.race.filter(v=>v!=="engineer");if(!FEATURES.subscription)GROUPS.account=GROUPS.account.filter(v=>v!=="plan");
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
 const VIEW_LABEL={live:"tab.live",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.laps",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
@@ -2711,7 +2715,7 @@ const QS_PAGES={live:"delta speed rpm gear fuel relative radar inputs dash widge
 const QS_SET=[["set-general","General: language, units, theme","General: idioma, unidades, tema","language idioma units unidades theme tema dark light oscuro claro"],["set-profiles","Profiles","Perfiles","profiles perfiles export import exportar importar"],
   ["set-conn","Connections: iRacing, Garage 61, Cloudflare web, engineer link","Conexiones: iRacing, Garage 61, web de Cloudflare, enlace de ingeniero","cloudflare web cloud garage61 g61 iracing login share enlace compartir"],["set-phone","Phone apps","Apps del móvil","phone iphone android móvil app qr"],["set-about","About","Acerca de","about version versión"]];
 function qsItems(){const g=k=>L("g."+groupOf(k),true).replace(/<[^>]+>/g,"");
-  const pages=Object.keys(VIEW_LABEL).map(v=>({k:"v:"+v,label:(I18N[VIEW_LABEL[v]]||[v,v])[LANG==="es"?1:0]||v,hint:g(v),words:QS_PAGES[v]||"",run:()=>show(v)}));
+  const pages=Object.keys(VIEW_LABEL).filter(v=>Object.values(GROUPS).flat().includes(v)).map(v=>({k:"v:"+v,label:(I18N[VIEW_LABEL[v]]||[v,v])[LANG==="es"?1:0]||v,hint:g(v),words:QS_PAGES[v]||"",run:()=>show(v)}));
   const sets=QS_SET.map(s=>({k:"s:"+s[0],label:Tx(s[1],s[2]),hint:Tx("Settings","Ajustes"),words:s[3],run:()=>{show("settings");setTimeout(()=>{const t=document.getElementById(s[0]);if(t)t.scrollIntoView({behavior:"smooth"})},80)}}));
   const acts=[{k:"a:race",label:Tx("Add a race to the calendar","Añadir una carrera al calendario"),words:"add race calendar añadir carrera",run:()=>{show("calendar");openRacePicker()}},
     {k:"a:voice",label:VOICE.on?Tx("Turn the voice engineer off","Apagar el ingeniero por voz"):Tx("Turn the voice engineer on","Encender el ingeniero por voz"),words:"voice voz engineer ingeniero on off",run:()=>{VOICE.on=!VOICE.on;VS.base=false;saveVoice();if(VOICE.on)say(M("radio_check"),0,0,true);else stopSpeech();toast(VOICE.on?Tx("Voice on","Voz activada"):Tx("Voice off","Voz desactivada"));if(CUR_VIEW==="engineer")renderEngineer()}},
@@ -2719,7 +2723,7 @@ function qsItems(){const g=k=>L("g."+groupOf(k),true).replace(/<[^>]+>/g,"");
     {k:"a:lang",label:LANG==="es"?"Switch to English":"Cambiar a español",words:"language idioma english español",run:()=>{LANG=LANG==="es"?"en":"es";store.set("pw.lang",LANG);applyI18n()}},
     {k:"a:theme",label:Tx("Light / dark theme","Tema claro / oscuro"),words:"theme tema dark light claro oscuro",run:()=>{store.set("pw.theme",document.documentElement.getAttribute("data-theme")==="light"?"dark":"light");applyTheme();rerenderAll()}},
     {k:"a:fs",label:Tx("Full screen","Pantalla completa"),words:"fullscreen pantalla completa",run:()=>$("#fsBtn").click()}];
-  return[...pages,...acts,...sets]}
+  return[...pages,...acts.filter(a=>FEATURES.voice||!/^a:(voice|radio)$/.test(a.k)),...sets]}
 const qsNorm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 let QS={items:[],sel:0};
 function openQuick(){if(OV.on)return;let box=$("#qs");if(!box){box=document.createElement("div");box.id="qs";box.className="qs";box.innerHTML=`<div class="qs-bg"></div><div class="qs-panel" role="dialog" aria-modal="true" aria-label="Search"><input type="search" id="qsIn" autocomplete="off" spellcheck="false"><div class="qs-list" id="qsList" role="listbox"></div><div class="qs-foot"></div></div>`;document.body.appendChild(box);
@@ -3303,8 +3307,6 @@ Object.assign(I18N,{"tab.coach":["Braking coach","Coach de frenada"],"tab.strate
  "tab.engineer":["Engineer","Ingeniero"],"w.radio":["Radio","Radio"],"d.radio":["Ask your engineer: fuel, gaps, position… (the phone works as a button box)","Pregunta al ingeniero: gasolina, gaps, posición… (el móvil sirve de botonera)"]});
 /* Per screen: on/off, voice, speed and volume (turn it on in one screen only).
    Per profile: what it says, language and audio pack. */
-/* features switched off in this version (the spotter will come back later) */
-const FEATURES={spotter:false};
 const VOICE_DEF={on:false,voice:"",rate:1.05,vol:1};
 let VOICE=Object.assign({},VOICE_DEF,store.get("pw.voice",{}));
 const RADIO_DEF={lang:"auto",pack:"",calm:true,clear:true,quiet:false,pads:{},
@@ -3359,7 +3361,7 @@ function pumpVoice(){if(VS.busy||!VS.q.length)return;const m=VS.q[0];m.at=m.at||
   VS.q.shift();if(Date.now()-m.at>20000&&!m.ask)return pumpVoice();
   VS.busy=true;const tok=++VS.tok;playMsg(m).then(()=>{if(tok!==VS.tok)return;VS.busy=false;setTimeout(pumpVoice,120)})}
 /* say(message) or the old say(text, key, minGap) */
-function say(m,key,gap,force){if(typeof m==="string")m={t:m,c:null,k:key,g:gap};
+function say(m,key,gap,force){if(!FEATURES.voice)return;if(typeof m==="string")m={t:m,c:null,k:key,g:gap};
   if(!force&&(!VOICE.on||OV.on))return;const now=Date.now();
   if(m.k&&VS.lastSaid[m.k]&&now-VS.lastSaid[m.k]<(m.g??20000))return;if(m.k)VS.lastSaid[m.k]=now;
   if(RADIO.quiet&&!m.u&&!m.ask&&!force)return;
@@ -3369,7 +3371,7 @@ function say(m,key,gap,force){if(typeof m==="string")m={t:m,c:null,k:key,g:gap};
 /* ---------- what it says by itself ---------- */
 function isRace(){const s=((S.SessionInfo||{}).Sessions||[]).find(x=>x.SessionNum===T.SessionNum);return /race/i.test((s&&s.SessionType)||"")}
 function incLimit(){return +((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||0}
-function voiceTick(){if(!VOICE.on||OV.on||!T)return;if(T.IsOnTrack===false){VS.base=false;pumpVoice();return}
+function voiceTick(){if(!FEATURES.voice||!VOICE.on||OV.on||!T)return;if(T.IsOnTrack===false){VS.base=false;pumpVoice();return}
   const C=RADIO.c,now=Date.now(),flags=T.SessionFlags||0,inc=T.PlayerCarMyIncidentCount,ew=T.EngineWarnings|0,pos=T.PlayerCarClassPosition||T.PlayerCarPosition;
   if(!VS.base){Object.assign(VS,{base:true,flags,inc,ew,lr:T.CarLeftRight||1,surf:T.PlayerTrackSurface,pos,posAnn:pos,posT:now,lap:T.LapCompleted,tr:T.SessionTimeRemain,onPit:!!T.OnPitRoad});return}
   /* spotter: CarLeftRight 1 clear, 2 left, 3 right, 4 both sides, 5 two left, 6 two right */
@@ -3430,7 +3432,7 @@ function answer(q,force){const nd=()=>say(M("no_data",null,undefined,{ask:true,k
   if(q==="weather"){const p=precipPct(),wt=T.TrackWetness,w=WET[wt]||null;if(p==null&&!w&&T.AirTemp==null)return nd();A({c:null,t:[p!=null?(p>0?VT(`Rain ${p} percent`,`Lluvia al ${p} por ciento`):VT("No rain","No llueve")):"",w&&wt>0?VT(`track ${w[0]}`,`pista ${w[1]}`):"",T.WeatherDeclaredWet?VT("declared wet","declarada mojada"):"",T.AirTemp!=null?VT(`air ${Math.round(tmp(T.AirTemp))} degrees`,`aire ${Math.round(tmp(T.AirTemp))} grados`):"",T.TrackTempCrew!=null?VT(`track ${Math.round(tmp(T.TrackTempCrew))}`,`asfalto ${Math.round(tmp(T.TrackTempCrew))}`):""].filter(Boolean).join(", ")});return}
   if(q==="delta"){const d=deltaNow();if(d==null)return nd();A({c:null,t:VT(`${d<0?"Minus":"Plus"} ${secTxt(d)} to your reference`,`${d<0?"Menos":"Más"} ${secTxt(d)} respecto a tu referencia`)});return}}
 function askRadio(q){flashAsk(q);if(MODE==="bridge"){fetch("/api/radio/ask?q="+encodeURIComponent(q),{method:"POST"}).catch(()=>{});if(!VOICE.on)toast(Tx("Asked. The screen with the voice on answers.","Preguntado. Responde la pantalla con la voz activada."));return}answer(q,true)}
-function onRadioEvent(m){flashAsk(m.ask);if(VOICE.on&&!OV.on)answer(m.ask)}
+function onRadioEvent(m){if(!FEATURES.voice)return;flashAsk(m.ask);if(VOICE.on&&!OV.on)answer(m.ask)}
 function flashAsk(q){document.querySelectorAll(`[data-ask="${q}"]`).forEach(b=>{b.classList.add("hit");setTimeout(()=>b.classList.remove("hit"),600)})}
 
 /* ---------- wheel and button box buttons ---------- */
@@ -3498,7 +3500,7 @@ const CALL_G=[["Spotter","Spotter"],["Track","Pista"],["Race","Carrera"],["Pit &
 const PRESETS={all:["All","Todo",Object.keys(RADIO_DEF.c)],race:["Race","Carrera",["spot","multi","off","flags","rain","inc","pos","race","gaps","fuel","box","limiter","engine"]],practice:["Practice","Entreno",["off","rain","inc","last","fuel","limiter","engine","coach","notes"]],...(FEATURES.spotter?{spotter:["Spotter only","Solo spotter",["spot","multi","off"]]}:{}),none:["Nothing","Nada",[]]};
 function callSample(k,ex){if(k==="rain")return M("rain_start",VT("Rain starting, 20 percent","Empieza a llover, 20 por ciento"),(()=>{const n=numClips(20);return n?["rain_start",...n,"percent"]:null})());if(k==="multi")return M("faster_class",VT("Faster class behind, GT3, 2 seconds","Clase más rápida detrás, GT3, a 2 segundos"),null);if(k==="notes")return{c:null,t:VT("Corner 1: third gear, use all the kerb on exit","Curva 1: tercera marcha, usa todo el piano a la salida")};if(k==="inc")return M("incidents",VT("Plus 2. 6 incidents of 17","Más 2. Llevas 6 incidentes de 17"),withNum("incidents",6));if(k==="coach")return{c:null,t:VT("Corner 3: brake a bit later, 0.2 lost","Curva 3: frena un poco más tarde, pierdes 0 coma 2")};
   if(k==="race")return M("laps_to_go",VT("5 laps to go","Quedan 5 vueltas"),withNum("laps_to_go",5));if(k==="fuel")return M("fuel_laps",VT("Fuel for 7.4 laps","Gasolina para 7 coma 4 vueltas"),withNum("fuel_laps",7));return M(ex)}
-function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer","Ingeniero por voz"))}</h2><button type="button" class="btn small" id="v-open">${esc(Tx("Open","Abrir"))}</button></div>
+function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;if(!FEATURES.voice){box.hidden=true;return}box.innerHTML=`<div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Voice engineer","Ingeniero por voz"))}</h2><button type="button" class="btn small" id="v-open">${esc(Tx("Open","Abrir"))}</button></div>
   <p class="note">${Lp("What it says, the questions you can ask, your wheel buttons and your own audio packs are in Race → Engineer.","Qué dice, las preguntas que le puedes hacer, los botones del volante y tus propios paquetes de audio están en Carrera → Ingeniero.")} ${esc(VOICE.on?Tx("On in this screen.","Activado en esta pantalla."):Tx("Off in this screen.","Desactivado en esta pantalla."))}</p>`;$("#v-open").onclick=()=>show("engineer")}
 let engLoaded=false;
 async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLoaded&&MODE==="bridge"){engLoaded=true;await Promise.all([loadPacks(),loadRadioButtons()])}
@@ -3993,7 +3995,7 @@ function openTrack(id,t){LAYOUT_VIEW=null;const n=JSON.parse(JSON.stringify(NOTE
   const isCur=(S.WeekendInfo||{}).TrackID===id,zones=isCur?bmZones():[];
   const draw=()=>{$("#dTitle").textContent=t.name;$("#dSub").textContent=Tx("Your data and notes for this track","Tus datos y notas de este circuito");
     $("#dBody").innerHTML=`${t.cars.length?`<div class="panel" style="padding:0;overflow:auto"><table class="rtable"><thead><tr><th>${esc(Tx("Car","Coche"))}</th><th>${esc(Tx("Best lap","Mejor vuelta"))}</th><th>${esc(Tx("Fuel/lap","Gasolina/vuelta"))}</th><th>${esc(Tx("Laps","Vueltas"))}</th><th>${esc(Tx("Races","Carreras"))}</th></tr></thead><tbody>${t.cars.map(c=>`<tr><td>${esc(c.car)}</td><td class="mono">${fmtT(c.best)}</td><td class="mono">${c.fuel?vol(c.fuel).toFixed(2)+" "+volU():"–"}</td><td class="mono">${c.laps}</td><td class="mono">${c.races||0}</td></tr>`).join("")}</tbody></table></div>`:""}
-      <div class="panel" style="margin-top:10px"><h2>${esc(Tx("Notes","Notas"))}</h2><p class="note" style="margin-top:0">${Lp("With “Read my track notes” on (Race → Engineer), the engineer reads the general note when you go out and each corner note a few seconds before the corner, in your first laps.","Con «Leer mis notas del circuito» activado (Carrera → Ingeniero), el ingeniero lee la nota general al salir y cada nota de curva unos segundos antes de la curva, en tus primeras vueltas.")}</p>
+      <div class="panel" style="margin-top:10px"><h2>${esc(Tx("Notes","Notas"))}</h2>${FEATURES.voice?`<p class="note" style="margin-top:0">${Lp("With “Read my track notes” on (Race → Engineer), the engineer reads the general note when you go out and each corner note a few seconds before the corner, in your first laps.","Con «Leer mis notas del circuito» activado (Carrera → Ingeniero), el ingeniero lee la nota general al salir y cada nota de curva unos segundos antes de la curva, en tus primeras vueltas.")}</p>`:""}
         <label><span class="label">${esc(Tx("General","General"))}</span><textarea id="nGen" rows="2" maxlength="2000" style="width:100%">${esc(n.general||"")}</textarea></label>
         <div class="label" style="margin-top:10px">${esc(Tx("Corners","Curvas"))}</div><div id="nRows" class="nrows">${n.corners.map((c,i)=>`<div class="nrow" data-i="${i}"><input type="number" class="num" min="0" max="99" value="${c.n}" data-f="n" aria-label="#" title="${esc(Tx("Corner","Curva"))}"><input type="text" maxlength="40" value="${esc(c.name||"")}" data-f="name" placeholder="${esc(Tx("Name (optional)","Nombre (opcional)"))}"><input type="number" class="num" min="0" max="49999" value="${Math.round(c.dist)}" data-f="dist" title="${esc(Tx("Metres from the line","Metros desde la línea"))}"><input type="text" maxlength="300" value="${esc(c.note)}" data-f="note" placeholder="${esc(Tx("e.g. 3rd gear, brake at the 100 board","p. ej. 3ª marcha, frena en el cartel de 100"))}"><button type="button" class="iconbtn" data-del="${i}" aria-label="${esc(Tx("Delete","Borrar"))}">✕</button></div>`).join("")}</div>
         <div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="nAdd">+ ${esc(Tx("Corner","Curva"))}</button>${isCur&&T.LapDist>0?`<button type="button" class="btn small" id="nHere">+ ${esc(Tx("Corner where I am now","Curva donde estoy ahora"))}</button>`:""}${zones.length?`<button type="button" class="btn small" id="nFill">${esc(Tx(`Fill the ${zones.length} corners from my best lap`,`Rellenar las ${zones.length} curvas desde mi mejor vuelta`))}</button>`:""}</div>
@@ -4152,7 +4154,7 @@ let LIC=null;
 async function loadLicense(){if(MODE==="bridge"&&!REMOTE){try{LIC=await jget("/api/license")}catch(e){LIC=LIC||LIC_DEMO}}else LIC=LIC||LIC_DEMO;return LIC}
 const TT=a=>Array.isArray(a)?Tx(a[0],a[1]):String(a||"");
 function proLocked(v){return LIC&&LIC.enforce&&!LIC.pro&&(LIC.proViews||[]).includes(v)}
-function applyProGate(v){document.querySelectorAll(".progate").forEach(e=>e.remove());if(!proLocked(v))return;const sec=document.getElementById("v-"+v);if(!sec)return;
+function applyProGate(v){if(!FEATURES.subscription)return;document.querySelectorAll(".progate").forEach(e=>e.remove());if(!proLocked(v))return;const sec=document.getElementById("v-"+v);if(!sec)return;
   sec.insertAdjacentHTML("afterbegin",`<div class="progate"><div><span class="pill acc">PRO</span><h2>${esc(Tx("This is part of Pitlane HQ Pro","Esto forma parte de Pitlane HQ Pro"))}</h2><p class="note">${Lp("Subscribe or buy the lifetime licence to unlock it.","Suscríbete o compra la licencia de por vida para desbloquearlo.")}</p><button type="button" class="btn primary" id="pgGo">${esc(Tx("See plans","Ver planes"))}</button></div></div>`);$("#pgGo").onclick=()=>show("plan")}
 async function renderPlan(){const box=$("#planBody");if(!box)return;await loadLicense();const l=LIC,cur=l.active?l.plan:"";
   $("#planSub").innerHTML=l.demo?Lp("Sample: in the PC app you activate your licence here","Ejemplo: en la app del PC aquí activas tu licencia"):Lp("Your plan and licence on this PC","Tu plan y tu licencia en este PC");
@@ -4178,6 +4180,6 @@ async function renderPairPanel(){const box=$("#pairPanel");if(!box)return;if(MOD
   const post=async b=>{try{await jpost("/api/devices",b)}catch(e){toast(e.message)}renderPairPanel()};
   $("#pinOn").onclick=()=>{if(d.pinOn&&!confirm(Tx("Turn off the PIN? Anyone on your network could control Pitlane HQ.","¿Quitar el PIN? Cualquiera de tu red podría controlar Pitlane HQ.")))return;post({action:"pin",on:!d.pinOn})};
   const n=$("#pinNew");if(n)n.onclick=()=>post({action:"newpin"});box.querySelectorAll("[data-devrm]").forEach(b=>b.onclick=()=>post({action:"remove",id:b.dataset.devrm}))}
-if(!OV.on)setTimeout(()=>loadLicense().then(()=>applyProGate(CUR_VIEW)),1500);
+if(!OV.on&&FEATURES.subscription)setTimeout(()=>loadLicense().then(()=>applyProGate(CUR_VIEW)),1500);
 
 </script>

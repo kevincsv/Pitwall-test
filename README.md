@@ -24,7 +24,7 @@ Keep the black Pitlane HQ window open while you race. Close it to stop.
 
 | Section | Pages |
 |---|---|
-| **Race** (while you drive) | Live · Standings · Engineer · Strategy · Tyres |
+| **Race** (while you drive) | Live · Standings · Strategy · Tyres |
 | **Analysis** (after the session) | Races · Laps · Braking coach · Tracks · Data |
 | **Season** | Calendar · Series · News · Goals |
 | **Rig** | Overlays · Programs & gear · Haptics · Car profiles · Setups |
@@ -144,7 +144,9 @@ You can start them minimised, change the order, start them all at once, remove t
 - **Race analysis**: for every lap, sector times, gaps to the cars ahead and behind, % flat out, braking and with no pedal, top speed, gear changes, fuel, time in the pits and track temperature; your **ideal lap** from your best sectors, and automatic tips (least consistent sector, pace drop, time lost in traffic, coasting, where the incidents were). On the track map: **incidents** (✕) and the **coach** marking the corners where you lose time against the driver you compare with.
 - **Season → News**: iRacing news from iracing.com.
 
-- **Installer** `PitlaneHQ-Setup.exe` (no administrator needed), **phone PIN** (Settings → Phone: devices on your network pair with a PIN or QR), **Account → Subscription** (Free / Pro monthly / Pro yearly / Lifetime, licence key) — see `docs/SELLING.md`. The spotter is switched off in this version.
+- **Installer** `PitlaneHQ-Setup.exe` (no administrator needed), **phone PIN** (Settings → Phone: devices on your network pair with a PIN or QR), **Account → Subscription** (Free / Pro monthly / Pro yearly / Lifetime, licence key) — see `docs/SELLING.md`.
+
+> **This version (0.14):** telemetry and analysis only. The voice engineer, the spotter and the subscription page are switched off (`FEATURES` in `web/dist/index.html`); the shift and braking beeps stay.
 
 ## Streaming the data elsewhere (OBS, dashboards, scripts)
 
@@ -198,7 +200,7 @@ Deja abierta la ventana negra de Pitlane HQ mientras corres. Ciérrala para para
 
 | Sección | Páginas |
 |---|---|
-| **Carrera** (mientras conduces) | En vivo · Posiciones · Ingeniero · Estrategia · Neumáticos |
+| **Carrera** (mientras conduces) | En vivo · Posiciones · Estrategia · Neumáticos |
 | **Análisis** (después de la sesión) | Carreras · Vueltas · Coach de frenada · Circuitos · Datos |
 | **Temporada** | Calendario · Series · Noticias · Objetivos |
 | **Rig** | Overlays · Programas y equipo · Hápticos · Perfiles por coche · Setups |
@@ -318,7 +320,9 @@ Puedes abrirlos minimizados, cambiar el orden, abrirlos todos a la vez, quitarlo
 - **Análisis de carrera**: en cada vuelta, sectores, gaps con el de delante y el de detrás, % a fondo, frenando y sin pedales, velocidad punta, cambios de marcha, gasolina, tiempo en boxes y temperatura de pista; tu **vuelta ideal** con tus mejores sectores, y consejos automáticos (sector menos regular, caída de ritmo, tiempo perdido con tráfico, ir sin pedales, dónde fueron los incidentes). En el mapa: los **incidentes** (✕) y el **coach** marcando las curvas donde pierdes tiempo frente al piloto con el que comparas.
 - **Temporada → Noticias**: las noticias de iRacing desde iracing.com.
 
-- **Instalador** `PitlaneHQ-Setup.exe` (sin administrador), **PIN del móvil** (Ajustes → Móvil: los dispositivos de tu red se emparejan con un PIN o QR), **Cuenta → Suscripción** (Gratis / Pro mensual / Pro anual / De por vida, clave de licencia) — ver `docs/SELLING.md`. El spotter está desactivado en esta versión.
+- **Instalador** `PitlaneHQ-Setup.exe` (sin administrador), **PIN del móvil** (Ajustes → Móvil: los dispositivos de tu red se emparejan con un PIN o QR), **Cuenta → Suscripción** (Gratis / Pro mensual / Pro anual / De por vida, clave de licencia) — ver `docs/SELLING.md`.
+
+> **Esta versión (0.14):** solo telemetría y análisis. El ingeniero por voz, el spotter y la página de suscripción están desactivados (`FEATURES` en `web/dist/index.html`); los pitidos de cambio y de frenada se quedan.
 
 ## Transmitir los datos (OBS, dashboards, scripts)
 
