@@ -696,6 +696,14 @@ html.companion #lockBtn,html.companion #fsBtn,html.companion #logoutBtn,html.com
 .sec-off{display:none!important}
 #setNav a[aria-current=true]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent)}
 html:not(.admin) .adm{display:none!important}
+/* phones: room for the notch / status bar, and a bottom bar that always fits the screen */
+body{padding-top:env(safe-area-inset-top,0px)}
+html:not(.ov)::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30;pointer-events:none}
+@media (max-width:820px){
+  nav.tabs{justify-content:space-between;overflow:hidden;padding-left:calc(4px + env(safe-area-inset-left,0px));padding-right:calc(4px + env(safe-area-inset-right,0px))}
+  nav.tabs button{flex:1 1 0;min-width:0;padding:7px 1px;letter-spacing:.02em;font-size:10.5px}
+  nav.tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
 </style>
 
 <div class="wrap">

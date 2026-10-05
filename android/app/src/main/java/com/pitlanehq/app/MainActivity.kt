@@ -9,7 +9,9 @@ import android.graphics.Color
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowInsets
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -52,7 +54,24 @@ class MainActivity : Activity() {
                 if (request.isForMainFrame && loadingRemote) showCompanion()
             }
         }
-        setContentView(web)
+        // the app sits between the status bar (and camera cut-out) and the navigation bar,
+        // on every Android version, so nothing is hidden behind them
+        val root = FrameLayout(this)
+        root.setBackgroundColor(Color.rgb(17, 21, 27))
+        root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        @Suppress("DEPRECATION")
+        window.statusBarColor = Color.rgb(17, 21, 27)
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = Color.rgb(25, 32, 42)
+        if (Build.VERSION.SDK_INT >= 30) {
+            window.setDecorFitsSystemWindows(false)
+            root.setOnApplyWindowInsetsListener { v, insets ->
+                val i = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
+                v.setPadding(i.left, i.top, i.right, i.bottom)
+                WindowInsets.CONSUMED
+            }
+        }
+        setContentView(root)
         val saved = prefs.getString("pc", null)
         if (saved != null) openRemote(saved) else showCompanion()
     }
