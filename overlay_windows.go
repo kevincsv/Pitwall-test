@@ -235,6 +235,26 @@ func setStartWithWindows(on bool) error {
 	return exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f").Run()
 }
 
+var procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
+
+func metric(i int) int { v, _, _ := procGetSystemMetrics.Call(uintptr(i)); return int(int32(v)) }
+
+// screenInfo returns the desktop area overlays can be placed in.
+func screenInfo() map[string]any {
+	return map[string]any{
+		"virtual": [4]int{metric(76), metric(77), metric(78), metric(79)},
+		"primary": [4]int{0, 0, metric(0), metric(1)},
+	}
+}
+
+func moveOverlay(name string, x, y, w, h int) {
+	for hw, n := range overlayWindows() {
+		if n == name {
+			procSetWindowPos.Call(hw, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
+		}
+	}
+}
+
 func minimizeConsole() {
 	if h, _, _ := procGetConsoleWin.Call(); h != 0 {
 		procShowWindow.Call(h, 6) // SW_MINIMIZE
@@ -303,3 +323,7 @@ func listOverlays() []string {
 }
 
 const overlaysSupported = true
+
+func hideChildWindow(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+}

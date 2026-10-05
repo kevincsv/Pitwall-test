@@ -2,7 +2,10 @@
 
 package main
 
-import "errors"
+import (
+	"errors"
+	"os/exec"
+)
 
 func openOverlay(o overlayReq, url, engine string) error {
 	return errors.New("overlay windows are only available on Windows")
@@ -16,4 +19,11 @@ func setStartWithWindows(on bool) error                 { return errors.New("onl
 func minimizeConsole()                                  {}
 func runOverlayWindow(name, url string, x, y, w, h int) {}
 
+func moveOverlay(name string, x, y, w, h int) {}
+func screenInfo() map[string]any {
+	return map[string]any{"virtual": [4]int{0, 0, 1920, 1080}, "primary": [4]int{0, 0, 1920, 1080}}
+}
+
 const overlaysSupported = false
+
+func hideChildWindow(cmd *exec.Cmd) {}
