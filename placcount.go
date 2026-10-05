@@ -383,7 +383,7 @@ func plStatus() map[string]any {
 	plMu.Lock()
 	defer plMu.Unlock()
 	a := plAcc
-	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
+	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
 		"autoSync": a.AutoSync, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()

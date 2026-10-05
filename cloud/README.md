@@ -8,15 +8,19 @@ time difference). It runs free on Cloudflare (Workers + D1) for personal use.
 
 ## Personal use: everything on one server (quick guide)
 
-One Cloudflare Worker + D1 database does it all for you: your laps on the web, your Pitlane HQ account (end-to-end encrypted sync between PC and phone), the community and shared setups, and the season schedule. Free plan is enough.
+One Cloudflare Worker + D1 database does it all: your laps on the web, your Pitlane HQ account (end-to-end encrypted sync between PC and phone), the community and shared setups, and the season schedule. The free plan is enough. GitHub publishes it for you:
 
-1. Create the site with the button below (or by hand). Keep the names it suggests. When it asks for `PITLANE_KEY`, paste the key from Pitlane HQ → Account → Settings → Connections → Pitlane HQ Cloud → **Create a key**.
-2. In Pitlane HQ on the PC: Settings → Connections → **Pitlane HQ Cloud**: paste the site address (`https://pitlanehq.<you>.workers.dev`) and the key, save, **Test connection**. That address is now also your account and community server.
-3. Account → **My account** → create your account.
-4. Phone: My account → **Server** → paste the same address → sign in.
-5. Optional, real season for the phone without iRacing: Cloudflare dashboard → Workers → pitlanehq → Settings → Variables → `SEASON_UPLOADERS` = your account id (`npx wrangler d1 execute pitlanehq --remote --command "select id, display from accounts"`).
+1. **Cloudflare account ID**: dash.cloudflare.com → Workers & Pages → copy *Account ID* (right column).
+2. **API token**: My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers** → *Add more*: Account · **D1** · Edit → Continue → Create Token → copy it (shown once).
+3. **Key for your laps**: Pitlane HQ (PC) → Account → Settings → Connections → Pitlane HQ Cloud → **Create a key** → copy.
+4. **GitHub** → this repository → Settings → Secrets and variables → Actions → *New repository secret*: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PITLANE_KEY`.
+5. GitHub → Actions → **Pitlane HQ Cloud (web version)** → *Run workflow*. It creates the database and tables, publishes the server and shows its address in the run summary (`https://pitlanehq.<you>.workers.dev`). Any later change in `cloud/` is published the same way.
+6. Pitlane HQ (PC) → Settings → Connections → Pitlane HQ Cloud: paste the address and the key, save, **Test connection**, tick **Upload my laps**.
+7. Account → **My account** → create your account (it shows your account id).
+8. Phone: My account → **Server** → the same address → sign in.
+9. Optional, real season on the phone without iRacing: GitHub → Settings → Secrets and variables → Actions → **Variables** → `SEASON_UPLOADERS` = your account id → run the workflow again.
 
-If it already existed from an older version, apply the new tables once: `npx wrangler d1 migrations apply DB --remote` (or push to GitHub with the secrets below and the workflow does it). Errors like "accounts are not enabled" mean `COMMUNITY` is not `1` (it is set in `wrangler.toml` now; redeploy). "no such table" means the migrations were not applied.
+Errors: "accounts are not enabled" → the server is older than this version, run the workflow again. "no such table" → the migrations did not run; run the workflow again (or `npx wrangler d1 migrations apply DB --remote`). "wrong or missing key" when testing → the key in the app and the `PITLANE_KEY` secret differ.
 
 ## Create it with one click
 

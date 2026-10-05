@@ -1345,7 +1345,7 @@ async function cpPush(tries=0){if(!CP.acc)return;const pend=CP.pending;const sea
   catch(e){if(/conflict/i.test(e.message)&&tries<3){await cpPull();cpApplyPending(pend);return cpPush(tries+1)}throw e}}
 const cpSnapAll=()=>CP.files["companion.json"]||{};
 function cpSnap(k){const c=cpSnapAll();if(c[k])return c[k].body;const path=k.split("?")[0],hits=Object.keys(c).filter(x=>x.split("?")[0]===path);return hits.length===1?c[hits[0]].body:null}
-function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,autoSync:true,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
+function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,id:a&&a.id,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,autoSync:true,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
 const cpDevice=()=>/iPhone/.test(navigator.userAgent)?"iPhone":/iPad/.test(navigator.userAgent)?"iPad":/Android/.test(navigator.userAgent)?"Android":"Phone";
 async function cpSignedIn(r,email,wrap,key){if(!key){key=await cpOpen(wrap,r.wrappedKey)}
   CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind};cpSecret.set("account",JSON.stringify(CP.acc))}
@@ -4706,7 +4706,7 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
     return}
   const when=t=>t?new Date(t).toLocaleString(locale(),{dateStyle:"medium",timeStyle:"short"}):"–";
   box.innerHTML=`<div class="me-grid">
-    <div class="panel"><div class="label">${esc(Tx("Signed in","Sesión iniciada"))}</div><div class="mid">${esc(a.display||"")}</div><div class="sub">${esc(a.email||"")}</div>
+    <div class="panel"><div class="label">${esc(Tx("Signed in","Sesión iniciada"))}</div><div class="mid">${esc(a.display||"")}</div><div class="sub">${esc(a.email||"")}</div>${a.id?`<div class="note" style="margin:4px 0 0">${esc(Tx("Account id","ID de cuenta","Konto-ID","ID da conta"))}: <span class="mono" style="user-select:all">${esc(a.id)}</span></div>`:""}
       <div class="me-row" style="margin-top:10px"><button type="button" class="btn small" id="meOut">${esc((COMPANION?Tx("Sign out on this phone","Cerrar sesión en este móvil","Auf diesem Handy abmelden","Sair neste celular"):Tx("Sign out on this PC","Cerrar sesión en este PC")))}</button></div></div>
     <div class="panel"><h2>${esc(Tx("Sync","Sincronización"))}</h2>
       ${a.conflict?`<div class="me-conf"><b>${esc(Tx("This PC and your account have different data","Este PC y tu cuenta tienen datos distintos"))}</b><span class="note" style="margin:0">${esc(Tx("Choose which copy to keep. The other one is replaced.","Elige qué copia conservar. La otra se reemplaza."))}</span>
