@@ -29,6 +29,7 @@ import java.net.Inet4Address
 class MainActivity : Activity() {
     private lateinit var web: WebView
     private var loadingRemote = false
+    private var onRemote = false // showing the PC's page
     private val prefs by lazy { getSharedPreferences("pitlane", Context.MODE_PRIVATE) }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -72,12 +73,13 @@ class MainActivity : Activity() {
             }
         }
         setContentView(root)
-        val saved = prefs.getString("pc", null)
-        if (saved != null) openRemote(saved) else showCompanion()
+        // always start in the phone app; the paired PC opens from Telemetry
+        showCompanion()
     }
 
     private fun openRemote(url: String) {
         loadingRemote = true
+        onRemote = true
         web.loadUrl(url)
         // the PC did not answer in time: show the app without it
         web.postDelayed({ if (loadingRemote) showCompanion() }, 6000)
@@ -85,7 +87,9 @@ class MainActivity : Activity() {
 
     private fun showCompanion() {
         loadingRemote = false
+        onRemote = false
         web.loadUrl("file:///android_asset/app/index.html")
+        web.postDelayed({ web.clearHistory() }, 800)
     }
 
     private fun callJS(fn: String, value: String) {
@@ -95,7 +99,8 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+        // from the PC's page, Back returns to the phone app
+        if (onRemote) showCompanion() else if (web.canGoBack()) web.goBack() else super.onBackPressed()
     }
 
     /** The phone's Wi-Fi address, used by the connect screen to search the network. */

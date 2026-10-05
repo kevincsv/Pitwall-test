@@ -26,7 +26,7 @@ targets:
       path: PitWall/Info.plist
       properties:
         CFBundleDisplayName: Pitlane HQ
-        CFBundleShortVersionString: "0.22.1"
+        CFBundleShortVersionString: "0.22.2"
         CFBundleVersion: "1"
         UILaunchScreen: {}
         UIRequiresFullScreen: true
@@ -65,7 +65,7 @@ targets:
       path: PitlaneWidget/Info.plist
       properties:
         CFBundleDisplayName: Pitlane HQ
-        CFBundleShortVersionString: "0.22.1"
+        CFBundleShortVersionString: "0.22.2"
         CFBundleVersion: "1"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension

@@ -39,11 +39,8 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
     override func viewDidLoad() {
         super.viewDidLoad()
         UIApplication.shared.isIdleTimerDisabled = true // keep the screen on while racing
-        if let saved = defaults.string(forKey: pcKey), let url = URL(string: saved) {
-            openRemote(url)
-        } else {
-            showCompanion()
-        }
+        // always start in the phone app; the paired PC opens from Telemetry
+        showCompanion()
     }
 
     private func openRemote(_ url: URL) {

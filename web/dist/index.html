@@ -710,6 +710,7 @@ html:not(.ov)::before{content:"";position:fixed;top:0;left:0;right:0;height:env(
 <header class="top">
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ</div>
   <button class="conn" id="conn" type="button">…</button>
+  <button class="btn small" id="leavePC" type="button" hidden></button>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-g="home" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-i18n="g.home"></span></button>
     <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg><span data-i18n="g.race"></span></button>
@@ -1411,14 +1412,15 @@ function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=tru
 function cpProbe(base,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);return cpOrigFetch(base+"/api/info",{signal:c.signal,cache:"no-store"}).then(r=>r.json()).then(j=>{clearTimeout(t);return j&&j.app==="PitWall"?j:null}).catch(()=>null)}
 let cpIpWait=null;window.onIP=ip=>{if(cpIpWait){const r=cpIpWait;cpIpWait=null;r(ip)}};
 const cpAskIP=()=>new Promise(res=>{if(!NATIVE_RAW){res(location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/)?location.hostname:"192.168.1.2");return}cpIpWait=res;NATIVE_RAW.postMessage({type:"ip"});setTimeout(()=>{if(cpIpWait){cpIpWait=null;res("")}},3000)});
-function cpOpenPC(url){if(NATIVE_RAW)NATIVE_RAW.postMessage({type:"open",url});else location.href=url}
+function cpOpenPC(url){try{localStorage.setItem("pw.lastPC",url.replace(/\/pair\?.*$/,"/"))}catch(e){}if(NATIVE_RAW)NATIVE_RAW.postMessage({type:"open",url});else location.href=url}
 function renderPC(){const box=$("#pcBody");if(!box)return;
   box.innerHTML=`<div class="pc-card"><div class="pc-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
     <h2>${esc(Tx("Live telemetry needs your PC","La telemetría en vivo necesita tu PC","Live-Telemetrie braucht deinen PC","A telemetria ao vivo precisa do seu PC"))}</h2>
     <p>${esc(Tx("Telemetry and the rig go straight from your PC to this phone over your Wi-Fi, never through the internet. Type the code shown on the PC (Pitlane HQ → Settings → Phone).","La telemetría y el rig van directos de tu PC a este móvil por tu WiFi, nunca por internet. Escribe el código que aparece en el PC (Pitlane HQ → Ajustes → Móvil).","Telemetrie und Rig gehen direkt vom PC über dein WLAN auf dieses Handy, nie über das Internet. Gib den Code ein, den der PC zeigt (Pitlane HQ → Einstellungen → Handy).","A telemetria e o rig vão direto do seu PC para este celular pelo Wi-Fi, nunca pela internet. Digite o código mostrado no PC (Pitlane HQ → Configurações → Celular)."))}</p>
     <form id="pcForm" class="pc-form"><input id="pcCode" inputmode="numeric" autocomplete="one-time-code" placeholder="23-481 902" maxlength="14" aria-label="Code"><button class="btn primary" type="submit">${esc(Tx("Connect","Conectar","Verbinden","Conectar"))}</button></form>
     <div class="hm-bar" id="pcBar" hidden><s id="pcProg" style="width:0"></s></div><div id="pcStatus" class="note"></div><div id="pcFound" class="devlist"></div>
-    <button type="button" class="btn small" id="pcScan">${esc(Tx("Search my Wi-Fi","Buscar en mi WiFi","Mein WLAN durchsuchen","Buscar no meu Wi-Fi"))}</button></div>`;
+    ${(()=>{let u="";try{u=localStorage.getItem("pw.lastPC")||""}catch(e){}return u?`<button type="button" class="btn" id="pcLast" data-u="${esc(u)}" style="margin:0 0 10px">${esc(Tx("Open my PC","Abrir mi PC","Meinen PC öffnen","Abrir meu PC"))} · ${esc(u.replace(/^https?:\/\//,"").replace(/\/$/,""))}</button><br>`:""})()}<button type="button" class="btn small" id="pcScan">${esc(Tx("Search my Wi-Fi","Buscar en mi WiFi","Mein WLAN durchsuchen","Buscar no meu Wi-Fi"))}</button></div>`;
+  const pl=$("#pcLast");if(pl)pl.onclick=()=>cpOpenPC(pl.dataset.u);
   const st=h=>{$("#pcStatus").innerHTML=h},pair=(base,pin)=>base+"/pair?pin="+pin+"&next=%2F";
   const add=(base,info,pin)=>{const b=document.createElement("button");b.type="button";b.className="devrow linkrow";b.innerHTML=`<b>${esc(info.host||"PC")}</b><small class="muted">${esc(base.replace("http://",""))}</small><span class="pkgo">›</span>`;b.onclick=()=>cpOpenPC(pin?pair(base,pin):base+"/");$("#pcFound").appendChild(b)};
   const scan=async(sub,pin)=>{$("#pcFound").innerHTML="";$("#pcBar").hidden=false;let done=0;const hits=[],hosts=[];for(let i=1;i<255;i++)hosts.push(sub+"."+i);st(esc(Tx("Searching…","Buscando…","Suche…","Buscando…")));
@@ -4022,6 +4024,8 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
   if(OV.on&&typeof window.pwReady==="function")window.pwReady(); // the frameless overlay window: the page loaded
   if(!OV.on)loadMe().catch(()=>{});
+  // the phone app showing the PC's page: a way back to the phone app
+  if(NATIVE_RAW&&!COMPANION&&!OV.on){const lp=$("#leavePC");lp.hidden=false;lp.textContent="‹ "+Tx("Phone app","App del móvil","Handy-App","App do celular");lp.onclick=()=>NATIVE_RAW.postMessage({type:"companion"})}
   addPopButtons();addGrips();applyI18n();ovChrome();cfgChanged();renderProfBtn();if(OV.on&&OV.list.includes("simhub"))renderSimhubWidget();
   if(!OV.on){sortable($("#liveGrid"),".wpanel",".grip",p=>p.dataset.w,o=>{ORDER=o;store.set("pw.order",o);packGrid();drawMapSoon();toast(Tx("Layout saved","Diseño guardado"))})}
   sortable($("#telBox"),".tile",".tile .label",t=>t.dataset.n,o=>setUI("tel",{vars:o}));
