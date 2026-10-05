@@ -345,7 +345,6 @@ func registerAccountRoutes(mux *http.ServeMux) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(code)
 		w.Write(b)
 	})

@@ -2,6 +2,7 @@
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
+import { accounts } from "./accounts.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -178,6 +179,13 @@ export default {
         return await community(req, env, url);
       } catch (e) {
         return new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } });
+      }
+    }
+    if (url.pathname.startsWith("/account/")) {
+      try {
+        return await accounts(req, env, url);
+      } catch (e) {
+        return err("server error: " + (e && e.message), 500);
       }
     }
     if (url.pathname.startsWith("/api/")) {

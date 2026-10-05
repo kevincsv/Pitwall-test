@@ -2,6 +2,7 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
+import { sessionAccount } from "./accounts.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -14,12 +15,20 @@ async function sha256(t) {
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 const cleanAlias = (a) => (str(a, 32) || "").replace(/[\u0000-\u001f<>]/g, "").trim() || "Driver";
+// a Pitlane HQ account session, or the older per-PC community token
 async function me(req, env) {
+  const a = await sessionAccount(req, env);
+  if (a) {
+    const u = await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(a.id).first();
+    return u ? { ...u, account: true } : null;
+  }
   const h = req.headers.get("authorization") || "";
   const t = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (t.length < 20) return null;
   return env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE token_hash=?1").bind(await sha256(t)).first();
 }
+const CAR_RE = /^[A-Za-z0-9 _.\-]{1,80}$/;
+const cleanFile = (n) => (typeof n === "string" ? n : "").replace(/[^A-Za-z0-9 _\-()+.,]/g, "").replace(/^[ .]+|[ .]+$/g, "").slice(0, 60) || "setup";
 // at most 300 uploads a day per driver
 async function countUpload(env, u) {
   const day = new Date().toISOString().slice(0, 10);
@@ -74,10 +83,54 @@ export async function community(req, env, url) {
     return json({ ...JSON.parse(r.data), id: r.id, alias: r.alias, shared: true });
   }
 
+  if (p === "/setups/cars" && m === "GET") {
+    const r = await env.DB.prepare("SELECT car_path AS carPath, MAX(car) AS car, COUNT(*) AS n FROM community_setups GROUP BY car_path ORDER BY n DESC LIMIT 500").all();
+    return json({ cars: r.results || [] });
+  }
+  if (p === "/setups" && m === "GET") {
+    const car = url.searchParams.get("car") || "", track = (url.searchParams.get("track") || "").slice(0, 80), q = (url.searchParams.get("q") || "").slice(0, 60);
+    const r = await env.DB.prepare(
+      `SELECT s.id, u.alias, s.car_path AS carPath, s.car, s.track, s.name, s.notes, s.size, s.downloads, s.created FROM community_setups s JOIN community_users u ON u.id=s.user_id
+       WHERE (?1='' OR s.car_path=?1) AND (?2='' OR s.track LIKE '%'||?2||'%') AND (?3='' OR s.name LIKE '%'||?3||'%' OR s.car LIKE '%'||?3||'%' OR s.track LIKE '%'||?3||'%')
+       ORDER BY s.downloads DESC, s.created DESC LIMIT 200`
+    ).bind(car, track, q).all();
+    return json({ setups: r.results || [] });
+  }
+  if (p.startsWith("/setups/") && p !== "/setups/mine" && m === "GET") {
+    const id = p.slice(8);
+    const s = await env.DB.prepare("SELECT s.*, u.alias FROM community_setups s JOIN community_users u ON u.id=s.user_id WHERE s.id=?1").bind(id).first();
+    if (!s) return err("not found", 404);
+    await env.DB.prepare("UPDATE community_setups SET downloads=downloads+1 WHERE id=?1").bind(id).run();
+    return json({ id: s.id, alias: s.alias, carPath: s.car_path, car: s.car, track: s.track, name: s.name, notes: s.notes, sha: s.sha, data: s.data });
+  }
+
   // everything below needs the driver's token
   const u = await me(req, env);
   if (!u) return err("wrong or missing token", 401);
+  if (p === "/setups/mine" && m === "GET") {
+    const r = await env.DB.prepare("SELECT id, car_path AS carPath, car, track, name, notes, size, downloads, created FROM community_setups WHERE user_id=?1 ORDER BY created DESC").bind(u.id).all();
+    return json({ setups: (r.results || []).map((x) => ({ ...x, alias: u.alias, mine: true })) });
+  }
+  if (p === "/setups" && m === "POST") {
+    if (typeof body.carPath !== "string" || !CAR_RE.test(body.carPath) || body.carPath.includes("..")) return err("unknown car folder", 400);
+    if (typeof body.data !== "string" || !/^[A-Za-z0-9+/=]+$/.test(body.data) || body.data.length > 560000) return err("setup missing or too large (400 KB max)", 400);
+    if (typeof body.sha !== "string" || !/^[0-9a-f]{64}$/.test(body.sha)) return err("missing checksum", 400);
+    const bytes = Uint8Array.from(atob(body.data), (c) => c.charCodeAt(0));
+    if ((await crypto.subtle.digest("SHA-256", bytes).then((b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""))) !== body.sha) return err("checksum does not match", 400);
+    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
+    const id = rid();
+    const r = await env.DB.prepare(
+      "INSERT INTO community_setups (id, user_id, car_path, car, track, name, notes, data, sha, size, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11) ON CONFLICT(user_id, sha) DO NOTHING"
+    ).bind(id, u.id, body.carPath, str(body.car), str(body.track, 80), cleanFile(body.name), str(body.notes, 1000), body.data, body.sha, bytes.length, Date.now()).run();
+    if (!r.meta || !r.meta.changes) return json({ kept: "you already shared this setup" });
+    return json({ shared: true, id });
+  }
+  if (p.startsWith("/setups/") && m === "DELETE") {
+    await env.DB.prepare("DELETE FROM community_setups WHERE id=?1 AND user_id=?2").bind(p.slice(8), u.id).run();
+    return json({ deleted: true });
+  }
   if (p === "/me" && m === "POST") {
+    if (u.account) return err("change your public name in your account", 400);
     await env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(u.id, cleanAlias(body.alias)).run();
     return json({ ok: true });
   }
@@ -85,7 +138,8 @@ export async function community(req, env, url) {
     await env.DB.batch([
       env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1").bind(u.id),
       env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(u.id),
-      env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(u.id),
+      env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(u.id),
+      ...(u.account ? [] : [env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(u.id)]),
     ]);
     return json({ deleted: true });
   }

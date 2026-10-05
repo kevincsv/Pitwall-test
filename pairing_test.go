@@ -15,6 +15,7 @@ func TestPairing(t *testing.T) {
 	mux := http.NewServeMux()
 	registerPairRoutes(mux)
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+	mux.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	h := guard(mux)
 	do := func(addr, method, path, body string, c *http.Cookie) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, path, strings.NewReader(body))
@@ -33,7 +34,10 @@ func TestPairing(t *testing.T) {
 	if r := do("127.0.0.7:5000", "GET", "/api/info", "", nil); r.Code != 200 {
 		t.Fatal("overlay windows (127.0.0.x) must not need a PIN")
 	}
-	if r := do("192.168.1.20:5000", "GET", "/api/info", "", nil); r.Code != 401 {
+	if r := do("192.168.1.20:5000", "GET", "/api/info", "", nil); r.Code != 200 {
+		t.Fatal("the phone app must be able to find the PC before pairing")
+	}
+	if r := do("192.168.1.20:5000", "GET", "/api/config", "", nil); r.Code != 401 {
 		t.Fatalf("a phone without PIN must be refused: %d", r.Code)
 	}
 	if r := do("192.168.1.20:5000", "GET", "/", "", nil); r.Code != 302 || !strings.HasPrefix(r.Header().Get("Location"), "/pair") {
@@ -58,7 +62,7 @@ func TestPairing(t *testing.T) {
 	if cookie == nil || !cookie.HttpOnly {
 		t.Fatal("no device cookie")
 	}
-	if r := do("192.168.1.20:5000", "GET", "/api/info", "", cookie); r.Code != 200 {
+	if r := do("192.168.1.20:5000", "GET", "/api/config", "", cookie); r.Code != 200 {
 		t.Fatal("paired device refused")
 	}
 	pairMu.Lock()

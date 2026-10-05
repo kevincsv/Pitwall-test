@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.16.0"
+const appVersion = "0.17.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -338,7 +338,6 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(v)
 }
 
@@ -419,6 +418,11 @@ func main() {
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
 		st := currentStatus()
 		host, _ := os.Hostname()
+		w.Header().Set("Access-Control-Allow-Origin", "*") // the phone app's connect screen looks for this PC
+		if !isLoopback(r) && !isRemote(r) && needsPairingAny(r) {
+			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "pair": true})
+			return
+		}
 		if isRemote(r) {
 			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
@@ -484,6 +488,7 @@ func main() {
 	registerPairRoutes(mux)
 	registerLicenseRoutes(mux)
 	registerCommunityRoutes(mux)
+	registerPLRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

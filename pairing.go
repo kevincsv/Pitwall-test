@@ -118,10 +118,32 @@ func needsPairing(r *http.Request) bool {
 		return false
 	}
 	p := r.URL.Path
-	if p == "/pair" || p == "/api/pair" || p == "/favicon.ico" {
+	if p == "/pair" || p == "/api/pair" || p == "/api/info" || p == "/favicon.ico" {
 		return false
 	}
 	return !devicePaired(r)
+}
+
+// needsPairingAny: a network device that is not paired yet (whatever the page).
+func needsPairingAny(r *http.Request) bool {
+	return !isLoopback(r) && !isRemote(r) && pinRequired() && !devicePaired(r)
+}
+
+// pairCode is what the phone app asks for: the last number of this PC's
+// address on the Wi-Fi and the PIN, e.g. "23-481 902". The app only looks
+// for the PC on the local network; nothing goes through the internet.
+func pairCodes(pin string) []string {
+	var out []string
+	for _, u := range lanURLs() {
+		host := strings.TrimPrefix(u, "http://")
+		if i := strings.LastIndex(host, ":"); i > 0 {
+			host = host[:i]
+		}
+		if parts := strings.Split(host, "."); len(parts) == 4 {
+			out = append(out, parts[3]+"-"+pin)
+		}
+	}
+	return out
 }
 
 func tryPair(w http.ResponseWriter, r *http.Request, pin, name string) error {
@@ -248,6 +270,7 @@ func registerPairRoutes(mux *http.ServeMux) {
 		for _, d := range pairs.Devices {
 			list = append(list, dev{d.ID, d.Name, d.Added, d.LastSeen})
 		}
-		writeJSON(w, map[string]any{"pin": currentPINLocked(), "pinOn": !pairs.Off, "expires": pairPINAt.Add(10 * time.Minute).UnixMilli(), "devices": list})
+		pin := currentPINLocked()
+		writeJSON(w, map[string]any{"pin": pin, "codes": pairCodes(pin), "urls": lanURLs(), "pinOn": !pairs.Off, "expires": pairPINAt.Add(10 * time.Minute).UnixMilli(), "devices": list})
 	})
 }

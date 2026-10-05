@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -186,11 +187,20 @@ func isRemote(r *http.Request) bool {
 	return r.Header.Get("Cf-Connecting-Ip") != "" || strings.HasSuffix(strings.Split(r.Host, ":")[0], ".trycloudflare.com")
 }
 
-var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics", "/api/cloud", "/api/setups", "/api/cars", "/api/radio", "/api/voicepack", "/api/races", "/api/notes", "/api/trackbook", "/api/discord", "/api/update", "/api/news", "/api/devices", "/api/license", "/api/community"}
+var remoteBlocked = []string{"/api/account", "/api/iracing/", "/api/g61/", "/api/overlay/", "/api/share", "/api/demo", "/api/config", "/api/map", "/api/profile", "/api/apps", "/api/simhub", "/api/moza", "/api/haptics", "/api/cloud", "/api/setups", "/api/cars", "/api/radio", "/api/voicepack", "/api/races", "/api/notes", "/api/trackbook", "/api/discord", "/api/update", "/api/news", "/api/devices", "/api/license", "/api/community", "/api/sync"}
 
 // guard protects the app from remote viewers: they need the share key and can only read.
 func guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("X-Frame-Options", "SAMEORIGIN")
+		// DNS rebinding: a website must not reach this app by pointing its own name at your PC
+		if !hostAllowed(r.Host) {
+			http.Error(w, "blocked: unknown host name", 403)
+			return
+		}
 		// A web page open in your browser must not be able to change settings
 		// or start programs through this app: changes only from Pitlane HQ itself.
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -258,4 +268,26 @@ func registerShareRoutes(mux *http.ServeMux) {
 		}
 		writeJSON(w, shareStatus())
 	})
+}
+
+// hostAllowed accepts IP addresses, localhost, this PC's name, local network
+// names (.local, .lan, .home, .internal) and the engineer link.
+func hostAllowed(hostport string) bool {
+	h := strings.ToLower(hostport)
+	if hh, _, err := net.SplitHostPort(h); err == nil {
+		h = hh
+	}
+	h = strings.Trim(h, "[]")
+	if h == "" || net.ParseIP(h) != nil || h == "localhost" || !strings.Contains(h, ".") {
+		return true
+	}
+	if pc, _ := os.Hostname(); pc != "" && strings.HasPrefix(h, strings.ToLower(pc)+".") {
+		return true
+	}
+	for _, suf := range []string{".local", ".lan", ".home", ".internal", ".home.arpa", ".localhost", ".trycloudflare.com"} {
+		if strings.HasSuffix(h, suf) {
+			return true
+		}
+	}
+	return false
 }
