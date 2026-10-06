@@ -209,8 +209,9 @@ export async function community(req, env, url) {
     const trace = body.trace ? JSON.stringify(body.trace) : null;
     if (trace && trace.length > 900000) return err("lap trace too large", 400);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
-    const old = await env.DB.prepare("SELECT time, game FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
-    if (old && old.game === game && old.time <= time) return json({ kept: "your faster lap is already shared" });
+    const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
+    // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
+    if (old && old.game === game && old.time <= time && (old.traced || !trace)) return json({ kept: "your faster lap is already shared" });
     const sectors = Array.isArray(body.sectors) ? JSON.stringify(body.sectors.filter((x) => typeof x === "number").slice(0, 10)) : null;
     await env.DB.prepare(
       `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)

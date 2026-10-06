@@ -55,10 +55,11 @@ type commConfig struct {
 }
 
 var (
-	commMu   sync.Mutex
-	commCfg  commConfig
-	commHTTP = &http.Client{Timeout: 25 * time.Second}
-	commBest = map[string]float64{} // carId:trackId → best shared this run
+	commMu     sync.Mutex
+	commCfg    commConfig
+	commHTTP   = &http.Client{Timeout: 25 * time.Second}
+	commBest   = map[string]float64{} // carId:trackId → best shared this run
+	commTraced = map[string]bool{}    // … and whether it went with its telemetry
 )
 
 func commPath() string { return filepath.Join(activeDir(), "community.json") }
@@ -279,11 +280,14 @@ func shareLap(l cloudLap) {
 	game := currentGame()
 	key := gameKey(game, c.CarID, c.TrackID) + "|" + guest
 	commMu.Lock()
-	if b, ok := commBest[key]; ok && b <= l.Time {
+	// a slower lap still goes when the faster one went without its telemetry and this one has it
+	withTrace := traces && l.Trace != nil
+	if b, ok := commBest[key]; ok && b <= l.Time && (commTraced[key] || !withTrace) {
 		commMu.Unlock()
 		return
 	}
 	commBest[key] = l.Time
+	commTraced[key] = withTrace
 	commMu.Unlock()
 	go func() {
 		if err := ensureRegistered(); err != nil {
@@ -444,7 +448,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				commMu.Lock()
 				commCfg.Token, commCfg.UserID, commCfg.Shared = "", "", 0
 				commCfg.ShareTimes, commCfg.ShareTraces, commCfg.ShareReports = false, false, false
-				commBest = map[string]float64{}
+				commBest, commTraced = map[string]float64{}, map[string]bool{}
 				saveCommLocked()
 				commMu.Unlock()
 			}

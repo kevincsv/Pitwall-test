@@ -233,7 +233,7 @@ type incEvent struct {
 	Lap  int     `json:"lap"`
 	D    float64 `json:"d"` // metres from the line
 	Pts  int     `json:"pts"`
-	Kind string  `json:"kind,omitempty"` // "off" when the car was off track
+	Kind string  `json:"kind,omitempty"` // "off" (left the track), "loss" (loss of control) or "contact"
 }
 
 type raceTrack struct {
@@ -317,7 +317,13 @@ func raceWatcher() {
 		cur.lastInc, cur.lastFuel = int(inc-cur.inc0), fuel
 		if inc > cur.incPrev && len(cur.incs) < 100 {
 			e := incEvent{Lap: lc + 1, D: round(math.Max(0, v[10]), 0), Pts: int(inc - cur.incPrev)}
-			if v[11] == 0 {
+			// iRacing: 1x leaving the track, 2x a loss of control, 4x a contact
+			switch {
+			case e.Pts >= 4:
+				e.Kind = "contact"
+			case e.Pts == 2:
+				e.Kind = "loss"
+			case e.Pts == 1 || v[11] == 0:
 				e.Kind = "off"
 			}
 			cur.incs = append(cur.incs, e)

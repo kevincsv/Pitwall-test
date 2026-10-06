@@ -15,6 +15,18 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - PC: Analysis shows the laps in your account when the window has none of its own (after a race
   or a restart), and My laps works on the PC when you are signed in.
 
+**Changed**
+- Race analysis map: the corners are found from the shape of the track (T1, T2… from the start
+  line), not only where you brake, so every real corner gets its number.
+- Incidents say what they were: leaving the track (1x), loss of control (2x) or contact (4x). They
+  are summed up in one line and shown per corner, instead of a long list.
+- The coach explains each corner in plain words: what the driver you compare with does
+  differently and what to try. One card per corner, also on phones.
+- Shared race analyses show the track map too: the community layout of any track someone has
+  driven with Pitlane HQ.
+- Community leaderboard: a lap with its telemetry replaces your faster shared lap when that one
+  went without telemetry, so your shared lap can always be compared in full.
+
 ## 0.3.3 beta
 
 **Changed**
