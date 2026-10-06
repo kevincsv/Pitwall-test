@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.8 beta
+
+**Fixed**
+- Race reports marked laps as not valid that were fine: the report now uses the same check as
+  the lap analyzer and sharing (off the track for a third of a second, measured 30 times a
+  second), so they always agree.
+
 ## 0.3.7 beta
 
 **Fixed**

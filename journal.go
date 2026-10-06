@@ -247,7 +247,7 @@ type raceTrack struct {
 	inc0, fuel0                 float64
 	lapSeen, lapAtChk           int
 	lapInc, lapFuel             float64
-	lapPit, pitPrev, lapCut     bool
+	lapPit, pitPrev             bool
 	pits                        int
 	pending                     int
 	pendingAt, chkAt, doneAt    time.Time
@@ -330,9 +330,6 @@ func raceWatcher() {
 			cur.incs = append(cur.incs, e)
 		}
 		cur.incPrev = inc
-		if v[11] == 0 && onTrack && !onPit { // off the track (all wheels out): the lap is cut
-			cur.lapCut = true
-		}
 		if onPit && !cur.pitPrev {
 			cur.pits++
 			cur.lapPit = true
@@ -343,12 +340,12 @@ func raceWatcher() {
 		}
 		// iRacing updates the last lap time a moment after the line
 		if cur.pending > 0 && now.Sub(cur.pendingAt) > 1500*time.Millisecond {
-			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Cut: cur.lapCut, Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
+			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Cut: lapCut(sn, cur.pending), Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
 			if s, ok := myLapStat(cur.pending); ok {
 				rl.lapStat = &s
 			}
 			cur.laps = append(cur.laps, rl)
-			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit, cur.lapCut = cur.pending, 0, inc, fuel, onPit, false
+			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit = cur.pending, 0, inc, fuel, onPit
 		}
 		if state >= 5 {
 			if cur.chkAt.IsZero() {

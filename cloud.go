@@ -396,6 +396,7 @@ func lapRecorder() {
 		}
 		if cur == nil || lap != cur.n {
 			if cur != nil && lap == cur.n+1 {
+				setLapCut(sn, cur.n, cur.off >= offTrackSamples) // the race report reads the same verdict
 				done, s := cur, sess
 				fuelNow := v[9]
 				prevLast := prevLL
@@ -416,7 +417,7 @@ func lapRecorder() {
 		// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
 		// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
 		if v[18] == 0 && telHas("PlayerTrackSurface") {
-			if cur.off++; cur.off >= 10 {
+			if cur.off++; cur.off >= offTrackSamples {
 				cur.bad = true
 			}
 		}
@@ -517,6 +518,31 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	recordBookLap(l.Time, l.Fuel, l.Valid)
 	shareLap(l)
 	queueLap(s, l)
+}
+
+// offTrackSamples: a third of a second off the track (at 30 samples a second) makes the lap invalid.
+const offTrackSamples = 10
+
+// which laps were cut (left the track), measured once here at 30 Hz and read by the race report, so
+// the report, the lap analyzer and sharing always agree
+var (
+	lapCutMu sync.Mutex
+	lapCuts  = map[[2]int]bool{}
+)
+
+func setLapCut(session, lap int, cut bool) {
+	lapCutMu.Lock()
+	defer lapCutMu.Unlock()
+	if len(lapCuts) > 2000 {
+		lapCuts = map[[2]int]bool{}
+	}
+	lapCuts[[2]int{session, lap}] = cut
+}
+
+func lapCut(session, lap int) bool {
+	lapCutMu.Lock()
+	defer lapCutMu.Unlock()
+	return lapCuts[[2]int{session, lap}]
 }
 
 func round(v float64, d int) float64 {
