@@ -3,13 +3,17 @@ name: Build iOS app
 on:
   workflow_dispatch:
   push:
-    branches: [master, main, "claude/**"]
+    branches: [master]
     paths:
       - "ios/**"
       - "web/dist/**"
       - ".github/workflows/ios.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 permissions:
   contents: write

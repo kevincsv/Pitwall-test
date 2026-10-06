@@ -6,7 +6,7 @@ name: Build PitlaneHQ.exe
 on:
   workflow_dispatch:
   push:
-    branches: [main, master, "claude/**"]
+    branches: [master]
     paths:
       - "**.go"
       - "installer/**"
@@ -16,6 +16,10 @@ on:
       - ".github/workflows/windows.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 permissions:
   contents: write

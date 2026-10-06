@@ -14,11 +14,15 @@ name: Pitlane HQ Cloud (web version)
 on:
   workflow_dispatch:
   push:
-    branches: [main, master, "claude/**"]
+    branches: [master]
     paths:
       - "cloud/**"
       - "web/dist/**"
       - ".github/workflows/cloud.yml"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false # never stop a deploy halfway through its migrations
 
 permissions:
   contents: read

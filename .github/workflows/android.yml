@@ -3,7 +3,7 @@ name: Build Android app
 on:
   workflow_dispatch:
   push:
-    branches: [main, master, "claude/**"]
+    branches: [master]
     paths:
       - "android/**"
       - "ios/PitWall/connect.html"
@@ -11,6 +11,10 @@ on:
       - ".github/workflows/android.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -27,8 +31,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.10.2"
+      - name: Signing key from the secrets (optional)
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/pitlane.keystore"
+            echo "PITLANE_KEYSTORE_FILE=$RUNNER_TEMP/pitlane.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_B64 is not set: the APK is signed with the public debug key"
+          fi
       - name: Build APK
         working-directory: android
+        env:
+          PITLANE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PITLANE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          PITLANE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle assembleDebug --no-daemon --stacktrace
       - name: Rename
         run: cp android/app/build/outputs/apk/debug/app-debug.apk PitlaneHQ-android.apk
