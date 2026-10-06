@@ -14,6 +14,7 @@ const E=s=>typeof esc==="function"?esc(s):String(s);
 const FT=t=>typeof fmtT==="function"?fmtT(t):(+t).toFixed(3);
 const SEG_M=250;           // metres per micro-sector (long enough that noise does not add up)
 const MAX_TRACES=24;       // laps the model reads per car and track
+const IDEAL_MAX=0.005;     // the ideal lap is never more than 0.5 % faster than the fastest real lap
 const TRACE_CACHE=new Map(),COMBOS={g:"",list:null},MAPS=new Map();
 const MODEL={key:"",busy:false,data:null,err:""};
 
@@ -52,21 +53,25 @@ async function buildModel(c){
     const n=Math.min(...laps.map(l=>l.bins.length)),M=Math.max(8,Math.round(n*5/SEG_M));
     laps.forEach(l=>{l.seg=segTimes(l,M,n)});
     // ideal: the quickest of each micro-sector, with whose lap it came from
-    // with 4 laps or more each micro-sector takes the mean of its two quickest, so one lucky
-    // or mis-measured lap does not make an ideal lap nobody can drive
-    const best=[];for(let k=0;k<M;k++){const v=laps.map(l=>({v:l.seg[k],l})).filter(x=>x.v!=null).sort((a,b)=>a.v-b.v);if(!v.length){best.push(null);continue}
-      best.push(laps.length>=4&&v.length>1?{v:(v[0].v+v[1].v)/2,l:v[0].l}:v[0])}
-    const idealTime=best.reduce((s,b)=>s+(b?b.v:0),0);
-    MODEL.data={key,trackId:c.trackId,carId:c.carId,n:laps.length,total:list.length,drivers:new Set(laps.map(l=>l.alias)).size,laps,M,nb:n,best,idealTime,fastest:laps.reduce((a,b)=>b.time<a.time?b:a)};
+    // A realistic ideal, not a fantasy: only laps close to the fastest one (within 2 %) count,
+    // each micro-sector takes the median of its best three (mean of two with fewer laps),
+    // and the result is never more than IDEAL_MAX below the fastest lap really driven.
+    const fastest=laps.reduce((a,b)=>b.time<a.time?b:a),pool=laps.filter(l=>l.time<=fastest.time*1.02);
+    const best=[];for(let k=0;k<M;k++){const v=pool.map(l=>({v:l.seg[k],l})).filter(x=>x.v!=null).sort((a,b)=>a.v-b.v);if(!v.length){best.push(null);continue}
+      const top=v.slice(0,v.length>=5?3:v.length>=2?2:1),mid=top.length===3?top[1].v:top.reduce((s,x)=>s+x.v,0)/top.length;best.push({v:mid,l:top[0].l})}
+    let idealTime=best.reduce((s,b)=>s+(b?b.v:0),0);
+    const floor=fastest.time*(1-IDEAL_MAX);if(idealTime<floor){const f=(fastest.time-floor)/Math.max(1e-6,fastest.time-idealTime);best.forEach((b,k)=>{if(b&&fastest.seg[k]!=null)b.v=fastest.seg[k]-(fastest.seg[k]-b.v)*f});idealTime=best.reduce((s,b)=>s+(b?b.v:0),0)}
+    MODEL.data={key,trackId:c.trackId,carId:c.carId,n:laps.length,total:list.length,drivers:new Set(laps.map(l=>l.alias)).size,laps,M,nb:n,best,idealTime,fastest,pool:pool.length};
   }catch(e){MODEL.err=e.message}
   MODEL.busy=false;return MODEL.data}
 
 /* the ideal lap as a lap you can compare with: the quickest micro-sector of each lap, stitched */
 function idealLap(m){const bins=[];let off=0;const step=m.nb/m.M;
   for(let k=0;k<m.M;k++){const b=m.best[k];if(!b)continue;const s=Math.round(k*step),e=k===m.M-1?m.nb:Math.round((k+1)*step),t0=tAt(b.l,s);
-    for(let i=s;i<e;i++){const x=b.l.bins[i];if(!x)continue;bins[i]=[x[0],off+(x[1]-t0),x[2],x[3],x[4],x[5],null]}off+=b.v}
+    const raw=b.l.seg[k]||b.v,f=raw>0?b.v/raw:1;
+    for(let i=s;i<e;i++){const x=b.l.bins[i];if(!x)continue;bins[i]=[x[0]/f,off+(x[1]-t0)*f,x[2],x[3],x[4],x[5],null]}off+=b.v}
   for(let i=0;i<m.nb;i++)if(!bins[i])bins[i]=bins[i-1]||[0,0,0,0,0,0,null];
-  return{n:"★ "+TX("Community ideal","Ideal de la comunidad","Community-Ideal","Ideal da comunidade"),alias:TX("Community ideal","Ideal de la comunidad","Community-Ideal","Ideal da comunidade"),time:m.idealTime,bins,maxBin:bins.length-1,comm:true,model:"ideal"}}
+  return{n:"★ "+TX("Realistic ideal","Ideal realista","Realistisches Ideal","Ideal realista"),alias:TX("Realistic ideal","Ideal realista","Realistisches Ideal","Ideal realista"),time:m.idealTime,bins,maxBin:bins.length-1,comm:true,model:"ideal"}}
 /* the next level: drivers 0.3–3 % faster than this lap, averaged bin by bin */
 function groupFor(m,t){let g=m.laps.filter(l=>l.time<t*0.997&&l.time>t*0.97);
   if(g.length<2)g=m.laps.filter(l=>l.time<t).sort((a,b)=>b.time-a.time).slice(0,3);
@@ -128,7 +133,7 @@ async function renderModel(boxId,anchor,A,B,useRef){const box=panel(boxId,anchor
   box.innerHTML=`<div class="pwm-head"><div><div class="label">${E(TX("Community model","Modelo de la comunidad","Community-Modell","Modelo da comunidade"))}</div>
       <p class="note" style="margin:2px 0 0">${E(TX(`Learnt from ${m.n} laps of ${m.drivers} drivers (${m.total} shared). It gets sharper with every lap shared, at every pace.`,`Aprendido de ${m.n} vueltas de ${m.drivers} pilotos (${m.total} compartidas). Mejora con cada vuelta que se comparte, a cualquier ritmo.`,`Gelernt aus ${m.n} Runden von ${m.drivers} Fahrern (${m.total} geteilt). Wird mit jeder geteilten Runde genauer.`,`Aprendido de ${m.n} voltas de ${m.drivers} pilotos (${m.total} compartilhadas). Melhora a cada volta compartilhada.`))}</p></div>
     <div class="pwm-btns"><button type="button" class="btn small" data-mref="level">▲ ${E(TX("Compare with the next level","Comparar con el siguiente nivel","Mit nächstem Level vergleichen","Comparar com o próximo nível"))}</button><button type="button" class="btn small" data-mref="ideal">★ ${E(TX("Compare with the ideal lap","Comparar con la vuelta ideal","Mit Ideal-Runde vergleichen","Comparar com a volta ideal"))}</button></div></div>
-    <div class="pwm-kpis"><div class="lap-metric"><small>${E(TX("Community ideal lap","Vuelta ideal de la comunidad","Ideale Community-Runde","Volta ideal da comunidade"))}</small><b class="mono pb-t">${FT(m.idealTime)}</b></div>
+    <div class="pwm-kpis"><div class="lap-metric"><small>${E(TX("Realistic ideal lap","Vuelta ideal realista","Realistische Ideal-Runde","Volta ideal realista"))}</small><b class="mono pb-t">${FT(m.idealTime)}</b><small>${E(TX(`best parts of the ${m.pool} quickest laps, at most 0.5 % under the best`,`mejores tramos de las ${m.pool} vueltas más rápidas, como mucho un 0,5 % bajo la mejor`,`beste Teile der ${m.pool} schnellsten Runden, höchstens 0,5 % unter der besten`,`melhores trechos das ${m.pool} voltas mais rápidas, no máximo 0,5 % abaixo da melhor`))}</small></div>
       <div class="lap-metric"><small>${E(TX("Fastest shared lap","Vuelta compartida más rápida","Schnellste geteilte Runde","Volta compartilhada mais rápida"))}</small><b class="mono">${FT(m.fastest.time)}</b><small>${E(m.fastest.alias)}</small></div>
       <div class="lap-metric"><small>${E(TX("Your lap to the ideal","Tu vuelta a la ideal","Deine Runde zum Ideal","Sua volta até a ideal"))}</small><b class="mono ${gap>0?"bad":"good"}">${gap>0?"+":""}${gap.toFixed(3)}</b></div>
       <div class="lap-metric"><small>${E(TX("Next level (drivers just ahead)","Siguiente nivel (pilotos justo por delante)","Nächstes Level (knapp schneller)","Próximo nível (pilotos logo à frente)"))}</small><b class="mono">${FT(median(grp.map(l=>l.time)))}</b><small>${grp.length} ${E(TX("laps","vueltas","Runden","voltas"))}</small></div></div>

@@ -406,7 +406,7 @@ func lanURLs() []string {
 
 func main() {
 	port := flag.Int("port", 8484, "port for the app")
-	demo := flag.Bool("demo", runtime.GOOS != "windows", "start with demo data instead of iRacing")
+	demo := flag.Bool("demo", false, "development only: a simulated race instead of the game")
 	noBrowser := flag.Bool("no-browser", false, "do not open the app window on start")
 	minimized := flag.Bool("minimized", false, "start with this window minimized")
 	ovName := flag.String("overlay-window", "", "internal: run one overlay window")
@@ -506,14 +506,6 @@ func main() {
 		}
 		writeJSON(w, map[string]bool{"quitting": true})
 		go func() { time.Sleep(300 * time.Millisecond); quitApp() }()
-	})
-	mux.HandleFunc("/api/demo", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", 405)
-			return
-		}
-		tel.setDemo(r.URL.Query().Get("on") == "1")
-		writeJSON(w, map[string]bool{"demo": tel.isDemo()})
 	})
 	mux.HandleFunc("/api/schema", func(w http.ResponseWriter, r *http.Request) {
 		tel.mu.RLock()

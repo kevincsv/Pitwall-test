@@ -40,7 +40,8 @@ function derive(){
  return ST
 }
 function remember(){if(typeof T==="undefined")return;if(T!==ST.obj){ST.obj=T;ST.last=performance.now();ST.times.push(ST.last);if(ST.times.length>30)ST.times.shift()}}
-function headerState(){var b=$("#conn");if(!b)return;var s=derive(),txt=s.overall==="LIVE"?(STATUS&&STATUS.demo?"Demo":((STATUS&&STATUS.source)||"Live")+" live"):s.overall==="WAITING"?"PC connected · waiting":s.overall==="COMPANION"?"Remote PC":"PC offline";b.className="conn "+(s.overall==="LIVE"||s.overall==="COMPANION"?"live":"wait");b.textContent=txt}
+// the header label stays the app's own (renderConn): translated, and right on the PC, the web and the phones
+function headerState(){}
 async function refreshInfo(force){if(typeof MODE!=="undefined"&&!["bridge","local"].includes(MODE))return;try{var r=await fetch("/api/info",{cache:"no-store"});if(r.ok)ST.info=await r.json()}catch(e){}if(force)renderCenter()}
 function renderCenter(){
  var b=$("#pwCenterGrid");if(!b)return;var s=derive(),i=ST.info||{},st=typeof STATUS!=="undefined"?STATUS:{},hz=ST.times.length>2?Math.round((ST.times.length-1)/((ST.times.at(-1)-ST.times[0])/1000)):0,open=typeof OV_OPEN!=="undefined"?OV_OPEN.size:0;
