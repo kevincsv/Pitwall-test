@@ -764,6 +764,11 @@ html.ownframe ::-webkit-scrollbar{width:10px;height:10px}html.ownframe ::-webkit
 html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--bg)}html.ownframe ::-webkit-scrollbar-thumb:hover{background:#4b5563}
 .cmfilt{display:grid;grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(140px,1fr) auto;gap:8px;margin-bottom:10px;align-items:center}.cmfilt input,.cmfilt select{min-width:0;width:100%}
 @media (max-width:700px){.cmfilt{grid-template-columns:1fr 1fr}.cmfilt input{grid-column:1/-1}}
+.wpanel.nodata>*:not(.ndban):not(.popbtn):not(.grip){opacity:.4}
+.ndban{display:none;position:absolute;left:10px;right:10px;top:10px;z-index:6;background:var(--warn);color:#14110a;font:600 12.5px/1.35 var(--f-body);padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}
+.wpanel.nodata:hover .ndban,.wpanel.nodata:focus-within .ndban{display:block}
+.wpanel.nodata::after{content:"ⓘ";position:absolute;right:10px;bottom:8px;color:var(--warn);font-size:14px;opacity:.9}
+.ovcard.nodata{opacity:.6}.wtable th.nd{opacity:.45;cursor:help;text-decoration:underline dotted}
 .agame{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-4px 0 12px}.agame .label{margin-right:4px}
 .dcrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dcrow span{display:inline-flex;align-items:baseline;gap:4px;padding:3px 8px;border:1px solid var(--line);border-radius:8px;font-family:var(--f-data)}.dcrow small{color:var(--muted);font-size:10px;letter-spacing:.05em}.dcrow b{font-size:15px}.dcrow i{font-style:normal;color:var(--muted);font-size:11px}.dcrow .lo{border-color:var(--bad);color:var(--bad)}
 .rsum{margin-bottom:14px}.rs-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rs-pos b{font:700 40px/1 var(--f-data)}.rs-pos small{display:block;color:var(--muted)}
@@ -2492,7 +2497,7 @@ Object.entries(COLS).forEach(([k,v])=>I18N["col."+k]=v.n);
 function colHead(k){const h=COLS[k].h;return Array.isArray(h)?esc(Tx(h[0],h[1]).split(" / ")[0]):esc(h)}
 function rowCtx(i,extra){const d=driverBy(i)||{};const pos=T.CarIdxPosition||[],cpos=T.CarIdxClassPosition||[],last=T.CarIdxLastLapTime||[],best=T.CarIdxBestLapTime||[],laps=T.CarIdxLapCompleted||[],pit=T.CarIdxOnPitRoad||[],tyre=T.CarIdxTireCompound||[];
   const g=gridPos(i);return Object.assign({i,d,pos:pos[i],cpos:cpos[i],last:last[i],best:best[i],laps:laps[i],pit:pit[i],pits:PITS[i]||0,tyre:tyre[i],irc:irChanges().get(i),pgain:g&&pos[i]>0?g-pos[i]:null,lastBest:last[i]>0&&last[i]===best[i]},extra||{})}
-function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>`<th class="${COLS[k].c.includes("r")?"r":""}">${colHead(k)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
+function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>{const nd=colLacks(k);return `<th class="${COLS[k].c.includes("r")?"r":""}${nd?" nd":""}"${nd?` title="${esc(nd)}"`:""}>${colHead(k)}</th>`}).join("")}</tr></thead><tbody>${rows.map(r=>r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 
 /* relative */
 function renderRelative(target){const box=target||$("#relBox");if(!box)return;const cfg=ui("rel"),all=relList(),me=T.PlayerCarIdx;
@@ -2599,7 +2604,7 @@ if(OV.on&&new URLSearchParams(location.search).get("fl")==="1"&&typeof window.pw
   window.pwVisible=on=>fetch(`/api/overlay/visible?w=${encodeURIComponent(name)}&on=${on?1:0}`,{method:"POST"}).catch(()=>{});
 })();
 
-function applyLayout(){if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
+function applyLayout(){setTimeout(markGameGaps,0);if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
   document.querySelectorAll("#v-live .wpanel").forEach(p=>{p.hidden=HIDDEN.has(p.dataset.w)});
   const vis=WIDGETS.filter(w=>!HIDDEN.has(w)&&w!=="flag");$("#liveEmpty").hidden=vis.length>0;$("#liveEmpty").innerHTML=Lp("Every widget is in an overlay or hidden. Use Layout to bring them back.","Todos los widgets están en overlays u ocultos. Usa Diseño para recuperarlos.")}
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
@@ -2813,7 +2818,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
   box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const w=b.dataset.open;if(OV_OPEN.has(w))return;await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600)});
   box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const w=b.dataset.close;OV_OPEN.delete(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
-  markOvOpen();
+  markOvOpen();markGameGaps();
   box.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>window.open(`/?overlay=${b.dataset.view}`,"_blank"));
   box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg)});
   box.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderOverlaysTab()});
@@ -3345,6 +3350,20 @@ function renderGameBar(v){const sec=$("#v-"+v);if(!sec)return;let bar=sec.queryS
   if(!bar){bar=document.createElement("div");bar.className="agame";const h=sec.querySelector(".vhead");h?h.after(bar):sec.prepend(bar)}
   const cur=aGame();bar.innerHTML=`<span class="label">${esc(Tx("Game","Juego","Spiel","Jogo"))}</span>${Object.keys(GAME_NAMES).map(k=>`<button type="button" class="chip" data-ag="${k}" aria-pressed="${k===cur}" title="${esc(GAME_NAMES[k])}">${esc(GAME_SHORT[k])}${k===liveGame()&&STATUS.connected&&!STATUS.demo?" ●":""}</button>`).join("")}`;
   bar.querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>{AGAME=b.dataset.ag;store.set("pw.agame",AGAME);RACES=null;TB=null;COMMSEL=null;show(CUR_VIEW)})}
+/* what each game does not send: those widgets and columns are dimmed and say why on hover */
+const GAME_NO={lmu:["ir","lic","inc"],acc:["ir","lic","inc","names"],ac:["ir","lic","inc","names","others"]};
+const NO_WHAT={ir:["iRating","iRating","iRating","iRating"],lic:["licences","licencias","Lizenzen","licenças"],inc:["incidents","incidentes","Zwischenfälle","incidentes"],
+  names:["the other drivers' names, laps and times","los nombres, vueltas y tiempos de los demás pilotos","Namen, Runden und Zeiten der anderen Fahrer","os nomes, voltas e tempos dos outros pilotos"],
+  others:["the other cars","los demás coches","die anderen Autos","os outros carros"]};
+const WIDGET_NEEDS={radar:["others"],relative:["others"],standings:["others","names"],gaps:["others","names"],incidents:["inc"]};
+const COL_NEEDS={ir:["ir"],irc:["ir"],lic:["lic"],inc:["inc"],laps:["names"],last:["names"],best:["names"],pit:["names"]};
+function gameMissing(needs){if(!STATUS.connected||STATUS.demo)return"";const g=STATUS.source,no=GAME_NO[g]||[],miss=(needs||[]).filter(n=>no.includes(n));
+  if(!miss.length)return"";const w=miss.map(n=>Tx(...NO_WHAT[n])).join(Tx(" or "," ni "," oder "," nem "));
+  return Tx(`${GAME_NAMES[g]} does not send ${w}`,`${GAME_NAMES[g]} no envía ${w}`,`${GAME_NAMES[g]} sendet keine ${w}`,`${GAME_NAMES[g]} não envia ${w}`)}
+const colLacks=k=>gameMissing(COL_NEEDS[k]);
+function markGameGaps(){document.querySelectorAll(".wpanel[data-w]").forEach(p=>{const m=gameMissing(WIDGET_NEEDS[p.dataset.w]);p.classList.toggle("nodata",!!m);let b=p.querySelector(":scope>.ndban");
+    if(m){if(!b){b=document.createElement("div");b.className="ndban";b.setAttribute("role","note");p.appendChild(b)}b.textContent="ⓘ "+m}else if(b)b.remove()});
+  document.querySelectorAll("#ovCards .ovcard").forEach(c=>{const w=c.querySelector("[data-auto]");const m=w?gameMissing(WIDGET_NEEDS[w.dataset.auto]):"";c.classList.toggle("nodata",!!m);c.title=m})}
 /* which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, or whichever is running */
 const GAME_NAMES={iracing:"iRacing",lmu:"Le Mans Ultimate",acc:"Assetto Corsa Competizione",ac:"Assetto Corsa"},GAME_SHORT={iracing:"iRacing",lmu:"LMU",acc:"ACC",ac:"AC"};
 const GAMES={auto:["Automatic","Automático","Automatisch","Automático"],...Object.fromEntries(Object.entries(GAME_NAMES).map(([k,v])=>[k,[v,v,v,v]]))};
@@ -3361,7 +3380,7 @@ function renderConn(){const c=$("#conn");let cls,en,es;
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
   else if(STATUS.connected){cls="live";en=`${gameName()} live`;es=`${gameName()} en vivo`}
   else{cls="wait";en=`Waiting for ${gameName()}`;es=`Esperando ${gameName()}`}
-  c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings()}
+  c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings();markGameGaps()}
 function renderSettings(){
   document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===LANG));
   document.querySelectorAll("#unitSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===UNITS));
