@@ -762,6 +762,10 @@ html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{wid
 html.ownframe{scrollbar-width:thin;scrollbar-color:#3a4350 var(--bg)}
 html.ownframe ::-webkit-scrollbar{width:10px;height:10px}html.ownframe ::-webkit-scrollbar-track{background:var(--bg)}
 html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--bg)}html.ownframe ::-webkit-scrollbar-thumb:hover{background:#4b5563}
+.rsum{margin-bottom:14px}.rs-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rs-pos b{font:700 40px/1 var(--f-data)}.rs-pos small{display:block;color:var(--muted)}
+.rs-pills{display:flex;flex-wrap:wrap;gap:6px}.rs-pills .pill small{opacity:.7}
+.rs-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}.rs-col ul{margin:6px 0 0;padding-left:18px}.rs-col li{margin:4px 0;color:var(--fg)}
+.rs-col.good li::marker{color:var(--good)}.rs-col.tip li::marker{color:var(--warn)}
 .panel.wip{margin-bottom:14px;border-style:dashed}.wip-top{display:flex;gap:12px;align-items:flex-start}.wip-top h2{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .wip-ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}.wip-ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .wip-list{margin:10px 0 12px;padding-left:20px;color:var(--muted)}.wip-list li{margin:3px 0}
@@ -994,7 +998,7 @@ iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:
 <!-- RACES: a report after every race -->
 <section class="view" id="v-races" hidden>
   <div class="vhead"><div><h1 data-i18n="tab.races"></h1><div class="sub" id="racesSub"></div></div><div class="controls"><input type="search" id="racesQ" aria-label="Search"></div></div>
-  <div id="wipRecap"></div>
+  <div id="raceRecap"></div>
   <div id="racesBody"></div>
 </section>
 
@@ -1522,7 +1526,7 @@ const TxRaw=(en,es,de,pt)=>LANG==="es"?es:LANG==="de"||LANG==="pt"?trX(en,es,de,
 const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/This phone/g,"This device"],[/este móvil/g,"este dispositivo"],[/Este móvil/g,"Este dispositivo"],[/diesem Handy/g,"diesem Gerät"],[/dieses Handy/g,"dieses Gerät"],[/neste celular/g,"neste dispositivo"],[/este celular/g,"este dispositivo"]];
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
-function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
+function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
   $("#varSearch").placeholder=Tx("Search variables","Buscar variables");if(typeof applyLayout==="function"){applyLayout();updatePopTitles()}rerenderAll()}
 
 /* ===================== helpers ===================== */
@@ -2586,16 +2590,36 @@ function pcOverlays(){return MODE==="bridge"&&INFO&&INFO.overlays}
 async function openOverlayOnPC(w){const r=await fetch(`/api/overlay/open?w=${w}`,{method:"POST"}).catch(()=>null);if(!r||!r.ok){toast(Tx("Could not open the overlay window.","No se pudo abrir la ventana overlay."));return false}return true}
 async function popOut(w){if(pcOverlays()){if(!await openOverlayOnPC(w))return;if(isPC()&&w!=="standings"){HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}toast(isPC()?Tx("Opened as an overlay. Bring it back here from Layout.","Abierto como overlay. Recupéralo aquí desde Diseño."):Tx("Opened on your PC.","Abierto en tu PC."))}
   else if(MODE==="bridge")window.open(`/?overlay=${w}`,"_blank")}
+/* race summary: the short story of each race, ready as soon as it ends (PC and phone) */
+function raceSummary(r){const a=raceAnalysis(r),laps=(r.laps||[]).filter(l=>l.t>0),clean=laps.filter(l=>l.n>1&&!l.pit&&!l.i);
+  let sect=null;const withS=clean.filter(l=>l.s&&l.s.length===3);
+  if(withS.length>=3&&a.bestS)sect=[0,1,2].map(k=>{const v=withS.map(l=>l.s[k]).sort((x,y)=>x-y);return{k,loss:v[Math.floor(v.length/2)]-a.bestS[k]}}).sort((x,y)=>y.loss-x.loss);
+  const groups=[];let cur=[];laps.forEach(l=>{cur.push(l);if(l.pit){groups.push(cur);cur=[]}});if(cur.length)groups.push(cur);
+  const st=groups.map((g,i)=>{const c=g.filter(l=>l.n>1&&!l.pit&&!l.i),f=g.map(l=>l.f||0).filter(x=>x>0);
+    return{i:i+1,from:g[0].n,to:g[g.length-1].n,laps:g.length,avg:c.length?mean(c.map(l=>l.t)):null,best:c.length?Math.min(...c.map(l=>l.t)):null,fuel:f.length?f.reduce((x,y)=>x+y,0):null,fpl:f.length?mean(f):null}});
+  const good=a.ins.filter(x=>x.k==="good").map(x=>x.t),tips=a.ins.filter(x=>x.k!=="good").map(x=>x.t);
+  if(r.inc===0)good.unshift(Tx("Clean race: no incidents.","Carrera limpia: sin incidentes.","Sauberes Rennen: keine Zwischenfälle.","Corrida limpa: sem incidentes."));
+  const d=r.start-r.finish;if(!r.dnf&&d>0)good.unshift(Tx(`You gained ${d} place${d>1?"s":""} from the start.`,`Ganaste ${d} posici${d>1?"ones":"ón"} desde la salida.`,`Du hast ${d} Platz${d>1?"e":""} seit dem Start gewonnen.`,`Você ganhou ${d} posiç${d>1?"ões":"ão"} desde a largada.`));
+  if(r.best&&r.fieldBest){const g=(r.best-r.fieldBest)/r.fieldBest*100,t=Tx(`Your best lap was ${g.toFixed(2)}% off the fastest of the race.`,`Tu mejor vuelta estuvo a ${g.toFixed(2)} % de la más rápida de la carrera.`,`Deine beste Runde lag ${g.toFixed(2)} % hinter der schnellsten des Rennens.`,`Sua melhor volta ficou a ${g.toFixed(2)}% da mais rápida da corrida.`);if(g<.5)good.push(t);else tips.unshift(t)}
+  if(r.inc>=4)tips.push(Tx(`${r.inc} incidents: they cost safety rating; the full report shows where they happened.`,`${r.inc} incidentes: cuestan safety rating; el informe completo muestra dónde ocurrieron.`,`${r.inc} Zwischenfälle: Sie kosten Safety Rating; der ganze Bericht zeigt, wo sie passiert sind.`,`${r.inc} incidentes: custam safety rating; o relatório completo mostra onde aconteceram.`));
+  return{a,sect,st,good,tips,clean}}
+function raceSummaryHTML(r,opt){opt=opt||{};const S=raceSummary(r),d=r.start-r.finish,pill=(t,c)=>`<span class="pill ${c||""}">${t}</span>`;
+  const head=`<div class="rs-head"><div class="rs-pos"><b>${r.dnf?"DNF":"P"+r.finish}</b><small>${esc(Tx(`of ${r.field}`,`de ${r.field}`,`von ${r.field}`,`de ${r.field}`))}${r.multiclass?" · "+esc(Tx("class","clase","Klasse","classe")):""}</small></div>
+    <div class="rs-pills">${!r.dnf&&d?pill((d>0?"▲ +":"▼ ")+d+" "+esc(Tx("places","posiciones","Plätze","posições")),d>0?"good":"bad"):pill(esc(Tx("Started P","Salida P","Start P","Largada P"))+r.start)}
+      ${r.irChange?pill("iRating "+(r.irChange>0?"+":"")+r.irChange+" <small>"+esc(Tx("est.","est.","geschätzt","est."))+"</small>",r.irChange>0?"good":"bad"):""}
+      ${pill(r.inc+" "+esc(Tx("incidents","incidentes","Zwischenfälle","incidentes")),r.inc===0?"good":r.inc>=4?"bad":"")}
+      ${r.best?pill(esc(Tx("Best","Mejor","Beste","Melhor"))+" "+fmtT(r.best)):""}${r.consistency?pill("± "+r.consistency.toFixed(2)+" s"):""}</div></div>`;
+  const list=(t,arr,cls)=>arr.length?`<div class="rs-col ${cls}"><div class="label">${esc(t)}</div><ul>${arr.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+  const lost=S.sect?S.sect.filter(x=>x.loss>.05).slice(0,2).map(x=>Tx(`Sector ${x.k+1}: ${x.loss.toFixed(2)} s per lap compared with your best sector.`,`Sector ${x.k+1}: ${x.loss.toFixed(2)} s por vuelta frente a tu mejor sector.`,`Sektor ${x.k+1}: ${x.loss.toFixed(2)} s pro Runde im Vergleich zu deinem besten Sektor.`,`Setor ${x.k+1}: ${x.loss.toFixed(2)} s por volta comparado ao seu melhor setor.`)):[];
+  const stints=S.st.length>1||S.st.some(x=>x.fuel)?`<div class="label" style="margin-top:12px">Stints</div><div style="overflow:auto"><table class="rtable"><thead><tr><th>#</th><th>${esc(Tx("Laps","Vueltas","Runden","Voltas"))}</th><th>${esc(Tx("Average","Media","Schnitt","Média"))}</th><th>${esc(Tx("Best","Mejor","Beste","Melhor"))}</th><th>${esc(Tx("Fuel","Combustible","Benzin","Combustível"))}</th><th>${esc(Tx("Per lap","Por vuelta","Pro Runde","Por volta"))}</th></tr></thead><tbody>
+    ${S.st.map(x=>`<tr><td class="mono">${x.i}</td><td class="mono">${x.from}–${x.to} <small>(${x.laps})</small></td><td class="mono">${fmtT(x.avg)}</td><td class="mono">${fmtT(x.best)}</td><td class="mono">${x.fuel!=null?vol(x.fuel).toFixed(1)+" "+volU():"–"}</td><td class="mono">${x.fpl!=null?vol(x.fpl).toFixed(2)+" "+volU():"–"}</td></tr>`).join("")}</tbody></table></div>`:"";
+  return `<div class="panel rsum">${opt.title?`<div class="vhead" style="margin:0 0 8px;flex-wrap:wrap;gap:8px"><h2 style="margin:0">${esc(Tx("Race summary","Resumen de la carrera","Rennzusammenfassung","Resumo da corrida"))}</h2>${opt.title}</div>`:""}${head}
+    <div class="rs-cols">${list(Tx("What went well","Lo que salió bien","Was gut lief","O que deu certo"),S.good,"good")}${list(Tx("Where you lost time","Dónde perdiste tiempo","Wo du Zeit verloren hast","Onde você perdeu tempo"),[...lost,...S.tips],"tip")}</div>${stints}</div>`}
+function renderRaceRecap(){const box=$("#raceRecap");if(!box)return;const r=(RACES||[]).slice().sort((a,b)=>b.when-a.when)[0];if(!r){box.innerHTML="";return}
+  box.innerHTML=raceSummaryHTML(r,{title:`<small class="muted">${esc((seriesName(r.seriesId)||r.car)+" · "+r.track+" · "+dshort(r.when))}</small><button type="button" class="btn small" id="rsOpen">${esc(Tx("Full report","Informe completo","Ganzer Bericht","Relatório completo"))} ›</button>`});
+  $("#rsOpen").onclick=()=>openRace(r.id)}
 /* features being built: shown as "in development" with what they will do */
 const WIP={
-  recap:{box:"#wipRecap",pct:45,icon:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
-    t:["Race summary","Resumen de la carrera","Rennzusammenfassung","Resumo da corrida"],
-    d:["After every race, a report on your phone without asking for it: what went well and where you lost time.","Después de cada carrera, un informe en tu móvil sin pedirlo: qué salió bien y dónde perdiste tiempo.","Nach jedem Rennen ein Bericht auf deinem Handy, ohne dass du fragst: was gut lief und wo du Zeit verloren hast.","Depois de cada corrida, um relatório no seu celular sem pedir: o que deu certo e onde você perdeu tempo."],
-    l:[["Position, iRating and safety rating won or lost","Posición, iRating y safety rating ganados o perdidos","Position, iRating und Safety Rating gewonnen oder verloren","Posição, iRating e safety rating ganhos ou perdidos"],
-       ["Your best lap and how consistent you were","Tu mejor vuelta y lo constante que fuiste","Deine beste Runde und wie konstant du warst","Sua melhor volta e o quanto foi constante"],
-       ["The corners where you lost the most time","Las curvas donde más tiempo perdiste","Die Kurven, in denen du am meisten Zeit verloren hast","As curvas onde você mais perdeu tempo"],
-       ["Fuel and tyres per stint","Combustible y neumáticos por stint","Benzin und Reifen pro Stint","Combustível e pneus por stint"],
-       ["A notification when it is ready","Un aviso cuando esté listo","Eine Benachrichtigung, wenn er fertig ist","Um aviso quando estiver pronto"]]},
   team:{box:"#wipTeam",pct:25,icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     t:["Team mode","Modo equipo","Team-Modus","Modo equipe"],
     d:["For endurance races with friends: everyone sees the live telemetry of whoever is driving, and the team's times.","Para carreras de resistencia con amigos: todos ven la telemetría en vivo de quien conduce y los tiempos del equipo.","Für Langstreckenrennen mit Freunden: Alle sehen die Live-Telemetrie des aktuellen Fahrers und die Zeiten des Teams.","Para corridas de resistência com amigos: todos veem a telemetria ao vivo de quem está pilotando e os tempos da equipe."],
@@ -4218,7 +4242,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
-  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
+  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";setTimeout(()=>{applyI18n.sent=null;try{if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}},0);REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
   if(OV.on&&typeof window.pwReady==="function")window.pwReady(); // the frameless overlay window: the page loaded
   if(!OV.on&&typeof window.pwWin==="function")ownFrame();
@@ -4400,7 +4424,7 @@ async function renderRaces(){const box=$("#racesBody");if(!box)return;if(!RACES)
   box.innerHTML=`<div class="grid">${card(Tx("Races","Carreras"),n,Tx(`${wins} wins · ${pod} podiums`,`${wins} victorias · ${pod} podios`,`${wins} Siege · ${pod} Podien`,`${wins} vitórias · ${pod} pódios`))}${card(Tx("Average finish","Posición media"),avgF?"P"+avgF.toFixed(1):"–",Tx(`${gained>=0?"+":""}${gained} places from the start`,`${gained>=0?"+":""}${gained} posiciones desde la salida`,`${gained>=0?"+":""}${gained} Plätze vom Start`,`${gained>=0?"+":""}${gained} posições desde a largada`))}${card(Tx("Incidents per race","Incidentes por carrera"),incAvg.toFixed(1),"")}${card("iRating",`<span class="${irSum>=0?"good":"bad"}">${irTxt(irSum)}</span>`,Tx("estimated, these races","estimado, estas carreras"))}</div>
     <div class="panel" style="margin-top:10px;padding:0;overflow:auto"><table class="rtable"><thead><tr><th>${esc(Tx("Date","Fecha"))}</th><th>${esc(Tx("Race","Carrera"))}</th><th>${esc(Tx("Result","Resultado"))}</th><th>Inc</th><th>${esc(Tx("Best lap","Mejor vuelta"))}</th><th>iR</th></tr></thead><tbody>
     ${list.map(r=>`<tr data-rid="${esc(r.id)}" tabindex="0"><td class="mono">${esc(dshort(r.when))}</td><td><b>${esc(seriesName(r.seriesId)||r.car)}</b><small>${esc(r.track)}</small></td><td class="mono"><b>${r.dnf?"DNF":"P"+r.finish}</b><small>${esc(Tx("of","de"))} ${r.field} · ${esc(Tx("from","desde"))} P${r.start} ${placeDelta(r)}</small></td><td class="mono">${r.inc}x</td><td class="mono">${fmtT(r.best)}${r.fieldBest&&r.best?`<small>${sgn(r.best-r.fieldBest,3)}</small>`:""}</td><td class="mono ${r.irChange>0?"good":r.irChange<0?"bad":""}">${irTxt(r.irChange)}${r.posted?' <span title="Discord">💬</span>':""}</td></tr>`).join("")}</tbody></table></div>`;
-  box.querySelectorAll("[data-rid]").forEach(tr=>{tr.onclick=()=>openRace(tr.dataset.rid);tr.onkeydown=e=>{if(e.key==="Enter")openRace(tr.dataset.rid)}})}
+  box.querySelectorAll("[data-rid]").forEach(tr=>{tr.onclick=()=>openRace(tr.dataset.rid);tr.onkeydown=e=>{if(e.key==="Enter")openRace(tr.dataset.rid)}});renderRaceRecap()}
 function lineChart(vals,opt){const w=600,h=opt.h||150,p=24,xs=vals.map((v,i)=>i),ok=vals.filter(v=>v!=null);if(ok.length<2)return"";let lo=Math.min(...ok),hi=Math.max(...ok);if(opt.lo!=null)lo=opt.lo;if(opt.hi!=null)hi=opt.hi;if(hi-lo<1e-6)hi=lo+1;
   const X=i=>p+i*(w-2*p)/Math.max(1,vals.length-1),Y=v=>opt.invert?p+(v-lo)/(hi-lo)*(h-2*p):h-p-(v-lo)/(hi-lo)*(h-2*p);
   const pts=vals.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
@@ -4410,7 +4434,7 @@ function lineChart(vals,opt){const w=600,h=opt.h||150,p=24,xs=vals.map((v,i)=>i)
 async function openRace(id){const r=(RACES||[]).find(x=>x.id===id)||SHARED_REPORTS[id];if(!r)return;LAYOUT_VIEW=null;
   $("#dTitle").textContent=(r.shared?(r.alias||"")+" · ":"")+(seriesName(r.seriesId)||r.car);$("#dSub").textContent=`${r.track} · ${new Date(r.when).toLocaleString(locale(),{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`;
   const laps=r.laps||[],k=(lbl,val,sub)=>`<div class="rk"><span class="label">${esc(lbl)}</span><b class="mono">${val}</b>${sub?`<small>${sub}</small>`:""}</div>`,gap=r.best&&r.fieldBest?(r.best-r.fieldBest)/r.fieldBest*100:null;
-  $("#dBody").innerHTML=`<div class="rkeys">${k(Tx("Finish","Llegada"),r.dnf?"DNF":"P"+r.finish,`${esc(Tx("of","de"))} ${r.field}${r.multiclass?" · "+esc(Tx("class","clase")):""}`)}${k(Tx("Start","Salida"),"P"+r.start,placeDelta(r))}${k(Tx("Incidents","Incidentes"),r.inc+"x","")}${k("iRating",`<span class="${r.irChange>0?"good":r.irChange<0?"bad":""}">${irTxt(r.irChange)}</span>`,`<span id="irOff">${esc(Tx("estimate","estimado"))}${r.ir?" · "+r.ir:""}</span>`)}
+  $("#dBody").innerHTML=raceSummaryHTML(r)+`<div class="rkeys" style="margin-top:10px">${k(Tx("Finish","Llegada"),r.dnf?"DNF":"P"+r.finish,`${esc(Tx("of","de"))} ${r.field}${r.multiclass?" · "+esc(Tx("class","clase")):""}`)}${k(Tx("Start","Salida"),"P"+r.start,placeDelta(r))}${k(Tx("Incidents","Incidentes"),r.inc+"x","")}${k("iRating",`<span class="${r.irChange>0?"good":r.irChange<0?"bad":""}">${irTxt(r.irChange)}</span>`,`<span id="irOff">${esc(Tx("estimate","estimado"))}${r.ir?" · "+r.ir:""}</span>`)}
       ${k(Tx("Best lap","Mejor vuelta"),fmtT(r.best),gap!=null?esc(Tx(`${gap.toFixed(2)}% off the fastest`,`${gap.toFixed(2)}% de la más rápida`,`${gap.toFixed(2)}% langsamer als die Schnellste`,`${gap.toFixed(2)}% da mais rápida`)):"")}${k(Tx("Average · consistency","Media · regularidad"),fmtT(r.avg),r.consistency?`± ${r.consistency.toFixed(2)} s`:"")}${k(Tx("Fuel · stops","Gasolina · paradas"),r.fuelUsed?vol(r.fuelUsed).toFixed(1)+" "+volU():"–",`${r.pits} ${esc(Tx("stops","paradas"))}`)}${k("SOF",r.sof||"–","")}</div>
     ${laps.length>1?`<div class="panel" style="margin-top:10px"><div class="label">${esc(Tx("Lap times","Tiempos por vuelta"))} <span class="muted">· <i class="dot inc"></i>${esc(Tx("incident","incidente"))} <i class="dot pit"></i>${esc(Tx("pit","box"))}</span></div>${lineChart(laps.map(l=>l.n===1?null:l.t),{label:"lap times",fmt:v=>fmtT(v),tip:i=>`${Tx("Lap","Vuelta")} ${laps[i].n}: ${fmtT(laps[i].t)}`,mark:laps.map(l=>l.pit?"pit":l.i?"inc":"")})}
       <div class="label" style="margin-top:10px">${esc(Tx("Position","Posición"))}</div>${lineChart(laps.map(l=>l.p),{label:"position",invert:true,lo:1,hi:Math.max(r.field,...laps.map(l=>l.p)),fmt:v=>"P"+Math.round(v),tip:i=>`${Tx("Lap","Vuelta")} ${laps[i].n}: P${laps[i].p}`,h:120})}</div>`:""}
@@ -4427,7 +4451,8 @@ async function openRace(id){const r=(RACES||[]).find(x=>x.id===id)||SHARED_REPOR
 function onRaceReport(r){RACES=[r,...(RACES||[]).filter(x=>x.id!==r.id)];const d=r.start-r.finish;
   toast(Tx(`Race report: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Informe de carrera: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Rennbericht: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Relatório de corrida: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`));
   if(VOICE.on&&!OV.on)say({k:"race",g:60000,c:null,t:VT(`Finished P${r.finish}${d>0?`, ${d} places gained`:d<0?`, ${-d} places lost`:""}. ${r.inc} incidents${r.irChange?`. iRating ${r.irChange>0?"plus":"minus"} ${Math.abs(r.irChange)}, estimated`:""}`,`Terminas ${r.finish}º${d>0?`, ganas ${d} posiciones`:d<0?`, pierdes ${-d} posiciones`:""}. ${r.inc} incidentes${r.irChange?`. iRating ${r.irChange>0?"más":"menos"} ${Math.abs(r.irChange)}, estimado`:""}`)});
-  if(CUR_VIEW==="races")renderRaces();TB=null}
+  if(CUR_VIEW==="races")renderRaces();TB=null;
+  setTimeout(()=>toast(Tx("Race summary ready: Analysis → Races","Resumen de la carrera listo: Análisis → Carreras","Rennzusammenfassung fertig: Analyse → Rennen","Resumo da corrida pronto: Análise → Corridas")),3400)}
 
 /* ---------- braking points of the race on the track map: you and the others ---------- */
 function brakePointsJS(raw,bin){const n=raw.length,v=raw.slice();let last=-1;for(let i=0;i<n;i++)if(v[i]>0){if(last>=0&&i-last>1)for(let k=last+1;k<i;k++)v[k]=v[last]+(v[i]-v[last])*(k-last)/(i-last);last=i}

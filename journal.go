@@ -532,6 +532,7 @@ func saveRace(r *raceReport) {
 	pushNoticeLocked("race", r)
 	journalMu.Unlock()
 	log.Printf("Race report: P%d from P%d at %s", r.Finish, r.Start, r.Track)
+	go notifyRaceSummary(r)
 	go discordRace(r)
 	shareReport(r)
 }
@@ -676,4 +677,19 @@ func registerJournalRoutes(mux *http.ServeMux) {
 		defer journalMu.Unlock()
 		writeJSON(w, map[string]any{"notes": notes})
 	})
+}
+
+// notifyRaceSummary tells you, even with the window closed, that the race summary is ready.
+func notifyRaceSummary(r *raceReport) {
+	res := fmt.Sprintf("P%d", r.Finish)
+	if r.DNF {
+		res = "DNF"
+	} else if d := r.Start - r.Finish; d != 0 {
+		res += fmt.Sprintf(" (%+d)", d)
+	}
+	if uiLanguage() == "es" {
+		notify("Resumen de la carrera · "+res, r.Track+" · Abre Pitlane HQ → Análisis → Carreras para ver qué salió bien y dónde perdiste tiempo.")
+		return
+	}
+	notify("Race summary · "+res, r.Track+" · Open Pitlane HQ → Analysis → Races to see what went well and where you lost time.")
 }
