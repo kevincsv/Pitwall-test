@@ -108,7 +108,12 @@
     const u = new URL(path, "https://x"), p = u.pathname, q = u.searchParams;
     if (p === "/api/sessions") return sessions();
     let m = p.match(/^\/api\/sessions\/(.+)$/);
-    if (m) { const id = decodeURIComponent(m[1]), s = sessions().find((x) => x.id === id); return s ? { session: s, laps: laps(id) } : undefined; }
+    if (m) {
+      const id = decodeURIComponent(m[1]), s = sessions().find((x) => x.id === id);
+      if (!s) return undefined;
+      const ls = laps(id);
+      return { session: s, laps: q.get("traces") === "1" ? ls.map((l) => ({ ...l, trace: trace(comboOf(l.id), l.time, hash(l.id)) })) : ls };
+    }
     m = p.match(/^\/api\/laps\/(.+)$/);
     if (m) {
       const id = decodeURIComponent(m[1]), sid = id.slice(0, id.lastIndexOf(":")), l = laps(sid).find((x) => x.id === id), s = sessions().find((x) => x.id === sid);

@@ -218,6 +218,32 @@ export async function community(req, env, url) {
     ]);
     return json({ deleted: true });
   }
+  // a lap from your account to the community (its fastest valid lap with telemetry, or the one you chose)
+  if (p === "/share-lap" && m === "POST") {
+    if (!u.account) return err("sign in with your Pitlane HQ account", 401);
+    const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(String(body.sessionId || ""), "acct:" + u.id).first();
+    if (!s) return err("session not found in your account", 404);
+    const lap = body.lapId
+      ? await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE id=?1 AND session_id=?2 AND trace IS NOT NULL").bind(String(body.lapId), s.id).first()
+      : await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first();
+    if (!lap) return err("this session has no valid lap with telemetry", 404);
+    const name = s.track + (s.track_config ? " · " + s.track_config : "");
+    let trackId = s.track_id, carId = s.car_id;
+    if (!trackId || !carId) {
+      const x = await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE (track=?1 OR track=?2) AND car=?3 AND game=?4 LIMIT 1").bind(name, s.track, s.car, s.game || "iracing").first();
+      if (x) [trackId, carId] = [x.track_id, x.car_id];
+    }
+    if (!trackId || !carId) return err("this session was recorded by an older Pitlane HQ without the track and car ids: share a lap of a newer session", 400);
+    const g = s.game || "iracing";
+    const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
+    if (old && old.game === g && old.time <= lap.time && old.traced) return json({ kept: "your faster lap is already shared" });
+    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
+    await env.DB.prepare(
+      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
+       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
+    ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g).run();
+    return json({ shared: true });
+  }
   if (p === "/laps" && m === "POST") {
     const carId = int(body.carId), trackId = int(body.trackId), time = num(body.time);
     if (!carId || !trackId || !time || time <= 10 || time > 3600) return err("lap needs carId, trackId and time", 400);

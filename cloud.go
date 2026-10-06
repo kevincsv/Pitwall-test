@@ -43,6 +43,8 @@ type cloudSession struct {
 	AirTemp     float64 `json:"airTemp,omitempty"`
 	TrackTemp   float64 `json:"trackTemp,omitempty"`
 	Game        string  `json:"game,omitempty"`
+	TrackID     int     `json:"trackId,omitempty"` // to share a lap from the account to the community
+	CarID       int     `json:"carId,omitempty"`
 }
 
 type cloudLap struct {
@@ -272,10 +274,11 @@ func listItem(y, key, value string) string {
 }
 
 func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
-	s := cloudSession{Started: started.UnixMilli(), Track: yamlField(y, "TrackDisplayName"), TrackConfig: yamlField(y, "TrackConfigName"), Game: currentGame()}
+	s := cloudSession{Started: started.UnixMilli(), Track: yamlField(y, "TrackDisplayName"), TrackConfig: yamlField(y, "TrackConfigName"), Game: currentGame(), TrackID: atoi(yamlField(y, "TrackID"))}
 	me := yamlField(y, "DriverCarIdx")
 	if d := driverBlock(y, me); d != "" {
 		s.Car = yamlField(d, "CarScreenName")
+		s.CarID = atoi(yamlField(d, "CarID"))
 		s.Driver = yamlField(d, "UserName")
 	}
 	if si := listItem(y, "SessionNum", fmt.Sprint(sessionNum)); si != "" {

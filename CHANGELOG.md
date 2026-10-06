@@ -4,6 +4,28 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.6 beta
+
+PC app and web only: the phone apps wait for the next build.
+
+**New**
+- My races (formerly My laps): every session in your account. Open one in the lap analyzer or the
+  braking coach.
+- Lap analyzer: throttle, brake, gear and steering under the speed chart, each one switched on or
+  off (speed and delta too). The analyzer and the braking coach read them: time flat out,
+  coasting, lifts in the middle of a corner and how busy the steering is, with what to change.
+- Share with the community from your account: the fastest lap of any session (Community), or
+  lap A from the lap analyzer, always with its telemetry.
+
+**Changed**
+- Community: one switch, "Share with the community", shares everything at once (best laps with
+  telemetry, race analyses, track layouts). Your public name moved here from My account.
+- Leaderboard: laps whose telemetry was not shared are listed too, and say so.
+- Loading a session from your account takes one call instead of one per lap, the last sessions
+  stay ready, and changing race quickly no longer leaves the analyzer loading forever.
+- Data and Full telemetry are for admins only for now; per-car settings and setups are switched
+  off; Settings left the My account tab (it is behind the gear icon).
+
 ## 0.3.5 beta
 
 **Changed**

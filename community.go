@@ -398,9 +398,20 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				ShareMaps, LiveWeb                               *bool
 				Friday, GuestAuto                                bool
 				Guest                                            string
+				SessionID, LapID                                 string
+				Anon                                             bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
+			case "shareLap": // a lap of your account to the community: the server takes it from the account
+				b, err := commCall("POST", "/share-lap", map[string]any{"sessionId": in.SessionID, "lapId": in.LapID, "anon": in.Anon}, true)
+				if err != nil {
+					fail(err)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(b)
+				return
 			case "save":
 				in.URL = strings.TrimSpace(in.URL)
 				if in.URL != "" {

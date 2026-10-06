@@ -13,14 +13,17 @@
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it slowly: PATCH for fixes, MINOR for a set of features, never on every build.
   Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
-- Every feature goes to the PC app, the web and the phone apps.
+- Every feature goes to the PC app, the web and the phone apps. For now (the owner's request) only the
+  PC app and the web are built and released; phone app changes stay local in their repository
+  until the owner asks for a phone build.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
 - The community ideal lap must be realistic: built only from laps close to the fastest one,
   the median of the best few per micro-sector, and never more than 0.5 % faster than the
   fastest lap really driven (`IDEAL_MAX` in `web/dist/pitwall-model.js`).
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
-  NASCAR 26, team mode and the overlays on top of the game
+  NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.
+  Switched off for now: setups and per-car settings.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
   The Android and iOS apps live in their own repository.

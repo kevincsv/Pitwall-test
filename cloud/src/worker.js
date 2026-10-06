@@ -43,13 +43,14 @@ const str = (v, max = 120) => (typeof v === "string" ? v.slice(0, max) : v == nu
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 const idOk = (v) => typeof v === "string" && /^[A-Za-z0-9_.:-]{6,80}$/.test(v);
 
+const posInt = (v) => (Number.isInteger(v) && v > 0 && v < 1e9 ? v : null);
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(
-    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
-     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp`
-  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game)).run();
+    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game, track_id, car_id)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
+     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp, track_id=COALESCE(excluded.track_id, track_id), car_id=COALESCE(excluded.car_id, car_id)`
+  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId)).run();
   return null;
 }
 
@@ -100,7 +101,7 @@ async function api(req, env, url) {
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
-    let sql = "SELECT * FROM sessions";
+    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0) AS best FROM sessions";
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
@@ -139,8 +140,10 @@ async function api(req, env, url) {
     const sid = decodeURIComponent(mm[1]);
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(sid).first();
     if (!s || (own && s.uploader !== own)) return err("not found", 404);
-    const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n" ).bind(sid).all();
-    return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null })) });
+    // ?traces=1: every lap with its telemetry in one answer (the app's analyzer), instead of one call per lap
+    const withTraces = url.searchParams.get("traces") === "1";
+    const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
+    return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(l.trace) : null } : {}) })) });
   }
 
   // fastest valid lap of anyone in the team for a track, layout and car

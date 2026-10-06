@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS sessions (
   track_temp REAL,
   laps INTEGER DEFAULT 0,
   best REAL,
-  uploader TEXT                   -- 'owner' or the team member's name
+  uploader TEXT                   -- 'owner' or the team member's name,
+  track_id INTEGER,
+  car_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS sessions_started ON sessions(started DESC);
 CREATE INDEX IF NOT EXISTS sessions_combo ON sessions(track, car);
