@@ -1,4 +1,5 @@
 name: Build iOS app
+# Build requested after coach comparator merge
 
 on:
   workflow_dispatch:
