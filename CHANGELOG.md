@@ -4,6 +4,21 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.2 beta
+
+**New**
+- DRINKS mode can be switched from Settings → About on the PC and on the web (admins only), not
+  only from the phone. On the web it goes to your PC through your account.
+
+**Fixed**
+- Lap charts on the PC and the web no longer grow without end and crash when the mouse moves over
+  them on screens with Windows scaling above 100 %; hovering only redraws the charts.
+- Demo data can always be turned off again: the switch in About no longer disappears after the
+  page reloads.
+- The demo data banner is bigger and easier to see.
+- My account on wide screens: the two columns are balanced and delete account sits under the
+  left column.
+
 ## 0.3.1 beta
 
 **New**
@@ -17,7 +32,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - Compact menus on phones and narrow windows: the header fits on one line, smaller tabs and
   bottom bar, the two laps side by side, smaller download cards. The version is in About.
 
-
+## 0.3.0 beta
 
 The first numbered beta. Before it, every build raised the version (up to 0.25.0): from now on
 the numbers move slowly and each one comes with this changelog.
