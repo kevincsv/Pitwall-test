@@ -13,9 +13,7 @@
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it slowly: PATCH for fixes, MINOR for a set of features, never on every build.
   Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
-- Every feature goes to the PC app, the web and the phone apps. For now (the owner's request) only the
-  PC app and the web are built and released; phone app changes stay local in their repository
-  until the owner asks for a phone build.
+- Every feature goes to the PC app, the web and the phone apps.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
 - The community ideal lap must be realistic: built only from laps close to the fastest one,
   the median of the best few per micro-sector, and never more than 0.5 % faster than the
