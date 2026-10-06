@@ -67,7 +67,7 @@ html.embed header .brand,html.embed #out,html.embed nav a.btn,html.embed .langse
 <div class="wrap">
 <header>
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
-  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><a class="btn" href="/app/?companion=1" data-t="Planner y comunidad"></a><button type="button" id="out" data-t="Salir"></button></nav>
+  <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><button type="button" id="out" data-t="Salir"></button></nav>
   <label class="langsel"><span class="sr" data-t="Idioma"></span><select id="lang" aria-label="Language / Idioma"><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="pt">Português</option></select></label>
 </header>
 
@@ -104,7 +104,6 @@ html.embed header .brand,html.embed #out,html.embed nav a.btn,html.embed .langse
 </div>
 
 <section class="dl panel" id="downloads">
-  <p style="margin:0 0 12px"><a class="btn primary" href="/app/?companion=1" data-t="Abrir la app en el navegador (planner, comunidad, cuenta)"></a></p>
   <h2 data-t="Descargar Pitlane HQ"></h2>
   <p class="sub" data-t="Gratis. Usa la misma cuenta en el PC, el móvil y esta web."></p>
   <div class="dlgrid">
@@ -215,8 +214,7 @@ const I18N={
 "Creando la cuenta…":["Creating the account…","Konto wird erstellt…","Criando a conta…"],
 "No se pudo crear la cuenta: ":["Could not create the account: ","Konto konnte nicht erstellt werden: ","Não foi possível criar a conta: "],
 "Última versión":["Latest version","Neueste Version","Última versão"],
-"Planner y comunidad":["Planner & community","Planer & Community","Planner e comunidade"],
-"Abrir la app en el navegador (planner, comunidad, cuenta)":["Open the app in the browser (planner, community, account)","App im Browser öffnen (Planer, Community, Konto)","Abrir o app no navegador (planner, comunidade, conta)"],
+
 };
 let LANG="en";try{LANG=localStorage.getItem("plq.lang")||"en"}catch(e){}{const ql=new URLSearchParams(location.search).get("lang");if(ql)LANG=ql}
 if(!["en","es","de","pt"].includes(LANG))LANG="en";

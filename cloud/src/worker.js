@@ -196,22 +196,6 @@ export default {
         return err("server error: " + (e && e.message), 500);
       }
     }
-    // the full Pitlane HQ app (planner, community, account…), same as the phone app: /app/
-    if (url.pathname === "/app" || url.pathname.startsWith("/app/")) {
-      if (!env.ASSETS) return err("the app is not published on this server", 404);
-      if ((url.pathname === "/app" || url.pathname === "/app/") && url.searchParams.get("companion") !== "1") {
-        return Response.redirect(url.origin + "/app/?companion=1" + url.hash, 302);
-      }
-      const inner = new URL(req.url);
-      inner.pathname = url.pathname.slice(4) || "/";
-      const r = await env.ASSETS.fetch(new Request(inner, req));
-      const h = new Headers(r.headers);
-      h.set("referrer-policy", "no-referrer");
-      h.set("x-frame-options", "DENY");
-      h.set("x-content-type-options", "nosniff");
-      if (inner.pathname === "/" || inner.pathname.endsWith(".html") || inner.pathname.endsWith(".json")) h.set("cache-control", "no-cache");
-      return new Response(r.body, { status: r.status, headers: h });
-    }
     if (url.pathname.startsWith("/api/")) {
       try {
         return await api(req, env, url);
