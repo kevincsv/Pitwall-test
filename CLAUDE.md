@@ -5,8 +5,13 @@
 - Anything sensitive that goes to GitHub is encrypted or kept in GitHub secrets; never paste
   Cloudflare tokens or keys anywhere.
 - The subscription stays off (`license_plans.json` → `enforce: false`).
-- Only real data: no demo races, sample drivers or made-up laps in the app, the web or the server.
-  The `-demo` flag of PitlaneHQ.exe is for development only and has no button in the app.
+- Real data by default: no demo races, sample drivers or made-up laps on the server. Invented data
+  only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
+  apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
+  PitlaneHQ.exe is for development only and has no button in the app.
+- One version number for PitlaneHQ.exe and the web (`appVersion` in main.go = `WEB_VERSION` in
+  index.html, checked by a test). Every feature goes to the PC app, the web and the phone apps.
+- DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
 - The community ideal lap must be realistic: built only from laps close to the fastest one,
   the median of the best few per micro-sector, and never more than 0.5 % faster than the
   fastest lap really driven (`IDEAL_MAX` in `web/dist/pitwall-model.js`).
