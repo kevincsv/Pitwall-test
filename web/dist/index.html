@@ -5302,3 +5302,5 @@ async function askShare(){if(MODE!=="bridge"||REMOTE||COMPANION||OV.on||$("#shar
   $("#saOK").onclick=async()=>{const k=m.querySelector('input[name="saK"]:checked').value,on=k!=="no";
     try{COMM=await jpost("/api/community",{action:"save",nameKind:c.nameKind||"nick",alias:c.alias||"",url:"",shareTimes:on,shareTraces:on,shareReports:on,anonymous:k==="anon",deleteAfter:on?$("#saDA").value:""})}catch(e){toast(e.message)}m.remove()}}
 </script>
+
+<script src="/pitwall-ui-v1.js"></script>
