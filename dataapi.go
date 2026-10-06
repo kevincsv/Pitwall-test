@@ -48,26 +48,27 @@ type cacheEntry struct {
 	at   time.Time
 }
 
-func configPath() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = "."
-	}
-	return filepath.Join(dir, "PitWall", "account.json")
-}
+func configPath() string { return filepath.Join(activeDir(), "account.json") }
 
+// loadConfig reads the iRacing sign-in of the active profile.
 func loadConfig() {
-	b, err := os.ReadFile(configPath())
-	if err == nil {
+	acctMu.Lock()
+	defer acctMu.Unlock()
+	acct = accountConfig{}
+	cache = map[string]cacheEntry{}
+	if b, err := readSecret(configPath()); err == nil {
 		json.Unmarshal(b, &acct)
 	}
 }
 
+// saveConfig writes the sign-in encrypted (see secret.go). Caller may hold acctMu.
 func saveConfig() {
-	p := configPath()
-	os.MkdirAll(filepath.Dir(p), 0o700)
 	b, _ := json.MarshalIndent(acct, "", "  ")
-	os.WriteFile(p, b, 0o600)
+	if acct.ClientID == "" && acct.RefreshToken == "" && acct.AccessToken == "" {
+		os.Remove(configPath())
+		return
+	}
+	writeSecret(configPath(), b)
 }
 
 // mask implements iRacing's secret masking: base64(sha256(secret + lower(trim(id)))).
@@ -338,13 +339,15 @@ func registerAccountRoutes(mux *http.ServeMux) {
 			return
 		}
 		b, code, err := dataGet(path, r.URL.RawQuery)
+		if err == nil && code < 300 && r.Method == http.MethodGet {
+			companionStore(path, r.URL.RawQuery, b)
+		}
 		if err != nil {
 			w.WriteHeader(code)
 			writeJSON(w, map[string]string{"error": err.Error()})
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(code)
 		w.Write(b)
 	})

@@ -26,29 +26,31 @@ type Config struct {
 	StartWithWindows bool              `json:"startWithWindows"`
 	Positions        map[string][4]int `json:"positions"`
 	UI               map[string]any    `json:"ui"`
+	Game             string            `json:"game"` // "auto" (default), "iracing" or "lmu"
+}
+
+func defaultConfig() Config {
+	return Config{CloseOnExit: true, Engine: "webview", Alpha: 255, Scale: 1, Positions: map[string][4]int{}, UI: map[string]any{}}
 }
 
 var (
 	cfgMu  sync.Mutex
-	cfg    = Config{CloseOnExit: true, Engine: "webview", Alpha: 255, Scale: 1, Positions: map[string][4]int{}, UI: map[string]any{}}
+	cfg    = defaultConfig()
 	cfgVer = 1
 )
 
-func cfgPath() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = "."
-	}
-	return filepath.Join(dir, "PitWall", "settings.json")
-}
+func cfgPath() string { return filepath.Join(activeDir(), "settings.json") }
 
+// loadSettings reads the settings of the active profile (defaults if none).
 func loadSettings() {
+	cfgMu.Lock()
+	defer cfgMu.Unlock()
+	cfg = defaultConfig()
+	cfgVer++
 	b, err := os.ReadFile(cfgPath())
 	if err != nil {
 		return
 	}
-	cfgMu.Lock()
-	defer cfgMu.Unlock()
 	json.Unmarshal(b, &cfg)
 	if cfg.Positions == nil {
 		cfg.Positions = map[string][4]int{}
@@ -138,7 +140,11 @@ func registerConfigRoutes(mux *http.ServeMux) {
 func autoOverlays() {
 	opened := false
 	var lostAt time.Time
+	epoch := profileEpoch.Load()
 	for range time.Tick(time.Second) {
+		if e := profileEpoch.Load(); e != epoch { // another profile: open its overlays
+			epoch, opened = e, false
+		}
 		st := currentStatus()
 		c, _ := settingsSnapshot()
 		inCar, _ := telBool("IsOnTrack")

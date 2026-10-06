@@ -26,6 +26,7 @@ WizardSizePercent=100
 WizardResizable=no
 LicenseFile=EULA.txt
 UninstallDisplayIcon={app}\PitlaneHQ.exe
+SetupIconFile=..\assets\pitlanehq.ico
 CloseApplications=yes
 RestartApplications=no
 ArchitecturesAllowed=x64compatible

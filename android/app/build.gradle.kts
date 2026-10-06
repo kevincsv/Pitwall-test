@@ -13,8 +13,25 @@ android {
         versionCode = 10
         versionName = "0.24.0"
     }
-    // The same (public, debug) key on every build, so a new .apk installs over the
-    // old one without uninstalling. It only proves the updates come from this build.
+    // Signing: the private key from the GitHub secrets when it is set (ANDROID_KEYSTORE_B64 and
+    // its passwords, see .github/workflows/android.yml), so nobody else can sign an update.
+    // Without it, the old public debug key, so builds keep installing over the current app.
+    signingConfigs {
+        getByName("debug") {
+            val ks = System.getenv("PITLANE_KEYSTORE_FILE")
+            if (!ks.isNullOrEmpty() && file(ks).exists()) {
+                storeFile = file(ks)
+                storePassword = System.getenv("PITLANE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("PITLANE_KEY_ALIAS")
+                keyPassword = System.getenv("PITLANE_KEY_PASSWORD")
+            } else {
+                storeFile = file("pitlane-debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
     buildTypes {
         release { isMinifyEnabled = false }
     }

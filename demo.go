@@ -91,6 +91,11 @@ var baseDemoVars = []demoVar{
 	{name: "P2P_Status", desc: "Push2Pass active or not", typ: TypeBool},
 	{name: "P2P_Count", desc: "Push2Pass count of usage (or remaining in Race)", typ: TypeInt},
 	{name: "PlayerCarMyIncidentCount", desc: "Players own incident count for this session", typ: TypeInt},
+	{name: "PlayerTrackSurface", desc: "Players car track surface type", unit: "irsdk_TrkLoc", typ: TypeInt},
+	{name: "EngineWarnings", desc: "Bitfield for warning lights", unit: "irsdk_EngineWarnings", typ: TypeInt},
+	{name: "Precipitation", desc: "Precipitation at start/finish line", unit: "%", typ: TypeFloat},
+	{name: "WeatherDeclaredWet", desc: "The steward says rain tires can be used", typ: TypeBool},
+	{name: "PlayerTireCompound", desc: "Players car current tire compound", typ: TypeInt},
 	{name: "SessionTimeOfDay", desc: "Time of day in seconds", unit: "s", typ: TypeFloat},
 	{name: "TrackWetness", desc: "How wet is the average track surface", unit: "irsdk_TrackWetness", typ: TypeInt},
 	{name: "BrakeABSactive", desc: "true if abs is currently reducing brake force pressure", typ: TypeBool},
@@ -165,7 +170,7 @@ func (d *demoSource) Name() string { return "demo" }
 func (d *demoSource) Open() error {
 	d.rng = rand.New(rand.NewSource(7))
 	d.buildTrack()
-	names := []string{"Jonas Weber", "Mia Okafor", "Luca Bianchi", "Sam Reyes", "Hana Sato", "Tom Fischer", "Iván Morales", "Alex D.", "Ella Novak", "Rui Costa", "Noah Brandt", "Aiko Tanaka", "Pierre Lefèvre", "Omar Haddad", "Lena Kraus", "Diego Ruiz", "Finn O'Neill", "Sara Lind", "Marco Rossi", "Ana Duarte"}
+	names := []string{"Jonas Weber", "Mia Okafor", "Luca Bianchi", "Sam Reyes", "Hana Sato", "Tom Fischer", "Iván Morales", "Demo Driver", "Ella Novak", "Rui Costa", "Noah Brandt", "Aiko Tanaka", "Pierre Lefèvre", "Omar Haddad", "Lena Kraus", "Diego Ruiz", "Finn O'Neill", "Sara Lind", "Marco Rossi", "Ana Duarte"}
 	lics := []string{"A", "B", "B", "C", "B", "A", "C", "B", "D", "C", "B", "C", "A", "D", "B", "C", "D", "R", "B", "C"}
 	colors := map[string]string{"R": "0xff0000", "D": "0xff8c00", "C": "0xffcc00", "B": "0x00c702", "A": "0x0153db"}
 	d.cars = make([]demoCar, demoCars)
@@ -560,9 +565,47 @@ func (d *demoSource) step(dt float64) {
 	}
 	bo("P2P_Status", p2p)
 	in("P2P_Count", int(math.Ceil(d.p2pLeft)))
-	in("PlayerCarMyIncidentCount", 2)
+	// a 1x or 2x now and then so the incident log has something to show
+	inc := 2 + int(d.t/170) + int(d.t/410)
+	in("PlayerCarMyIncidentCount", inc)
+	// two seconds off track just before each 1x, so the spotter has something to say
+	surface := 3
+	if m := math.Mod(d.t, 170); d.t > 170 && m > 168 {
+		surface = 0
+	}
+	in("PlayerTrackSurface", surface)
+	in("EngineWarnings", 0)
 	f("SessionTimeOfDay", 14*3600+d.t)
-	in("TrackWetness", 1)
+	// a shower every 10 minutes of demo: rain from 1:30, the track gets wet, then dries
+	ph := math.Mod(d.t, 600)
+	prec, wet := 0.0, 1
+	switch {
+	case ph < 90:
+	case ph < 300:
+		prec = (ph - 90) / 210 * 0.4
+	case ph < 420:
+		prec = 0.4 * (1 - (ph-300)/120)
+	}
+	switch {
+	case ph < 150:
+		wet = 1
+	case ph < 200:
+		wet = 3
+	case ph < 260:
+		wet = 4
+	case ph < 420:
+		wet = 5
+	case ph < 480:
+		wet = 4
+	case ph < 540:
+		wet = 3
+	default:
+		wet = 2
+	}
+	f("Precipitation", prec)
+	in("TrackWetness", wet)
+	bo("WeatherDeclaredWet", ph >= 260 && ph < 480)
+	in("PlayerTireCompound", 0)
 	bo("BrakeABSactive", brk > 0.95)
 	in("TireSetsUsed", 1)
 	in("TireSetsAvailable", 255)
@@ -600,7 +643,7 @@ WeekendInfo:
  TrackName: pitwalldemo
  TrackID: 9001
  TrackLength: 3.60 km
- TrackDisplayName: Pit Wall Demo Circuit
+ TrackDisplayName: Pitlane HQ Demo Circuit
  TrackDisplayShortName: Demo Circuit
  TrackConfigName: Full Course
  TrackCity: Demo
@@ -671,6 +714,12 @@ DriverInfo:
  DriverCarVersion: 2026.09.29.01
  DriverPitTrkPct: 0.938
  DriverCarEstLapTime: 98.2140
+ DriverCarGearNumForward: 6
+ DriverTires:
+ - TireIndex: 0
+   TireCompoundType: "Hard"
+ - TireIndex: 1
+   TireCompoundType: "Wet"
  DriverSetupName: baseline.sto
  DriverIncidentCount: 2
  Drivers:

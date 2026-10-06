@@ -3,15 +3,17 @@
 package main
 
 // Frameless overlay window, run as a child process of PitWall:
-//   PitWall.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
-// The window has no title bar or taskbar button, stays on top, does not take
+//   PitlaneHQ.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
+// The window has no title bar, has a taskbar button, stays on top, does not take
 // focus away from iRacing, and is moved/resized from the page in edit mode.
 
 import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync/atomic"
 	"syscall"
+	"time"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
@@ -20,7 +22,7 @@ import (
 const (
 	wsPopup         = 0x80000000
 	wsVisible       = 0x10000000
-	wsExToolWindow  = 0x00000080
+	wsExAppWindow   = 0x00040000
 	wsExNoActivate  = 0x08000000
 	wsExTopmost     = 0x00000008
 	swpFrameChanged = 0x0020
@@ -53,7 +55,17 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
-	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitWall", "WebView2")
+	// its own browser data, apart from the main window's
+	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2-overlays")
+	// a window that never shows the page (blank and impossible to close) gives up after
+	// a few seconds; Pitlane HQ then opens this overlay in an Edge window instead
+	var ready atomic.Bool
+	go func() {
+		time.Sleep(8 * time.Second)
+		if !ready.Load() {
+			os.Exit(3)
+		}
+	}()
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      data,
 		WindowOptions: webview2.WindowOptions{Title: overlayTitlePrefix + name, Width: uint(w), Height: uint(h)},
@@ -62,9 +74,15 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 		os.Exit(3)
 	}
 	hwnd := uintptr(wv.Window())
+	// no title bar or borders, on top, never takes the focus from iRacing; it has its own
+	// taskbar button (like RaceLab), so it can also be closed from the taskbar
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
-	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExToolWindow|wsExNoActivate|wsExTopmost)
+	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
+	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
+	// a resize makes WebView2 lay itself out again in the new client area
+	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h+1), swpNoActivate)
+	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
 
 	wv.Bind("pwDrag", func() {
 		wv.Dispatch(func() {
@@ -80,6 +98,15 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), 0, 0, uintptr(nw), uintptr(nh), swpNoMove|swpNoActivate)
 		})
 	})
+	// resize from any edge: the page sends the new position and size
+	wv.Bind("pwRect", func(nx, ny, nw, nh int) {
+		if nw < 120 || nh < 50 || nw > 6000 || nh > 4000 {
+			return
+		}
+		wv.Dispatch(func() {
+			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(nx), uintptr(ny), uintptr(nw), uintptr(nh), swpNoActivate)
+		})
+	})
 	wv.Bind("pwVisible", func(on bool) {
 		wv.Dispatch(func() {
 			if on {
@@ -91,6 +118,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 		})
 	})
 	wv.Bind("pwClose", func() { wv.Dispatch(func() { wv.Destroy() }) })
+	wv.Bind("pwReady", func() { ready.Store(true) })
 	wv.Navigate(url)
 	wv.Run()
 }

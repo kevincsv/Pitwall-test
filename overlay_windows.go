@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -33,7 +34,7 @@ var (
 )
 
 const (
-	overlayTitlePrefix = "PitWall Overlay · "
+	overlayTitlePrefix = "Pitlane HQ overlay · "
 	wsExLayered        = 0x00080000
 	wsExTransparent    = 0x00000020
 	lwaAlpha           = 0x2
@@ -139,7 +140,9 @@ func openOverlay(o overlayReq, url, engine string) error {
 		exe, err := os.Executable()
 		if err == nil {
 			cmd := exec.Command(exe, "-overlay-window", o.Widget, "-url", url, "-x", itoa(o.X), "-y", itoa(o.Y), "-w", itoa(o.Width), "-h", itoa(o.Height))
-			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW: no console flash
+			// no "start hidden" flag here: Windows would apply it to the overlay's first
+			// ShowWindow, WebView2 would start in a hidden window and stay white
+			cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
 			if err := cmd.Start(); err == nil {
 				procsMu.Lock()
 				procs[o.Widget] = cmd
@@ -148,17 +151,22 @@ func openOverlay(o overlayReq, url, engine string) error {
 				go func() {
 					err := cmd.Wait()
 					procsMu.Lock()
-					if procs[o.Widget] == cmd {
+					mine := procs[o.Widget] == cmd // false when Pitlane HQ closed it on purpose
+					if mine {
 						delete(procs, o.Widget)
 					}
 					procsMu.Unlock()
-					if err != nil && time.Since(started) < 6*time.Second {
+					code := -1
+					if cmd.ProcessState != nil {
+						code = cmd.ProcessState.ExitCode()
+					}
+					if mine && err != nil && (code == 3 || time.Since(started) < 6*time.Second) {
 						log.Printf("Frameless overlay %s could not start (%v); using an Edge window", o.Widget, err)
 						openEdgeOverlay(o, url)
 					}
 				}()
-				if o.Alpha < 255 || o.Lock {
-					go styleWhenReady(o)
+				if needsLayer(o) {
+					go styleWhenReady(o, false)
 				}
 				return nil
 			}
@@ -167,7 +175,9 @@ func openOverlay(o overlayReq, url, engine string) error {
 	return openEdgeOverlay(o, url)
 }
 
-func openEdgeOverlay(o overlayReq, url string) error {
+func openEdgeOverlay(o overlayReq, url string) error { return startEdgeOverlay(o, url, false) }
+
+func startEdgeOverlay(o overlayReq, url string, frameless bool) error {
 	edge := edgePath()
 	if edge == "" {
 		return errors.New("Microsoft Edge is needed for overlay windows")
@@ -179,15 +189,24 @@ func openEdgeOverlay(o overlayReq, url string) error {
 	if err := exec.Command(edge, args...).Start(); err != nil {
 		return err
 	}
-	go styleWhenReady(o)
+	go styleWhenReady(o, frameless)
 	return nil
 }
 
-func styleWhenReady(o overlayReq) {
-	for i := 0; i < 40; i++ {
+func styleWhenReady(o overlayReq, frameless bool) {
+	for i := 0; i < 60; i++ {
 		time.Sleep(250 * time.Millisecond)
 		for h, name := range overlayWindows() {
 			if name == o.Widget {
+				if frameless {
+					removeFrame(h)
+				}
+				// the saved place and size are screen pixels (what Windows reports)
+				if o.HasPos && o.Width > 0 && o.Height > 0 && frameless {
+					unaware(func() {
+						procSetWindowPos.Call(h, 0, uintptr(o.X), uintptr(o.Y), uintptr(o.Width), uintptr(o.Height), swpNoActivate|0x0004) // SWP_NOZORDER
+					})
+				}
 				applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
 				return
 			}
@@ -195,12 +214,30 @@ func styleWhenReady(o overlayReq) {
 	}
 }
 
+// removeFrame takes the title bar and borders off a window, keeping its place and size.
+func removeFrame(h uintptr) {
+	const (
+		wsCaption    = 0x00C00000
+		wsThickFrame = 0x00040000
+		wsSysMenu    = 0x00080000
+		wsMinBox     = 0x00020000
+		wsMaxBox     = 0x00010000
+	)
+	x, y, w, hh := windowRect(h)
+	st, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlStyle))
+	st &^= wsCaption | wsThickFrame | wsSysMenu | wsMinBox | wsMaxBox
+	procSetWindowLongPtrW.Call(h, uintptr(gwlStyle), st)
+	procSetWindowPos.Call(h, 0, uintptr(x), uintptr(y), uintptr(w), uintptr(hh), swpFrameChanged|swpNoActivate|0x0004)
+}
+
 func overlayRects() map[string][4]int {
 	out := map[string][4]int{}
-	for h, name := range overlayWindows() {
-		x, y, w, hh := windowRect(h)
-		out[name] = [4]int{x, y, w, hh}
-	}
+	unaware(func() {
+		for h, name := range overlayWindows() {
+			x, y, w, hh := windowRect(h)
+			out[name] = [4]int{x, y, w, hh}
+		}
+	})
 	return out
 }
 
@@ -226,13 +263,17 @@ func setOverlayVisible(name string, on bool) {
 func setStartWithWindows(on bool) error {
 	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
 	if !on {
-		return exec.Command("reg", "delete", key, "/v", "PitWall", "/f").Run()
+		cmd := exec.Command("reg", "delete", key, "/v", "PitWall", "/f")
+		hideChildWindow(cmd)
+		return cmd.Run()
 	}
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	return exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f").Run()
+	cmd := exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f")
+	hideChildWindow(cmd)
+	return cmd.Run()
 }
 
 var procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
@@ -240,19 +281,41 @@ var procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
 func metric(i int) int { v, _, _ := procGetSystemMetrics.Call(uintptr(i)); return int(int32(v)) }
 
 // screenInfo returns the desktop area overlays can be placed in.
-func screenInfo() map[string]any {
-	return map[string]any{
-		"virtual": [4]int{metric(76), metric(77), metric(78), metric(79)},
-		"primary": [4]int{0, 0, metric(0), metric(1)},
+var procSetThreadDpiCtx = user32.NewProc("SetThreadDpiAwarenessContext")
+
+// unaware runs f with this thread in "DPI unaware" mode, the mode of the overlay
+// windows: places and sizes are then the same numbers for Pitlane HQ and for the
+// overlays, whatever the Windows scaling (125 %, 150 %…).
+func unaware(f func()) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if procSetThreadDpiCtx.Find() == nil {
+		old, _, _ := procSetThreadDpiCtx.Call(^uintptr(0)) // DPI_AWARENESS_CONTEXT_UNAWARE (-1)
+		if old != 0 {
+			defer procSetThreadDpiCtx.Call(old)
+		}
 	}
+	f()
+}
+
+func screenInfo() (m map[string]any) {
+	unaware(func() {
+		m = map[string]any{
+			"virtual": [4]int{metric(76), metric(77), metric(78), metric(79)},
+			"primary": [4]int{0, 0, metric(0), metric(1)},
+		}
+	})
+	return
 }
 
 func moveOverlay(name string, x, y, w, h int) {
-	for hw, n := range overlayWindows() {
-		if n == name {
-			procSetWindowPos.Call(hw, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
+	unaware(func() {
+		for hw, n := range overlayWindows() {
+			if n == name {
+				procSetWindowPos.Call(hw, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
+			}
 		}
-	}
+	})
 }
 
 func minimizeConsole() {
@@ -261,10 +324,16 @@ func minimizeConsole() {
 	}
 }
 
+func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock }
+
 func setOverlays(o overlayReq) int {
 	n := 0
 	for h, name := range overlayWindows() {
 		if o.Widget == "*" || name == o.Widget {
+			procsMu.Lock()
+			_, webview := procs[name]
+			procsMu.Unlock()
+			_ = webview
 			applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
 			n++
 		}

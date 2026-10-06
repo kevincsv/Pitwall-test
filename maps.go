@@ -15,11 +15,7 @@ import (
 var mapKeyRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 func mapPath(key string) string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		dir = "."
-	}
-	return filepath.Join(dir, "PitWall", "maps", key+".json")
+	return filepath.Join(dataDir(), "maps", key+".json")
 }
 
 func registerMapRoutes(mux *http.ServeMux) {

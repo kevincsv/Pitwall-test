@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -20,7 +21,7 @@ import (
 	"time"
 )
 
-const appVersion = "0.7.0"
+const appVersion = "0.24.0"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -92,14 +93,22 @@ func reader(forceDemo bool) {
 		if src != nil && (src.Name() == "demo") != wantDemo {
 			closeSrc("Switching data source")
 		}
+		// the game chosen in Settings (or whichever is running, on Automatic)
+		if src != nil && !wantDemo {
+			if g := gamePref(); g != "auto" && src.Name() != g {
+				closeSrc("Switching game")
+			}
+		}
 		if src == nil {
 			if wantDemo {
 				src = newDemoSource()
+				if err := src.Open(); err != nil {
+					src = nil
+				}
 			} else {
-				src = newSimSource()
+				src = openGame(gamePref())
 			}
-			if err := src.Open(); err != nil {
-				src = nil
+			if src == nil {
 				time.Sleep(2 * time.Second)
 				continue
 			}
@@ -123,7 +132,7 @@ func reader(forceDemo bool) {
 			tel.schemaVer++ // let clients refresh status
 			tel.mu.Unlock()
 			if connected {
-				log.Println("iRacing session active")
+				log.Printf("%s session active", firstNonEmpty(gameNames[src.Name()], src.Name()))
 			} else {
 				log.Println("Waiting for you to get in the car...")
 			}
@@ -183,12 +192,14 @@ type statusMsg struct {
 	Source    string `json:"source"`
 	Demo      bool   `json:"demo"`
 	TickRate  int    `json:"tickRate"`
+	Game      string `json:"game"` // the game chosen in Settings: auto, iracing or lmu
 }
 
 func currentStatus() statusMsg {
+	g := gamePref()
 	tel.mu.RLock()
 	defer tel.mu.RUnlock()
-	return statusMsg{tel.connected, tel.source, tel.demo, tel.tickRate}
+	return statusMsg{tel.connected, tel.source, tel.demo, tel.tickRate, g}
 }
 
 // GET /api/stream?vars=Speed,RPM|*&hz=30 — Server-Sent Events.
@@ -234,6 +245,8 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, "retry: 2000\n\n")
 	schemaVer, sessionVer, configVer := -1, -1, -1
+	_, radioSeen := radioSince(-1) // only questions asked after this screen connected
+	_, noticeSeen := noticesSince(-1)
 	var lastTick int32 = -1
 	var want []int
 	var lastStatus statusMsg
@@ -261,9 +274,25 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 			}
 			lastStatus = st
 		}
+		if evs, seq := radioSince(radioSeen); seq != radioSeen {
+			for _, e := range evs {
+				if !send("radio", e) {
+					return
+				}
+			}
+			radioSeen = seq
+		}
+		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
+			for _, e := range evs {
+				if !send("notice", e) {
+					return
+				}
+			}
+			noticeSeen = seq
+		}
 		if c, v := settingsSnapshot(); v != configVer {
 			configVer = v
-			if !send("config", map[string]any{"config": c, "version": v}) {
+			if !send("config", map[string]any{"config": c, "version": v, "profile": activeID(), "profileName": activeName()}) {
 				return
 			}
 		}
@@ -320,38 +349,64 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(v)
 }
 
 var listenPort int
 
 func lanURLs() []string {
-	var out []string
+	type cand struct {
+		url   string
+		score int
+	}
+	var list []cand
 	ifs, _ := net.Interfaces()
 	for _, ifc := range ifs {
 		if ifc.Flags&net.FlagUp == 0 || ifc.Flags&net.FlagLoopback != 0 {
 			continue
 		}
+		name := strings.ToLower(ifc.Name)
 		addrs, _ := ifc.Addrs()
 		for _, a := range addrs {
 			ipn, ok := a.(*net.IPNet)
 			if !ok || ipn.IP.To4() == nil || ipn.IP.IsLinkLocalUnicast() {
 				continue
 			}
-			out = append(out, fmt.Sprintf("http://%s:%d", ipn.IP.To4(), listenPort))
+			ip := ipn.IP.To4()
+			score := 0
+			// the home network first: 192.168.x.x, then 10.x, then 172.16-31.x
+			switch {
+			case ip[0] == 192 && ip[1] == 168:
+				score += 30
+			case ip[0] == 10:
+				score += 20
+			case ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31:
+				score += 10
+			}
+			// the real Wi-Fi or Ethernet adapter before virtual ones (WSL, Hyper-V, VPNs…)
+			for _, v := range []string{"vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "docker", "tailscale", "zerotier", "vpn", "tap", "tun", "bluetooth", "radmin", "hamachi"} {
+				if strings.Contains(name, v) {
+					score -= 100
+					break
+				}
+			}
+			if strings.Contains(name, "wi-fi") || strings.Contains(name, "wlan") || strings.Contains(name, "wireless") || strings.HasPrefix(name, "ethernet") || strings.HasPrefix(name, "eth") || strings.HasPrefix(name, "en") {
+				score += 5
+			}
+			list = append(list, cand{fmt.Sprintf("http://%s:%d", ip, listenPort), score})
 		}
 	}
-	// private home-network ranges first
-	sort.SliceStable(out, func(i, j int) bool {
-		return strings.Contains(out[i], "//192.168.") && !strings.Contains(out[j], "//192.168.")
-	})
+	sort.SliceStable(list, func(i, j int) bool { return list[i].score > list[j].score })
+	out := make([]string, len(list))
+	for i, c := range list {
+		out[i] = c.url
+	}
 	return out
 }
 
 func main() {
 	port := flag.Int("port", 8484, "port for the app")
-	demo := flag.Bool("demo", runtime.GOOS != "windows", "start with demo data instead of iRacing")
+	demo := flag.Bool("demo", false, "development only: a simulated race instead of the game")
 	noBrowser := flag.Bool("no-browser", false, "do not open the app window on start")
 	minimized := flag.Bool("minimized", false, "start with this window minimized")
 	ovName := flag.String("overlay-window", "", "internal: run one overlay window")
@@ -361,23 +416,60 @@ func main() {
 	ovW := flag.Int("w", 460, "internal")
 	ovH := flag.Int("h", 260, "internal")
 	rate := flag.Float64("demo-rate", 1, "demo playback speed (testing)")
+	cd := flag.Bool("cloud-demo", false, "internal: upload the demo race laps (testing)")
 	flag.Parse()
+	cloudDemo = *cd
 	demoRate = *rate
 	if *ovName != "" {
 		runOverlayWindow(*ovName, *ovURL, *ovX, *ovY, *ovW, *ovH)
 		return
 	}
-	if *minimized {
-		minimizeConsole()
-	}
 	log.SetFlags(log.Ltime)
+	if runtime.GOOS == "windows" {
+		// no console window: the log goes to a file
+		if p := logFilePath(); p != "" {
+			os.MkdirAll(filepath.Dir(p), 0o700)
+			if st, err := os.Stat(p); err == nil && st.Size() > 5<<20 {
+				os.Rename(p, p+".old")
+			}
+			if f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600); err == nil {
+				log.SetOutput(f)
+				log.SetFlags(log.Ldate | log.Ltime)
+			}
+		}
+		// already running: bring its window to the front instead of starting again
+		if os.Getenv("PITLANE_UPDATED") == "" && !*noBrowser {
+			c := &http.Client{Timeout: 1500 * time.Millisecond}
+			if resp, err := c.Post(fmt.Sprintf("http://localhost:%d/api/show", *port), "application/json", nil); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == 200 {
+					return
+				}
+			}
+		}
+	}
 
-	loadConfig()
-	loadSettings()
-	loadG61()
+	initProfiles()
+	loadProfileState()
 	go reader(*demo)
 	go autoOverlays()
 	go positionKeeper()
+	go appsOnSim()
+	go lapRecorder()
+	go carWatcher()
+	go joyWatcher()
+	go raceWatcher()
+	go fieldWatcher()
+	go myLapWatcher()
+	go updateWatcher()
+	loadLicense()
+	go licenseWatcher()
+	go liveRelay()
+	go cloudUploader()
+	go func() { // programs you chose to start with Pitlane HQ
+		time.Sleep(2 * time.Second)
+		launchGroup("pitwall")
+	}()
 
 	sub, _ := fs.Sub(webFS, "web/dist")
 	mux := http.NewServeMux()
@@ -385,19 +477,35 @@ func main() {
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
 		st := currentStatus()
 		host, _ := os.Hostname()
+		w.Header().Set("Access-Control-Allow-Origin", "*") // the phone app's connect screen looks for this PC
+		if !isLoopback(r) && !isRemote(r) && needsPairingAny(r) {
+			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "pair": true})
+			return
+		}
 		if isRemote(r) {
 			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
 		}
-		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported})
+		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
 	})
-	mux.HandleFunc("/api/demo", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "POST only", 405)
+	mux.HandleFunc("/api/show", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
+			http.Error(w, "only from this PC", 403)
 			return
 		}
-		tel.setDemo(r.URL.Query().Get("on") == "1")
-		writeJSON(w, map[string]bool{"demo": tel.isDemo()})
+		if !showMainWindow() {
+			http.Error(w, "no window", 404)
+			return
+		}
+		writeJSON(w, map[string]bool{"shown": true})
+	})
+	mux.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
+			http.Error(w, "only from this PC", 403)
+			return
+		}
+		writeJSON(w, map[string]bool{"quitting": true})
+		go func() { time.Sleep(300 * time.Millisecond); quitApp() }()
 	})
 	mux.HandleFunc("/api/schema", func(w http.ResponseWriter, r *http.Request) {
 		tel.mu.RLock()
@@ -432,9 +540,24 @@ func main() {
 	registerAssetRoutes(mux)
 	registerMapRoutes(mux)
 	registerOverlayRoutes(mux)
+	registerLangRoute(mux)
 	registerConfigRoutes(mux)
 	registerG61Routes(mux)
 	registerShareRoutes(mux)
+	registerProfileRoutes(mux)
+	registerAppRoutes(mux)
+	registerCloudRoutes(mux)
+	registerSetupRoutes(mux)
+	registerCarRoutes(mux)
+	registerRadioRoutes(mux)
+	registerJournalRoutes(mux)
+	registerDiscordRoutes(mux)
+	registerUpdateRoutes(mux)
+	registerNewsRoutes(mux)
+	registerPairRoutes(mux)
+	registerLicenseRoutes(mux)
+	registerCommunityRoutes(mux)
+	registerPLRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
@@ -455,11 +578,24 @@ func main() {
 
 	var ln net.Listener
 	var err error
-	for p := *port; p < *port+10; p++ {
-		ln, err = net.Listen("tcp", fmt.Sprintf(":%d", p))
-		if err == nil {
-			listenPort = p
-			break
+	// after an update the previous version is still closing: wait for its port
+	if os.Getenv("PITLANE_UPDATED") != "" {
+		for i := 0; i < 40; i++ {
+			if ln, err = net.Listen("tcp", fmt.Sprintf(":%d", *port)); err == nil {
+				break
+			}
+			time.Sleep(250 * time.Millisecond)
+		}
+	}
+	if ln != nil {
+		listenPort = *port
+	} else {
+		for p := *port; p < *port+10; p++ {
+			ln, err = net.Listen("tcp", fmt.Sprintf(":%d", p))
+			if err == nil {
+				listenPort = p
+				break
+			}
 		}
 	}
 	if err != nil {
@@ -477,24 +613,45 @@ func main() {
 	}
 	fmt.Println("  ------------------------------------------------------------")
 	fmt.Println()
+	// close the internet link and overlay windows when PitWall closes
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sig
+		quitApp()
+	}()
+	srv := &http.Server{Handler: guard(mux), ReadHeaderTimeout: 10 * time.Second}
+	if runtime.GOOS == "windows" {
+		go func() {
+			if err := srv.Serve(ln); err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+		}()
+		// the app in its own window; closing it quits Pitlane HQ
+		if runMainWindow(local, *minimized || *noBrowser) {
+			quitApp()
+		}
+		if !*noBrowser {
+			openAppWindow(local) // no WebView2 on this PC: an Edge app window
+		}
+		select {}
+	}
 	if !*noBrowser {
 		go func() {
 			time.Sleep(400 * time.Millisecond)
 			openAppWindow(local)
 		}()
 	}
-	// close the internet link and overlay windows when PitWall closes
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sig
-		stopShare()
-		closeOverlays("*")
-		os.Exit(0)
-	}()
-	srv := &http.Server{Handler: guard(mux), ReadHeaderTimeout: 10 * time.Second}
 	if err := srv.Serve(ln); err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
+}
+
+// quitApp closes the internet link and the overlay windows, then exits.
+func quitApp() {
+	stopShare()
+	closeOverlays("*")
+	os.Exit(0)
 }

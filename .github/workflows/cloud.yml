@@ -14,11 +14,15 @@ name: Pitlane HQ Cloud (web version)
 on:
   workflow_dispatch:
   push:
-    branches: [main, master, "claude/**"]
+    branches: [master]
     paths:
       - "cloud/**"
       - "web/dist/**"
       - ".github/workflows/cloud.yml"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false # never stop a deploy halfway through its migrations
 
 permissions:
   contents: read
@@ -79,7 +83,3 @@ jobs:
             echo
             echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
           } >> "$GITHUB_STEP_SUMMARY"
-
-# CI refresh for unified release builds.
-
-# Final unified build trigger 2026-10-06.
