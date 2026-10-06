@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pitlane HQ</string>
+    <string name="widget_name">Next races</string>
+    <string name="channel_races">Race reminders</string>
+    <color name="ink">#11151B</color>
+</resources>
