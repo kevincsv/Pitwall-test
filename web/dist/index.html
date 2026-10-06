@@ -3524,7 +3524,7 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres","overlays"],analysis:["races","laps","coach","tracks","data"],season:["calendar","series","news","goals"],rig:["cars"],community:["community","setups"],account:["me","account","plan","settings"]};
+const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres","overlays"],analysis:["laps","coach","cloudlaps","data"],season:["calendar","series","news","goals"],rig:["cars"],community:["community","setups"],account:["me","account","plan","settings"]};
 if(!FEATURES.goals)GROUPS.season=GROUPS.season.filter(v=>v!=="goals");
 if(!FEATURES.strategy)GROUPS.race=GROUPS.race.filter(v=>v!=="strategy");
 // rig programs, shakers/haptics and per-car settings live next to Settings
@@ -3538,7 +3538,7 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=WEBAPP?["laps","coach","cloudlaps","races","tracks"]:["laps","coach","races","tracks","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=WEBAPP?["Analysis","Análisis","Analyse","Análise"]:["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=WEBAPP?["laps","coach","cloudlaps","data"]:["laps","coach","cloudlaps","data"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=WEBAPP?["Analysis","Análisis","Analyse","Análise"]:["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
 // the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
 const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
 if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}
