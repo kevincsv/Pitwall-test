@@ -33,6 +33,14 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true
+    buildScripts:
+      - name: Bundle current web app
+        script: |
+          set -e
+          rm -rf "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/web"
+          mkdir -p "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/web"
+          cp -R "${SRCROOT}/../web/dist/." "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/web/"
+        basedOnDependencyAnalysis: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pitwall.app
