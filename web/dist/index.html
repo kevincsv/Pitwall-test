@@ -888,8 +888,20 @@ section.view{min-width:0}
   .pw-kpi b{font-size:21px}
   .seg button{padding:8px 7px;font-size:12px}
 }
+/* the first screen while the app starts: nothing half-drawn behind it */
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .25s}
+#splash.out{opacity:0;pointer-events:none}
+#splash .sp-logo{font:900 30px/1 system-ui,sans-serif;letter-spacing:.02em;color:var(--fg,#e7ebf1);display:flex;align-items:center;gap:12px}
+#splash .sp-flag{width:26px;height:26px;background:conic-gradient(var(--fg,#e7ebf1) 25%,transparent 0 50%,var(--fg,#e7ebf1) 0 75%,transparent 0) 0 0/13px 13px}
+#splash .sp-bar{width:140px;height:3px;border-radius:2px;background:var(--line,#2b3542);overflow:hidden}
+#splash .sp-bar i{display:block;width:40%;height:100%;background:var(--acc,#ffb02e);animation:spmove 1s ease-in-out infinite}
+@keyframes spmove{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@media (prefers-reduced-motion:reduce){#splash .sp-bar i{animation:none;width:100%}}
 </style>
 
+<div id="splash" role="status" aria-label="Pitlane HQ"><div class="sp-logo"><span class="sp-flag" aria-hidden="true"></span>PITLANE HQ</div><div class="sp-bar"><i></i></div></div>
+<script>/* overlay windows never show the splash; a slow start never hides the app for long */
+(function(){const sp=document.getElementById("splash");if(/[?&]overlay=/.test(location.search)||/^#overlay-/.test(location.hash)){sp.remove();return}setTimeout(()=>{if(sp.isConnected){sp.classList.add("out");setTimeout(()=>sp.remove(),300)}},8000)})()</script>
 <div class="wrap">
 <header class="top">
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ</div>
@@ -4491,6 +4503,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
   const phone=!!NATIVE||matchMedia("(max-width:820px)").matches,start=OV.on?"live":(location.hash||"").slice(1)||(phone?"home":store.get("pw.tab","live"));show(Object.values(GROUPS).flat().includes(start)?start:"live");
   syncNativePlan();
+  {const sp=document.getElementById("splash");if(sp){requestAnimationFrame(()=>{sp.classList.add("out");setTimeout(()=>sp.remove(),300)})}}
   if(COMPANION){if(!CPLIVE.on)STATUS={connected:false,companion:true};renderConn();cpLive()}
   else if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else{STATUS={connected:false,source:"",demo:false};renderConn()}
