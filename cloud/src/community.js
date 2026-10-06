@@ -218,31 +218,50 @@ export async function community(req, env, url) {
     ]);
     return json({ deleted: true });
   }
-  // a lap from your account to the community (its fastest valid lap with telemetry, or the one you chose)
+  // a lap from your account to the community: the one you chose, or the session's fastest valid lap
+  // (with telemetry when it has some; without it, only the time goes and the leaderboard says so)
   if (p === "/share-lap" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(String(body.sessionId || ""), "acct:" + u.id).first();
     if (!s) return err("session not found in your account", 404);
     const lap = body.lapId
-      ? await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE id=?1 AND session_id=?2 AND trace IS NOT NULL").bind(String(body.lapId), s.id).first()
-      : await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first();
-    if (!lap) return err("this session has no valid lap with telemetry", 404);
+      ? await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE id=?1 AND session_id=?2").bind(String(body.lapId), s.id).first()
+      : (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first()) ||
+        (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 ORDER BY time LIMIT 1").bind(s.id).first());
+    if (!lap || !(lap.time > 10)) return err("this session has no valid lap to share", 404);
     const name = s.track + (s.track_config ? " · " + s.track_config : "");
-    let trackId = s.track_id, carId = s.car_id;
-    if (!trackId || !carId) {
-      const x = await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE (track=?1 OR track=?2) AND car=?3 AND game=?4 LIMIT 1").bind(name, s.track, s.car, s.game || "iracing").first();
-      if (x) [trackId, carId] = [x.track_id, x.car_id];
-    }
-    if (!trackId || !carId) return err("this session was recorded by an older Pitlane HQ without the track and car ids: share a lap of a newer session", 400);
     const g = s.game || "iracing";
+    // the iRacing ids of the track and car: from the session (newer PCs), from the app (it knows your
+    // tracks and cars), or from what others shared with the same names
+    let trackId = s.track_id, carId = s.car_id;
+    if (!trackId && int(body.trackId)) trackId = int(body.trackId);
+    if (!carId && int(body.carId)) carId = int(body.carId);
+    if (!trackId || !carId) {
+      const x = await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE (track=?1 OR track=?2) AND car=?3 AND game=?4 LIMIT 1").bind(name, s.track, s.car, g).first()
+        || await env.DB.prepare("SELECT track_id, car_id FROM community_reports WHERE (track=?1 OR track=?2) AND car=?3 AND game=?4 AND track_id>0 AND car_id>0 LIMIT 1").bind(name, s.track, s.car, g).first();
+      if (x) { trackId = trackId || x.track_id; carId = carId || x.car_id; }
+    }
+    if (!trackId) {
+      const t = await env.DB.prepare("SELECT track_id FROM community_laps WHERE (track=?1 OR track=?2) AND game=?3 LIMIT 1").bind(name, s.track, g).first()
+        || await env.DB.prepare("SELECT track_id FROM track_maps WHERE (track=?1 OR track=?2) AND game=?3 LIMIT 1").bind(name, s.track, g).first();
+      if (t) trackId = t.track_id;
+    }
+    if (!carId) {
+      const c = await env.DB.prepare("SELECT car_id FROM community_laps WHERE car=?1 AND game=?2 LIMIT 1").bind(s.car, g).first();
+      if (c) carId = c.car_id;
+    }
+    if (!trackId || !carId) return err("the track or car of this session is not known yet: drive it once with the new Pitlane HQ, then it can be shared", 400);
+    if (!s.track_id || !s.car_id) await env.DB.prepare("UPDATE sessions SET track_id=COALESCE(track_id,?2), car_id=COALESCE(car_id,?3) WHERE id=?1").bind(s.id, trackId, carId).run();
+    const traced = !!lap.trace;
     const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
-    if (old && old.game === g && old.time <= lap.time && old.traced) return json({ kept: "your faster lap is already shared" });
+    // your faster lap stays, unless it has no telemetry and this one does
+    if (old && old.game === g && old.time <= lap.time && (old.traced || !traced)) return json({ kept: "your faster lap is already shared", traced: !!old.traced });
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     await env.DB.prepare(
       `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
        ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
     ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g).run();
-    return json({ shared: true });
+    return json({ shared: true, traced });
   }
   if (p === "/laps" && m === "POST") {
     const carId = int(body.carId), trackId = int(body.trackId), time = num(body.time);

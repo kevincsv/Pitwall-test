@@ -4,6 +4,22 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.7 beta
+
+**Fixed**
+- Sessions recorded before 0.3.6 can be shared with the community too: the track and car are
+  found from your track book and what others shared.
+- A lap without telemetry can be shared: only the time goes, and the leaderboard says its
+  telemetry was not shared, so others know why they cannot compare with it.
+- Lap analyzer: hovering or touching the charts keeps working after switching speed or delta off
+  and on again.
+- A session with a single lap no longer hides the session and lap pickers.
+- My races on phones: the rows fit the screen.
+
+**Changed**
+- Every session says whether it was practice, qualifying or race (My races, the session pickers,
+  sharing from your account and the phone apps).
+
 ## 0.3.6 beta
 
 PC app and web only: the phone apps wait for the next build.
