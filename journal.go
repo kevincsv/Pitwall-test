@@ -174,6 +174,7 @@ type raceLap struct {
 	Pos  int     `json:"p"`
 	Inc  int     `json:"i,omitempty"`
 	Pit  bool    `json:"pit,omitempty"`
+	Cut  bool    `json:"cut,omitempty"` // left the track (cutting a corner): not a valid lap
 	Fuel float64 `json:"f,omitempty"`
 	*lapStat
 }
@@ -246,7 +247,7 @@ type raceTrack struct {
 	inc0, fuel0                 float64
 	lapSeen, lapAtChk           int
 	lapInc, lapFuel             float64
-	lapPit, pitPrev             bool
+	lapPit, pitPrev, lapCut     bool
 	pits                        int
 	pending                     int
 	pendingAt, chkAt, doneAt    time.Time
@@ -329,6 +330,9 @@ func raceWatcher() {
 			cur.incs = append(cur.incs, e)
 		}
 		cur.incPrev = inc
+		if v[11] == 0 && onTrack && !onPit { // off the track (all wheels out): the lap is cut
+			cur.lapCut = true
+		}
 		if onPit && !cur.pitPrev {
 			cur.pits++
 			cur.lapPit = true
@@ -339,12 +343,12 @@ func raceWatcher() {
 		}
 		// iRacing updates the last lap time a moment after the line
 		if cur.pending > 0 && now.Sub(cur.pendingAt) > 1500*time.Millisecond {
-			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
+			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Cut: cur.lapCut, Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
 			if s, ok := myLapStat(cur.pending); ok {
 				rl.lapStat = &s
 			}
 			cur.laps = append(cur.laps, rl)
-			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit = cur.pending, 0, inc, fuel, onPit
+			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit, cur.lapCut = cur.pending, 0, inc, fuel, onPit, false
 		}
 		if state >= 5 {
 			if cur.chkAt.IsZero() {
@@ -460,7 +464,7 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 		if r.Best == 0 || l.Time < r.Best {
 			r.Best = l.Time
 		}
-		if l.N > 1 && !l.Pit && l.Inc == 0 {
+		if l.N > 1 && !l.Pit && !l.Cut && l.Inc == 0 {
 			clean = append(clean, l.Time)
 		}
 	}

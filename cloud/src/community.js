@@ -229,8 +229,8 @@ export async function community(req, env, url) {
       : (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first()) ||
         (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 ORDER BY time LIMIT 1").bind(s.id).first());
     if (!lap || !(lap.time > 10)) return err("this session has no valid lap to share", 404);
-    // only valid laps go to the community: no cutting, no incidents, no pit lane
-    if (body.lapId && lap.valid !== 1) return err("this lap is not valid (off track, an incident or the pit lane): it cannot be shared", 400);
+    // only valid laps go to the community: no cutting, no pit lane
+    if (body.lapId && lap.valid !== 1) return err("this lap is not valid (off track or the pit lane): it cannot be shared", 400);
     const name = s.track + (s.track_config ? " · " + s.track_config : "");
     const g = s.game || "iracing";
     // the iRacing ids of the track and car: from the session (newer PCs), from the app (it knows your

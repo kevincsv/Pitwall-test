@@ -413,11 +413,8 @@ func lapRecorder() {
 		if v[10] > 0 {
 			cur.pit = true
 		}
-		if v[11] > cur.inc0 {
-			cur.bad = true
-		}
-		// off the track for a third of a second (all four wheels out, cutting a corner): not a valid lap,
-		// so it is never shared with the community; only where the game reports the track surface
+		// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
+		// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
 		if v[18] == 0 && telHas("PlayerTrackSurface") {
 			if cur.off++; cur.off >= 10 {
 				cur.bad = true

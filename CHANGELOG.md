@@ -11,8 +11,11 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   found from your track book and what others shared.
 - A lap without telemetry can be shared: only the time goes, and the leaderboard says its
   telemetry was not shared, so others know why they cannot compare with it.
-- Only valid laps go to the community: a lap where the car left the track (cutting a corner),
-  had an incident or went through the pit lane is never shared, by the PC or from your account.
+- Only valid laps go to the community: a lap where the car left the track (cutting a corner) or
+  went through the pit lane is never shared, by the PC or from your account. An incident alone no
+  longer makes a lap invalid.
+- Race analyses and the lap analyzer say which laps were not valid (✂ off track), and those laps
+  never count as your best.
 - Lap analyzer: hovering or touching the charts keeps working after switching speed or delta off
   and on again.
 - A session with a single lap no longer hides the session and lap pickers.
