@@ -1190,7 +1190,7 @@ html.phone iframe.cloudlaps{height:calc(100vh - 300px)}
 <section class="view" id="v-laps" hidden>
   <div class="vhead">
     <div><h1 data-i18n="lapsTitle"></h1><div class="sub" data-i18n="lapsSub"></div></div>
-    <div class="controls"><input type="search" id="lapTrackQ" placeholder="Buscar circuito" aria-label="Buscar circuito"><select id="lapTrack" aria-label="Filtrar circuito"></select><span class="label">A</span><select id="lapSess" aria-label="Race / session A"></select><select id="lapA" aria-label="Lap A - comparing"></select><span class="muted">vs</span><span class="label">B</span><select id="lapSessB" aria-label="Race / session B"></select><select id="lapB" aria-label="Lap B - reference"></select><button type="button" class="btn small" id="lapComm"></button></div>
+    <div class="controls lapcontrols"><span class="label">A</span><select id="lapSess" aria-label="Race / session A"></select><select id="lapA" aria-label="Lap A - comparing"></select><span class="muted">vs</span><label class="lapadd"><input type="checkbox" id="lapAddSess"><span>＋</span><span>Session</span></label><span class="label lapblabel">B</span><select id="lapSessB" aria-label="Race / session B"></select><select id="lapB" aria-label="Lap B - reference"></select><button type="button" class="btn small" id="lapComm"></button></div>
   </div>
   <div id="lapsEmpty" class="panel empty" data-i18n="lapsEmpty"></div>
   <div id="lapCompareHeads" class="lapcmpheads"></div>
