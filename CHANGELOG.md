@@ -12,6 +12,8 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   it a clean race. Laps without a time are left out of the lap chart instead of dropping to the
   bottom.
 - Track and car names with accents ("Autódromo Hermanos Rodríguez") are no longer garbled.
+- Race analyses shared anonymously no longer carry your name inside (results and braking
+  points say "Anonymous"). The other drivers show by their first name instead of only "P1, P2…".
 - PC: Analysis shows the laps in your account when the window has none of its own (after a race
   or a restart), and My laps works on the PC when you are signed in.
 

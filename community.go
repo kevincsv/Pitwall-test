@@ -315,18 +315,27 @@ func shareReport(r *raceReport) {
 		return
 	}
 	cp := *r
+	// the other drivers by their first name only; you by your name, or "Anonymous" when you share anonymously
+	name := func(n string, me bool, pos int) string {
+		if me {
+			if anon {
+				return "Anonymous"
+			}
+			return n
+		}
+		if f := strings.Fields(n); len(f) > 0 {
+			return f[0]
+		}
+		return "P" + strconv.Itoa(pos)
+	}
 	cp.Results = nil
 	for _, x := range r.Results {
-		if !x.Me {
-			x.Name = "P" + strconv.Itoa(x.Pos)
-		}
+		x.Name = name(x.Name, x.Me, x.Pos)
 		cp.Results = append(cp.Results, x)
 	}
 	cp.Brakes = nil
 	for _, b := range r.Brakes {
-		if !b.Me {
-			b.Name = "P" + strconv.Itoa(b.Pos)
-		}
+		b.Name = name(b.Name, b.Me, b.Pos)
 		cp.Brakes = append(cp.Brakes, b)
 	}
 	cp.Posted = false
