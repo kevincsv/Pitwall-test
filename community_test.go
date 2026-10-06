@@ -11,6 +11,8 @@ import (
 )
 
 func TestCommunityShareReport(t *testing.T) {
+	shareRaceReports = true // switched off in the app for now; the sharing itself stays tested
+	defer func() { shareRaceReports = false }()
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("HOME", dir)
@@ -57,6 +59,8 @@ func TestCommunityShareReport(t *testing.T) {
 
 // shared anonymously: your name is not inside the report either
 func TestCommunityShareReportAnonymous(t *testing.T) {
+	shareRaceReports = true // switched off in the app for now; the sharing itself stays tested
+	defer func() { shareRaceReports = false }()
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("HOME", dir)

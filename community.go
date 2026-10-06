@@ -307,7 +307,13 @@ func shareLap(l cloudLap) {
 }
 
 // shareReport sends a race analysis without the other drivers' names.
+// shareRaceReports: sharing race analyses with the community is switched off for now
+var shareRaceReports = false
+
 func shareReport(r *raceReport) {
+	if !shareRaceReports {
+		return
+	}
 	commMu.Lock()
 	on, anon := commCfg.ShareReports, commCfg.Anonymous
 	commMu.Unlock()

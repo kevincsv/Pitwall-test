@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.9 beta
+
+**Changed**
+- Lap analyzer: the card where you hover or touch shows only the channels you have switched on.
+- Sharing from the analyzer or from Community always takes the fastest valid lap of the session.
+- Community: the sessions you can share say practice, qualifying or race.
+- Sharing race analyses is switched off for now (they are no longer sent, and the panel is gone).
+- Data is switched off for now in Analysis (Full telemetry stays for admins on the PC).
+- Web on phones: the same five tabs as the phone apps (Home, Analysis, Community, Live,
+  Account) and the sections of each one as pills with short names, so moving around is easy.
+
 ## 0.3.8 beta
 
 **Fixed**

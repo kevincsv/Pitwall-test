@@ -21,7 +21,7 @@
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
   NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.
-  Switched off for now: setups and per-car settings.
+  Switched off for now: setups, per-car settings, the Data view and sharing race analyses.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
   The Android and iOS apps live in their own repository.
