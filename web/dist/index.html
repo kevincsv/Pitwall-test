@@ -1834,13 +1834,29 @@ let lapsDirty=false;
 function lapSeries(l){const out=[];let last=null;const lim=Math.min(l.bins.length,(l.maxBin||l.bins.length-1)+1);for(let i=0;i<lim;i++){const b=l.bins[i]||last;if(!l.bins[i]&&!last)continue;out[i]=b;last=b}const end=out.length;return{arr:out,end}}
 /* Laps: compare with laps the community shared for this car and track */
 let CREF=[];const analysisLaps=()=>typeof coachLaps==="function"?coachLaps():LAPS;const lapOf=v=>String(v).startsWith("c")?CREF[+String(v).slice(1)]:analysisLaps()[v];
+function commNorm(v){return String(v||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g,"")}
+function commComboForSession(combos,ses){
+  if(!ses)return null;
+  const ti=[ses.trackId,ses.track_id,ses.TrackID].find(v=>v!=null&&v!=="");
+  const ci=[ses.carId,ses.car_id,ses.CarID].find(v=>v!=null&&v!=="");
+  let hit=combos.find(x=>ti!=null&&ci!=null&&String(x.trackId)===String(ti)&&String(x.carId)===String(ci));
+  if(hit)return hit;
+  const tn=commNorm(ses.track),cn=commNorm(ses.car);
+  const score=x=>{
+    const xt=commNorm(x.track),xc=commNorm(x.car);
+    const ts=tn&&(xt===tn||xt.includes(tn)||tn.includes(xt));
+    const cs=cn&&(xc===cn||xc.includes(cn)||cn.includes(xc));
+    const cfg=x.track_config&&ses.track_config&&commNorm(x.track_config)===commNorm(ses.track_config);
+    return (ts?2:0)+(cs?2:0)+(cfg?1:0);
+  };
+  return combos.map(x=>({x,s:score(x)})).filter(z=>z.s>=4).sort((a,b)=>b.s-a.s)[0]?.x||null;
+}
 async function pickCommLapCloud(){
   try{
     if(CLOUD.sessions===null||!CLOUD.sid)await cloudLoadSessions();const ses=CLOUD.sessions&&CLOUD.sessions.find(x=>x.id===CLOUD.sid);
     if(!ses)throw new Error(Tx("Choose a cloud session first","Elige primero una sesión de tu cuenta","Wähle zuerst eine Cloud-Sitzung","Escolha primeiro uma sessão da nuvem"));
     const combos=(await cget(withGame("/api/community/combos",aGame()))).combos||[];
-    const g=aGame();
-    const hit=combos.find(x=>x.track===ses.track&&x.car===ses.car)||combos.find(x=>x.track&&ses.track&&x.track.toLowerCase()===ses.track.toLowerCase()&&x.car&&ses.car&&x.car.toLowerCase()===ses.car.toLowerCase());
+    const g=aGame(),hit=commComboForSession(combos,ses);
     if(!hit)throw new Error(Tx("No community laps for this track and car yet","Aún no hay vueltas de Comunidad para este circuito y coche","Noch keine Community-Runden für Strecke und Auto","Ainda não há voltas da Comunidade para esta pista e carro"));
     const laps=((await cget(withGame(`/api/community/laps?trackId=${hit.trackId}&carId=${hit.carId}`,g))).laps||[]).filter(l=>l.hasTrace!==false).slice(0,15);
     if(!laps.length)throw new Error(Tx("No community laps with telemetry yet","Aún no hay vueltas de Comunidad con telemetría","Noch keine Community-Runden mit Telemetrie","Ainda não há voltas da Comunidade com telemetria"));
