@@ -304,7 +304,7 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 // ---------- lap recorder ----------
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
-	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime"}
+	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface"}
 
 const lapBin = 5 // metres
 
@@ -314,6 +314,7 @@ type lapRec struct {
 	fuel0, vmax          float64
 	inc0                 float64
 	pit, bad             bool
+	off                  int // samples with the car off the track (cutting a corner)
 	hasLast              bool
 	lastD, lastT, lastSp float64
 }
@@ -414,6 +415,13 @@ func lapRecorder() {
 		}
 		if v[11] > cur.inc0 {
 			cur.bad = true
+		}
+		// off the track for a third of a second (all four wheels out, cutting a corner): not a valid lap,
+		// so it is never shared with the community; only where the game reports the track surface
+		if v[18] == 0 && telHas("PlayerTrackSurface") {
+			if cur.off++; cur.off >= 10 {
+				cur.bad = true
+			}
 		}
 	}
 }

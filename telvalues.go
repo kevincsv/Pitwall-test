@@ -37,3 +37,11 @@ func toF(v any) float64 {
 	}
 	return 0
 }
+
+// telHas: whether the running game sends this variable (a missing one reads as 0).
+func telHas(name string) bool {
+	tel.mu.RLock()
+	defer tel.mu.RUnlock()
+	_, ok := tel.index[name]
+	return ok
+}
