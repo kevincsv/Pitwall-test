@@ -46,7 +46,7 @@ type commConfig struct {
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
 	NoLive       bool   `json:"noLive,omitempty"`      // do not offer live telemetry to my browsers and phones through the server
-	// Friday night mode (admins only): friends drive on this PC and their laps go to the
+	// DRINKS mode, formerly Friday night mode (admins only): friends drive on this PC and their laps go to the
 	// community under their own names, so the model learns from them; they stay out of My laps
 	Friday    bool     `json:"friday,omitempty"`
 	Guest     string   `json:"guest,omitempty"`     // who is driving now ("" = me)
@@ -190,6 +190,46 @@ func commNote(err error) {
 	}
 	saveCommLocked()
 	commMu.Unlock()
+}
+
+// setDrinks turns DRINKS mode (Friday night mode) on or off and sets who is driving. Admins
+// only; used by the PC app and by your phone through the encrypted live link.
+func setDrinks(on bool, guest string, auto bool) error {
+	loadPL()
+	plMu.Lock()
+	admin := plAcc.Admin
+	plMu.Unlock()
+	if !admin {
+		return errors.New("only the admins of the server can use DRINKS mode")
+	}
+	g := cleanText(guest, 32)
+	commMu.Lock()
+	defer commMu.Unlock()
+	commCfg.Friday, commCfg.Guest, commCfg.GuestAuto = on, g, auto
+	if g != "" {
+		list := []string{g}
+		for _, x := range commCfg.Guests {
+			if !strings.EqualFold(x, g) && len(list) < 30 {
+				list = append(list, x)
+			}
+		}
+		commCfg.Guests = list
+	}
+	saveCommLocked()
+	return nil
+}
+
+// drinksState is what the phone shows of DRINKS mode.
+func drinksState() map[string]any {
+	loadPL()
+	plMu.Lock()
+	admin := plAcc.Admin
+	plMu.Unlock()
+	commMu.Lock()
+	c := commCfg
+	guests := append([]string{}, c.Guests...)
+	commMu.Unlock()
+	return map[string]any{"admin": admin, "on": c.Friday, "guest": c.Guest, "guestAuto": c.GuestAuto, "guests": guests, "driver": fridayDriver()}
 }
 
 // shareLap: called for every valid lap; sends it only when it beats what you shared for that car and track.
@@ -392,28 +432,10 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 					commCall("POST", "/me", map[string]string{"alias": alias}, true)
 				}
 			case "friday":
-				loadPL()
-				plMu.Lock()
-				admin := plAcc.Admin
-				plMu.Unlock()
-				if !admin {
-					fail(errors.New("only the admins of the server can use Friday night mode"))
+				if err := setDrinks(in.Friday, in.Guest, in.GuestAuto); err != nil {
+					fail(err)
 					return
 				}
-				g := cleanText(in.Guest, 32)
-				commMu.Lock()
-				commCfg.Friday, commCfg.Guest, commCfg.GuestAuto = in.Friday, g, in.GuestAuto
-				if g != "" {
-					list := []string{g}
-					for _, x := range commCfg.Guests {
-						if !strings.EqualFold(x, g) && len(list) < 30 {
-							list = append(list, x)
-						}
-					}
-					commCfg.Guests = list
-				}
-				saveCommLocked()
-				commMu.Unlock()
 			case "deleteAll":
 				if _, err := commCall("DELETE", "/me", nil, true); err != nil && err.Error() != "not registered" {
 					fail(err)

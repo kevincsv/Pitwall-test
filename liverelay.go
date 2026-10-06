@@ -334,7 +334,21 @@ func liveRun(c *wsConn, key []byte) {
 				continue
 			}
 			ev, data, err := liveOpen(key, m)
-			if err != nil || ev != "want" {
+			if err != nil {
+				continue
+			}
+			if ev == "drinks" { // DRINKS mode from your phone (admins only)
+				var d struct {
+					On        bool   `json:"on"`
+					Guest     string `json:"guest"`
+					GuestAuto bool   `json:"guestAuto"`
+				}
+				if json.Unmarshal(data, &d) == nil {
+					setDrinks(d.On, d.Guest, d.GuestAuto)
+				}
+				continue
+			}
+			if ev != "want" {
 				continue
 			}
 			var w wantMsg
@@ -353,6 +367,7 @@ func liveRun(c *wsConn, key []byte) {
 	schemaVer, sessionVer := -1, -1
 	var lastTick int32 = -1
 	var lastStatus statusMsg
+	lastDrinks := ""
 	var idx []int
 	_, noticeSeen := noticesSince(-1)
 	for {
@@ -397,6 +412,13 @@ func liveRun(c *wsConn, key []byte) {
 				return
 			}
 			lastStatus = st
+		}
+		// DRINKS mode: sent when it changes (and the driver, who can change with iRacing's name)
+		if b, err := json.Marshal(drinksState()); err == nil && (string(b) != lastDrinks || rs) {
+			if !out("drinks", json.RawMessage(b)) {
+				return
+			}
+			lastDrinks = string(b)
 		}
 		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
 			for _, e := range evs {
