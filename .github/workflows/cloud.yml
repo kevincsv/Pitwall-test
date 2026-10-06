@@ -79,3 +79,5 @@ jobs:
             echo
             echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
           } >> "$GITHUB_STEP_SUMMARY"
+
+# CI refresh for unified release builds.
