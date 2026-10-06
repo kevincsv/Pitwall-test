@@ -23,7 +23,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.3.2"
+const appVersion = "0.3.3"
 
 // appStage is shown next to the version everywhere until 1.0.0.
 const appStage = "beta"

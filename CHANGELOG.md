@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.3 beta
+
+**Changed**
+- Lap charts on phones are open to everyone (they were in development): on the web from a phone
+  and in the phone apps.
+- Touching a lap chart on a phone answers at once: a tap shows the values and sliding sideways
+  follows the finger, no press-and-hold first. The card with the values keeps its place above
+  the chart, so the chart does not move under your finger.
+- The web on phones is cleaner, like the phone apps: a short demo banner, one settings button,
+  your recent races on Home, and the lap tables keep only the columns that fit.
+
 ## 0.3.2 beta
 
 **New**
