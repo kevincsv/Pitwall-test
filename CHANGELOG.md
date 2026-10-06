@@ -4,10 +4,10 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
-## Unreleased
+## 0.3.1 beta
 
 **New**
-- Braking coach in four phases, as driver coaches read data: braking (brake point, how hard),
+- Braking coach in four phases (web, PC and the phone apps), as driver coaches read data: braking (brake point, how hard),
   entry (releasing the brake into the turn, trail braking, coasting), apex (minimum speed) and
   exit (when the throttle comes back). Each corner says which phase loses the time and what to
   change; a summary shows the time lost per phase over the lap, the metres spent coasting and
