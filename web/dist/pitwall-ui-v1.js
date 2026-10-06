@@ -57,6 +57,7 @@ function renderDiag(){
  var c=$("#pwCopyDiag");if(c)c.onclick=async function(){try{await navigator.clipboard.writeText(JSON.stringify(d,null,2));toast(tr("Diagnostic report copied.","Informe copiado."))}catch(e){toast(tr("Could not copy report.","No se pudo copiar el informe."))}}
 }
 function installDashboard(){
+ if(typeof OV!=="undefined"&&OV.on)return;
  var live=$("#v-live"),grid=$("#liveGrid");if(!live||!grid||$("#pwCommandDash"))return;
  var a=grid.querySelector('[data-w="dash"]'),b=grid.querySelector('[data-w="timing"]');if(a)a.classList.add("pw-legacy-hide");if(b)b.classList.add("pw-legacy-hide");
  var d=document.createElement("div");d.id="pwCommandDash";d.className="pw-cmd";
