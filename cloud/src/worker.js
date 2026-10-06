@@ -114,7 +114,15 @@ async function api(req, env, url) {
 
   if (p === "/api/bests" && m === "GET") {
     const { results } = await env.DB.prepare(
-      `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last
+      `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last,
+        (SELECT l2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
+         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+           AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
+         ORDER BY l2.time LIMIT 1) AS bestLapId,
+        (SELECT s2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
+         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+           AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
+         ORDER BY l2.time LIMIT 1) AS bestSessionId
        FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND (?1 IS NULL OR s.uploader=?1)
        GROUP BY s.game, s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
     ).bind(own).all();
