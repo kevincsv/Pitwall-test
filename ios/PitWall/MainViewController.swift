@@ -36,13 +36,27 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
         if let saved = defaults.string(forKey: pcKey), let url = URL(string: saved) {
             openRemote(url)
         } else {
-            showConnect(error: nil)
+            showCompanion()
         }
     }
 
     private func openRemote(_ url: URL) {
         loadingRemote = true
         webView.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 6))
+    }
+
+    private func showCompanion(error: String? = nil) {
+        loadingRemote = false
+        guard let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "web") else {
+            showConnect(error: error ?? "Pitlane HQ app bundle is missing.")
+            return
+        }
+        webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        if let error = error {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                self?.callJS("onError", error)
+            }
+        }
     }
 
     private func showConnect(error: String?) {
@@ -88,7 +102,7 @@ final class MainViewController: UIViewController, WKScriptMessageHandler, WKNavi
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        if loadingRemote { showConnect(error: error.localizedDescription) }
+        if loadingRemote { showCompanion(error: error.localizedDescription) }
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
