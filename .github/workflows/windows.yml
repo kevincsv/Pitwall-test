@@ -71,3 +71,5 @@ jobs:
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           printf '{"version":"%s","build":"%s","date":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > version.json
           bash .github/scripts/publish.sh version.json
+
+# CI refresh for unified release builds.
