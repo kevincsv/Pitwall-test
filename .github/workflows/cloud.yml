@@ -1,0 +1,81 @@
+name: Pitlane HQ Cloud (web version)
+
+# Checks the web version on every change. When these repository secrets
+# exist it also publishes it to your Cloudflare account, creating the D1
+# database and its tables the first time:
+#   CLOUDFLARE_API_TOKEN   (Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" + Account · D1 · Edit)
+#   CLOUDFLARE_ACCOUNT_ID
+#   PITLANE_KEY            optional: the older key sign-in of the lap site (owner/team keys)
+# Optional: PITLANE_D1_ID secret (an existing database) and the repository
+# variables SEASON_UPLOADERS and ADMINS (your Pitlane HQ account id) and
+# CUSTOM_DOMAIN (your own domain in Cloudflare, e.g. pitlanehq.com).
+# Emails: secret RESEND_API_KEY and variable EMAIL_FROM ("Pitlane HQ <no-reply@your-domain>").
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master, "claude/**"]
+    paths:
+      - "cloud/**"
+      - "web/dist/**"
+      - ".github/workflows/cloud.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      D1_ID: ${{ secrets.PITLANE_D1_ID }}
+      PITLANE_KEY: ${{ secrets.PITLANE_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+      SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
+      ADMINS: ${{ vars.ADMINS }}
+      CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
+    defaults:
+      run:
+        working-directory: cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: Check that it builds
+        run: npx wrangler deploy --dry-run --outdir dist
+      - name: Publish to Cloudflare
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: |
+          set -e
+          # the database: the one in PITLANE_D1_ID, or "pitlanehq" (created the first time)
+          find_db() { npx wrangler d1 list --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const d=JSON.parse(s).find(x=>x.name==="pitlanehq");console.log(d?d.uuid:"")}catch(e){console.log("")}})'; }
+          DB_ID="$D1_ID"
+          if [ -z "$DB_ID" ]; then DB_ID=$(find_db); fi
+          if [ -z "$DB_ID" ]; then npx wrangler d1 create pitlanehq; DB_ID=$(find_db); fi
+          if [ -z "$DB_ID" ]; then echo "::error::Could not create or find the D1 database. Check that the API token has Account · D1 · Edit."; exit 1; fi
+          sed -i "s/^migrations_dir = \"migrations\"/migrations_dir = \"migrations\"\ndatabase_id = \"$DB_ID\"/" wrangler.toml
+          npx wrangler d1 migrations apply DB --remote
+          if [ -n "$SEASON_UPLOADERS" ]; then sed -i "s/^SEASON_UPLOADERS = \".*\"/SEASON_UPLOADERS = \"$SEASON_UPLOADERS\"/" wrangler.toml; fi
+          if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \".*\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
+          # your own domain (for example pitlanehq.com), once it is in your Cloudflare account
+          if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
+          npx wrangler deploy | tee deploy.log
+          if [ -n "$PITLANE_KEY" ]; then echo "$PITLANE_KEY" | npx wrangler secret put PITLANE_KEY; fi
+          # emails (confirm the address, reset the password) through Resend
+          if [ -n "$RESEND_API_KEY" ]; then echo "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY; fi
+          if [ -n "$EMAIL_FROM" ]; then printf '%s' "$EMAIL_FROM" | npx wrangler secret put EMAIL_FROM; fi
+          url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
+          if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
+          {
+            echo "## Pitlane HQ server is ready"
+            echo
+            echo "Address: **$url**"
+            echo
+            echo "Drivers sign in to their laps on this address with their Pitlane HQ account."
+            echo
+            echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
+          } >> "$GITHUB_STEP_SUMMARY"
