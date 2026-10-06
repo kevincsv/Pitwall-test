@@ -48,7 +48,7 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .conn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
 .conn.live{color:var(--good);border-color:var(--good)}.conn.live::before{background:var(--good)}
 .conn.demo{color:var(--accent);border-color:var(--accent)}.conn.demo::before{background:var(--accent)}
-.conn.wait{color:var(--warn);border-color:var(--warn)}.conn.wait::before{background:var(--warn)}#langSeg{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:0!important;overflow:hidden;border:1px solid var(--line);border-radius:8px}#langSeg button{border:0!important;border-right:1px solid var(--line)!important;border-radius:0!important;margin:0!important;min-width:0}#langSeg button:last-child{border-right:0!important}#langSeg button[aria-pressed="true"]{box-shadow:inset 0 -2px 0 var(--accent)}.lang-select{width:100%;min-height:40px;padding:9px 38px 9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font:600 13px/1.2 var(--f-ui);cursor:pointer}.lang-select:focus{outline:none;border-color:var(--accent)}html.phone #langSeg{display:block!important;width:100%!important}.version-badge{font:600 10px/1 var(--f-data);letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 7px;white-space:nowrap;flex:none}.version-badge:hover{color:var(--fg);border-color:var(--accent)}
+.conn.wait{color:var(--warn);border-color:var(--warn)}.conn.wait::before{background:var(--warn)}.lang-select{width:100%;min-height:40px;padding:9px 38px 9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font:600 13px/1.2 var(--f-ui);cursor:pointer}.lang-select:focus{outline:none;border-color:var(--accent)}html.phone #langSeg{display:block!important;width:100%!important}.version-badge{font:600 10px/1 var(--f-data);letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 7px;white-space:nowrap;flex:none}.version-badge:hover{color:var(--fg);border-color:var(--accent)}
 nav.tabs{display:flex;gap:2px;margin-left:auto}
 nav.tabs button{font:600 15px/1.05 var(--f-display);letter-spacing:.05em;text-transform:uppercase;background:none;border:1px solid transparent;color:var(--muted);padding:8px 12px;border-radius:4px;cursor:pointer;text-align:center}
 nav.tabs button[aria-selected="true"]{color:var(--accent-ink);background:var(--accent)}
@@ -768,7 +768,7 @@ html.ownframe .drawer,html.ownframe .uidlg,html.ownframe .msheet{top:53px}
 .osm-trk{position:absolute;inset:0;width:100%;height:100%}.osm-trk polyline{fill:none;stroke:#fff;stroke-width:5;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}.osm-trk polyline.pit{stroke-width:2.5;stroke-dasharray:4 4;opacity:.8}.osm-trk circle{fill:var(--accent);stroke:#fff;stroke-width:2}
 .osm-attr{position:absolute;left:6px;bottom:6px;font-size:10px;color:#cfd6df;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px;text-decoration:none}
 html.phone header.top{flex-wrap:nowrap;gap:8px}html.phone header.top .brand{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:0 1 auto}html.phone header.top #setBtn{flex:none;width:40px;height:40px;padding:0;justify-content:center;align-items:center}
-html.phone #langSeg{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%}html.phone #langSeg button{padding:10px 6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.phone #langSeg{display:block!important;width:100%!important}
 html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{width:var(--ovdw);transform:scale(var(--ovz));transform-origin:0 0}
 .ovcard.live{border-color:var(--accent)}.ovcard .pin[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.ovcard .pin:disabled{opacity:.4;cursor:default}
 .pc-relay{margin-bottom:14px}
@@ -3605,7 +3605,7 @@ function renderConn(){
   c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings();markGameGaps()}
 function renderSettings(){
   renderVersion();
-  document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===LANG));
+  const langSel=$("#langSeg");if(langSel)langSel.value=LANG;
   document.querySelectorAll("#unitSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===UNITS));
   const th=store.get("pw.theme","dark");document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===th));
   const note=$("#srcNote"),btn=$("#demoBtn");
@@ -3622,7 +3622,7 @@ function renderSettings(){
   // the PIN in the code changes every 10 minutes and after each phone: keep the picture fresh
   clearInterval(window.__qrT);window.__qrT=setInterval(()=>{const q=$("#qrApp");if(q&&q.offsetParent)q.src="/api/qr.png?app=1&t="+Date.now()},30000);
 }
-document.querySelectorAll("#langSeg button").forEach(b=>b.onclick=()=>{LANG=b.dataset.l;store.set("pw.lang",LANG);applyI18n()});
+$("#langSeg")?.addEventListener("change",e=>{LANG=e.target.value;store.set("pw.lang",LANG);applyI18n()});
 document.querySelectorAll("#unitSeg button").forEach(b=>b.onclick=()=>{UNITS=b.dataset.u;store.set("pw.units",UNITS);$("#spdU").textContent=spdU();renderSettings();if(LAPS.length)renderLaps();rerenderAll()});
 function applyTheme(){const th=store.get("pw.theme","dark");if(th==="system")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",th)}
 document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>{store.set("pw.theme",b.dataset.th);applyTheme();renderSettings();rerenderAll()});
@@ -5374,7 +5374,7 @@ function chooseLanguage(first){let m=$("#langPick");if(!m){m=document.createElem
     <div class="lp-list">${LANGS.map(([k,n,sub])=>`<button type="button" data-lp="${k}" aria-pressed="${k===LANG&&!first}"><b>${n}</b><small>${sub}</small></button>`).join("")}</div>
     <p>${first?"You can change it later in Settings.":""}</p></div>`;
   m.hidden=false;m.querySelectorAll("[data-lp]").forEach(b=>b.onclick=()=>{LANG=b.dataset.lp;store.set("pw.lang",LANG);m.hidden=true;applyI18n();
-    document.querySelectorAll("#langSeg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.l===LANG));if(first)setTimeout(askShare,400)});
+    const langSel=$("#langSeg");if(langSel)langSel.value=LANG;if(first)setTimeout(askShare,400)});
   const f=m.querySelector("button");if(f)f.focus()}
 function langChosen(){try{return localStorage.getItem("pw.lang")!=null}catch(e){return true}}
 if(!OV.on)setTimeout(()=>{if(!langChosen())chooseLanguage(true);else askShare()},1200);
