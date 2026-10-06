@@ -40,3 +40,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/scripts/publish.sh PitlaneHQ-android.apk
+
+# CI refresh for unified release builds.
