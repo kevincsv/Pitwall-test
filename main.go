@@ -464,6 +464,7 @@ func main() {
 	go updateWatcher()
 	loadLicense()
 	go licenseWatcher()
+	go liveRelay()
 	go cloudUploader()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)

@@ -45,6 +45,7 @@ type commConfig struct {
 	DeleteAfter  string `json:"deleteAfter,omitempty"` // shared race analyses leave this PC: "now", "1d", "2d", "7d" ("" keeps them)
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
+	NoLive       bool   `json:"noLive,omitempty"`      // do not offer live telemetry to my browsers and phones through the server
 }
 
 var (
@@ -300,7 +301,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 			var in struct {
 				Action, Alias, URL, NameKind, DeleteAfter        string
 				ShareTimes, ShareTraces, ShareReports, Anonymous bool
-				ShareMaps                                        *bool
+				ShareMaps, LiveWeb                               *bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
@@ -330,6 +331,9 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				commCfg.Anonymous, commCfg.Asked = in.Anonymous, true
 				if in.ShareMaps != nil {
 					commCfg.NoMaps = !*in.ShareMaps
+				}
+				if in.LiveWeb != nil {
+					commCfg.NoLive = !*in.LiveWeb
 				}
 				switch in.DeleteAfter {
 				case "now", "1d", "2d", "7d":
@@ -361,7 +365,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		c := commCfg
 		commMu.Unlock()
 		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "server": commBase(), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
-			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
+			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "liveWeb": !c.NoLive, "live": liveStatus(), "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {

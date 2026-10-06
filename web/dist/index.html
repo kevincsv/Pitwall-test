@@ -759,6 +759,7 @@ html.phone header.top{flex-wrap:nowrap;gap:8px}html.phone header.top .brand{min-
 html.phone #langSeg{display:grid!important;grid-template-columns:repeat(3,1fr)!important}html.phone #langSeg button{padding:10px 4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{width:var(--ovdw);transform:scale(var(--ovz));transform-origin:0 0}
 .ovcard.live{border-color:var(--accent)}.ovcard .pin[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.ovcard .pin:disabled{opacity:.4;cursor:default}
+.pc-relay{margin-bottom:14px}.dot-wait{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn,#e0a800);margin-right:6px;vertical-align:middle}
 html.ownframe{scrollbar-width:thin;scrollbar-color:#3a4350 var(--bg)}
 html.ownframe ::-webkit-scrollbar{width:10px;height:10px}html.ownframe ::-webkit-scrollbar-track{background:var(--bg)}
 html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--bg)}html.ownframe ::-webkit-scrollbar-thumb:hover{background:#4b5563}
@@ -1478,6 +1479,30 @@ if(COMPANION){window.fetch=async(input,init={})=>{const url=typeof input==="stri
   // newer data from another device: refresh now and every 5 minutes
   const cpRefresh=async()=>{await cpReady;if(!CP.acc||document.hidden)return;try{const m=await cpCall("GET","/account/sync/meta");if(m.version!==CP.ver&&!CP.pending){const ch=await cpPull();if(ch)location.reload();else if(typeof rerenderAll==="function")rerenderAll()}}catch(e){CP.err=e.message}};
   setTimeout(cpRefresh,1500);setInterval(cpRefresh,5*60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)cpRefresh()})}
+/* live telemetry from your PC through your Pitlane HQ server: PitlaneHQ.exe (signed in with the same
+   account) seals every message with your account's key; the server only passes them along */
+const CPLIVE={ws:null,on:false,key:null,wait:2000,ping:0,paused:false};
+const cpLiveAAD=cpTE.encode("pitlanehq-live-v1");
+async function cpLiveSend(ev,d){const ws=CPLIVE.ws;if(!ws||ws.readyState!==1||!CPLIVE.key)return;try{const iv=crypto.getRandomValues(new Uint8Array(12));
+  const c=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:cpLiveAAD},CPLIVE.key,await cpGz(cpTE.encode(JSON.stringify([ev,d]))));
+  const o=new Uint8Array(12+c.byteLength);o.set(iv);o.set(new Uint8Array(c),12);ws.send("e:"+cpB64(o))}catch(e){}}
+async function cpLiveOpen(m){const b=cpUnb64(m.slice(2));const z=await crypto.subtle.decrypt({name:"AES-GCM",iv:b.subarray(0,12),additionalData:cpLiveAAD},CPLIVE.key,b.subarray(12));return JSON.parse(cpTD.decode(await cpGunz(new Uint8Array(z))))}
+function cpLiveWant(){cpLiveSend("want",{vars:wantAll?[]:streamVars(),all:wantAll})}
+function cpLiveSet(on){if(on===CPLIVE.on)return;CPLIVE.on=on;if(!on){STATUS={connected:false,companion:true}}renderConn();
+  if(typeof CUR_VIEW==="string"&&CUR_VIEW&&groupOf(CUR_VIEW)==="race"){show.back=true;show(CUR_VIEW)}if(typeof renderPC==="function"&&$("#pcBody")&&!$("#v-pc").hidden)renderPC()}
+async function cpLive(){await cpReady;if(!COMPANION||!CP.acc||!CP.server||CPLIVE.ws||CPLIVE.paused)return;
+  try{if(!CPLIVE.key)CPLIVE.key=await crypto.subtle.importKey("raw",cpUnhex(CP.acc.dataKey),"AES-GCM",false,["encrypt","decrypt"])}catch(e){return}
+  let ws;try{ws=new WebSocket(CP.server.replace(/^http/,"ws")+"/live?role=view",["pitlane",CP.acc.token])}catch(e){return}
+  CPLIVE.ws=ws;let q=Promise.resolve();
+  ws.onopen=()=>{CPLIVE.wait=2000;cpLiveWant();const vp=$("#v-pc");if(vp&&!vp.hidden)renderPC();clearInterval(CPLIVE.ping);CPLIVE.ping=setInterval(()=>{try{ws.send("ping")}catch(e){}},30000)};
+  ws.onmessage=e=>{const m=e.data;if(typeof m!=="string"||m==="pong")return;
+    if(m[0]==="{"){try{const c=JSON.parse(m);if(c.ctl==="pc")cpLiveSet(!!c.on)}catch(err){}return}
+    if(!m.startsWith("e:"))return;
+    q=q.then(()=>cpLiveOpen(m)).then(([ev,d])=>{if(!CPLIVE.on)cpLiveSet(true);if(ev==="status")d={...d,relay:true};onStream(ev,d)}).catch(()=>{})};
+  ws.onclose=()=>{clearInterval(CPLIVE.ping);if(CPLIVE.ws===ws)CPLIVE.ws=null;cpLiveSet(false);if(CP.acc&&!CPLIVE.paused){setTimeout(cpLive,CPLIVE.wait);CPLIVE.wait=Math.min(CPLIVE.wait*2,60000)}}}
+if(COMPANION){cpLive();
+  // nobody watching a hidden tab: the PC stops sending
+  document.addEventListener("visibilitychange",()=>{if(document.hidden){CPLIVE.paused=true;if(CPLIVE.ws)CPLIVE.ws.close()}else{CPLIVE.paused=false;cpLive()}})}
 
 /* the phone app without the PC only shows the settings that apply to the phone */
 function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=true;[...sec.children].forEach(el=>{if(el.classList.contains("sethead"))keep=el.id==="set-general"||el.id==="set-about";if(el.classList.contains("vhead"))return;if(el.id==="setNav"){el.hidden=true;return}el.hidden=!keep});
@@ -1499,12 +1524,17 @@ let cpIpWait=null;window.onIP=ip=>{if(cpIpWait){const r=cpIpWait;cpIpWait=null;r
 const cpAskIP=()=>new Promise(res=>{if(!NATIVE_RAW){res(location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/)?location.hostname:"192.168.1.2");return}cpIpWait=res;NATIVE_RAW.postMessage({type:"ip"});setTimeout(()=>{if(cpIpWait){cpIpWait=null;res("")}},3000)});
 function cpOpenPC(url){try{localStorage.setItem("pw.lastPC",url.replace(/\/pair\?.*$/,"/"))}catch(e){}if(NATIVE_RAW)NATIVE_RAW.postMessage({type:"open",url});else location.href=url}
 function renderPC(){const box=$("#pcBody");if(!box)return;
-  box.innerHTML=`<div class="pc-card"><div class="pc-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
-    <h2>${esc(Tx("Live telemetry needs your PC","La telemetría en vivo necesita tu PC","Live-Telemetrie braucht deinen PC","A telemetria ao vivo precisa do seu PC"))}</h2>
-    <p>${esc(Tx("Telemetry and the rig go straight from your PC to this phone over your Wi-Fi, never through the internet. Scan the QR on the PC with the camera, or type the PIN it shows (Pitlane HQ → Settings → Phone).","La telemetría y el rig van directos de tu PC a este móvil por tu WiFi, nunca por internet. Escanea con la cámara el QR del PC, o escribe el PIN que muestra (Pitlane HQ → Ajustes → Móvil).","Telemetrie und Rig gehen direkt vom PC über dein WLAN auf dieses Handy, nie über das Internet. Scanne den QR-Code am PC mit der Kamera oder gib die PIN ein, die er zeigt (Pitlane HQ → Einstellungen → Handy).","A telemetria e o rig vão direto do seu PC para este celular pelo Wi-Fi, nunca pela internet. Escaneie o QR do PC com a câmera, ou digite o PIN que ele mostra (Pitlane HQ → Configurações → Celular)."))}</p>
+  // live through your account: from anywhere, while PitlaneHQ.exe is signed in with the same account
+  const relay=`<div class="pc-card pc-relay"><h2>${esc(Tx("Live from anywhere","En vivo desde cualquier sitio","Live von überall","Ao vivo de qualquer lugar"))}</h2>
+    <p>${esc(CP.acc?Tx("Waiting for your PC: open Pitlane HQ on the PC where you race, signed in with this same account. The live telemetry is encrypted with your account's key; the server cannot read it.","Esperando a tu PC: abre Pitlane HQ en el PC donde corres, con esta misma cuenta. La telemetría en vivo va cifrada con la clave de tu cuenta; el servidor no puede leerla.","Warte auf deinen PC: Öffne Pitlane HQ auf dem PC, an dem du fährst, mit demselben Konto. Die Live-Telemetrie ist mit dem Schlüssel deines Kontos verschlüsselt; der Server kann sie nicht lesen.","Aguardando seu PC: abra o Pitlane HQ no PC onde você corre, com esta mesma conta. A telemetria ao vivo é criptografada com a chave da sua conta; o servidor não pode lê-la."):Tx("Sign in with your Pitlane HQ account to see your PC's live telemetry from anywhere.","Inicia sesión con tu cuenta de Pitlane HQ para ver la telemetría en vivo de tu PC desde cualquier sitio.","Melde dich mit deinem Pitlane-HQ-Konto an, um die Live-Telemetrie deines PCs von überall zu sehen.","Entre com sua conta Pitlane HQ para ver a telemetria ao vivo do seu PC de qualquer lugar."))}</p>
+    ${CP.acc?`<p class="note"><span class="dot-wait"></span>${esc(CPLIVE.ws&&CPLIVE.ws.readyState===1?Tx("Connected to your account · your PC is not sending yet","Conectado a tu cuenta · tu PC aún no envía","Mit deinem Konto verbunden · dein PC sendet noch nicht","Conectado à sua conta · seu PC ainda não envia"):Tx("Connecting to your account…","Conectando con tu cuenta…","Verbinde mit deinem Konto…","Conectando à sua conta…"))}</p>`:`<button type="button" class="btn primary" id="pcSignIn">${esc(Tx("Sign in","Iniciar sesión","Anmelden","Entrar"))}</button>`}</div>`;
+  box.innerHTML=relay+`<div class="pc-card"><div class="pc-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+    <h2>${esc(Tx("Or straight over your Wi-Fi","O directo por tu WiFi","Oder direkt über dein WLAN","Ou direto pelo seu Wi-Fi"))}</h2>
+    <p>${esc(Tx("On the same Wi-Fi, telemetry and the rig go straight from your PC to this phone, without the internet. Scan the QR on the PC with the camera, or type the PIN it shows (Pitlane HQ → Settings → Phone).","En la misma WiFi, la telemetría y el rig van directos de tu PC a este móvil, sin internet. Escanea con la cámara el QR del PC, o escribe el PIN que muestra (Pitlane HQ → Ajustes → Móvil).","Im selben WLAN gehen Telemetrie und Rig direkt vom PC auf dieses Handy, ohne Internet. Scanne den QR-Code am PC mit der Kamera oder gib die PIN ein, die er zeigt (Pitlane HQ → Einstellungen → Handy).","No mesmo Wi-Fi, a telemetria e o rig vão direto do seu PC para este celular, sem internet. Escaneie o QR do PC com a câmera, ou digite o PIN que ele mostra (Pitlane HQ → Configurações → Celular)."))}</p>
     <form id="pcForm" class="pc-form"><input id="pcCode" inputmode="decimal" autocomplete="one-time-code" placeholder="481902" maxlength="21" aria-label="PIN"><button class="btn primary" type="submit">${esc(Tx("Connect","Conectar","Verbinden","Conectar"))}</button></form>
     <div class="hm-bar" id="pcBar" hidden><s id="pcProg" style="width:0"></s></div><div id="pcStatus" class="note"></div><div id="pcFound" class="devlist"></div>
     ${(()=>{let u="";try{u=localStorage.getItem("pw.lastPC")||""}catch(e){}return u?`<button type="button" class="btn" id="pcLast" data-u="${esc(u)}" style="margin:0 0 10px">${esc(Tx("Open my PC","Abrir mi PC","Meinen PC öffnen","Abrir meu PC"))} · ${esc(u.replace(/^https?:\/\//,"").replace(/\/$/,""))}</button><br>`:""})()}<button type="button" class="btn small" id="pcScan">${esc(Tx("Search my Wi-Fi","Buscar en mi WiFi","Mein WLAN durchsuchen","Buscar no meu Wi-Fi"))}</button></div>`;
+  const si=$("#pcSignIn");if(si)si.onclick=()=>show("me");
   const pl=$("#pcLast");if(pl)pl.onclick=()=>cpOpenPC(pl.dataset.u);if(NATIVE_RAW&&!window.__lastAsked){window.__lastAsked=1;window.onLastPC=u=>{if(!u)return;try{if(!localStorage.getItem("pw.lastPC")){localStorage.setItem("pw.lastPC",u.replace(/\/pair\?.*$/,"/"));renderPC()}}catch(e){}};NATIVE_RAW.postMessage({type:"lastpc"})}
   const st=h=>{$("#pcStatus").innerHTML=h},pair=(base,pin)=>base+"/pair?pin="+pin+"&next=%2F";
   const add=(base,info,pin)=>{const b=document.createElement("button");b.type="button";b.className="devrow linkrow";b.innerHTML=`<b>${esc(info.host||"PC")}</b><small class="muted">${esc(base.replace("http://",""))}</small><span class="pkgo">›</span>`;b.onclick=()=>cpOpenPC(pin?pair(base,pin):base+"/");$("#pcFound").appendChild(b)};
@@ -1574,18 +1604,24 @@ function onFrame(t){T=t;frameTick()}
 function onSession(raw){try{S=parseYaml(raw)}catch(e){S={}}SESSION_RAW=raw;sessionChanged()}
 let SESSION_RAW="";
 
+/* one handler for the events of the PC's stream, local (/api/stream) or through your account (cloud relay) */
+let STREAM_FIELDS=[];
+function onStream(ev,d){
+  if(ev==="status"){STATUS=d;renderConn()}
+  else if(ev==="schema"){SCHEMA=d||[];schemaChanged()}
+  else if(ev==="fields")STREAM_FIELDS=d||[];
+  else if(ev==="session")onSession(d);
+  else if(ev==="config"){try{profileEvent(d);applyServerCfg(d.config)}catch(err){}}
+  else if(ev==="radio"){try{onRadioEvent(d)}catch(err){}}
+  else if(ev==="notice"){try{if(d.kind==="race"&&!OV.on)onRaceReport(d.data)}catch(err){}}
+  else if(ev==="t"){const o=wantAll?{...T}:{};STREAM_FIELDS.forEach((n,i)=>o[n]=d.v[i]);onFrame(o)}}
+const streamVars=()=>[...new Set([...LIVE_VARS.split(","),...TYRE_VARS,...ui("tel").vars])];
 function connectBridge(){
+  if(COMPANION){cpLiveWant();return}
   if(es)es.close();
-  const url=wantAll?"/api/stream?vars=*&hz=10":"/api/stream?vars="+[LIVE_VARS,...TYRE_VARS,...ui("tel").vars].join(",")+"&hz=30";
-  es=new EventSource(url);let fields=[];
-  es.addEventListener("status",e=>{STATUS=JSON.parse(e.data);renderConn()});
-  es.addEventListener("schema",e=>{SCHEMA=JSON.parse(e.data)||[];schemaChanged()});
-  es.addEventListener("fields",e=>{fields=JSON.parse(e.data)||[]});
-  es.addEventListener("session",e=>onSession(JSON.parse(e.data)));
-  es.addEventListener("config",e=>{try{const m=JSON.parse(e.data);profileEvent(m);applyServerCfg(m.config)}catch(err){}});
-  es.addEventListener("radio",e=>{try{onRadioEvent(JSON.parse(e.data))}catch(err){}});
-  es.addEventListener("notice",e=>{try{const n=JSON.parse(e.data);if(n.kind==="race"&&!OV.on)onRaceReport(n.data)}catch(err){}});
-  es.addEventListener("t",e=>{const m=JSON.parse(e.data),o=wantAll?{...T}:{};fields.forEach((n,i)=>o[n]=m.v[i]);onFrame(o)});
+  const url=wantAll?"/api/stream?vars=*&hz=10":"/api/stream?vars="+streamVars().join(",")+"&hz=30";
+  es=new EventSource(url);
+  ["status","schema","fields","session","config","radio","notice","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
   es.onopen=()=>{if(STATUS.offline){STATUS.offline=false;renderConn()}};
 }
@@ -2662,7 +2698,8 @@ function renderWip(){Object.entries(WIP).forEach(([k,w])=>{const box=$(w.box);if
 async function renderCloudLaps(){const box=$("#cloudLapsBox");if(!box)return;let srv="",tok="";
   if(COMPANION){await cpReady;srv=CP.server||"";tok=CP.acc&&CP.acc.token||""}
   if(!srv||!tok){box.innerHTML=`<div class="panel empty">${esc(Tx("Sign in with your Pitlane HQ account to see the laps your PC uploads.","Inicia sesión con tu cuenta de Pitlane HQ para ver las vueltas que sube tu PC.","Melde dich mit deinem Pitlane-HQ-Konto an, um die Runden zu sehen, die dein PC hochlädt.","Entre com sua conta Pitlane HQ para ver as voltas que seu PC envia."))} <button type="button" class="btn small" id="clSign">${esc(Tx("Sign in","Iniciar sesión","Anmelden","Entrar"))}</button></div>`;const b=$("#clSign");if(b)b.onclick=()=>show("me");return}
-  const src=srv+"/?embed=1&lang="+LANG+"&game="+aGame()+"#k="+encodeURIComponent(tok);if(box.dataset.src===srv+LANG+aGame())return;box.dataset.src=srv+LANG+aGame();
+  const th=document.documentElement.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark");
+  const src=srv+"/?embed=1&lang="+LANG+"&game="+aGame()+"&theme="+th+"#k="+encodeURIComponent(tok);if(box.dataset.src===srv+LANG+aGame()+th)return;box.dataset.src=srv+LANG+aGame()+th;
   box.innerHTML=`<iframe class="cloudlaps" title="${esc(Tx("My laps","Mis vueltas"))}" src="${esc(src)}"></iframe>`}
 /* the PC window: the header works as the title bar (drag, double-click, buttons) */
 function ownFrame(){const H=document.documentElement,hd=$("header.top");H.classList.add("ownframe");$("#winCtl").hidden=false;$("#winEdge").hidden=false;
@@ -3375,6 +3412,7 @@ function renderGameSel(){const box=$("#gameBox");if(!box)return;const on=(MODE==
   $("#gameSeg").querySelectorAll("[data-game]").forEach(b=>b.onclick=()=>{CFG.game=b.dataset.game==="auto"?"":b.dataset.game;saveCfg();renderGameSel();renderConn()})}
 function renderConn(){const c=$("#conn");let cls,en,es;
   if(STATUS.companion){cls="wait";en="Connect PC";es="Conectar PC"}
+  else if(STATUS.relay&&!STATUS.connected&&!STATUS.demo){cls="wait";en=`PC online · waiting for ${gameName()}`;es=`PC conectado · esperando ${gameName()}`}
   else if(STATUS.offline){cls="wait";en="PC offline";es="PC sin conexión"}
   else if(REMOTE){cls="live";en="Engineer view";es="Vista de ingeniero"}
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
@@ -3427,7 +3465,7 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["tracks","races","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=WEBAPP?["cloudlaps","races","tracks"]:["tracks","races","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=WEBAPP?["Analysis","Análisis","Analyse","Análise"]:["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
 // the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
 const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
 if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}
@@ -3454,7 +3492,7 @@ var VIEW_HIST=[];
     if(skip(s0.el))return;const list=(GROUPS[groupOf(CUR_VIEW)]||[]),i=list.indexOf(CUR_VIEW);if(i<0)return;
     const n=list[i+(dx<0?1:-1)];if(n){show(n);scrollTo(0,0)}},{passive:true})})();
 function show(v){if(v==="rig")v="settings";if(v==="strategy"&&!FEATURES.strategy)v="live";if(PCAPP&&PC_OFF.includes(v))v="live";if(v==="haptics"&&!PHONE){SET_SEC="set-general";rawSet("pw.setSec","set-general");v="settings"}if(PHONE&&["haptics","rig","cars"].includes(v))v="settings";if(v==="goals"&&!FEATURES.goals)v="calendar";if(!show.back&&VIEW_HIST&&CUR_VIEW&&CUR_VIEW!==v){VIEW_HIST.push(CUR_VIEW);if(VIEW_HIST.length>30)VIEW_HIST.shift()}show.back=false;CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));if(!OV.on)rawSet("pw.grp."+g,v);renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
-  document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(COMPANION&&(g==="race"||["haptics","rig","cars"].includes(v))){document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-pc");$("#subtabs").hidden=true;renderPC();return}if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
+  document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(COMPANION&&(g==="race"&&!CPLIVE.on||["haptics","rig","cars"].includes(v))){document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-pc");$("#subtabs").hidden=true;renderPC();return}if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
   if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings"){renderShare();renderNotifPanel()}if(v==="overlays")renderOverlaysTab();if(v==="settings"&&!COMPANION)renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="engineer"){engLoaded=false;renderEngineer()}if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="share"){renderSettings();renderPairPanel();renderShare()}if(v==="cloudlaps")renderCloudLaps();if(AG_VIEWS.includes(v))renderGameBar(v);if(v==="races"||v==="share")renderWip();if(v==="settings"){renderSettings();renderProfPanel();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderVoicePanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"){liveSlow();renderRelative();renderRadioWidget()}}
 function openGroup(g){const v=store.get("pw.grp."+g,GROUPS[g][0]);show(GROUPS[g].includes(v)?v:GROUPS[g][0])}
 tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?(VIEW_HIST&&VIEW_HIST.length?VIEW_HIST[VIEW_HIST.length-1]:PHONE?"home":"live"):"settings");
@@ -4821,7 +4859,7 @@ async function renderCommunity(){const box=$("#commBody");if(!box)return;await P
   const mine=(TB||[]).map(e=>({trackId:e.trackId,track:e.track,carId:e.carId,car:e.car,mine:true}));const wi=S.WeekendInfo||{},md=myDriver();if(wi.TrackID&&md.CarID&&liveGame()===aGame())mine.unshift({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),carId:md.CarID,car:md.CarScreenName});
   const all=[];[...mine,...combos].forEach(x=>{if(x.trackId&&x.carId&&!all.some(y=>y.trackId===x.trackId&&y.carId===x.carId))all.push(x)});if(!COMMSEL&&all.length)COMMSEL=all[0];
   box.innerHTML=`<div class="grid"><div class="panel s5"><h2>${esc(Tx("What I share","Qué comparto"))}</h2><p class="note" style="margin-top:0">${Lp("Nothing is shared unless you turn it on. Only your best lap per car and track is sent, under your alias. Other drivers' names are removed from the analyses you share.","No se comparte nada salvo que lo actives. Solo se envía tu mejor vuelta por coche y circuito, con tu alias. De los análisis que compartes se quitan los nombres de los demás pilotos.")}</p>
-      <div class="frow" style="flex-direction:column;align-items:flex-start;gap:8px">${chk("cmT",c.shareTimes,Lp("Share my best lap times","Compartir mis mejores tiempos",true))}${chk("cmL",c.shareTraces,Lp("Also the whole lap (telemetry), so others can compare","También la vuelta completa (telemetría), para que otros se comparen",true))}${chk("cmR",c.shareReports,Lp("Share my race analyses","Compartir mis análisis de carrera",true))}${chk("cmM",c.shareMaps!==false,Lp("Share track layouts (iRacing, laps without incidents; only the shape)","Compartir trazados de circuito (iRacing, vueltas sin incidentes; solo la forma)",true))}${chk("cmA",c.anonymous,Lp("Anonymously (others see “Anonymous”)","De forma anónima (los demás ven «Anónimo»)",true))}</div>
+      <div class="frow" style="flex-direction:column;align-items:flex-start;gap:8px">${chk("cmT",c.shareTimes,Lp("Share my best lap times","Compartir mis mejores tiempos",true))}${chk("cmL",c.shareTraces,Lp("Also the whole lap (telemetry), so others can compare","También la vuelta completa (telemetría), para que otros se comparen",true))}${chk("cmR",c.shareReports,Lp("Share my race analyses","Compartir mis análisis de carrera",true))}${chk("cmM",c.shareMaps!==false,Lp("Share track layouts (iRacing, laps without incidents; only the shape)","Compartir trazados de circuito (iRacing, vueltas sin incidentes; solo la forma)",true))}${chk("cmW",c.liveWeb!==false,Lp("Live telemetry on my browser and phone through my account (encrypted, only you see it)","Telemetría en vivo en mi navegador y móvil a través de mi cuenta (cifrada, solo la ves tú)",true))}${chk("cmA",c.anonymous,Lp("Anonymously (others see “Anonymous”)","De forma anónima (los demás ven «Anónimo»)",true))}</div>
       <label style="display:block;margin-top:10px"><span class="label">${esc(Tx("Once shared, delete it from this PC","Una vez compartida, borrarla de este PC","Nach dem Teilen von diesem PC löschen","Depois de compartilhar, apagar deste PC"))}</span>${delSelect("cmDA",c.deleteAfter)}</label>
       ${c.account?`<p class="note" style="margin-top:10px">${esc(Tx("Others see the public name of your Pitlane HQ account","Los demás ven el nombre público de tu cuenta de Pitlane HQ"))}: <b>${esc((ME&&ME.display)||"")}</b> · <a href="#" id="cmMe">${esc(Tx("change","cambiar"))}</a></p>`
         :`<div style="margin-top:10px"><span class="label">${esc(Tx("Name shown to others","Nombre que ven los demás"))}</span>${nameChoice("cm",c.nameKind||"nick",c.alias)}</div>`}
@@ -4833,9 +4871,9 @@ async function renderCommunity(){const box=$("#commBody");if(!box)return;await P
         <button type="button" class="chip" id="cmMine" aria-pressed="${CMF.mine}">${esc(Tx("Only mine","Solo los míos","Nur meine","Só os meus"))}</button></div>
       <div id="cmLaps"><p class="note">${esc(Tx("Loading…","Cargando…"))}</p></div></div>
     <div class="panel s12"><h2>${esc(Tx("Shared race analyses","Análisis de carrera compartidos"))}</h2><div id="cmReps"></div></div></div>`;
-  const save=async()=>{const nk=$("#cmK")?nameKindOf("cm"):"nick";const body={action:"save",nameKind:nk,alias:$("#cmNick")?$("#cmNick").value:c.alias||"",url:"",anonymous:$("#cmA").getAttribute("aria-pressed")==="true",deleteAfter:$("#cmDA").value,shareTimes:$("#cmT").getAttribute("aria-pressed")==="true",shareTraces:$("#cmL").getAttribute("aria-pressed")==="true",shareReports:$("#cmR").getAttribute("aria-pressed")==="true",shareMaps:$("#cmM").getAttribute("aria-pressed")==="true"};
+  const save=async()=>{const nk=$("#cmK")?nameKindOf("cm"):"nick";const body={action:"save",nameKind:nk,alias:$("#cmNick")?$("#cmNick").value:c.alias||"",url:"",anonymous:$("#cmA").getAttribute("aria-pressed")==="true",deleteAfter:$("#cmDA").value,shareTimes:$("#cmT").getAttribute("aria-pressed")==="true",shareTraces:$("#cmL").getAttribute("aria-pressed")==="true",shareReports:$("#cmR").getAttribute("aria-pressed")==="true",shareMaps:$("#cmM").getAttribute("aria-pressed")==="true",liveWeb:$("#cmW").getAttribute("aria-pressed")==="true"};
     if(MODE!=="bridge"){Object.assign(COMM,body);toast(Tx("Demo: saved, nothing is sent","Demo: guardado, no se envía nada"));return renderCommunity()}try{COMM=await jpost("/api/community",body);toast(Tx("Saved","Guardado"))}catch(e){toast(e.message)}renderCommunity()};
-  ["cmT","cmL","cmR","cmA","cmM"].forEach(id=>$("#"+id).onclick=e=>{const b=e.currentTarget;b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true");if(id==="cmL"&&b.getAttribute("aria-pressed")==="true")$("#cmT").setAttribute("aria-pressed","true");if(id==="cmT"&&b.getAttribute("aria-pressed")!=="true")$("#cmL").setAttribute("aria-pressed","false")});
+  ["cmT","cmL","cmR","cmA","cmM","cmW"].forEach(id=>$("#"+id).onclick=e=>{const b=e.currentTarget;b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true");if(id==="cmL"&&b.getAttribute("aria-pressed")==="true")$("#cmT").setAttribute("aria-pressed","true");if(id==="cmT"&&b.getAttribute("aria-pressed")!=="true")$("#cmL").setAttribute("aria-pressed","false")});
   $("#cmSave").onclick=save;wireNameChoice("cm");const cmm=$("#cmMe");if(cmm)cmm.onclick=e=>{e.preventDefault();show("me")};const del=$("#cmDel");if(del)del.onclick=async()=>{if(!await uiConfirm(Tx("Delete every lap and analysis you shared? This cannot be undone.","¿Borrar todas las vueltas y análisis que compartiste? No se puede deshacer.")))return;try{COMM=await jpost("/api/community",{action:"deleteAll"});toast(Tx("Deleted","Borrado"))}catch(e){toast(e.message)}renderCommunity()};
   commFilters(all);
   // what is shared is chosen on the PC, where the laps are recorded: no "What I share" here
