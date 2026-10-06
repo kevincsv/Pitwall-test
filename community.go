@@ -44,6 +44,7 @@ type commConfig struct {
 	Anonymous    bool   `json:"anonymous,omitempty"`   // others see "Anonymous" instead of the name
 	DeleteAfter  string `json:"deleteAfter,omitempty"` // shared race analyses leave this PC: "now", "1d", "2d", "7d" ("" keeps them)
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
+	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
 }
 
 var (
@@ -299,6 +300,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 			var in struct {
 				Action, Alias, URL, NameKind, DeleteAfter        string
 				ShareTimes, ShareTraces, ShareReports, Anonymous bool
+				ShareMaps                                        *bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
@@ -326,6 +328,9 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				commCfg.Alias, commCfg.URL = cleanText(in.Alias, 32), in.URL
 				commCfg.ShareTimes, commCfg.ShareTraces, commCfg.ShareReports = in.ShareTimes, in.ShareTraces && in.ShareTimes, in.ShareReports
 				commCfg.Anonymous, commCfg.Asked = in.Anonymous, true
+				if in.ShareMaps != nil {
+					commCfg.NoMaps = !*in.ShareMaps
+				}
 				switch in.DeleteAfter {
 				case "now", "1d", "2d", "7d":
 					commCfg.DeleteAfter = in.DeleteAfter
@@ -356,7 +361,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		c := commCfg
 		commMu.Unlock()
 		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "server": commBase(), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
-			"shareReports": c.ShareReports, "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
+			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {
@@ -384,6 +389,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		}
 	}
 	mux.HandleFunc("/api/community/setups", handleCommSetups)
+	mux.HandleFunc("/api/trackmap", handleTrackMap)
 	mux.HandleFunc("/api/community/season", proxy("/season"))
 	mux.HandleFunc("/api/community/combos", proxy("/combos"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))
@@ -594,4 +600,55 @@ func raceTime(r *raceReport) time.Time {
 		return time.Time{}
 	}
 	return time.UnixMilli(r.When)
+}
+
+// handleTrackMap: GET the community outline of a track; POST this PC's outline from a
+// lap without incidents (only the shape, no speed or braking), unless switched off.
+func handleTrackMap(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		q := r.URL.Query()
+		t, _ := strconv.Atoi(q.Get("trackId"))
+		if t <= 0 {
+			http.Error(w, "trackId", 400)
+			return
+		}
+		b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), "iracing")), nil, false)
+		if err != nil {
+			http.Error(w, err.Error(), 404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+		return
+	}
+	if !isLoopback(r) || isRemote(r) {
+		http.Error(w, "only from this PC", 403)
+		return
+	}
+	commMu.Lock()
+	off := commCfg.NoMaps
+	commMu.Unlock()
+	if off {
+		writeJSON(w, map[string]string{"kept": "sharing track layouts is off"})
+		return
+	}
+	var in map[string]any
+	if err := json.NewDecoder(io.LimitReader(r.Body, 2<<20)).Decode(&in); err != nil {
+		http.Error(w, "bad layout", 400)
+		return
+	}
+	// only these fields go to the server: the outline and which lap it came from
+	out := map[string]any{"game": "iracing", "clean": in["clean"] == true}
+	for _, k := range []string{"trackId", "track", "time", "n", "len", "x", "y"} {
+		out[k] = in[k]
+	}
+	go func() {
+		if err := ensureRegistered(); err != nil {
+			commNote(err)
+			return
+		}
+		_, err := commCall("POST", "/trackmaps", out, true)
+		commNote(err)
+	}()
+	writeJSON(w, map[string]bool{"sending": true})
 }

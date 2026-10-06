@@ -81,6 +81,15 @@ export async function community(req, env, url) {
     ).bind(t || 0, c || 0, game).all();
     return json({ reports: r.results || [] });
   }
+  // track outlines (from clean best laps): anyone can read them
+  if (p === "/trackmaps" && m === "GET") {
+    const t = +url.searchParams.get("trackId");
+    if (!t) return err("trackId", 400);
+    const r = await env.DB.prepare("SELECT track, n, len, pts, time, created FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first();
+    if (!r) return err("no layout for this track yet", 404);
+    const pts = JSON.parse(r.pts);
+    return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
+  }
   if (p.startsWith("/reports/") && m === "GET") {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
@@ -181,6 +190,25 @@ export async function community(req, env, url) {
       `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
        ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
     ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game).run();
+    return json({ shared: true });
+  }
+  // a track outline from a lap without incidents: kept when it is the fastest one
+  if (p === "/trackmaps" && m === "POST") {
+    const trackId = int(body.trackId), time = num(body.time), n = int(body.n);
+    const x = body.x, y = body.y;
+    if (!trackId || !time || time <= 10 || time > 3600) return err("layout needs trackId and the lap time", 400);
+    if (body.clean !== true) return err("only laps without incidents", 400);
+    if (!(n >= 100 && n <= 3000) || !Array.isArray(x) || !Array.isArray(y) || x.length !== n || y.length !== n) return err("layout points missing", 400);
+    const ok = (v) => typeof v === "number" && isFinite(v) && Math.abs(v) < 30000;
+    if (!x.every(ok) || !y.every(ok)) return err("layout points out of range", 400);
+    const r2 = (v) => Math.round(v * 10) / 10;
+    const old = await env.DB.prepare("SELECT time FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, trackId).first();
+    if (old && old.time <= time) return json({ kept: "a faster clean lap already drew this track" });
+    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
+    await env.DB.prepare(
+      `INSERT INTO track_maps (game, track_id, track, n, len, pts, time, user_id, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
+       ON CONFLICT(game, track_id) DO UPDATE SET track=excluded.track, n=excluded.n, len=excluded.len, pts=excluded.pts, time=excluded.time, user_id=excluded.user_id, created=excluded.created`
+    ).bind(game, trackId, str(body.track), n, num(body.len), JSON.stringify({ x: x.map(r2), y: y.map(r2) }), time, u.id, Date.now()).run();
     return json({ shared: true });
   }
   if (p === "/reports" && m === "POST") {

@@ -762,6 +762,8 @@ html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{wid
 html.ownframe{scrollbar-width:thin;scrollbar-color:#3a4350 var(--bg)}
 html.ownframe ::-webkit-scrollbar{width:10px;height:10px}html.ownframe ::-webkit-scrollbar-track{background:var(--bg)}
 html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--bg)}html.ownframe ::-webkit-scrollbar-thumb:hover{background:#4b5563}
+.cmfilt{display:grid;grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(140px,1fr) auto;gap:8px;margin-bottom:10px;align-items:center}.cmfilt input,.cmfilt select{min-width:0;width:100%}
+@media (max-width:700px){.cmfilt{grid-template-columns:1fr 1fr}.cmfilt input{grid-column:1/-1}}
 .agame{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-4px 0 12px}.agame .label{margin-right:4px}
 .dcrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dcrow span{display:inline-flex;align-items:baseline;gap:4px;padding:3px 8px;border:1px solid var(--line);border-radius:8px;font-family:var(--f-data)}.dcrow small{color:var(--muted);font-size:10px;letter-spacing:.05em}.dcrow b{font-size:15px}.dcrow i{font-style:normal;color:var(--muted);font-size:11px}.dcrow .lo{border-color:var(--bad);color:var(--bad)}
 .rsum{margin-bottom:14px}.rs-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rs-pos b{font:700 40px/1 var(--f-data)}.rs-pos small{display:block;color:var(--muted)}
@@ -2286,18 +2288,21 @@ function renderLicences(m){const box=$("#licCards");if(!box)return;const order=[
 Object.assign(I18N,{
  trackMap:["Track map","Mapa del circuito"],layers:["Layers","Capas"],layout:["Layout","Diseño"],
  "ly.ideal":["Ideal line (estimated)","Línea ideal (estimada)"],"ly.best":["Best lap line","Línea de la mejor vuelta"],"ly.line":["My line this lap","Mi trazada esta vuelta"],
- "ly.brakes":["Braking points","Puntos de frenada"],"ly.cars":["Other cars","Otros coches"],"ly.nums":["Positions","Posiciones"],
+ "ly.brakes":["Braking points","Puntos de frenada"],"ly.tel":["Speed & braking","Velocidad y frenada"],"ly.cars":["Other cars","Otros coches"],"ly.nums":["Positions","Posiciones"],
  "ly.rot":["Rotate","Girar"],"ly.mirror":["Mirror","Espejo"],"ly.reset":["Redraw map","Volver a dibujar"],
  brakeTitle:["Braking points","Puntos de frenada"],
  "w.flag":["Flags","Banderas"],"w.dash":["Gear, speed & RPM","Marcha, velocidad y RPM"],"w.timing":["Lap timing","Tiempos de vuelta"],"w.map":["Track map","Mapa del circuito"],
  "w.relative":["Relative","Relative"],"w.fuel":["Fuel","Combustible"],"w.engine":["Engine & track","Motor y pista"],"w.tyres":["Tyres","Neumáticos"],"w.inputs":["Inputs","Pedales"],"w.standings":["Standings","Posiciones"],
 });
-const MAPL=Object.assign({ideal:true,best:false,line:true,brakes:true,cars:true,nums:true,rot:0,mirror:false},store.get("pw.maplayers",{}));
+const MAPL=Object.assign({ideal:true,best:false,line:true,brakes:true,cars:true,nums:true,rot:0,mirror:false,tel:false},store.get("pw.maplayers",{}));
 const MAP={key:null,data:null,laps:[],cur:null,uploading:false};
 function trackLenM(){const s=String((S.WeekendInfo||{}).TrackLength||"");const m=s.match(/([\d.]+)\s*(km|mi)/);if(m)return +m[1]*(m[2]==="mi"?1609.34:1000);if(T.LapDist>50&&T.LapDistPct>.05)return T.LapDist/T.LapDistPct;return 4000}
-function mapKey(){const wi=S.WeekendInfo||{};if(wi.TrackID==null)return null;return(STATUS.demo?"demo_":"t")+wi.TrackID}
+function mapKey(){const wi=S.WeekendInfo||{};if(wi.TrackID==null)return null;const g=liveGame();return(STATUS.demo?"demo_":"t")+(g!=="iracing"?g+"_":"")+wi.TrackID}
 async function mapSession(){const k=mapKey();if(!k||k===MAP.key)return;MAP.key=k;MAP.laps=[];MAP.cur=null;MAP.data=store.get("pw.map."+k,null);
   if(MODE==="bridge"){try{const r=await fetch("/api/map?key="+k);if(r.ok){const d=await r.json();if(!MAP.data||(d.laps||0)>=(MAP.data.laps||0))MAP.data=d}}catch(e){}}
+  MAP.commTime=null;const tid=(S.WeekendInfo||{}).TrackID;
+  if(MODE==="bridge"&&!STATUS.demo&&liveGame()==="iracing"&&tid){try{const r=await fetch("/api/trackmap?trackId="+tid+"&game=iracing");if(r.ok){const c=await r.json();MAP.commTime=c.time||null;
+    if(MAP.key===k&&(!MAP.data||!(MAP.data.laps>0))&&Array.isArray(c.x)&&c.x.length===c.n){MAP.data={key:k,name:c.track||(S.WeekendInfo||{}).TrackDisplayName||"",N:c.n,src:"dr",geo:null,len:c.len||trackLenM(),laps:0,x:c.x,y:c.y,community:true,commTime:c.time}}}}catch(e){}}
   drawMapSoon()}
 const wrapA=a=>((a+3*Math.PI)%(2*Math.PI))-Math.PI;
 function mapSample(){
@@ -2305,7 +2310,7 @@ function mapSample(){
   const geo=T.Lat&&T.Lon&&Math.abs(T.Lat)>.001;const dr=T.Yaw!=null&&T.VelocityX!=null;if(!geo&&!dr)return;
   let c=MAP.cur;
   if(!c||lc!==c.lc){if(c&&lc===c.lc+1)finishLap(c);
-    c=MAP.cur={lc,lap:T.Lap,x:0,y:0,pts:[],bad:p>.03,p0:p,lt:t,yaw:T.Yaw,vx:T.VelocityX,vy:T.VelocityY||0,src:geo?"geo":"dr",lp:p};}
+    c=MAP.cur={lc,lap:T.Lap,x:0,y:0,pts:[],bad:p>.03,p0:p,lt:t,yaw:T.Yaw,vx:T.VelocityX,vy:T.VelocityY||0,src:geo?"geo":"dr",lp:p,inc0:T.PlayerCarMyIncidentCount};}
   const dt=t-c.lt;if(dt<0||dt>.2)c.bad=true;
   if(c.src==="geo"){if(!MAP.data||!MAP.data.geo){MAP.geo=MAP.geo||[T.Lat,T.Lon]}const g=(MAP.data&&MAP.data.geo)||MAP.geo;c.x=(T.Lon-g[1])*Math.cos(g[0]*Math.PI/180)*111320;c.y=(T.Lat-g[0])*110540}
   else if(dt>0&&dt<=.2){const yaw=c.yaw+wrapA(T.Yaw-c.yaw)/2,vx=(T.VelocityX+c.vx)/2,vy=((T.VelocityY||0)+c.vy)/2;c.x+=(vx*Math.cos(yaw)-vy*Math.sin(yaw))*dt;c.y+=(vx*Math.sin(yaw)+vy*Math.cos(yaw))*dt}
@@ -2318,12 +2323,18 @@ function resampleLap(pts,N,closeLoop){const n=pts.length,p0=pts[0][0],p1=pts[n-1
   for(let i=0;i<N;i++){const q=i/N;while(j<n-2&&pts[j+1][0]<q)j++;const A=pts[j],B=pts[j+1];const f=B[0]>A[0]?Math.max(0,Math.min(1,(q-A[0])/(B[0]-A[0]))):0;
     const lerp=k=>A[k]+(B[k]-A[k])*f,fr=(q-p0)/((p1-p0)||1);o.x[i]=lerp(1)-ex*fr;o.y[i]=lerp(2)-ey*fr;o.v[i]=lerp(3);o.th[i]=lerp(4);o.b[i]=lerp(5);o.t[i]=lerp(6)}
   return o}
-function finishLap(c){const pts=c.pts;if(c.bad||pts.length<200||pts[0][0]>.03||pts.at(-1)[0]<.97)return;
+function finishLap(c){const pts=c.pts;if(c.bad||pts.length<200||pts[0][0]>.03||pts.at(-1)[0]<.97)return;const clean=c.inc0!=null&&T.PlayerCarMyIncidentCount===c.inc0&&!T.OnPitRoad;
   const N=Math.max(400,Math.min(3000,Math.round(trackLenM()/5)));const lap=resampleLap(pts,N,c.src==="dr");lap.n=c.lap;lap.N=N;lap.time=pts.at(-1)[6];
-  setTimeout(()=>{if(T.LapLastLapTime>0&&Math.abs(T.LapLastLapTime-lap.time)<2)lap.time=T.LapLastLapTime;lap.brakes=brakePts(lap);MAP.laps.push(lap);if(MAP.laps.length>30)MAP.laps.shift();updateMapData(lap,c.src)},500)}
+  setTimeout(()=>{if(T.LapLastLapTime>0&&Math.abs(T.LapLastLapTime-lap.time)<2)lap.time=T.LapLastLapTime;lap.brakes=brakePts(lap);MAP.laps.push(lap);if(MAP.laps.length>30)MAP.laps.shift();updateMapData(lap,c.src);if(clean)shareTrackMap(lap,c.src)},500)}
+/* iRacing: the outline of the fastest lap without incidents goes to the community, so
+   everyone gets the real track; only the shape (no speed, braking or other telemetry) */
+function shareTrackMap(lap,src){const wi=S.WeekendInfo||{};if(MODE!=="bridge"||OV.on||REMOTE||STATUS.demo||liveGame()!=="iracing"||src!=="dr"||!wi.TrackID||!(lap.time>10))return;
+  if(MAP.sentBest&&MAP.sentBest<=lap.time)return;if(MAP.commTime&&MAP.commTime<=lap.time)return;MAP.sentBest=lap.time;
+  fetch("/api/trackmap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),time:lap.time,n:lap.N,len:trackLenM(),x:lap.x,y:lap.y,clean:true})}).catch(()=>{})}
 function brakePts(L){const out=[],N=L.b.length;let i=1;while(i<N){if(L.b[i]>.12&&L.b[i-1]<=.12){let k=i,vmin=L.v[i];while(k<N&&k<i+400&&!(L.th[k]>.6&&L.b[k]<.05)){vmin=Math.min(vmin,L.v[k]);k++}out.push({i,v:L.v[i],vmin});i=k+1}else i++}return out}
 function updateMapData(lap,src){const k=MAP.key;if(!k)return;let d=MAP.data;
-  if(!d||d.N!==lap.N||d.src!==src){d={key:k,name:(S.WeekendInfo||{}).TrackDisplayName||"",N:lap.N,src,geo:MAP.geo||null,len:trackLenM(),laps:0,x:lap.x.slice(),y:lap.y.slice()}}
+  if(d&&d.community&&d.N===lap.N&&d.src===src){d.laps=0;d.ownLaps=(d.ownLaps||0)+1}
+  else if(!d||d.N!==lap.N||d.src!==src){d={key:k,name:(S.WeekendInfo||{}).TrackDisplayName||"",N:lap.N,src,geo:MAP.geo||null,len:trackLenM(),laps:0,x:lap.x.slice(),y:lap.y.slice()}}
   else if(d.laps<8){const w=d.laps/(d.laps+1);d.x=d.x.map((v,i)=>v*w+lap.x[i]*(1-w));d.y=d.y.map((v,i)=>v*w+lap.y[i]*(1-w))}
   d.laps=(d.laps||0)+1;
   // best lap and estimated ideal line from the fastest mini-sectors
@@ -2355,11 +2366,11 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
   const good=css("--good"),bad=css("--bad"),acc=css("--accent"),pb=css("--pb"),mut=css("--muted");
   if(d){line(d.x,d.y,css("--line"),14);line(d.x,d.y,css("--surface2"),9);
     const[s0x,s0y]=P(d.x[0],d.y[0]),[s1x,s1y]=P(d.x[3],d.y[3]);const ang=Math.atan2(s1y-s0y,s1x-s0x)+Math.PI/2;x.strokeStyle=css("--fg");x.lineWidth=3;x.beginPath();x.moveTo(s0x+Math.cos(ang)*9,s0y+Math.sin(ang)*9);x.lineTo(s0x-Math.cos(ang)*9,s0y-Math.sin(ang)*9);x.stroke();
-    if(MAPL.best&&d.best)line(d.best.x,d.best.y,pb,1.6);
-    if(MAPL.ideal&&d.ideal){const I=d.ideal;line(I.x,I.y,acc,2.2,i=>I.b[i]>.12?bad:acc)}}
-  if(MAPL.line&&c&&c.pts.length>1&&(!d||c.p0<.03||c.src==="geo")){const ps=c.pts;line(ps.map(p=>p[1]),ps.map(p=>p[2]),null,2.6,i=>ps[i][5]>.12?bad:ps[i][4]>.5?good:mut)}
+    if(MAPL.tel&&MAPL.best&&d.best)line(d.best.x,d.best.y,pb,1.6);
+    if(MAPL.tel&&MAPL.ideal&&d.ideal){const I=d.ideal;line(I.x,I.y,acc,2.2,i=>I.b[i]>.12?bad:acc)}}
+  if(MAPL.line&&c&&c.pts.length>1&&(!d||c.p0<.03||c.src==="geo")){const ps=c.pts;line(ps.map(p=>p[1]),ps.map(p=>p[2]),MAPL.tel?null:acc,2.6,MAPL.tel?(i=>ps[i][5]>.12?bad:ps[i][4]>.5?good:mut):null)}
   // braking markers with comparison to the reference
-  if(d&&MAPL.brakes){const ref=(MAPL.ideal&&d.ideal?d.ideal.brakes:d.best&&d.best.brakes)||[],refL=MAPL.ideal&&d.ideal?d.ideal:d.best,last=MAP.laps.at(-1),len=d.len||trackLenM();
+  if(d&&MAPL.tel&&MAPL.brakes){const ref=(MAPL.ideal&&d.ideal?d.ideal.brakes:d.best&&d.best.brakes)||[],refL=MAPL.ideal&&d.ideal?d.ideal:d.best,last=MAP.laps.at(-1),len=d.len||trackLenM();
     x.font="600 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";
     ref.forEach((bp,n)=>{if(!refL)return;const[a,b]=P(refL.x[bp.i],refL.y[bp.i]);x.fillStyle=bad;x.beginPath();x.arc(a,b,8,0,7);x.fill();x.fillStyle="#fff";x.fillText(n+1,a,b+.5);
       if(last&&last.brakes&&last.N===d.N){const m=last.brakes.find(q=>Math.abs(q.i-bp.i)<d.N*.03);if(m){const dm=(m.i-bp.i)/d.N*len;if(Math.abs(dm)>=3){x.fillStyle=dm>0?good:bad;x.textAlign="left";x.fillText((dm>0?"+":"−")+Math.abs(dm).toFixed(0)+" m",a+11,b);x.textAlign="center"}}}});}
@@ -2374,10 +2385,10 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
       if(MAPL.nums&&pos[i]>0){x.fillStyle=i===me?css("--accent-ink"):css("--surface");x.fillText(pos[i],a,b+.5)}x.globalAlpha=1})}
   // note
   if(!d){const p=c&&c.pts.length?c.pts.at(-1)[0]:0;note.innerHTML=Lp(`Drawing the map from your car: ${Math.round(p*100)}% of the first clean lap. It is saved for next time.`,`Dibujando el mapa con tu coche: ${Math.round(p*100)}% de la primera vuelta limpia. Se guarda para la próxima vez.`,0,`Zeichne die Karte mit deinem Auto: ${Math.round(p*100)}% der ersten sauberen Runde. Sie wird für das nächste Mal gespeichert.`,`Desenhando o mapa com seu carro: ${Math.round(p*100)}% da primeira volta limpa. Fica salvo para a próxima vez.`)}
-  else{const I=d.ideal;note.innerHTML=(I&&MAPL.ideal?Lp(`Ideal line estimated from your fastest mini-sectors over ${d.laps} laps: ${fmtT(I.time)}. iRacing does not share its own racing line.`,`Línea ideal estimada con tus mini-sectores más rápidos en ${d.laps} vueltas: ${fmtT(I.time)}. iRacing no comparte su propia trazada.`,0,`Ideallinie geschätzt aus deinen schnellsten Mini-Sektoren über ${d.laps} Runden: ${fmtT(I.time)}. iRacing teilt seine eigene Ideallinie nicht.`,`Linha ideal estimada pelos seus mini-setores mais rápidos em ${d.laps} voltas: ${fmtT(I.time)}. O iRacing não compartilha sua própria linha.`):"")
+  else{const I=d.ideal;note.innerHTML=(d.community?Lp(`Track layout from the community: the fastest lap without incidents (${fmtT(d.commTime)}). `,`Trazado de la comunidad: la vuelta más rápida sin incidentes (${fmtT(d.commTime)}). `,0,`Streckenverlauf aus der Community: die schnellste Runde ohne Zwischenfälle (${fmtT(d.commTime)}). `,`Traçado da comunidade: a volta mais rápida sem incidentes (${fmtT(d.commTime)}). `):"")+(I&&MAPL.tel&&MAPL.ideal?Lp(`Ideal line estimated from your fastest mini-sectors over ${d.laps} laps: ${fmtT(I.time)}. iRacing does not share its own racing line.`,`Línea ideal estimada con tus mini-sectores más rápidos en ${d.laps} vueltas: ${fmtT(I.time)}. iRacing no comparte su propia trazada.`,0,`Ideallinie geschätzt aus deinen schnellsten Mini-Sektoren über ${d.laps} Runden: ${fmtT(I.time)}. iRacing teilt seine eigene Ideallinie nicht.`,`Linha ideal estimada pelos seus mini-setores mais rápidos em ${d.laps} voltas: ${fmtT(I.time)}. O iRacing não compartilha sua própria linha.`):"")
     +(MAPL.brakes&&MAP.laps.length?" "+Lp("Numbers next to braking points: your last lap vs the reference (+ = braked later).","Números junto a las frenadas: tu última vuelta vs la referencia (+ = frenaste más tarde)."):"")}
 }
-function renderMapLayers(){const box=$("#mapLayers");const items=["ideal","best","line","brakes","cars","nums"];
+function renderMapLayers(){const box=$("#mapLayers");const items=MAPL.tel?["tel","ideal","best","line","brakes","cars","nums"]:["tel","line","cars","nums"];
   box.innerHTML=items.map(k=>`<button type="button" class="chip" data-ly="${k}" aria-pressed="${!!MAPL[k]}">${L("ly."+k,true)}</button>`).join("")+
    `<button type="button" class="chip" data-act="rot">⟳ ${L("ly.rot",true)}</button><button type="button" class="chip" data-act="mirror" aria-pressed="${!!MAPL.mirror}">⇋ ${L("ly.mirror",true)}</button><button type="button" class="chip" data-act="reset">${L("ly.reset",true)}</button>`;
   box.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{MAPL[b.dataset.ly]=!MAPL[b.dataset.ly];store.set("pw.maplayers",MAPL);renderMapLayers();drawMap()});
@@ -4788,25 +4799,47 @@ const delSelect=(id,v)=>`<select id="${id}">${DEL_OPTS.map(o=>`<option value="${
 async function renderCommunity(){const box=$("#commBody");if(!box)return;await Promise.all([loadComm(),loadTB()]);const c=COMM;
   $("#commSub").innerHTML=Lp("Lap times, whole laps and race analyses that drivers choose to share. Compare yourself with them in the braking coach.","Tiempos, vueltas completas y análisis de carrera que los pilotos eligen compartir. Compárate con ellos en el coach de frenada.");
   let combos=[];if(c.ready){try{combos=(await cget("/api/community/combos")).combos||[]}catch(e){}}
-  const mine=(TB||[]).map(e=>({trackId:e.trackId,track:e.track,carId:e.carId,car:e.car}));const wi=S.WeekendInfo||{},md=myDriver();if(wi.TrackID&&md.CarID&&liveGame()===aGame())mine.unshift({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),carId:md.CarID,car:md.CarScreenName});
+  const mine=(TB||[]).map(e=>({trackId:e.trackId,track:e.track,carId:e.carId,car:e.car,mine:true}));const wi=S.WeekendInfo||{},md=myDriver();if(wi.TrackID&&md.CarID&&liveGame()===aGame())mine.unshift({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),carId:md.CarID,car:md.CarScreenName});
   const all=[];[...mine,...combos].forEach(x=>{if(x.trackId&&x.carId&&!all.some(y=>y.trackId===x.trackId&&y.carId===x.carId))all.push(x)});if(!COMMSEL&&all.length)COMMSEL=all[0];
   box.innerHTML=`<div class="grid"><div class="panel s5"><h2>${esc(Tx("What I share","Qué comparto"))}</h2><p class="note" style="margin-top:0">${Lp("Nothing is shared unless you turn it on. Only your best lap per car and track is sent, under your alias. Other drivers' names are removed from the analyses you share.","No se comparte nada salvo que lo actives. Solo se envía tu mejor vuelta por coche y circuito, con tu alias. De los análisis que compartes se quitan los nombres de los demás pilotos.")}</p>
-      <div class="frow" style="flex-direction:column;align-items:flex-start;gap:8px">${chk("cmT",c.shareTimes,Lp("Share my best lap times","Compartir mis mejores tiempos",true))}${chk("cmL",c.shareTraces,Lp("Also the whole lap (telemetry), so others can compare","También la vuelta completa (telemetría), para que otros se comparen",true))}${chk("cmR",c.shareReports,Lp("Share my race analyses","Compartir mis análisis de carrera",true))}${chk("cmA",c.anonymous,Lp("Anonymously (others see “Anonymous”)","De forma anónima (los demás ven «Anónimo»)",true))}</div>
+      <div class="frow" style="flex-direction:column;align-items:flex-start;gap:8px">${chk("cmT",c.shareTimes,Lp("Share my best lap times","Compartir mis mejores tiempos",true))}${chk("cmL",c.shareTraces,Lp("Also the whole lap (telemetry), so others can compare","También la vuelta completa (telemetría), para que otros se comparen",true))}${chk("cmR",c.shareReports,Lp("Share my race analyses","Compartir mis análisis de carrera",true))}${chk("cmM",c.shareMaps!==false,Lp("Share track layouts (iRacing, laps without incidents; only the shape)","Compartir trazados de circuito (iRacing, vueltas sin incidentes; solo la forma)",true))}${chk("cmA",c.anonymous,Lp("Anonymously (others see “Anonymous”)","De forma anónima (los demás ven «Anónimo»)",true))}</div>
       <label style="display:block;margin-top:10px"><span class="label">${esc(Tx("Once shared, delete it from this PC","Una vez compartida, borrarla de este PC","Nach dem Teilen von diesem PC löschen","Depois de compartilhar, apagar deste PC"))}</span>${delSelect("cmDA",c.deleteAfter)}</label>
       ${c.account?`<p class="note" style="margin-top:10px">${esc(Tx("Others see the public name of your Pitlane HQ account","Los demás ven el nombre público de tu cuenta de Pitlane HQ"))}: <b>${esc((ME&&ME.display)||"")}</b> · <a href="#" id="cmMe">${esc(Tx("change","cambiar"))}</a></p>`
         :`<div style="margin-top:10px"><span class="label">${esc(Tx("Name shown to others","Nombre que ven los demás"))}</span>${nameChoice("cm",c.nameKind||"nick",c.alias)}</div>`}
       <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="cmSave">${esc(Tx("Save","Guardar"))}</button>${c.registered?`<button type="button" class="btn small danger" id="cmDel">${esc(Tx("Delete everything I shared","Borrar todo lo que he compartido"))}</button>`:""}</div>
       <p class="note">${c.demo?esc(Tx("Demo: nothing is sent.","Demo: no se envía nada.")):!c.ready?`<span class="warn">${esc(Tx("The community server is not set up yet.","El servidor de la comunidad aún no está configurado."))}</span>`:esc(Tx(`${c.shared||0} shared from this PC`,`${c.shared||0} compartidos desde este PC`,`${c.shared||0} von diesem PC geteilt`,`${c.shared||0} compartilhados deste PC`))}${c.error?` · <span class="err">${esc(c.error)}</span>`:""}</p></div>
-    <div class="panel s7"><div class="vhead" style="margin:0 0 8px"><h2 style="margin:0">${esc(Tx("Leaderboard","Clasificación"))}</h2><select id="cmCombo" style="max-width:100%">${all.map((x,i)=>`<option value="${i}"${COMMSEL&&x.trackId===COMMSEL.trackId&&x.carId===COMMSEL.carId?" selected":""}>${esc(x.track)} · ${esc(x.car||"")}</option>`).join("")}</select></div><div id="cmLaps"><p class="note">${esc(all.length?Tx("Loading…","Cargando…"):Tx("Drive a lap or pick a track and car shared by others.","Da una vuelta o elige un circuito y coche compartido por otros."))}</p></div></div>
+    <div class="panel s7"><div class="vhead" style="margin:0 0 8px"><h2 style="margin:0">${esc(Tx("Leaderboard","Clasificación"))}</h2><span class="muted" id="cmCount"></span></div>
+      <div class="cmfilt"><input type="search" id="cmQ" value="${esc(CMF.q)}" placeholder="${esc(Tx("Search track or car","Buscar circuito o coche","Strecke oder Auto suchen","Buscar pista ou carro"))}" aria-label="${esc(Tx("Search","Buscar"))}">
+        <select id="cmTrk" aria-label="${esc(Tx("Track","Circuito"))}"></select><select id="cmCar" aria-label="${esc(Tx("Car","Coche"))}"></select>
+        <button type="button" class="chip" id="cmMine" aria-pressed="${CMF.mine}">${esc(Tx("Only mine","Solo los míos","Nur meine","Só os meus"))}</button></div>
+      <div id="cmLaps"><p class="note">${esc(Tx("Loading…","Cargando…"))}</p></div></div>
     <div class="panel s12"><h2>${esc(Tx("Shared race analyses","Análisis de carrera compartidos"))}</h2><div id="cmReps"></div></div></div>`;
-  const save=async()=>{const nk=$("#cmK")?nameKindOf("cm"):"nick";const body={action:"save",nameKind:nk,alias:$("#cmNick")?$("#cmNick").value:c.alias||"",url:"",anonymous:$("#cmA").getAttribute("aria-pressed")==="true",deleteAfter:$("#cmDA").value,shareTimes:$("#cmT").getAttribute("aria-pressed")==="true",shareTraces:$("#cmL").getAttribute("aria-pressed")==="true",shareReports:$("#cmR").getAttribute("aria-pressed")==="true"};
+  const save=async()=>{const nk=$("#cmK")?nameKindOf("cm"):"nick";const body={action:"save",nameKind:nk,alias:$("#cmNick")?$("#cmNick").value:c.alias||"",url:"",anonymous:$("#cmA").getAttribute("aria-pressed")==="true",deleteAfter:$("#cmDA").value,shareTimes:$("#cmT").getAttribute("aria-pressed")==="true",shareTraces:$("#cmL").getAttribute("aria-pressed")==="true",shareReports:$("#cmR").getAttribute("aria-pressed")==="true",shareMaps:$("#cmM").getAttribute("aria-pressed")==="true"};
     if(MODE!=="bridge"){Object.assign(COMM,body);toast(Tx("Demo: saved, nothing is sent","Demo: guardado, no se envía nada"));return renderCommunity()}try{COMM=await jpost("/api/community",body);toast(Tx("Saved","Guardado"))}catch(e){toast(e.message)}renderCommunity()};
-  ["cmT","cmL","cmR","cmA"].forEach(id=>$("#"+id).onclick=e=>{const b=e.currentTarget;b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true");if(id==="cmL"&&b.getAttribute("aria-pressed")==="true")$("#cmT").setAttribute("aria-pressed","true");if(id==="cmT"&&b.getAttribute("aria-pressed")!=="true")$("#cmL").setAttribute("aria-pressed","false")});
+  ["cmT","cmL","cmR","cmA","cmM"].forEach(id=>$("#"+id).onclick=e=>{const b=e.currentTarget;b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true");if(id==="cmL"&&b.getAttribute("aria-pressed")==="true")$("#cmT").setAttribute("aria-pressed","true");if(id==="cmT"&&b.getAttribute("aria-pressed")!=="true")$("#cmL").setAttribute("aria-pressed","false")});
   $("#cmSave").onclick=save;wireNameChoice("cm");const cmm=$("#cmMe");if(cmm)cmm.onclick=e=>{e.preventDefault();show("me")};const del=$("#cmDel");if(del)del.onclick=async()=>{if(!await uiConfirm(Tx("Delete every lap and analysis you shared? This cannot be undone.","¿Borrar todas las vueltas y análisis que compartiste? No se puede deshacer.")))return;try{COMM=await jpost("/api/community",{action:"deleteAll"});toast(Tx("Deleted","Borrado"))}catch(e){toast(e.message)}renderCommunity()};
-  $("#cmCombo").onchange=e=>{COMMSEL=all[+e.target.value];renderCommLaps()};
+  commFilters(all);
   // what is shared is chosen on the PC, where the laps are recorded: no "What I share" here
   if(c.companion){const l=box.querySelector(".panel.s5");if(l){const n=l.nextElementSibling;l.remove();if(n)n.className=n.className.replace(/\bs\d+\b/,"s12")}}
   renderCommLaps()}
+/* leaderboard filters: search, track, car, and only the combinations you drove */
+const CMF={q:"",mine:false};
+function commFilters(all){const q=$("#cmQ"),ts=$("#cmTrk"),cs=$("#cmCar");if(!q)return;
+  const fill=init=>{const qq=CMF.q.toLowerCase().trim(),list=all.filter(x=>(!CMF.mine||x.mine||(TB||[]).some(e=>e.trackId===x.trackId&&e.carId===x.carId))&&(!qq||(x.track+" "+(x.car||"")).toLowerCase().includes(qq)));
+    const tracks=[];list.forEach(x=>{let t=tracks.find(y=>y.id===x.trackId);if(!t)tracks.push(t={id:x.trackId,name:x.track||"#"+x.trackId,n:0});t.n+=x.laps||0});tracks.sort((a,b)=>a.name.localeCompare(b.name));
+    $("#cmCount").textContent=all.length?Tx(`${tracks.length} tracks`,`${tracks.length} circuitos`,`${tracks.length} Strecken`,`${tracks.length} pistas`):"";
+    if(!tracks.length){ts.innerHTML="";cs.innerHTML="";ts.disabled=cs.disabled=true;COMMSEL=null;
+      $("#cmLaps").innerHTML=`<p class="note">${esc(all.length?Tx("Nothing matches these filters.","Nada coincide con estos filtros.","Nichts passt zu diesen Filtern.","Nada corresponde a estes filtros."):Tx(`Nobody has shared a lap in ${GAME_NAMES[aGame()]} yet. Drive one, or choose another game above.`,`Nadie ha compartido aún una vuelta en ${GAME_NAMES[aGame()]}. Da una vuelta o elige otro juego arriba.`,`Noch niemand hat eine Runde in ${GAME_NAMES[aGame()]} geteilt. Fahr eine oder wähle oben ein anderes Spiel.`,`Ninguém compartilhou uma volta em ${GAME_NAMES[aGame()]} ainda. Faça uma ou escolha outro jogo acima.`))}</p>`;$("#cmReps").innerHTML="";return}
+    ts.disabled=cs.disabled=false;const tid=COMMSEL&&tracks.some(t=>t.id===COMMSEL.trackId)?COMMSEL.trackId:tracks[0].id;
+    ts.innerHTML=tracks.map(t=>`<option value="${t.id}"${t.id===tid?" selected":""}>${esc(t.name)}</option>`).join("");
+    const cars=list.filter(x=>x.trackId===tid).sort((a,b)=>(b.laps||0)-(a.laps||0));const cid=COMMSEL&&COMMSEL.trackId===tid&&cars.some(x=>x.carId===COMMSEL.carId)?COMMSEL.carId:cars[0].carId;
+    cs.innerHTML=cars.map(x=>`<option value="${x.carId}"${x.carId===cid?" selected":""}>${esc(x.car||"#"+x.carId)}${x.laps?` · ${x.laps}`:""}</option>`).join("");
+    const sel=cars.find(x=>x.carId===cid);if(!COMMSEL||COMMSEL.trackId!==sel.trackId||COMMSEL.carId!==sel.carId){COMMSEL=sel;if(!init)renderCommLaps()}};
+  let qt=0;q.oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{CMF.q=q.value;fill()},180)};
+  ts.onchange=()=>{const t=+ts.value;COMMSEL={trackId:t,carId:-1};fill()};
+  cs.onchange=()=>{const c=+cs.value;COMMSEL=all.find(x=>x.trackId===+ts.value&&x.carId===c);renderCommLaps()};
+  $("#cmMine").onclick=()=>{CMF.mine=!CMF.mine;$("#cmMine").setAttribute("aria-pressed",CMF.mine);fill()};
+  fill(true)}
 async function renderCommLaps(){const box=$("#cmLaps"),rb=$("#cmReps");if(!box||!COMMSEL)return;const s=COMMSEL;let laps=[],reps=[];
   try{laps=(await cget(`/api/community/laps?trackId=${s.trackId}&carId=${s.carId}`)).laps||[]}catch(e){box.innerHTML=`<p class="err">${esc(e.message)}</p>`}
   try{reps=(await cget(`/api/community/reports?trackId=${s.trackId}&carId=${s.carId}`)).reports||[]}catch(e){}
