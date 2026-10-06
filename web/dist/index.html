@@ -591,8 +591,8 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
 <!-- LAPS -->
 <section class="view" id="v-laps" hidden>
   <div class="vhead">
-    <div><h1 data-i18n="lapsTitle"></h1><div class="sub" data-i18n="lapsSub"></div></div>
-    <div class="controls"><select id="lapA" aria-label="Lap A"></select><span class="muted">vs</span><select id="lapB" aria-label="Lap B"></select></div>
+    <div><h1 data-i18n="lapsTitle"></h1><div class="sub" data-i18n="lapsSub"></div><div class="sub" id="coachTrack" style="margin-top:4px"></div></div>
+    <div class="controls"><select id="lapA" aria-label="Lap A"></select><span class="muted">vs</span><select id="lapB" aria-label="Lap B"></select><button class="btn" id="lapRefBtn" type="button">+ Garage 61</button></div>
   </div>
   <div id="lapsEmpty" class="panel empty" data-i18n="lapsEmpty"></div>
   <div class="grid" id="lapsBody" hidden>
@@ -611,10 +611,11 @@ html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
       <div class="label" style="margin-bottom:4px" data-i18n="lapList"></div>
       <div class="tscroll"><table id="lapTable"><thead><tr><th data-i18n="lap"></th><th class="r" data-i18n="time"></th><th class="r" data-i18n="fuelUsed"></th><th class="r" data-i18n="vmax"></th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="panel s12">
-      <div class="label" style="margin-bottom:4px" data-i18n="brakeTitle"></div>
-      <div class="tscroll"><table id="brakeTable"><thead><tr><th>#</th><th class="r" data-i18n="bp.ref"></th><th class="r" data-i18n="bp.diff"></th><th class="r" data-i18n="bp.entry"></th><th class="r" data-i18n="bp.min"></th></tr></thead><tbody></tbody></table></div>
-      <p class="note" data-i18n="bp.note"></p>
+    <div class="panel s12" id="coachPanel">
+      <div class="vhead" style="margin:0 0 8px"><div><h2 data-i18n="coachTitle"></h2><div class="sub" data-i18n="coachSub"></div></div><div class="hstrip" id="coachSummary"></div></div>
+      <div class="grid"><div class="panel s7" style="padding:8px"><canvas id="coachMap" height="340"></canvas></div><div class="panel s5"><div class="label" data-i18n="coachAdvice"></div><div id="coachAdvice" style="display:grid;gap:8px;margin-top:8px"></div></div></div>
+      <div class="panel" style="margin-top:10px"><div class="label" style="margin-bottom:4px" data-i18n="sectors"></div><div class="tscroll"><table id="coachSectors"><thead><tr><th>#</th><th class="r">PB</th><th class="r">Reference</th><th class="r" data-i18n="diff"></th><th class="r" data-i18n="coachSectorPB"></th></tr></thead><tbody></tbody></table></div></div>
+      <div class="panel" style="margin-top:10px"><div class="label" style="margin-bottom:4px" data-i18n="brakeTitle"></div><div class="tscroll"><table id="brakeTable"><thead><tr><th>#</th><th class="r" data-i18n="bp.ref"></th><th class="r" data-i18n="bp.diff"></th><th class="r" data-i18n="bp.entry"></th><th class="r" data-i18n="bp.min"></th></tr></thead><tbody></tbody></table></div><p class="note" data-i18n="bp.note"></p></div>
     </div>
   </div>
 </section>
@@ -750,7 +751,7 @@ const I18N={
  date:["Date","Fecha"],series:["Series","Serie"],trackCol:["Track","Circuito"],start:["Start","Salida"],finish:["Finish","Final"],
  explorer:["Data API explorer","Explorador de la Data API"],explorerNote:["Call any iRacing Data API endpoint, e.g. member/info, stats/member_career, series/seasons, results/get?subsession_id=…","Llama a cualquier endpoint de la Data API, p. ej. member/info, stats/member_career, series/seasons, results/get?subsession_id=…"],run:["Run","Ejecutar"],
  sample:["Sample data","Datos de ejemplo"],"bp.ref":["Brake point (B)","Frenada (B)"],"bp.diff":["A vs B","A vs B"],"bp.entry":["Speed at braking A / B","Velocidad al frenar A / B"],"bp.min":["Min. speed A / B","Vel. mínima A / B"],
- "bp.note":["+ means lap A braked later than lap B at that corner.","+ significa que en la vuelta A frenaste más tarde que en la B en esa curva."],details:["Details","Detalles"],
+ "bp.note":["+ means lap A braked later than lap B at that corner.","+ significa que en la vuelta A frenaste más tarde que en la B en esa curva."],"coachTitle":["Braking coach","Coach de frenada"],"coachSub":["Purple = your fastest lap/sector · Green = community reference","Morado = tu vuelta/sector más rápido · Verde = referencia de la comunidad"],"coachPB":["Personal best","Mejor vuelta personal"],"coachCommunity":["Community reference","Referencia comunidad"],"coachCurrent":["Current lap","Vuelta actual"],"coachTrack":["Track","Circuito"],"coachAdvice":["Coach advice","Consejo del coach"],"coachBrakeEarlier":["Brake earlier","Frena antes"],"coachBrakeLater":["Brake later","Frena más tarde"],"coachGoodBrake":["Good braking point","Buen punto de frenada"],"coachSectorPB":["Best sector","Mejor sector"],"coachNoRef":["Select a Garage 61/community lap to unlock the full coach.","Selecciona una vuelta de Garage 61/comunidad para activar el coach completo."],details:["Details","Detalles"],
 };
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let LANG=store.get("pw.lang","en"),UNITS=store.get("pw.units","metric");
@@ -970,7 +971,7 @@ function renderLaps(){lapsDirty=false;const has=LAPS.length>=2;$("#lapsEmpty").h
   $("#lapTable tbody").innerHTML=LAPS.slice().reverse().map(l=>`<tr><td class="mono">${l.n}</td><td class="r mono ${l===best?"pb":""}">${fmtT(l.time)}</td><td class="r mono">${l.fuel!=null?vol(l.fuel).toFixed(2)+" "+volU():"–"}</td><td class="r mono">${Math.round(spd(l.vmax))} ${spdU()}</td></tr>`).join("");
   if(!has)return;
   const A=$("#lapA"),B=$("#lapB"),pa=A.value,pb=B.value;const opts=LAPS.map((l,i)=>`<option value="${i}">${Tx("Lap","Vuelta")} ${l.n} · ${fmtT(l.time)}${l===best?" ★":""}</option>`).join("");A.innerHTML=opts;B.innerHTML=opts;
-  A.value=pa!==""&&LAPS[pa]?pa:LAPS.length-1;B.value=pb!==""&&LAPS[pb]?pb:LAPS.indexOf(best);if(A.value===B.value&&LAPS.length>1)B.value=A.value==="0"?"1":"0";drawCmp()}
+  A.value=pa!==""&&LAPS[pa]?pa:LAPS.length-1;B.value=pb!==""&&LAPS[pb]?pb:LAPS.indexOf(best);if(A.value===B.value&&LAPS.length>1)B.value=A.value==="0"?"1":"0";$("#lapRefBtn").textContent=G61REF?Tx("Community ✓","Comunidad ✓"):Tx("+ Garage 61","+ Garage 61");drawCmp();drawCoach()}
 function drawCmp(){const A=LAPS[$("#lapA").value],B=LAPS[$("#lapB").value];if(!A||!B)return;$("#legA").textContent=Tx("Lap","Vuelta")+" "+A.n;$("#legB").textContent=Tx("Lap","Vuelta")+" "+B.n;
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end),len=n*BIN;let vmax=0;for(let i=0;i<n;i++){if(sa.arr[i])vmax=Math.max(vmax,sa.arr[i][0]);if(sb.arr[i])vmax=Math.max(vmax,sb.arr[i][0])}
   const top=Math.ceil(spd(vmax)/50)*50||200;let [x,w,h]=fitCanvas($("#cmp"));if(!x)return;x.clearRect(0,0,w,h);const pl=40,pb=18,X=d=>pl+d/len*(w-pl-6),Y=v=>6+(1-spd(v)/top)*(h-pb-6);
@@ -986,7 +987,24 @@ function drawCmp(){const A=LAPS[$("#lapA").value],B=LAPS[$("#lapB").value];if(!A
   const secs=[[0,third],[third,2*third],[2*third,null]].map(([a,b],k)=>{const ta=(b==null?A.time:tAt(sa,b))-tAt(sa,a),tb=(b==null?B.time:tAt(sb,b))-tAt(sb,a);return[`S${k+1}`,ta,tb]});
   renderBrakeTable(A,B);
   $("#sectors tbody").innerHTML=secs.map(([nm,ta,tb])=>`<tr><td>${nm}</td><td class="r mono">${ta.toFixed(3)}</td><td class="r mono">${tb.toFixed(3)}</td><td class="r mono ${ta-tb>0?"bad":"good"}">${sgn(ta-tb)}</td></tr>`).join("")+`<tr><td><b>${Tx("Lap","Vuelta")}</b></td><td class="r mono"><b>${fmtT(A.time)}</b></td><td class="r mono"><b>${fmtT(B.time)}</b></td><td class="r mono ${A.time-B.time>0?"bad":"good"}"><b>${sgn(A.time-B.time)}</b></td></tr>`}
-$("#lapA").onchange=$("#lapB").onchange=drawCmp;
+function sectorStats(l,n=6){if(!l)return[];const s=lapSeries(l).arr,total=(l.maxBin!=null?l.maxBin+1:s.length),out=[];
+  const at=i=>{for(let k=Math.min(i,s.length-1);k>=0;k--)if(s[k])return s[k][1];return 0};
+  for(let k=0;k<n;k++){const a=Math.floor(k*total/n),b=Math.floor((k+1)*total/n)-1;const ta=at(a),tb=k===n-1?l.time:at(b);out.push({n:k+1,time:Math.max(0,tb-ta),a:a,b:b})}return out}
+function coachTrackText(){const wi=S.WeekendInfo||{},d=driverBy(T.PlayerCarIdx)||{},name=wi.TrackDisplayName||wi.TrackDisplayShortName||"–",cfg=wi.TrackConfigName||"",car=d.CarScreenName||d.CarScreenNameShort||"";$("#coachTrack").textContent=[name,cfg,car].filter(Boolean).join(" · ")}
+function coachRefSeries(ref){if(!ref||!MAP.data||!MAP.data.N)return null;const N=MAP.data.N,o={x:new Array(N),y:new Array(N),v:new Array(N),b:new Array(N),th:new Array(N),t:new Array(N)};for(let i=0;i<N;i++){const p=i/Math.max(1,N-1),k=Math.min(ref.bins.length-1,Math.floor(p*ref.bins.length));const z=ref.bins[k];if(z){o.x[i]=MAP.data.x[i];o.y[i]=MAP.data.y[i];o.v[i]=z[0];o.b[i]=z[3];o.th[i]=z[2];o.t[i]=z[1]}}return o}
+function drawCoachMap(pb,ref,cur){const cv=$("#coachMap");if(!cv)return;const d=MAP.data;if(!d||!d.x||!d.x.length){const q=fitCanvas(cv);if(q[0]){q[0].clearRect(0,0,q[1],q[2]);q[0].fillStyle=css("--muted");q[0].font="13px "+css("--f-body");q[0].textAlign="center";q[0].fillText(Lp("Complete a clean lap to build the track map.","Completa una vuelta limpia para crear el mapa."),q[1]/2,q[2]/2)}return}
+  const q=fitCanvas(cv),x=q[0],w=q[1],h=q[2];if(!x)return;x.clearRect(0,0,w,h);let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;for(let i=0;i<d.x.length;i++){mnx=Math.min(mnx,d.x[i]);mxx=Math.max(mxx,d.x[i]);mny=Math.min(mny,d.y[i]);mxy=Math.max(mxy,d.y[i])}
+  const pad=22,sc=Math.min((w-2*pad)/((mxx-mnx)||1),(h-2*pad)/((mxy-mny)||1)),ox=(w-(mxx-mnx)*sc)/2,oy=(h-(mxy-mny)*sc)/2,P=i=>[ox+(d.x[i]-mnx)*sc,h-(oy+(d.y[i]-mny)*sc)],path=(arr,col,wd,dash)=>{if(!arr)return;x.beginPath();let on=false;for(let i=0;i<arr.length;i++){if(arr[i]&&arr[i][0]!=null){const p=P(Math.min(i,d.x.length-1));on?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]);on=true}}x.strokeStyle=col;x.lineWidth=wd;x.setLineDash(dash||[]);x.stroke();x.setLineDash([])};
+  path(d.x.map(()=>[1]),css("--line"),12);path(d.x.map(()=>[1]),css("--surface2"),8);if(pb)path(d.x.map(()=>[1]),css("--pb"),3);const rr=coachRefSeries(ref);if(rr)path(d.x.map(()=>[1]),css("--good"),2,[7,5]);if(cur)path(d.x.map(()=>[1]),css("--accent"),2);
+  const wi=S.WeekendInfo||{};x.fillStyle=css("--fg");x.font="700 13px "+css("--f-display");x.textAlign="left";x.fillText(wi.TrackDisplayName||wi.TrackDisplayShortName||"",8,17)}
+function drawCoach(){coachTrackText();const pb=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null),last=LAPS.at(-1),ref=G61REF,sum=$("#coachSummary"),adv=$("#coachAdvice"),st=$("#coachSectors");if(!sum||!adv||!st)return;
+  if(!pb){sum.innerHTML="";adv.innerHTML="<p class=\"note\">"+L("lapsEmpty")+"</p>";st.innerHTML="";drawCoachMap(null,ref,null);return}
+  const ps=sectorStats(pb,6),rs=ref?sectorStats(ref,6):null,best=Array(6).fill(null);LAPS.forEach(l=>sectorStats(l,6).forEach((z,i)=>{if(!best[i]||z.time<best[i].time)best[i]={time:z.time,lap:l}}));
+  sum.innerHTML="<div><span class=\"k\" style=\"color:var(--pb)\">"+L("coachPB",true)+"</span><span class=\"v\">"+fmtT(pb.time)+"</span></div>"+(ref?"<div><span class=\"k\" style=\"color:var(--good)\">"+L("coachCommunity",true)+"</span><span class=\"v\">"+esc(ref.name||"Garage 61")+" · "+fmtT(ref.time)+"</span></div>":"")+"<div><span class=\"k\">"+L("coachCurrent",true)+"</span><span class=\"v\">"+(last?fmtT(last.time):"–")+"</span></div>";
+  st.innerHTML=ps.map((p,i)=>{const r=rs&&rs[i],d=r?p.time-r.time:null,b=best[i];return "<tr><td>S"+(i+1)+"</td><td class=\"r mono pb\">"+fmtT(p.time)+"</td><td class=\"r mono\" style=\"color:var(--good)\">"+(r?fmtT(r.time):"–")+"</td><td class=\"r mono "+(d==null?"muted":d>0?"bad":"good")+"\">"+(d==null?"–":sgn(d))+"</td><td class=\"r mono\" style=\"color:var(--pb)\">"+(b?fmtT(b.time)+" · "+(b.lap===pb?L("coachPB",true):"Lap "+b.lap.n):"–")+"</td></tr>"}).join("");
+  if(ref){const a=binBrakes(pb),b=binBrakes(ref);adv.innerHTML=b.map((bp,n)=>{const m=a.find(q=>Math.abs(q.d-bp.d)<80);if(!m)return "";const dm=m.d-bp.d,good=Math.abs(dm)<3;let msg=good?L("coachGoodBrake",true):dm>0?L("coachBrakeEarlier",true):L("coachBrakeLater",true);if(dm>7)msg+=" · "+L("coachBrakeEarlier",true);else if(dm<-7)msg+=" · "+L("coachBrakeLater",true);return "<div class=\"callout\"><b>T"+(n+1)+"</b> · "+Math.round(bp.d)+" m · "+msg+"<br><span class=\"muted\">"+Lp("Entry","Entrada")+": "+Math.round(spd(m.v))+" / "+Math.round(spd(bp.v))+" "+spdU()+" · "+Lp("Min","Mín")+": "+Math.round(spd(m.vmin))+" / "+Math.round(spd(bp.vmin))+" "+spdU()+"</span></div>"}).join("")||"<p class=\"note\">"+L("coachNoRef")+"</p>"}else adv.innerHTML="<p class=\"note\">"+L("coachNoRef")+"</p>";
+  drawCoachMap(pb,ref,last)}
+$("#lapA").onchange=$("#lapB").onchange=()=>{drawCmp();drawCoach()};$("#lapRefBtn").onclick=openG61Picker;
 
 /* ===================== data browser ===================== */
 let DATA_TAB="data:vars",varRows=new Map(),openRows=new Set();
@@ -1984,7 +2002,7 @@ const CMPCH=[["speed","Speed","Velocidad"],["pedals","Throttle & brake","Acelera
 function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const k=c.ch+"|"+c.follow+"|"+LANG+"|"+(G61REF?1:0)+"|"+MODE;if(box.dataset.k===k)return;box.dataset.k=k;
   box.innerHTML=CMPCH.map(([v,en,es])=>`<button type="button" class="chip" data-ch="${v}" aria-pressed="${c.ch===v}">${esc(Tx(en,es))}</button>`).join("")+`<button type="button" class="chip" data-follow aria-pressed="${!!c.follow}">${esc(Tx("Follow me","Seguirme"))}</button>`
     +(MODE==="bridge"&&!REMOTE&&!OV.on?(G61REF?`<button type="button" class="chip" data-g61off aria-pressed="true">Garage 61 ✕</button>`:`<button type="button" class="chip" data-g61>+ Garage 61</button>`):"");
-  const g=box.querySelector("[data-g61]");if(g)g.onclick=openG61Picker;const go=box.querySelector("[data-g61off]");if(go)go.onclick=()=>{G61REF=null;cmpCtl();drawCompare()};
+  const g=box.querySelector("[data-g61]");if(g)g.onclick=openG61Picker;const go=box.querySelector("[data-g61off]");if(go)go.onclick=()=>{G61REF=null;cmpCtl();drawCompare();renderLaps();drawCoach()};
   box.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{setUI("cmp",{ch:b.dataset.ch});cmpCtl();drawCompare()});
   box.querySelector("[data-follow]").onclick=()=>{setUI("cmp",{follow:!ui("cmp").follow});cmpCtl();drawCompare()}}
 function serOf(l){if(!l._ser||l._serN!==l.bins.length){l._ser=lapSeries(l).arr;l._serN=l.bins.length}return l._ser}
@@ -2146,7 +2164,7 @@ async function openG61Picker(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=L("g61Ref
     let who="me";const load=async()=>{const box=$("#g61Laps");box.innerHTML=`<p class="note">…</p>`;try{const q=`laps?tracks=${$("#g61T").value}&cars=${$("#g61C").value}${who==="me"?"&drivers=me":""}&group=${who==="me"?"none":"driver"}&limit=25`;
         const laps=listOf(await g61Get(q)).sort((a,b)=>(a.lapTime||1e9)-(b.lapTime||1e9));
         box.innerHTML=laps.length?laps.map(l=>`<div class="agrow" style="grid-template-columns:90px 1fr auto"><span class="t">${fmtT(l.lapTime)}</span><span class="s"><div>${esc(g61UserName(l.driver)||Tx("You","Tú"))}</div><div class="muted" style="font-size:12px">${esc(l.startTime?new Date(l.startTime).toLocaleDateString(locale()):"")}</div></span><button type="button" class="pin" data-lap="${esc(l.id)}" data-t="${l.lapTime}" data-n="${esc(g61UserName(l.driver)||"")}">${esc(Tx("Use","Usar"))}</button></div>`).join(""):`<p class="note">${Lp("No laps found for this car and track.","No hay vueltas para este coche y circuito.")}</p>`;
-        box.querySelectorAll("[data-lap]").forEach(b=>b.onclick=async()=>{b.textContent="…";try{const csv=await g61Get(`laps/${b.dataset.lap}/csv`);G61REF=csvToLap(csv,+b.dataset.t,b.dataset.n);if(!G61REF)throw new Error(Tx("This lap has no telemetry","Esta vuelta no tiene telemetría"));closeDrawer();toast(Tx("Reference lap loaded","Vuelta de referencia cargada"));drawCompare()}catch(err){b.textContent=err.message}})}
+        box.querySelectorAll("[data-lap]").forEach(b=>b.onclick=async()=>{b.textContent="…";try{const csv=await g61Get(`laps/${b.dataset.lap}/csv`);G61REF=csvToLap(csv,+b.dataset.t,b.dataset.n);if(!G61REF)throw new Error(Tx("This lap has no telemetry","Esta vuelta no tiene telemetría"));closeDrawer();renderLaps();drawCoach();toast(Tx("Reference lap loaded","Vuelta de referencia cargada"));drawCompare()}catch(err){b.textContent=err.message}})}
       catch(err){box.innerHTML=`<p class="err">${esc(err.message)}</p>`}};
     $("#g61T").onchange=$("#g61C").onchange=load;$("#g61Mine").onclick=()=>{who="me";$("#g61Mine").setAttribute("aria-pressed",true);$("#g61All").setAttribute("aria-pressed",false);load()};$("#g61All").onclick=()=>{who="all";$("#g61All").setAttribute("aria-pressed",true);$("#g61Mine").setAttribute("aria-pressed",false);load()};load()}
   catch(err){$("#dBody").innerHTML=`<p class="err">${esc(err.message)}</p>`}}
@@ -2208,7 +2226,7 @@ let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
 function show(v){CUR_VIEW=v;tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(!OV.on)store.set("pw.tab",v);setWantAll(v==="data");
-  if(v==="laps")renderLaps();if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings")renderSettings();if(v==="live"){liveSlow();renderRelative()}}
+  if(v==="laps"){renderLaps();drawCoach()}if(v==="account"){renderAccount();renderG61Panel()}if(v==="settings")renderShare();if(v==="overlays")renderOverlaysTab();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="settings")renderSettings();if(v==="live"){liveSlow();renderRelative()}}
 tabs.forEach(b=>b.onclick=()=>show(b.dataset.v));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?"live":"settings");
 function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW==="live"){liveSlow();renderRelative()}if(CUR_VIEW==="field")renderStandings();if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="data"){renderVarTable();if(DATA_TAB==="data:session")renderSession();if(DATA_TAB==="data:dev")renderDev()}if(CUR_VIEW==="account")renderAccount();if(CUR_VIEW==="tyres")renderTyres();if(CUR_VIEW==="overlays")renderOverlaysTab();if(CUR_VIEW==="series")renderSeries();sessionChanged()}
 window.addEventListener("resize",()=>{if(CUR_VIEW==="laps")drawCmp();if(CUR_VIEW==="account")rerenderAll()});
