@@ -1,0 +1,43 @@
+name = "pitlanehq"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pitlanehq"
+migrations_dir = "migrations"
+# No database_id: the "Deploy to Cloudflare" button creates the database for you.
+# Deploying by hand? Add the id printed by `npx wrangler d1 create pitlanehq`:
+# database_id = "..."
+
+# secrets (set with `npx wrangler secret put NAME`):
+#   PITLANE_KEY  key that PitlaneHQ.exe uses to upload and you use to sign in
+#   VIEW_KEY     optional read-only key to share with your engineer or team
+
+[vars]
+# accounts, end-to-end encrypted sync, community and shared setups on this server
+COMMUNITY = "1"
+# your Pitlane HQ account id(s), separated by commas, to publish the season schedule
+SEASON_UPLOADERS = "3e224233fde0e11f670d2d97"
+# admin account id(s): they see Connections (iRacing, Garage 61, own site, Discord) in the app; empty = the SEASON_UPLOADERS
+ADMINS = "3e224233fde0e11f670d2d97"
+
+# the full app (web/dist) is served at /app/ by the worker
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+run_worker_first = true
+
+# live telemetry: one room per account, the PC sends and your browsers and phones watch
+[[durable_objects.bindings]]
+name = "LIVE"
+class_name = "LiveRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LiveRoom"]
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false

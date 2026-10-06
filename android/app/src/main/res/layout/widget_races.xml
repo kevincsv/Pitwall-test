@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_bg">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/header" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:text="NEXT RACES" android:textColor="#FFB02E" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.08" />
+        <Chronometer android:id="@+id/countdown" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="#FFB02E" android:textSize="16sp" android:textStyle="bold" android:fontFamily="monospace" />
+    </LinearLayout>
+    <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+        android:textColor="#8A97A9" android:textSize="13sp" />
+    <LinearLayout android:id="@+id/r1" style="@style/Row"><TextView android:id="@+id/r1Time" style="@style/RowTime" /><TextView android:id="@+id/r1Title" style="@style/RowTitle" /></LinearLayout>
+    <LinearLayout android:id="@+id/r2" style="@style/Row"><TextView android:id="@+id/r2Time" style="@style/RowTime" /><TextView android:id="@+id/r2Title" style="@style/RowTitle" /></LinearLayout>
+    <LinearLayout android:id="@+id/r3" style="@style/Row"><TextView android:id="@+id/r3Time" style="@style/RowTime" /><TextView android:id="@+id/r3Title" style="@style/RowTitle" /></LinearLayout>
+</LinearLayout>
