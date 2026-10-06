@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pit Wall</title>
+<title>Pitlane HQ</title>
 <style>
 :root{--bg:#11151b;--surface:#19202a;--line:#2b3542;--fg:#e7ebf1;--muted:#8a97a9;--accent:#ffb02e;--ink:#11151b;--bad:#ff6363;--good:#38c97c;color-scheme:dark}
 *{box-sizing:border-box}
@@ -23,47 +23,65 @@ input{font:16px ui-monospace,Menlo,monospace;background:var(--bg);color:var(--fg
 .err{color:var(--bad)}.ok{color:var(--good)}
 .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}.bar b{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 ol{margin:0;padding-left:20px;color:var(--muted)}
+input.code{font:700 30px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-align:center;padding:14px}
+.hint{color:var(--muted);font-size:13px;line-height:1.45}summary{cursor:pointer}details[open] summary{margin-bottom:4px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><i></i>Pit Wall</h1>
-  <p>Find PitWall.exe on your PC<span class="es">Busca PitWall.exe en tu PC</span></p>
-  <div class="card">
-    <button class="primary" id="scan" type="button">Search my Wi-Fi<span class="es" style="color:inherit;opacity:.75">Buscar en mi WiFi</span></button>
+  <h1><i></i>Pitlane HQ</h1>
+  <p>Pair with your PC<span class="es">Empareja con tu PC</span></p>
+  <form class="card" id="codeForm">
+    <div class="label">Code shown on the PC · Código que muestra el PC</div>
+    <input id="code" class="code" inputmode="numeric" autocomplete="one-time-code" placeholder="23-481 902" maxlength="14" autofocus>
+    <button class="primary" type="submit">Connect<span class="es" style="color:inherit;opacity:.75">Conectar</span></button>
     <div class="bar" id="bar" hidden><b id="prog"></b></div>
     <div id="status" class="label"></div>
     <div id="found" style="display:grid;gap:8px"></div>
-  </div>
-  <div class="card">
-    <div class="label">Or type the address shown on the PC · O escribe la dirección del PC</div>
+    <small class="hint">On the PC: Pitlane HQ → Settings → Phone. It only works on your own Wi-Fi: telemetry goes straight from the PC to the phone, never through the internet.<span class="es">En el PC: Pitlane HQ → Ajustes → Móvil. Solo funciona en tu propia WiFi: la telemetría va directa del PC al móvil, nunca por internet.</span></small>
+  </form>
+  <details class="card"><summary class="label">Other ways · Otras formas</summary>
+    <button id="scan" type="button">Search my Wi-Fi<span class="es">Buscar en mi WiFi</span></button>
     <form class="row" id="manual"><input id="addr" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="192.168.1.20:8484"><button type="submit">Go</button></form>
-  </div>
+  </details>
   <div class="card">
     <ol>
-      <li>Start PitWall.exe on the PC. <span class="es">Abre PitWall.exe en el PC.</span></li>
+      <li>Start PitlaneHQ.exe on the PC. <span class="es">Abre PitlaneHQ.exe en el PC.</span></li>
       <li>Use the same Wi-Fi on both. <span class="es">Usa la misma WiFi en los dos.</span></li>
+      <li>Type the code from Settings → Phone. <span class="es">Escribe el código de Ajustes → Móvil.</span></li>
       <li>Allow "Local Network" when iOS asks. <span class="es">Permite "Red local" cuando iOS lo pida.</span></li>
     </ol>
   </div>
 </div>
 <script>
-const native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall;
+const native=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.pitwall||(window.PitlaneAndroid?{postMessage:m=>window.PitlaneAndroid.post(JSON.stringify(m))}:null);
 const $=s=>document.querySelector(s);
+let want=null,ipWait=null;
 function open(url){if(native)native.postMessage({type:"open",url});else location.href=url}
+const pairURL=(base,pin)=>base+"/pair?pin="+pin+"&next=%2F";
 window.onError=msg=>{$("#status").innerHTML='<span class="err">Could not reach the PC · No se pudo conectar con el PC</span>'};
 function probe(base,ms){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);return fetch(base+"/api/info",{signal:c.signal,cache:"no-store"}).then(r=>r.json()).then(j=>{clearTimeout(t);return j&&j.app==="PitWall"?j:null}).catch(()=>null)}
-function add(base,info){const b=document.createElement("button");b.className="pc";b.type="button";b.innerHTML=`<span>${(info.host||"PC").replace(/[<>&]/g,"")}</span><small>${base.replace("http://","")}</small>`;b.onclick=()=>open(base+"/");$("#found").appendChild(b)}
-window.onIP=async ip=>{const m=(ip||"").match(/^(\d+\.\d+\.\d+)\.\d+$/);if(!m){$("#status").innerHTML='<span class="err">Connect to Wi-Fi first · Conéctate primero a la WiFi</span>';return}
-  $("#found").innerHTML="";$("#bar").hidden=false;let done=0,hits=0;const hosts=[];for(let i=1;i<255;i++)hosts.push(m[1]+"."+i);
-  $("#status").textContent="Searching "+m[1]+".x · Buscando…";
-  const worker=async()=>{while(hosts.length){const h=hosts.shift();for(const port of [8484,8485]){const base=`http://${h}:${port}`;const info=await probe(base,1200);if(info){hits++;add(base,info);break}}done++;$("#prog").style.width=(done/254*100)+"%"}};
-  await Promise.all(Array.from({length:32},worker));$("#bar").hidden=true;
-  $("#status").innerHTML=hits?'<span class="ok">Tap your PC · Toca tu PC</span>':'<span class="err">No PC found. Is PitWall.exe open and allowed in the Windows Firewall? · No se encontró el PC. ¿Está PitWall.exe abierto y permitido en el Firewall?</span>'};
-$("#scan").onclick=()=>{if(native)native.postMessage({type:"ip"});else window.onIP("192.168.1.2")};
+function add(base,info,pin){const b=document.createElement("button");b.className="pc";b.type="button";b.innerHTML=`<span>${(info.host||"PC").replace(/[<>&]/g,"")}</span><small>${base.replace("http://","")}</small>`;b.onclick=()=>open(pin?pairURL(base,pin):base+"/");$("#found").appendChild(b)}
+function askIP(){return new Promise(res=>{ipWait=res;if(native)native.postMessage({type:"ip"});else res("192.168.1.2")})}
+window.onIP=ip=>{if(ipWait){const r=ipWait;ipWait=null;r(ip)}};
+async function scan(subnet,pin){$("#found").innerHTML="";$("#bar").hidden=false;let done=0;const hits=[];const hosts=[];for(let i=1;i<255;i++)hosts.push(subnet+"."+i);
+  $("#status").textContent="Searching "+subnet+".x · Buscando…";
+  const worker=async()=>{while(hosts.length){const h=hosts.shift();for(const port of [8484,8485]){const base=`http://${h}:${port}`;const info=await probe(base,1200);if(info){hits.push(base);add(base,info,pin);break}}done++;$("#prog").style.width=(done/254*100)+"%"}};
+  await Promise.all(Array.from({length:32},worker));$("#bar").hidden=true;return hits}
+$("#codeForm").onsubmit=async e=>{e.preventDefault();const v=$("#code").value.replace(/\s/g,"");const m=v.match(/^(?:(\d{1,3})\D)?(\d{6})$/);
+  if(!m){$("#status").innerHTML='<span class="err">Type the code as shown, e.g. 23-481902 · Escribe el código tal cual, p. ej. 23-481902</span>';return}
+  const ip=await askIP(),sub=(ip||"").match(/^(\d+\.\d+\.\d+)\.\d+$/);
+  if(!sub){$("#status").innerHTML='<span class="err">Connect to Wi-Fi first · Conéctate primero a la WiFi</span>';return}
+  const pin=m[2];
+  if(m[1]){$("#status").textContent="Connecting · Conectando…";for(const port of [8484,8485]){const base=`http://${sub[1]}.${+m[1]}:${port}`;if(await probe(base,2500))return open(pairURL(base,pin))}
+    $("#status").innerHTML='<span class="err">PC not found on this Wi-Fi. Is Pitlane HQ open and allowed in the Windows Firewall? · No se encontró el PC en esta WiFi. ¿Está Pitlane HQ abierto y permitido en el Firewall de Windows?</span>';return}
+  const hits=await scan(sub[1],pin);if(hits.length===1)return open(pairURL(hits[0],pin));
+  $("#status").innerHTML=hits.length?'<span class="ok">Tap your PC · Toca tu PC</span>':'<span class="err">No PC found · No se encontró el PC</span>'};
+$("#scan").onclick=async()=>{const ip=await askIP(),sub=(ip||"").match(/^(\d+\.\d+\.\d+)\.\d+$/);if(!sub){$("#status").innerHTML='<span class="err">Connect to Wi-Fi first · Conéctate primero a la WiFi</span>';return}
+  const hits=await scan(sub[1],"");$("#status").innerHTML=hits.length?'<span class="ok">Tap your PC · Toca tu PC</span>':'<span class="err">No PC found. Is PitlaneHQ.exe open and allowed in the Windows Firewall? · No se encontró el PC. ¿Está PitlaneHQ.exe abierto y permitido en el Firewall?</span>'};
 $("#manual").onsubmit=async e=>{e.preventDefault();let v=$("#addr").value.trim();if(!v)return;if(!/^https?:\/\//.test(v))v="http://"+v;if(!/:\d+$/.test(v.replace(/\/$/,"")))v=v.replace(/\/$/,"")+":8484";
   $("#status").textContent="Connecting · Conectando…";const info=await probe(v.replace(/\/$/,""),3000);if(info)open(v.replace(/\/$/,"")+"/");else window.onError()};
-if(native)setTimeout(()=>native.postMessage({type:"ip"}),300);
+const q=new URLSearchParams(location.search);if(q.get("code")){$("#code").value=q.get("code")}
 </script>
 </body>
 </html>
