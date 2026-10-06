@@ -114,7 +114,15 @@ async function api(req, env, url) {
 
   if (p === "/api/bests" && m === "GET") {
     const { results } = await env.DB.prepare(
-      `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last
+      `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last,
+        (SELECT l2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
+         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+           AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
+         ORDER BY l2.time LIMIT 1) AS bestLapId,
+        (SELECT s2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
+         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+           AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
+         ORDER BY l2.time LIMIT 1) AS bestSessionId
        FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND (?1 IS NULL OR s.uploader=?1)
        GROUP BY s.game, s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
     ).bind(own).all();
@@ -129,9 +137,10 @@ async function api(req, env, url) {
       await env.DB.batch([env.DB.prepare("DELETE FROM laps WHERE session_id=?1").bind(mm[1]), env.DB.prepare("DELETE FROM sessions WHERE id=?1").bind(mm[1])]);
       return json({ ok: true });
     }
-    const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(mm[1]).first();
+    const sid = decodeURIComponent(mm[1]);
+    const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(sid).first();
     if (!s || (own && s.uploader !== own)) return err("not found", 404);
-    const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n").bind(mm[1]).all();
+    const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n" ).bind(sid).all();
     return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null })) });
   }
 
@@ -173,7 +182,8 @@ async function api(req, env, url) {
 
   mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)$/);
   if (mm && m === "GET") {
-    const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(mm[1]).first();
+    const lid = decodeURIComponent(mm[1]);
+    const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(lid).first();
     if (!l || (own && l.uploader !== own)) return err("not found", 404);
     return json({ ...l, trace: l.trace ? JSON.parse(l.trace) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
   }
