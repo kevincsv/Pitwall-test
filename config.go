@@ -26,6 +26,7 @@ type Config struct {
 	StartWithWindows bool              `json:"startWithWindows"`
 	Positions        map[string][4]int `json:"positions"`
 	UI               map[string]any    `json:"ui"`
+	Game             string            `json:"game"` // "auto" (default), "iracing" or "lmu"
 }
 
 func defaultConfig() Config {

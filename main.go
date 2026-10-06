@@ -93,14 +93,22 @@ func reader(forceDemo bool) {
 		if src != nil && (src.Name() == "demo") != wantDemo {
 			closeSrc("Switching data source")
 		}
+		// the game chosen in Settings (or whichever is running, on Automatic)
+		if src != nil && !wantDemo {
+			if g := gamePref(); g != "auto" && src.Name() != g {
+				closeSrc("Switching game")
+			}
+		}
 		if src == nil {
 			if wantDemo {
 				src = newDemoSource()
+				if err := src.Open(); err != nil {
+					src = nil
+				}
 			} else {
-				src = newSimSource()
+				src = openGame(gamePref())
 			}
-			if err := src.Open(); err != nil {
-				src = nil
+			if src == nil {
 				time.Sleep(2 * time.Second)
 				continue
 			}
@@ -124,7 +132,7 @@ func reader(forceDemo bool) {
 			tel.schemaVer++ // let clients refresh status
 			tel.mu.Unlock()
 			if connected {
-				log.Println("iRacing session active")
+				log.Printf("%s session active", firstNonEmpty(gameNames[src.Name()], src.Name()))
 			} else {
 				log.Println("Waiting for you to get in the car...")
 			}
@@ -184,12 +192,14 @@ type statusMsg struct {
 	Source    string `json:"source"`
 	Demo      bool   `json:"demo"`
 	TickRate  int    `json:"tickRate"`
+	Game      string `json:"game"` // the game chosen in Settings: auto, iracing or lmu
 }
 
 func currentStatus() statusMsg {
+	g := gamePref()
 	tel.mu.RLock()
 	defer tel.mu.RUnlock()
-	return statusMsg{tel.connected, tel.source, tel.demo, tel.tickRate}
+	return statusMsg{tel.connected, tel.source, tel.demo, tel.tickRate, g}
 }
 
 // GET /api/stream?vars=Speed,RPM|*&hz=30 — Server-Sent Events.

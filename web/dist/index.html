@@ -762,6 +762,7 @@ html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{wid
 html.ownframe{scrollbar-width:thin;scrollbar-color:#3a4350 var(--bg)}
 html.ownframe ::-webkit-scrollbar{width:10px;height:10px}html.ownframe ::-webkit-scrollbar-track{background:var(--bg)}
 html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--bg)}html.ownframe ::-webkit-scrollbar-thumb:hover{background:#4b5563}
+.dcrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dcrow span{display:inline-flex;align-items:baseline;gap:4px;padding:3px 8px;border:1px solid var(--line);border-radius:8px;font-family:var(--f-data)}.dcrow small{color:var(--muted);font-size:10px;letter-spacing:.05em}.dcrow b{font-size:15px}.dcrow i{font-style:normal;color:var(--muted);font-size:11px}.dcrow .lo{border-color:var(--bad);color:var(--bad)}
 .rsum{margin-bottom:14px}.rs-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rs-pos b{font:700 40px/1 var(--f-data)}.rs-pos small{display:block;color:var(--muted)}
 .rs-pills{display:flex;flex-wrap:wrap;gap:6px}.rs-pills .pill small{opacity:.7}
 .rs-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}.rs-col ul{margin:6px 0 0;padding-left:18px}.rs-col li{margin:4px 0;color:var(--fg)}
@@ -823,6 +824,7 @@ iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:
       </div>
       <div class="rpm" id="rpm"></div>
       <div class="label" style="margin-top:6px;display:flex;justify-content:space-between;gap:8px"><span>RPM <span id="rpmV" class="mono">0</span></span><span id="shiftAt"></span></div>
+      <div class="dcrow" id="dcRow" hidden></div>
     </div>
     <div class="panel s5 wpanel" data-w="timing">
       <div class="row">
@@ -1261,6 +1263,7 @@ iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:
       <div class="label" data-i18n="source"></div>
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
+      <div id="gameBox" hidden><div class="label" style="margin-top:16px" id="gameLbl"></div><div class="seg" id="gameSeg" style="margin-top:8px"></div><p class="note" id="gameNote"></p></div>
     </div>
     <div class="panel s6" id="notifPanel"></div>
     <div class="panel s12" id="startPanel"></div>
@@ -1555,7 +1558,7 @@ function parseYaml(text){
 /* ===================== feeds ===================== */
 /* features switched off in this version: telemetry and analysis only (voice, spotter and subscription come back later) */
 const FEATURES={spotter:false,voice:false,subscription:false,goals:false,strategy:false};
-const LIVE_VARS="SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,Precipitation,WeatherDeclaredWet,PlayerTireCompound,PlayerCarSLShiftRPM,LongAccel,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
+const LIVE_VARS="dcTractionControl,dcTractionControlMax,dcABS,dcABSMax,dcEngineMap,dcEngineMapMax,dcBrakeBias,VirtualEnergyPct,SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,Precipitation,WeatherDeclaredWet,PlayerTireCompound,PlayerCarSLShiftRPM,LongAccel,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
 let T={},S={},SCHEMA=[],STATUS={connected:false,source:"",demo:false},MODE="probe",INFO=null;
 let wantAll=false,es=null;
 
@@ -1697,7 +1700,7 @@ function frameTick(){
   }else if(view==="field"&&now-lastField>500){lastField=now;renderStandings()}
   else if(view==="data"&&now-lastField>200){lastField=now;updateVarValues()}
 }
-function liveSlow(){
+function liveSlow(){renderDC();
   const n=drivers().filter(d=>!d.IsSpectator&&!d.CarIsPaceCar).length;
   $("#pos").textContent=T.PlayerCarPosition>0?"P"+T.PlayerCarPosition:"–";$("#posOf").textContent=n?"/ "+n:"";
   const rem=T.SessionLapsRemainEx,tot=T.SessionLapsTotal;$("#lapNo").textContent=T.Lap??"–";$("#lapOf").textContent=tot&&tot<32767?"/ "+tot:"";
@@ -3308,22 +3311,39 @@ async function renderShare(){const box=$("#sharePanel");if(!box)return;if(MODE!=
 let sharePoll=0;function pollShare(){clearTimeout(sharePoll);sharePoll=setTimeout(async()=>{if(CUR_VIEW==="settings")renderShare()},1500)}
 
 /* ===================== settings & connection ===================== */
+/* the car's electronics and energy (Le Mans Ultimate gives them): TC, ABS, engine map, brake bias, virtual energy */
+function renderDC(){const box=$("#dcRow");if(!box)return;const it=[],lv=(k,lbl)=>{if(T[k]!=null&&T[k+"Max"]>0)it.push(`<span><small>${lbl}</small><b>${Math.round(T[k])}</b><i>/${Math.round(T[k+"Max"])}</i></span>`)};
+  lv("dcTractionControl","TC");lv("dcABS","ABS");lv("dcEngineMap",Tx("MAP","MAPA","MAP","MAPA"));
+  if(T.dcBrakeBias>0)it.push(`<span><small>${esc(Tx("Bias","Reparto","Bremsbalance","Balanço"))}</small><b>${T.dcBrakeBias.toFixed(1)}</b><i>%</i></span>`);
+  if(T.VirtualEnergyPct>0)it.push(`<span class="${T.VirtualEnergyPct<.1?"lo":""}"><small>${esc(Tx("Energy","Energía","Energie","Energia"))}</small><b>${Math.round(T.VirtualEnergyPct*100)}</b><i>%</i></span>`);
+  if(T.EnergyERSBatteryPct>0)it.push(`<span><small>${esc(Tx("Battery","Batería","Batterie","Bateria"))}</small><b>${Math.round(T.EnergyERSBatteryPct*100)}</b><i>%</i></span>`);
+  box.hidden=!it.length;if(it.length)box.innerHTML=it.join("")}
+/* which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, or whichever is running */
+const GAMES={auto:["Automatic","Automático","Automatisch","Automático"],iracing:["iRacing","iRacing","iRacing","iRacing"],lmu:["Le Mans Ultimate","Le Mans Ultimate","Le Mans Ultimate","Le Mans Ultimate"]};
+function gameName(){const src=STATUS.connected&&STATUS.source,g=src==="lmu"||src==="iracing"?src:(CFG.game||STATUS.game||"auto");return g==="lmu"?"Le Mans Ultimate":g==="iracing"?"iRacing":Tx("the game","el juego","das Spiel","o jogo")}
+function renderGameSel(){const box=$("#gameBox");if(!box)return;const on=(MODE==="bridge"&&!REMOTE)||MODE==="local";box.hidden=!on;if(!on)return;const cur=CFG.game||"auto";
+  $("#gameLbl").textContent=Tx("Game","Juego","Spiel","Jogo");
+  $("#gameSeg").innerHTML=Object.entries(GAMES).map(([k,v])=>`<button type="button" data-game="${k}" aria-pressed="${k===cur}">${esc(Tx(...v))}</button>`).join("");
+  $("#gameNote").innerHTML=esc(cur==="lmu"||cur==="auto"?Tx("Le Mans Ultimate: in the game, Settings → Gameplay → Enable Plugins: ON, then restart it. Nothing else to install.","Le Mans Ultimate: en el juego, Ajustes → Jugabilidad → Activar plugins: SÍ, y reinícialo. No hay que instalar nada más.","Le Mans Ultimate: im Spiel Einstellungen → Gameplay → Plugins aktivieren: AN, dann neu starten. Sonst nichts zu installieren.","Le Mans Ultimate: no jogo, Configurações → Jogabilidade → Ativar plugins: SIM, e reinicie. Nada mais para instalar."):Tx("Automatic reads whichever game is running.","Automático lee el juego que esté abierto.","Automatisch liest das Spiel, das gerade läuft.","Automático lê o jogo que estiver aberto."));
+  $("#gameSeg").querySelectorAll("[data-game]").forEach(b=>b.onclick=()=>{CFG.game=b.dataset.game==="auto"?"":b.dataset.game;saveCfg();renderGameSel();renderConn()})}
 function renderConn(){const c=$("#conn");let cls,en,es;
   if(STATUS.companion){cls="wait";en="Connect PC";es="Conectar PC"}
   else if(STATUS.offline){cls="wait";en="PC offline";es="PC sin conexión"}
   else if(REMOTE){cls="live";en="Engineer view";es="Vista de ingeniero"}
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
-  else if(STATUS.connected){cls="live";en="iRacing live";es="iRacing en vivo"}
-  else{cls="wait";en="Waiting for iRacing";es="Esperando iRacing"}
+  else if(STATUS.connected){cls="live";en=`${gameName()} live`;es=`${gameName()} en vivo`}
+  else{cls="wait";en=`Waiting for ${gameName()}`;es=`Esperando ${gameName()}`}
   c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings()}
 function renderSettings(){
   document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===LANG));
   document.querySelectorAll("#unitSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===UNITS));
   const th=store.get("pw.theme","dark");document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===th));
   const note=$("#srcNote"),btn=$("#demoBtn");
-  if(MODE==="bridge"){$("#demoCtl").hidden=false;btn.innerHTML=STATUS.demo?Lp("Use iRacing","Usar iRacing",true):Lp("Start demo","Iniciar demo",true);
-    note.innerHTML=STATUS.demo?Lp("Showing a simulated race. Switch back to read iRacing.","Mostrando una carrera simulada. Vuelve a iRacing para leer el simulador."):STATUS.connected?Lp("Reading iRacing telemetry from this PC.","Leyendo la telemetría de iRacing en este PC."):Lp("Pitlane HQ is running. Start iRacing and get in the car; data appears automatically.","Pitlane HQ está funcionando. Abre iRacing y súbete al coche; los datos aparecen solos.")}
+  const gn=gameName();
+  if(MODE==="bridge"){$("#demoCtl").hidden=false;btn.innerHTML=STATUS.demo?Lp(`Use ${gn}`,`Usar ${gn}`,true):Lp("Start demo","Iniciar demo",true);
+    note.innerHTML=STATUS.demo?Lp(`Showing a simulated race. Switch back to read ${gn}.`,`Mostrando una carrera simulada. Vuelve a ${gn} para leer el simulador.`):STATUS.connected?Lp(`Reading ${gn} telemetry from this PC.`,`Leyendo la telemetría de ${gn} en este PC.`):Lp(`Pitlane HQ is running. Start ${gn} and get in the car; data appears automatically.`,`Pitlane HQ está funcionando. Abre ${gn} y súbete al coche; los datos aparecen solos.`)}
   else{$("#demoCtl").hidden=true;note.innerHTML=Lp("This is a preview with simulated data. To read iRacing, run PitlaneHQ.exe on the PC where you race and open the address it shows.","Esto es una vista previa con datos simulados. Para leer iRacing, ejecuta PitlaneHQ.exe en el PC donde corres y abre la dirección que muestra.")}
+  renderGameSel();
   $("#changePC").hidden=!NATIVE;$("#changePC").innerHTML=Lp("Change PC","Cambiar de PC",true);
   const urls=(INFO&&INFO.urls)||[];$("#urlList").innerHTML=urls.length?urls.map(u=>`<div>${esc(u)}</div>`).join(""):`<div class="muted">${Lp("Shown when running from PitlaneHQ.exe","Se muestra al usar PitlaneHQ.exe")}</div>`;
   $("#qrBox").innerHTML=MODE==="bridge"&&urls.length?(location.hostname==="localhost"||location.hostname==="127.0.0.1"
@@ -3496,7 +3516,7 @@ $("#profBtn").onclick=openProfiles;
 const askOK=async m=>MODE==="local"||await uiConfirm(m);
 /* In-browser demo of the programs list: a simulated PC */
 const DEMO_RIG=(()=>{const W=(en,es)=>[en,es];
-  const cat={iracing:["iRacing",W("The iRacing app","La app de iRacing"),"iRacingUI.exe"],steam:["Steam",W("Games and iRacing on Steam","Juegos e iRacing en Steam"),"steam.exe"],crewchief:["Crew Chief",W("Spotter and race engineer voice","Spotter e ingeniero por voz"),"CrewChiefV4.exe"],garage61:["Garage 61",W("Telemetry agent that uploads your laps","Agente que sube tus vueltas"),"garage61-launcher.exe"],simhub:["SimHub",W("Dashboards and LEDs","Dashboards y LEDs"),"SimHubWPF.exe"],pithouse:["MOZA Pit House",W("MOZA wheel settings and firmware","Ajustes y firmware del volante MOZA"),"MOZA Pit House.exe"],trackimpulse:["TrackImpulse",W("Overlays","Overlays"),"TrackImpulse.exe"],discord:["Discord",W("Voice chat with your team","Chat de voz con tu equipo"),"Update.exe"]};
+  const cat={iracing:["iRacing",W("The iRacing app","La app de iRacing"),"iRacingUI.exe"],steam:["Steam",W("Games and iRacing on Steam","Juegos e iRacing en Steam"),"steam.exe"],crewchief:["Crew Chief",W("Spotter and race engineer voice","Spotter e ingeniero por voz"),"CrewChiefV4.exe"],lmu:["Le Mans Ultimate",W("The game (Pitlane HQ reads it too)","El juego (Pitlane HQ también lo lee)"),"Le Mans Ultimate.exe"],garage61:["Garage 61",W("Telemetry agent that uploads your laps","Agente que sube tus vueltas"),"garage61-launcher.exe"],simhub:["SimHub",W("Dashboards and LEDs","Dashboards y LEDs"),"SimHubWPF.exe"],pithouse:["MOZA Pit House",W("MOZA wheel settings and firmware","Ajustes y firmware del volante MOZA"),"MOZA Pit House.exe"],trackimpulse:["TrackImpulse",W("Overlays","Overlays"),"TrackImpulse.exe"],discord:["Discord",W("Voice chat with your team","Chat de voz con tu equipo"),"Update.exe"]};
   const st={apps:[{id:"iracing",when:"pitwall",min:false},{id:"crewchief",when:"sim",min:false},{id:"garage61",when:"sim",min:true}],run:{steam:true},};
   const row=a=>({...a,name:cat[a.id][0],running:!!st.run[a.id],found:true,file:cat[a.id][2]});
   const later=(ms,fn)=>setTimeout(()=>{fn();if(CUR_VIEW==="settings")renderRig()},ms);
