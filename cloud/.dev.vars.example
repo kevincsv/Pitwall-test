@@ -1,0 +1,5 @@
+# Secrets you are asked for when you deploy.
+# PITLANE_KEY: the key from Pitlane HQ → Settings → Connections → Pitlane HQ Cloud → Create a key
+PITLANE_KEY=
+# VIEW_KEY (optional): a read-only key for your engineer
+VIEW_KEY=
