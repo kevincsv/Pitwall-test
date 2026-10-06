@@ -43,12 +43,20 @@ func TestLicenseLemonSqueezy(t *testing.T) {
 	if info["pro"] != true || info["plan"] != "lifetime" || info["key"] != "GOOD…1234" {
 		t.Fatalf("license: %v", info)
 	}
-	// a month without reaching the server: the grace period runs out
+	// a year without reaching the server: it keeps working offline
 	licMu.Lock()
-	lic.CheckedAt = time.Now().AddDate(0, -1, 0)
+	lic.CheckedAt = time.Now().AddDate(-1, 0, 0)
+	info = licenseInfoLocked()
+	licMu.Unlock()
+	if info["pro"] != true {
+		t.Fatal("an activated licence should keep working offline")
+	}
+	// only the store's answer turns it off
+	licMu.Lock()
+	lic.Status = "expired"
 	info = licenseInfoLocked()
 	licMu.Unlock()
 	if info["pro"] != false {
-		t.Fatal("grace period should have run out")
+		t.Fatal("an expired licence should not unlock Pro")
 	}
 }

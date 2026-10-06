@@ -6,7 +6,7 @@
 2. Edit `license_plans.json` (repo root):
    - `storeUrl`: your store; each plan's `buy`: its checkout link.
    - `price`: what is shown (the store is what charges).
-   - `trialDays`, `graceDays` (days it keeps working offline).
+   - `trialDays`. Once activated, a licence keeps working offline with no time limit; only the store's answer (expired, cancelled…) turns it off.
    - `proViews` / `proFeatures`: what needs Pro.
    - **`enforce: true`** when you start selling. While it is `false`, everything is free.
 3. Own server instead: `"provider": "custom"`, `"customUrl": "https://your-api"`. Pitlane HQ POSTs JSON to `/activate {key, device}`, `/validate {key, instance}`, `/deactivate {key, instance}` and expects `{status:"active"|"expired"|..., plan:"monthly"|"yearly"|"lifetime", expires:"RFC3339", instance:"id"}` or `{error:"..."}`.

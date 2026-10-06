@@ -4,7 +4,7 @@ package main
 // with a license_plans.json next to PitlaneHQ.exe) says whether licences are
 // required, the plans and prices shown, and the shop. Licence keys are
 // checked with Lemon Squeezy's licence API or with your own server
-// ("custom"), once a day, with some days of grace offline. The key is stored
+// ("custom") when there is internet; offline it keeps working. The key is stored
 // encrypted on this PC.
 
 import (
@@ -95,8 +95,10 @@ func licenseInfoLocked() map[string]any {
 			trialLeft = int(left.Hours()/24) + 1
 		}
 	}
-	grace := time.Duration(max(plans.GraceDays, 1)) * 24 * time.Hour
-	active := lic.Status == "active" && (lic.Expires.IsZero() || time.Now().Before(lic.Expires)) && time.Since(lic.CheckedAt) < grace+24*time.Hour
+	// once activated it keeps working offline for as long as you like: only an answer
+	// from the store (expired, cancelled, refunded…) turns it off, never a missing
+	// connection or a renewal date that could not be checked
+	active := lic.Status == "active"
 	pro := !plans.Enforce || active || trialLeft > 0
 	key := ""
 	if len(lic.Key) > 8 {
@@ -238,7 +240,7 @@ func validateLicense() {
 		m, err = lsCall("validate", url.Values{"license_key": {lic.Key}, "instance_id": {lic.Instance}})
 	}
 	if err != nil {
-		lic.Error = err.Error() // offline: keep the last state during the grace days
+		lic.Error = err.Error() // offline: keep the last state, with no time limit
 		if strings.Contains(strings.ToLower(err.Error()), "not found") || strings.Contains(strings.ToLower(err.Error()), "invalid") {
 			lic.Status = "invalid"
 		}
