@@ -37,11 +37,15 @@ func gameTag(g string) string {
 	return g
 }
 
+// gameWIP: games still in development. Their readers stay in the code but Pitlane HQ
+// does not open them yet: their tracks and data do not match iRacing's everywhere.
+var gameWIP = map[string]bool{"lmu": true, "acc": true, "ac": true}
+
 func gamePref() string {
 	cfgMu.Lock()
 	g := strings.ToLower(cfg.Game)
 	cfgMu.Unlock()
-	if _, ok := gameNames[g]; ok {
+	if _, ok := gameNames[g]; ok && !gameWIP[g] {
 		return g
 	}
 	return "auto"
@@ -60,12 +64,15 @@ func openGame(pref string) Source {
 	case "ac":
 		try = []func() Source{newACSource}
 	default:
-		try = []func() Source{newSimSource, newLMUSource}
+		try = []func() Source{newSimSource}
+		if !gameWIP["lmu"] {
+			try = append(try, newLMUSource)
+		}
 		// both Assetto Corsa games use the same memory names: tell them apart by the program
-		switch runningAC() {
-		case "acc":
+		switch g := runningAC(); {
+		case g == "acc" && !gameWIP["acc"]:
 			try = append(try, newACCSource)
-		case "ac":
+		case g == "ac" && !gameWIP["ac"]:
 			try = append(try, newACSource)
 		}
 	}

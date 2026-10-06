@@ -225,6 +225,9 @@ export default {
         return err("server error: " + (e && e.message), 500);
       }
     }
+    // one app everywhere: the address of the server opens the Pitlane HQ app (sign in once, same as the phone).
+    // My laps lives inside it (/laps?embed=1); /laps alone still signs in with a server key (owner, team, read-only)
+    if (url.pathname === "/" && url.searchParams.get("embed") !== "1") return Response.redirect(url.origin + "/app/?companion=1", 302);
     return new Response(VIEWER, {
       headers: {
         "content-type": "text/html; charset=utf-8",

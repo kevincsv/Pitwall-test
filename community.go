@@ -398,6 +398,39 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/community/combos", proxy("/combos"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))
 	mux.HandleFunc("/api/community/reports", proxy("/reports"))
+	mux.HandleFunc("/api/community/admin", handleCommAdmin)
+}
+
+// POST /api/community/admin {kind, id, game}: an admin of the server removes something shared
+func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var in struct{ Kind, ID, Game string }
+	json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&in)
+	switch in.Kind {
+	case "laps", "reports", "setups", "trackmaps":
+	default:
+		http.Error(w, "unknown kind", http.StatusBadRequest)
+		return
+	}
+	plMu.Lock()
+	tok := plAcc.Token
+	plMu.Unlock()
+	if tok == "" {
+		w.WriteHeader(http.StatusForbidden)
+		writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
+		return
+	}
+	b, err := commRequest("DELETE", "/community/admin/"+in.Kind+"/"+url.PathEscape(in.ID)+"?game="+url.QueryEscape(in.Game), nil, tok)
+	if err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
 }
 
 // ---------- shared setups: .sto files that the app installs for you ----------

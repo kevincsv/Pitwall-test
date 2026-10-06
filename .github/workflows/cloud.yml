@@ -59,8 +59,8 @@ jobs:
           if [ -z "$DB_ID" ]; then echo "::error::Could not create or find the D1 database. Check that the API token has Account · D1 · Edit."; exit 1; fi
           sed -i "s/^migrations_dir = \"migrations\"/migrations_dir = \"migrations\"\ndatabase_id = \"$DB_ID\"/" wrangler.toml
           npx wrangler d1 migrations apply DB --remote
-          if [ -n "$SEASON_UPLOADERS" ]; then sed -i "s/^SEASON_UPLOADERS = \"\"/SEASON_UPLOADERS = \"$SEASON_UPLOADERS\"/" wrangler.toml; fi
-          if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \"\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
+          if [ -n "$SEASON_UPLOADERS" ]; then sed -i "s/^SEASON_UPLOADERS = \".*\"/SEASON_UPLOADERS = \"$SEASON_UPLOADERS\"/" wrangler.toml; fi
+          if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \".*\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
           # your own domain (for example pitlanehq.com), once it is in your Cloudflare account
           if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
           npx wrangler deploy | tee deploy.log

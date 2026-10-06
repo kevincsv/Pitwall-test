@@ -2,7 +2,7 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
-import { sessionAccount } from "./accounts.js";
+import { sessionAccount, isAdmin } from "./accounts.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -90,6 +90,21 @@ export async function community(req, env, url) {
     const pts = JSON.parse(r.pts);
     return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
   }
+  // the admins of this server (ADMINS) can remove anything shared in the community
+  const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
+  if (am && m === "DELETE") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const [, kind, id] = am;
+    const q = {
+      laps: ["DELETE FROM community_laps WHERE id=?1", id],
+      reports: ["DELETE FROM community_reports WHERE id=?1", id],
+      setups: ["DELETE FROM community_setups WHERE id=?1", id],
+      trackmaps: ["DELETE FROM track_maps WHERE track_id=?1 AND game=?2", +id || 0, game],
+    }[kind];
+    const r = await env.DB.prepare(q[0]).bind(...q.slice(1)).run();
+    return json({ deleted: !!(r.meta && r.meta.changes) });
+  }
   if (p.startsWith("/reports/") && m === "GET") {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
@@ -128,7 +143,7 @@ export async function community(req, env, url) {
   const u = await me(req, env);
   if (!u) return err("wrong or missing token", 401);
   if (p === "/season" && m === "POST") {
-    const allowed = String(env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const allowed = String(env.SEASON_UPLOADERS || env.ADMINS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!u.account || !allowed.includes(u.id)) return err("this account cannot publish the season schedule", 403);
     const data = JSON.stringify(body.season || null);
     if (data.length < 100 || data.length > 12000000 || !Array.isArray(body.season.seasons)) return err("season schedule missing or too large", 400);
