@@ -17,6 +17,8 @@ the numbers move slowly and each one comes with this changelog.
   go to the community under their name. It can also be switched from the phone app.
 - A loading screen while Pitlane HQ starts, instead of a half-drawn live view.
 - The web shows its version in About.
+- Downloads: the Android app (APK) and the iPhone app, always the newest version.
+- About: support Pitlane HQ on Patreon.
 
 **Changed**
 - Everything still in development is closed except for admins, on every device: Le Mans
@@ -30,6 +32,8 @@ the numbers move slowly and each one comes with this changelog.
   the server rejects no longer blocks the ones after it.
 - Live telemetry from the PC to the web and the phone starts reliably and resumes when the PC
   or the page restarts.
+- Lap charts on phones: lighter (sharp at a third of the memory), no redraw while scrolling, and
+  readable by touch (tap, or press and drag sideways).
 
 ## Before 0.3.0
 
