@@ -12,7 +12,7 @@ func TestWebVersionMatchesApp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), `const WEB_VERSION="`+appVersion+`"`) {
+	if !strings.Contains(string(b), `const WEB_VERSION="`+appVersion+`",APP_STAGE="`+appStage+`"`) {
 		t.Fatalf("WEB_VERSION in web/dist/index.html must be %q like appVersion in main.go", appVersion)
 	}
 }

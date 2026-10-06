@@ -77,3 +77,10 @@ jobs:
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           printf '{"version":"%s","build":"%s","date":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > version.json
           bash .github/scripts/publish.sh version.json
+          # one release per version with its part of CHANGELOG.md (made once; later builds of the
+          # same version only refresh its files)
+          tag="v$ver-beta"
+          awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
+          printf '\n---\nWindows: download **PitlaneHQ-Setup.exe** (installer) or **PitlaneHQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Pitlane HQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
+          gh release upload "$tag" PitlaneHQ-windows.zip dist-installer/PitlaneHQ-Setup.exe --clobber || true

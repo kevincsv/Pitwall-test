@@ -21,7 +21,12 @@ import (
 	"time"
 )
 
-const appVersion = "0.25.0"
+// One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
+// 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
+const appVersion = "0.3.0"
+
+// appStage is shown next to the version everywhere until 1.0.0.
+const appStage = "beta"
 
 //go:embed web/dist
 var webFS embed.FS
@@ -479,14 +484,14 @@ func main() {
 		host, _ := os.Hostname()
 		w.Header().Set("Access-Control-Allow-Origin", "*") // the phone app's connect screen looks for this PC
 		if !isLoopback(r) && !isRemote(r) && needsPairingAny(r) {
-			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "pair": true})
+			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "pair": true})
 			return
 		}
 		if isRemote(r) {
-			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
+			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
 		}
-		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
+		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
 	})
 	mux.HandleFunc("/api/show", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
@@ -603,7 +608,7 @@ func main() {
 	}
 	local := fmt.Sprintf("http://localhost:%d", listenPort)
 	fmt.Println()
-	fmt.Println("  PIT WALL " + appVersion)
+	fmt.Println("  PITLANE HQ " + appVersion + " " + appStage)
 	fmt.Println("  ------------------------------------------------------------")
 	fmt.Println("  Keep this window open while you race. / Deja esta ventana abierta.")
 	fmt.Println()

@@ -78,6 +78,10 @@ func registerOverlayRoutes(mux *http.ServeMux) {
 			http.Error(w, "bad widget", 400)
 			return
 		}
+		if !wipAllowed() { // overlays are in development: admins only
+			http.Error(w, "overlays are in development", 403)
+			return
+		}
 		if err := openNamedOverlay(n); err != nil {
 			w.WriteHeader(400)
 			writeJSON(w, map[string]string{"error": err.Error()})

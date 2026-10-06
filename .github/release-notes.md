@@ -1,4 +1,4 @@
-Latest build of **Pitlane HQ**, updated automatically on every change.
+Latest build of **Pitlane HQ** (beta), updated automatically on every change. What changed in each version: [CHANGELOG.md](https://github.com/kevincsv/Pitwall-test/blob/master/CHANGELOG.md).
 
 | Platform | Download | How to install |
 |---|---|---|

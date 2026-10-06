@@ -41,11 +41,27 @@ func gameTag(g string) string {
 // does not open them yet: their tracks and data do not match iRacing's everywhere.
 var gameWIP = map[string]bool{"lmu": true, "acc": true, "ac": true}
 
+// wipAllowed: the admins of the server (signed in on this PC) can use what is still in development.
+func wipAllowed() bool {
+	loadPL()
+	plMu.Lock()
+	defer plMu.Unlock()
+	return plAcc.Admin && plAcc.Token != ""
+}
+
+// gameLocked: a game in development, closed except for the admins of the server, who test it.
+func gameLocked(g string) bool {
+	if !gameWIP[g] {
+		return false
+	}
+	return !wipAllowed()
+}
+
 func gamePref() string {
 	cfgMu.Lock()
 	g := strings.ToLower(cfg.Game)
 	cfgMu.Unlock()
-	if _, ok := gameNames[g]; ok && !gameWIP[g] {
+	if _, ok := gameNames[g]; ok && !gameLocked(g) {
 		return g
 	}
 	return "auto"
@@ -65,14 +81,14 @@ func openGame(pref string) Source {
 		try = []func() Source{newACSource}
 	default:
 		try = []func() Source{newSimSource}
-		if !gameWIP["lmu"] {
+		if !gameLocked("lmu") {
 			try = append(try, newLMUSource)
 		}
 		// both Assetto Corsa games use the same memory names: tell them apart by the program
 		switch g := runningAC(); {
-		case g == "acc" && !gameWIP["acc"]:
+		case g == "acc" && !gameLocked("acc"):
 			try = append(try, newACCSource)
-		case g == "ac" && !gameWIP["ac"]:
+		case g == "ac" && !gameLocked("ac"):
 			try = append(try, newACSource)
 		}
 	}
