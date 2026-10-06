@@ -74,3 +74,4 @@ jobs:
 # CI refresh for unified release builds.
 
 # Final unified build trigger 2026-10-06.
+# Rebuild mobile bundle when web/dist changes.
