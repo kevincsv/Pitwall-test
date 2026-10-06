@@ -555,7 +555,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .lap-analyzer{margin-bottom:12px}.lap-analyzer-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .lap-metric{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:10px;min-width:0}.lap-metric b{display:block;font:800 20px var(--f-data);margin-top:2px}.lap-metric small{display:block;color:var(--muted);font-size:11px;line-height:1.3}
 .lap-insights{display:grid;gap:6px;margin-top:10px}.lap-insight{padding:8px 10px;border-left:3px solid var(--accent);background:var(--surface);border-radius:7px;font-size:13px}
-@media (max-width:700px){.lapcmpheads{grid-template-columns:1fr}.lapcmp-vs{display:none}.lap-analyzer-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:700px){.lapcmpheads{grid-template-columns:1fr}.lapcmp-vs{display:none}.lap-analyzer-grid{grid-template-columns:1fr 1fr}} .cmpwrap{position:relative;min-width:0}.cmp-tip{position:absolute;z-index:5;pointer-events:none;min-width:190px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.35);font:11px/1.45 var(--f-data);color:var(--fg)}.cmp-tip .muted{color:var(--muted)}.cmp-tip .good{color:var(--good)}.cmp-tip .bad{color:var(--bad)}
 .rtable{width:100%;border-collapse:collapse;font-size:14px}.rtable th{font:600 11px/1 var(--f-data);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 .rtable td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}.rtable td small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.rtable tbody tr[data-rid]{cursor:pointer}.rtable tbody tr[data-rid]:hover{background:var(--surface2)}.rtable tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
 .rkeys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.rk{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:3px}.rk b{font-size:22px}.rk small{color:var(--muted);font-size:12px}
@@ -1190,7 +1190,7 @@ html.phone iframe.cloudlaps{height:calc(100vh - 300px)}
 <section class="view" id="v-laps" hidden>
   <div class="vhead">
     <div><h1 data-i18n="lapsTitle"></h1><div class="sub" data-i18n="lapsSub"></div></div>
-    <div class="controls"><span class="label">A</span><select id="lapA" aria-label="Lap A - comparing"></select><span class="muted">vs</span><span class="label">B</span><select id="lapB" aria-label="Lap B - reference"></select><button type="button" class="btn small" id="lapComm"></button></div>
+    <div class="controls"><select id="lapSess" aria-label="Race / session"></select><span class="label">A</span><select id="lapA" aria-label="Lap A - comparing"></select><span class="muted">vs</span><span class="label">B</span><select id="lapB" aria-label="Lap B - reference"></select><button type="button" class="btn small" id="lapComm"></button></div>
   </div>
   <div id="lapsEmpty" class="panel empty" data-i18n="lapsEmpty"></div>
   <div id="lapCompareHeads" class="lapcmpheads"></div>
@@ -1199,7 +1199,7 @@ html.phone iframe.cloudlaps{height:calc(100vh - 300px)}
     <div class="panel s12">
       <div class="vhead" style="margin:0 0 6px"><div class="label" data-i18n="speedByDist"></div>
       <div class="legend"><span><i style="background:var(--accent)"></i><span id="legA">A</span></span><span><i style="background:var(--pb)"></i><span id="legB">B</span></span></div></div>
-      <canvas id="cmp" height="220"></canvas>
+      <div class="cmpwrap"><canvas id="cmp" height="220"></canvas><div id="cmpTip" class="cmp-tip" hidden></div></div>
       <div class="label" style="margin:10px 0 4px" data-i18n="deltaCum"></div>
       <canvas id="cmpDelta" height="110"></canvas>
     </div>
@@ -1836,12 +1836,11 @@ function lapSeries(l){const out=[];let last=null;const lim=Math.min(l.bins.lengt
 let CREF=[];const analysisLaps=()=>typeof coachLaps==="function"?coachLaps():LAPS;const lapOf=v=>String(v).startsWith("c")?CREF[+String(v).slice(1)]:analysisLaps()[v];
 async function pickCommLapCloud(){
   try{
-    const ses=CLOUD.sessions&&CLOUD.sessions.find(x=>x.id===CLOUD.sid);
+    if(CLOUD.sessions===null||!CLOUD.sid)await cloudLoadSessions();const ses=CLOUD.sessions&&CLOUD.sessions.find(x=>x.id===CLOUD.sid);
     if(!ses)throw new Error(Tx("Choose a cloud session first","Elige primero una sesión de tu cuenta","Wähle zuerst eine Cloud-Sitzung","Escolha primeiro uma sessão da nuvem"));
-    const combos=(await cget("/api/community/combos")).combos||[];
+    const combos=(await cget(withGame("/api/community/combos",aGame()))).combos||[];
     const g=aGame();
-    const hit=combos.find(x=>x.track===ses.track&&String(x.track_config||"")===String(ses.track_config||"")&&x.car===ses.car)
-      ||combos.find(x=>x.track===ses.track&&x.car===ses.car&&(!x.game||x.game===g));
+    const hit=combos.find(x=>x.track===ses.track&&x.car===ses.car)||combos.find(x=>x.track&&ses.track&&x.track.toLowerCase()===ses.track.toLowerCase()&&x.car&&ses.car&&x.car.toLowerCase()===ses.car.toLowerCase());
     if(!hit)throw new Error(Tx("No community laps for this track and car yet","Aún no hay vueltas de Comunidad para este circuito y coche","Noch keine Community-Runden für Strecke und Auto","Ainda não há voltas da Comunidade para esta pista e carro"));
     const laps=((await cget(withGame(`/api/community/laps?trackId=${hit.trackId}&carId=${hit.carId}`,g))).laps||[]).filter(l=>l.hasTrace!==false).slice(0,15);
     if(!laps.length)throw new Error(Tx("No community laps with telemetry yet","Aún no hay vueltas de Comunidad con telemetría","Noch keine Community-Runden mit Telemetrie","Ainda não há voltas da Comunidade com telemetria"));
@@ -1854,7 +1853,7 @@ async function pickCommLapCloud(){
       try{
         const full=await cget(`/api/community/laps?id=${encodeURIComponent(l.id)}`),tr=full.trace;
         if(!tr||!tr.d||!tr.d.length)throw new Error(Tx("This lap has no telemetry","Esta vuelta no tiene telemetría"));
-        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,comm:true,cid:l.id};
+        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,comm:true,cid:l.id,sectors:full.sectors||l.sectors||null,track:full.track||l.track,car:full.car||l.car};
         CREF.push(ref);COMM_LOADED=COMM_LOADED.filter(x=>x.cid!==l.id);COMM_LOADED.push(ref);if(COMM_LOADED.length>6)COMM_LOADED.shift();
         close();renderLaps();renderCoach();
         const sel=$("#lapB"),refIdx=CREF.length-1;
@@ -1881,7 +1880,8 @@ function renderLapAnalyzer(A,B){const box=$("#lapAnalyzer");if(!box)return;if(!A
 function analysisBest(LP){return LP.reduce((a,b)=>b&&b.valid!==false&&(!a||b.time<a.time)?b:a,null)}
 function markAnalysisBest(LP){const best=analysisBest(LP);LP.forEach(l=>{if(l)l._sessionBest=l===best});return best}
 function analysisLapText(l,best){if(!l)return"";const n=String(l.n??"").replace(/^⟡ /,"");if(l.comm||l.cid)return l.alias||l.name||n;if(l._sessionBest||l===best)return Tx("MY BEST · Lap","MI MEJOR VUELTA · Vuelta","MEINE BESTE · Runde","MINHA MELHOR · Volta")+" "+n;return Tx("Lap","Vuelta","Runde","Volta")+" "+n}
-function renderLaps(){lapsDirty=false;const LP=analysisLaps(),cloud=coachCloudOn();if(cloud&&CLOUD.sessions===null){$("#lapsEmpty").hidden=false;$("#lapsEmpty").textContent=Tx("Loading your laps from your account…","Cargando tus vueltas de tu cuenta…","Lade deine Runden aus deinem Konto…","Carregando suas voltas da sua conta…");$("#lapsBody").hidden=true;$("#lapCompareHeads").innerHTML="";$("#lapAnalyzer").hidden=true;cloudLoadSessions();return}
+function lapCloudBar(){let sel=$("#lapSess");if(!coachCloudOn()){if(sel)sel.hidden=true;return}if(!sel){sel=document.createElement("select");sel.id="lapSess";sel.setAttribute("aria-label","Race / session");const a=$("#lapA");if(a)a.before(sel);sel.onchange=()=>cloudLoadSession(sel.value)}sel.hidden=false;if(CLOUD.sessions===null||CLOUD.game!==aGame()){if(CLOUD.game!==aGame()){CLOUD.sid="";CLOUD.laps=[]}cloudLoadSessions()}const loc=locale();sel.innerHTML=(CLOUD.sessions||[]).map(x=>`<option value="${esc(x.id)}">${esc(new Date(x.started).toLocaleDateString(loc,{day:"numeric",month:"short"}))} · ${esc(x.track||"")}${x.track_config?" "+esc(x.track_config):""} · ${esc(x.car||"")} · ${x.laps} ${esc(Tx("laps","vueltas","Runden","voltas"))}</option>`).join("")||`<option value="">${esc(CLOUD.busy?"…":Tx("No sessions","Sin sesiones","Keine Sitzungen","Sem sessões"))}</option>`;if(CLOUD.sid)sel.value=CLOUD.sid}
+function renderLaps(){lapsDirty=false;const LP=analysisLaps(),cloud=coachCloudOn();lapCloudBar();if(cloud&&CLOUD.sessions===null){$("#lapsEmpty").hidden=false;$("#lapsEmpty").textContent=Tx("Loading your laps from your account…","Cargando tus vueltas de tu cuenta…","Lade deine Runden aus deinem Konto…","Carregando suas voltas da sua conta…");$("#lapsBody").hidden=true;$("#lapCompareHeads").innerHTML="";$("#lapAnalyzer").hidden=true;cloudLoadSessions();return}
   const has=LP.length>=2||(LP.length>=1&&CREF.length>0);const lc=$("#lapComm");if(lc){lc.textContent=Tx("Compare with community","Comparar con la comunidad","Mit Community vergleichen","Comparar com a comunidade");lc.onclick=pickCommLap;lc.hidden=!(cloud?LP.length>0:LAPS.length>0)}$("#lapsEmpty").hidden=has;$("#lapsBody").hidden=!has;$("#lapA").parentElement.hidden=!has;if(!has){renderLapCompareHeads(null,null);renderLapAnalyzer(null,null)}
   const best=markAnalysisBest(LP);$("#lapTable tbody").innerHTML=LP.slice().reverse().map(l=>`<tr><td class="mono">${l.n}</td><td class="r mono ${l===best?"pb":""}">${fmtT(l.time)}</td><td class="r mono">${l.fuel!=null?vol(l.fuel).toFixed(2)+" "+volU():"–"}</td><td class="r mono">${Math.round(spd(l.vmax||0))} ${spdU()}</td></tr>`).join("");
   if(!has)return;
@@ -1893,12 +1893,15 @@ function renderLaps(){lapsDirty=false;const LP=analysisLaps(),cloud=coachCloudOn
   B.value=pb!==""&&lapOf(pb)?pb:(LP.length>1?LP.findIndex(l=>l===best):CREF.length?"c"+(CREF.length-1):"");
   if(A.value===B.value&&LP.length>1)B.value=A.value==="0"?"1":"0";
   drawCmp();renderLapCompareHeads(lapOf(A.value),lapOf(B.value));renderLapAnalyzer(lapOf(A.value),lapOf(B.value))}
+let CMP_HOVER=null;
+function wireCmpHover(){const cv=$("#cmp");if(!cv||cv.dataset.hoverWired)return;cv.dataset.hoverWired="1";cv.addEventListener("mousemove",e=>{const r=cv.getBoundingClientRect(),sa=lapSeries(lapOf($("#lapA").value)),sb=lapSeries(lapOf($("#lapB").value));if(!sa||!sb)return;const n=Math.min(sa.end,sb.end),x=e.clientX-r.left,idx=Math.max(0,Math.min(n-1,Math.round((x-40)/Math.max(1,r.width-46)*(n-1))));CMP_HOVER={i:idx,x:x,y:e.clientY-r.top};drawCmp()});cv.addEventListener("mouseleave",()=>{CMP_HOVER=null;const t=$("#cmpTip");if(t)t.hidden=true;drawCmp()})}
+function drawCmpTip(A,B,sa,sb,i,x,y){const t=$("#cmpTip");if(!t)return;const a=sa.arr[i],b=sb.arr[i],n=Math.max(1,Math.min(3,Math.max(A.sectors?.length||0,B.sectors?.length||0))),sec=Math.min(n,Math.floor(i/Math.max(1,Math.min(sa.end,sb.end)/n))+1),ad=A.sectors?.[sec-1],bd=B.sectors?.[sec-1],d=a&&b?a[1]-b[1]:null;t.innerHTML=`<b>${Math.round(i*BIN)} m · S${sec}</b><br><span class="muted">A</span> ${a?Math.round(spd(a[0]))+" "+spdU():"–"} · ${a?Math.round(a[2]*100):"–"}% gas · ${a?Math.round(a[3]*100):"–"}% brake · G${a?a[4]:"–"}<br><span class="muted">B</span> ${b?Math.round(spd(b[0]))+" "+spdU():"–"} · ${b?Math.round(b[2]*100):"–"}% gas · ${b?Math.round(b[3]*100):"–"}% brake · G${b?b[4]:"–"}<br><span class="muted">S${sec}</span> ${ad==null?"–":fmtT(ad)} vs ${bd==null?"–":fmtT(bd)} · <span class="${d!=null?(d>0?"bad":"good"):"muted"}">${d==null?"–":sgn(d,3)}</span>`;const w=cv.clientWidth||600,left=Math.min(Math.max(8,x+12),Math.max(8,w-220));t.style.left=left+"px";t.style.top=Math.max(8,y+8)+"px";t.hidden=false}
 function drawCmp(){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(!A||!B)return;renderLapCompareHeads(A,B);renderLapAnalyzer(A,B);$("#legA").textContent="A · "+lapName(A);$("#legB").textContent="B · "+lapName(B);
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end),len=n*BIN;let vmax=0;for(let i=0;i<n;i++){if(sa.arr[i])vmax=Math.max(vmax,sa.arr[i][0]);if(sb.arr[i])vmax=Math.max(vmax,sb.arr[i][0])}
-  const top=Math.ceil(spd(vmax)/50)*50||200;let [x,w,h]=fitCanvas($("#cmp"));if(!x)return;x.clearRect(0,0,w,h);const pl=40,pb=18,X=d=>pl+d/len*(w-pl-6),Y=v=>6+(1-spd(v)/top)*(h-pb-6);
+  const top=Math.ceil(spd(vmax)/50)*50||200;let [x,w,h]=fitCanvas($("#cmp"));if(!x)return;const mainX=x;x.clearRect(0,0,w,h);const pl=40,pb=18,X=d=>pl+d/len*(w-pl-6),Y=v=>6+(1-spd(v)/top)*(h-pb-6);
   x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.lineWidth=1;
   for(let v=50;v<=top;v+=50){const y=6+(1-v/top)*(h-pb-6);x.beginPath();x.moveTo(pl,y);x.lineTo(w-6,y);x.stroke();x.fillText(v,4,y+4)}
-  const step=len>3000?1000:500;for(let d=0;d<len;d+=step)x.fillText(d+" m",X(d)+(d?-14:0),h-3);
+  const step=len>3000?1000:500;for(let d=0;d<len;d+=step)x.fillText(d+" m",X(d)+(d?-14:0),h-3);const sectorCount=Math.max(A.sectors?.length||0,B.sectors?.length||0,3);x.save();x.setLineDash([4,4]);for(let k=1;k<sectorCount;k++){const xx=pl+k/sectorCount*(w-pl-6);x.strokeStyle=css("--muted");x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.stroke();x.setLineDash([]);x.fillStyle=css("--muted");x.fillText("S"+k,xx+4,14);x.setLineDash([4,4])}x.restore();
   [[sb,"--pb"],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b)continue;const px=X(i*BIN),py=Y(b[0]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.8;x.stroke()});
   const dts=[];for(let i=0;i<n;i++){const a=sa.arr[i],b=sb.arr[i];if(a&&b)dts.push([i,a[1]-b[1]])}
   [x,w,h]=fitCanvas($("#cmpDelta"));x.clearRect(0,0,w,h);let mx=.2;dts.forEach(([,d])=>mx=Math.max(mx,Math.abs(d)));mx=Math.ceil(mx*10)/10;const Yd=v=>h/2-v/mx*(h/2-8);
@@ -1906,7 +1909,7 @@ function drawCmp(){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(
   x.beginPath();dts.forEach(([i,d],k)=>k?x.lineTo(X(i*BIN),Yd(d)):x.moveTo(X(i*BIN),Yd(d)));x.strokeStyle=css("--accent");x.lineWidth=1.8;x.stroke();
   const third=Math.floor(n/3),tAt=(s,i)=>{for(let k=Math.min(i,n-1);k>=0;k--)if(s.arr[k])return s.arr[k][1];return 0};
   const secs=[[0,third],[third,2*third],[2*third,null]].map(([a,b],k)=>{const ta=(b==null?A.time:tAt(sa,b))-tAt(sa,a),tb=(b==null?B.time:tAt(sb,b))-tAt(sb,a);return[`S${k+1}`,ta,tb]});
-  renderBrakeTable(A,B);
+  renderBrakeTable(A,B);wireCmpHover();if(CMP_HOVER){const i=Math.min(n-1,CMP_HOVER.i),px=X(i*BIN);mainX.strokeStyle=css("--fg");mainX.globalAlpha=.55;mainX.setLineDash([3,3]);mainX.beginPath();mainX.moveTo(px,0);mainX.lineTo(px,h);mainX.stroke();mainX.setLineDash([]);mainX.globalAlpha=1;drawCmpTip(A,B,sa,sb,i,px,CMP_HOVER.y)}
   $("#sectors tbody").innerHTML=secs.map(([nm,ta,tb])=>`<tr><td>${nm}</td><td class="r mono">${ta.toFixed(3)}</td><td class="r mono">${tb.toFixed(3)}</td><td class="r mono ${ta-tb>0?"bad":"good"}">${sgn(ta-tb)}</td></tr>`).join("")+`<tr><td><b>${Tx("Lap","Vuelta")}</b></td><td class="r mono"><b>${fmtT(A.time)}</b></td><td class="r mono"><b>${fmtT(B.time)}</b></td><td class="r mono ${A.time-B.time>0?"bad":"good"}"><b>${sgn(A.time-B.time)}</b></td></tr>`}
 $("#lapA").onchange=$("#lapB").onchange=()=>{drawCmp();renderLapCompareHeads(lapOf($("#lapA").value),lapOf($("#lapB").value));renderLapAnalyzer(lapOf($("#lapA").value),lapOf($("#lapB").value))};$("#coachLap").onchange=$("#coachRef").onchange=()=>renderCoach();
 
@@ -4299,7 +4302,7 @@ async function cloudLoadSessions(){if(CLOUD.busy)return;CLOUD.busy=true;CLOUD.er
 async function cloudLoadSession(id){CLOUD.sid=id;CLOUD.laps=[];CLOUD.busy=true;CLOUD.err="";if(CUR_VIEW==="coach")renderCoach();
   try{const j=await cloudGet("/api/sessions/"+encodeURIComponent(id).replace(/%3A/gi,":"));const ls=(j.laps||[]).filter(l=>l.time>0);
     const full=await Promise.all(ls.map(l=>cloudGet("/api/laps/"+encodeURIComponent(l.id).replace(/%3A/gi,":")).catch(()=>null)));
-    const meta=j.session||CLOUD.sessions.find(x=>x.id===id)||{};CLOUD.laps=full.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,cloud:l.id,sessionId:id,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,...traceBins(l.trace)}));
+    const meta=j.session||CLOUD.sessions.find(x=>x.id===id)||{};CLOUD.laps=full.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,cloud:l.id,sessionId:id,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,...traceBins(l.trace)}));
     if(!CLOUD.laps.length&&ls.length)CLOUD.err=Tx("These laps have no telemetry: turn on sending the whole lap on the PC.","Estas vueltas no tienen telemetría: activa en el PC enviar la vuelta completa.","Diese Runden haben keine Telemetrie: aktiviere am PC das Senden der ganzen Runde.","Estas voltas não têm telemetria: ative no PC o envio da volta completa.")}
   catch(e){CLOUD.err=e.message}CLOUD.busy=false;$("#coachLap").value="";$("#coachRef").value="";if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps()}
 function coachCloudBar(){let sel=$("#coachSess");if(!coachCloudOn()){if(sel)sel.hidden=true;return}
