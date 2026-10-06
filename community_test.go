@@ -38,8 +38,9 @@ func TestCommunityShareReport(t *testing.T) {
 		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Alex D", Me: true}}})
 	select {
 	case b := <-got:
-		if strings.Contains(b, "Real Person") || !strings.Contains(b, `"P1"`) || !strings.Contains(b, "Alex D") {
-			t.Fatalf("other drivers' names must be removed: %s", b)
+		// the other drivers by first name only, you by your name (not anonymous here)
+		if strings.Contains(b, "Real Person") || !strings.Contains(b, `"Real"`) || !strings.Contains(b, "Alex D") {
+			t.Fatalf("other drivers must show by first name only: %s", b)
 		}
 		var m map[string]any
 		json.Unmarshal([]byte(b), &m)
@@ -51,5 +52,38 @@ func TestCommunityShareReport(t *testing.T) {
 	commMu.Unlock()
 	if tok == "" {
 		t.Fatal("token not kept")
+	}
+}
+
+// shared anonymously: your name is not inside the report either
+func TestCommunityShareReportAnonymous(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("APPDATA", dir)
+	got := make(chan string, 4)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		switch r.URL.Path {
+		case "/community/register":
+			w.Write([]byte(`{"id":"u1","token":"tok-0123456789abcdefghij"}`))
+		case "/community/reports":
+			got <- string(b)
+			w.Write([]byte(`{"shared":true}`))
+		}
+	}))
+	defer srv.Close()
+	commMu.Lock()
+	commCfg = commConfig{URL: srv.URL, Alias: "Alex", ShareReports: true, Anonymous: true}
+	commMu.Unlock()
+	shareReport(&raceReport{ID: "r2", Track: "Navarra", Results: []raceResult{{Pos: 1, Name: "Real Person"}, {Pos: 2, Name: "Alex D", Me: true}},
+		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Alex D", Me: true}}})
+	select {
+	case b := <-got:
+		if strings.Contains(b, "Alex D") || !strings.Contains(b, `"Anonymous"`) || !strings.Contains(b, `"anon":true`) {
+			t.Fatalf("an anonymous report must not carry your name: %s", b)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("report not sent")
 	}
 }
