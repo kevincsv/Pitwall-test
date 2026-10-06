@@ -798,6 +798,95 @@ html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;bor
 .wip-bar{height:6px;border-radius:99px;background:color-mix(in srgb,var(--fg) 10%,transparent);overflow:hidden}.wip-bar s{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#fff));border-radius:99px}
 iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:520px;border:0;background:var(--bg)}
 html.phone iframe.cloudlaps{height:calc(100vh - 300px)}
+
+/* Responsive layout pass: keep gutters, controls and dense analysis usable across widths. */
+section.view{min-width:0}
+.vhead>div{min-width:0}
+.vhead .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.vhead .controls>*{max-width:100%}
+.frow{min-width:0;flex-wrap:wrap}
+.frow>*{min-width:0;max-width:100%}
+.grid>.panel,.grid>.wpanel{min-width:0}
+.panel,.wpanel{overflow-wrap:anywhere}
+.table-wrap,.tscroll{max-width:100%}
+.lapcontrols{min-width:0;max-width:100%;overflow-x:auto;padding-bottom:2px}
+.lapcontrols>*{flex:none}
+.lapcmpheads{min-width:0}
+.lap-analyzer-grid{min-width:0}
+.rtable-wrap{max-width:100%;overflow-x:auto}
+.rtable{min-width:640px}
+@media (max-width:1180px) and (min-width:821px){
+  body{padding-inline:14px}
+  header.top{gap:8px}
+  header.top nav.tabs{gap:1px}
+  .grid{gap:8px}
+  .panel{padding:11px}
+  section.view{padding-block:14px}
+  .vhead{margin-bottom:10px}
+}
+@media (max-width:820px){
+  body{padding-inline:12px;padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+  header.top{padding-block:8px;gap:8px}
+  .brand{font-size:22px}
+  .conn{max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+  section.view{padding-block:12px}
+  h1{font-size:28px}
+  .vhead{align-items:flex-start;gap:8px;margin-bottom:10px}
+  .vhead .controls{width:100%}
+  .vhead .controls .btn{flex:0 1 auto}
+  .grid{gap:8px}
+  .panel{padding:11px}
+  .frow{gap:7px}
+  .frow>*{flex:1 1 180px}
+  .frow>.btn,.frow>button{flex:0 0 auto}
+  .seg,.seg3{max-width:100%}
+  .seg button{padding:9px 10px}
+  .lap-analyzer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lapcontrols{width:100%}
+  .rkeys{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pw-cmd{margin-bottom:8px}
+}
+@media (max-width:560px){
+  body{padding-inline:10px}
+  section.view{padding-block:10px}
+  h1{font-size:25px}
+  h2{font-size:18px}
+  .sub{font-size:13px}
+  .vhead .controls{gap:6px}
+  .vhead .controls .btn{padding:8px 10px}
+  .grid{gap:7px}
+  .panel{padding:10px}
+  .tiles,.rkeys,.lap-analyzer-grid{grid-template-columns:1fr 1fr;gap:6px}
+  .tile{padding:7px}
+  .tile .mid{font-size:18px}
+  .callout{padding:9px 10px}
+  .kv{grid-template-columns:1fr;gap:2px}
+  .kv dd{margin-bottom:5px}
+  .carbox{grid-template-columns:1fr}
+  .hapfx-row{grid-template-columns:1fr}
+  .hapfx-row .nm{grid-column:auto}
+  .calwrap{gap:7px}
+  .mo .cell{min-height:76px;padding:4px}
+  .mo .dh{padding:6px 2px;font-size:10px}
+  .mo .it{font-size:10px;padding:2px 3px}
+  .rtable{min-width:580px}
+  .pw-cmd-kpis{gap:6px}
+  .pw-kpi{padding:7px}
+  .pw-kpi b{font-size:23px}
+}
+@media (max-width:380px){
+  body{padding-inline:8px}
+  .brand{font-size:20px}
+  .conn{font-size:9px;padding:4px 6px}
+  section.view{padding-block:8px}
+  h1{font-size:23px}
+  .panel{padding:9px}
+  .tiles{grid-template-columns:1fr 1fr}
+  .pw-cmd-kpis{grid-template-columns:1fr 1fr}
+  .pw-kpi b{font-size:21px}
+  .seg button{padding:8px 7px;font-size:12px}
+}
 </style>
 
 <div class="wrap">
