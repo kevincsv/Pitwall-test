@@ -1645,7 +1645,7 @@ const streamVars=()=>[...new Set([...LIVE_VARS.split(","),...TYRE_VARS,...ui("te
 function connectBridge(){
   if(COMPANION){cpLiveWant();return}
   if(es)es.close();
-  const url=wantAll?"/api/stream?vars=*&hz=10":"/api/stream?vars="+streamVars().join(",")+"&hz=30";
+  const url=wantAll?"/api/stream?vars=*&hz=30":"/api/stream?vars="+streamVars().join(",")+"&hz=30";
   es=new EventSource(url);
   ["status","schema","fields","session","config","radio","notice","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
