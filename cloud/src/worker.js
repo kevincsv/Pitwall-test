@@ -137,9 +137,10 @@ async function api(req, env, url) {
       await env.DB.batch([env.DB.prepare("DELETE FROM laps WHERE session_id=?1").bind(mm[1]), env.DB.prepare("DELETE FROM sessions WHERE id=?1").bind(mm[1])]);
       return json({ ok: true });
     }
-    const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(mm[1]).first();
+    const sid = decodeURIComponent(mm[1]);
+    const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(sid).first();
     if (!s || (own && s.uploader !== own)) return err("not found", 404);
-    const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n").bind(mm[1]).all();
+    const { results } = await env.DB.prepare("SELECT id, n, time, valid, fuel, vmax, sectors FROM laps WHERE session_id=?1 ORDER BY n" ).bind(sid).all();
     return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null })) });
   }
 
@@ -181,7 +182,8 @@ async function api(req, env, url) {
 
   mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)$/);
   if (mm && m === "GET") {
-    const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(mm[1]).first();
+    const lid = decodeURIComponent(mm[1]);
+    const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(lid).first();
     if (!l || (own && l.uploader !== own)) return err("not found", 404);
     return json({ ...l, trace: l.trace ? JSON.parse(l.trace) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
   }
