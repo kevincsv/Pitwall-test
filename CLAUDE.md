@@ -12,6 +12,8 @@
   fastest lap really driven (`IDEAL_MAX` in `web/dist/pitwall-model.js`).
 - In development (shown, not usable): the Planner (until iRacing switches its data API back on),
   Le Mans Ultimate, ACC, Assetto Corsa, NASCAR 26 and team mode.
-- One app everywhere: `web/dist` is the PC app, the web app at `/app` and the phone apps.
+- This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
+  The Android and iOS apps live in their own repository.
+- One app everywhere: `web/dist` is the PC app and the web app at `/app` (computers and phones).
   Web scripts are loaded with relative paths.
-- `master` is the main branch the builds come from (Windows, Android, iOS, server).
+- `master` is the main branch the builds come from (Windows and the server).

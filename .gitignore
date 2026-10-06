@@ -1,23 +1,14 @@
 pw-linux
 *.exe
-ios/build/
-ios/PitWall.xcodeproj/
-ios/Payload/
-ios/*.ipa
 # never commit sign-ins, keys or personal profiles
 .env
 *.pem
 *.p12
 *.key
-*.mobileprovision
 account.json
 garage61.json
 profiles/
 profiles.json
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
 cloud/node_modules/
 cloud/.wrangler/
 cloud/.dev.vars

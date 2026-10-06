@@ -14,7 +14,7 @@ One Cloudflare Worker + D1 database does it all: Pitlane HQ accounts (end-to-end
 2. **API token**: My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers** → *Add more*: Account · **D1** · Edit → Continue → Create Token → copy it (shown once).
 3. **GitHub** → this repository → Settings → Secrets and variables → Actions → *New repository secret*: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 4. GitHub → Actions → **Pitlane HQ Cloud (web version)** → *Run workflow*. It creates the database and tables, publishes the server and shows its address in the run summary (`https://pitlanehq.<you>.workers.dev`).
-5. Put that address in `web/dist/server.json` (`{"url": "https://…"}`) so every Pitlane HQ (PC, iPhone, Android) built from now on uses it with nothing to configure.
+5. Put that address in `web/dist/server.json` (`{"url": "https://…"}`) so every Pitlane HQ (the PC app and the web app) built from now on uses it with nothing to configure.
 6. In the app: Account → **My account** → create the account. Laps upload by themselves; **See my laps on the web** opens the site, where you sign in with the same email and password.
 7. Optional, real season for everyone: copy your account id (My account) → GitHub → Settings → Secrets and variables → Actions → **Variables** → `SEASON_UPLOADERS` = that id → run the workflow again.
 
@@ -98,11 +98,11 @@ Migration `0004_accounts_setups.sql` adds Pitlane HQ accounts and shared setups.
   - 5 wrong passwords per email (30 per network) lock sign-in for 15 minutes; 5 new accounts per network per 15 minutes. Sessions expire after 180 idle days and can be closed one by one; changing the password closes all other sessions.
 - **Setups** (`/community/setups…`): `GET /setups?car&track&q`, `GET /setups/cars`, `GET /setups/:id`, `GET /setups/mine` (token), `POST /setups` (token, `.sto` up to 400 KB with its SHA-256), `DELETE /setups/:id` (token, own only). The PC app checks the checksum and only writes `.sto` files inside `Documents\iRacing\setups\<car>\Pitlane Community`.
 
-### The phone apps without the PC
+### The web app (no PC needed)
 
-Put the server address in **`web/dist/server.json`** (`{"url": "https://…workers.dev"}`). PitlaneHQ.exe and the iPhone and Android apps (which bundle `web/dist`) read it from there, so it is set in one place.
+Put the server address in **`web/dist/server.json`** (`{"url": "https://…workers.dev"}`). PitlaneHQ.exe reads it from there, and this server publishes the same `web/dist` app at `/app`, so it is set in one place.
 
-With a Pitlane HQ account the phone app works on its own: it signs in directly against this server (the password is turned into keys on the phone, like on the PC), downloads the encrypted copy of your profile and decrypts it on the phone. That copy includes a small snapshot of your iRacing data (licences, credits, recent races, season schedule) that PitlaneHQ.exe refreshes every 6 hours while you are signed in to iRacing. Planner changes made on the phone are encrypted and uploaded the same way, and the PC picks them up. Only live telemetry and the rig need the PC, paired over the local Wi-Fi with the code it shows.
+With a Pitlane HQ account the web app works on its own, on a computer or a phone: it signs in directly against this server (the password is turned into keys in the browser, like on the PC), downloads the encrypted copy of your profile and decrypts it there. That copy includes a small snapshot of your iRacing data that PitlaneHQ.exe refreshes while you are signed in to iRacing. Live telemetry comes from the PC through `/live`, end-to-end encrypted with the account's key. The phone apps are in their own repository.
 
 ### The current season for everyone
 

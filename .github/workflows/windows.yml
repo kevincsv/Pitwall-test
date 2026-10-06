@@ -69,6 +69,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
+          # the phone apps are built in their own repository now: no old ones on this page
+          for old in PitlaneHQ-android.apk PitlaneHQ.ipa; do gh release delete-asset pitlanehq-latest "$old" -y 2>/dev/null || true; done
           bash .github/scripts/publish.sh PitlaneHQ-windows.zip
           bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
           # version.json goes last: the app only sees a new version once its zip is there
