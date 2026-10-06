@@ -10,6 +10,12 @@ const str = (v, max = 120) => (typeof v === "string" ? v.slice(0, max) : v == nu
 const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 const int = (v) => (Number.isInteger(v) && v > 0 && v < 1e9 ? v : null);
 const rid = () => [...crypto.getRandomValues(new Uint8Array(12))].map((x) => x.toString(16).padStart(2, "0")).join("");
+// a shared lap that went without its telemetry: the same lap (same time) in the driver's account
+// laps has it. Only for drivers who share telemetry (they have another shared lap with it).
+const SHARES_TRACES = "EXISTS (SELECT 1 FROM community_laps c2 WHERE c2.user_id=?1 AND c2.trace IS NOT NULL)";
+const ACCT_TRACE_WHERE = `s.uploader='acct:'||?1 AND ABS(a.time-?2)<0.002 AND s.game=?3 AND a.valid=1 AND a.trace IS NOT NULL AND ${SHARES_TRACES}`;
+const ACCT_TRACE = `(EXISTS (SELECT 1 FROM laps a JOIN sessions s ON s.id=a.session_id WHERE s.uploader='acct:'||l.user_id AND ABS(a.time-l.time)<0.002 AND s.game=l.game AND a.valid=1 AND a.trace IS NOT NULL)
+  AND EXISTS (SELECT 1 FROM community_laps c2 WHERE c2.user_id=l.user_id AND c2.trace IS NOT NULL))`;
 async function sha256(t) {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -63,7 +69,7 @@ export async function community(req, env, url) {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
     const r = await env.DB.prepare(
-      `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, l.time, l.sectors, l.created, l.trace IS NOT NULL AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
+      `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
        WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 200`
     ).bind(t, c, game).all();
     return json({ laps: (r.results || []).map((x) => ({ ...x, hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
@@ -71,7 +77,12 @@ export async function community(req, env, url) {
   if (p.startsWith("/laps/") && m === "GET") {
     const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
     if (!l) return err("not found", 404);
-    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: l.trace ? JSON.parse(l.trace) : null });
+    let trace = l.trace;
+    if (!trace) {
+      const a = await env.DB.prepare(`SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id WHERE ${ACCT_TRACE_WHERE} LIMIT 1`).bind(l.user_id, l.time, l.game).first();
+      if (a) trace = a.trace;
+    }
+    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(trace) : null });
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
@@ -108,7 +119,11 @@ export async function community(req, env, url) {
   if (p.startsWith("/reports/") && m === "GET") {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
-    return json({ ...JSON.parse(r.data), id: r.id, alias: r.alias, game: r.game, shared: true });
+    const data = JSON.parse(r.data);
+    if (r.anon) {
+      for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (x && x.me ? { ...x, name: "Anonymous" } : x));
+    }
+    return json({ ...data, id: r.id, alias: r.alias, game: r.game, shared: true });
   }
 
   // the current season schedule: public to read, uploaded by the accounts in SEASON_UPLOADERS
