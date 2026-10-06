@@ -10,6 +10,12 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - DRINKS mode can be switched from Settings → About on the PC and on the web (admins only), not
   only from the phone. On the web it goes to your PC through your account.
 
+**Changed**
+- The box that shows the values where you hover or touch a lap chart is cleaner and organized
+  like the phone apps: distance, sector and the gap there, then both laps side by side (speed,
+  throttle, brake, gear) and the sector times. On phones it sits above the chart instead of on
+  top of it.
+
 **Fixed**
 - Lap charts on the PC and the web no longer grow without end and crash when the mouse moves over
   them on screens with Windows scaling above 100 %; hovering only redraws the charts.
