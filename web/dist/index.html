@@ -663,7 +663,7 @@ nav.tabs button[data-g=home],nav.tabs button[data-g=more]{display:none}
 @media (min-width:821px) and (max-width:1560px){.profbtn span{display:none}.profbtn{padding:6px}}
 @media (min-width:1181px) and (max-width:1480px){header.top .conn{padding:4px 7px;font-size:11px}nav.tabs button{padding:8px 7px;font-size:12.5px;letter-spacing:.02em;gap:5px}header.top .brand{font-size:21px}}
 /* my account */
-.me-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px}
+.me-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px;align-items:start}
 .me-sec{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:13.5px}.me-sec li{display:flex;gap:9px;align-items:flex-start}.me-sec li::before{content:"🔒";font-size:12px;line-height:1.5}
 .me-form{display:grid;gap:9px}.me-form input[type=email],.me-form input[type=password],.me-form input[type=text]{width:100%}
 .me-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -700,9 +700,10 @@ html:not(.admin) .adm{display:none!important}
 body{padding-top:env(safe-area-inset-top,0px)}
 html:not(.ov)::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30;pointer-events:none}
 @media (max-width:820px){
+  header.top .conn{margin-right:auto}
   nav.tabs{justify-content:space-between;overflow:hidden;padding-left:calc(4px + env(safe-area-inset-left,0px));padding-right:calc(4px + env(safe-area-inset-right,0px))}
   nav.tabs button{flex:1 1 0;min-width:0;padding:7px 1px;letter-spacing:.02em;font-size:10.5px}
-  nav.tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  nav.tabs button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35;padding-top:1px}
 }
 nav.tabs button[data-g=rig]{display:none!important}
 html.pcapp nav.tabs button[data-g=season]{display:none!important}
@@ -780,7 +781,8 @@ html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;bor
 .wip-ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}.wip-ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .wip-list{margin:10px 0 12px;padding-left:20px;color:var(--muted)}.wip-list li{margin:3px 0}
 .wip-bar{height:6px;border-radius:99px;background:color-mix(in srgb,var(--fg) 10%,transparent);overflow:hidden}.wip-bar s{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#fff));border-radius:99px}
-iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:520px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+iframe.cloudlaps{display:block;width:100%;height:calc(100vh - 220px);min-height:520px;border:0;background:var(--bg)}
+html.phone iframe.cloudlaps{height:calc(100vh - 300px)}
 </style>
 
 <div class="wrap">
@@ -1426,7 +1428,7 @@ async function cpPush(tries=0){if(!CP.acc)return;const pend=CP.pending;const sea
 const cpSnapAll=()=>CP.files["companion.json"]||{};
 function cpSnap(k){const c=cpSnapAll();if(c[k])return c[k].body;const path=k.split("?")[0],hits=Object.keys(c).filter(x=>x.split("?")[0]===path);return hits.length===1?c[hits[0]].body:null}
 function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,id:a&&a.id,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,admin:!!(a&&a.admin),verified:!!(a&&a.verified),mail:!!(a&&a.mail),autoSync:true,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
-const cpDevice=()=>/iPhone/.test(navigator.userAgent)?"iPhone":/iPad/.test(navigator.userAgent)?"iPad":/Android/.test(navigator.userAgent)?"Android":"Phone";
+const cpDevice=()=>{const u=navigator.userAgent,b=/Edg\//.test(u)?"Edge":/Firefox\//.test(u)?"Firefox":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":"";return NATIVE_RAW?(/iPhone/.test(u)?"iPhone":/iPad/.test(u)?"iPad":/Android/.test(u)?"Android":"Phone"):"Web"+(b?" · "+b:"")};
 async function cpSignedIn(r,email,wrap,key){if(!key){key=await cpOpen(wrap,r.wrappedKey)}
   CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind,admin:!!r.admin,verified:!!r.verified,mail:r.mailed!==undefined||!!r.mail};cpSecret.set("account",JSON.stringify(CP.acc))}
 async function cpAccount(b){const a=b.action;
