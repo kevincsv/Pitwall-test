@@ -768,7 +768,7 @@ html.ownframe .drawer,html.ownframe .uidlg,html.ownframe .msheet{top:53px}
 .osm-trk{position:absolute;inset:0;width:100%;height:100%}.osm-trk polyline{fill:none;stroke:#fff;stroke-width:5;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 3px rgba(0,0,0,.6))}.osm-trk polyline.pit{stroke-width:2.5;stroke-dasharray:4 4;opacity:.8}.osm-trk circle{fill:var(--accent);stroke:#fff;stroke-width:2}
 .osm-attr{position:absolute;left:6px;bottom:6px;font-size:10px;color:#cfd6df;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:4px;text-decoration:none}
 html.phone header.top{flex-wrap:nowrap;gap:8px}html.phone header.top .brand{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:0 1 auto}html.phone header.top #setBtn{flex:none;width:40px;height:40px;padding:0;justify-content:center;align-items:center}
-html.phone #langSeg{display:grid!important;grid-template-columns:repeat(3,1fr)!important}html.phone #langSeg button{padding:10px 4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.phone #langSeg{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%}html.phone #langSeg button{padding:10px 6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 html.ovfit,html.ovfit body{overflow:hidden!important}html.ovfit section.view{width:var(--ovdw);transform:scale(var(--ovz));transform-origin:0 0}
 .ovcard.live{border-color:var(--accent)}.ovcard .pin[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.ovcard .pin:disabled{opacity:.4;cursor:default}
 .pc-relay{margin-bottom:14px}
@@ -892,7 +892,7 @@ section.view{min-width:0}
 <div class="wrap">
 <header class="top">
   <div class="brand"><i aria-hidden="true"></i>Pitlane HQ</div>
-  <button class="conn" id="conn" type="button">…</button>
+  <button class="conn" id="conn" type="button">…</button><span class="version-badge" id="appVersion" aria-label="Pitlane HQ version">v—</span>
   <button class="btn small" id="leavePC" type="button" hidden></button>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg><span data-i18n="g.race"></span></button>
@@ -1666,7 +1666,7 @@ function renderPC(){const box=$("#pcBody");if(!box)return;
 
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 /* languages: English, Spanish, German, Portuguese (Brazil); "both" shows English and Spanish together */
-const LANGS=[["en","English"],["es","Español"],["de","Deutsch"],["pt","Português"]];
+const LANGS=[["en","English","English"],["es","Español","Spanish"],["de","Deutsch","German"],["pt","Português","Portuguese (Brazil)"],["both","EN + ES","Bilingual"]];
 function trX(en,es,de,pt){const i=LANG==="de"?0:1,inl=LANG==="de"?de:pt;if(inl!=null&&inl!==0)return inl;const d=I18N_X.get(en+"\u0001"+es)||I18N_X.get(en);return d?d[i]:en}
 [["My laps","Meine Runden","Minhas voltas"],["Every lap your PC uploads to your account: sessions, records and lap comparison","Jede Runde, die dein PC in dein Konto hochlädt: Sitzungen, Rekorde und Rundenvergleich","Cada volta que seu PC envia para sua conta: sessões, recordes e comparação de voltas"],["Connect your phone to your live telemetry, or share it with someone else","Verbinde dein Handy mit deiner Live-Telemetrie oder teile sie mit jemand anderem","Conecte seu celular à sua telemetria ao vivo ou compartilhe com outra pessoa"],["Phone & sharing","Handy & Teilen","Celular e compartilhar"],["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Wir warten darauf, dass iRacing die offizielle OAuth-Anmeldung für Apps freischaltet. Sobald sie bereit ist, verbindest du dein iRacing-Konto hier mit einem Klick.","Aguardando o iRacing ativar o login OAuth oficial para apps. Quando estiver pronto, conectar sua conta do iRacing será um clique aqui."],["Phone & sharing telemetry","Handy & Telemetrie teilen","Celular e compartilhar telemetria"],["Connect your phone or tablet to your live telemetry","Verbinde Handy oder Tablet mit deiner Live-Telemetrie","Conecte seu celular ou tablet à sua telemetria ao vivo"],["Share your live telemetry with someone (engineer view)","Teile deine Live-Telemetrie mit jemandem (Ingenieursansicht)","Compartilhe sua telemetria ao vivo com outra pessoa (visão de engenheiro)"]].forEach(([en,de,pt])=>I18N_X.set(en,[de,pt]));
 function pair(en,es,inline,de,pt){if(LANG==="es")return esc(es);if(LANG==="de"||LANG==="pt")return esc(trX(en,es,de,pt));if(LANG==="en"||en===es)return esc(en);return `<span class="${inline?"inl":""}">${esc(en)}<span class="t2">${esc(es)}</span></span>`}
@@ -1682,6 +1682,8 @@ function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Windows",Tx("Installer (reco
 const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/This phone/g,"This device"],[/este móvil/g,"este dispositivo"],[/Este móvil/g,"Este dispositivo"],[/diesem Handy/g,"diesem Gerät"],[/dieses Handy/g,"dieses Gerät"],[/neste celular/g,"neste dispositivo"],[/este celular/g,"este dispositivo"]];
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
+const WEB_VERSION="0.7.0";
+function renderVersion(){const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version)||WEB_VERSION;el.textContent="v"+v;el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
   $("#varSearch").placeholder=Tx("Search variables","Buscar variables");if(typeof applyLayout==="function"){applyLayout();updatePopTitles()}rerenderAll()}
 
@@ -3591,7 +3593,8 @@ function renderGameSel(){const box=$("#gameBox");if(!box)return;const on=(MODE==
   $("#gameSeg").innerHTML=Object.entries(GAMES).map(([k,v])=>GAME_WIP.has(k)?`<button type="button" disabled title="${esc(wipTitle())}">${esc(Tx(...v))}${wipPill()}</button>`:`<button type="button" data-game="${k}" aria-pressed="${k===cur}">${esc(Tx(...v))}</button>`).join("")+`<button type="button" disabled title="${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}">NASCAR 26 <span class="pill acc" style="font-size:9px;padding:1px 5px">${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}</span></button>`;
   $("#gameNote").innerHTML=esc(cur==="acc"?Tx("Assetto Corsa Competizione: nothing to set up. Opponents' names and positions are not shared by the game; Pitlane HQ places them on the lap from the track you drive.","Assetto Corsa Competizione: no hay que configurar nada. El juego no comparte nombres ni posiciones de los rivales; Pitlane HQ los sitúa en la vuelta con el circuito que vas recorriendo.","Assetto Corsa Competizione: nichts einzurichten. Namen und Positionen der Gegner teilt das Spiel nicht; Pitlane HQ setzt sie anhand der gefahrenen Strecke auf die Runde.","Assetto Corsa Competizione: nada a configurar. O jogo não compartilha nomes nem posições dos rivais; o Pitlane HQ os situa na volta pelo traçado que você percorre."):cur==="ac"?Tx("Assetto Corsa: nothing to set up. The game only shares your own car, so there is no relative or radar.","Assetto Corsa: no hay que configurar nada. El juego solo comparte tu coche, así que no hay relative ni radar.","Assetto Corsa: nichts einzurichten. Das Spiel teilt nur dein eigenes Auto, daher kein Relative und kein Radar.","Assetto Corsa: nada a configurar. O jogo só compartilha o seu carro, então não há relative nem radar."):cur==="lmu"||cur==="auto"?Tx("Le Mans Ultimate: in the game, Settings → Gameplay → Enable Plugins: ON, then restart it. Nothing else to install.","Le Mans Ultimate: en el juego, Ajustes → Jugabilidad → Activar plugins: SÍ, y reinícialo. No hay que instalar nada más.","Le Mans Ultimate: im Spiel Einstellungen → Gameplay → Plugins aktivieren: AN, dann neu starten. Sonst nichts zu installieren.","Le Mans Ultimate: no jogo, Configurações → Jogabilidade → Ativar plugins: SIM, e reinicie. Nada mais para instalar."):Tx("Automatic reads whichever game is running.","Automático lee el juego que esté abierto.","Automatisch liest das Spiel, das gerade läuft.","Automático lê o jogo que estiver aberto."));
   $("#gameSeg").querySelectorAll("[data-game]").forEach(b=>b.onclick=()=>{CFG.game=b.dataset.game==="auto"?"":b.dataset.game;saveCfg();renderGameSel();renderConn()})}
-function renderConn(){const c=$("#conn");let cls,en,es;
+function renderConn(){
+  renderVersion();const c=$("#conn");let cls,en,es;
   if(STATUS.companion){cls="wait";en="Connect PC";es="Conectar PC"}
   else if(STATUS.relay&&!STATUS.connected&&!STATUS.demo){cls="wait";en=`PC online · waiting for ${gameName()}`;es=`PC conectado · esperando ${gameName()}`}
   else if(STATUS.offline){cls="wait";en="PC offline";es="PC sin conexión"}
@@ -3601,6 +3604,7 @@ function renderConn(){const c=$("#conn");let cls,en,es;
   else{cls="wait";en=`Waiting for ${gameName()}`;es=`Esperando ${gameName()}`}
   c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings();markGameGaps()}
 function renderSettings(){
+  renderVersion();
   document.querySelectorAll("#langSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===LANG));
   document.querySelectorAll("#unitSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===UNITS));
   const th=store.get("pw.theme","dark");document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===th));
@@ -5367,7 +5371,7 @@ function openSetupShare(key){const f=((SETUPS_DATA||{}).cars||[]).flatMap(c=>c.f
 function chooseLanguage(first){let m=$("#langPick");if(!m){m=document.createElement("div");m.id="langPick";m.className="langpick";document.body.appendChild(m)}
   m.innerHTML=`<div class="lp-card" role="dialog" aria-modal="true" aria-labelledby="lpT"><div class="lp-brand"><i aria-hidden="true"></i>Pitlane HQ</div>
     <h2 id="lpT">Choose your language · Elige tu idioma · Sprache wählen · Escolha seu idioma</h2>
-    <div class="lp-list">${LANGS.map(([k,n])=>`<button type="button" data-lp="${k}" aria-pressed="${k===LANG&&!first}"><b>${n}</b><small>${{en:"English",es:"Spanish",de:"German",pt:"Portuguese (Brazil)"}[k]}</small></button>`).join("")}</div>
+    <div class="lp-list">${LANGS.map(([k,n,sub])=>`<button type="button" data-lp="${k}" aria-pressed="${k===LANG&&!first}"><b>${n}</b><small>${sub}</small></button>`).join("")}</div>
     <p>${first?"You can change it later in Settings.":""}</p></div>`;
   m.hidden=false;m.querySelectorAll("[data-lp]").forEach(b=>b.onclick=()=>{LANG=b.dataset.lp;store.set("pw.lang",LANG);m.hidden=true;applyI18n();
     document.querySelectorAll("#langSeg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.l===LANG));if(first)setTimeout(askShare,400)});
