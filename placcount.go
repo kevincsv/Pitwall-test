@@ -406,11 +406,53 @@ func registerPLRoutes(mux *http.ServeMux) {
 		}
 	}()
 	go companionRefresher()
+	// the PC reads your laps in your account through here (the server does not answer other origins);
+	// only reading, only the lap and community lists, and closed to remote viewers like /api/sync
+	mux.HandleFunc("/api/sync/get", func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Query().Get("p")
+		ok := false
+		for _, pre := range []string{"/api/sessions", "/api/laps/", "/api/bests", "/community/"} {
+			if strings.HasPrefix(p, pre) {
+				ok = true
+			}
+		}
+		if r.Method != http.MethodGet || !ok || strings.Contains(p, "..") {
+			w.WriteHeader(400)
+			writeJSON(w, map[string]string{"error": "not available"})
+			return
+		}
+		loadPL()
+		plMu.Lock()
+		tok := plAcc.Token
+		plMu.Unlock()
+		if tok == "" {
+			w.WriteHeader(401)
+			writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
+			return
+		}
+		b, err := commRequest("GET", p, nil, tok)
+		if err != nil {
+			w.WriteHeader(502)
+			writeJSON(w, map[string]string{"error": err.Error()})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	})
 	mux.HandleFunc("/api/sync", func(w http.ResponseWriter, r *http.Request) {
 		loadPL()
 		fail := func(err error) {
 			w.WriteHeader(400)
 			writeJSON(w, map[string]string{"error": err.Error()})
+		}
+		// the PC's own window shows "My laps" from your account: it needs the server and the session
+		// token (this route is closed to remote viewers, and other sites cannot read it)
+		if r.Method == http.MethodGet && r.URL.Query().Get("embed") == "1" {
+			plMu.Lock()
+			tok := plAcc.Token
+			plMu.Unlock()
+			writeJSON(w, map[string]string{"server": commBase(), "token": tok})
+			return
 		}
 		if r.Method == http.MethodPost {
 			var in struct {

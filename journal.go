@@ -497,7 +497,11 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	for i := range cls {
 		cls[i].IRChange = ch[i]
 		if cls[i].Me {
-			r.IR, r.IRChange, r.Finish, r.Inc = cls[i].IR, ch[i], i+1, cls[i].Inc
+			r.IR, r.IRChange, r.Finish = cls[i].IR, ch[i], i+1
+			// the results can still say 0 at the flag: keep what was counted during the race
+			if cls[i].Inc > r.Inc {
+				r.Inc = cls[i].Inc
+			}
 			if cls[i].Best > 0 {
 				r.Best = cls[i].Best
 			}

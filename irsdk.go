@@ -9,6 +9,7 @@ import (
 	"errors"
 	"math"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -74,8 +75,12 @@ func indexByte(b []byte, c byte) int {
 	return -1
 }
 
-// iRacing writes ISO-8859-1 text; convert to UTF-8.
+// iRacing writes ISO-8859-1 text (older builds) or UTF-8 (newer ones): keep valid UTF-8 as it
+// is, so "Autódromo" does not turn into "AutÃ³dromo", and convert the rest to UTF-8.
 func latin1(b []byte) string {
+	if utf8.Valid(b) {
+		return string(b)
+	}
 	var sb strings.Builder
 	sb.Grow(len(b))
 	for _, c := range b {

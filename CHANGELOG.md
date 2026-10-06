@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.3.4 beta
+
+**Fixed**
+- Race analyses (yours and the shared ones): the incident count no longer shows 0 when the laps
+  had incidents (iRacing's results can still say 0 at the flag), so the summary no longer calls
+  it a clean race. Laps without a time are left out of the lap chart instead of dropping to the
+  bottom.
+- Track and car names with accents ("Autódromo Hermanos Rodríguez") are no longer garbled.
+- PC: Analysis shows the laps in your account when the window has none of its own (after a race
+  or a restart), and My laps works on the PC when you are signed in.
+
 ## 0.3.3 beta
 
 **Changed**
