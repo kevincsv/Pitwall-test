@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -151,10 +152,17 @@ func cloudCall(c cloudConfig, method, path string, body any) ([]byte, error) {
 		if e.Error == "" {
 			e.Error = fmt.Sprintf("HTTP %d", resp.StatusCode)
 		}
-		return nil, errors.New(e.Error)
+		return nil, httpErr{resp.StatusCode, e.Error}
 	}
 	return b, nil
 }
+
+type httpErr struct {
+	code int
+	msg  string
+}
+
+func (e httpErr) Error() string { return e.msg }
 
 // cloudUploader sends queued laps, retrying every minute when it fails.
 func cloudUploader() {
@@ -181,6 +189,17 @@ func cloudUploader() {
 			cloudMu.Lock()
 			if err != nil {
 				cloudErr = err.Error()
+				var he httpErr
+				if errors.As(err, &he) && he.code >= 400 && he.code < 500 && he.code != 401 && he.code != 403 && he.code != 429 {
+					// rejected for good (bad data): drop it so the queue keeps moving
+					log.Printf("cloud: dropped session %s: %v", item.Session.ID, err)
+					if len(cloudQueue) > 0 {
+						cloudQueue = cloudQueue[1:]
+					}
+					saveOutboxLocked()
+					cloudMu.Unlock()
+					continue
+				}
 				cloudMu.Unlock()
 				break
 			}
@@ -334,21 +353,35 @@ func (r *lapRec) add(d, t, speed float64, ch [4]float64) {
 func lapRecorder() {
 	var cur *lapRec
 	var sess cloudSession
-	sessNum := -1
+	sessNum, sessVer, sessKey := -1, -1, ""
+	lastLL := -1.0 // LapLastLapTime one sample before, to tell when iRacing updates it
 	t := time.NewTicker(time.Second / 30)
 	for range t.C {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
-			cur, sessNum = nil, -1
+			cur, sessNum, sessKey = nil, -1, ""
 			continue
 		}
 		v := telNums(lapVars)
+		prevLL := lastLL
+		lastLL = v[8]
 		lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
 		onTrack, sn := v[12] > 0, int(v[13])
+		// a new session: another SessionNum, or another event, track or car with the same
+		// number (a second practice, a new race), so laps never land in the previous one
+		tel.mu.RLock()
+		y, ver := tel.session, tel.sessionVer
+		tel.mu.RUnlock()
+		if ver != sessVer {
+			sessVer = ver
+			if k := sessionKey(y); k != sessKey {
+				if sessKey != "" {
+					sessNum = -1
+				}
+				sessKey = k
+			}
+		}
 		if sn != sessNum {
-			tel.mu.RLock()
-			y := tel.session
-			tel.mu.RUnlock()
 			sessNum, cur = sn, nil
 			sess = sessionMeta(y, sn, time.Now())
 			sess.AirTemp, sess.TrackTemp = v[15], v[16]
@@ -361,9 +394,9 @@ func lapRecorder() {
 			if cur != nil && lap == cur.n+1 {
 				done, s := cur, sess
 				fuelNow := v[9]
+				prevLast := prevLL
 				go func() { // iRacing updates the last lap time a moment after the line
-					time.Sleep(2 * time.Second)
-					finishLap(done, s, fuelNow)
+					finishLap(done, s, fuelNow, waitLastLap(done, prevLast))
 				}()
 			}
 			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11]}
@@ -382,9 +415,41 @@ func lapRecorder() {
 	}
 }
 
-func finishLap(r *lapRec, s cloudSession, fuelNow float64) {
-	v := telNums([]string{"LapLastLapTime"})
-	lt := v[0]
+// sessionKey: what makes a session different (event, track, car) besides its number.
+func sessionKey(y string) string {
+	c := ""
+	if d := driverBlock(y, yamlField(y, "DriverCarIdx")); d != "" {
+		c = yamlField(d, "CarScreenName")
+	}
+	return yamlField(y, "SubSessionID") + "|" + yamlField(y, "TrackID") + "|" + yamlField(y, "TrackConfigName") + "|" + c
+}
+
+// waitLastLap returns iRacing's official time of the lap just finished: it waits up to
+// 6 s for LapLastLapTime to change and to agree with the time measured here (within 1.5 s).
+// If it never does, the measured time is used and the lap is not trusted as valid.
+func waitLastLap(r *lapRec, prev float64) float64 {
+	measured := r.lastT
+	for i := 0; i < 30; i++ {
+		time.Sleep(200 * time.Millisecond)
+		lt := telNums([]string{"LapLastLapTime"})[0]
+		if lt <= 0 {
+			continue
+		}
+		if measured > 0 && math.Abs(lt-measured) < 0.25 { // matches what was measured here
+			return lt
+		}
+		if lt != prev && (measured <= 0 || math.Abs(lt-measured) < 1.5) {
+			return lt
+		}
+	}
+	r.bad = true
+	if measured > 0 {
+		return measured
+	}
+	return -1
+}
+
+func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	if lt <= 0 || len(r.bins) < 40 {
 		return
 	}

@@ -1606,13 +1606,17 @@ async function cpLive(){await cpReady;if(!COMPANION||!CP.acc||!CP.server||CPLIVE
   try{if(!CPLIVE.key)CPLIVE.key=await crypto.subtle.importKey("raw",cpUnhex(CP.acc.dataKey),"AES-GCM",false,["encrypt","decrypt"])}catch(e){return}
   let ws;try{ws=new WebSocket(CP.server.replace(/^http/,"ws")+"/live?role=view",["pitlane",CP.acc.token])}catch(e){return}
   CPLIVE.ws=ws;let q=Promise.resolve();
-  ws.onopen=()=>{CPLIVE.wait=2000;cpLiveWant();const vp=$("#v-pc");if(vp&&!vp.hidden)renderPC();clearInterval(CPLIVE.ping);CPLIVE.ping=setInterval(()=>{try{ws.send("ping")}catch(e){}},30000)};
+  ws.onopen=()=>{CPLIVE.wait=2000;CPLIVE.gotFields=false;cpLiveWant();
+    // the PC sends the list of variables once: if it got lost, ask again
+    setTimeout(()=>{if(CPLIVE.ws===ws&&ws.readyState===1&&CPLIVE.on&&!CPLIVE.gotFields)cpLiveWant()},3000);const vp=$("#v-pc");if(vp&&!vp.hidden)renderPC();clearInterval(CPLIVE.ping);CPLIVE.ping=setInterval(()=>{try{ws.send("ping")}catch(e){}},30000)};
   ws.onmessage=e=>{const m=e.data;if(typeof m!=="string"||m==="pong")return;
-    if(m[0]==="{"){try{const c=JSON.parse(m);if(c.ctl==="pc")cpLiveSet(!!c.on)}catch(err){}return}
+    if(m[0]==="{"){try{const c=JSON.parse(m);if(c.ctl==="pc"){cpLiveSet(!!c.on);if(c.on){CPLIVE.gotFields=false;cpLiveWant();setTimeout(()=>{if(CPLIVE.ws===ws&&CPLIVE.on&&!CPLIVE.gotFields)cpLiveWant()},3000)}}}catch(err){}return}
     if(!m.startsWith("e:"))return;
-    q=q.then(()=>cpLiveOpen(m)).then(([ev,d])=>{if(!CPLIVE.on)cpLiveSet(true);if(ev==="status")d={...d,relay:true};onStream(ev,d)}).catch(()=>{})};
+    // one message failing (a view not ready yet) must never lose the next ones
+    q=q.then(()=>cpLiveOpen(m)).then(([ev,d])=>{if(!CPLIVE.on){try{cpLiveSet(true)}catch(err){console.warn(err)}}if(ev==="status")d={...d,relay:true};
+      try{onStream(ev,d)}catch(err){console.warn("live",ev,err)}if(ev==="fields")CPLIVE.gotFields=true}).catch(()=>{})};
   ws.onclose=()=>{clearInterval(CPLIVE.ping);if(CPLIVE.ws===ws)CPLIVE.ws=null;cpLiveSet(false);if(CP.acc&&!CPLIVE.paused){setTimeout(cpLive,CPLIVE.wait);CPLIVE.wait=Math.min(CPLIVE.wait*2,60000)}}}
-if(COMPANION){cpLive();
+if(COMPANION){
   // nobody watching a hidden tab: the PC stops sending
   document.addEventListener("visibilitychange",()=>{if(document.hidden){CPLIVE.paused=true;if(CPLIVE.ws)CPLIVE.ws.close()}else{CPLIVE.paused=false;cpLive()}})}
 
@@ -4475,7 +4479,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   if(OV.on){if(OV.scale!==1)document.body.style.zoom=OV.scale;const fit=()=>{if(OV.list.includes("map"))$("#mapC").setAttribute("height",Math.max(200,Math.round(innerHeight/(OV.scale||1))-70))};fit();addEventListener("resize",()=>{fit();drawMap()})}
   const phone=!!NATIVE||matchMedia("(max-width:820px)").matches,start=OV.on?"live":(location.hash||"").slice(1)||(phone?"home":store.get("pw.tab","live"));show(Object.values(GROUPS).flat().includes(start)?start:"live");
   syncNativePlan();
-  if(COMPANION){STATUS={connected:false,companion:true};renderConn()}
+  if(COMPANION){if(!CPLIVE.on)STATUS={connected:false,companion:true};renderConn();cpLive()}
   else if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else{STATUS={connected:false,source:"",demo:false};renderConn()}
 })();

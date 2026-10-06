@@ -355,7 +355,6 @@ func liveRun(c *wsConn, key []byte) {
 	var lastStatus statusMsg
 	var idx []int
 	_, noticeSeen := noticesSince(-1)
-	slow := 0
 	for {
 		select {
 		case <-done:
@@ -371,17 +370,17 @@ func liveRun(c *wsConn, key []byte) {
 			return
 		}
 		mu.Lock()
-		n, w, rs := viewers, want, reset
-		reset = false
+		n, w := viewers, want
 		mu.Unlock()
 		if n == 0 {
 			continue
 		}
-		if w.All { // every variable: 5 times a second is plenty
-			if slow++; slow%2 == 1 {
-				continue
-			}
-		}
+		// a request to send everything again is only taken once someone is watching, so it
+		// is never lost while nobody was counted yet
+		mu.Lock()
+		rs := reset
+		reset = false
+		mu.Unlock()
 		if rs {
 			schemaVer, sessionVer, lastTick = -1, -1, -1
 			lastStatus = statusMsg{Source: "\x00"}
