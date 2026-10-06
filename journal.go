@@ -92,6 +92,7 @@ type bookEntry struct {
 	Tank    float64   `json:"tank,omitempty"`
 	Races   int       `json:"races,omitempty"`
 	Updated time.Time `json:"updated"`
+	Game    string    `json:"game,omitempty"` // empty: iRacing
 }
 
 var (
@@ -137,12 +138,16 @@ func recordBookLap(lapTime, fuel float64, valid bool) {
 	if c.CarID == 0 || c.TrackID == 0 {
 		return
 	}
-	key := fmt.Sprintf("%d:%d", c.CarID, c.TrackID)
+	game := currentGame()
+	key := gameKey(game, c.CarID, c.TrackID)
 	journalMu.Lock()
 	defer journalMu.Unlock()
 	e := book[key]
 	if e == nil {
 		e = &bookEntry{CarID: c.CarID, TrackID: c.TrackID}
+		if game != "iracing" {
+			e.Game = game
+		}
 		book[key] = e
 	}
 	e.Car, e.CarPath, e.Track, e.Updated = c.Car, c.CarPath, c.Track, time.Now()
@@ -190,6 +195,7 @@ type raceResult struct {
 }
 
 type raceReport struct {
+	Game        string       `json:"game,omitempty"` // empty: iRacing
 	ID          string       `json:"id"`
 	When        int64        `json:"when"`
 	Track       string       `json:"track"`
@@ -431,7 +437,7 @@ func strengthOfField(irs []int) int {
 
 func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	m := t.meta
-	r := &raceReport{ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
+	r := &raceReport{Game: gameTag(currentGame()), ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
 		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1}
 	if r.Multiclass {
 		r.Start, r.Finish = t.startClass, t.lastClass
@@ -524,7 +530,7 @@ func saveRace(r *raceReport) {
 	if len(races) > 1000 {
 		races = races[len(races)-1000:]
 	}
-	if e := book[fmt.Sprintf("%d:%d", r.CarID, r.TrackID)]; e != nil {
+	if e := book[gameKey(r.Game, r.CarID, r.TrackID)]; e != nil {
 		e.Races++
 		writeJSONFile(journalFile("trackbook.json"), book)
 	}

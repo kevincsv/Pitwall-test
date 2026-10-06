@@ -2,6 +2,7 @@
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { news } from "./news.js";
 import { goPage } from "./go.js";
+import { gameOf } from "./games.js";
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
@@ -44,10 +45,10 @@ const idOk = (v) => typeof v === "string" && /^[A-Za-z0-9_.:-]{6,80}$/.test(v);
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(
-    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
+    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
      ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp`
-  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader).run();
+  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game)).run();
   return null;
 }
 
@@ -102,6 +103,7 @@ async function api(req, env, url) {
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
+    if (q.get("game")) { args.push(gameOf(q.get("game"))); sql += `${args.length > 1 ? " AND" : " WHERE"} game=?${args.length}`; }
     if (own || q.get("who")) { args.push(own || q.get("who")); sql += `${args.length > 1 ? " AND" : " WHERE"} uploader=?${args.length}`; }
     sql += ` ORDER BY started DESC LIMIT ${lim}`;
     const { results } = await env.DB.prepare(sql).bind(...args).all();
@@ -110,9 +112,9 @@ async function api(req, env, url) {
 
   if (p === "/api/bests" && m === "GET") {
     const { results } = await env.DB.prepare(
-      `SELECT s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last
+      `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last
        FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND (?1 IS NULL OR s.uploader=?1)
-       GROUP BY s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
+       GROUP BY s.game, s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
     ).bind(own).all();
     return json(results);
   }
@@ -135,8 +137,8 @@ async function api(req, env, url) {
   if (p === "/api/teambest" && m === "GET") {
     const q = url.searchParams;
     const l = await env.DB.prepare(
-      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 AND (?4 IS NULL OR s.uploader=?4) ORDER BY l.time LIMIT 1`
-    ).bind(q.get("track") || "", q.get("config") || "", q.get("car") || "", own).first();
+      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 AND (?4 IS NULL OR s.uploader=?4) AND s.game=?5 ORDER BY l.time LIMIT 1`
+    ).bind(q.get("track") || "", q.get("config") || "", q.get("car") || "", own, gameOf(q.get("game"))).first();
     return json(l || {});
   }
 

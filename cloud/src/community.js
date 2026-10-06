@@ -38,6 +38,8 @@ async function countUpload(env, u) {
   return true;
 }
 
+import { gameOf } from "./games.js";
+
 export async function community(req, env, url) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
@@ -49,10 +51,12 @@ export async function community(req, env, url) {
     await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, await sha256(token), cleanAlias(body.alias), Date.now()).run();
     return json({ id, token });
   }
+  // every list is for one game: laps and analyses of different games are never mixed
+  const game = gameOf(url.searchParams.get("game") || body.game);
   if (p === "/combos" && m === "GET") {
     const r = await env.DB.prepare(
-      "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best FROM community_laps GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"
-    ).all();
+      "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best FROM community_laps WHERE game=?1 GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"
+    ).bind(game).all();
     return json({ combos: r.results || [] });
   }
   if (p === "/laps" && m === "GET") {
@@ -60,27 +64,27 @@ export async function community(req, env, url) {
     if (!t || !c) return err("trackId and carId", 400);
     const r = await env.DB.prepare(
       `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, l.time, l.sectors, l.created, l.trace IS NOT NULL AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
-       WHERE l.track_id=?1 AND l.car_id=?2 ORDER BY l.time LIMIT 200`
-    ).bind(t, c).all();
+       WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 200`
+    ).bind(t, c, game).all();
     return json({ laps: (r.results || []).map((x) => ({ ...x, hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
   }
   if (p.startsWith("/laps/") && m === "GET") {
     const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
     if (!l) return err("not found", 404);
-    return json({ id: l.id, alias: l.alias, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: l.trace ? JSON.parse(l.trace) : null });
+    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: l.trace ? JSON.parse(l.trace) : null });
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     const r = await env.DB.prepare(
       `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, r.car, r.track, r.created, json_extract(r.data,'$.finish') AS finish, json_extract(r.data,'$.field') AS field, json_extract(r.data,'$.best') AS best
-       FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) ORDER BY r.created DESC LIMIT 100`
-    ).bind(t || 0, c || 0).all();
+       FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
+    ).bind(t || 0, c || 0, game).all();
     return json({ reports: r.results || [] });
   }
   if (p.startsWith("/reports/") && m === "GET") {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
-    return json({ ...JSON.parse(r.data), id: r.id, alias: r.alias, shared: true });
+    return json({ ...JSON.parse(r.data), id: r.id, alias: r.alias, game: r.game, shared: true });
   }
 
   // the current season schedule: public to read, uploaded by the accounts in SEASON_UPLOADERS
@@ -91,16 +95,16 @@ export async function community(req, env, url) {
     return new Response('{"updated":' + c.updated + ',"season":' + (r.results || []).map((x) => x.data).join("") + "}", { headers: { ...JSONH, "cache-control": "public, max-age=900" } });
   }
   if (p === "/setups/cars" && m === "GET") {
-    const r = await env.DB.prepare("SELECT car_path AS carPath, MAX(car) AS car, COUNT(*) AS n FROM community_setups GROUP BY car_path ORDER BY n DESC LIMIT 500").all();
+    const r = await env.DB.prepare("SELECT car_path AS carPath, MAX(car) AS car, COUNT(*) AS n FROM community_setups WHERE game=?1 GROUP BY car_path ORDER BY n DESC LIMIT 500").bind(game).all();
     return json({ cars: r.results || [] });
   }
   if (p === "/setups" && m === "GET") {
     const car = url.searchParams.get("car") || "", track = (url.searchParams.get("track") || "").slice(0, 80), q = (url.searchParams.get("q") || "").slice(0, 60);
     const r = await env.DB.prepare(
       `SELECT s.id, u.alias, s.car_path AS carPath, s.car, s.track, s.name, s.notes, s.size, s.downloads, s.created FROM community_setups s JOIN community_users u ON u.id=s.user_id
-       WHERE (?1='' OR s.car_path=?1) AND (?2='' OR s.track LIKE '%'||?2||'%') AND (?3='' OR s.name LIKE '%'||?3||'%' OR s.car LIKE '%'||?3||'%' OR s.track LIKE '%'||?3||'%')
+       WHERE (?1='' OR s.car_path=?1) AND (?2='' OR s.track LIKE '%'||?2||'%') AND (?3='' OR s.name LIKE '%'||?3||'%' OR s.car LIKE '%'||?3||'%' OR s.track LIKE '%'||?3||'%') AND s.game=?4
        ORDER BY s.downloads DESC, s.created DESC LIMIT 200`
-    ).bind(car, track, q).all();
+    ).bind(car, track, q, game).all();
     return json({ setups: r.results || [] });
   }
   if (p.startsWith("/setups/") && p !== "/setups/mine" && m === "GET") {
@@ -141,8 +145,8 @@ export async function community(req, env, url) {
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     const id = rid();
     const r = await env.DB.prepare(
-      "INSERT INTO community_setups (id, user_id, car_path, car, track, name, notes, data, sha, size, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11) ON CONFLICT(user_id, sha) DO NOTHING"
-    ).bind(id, u.id, body.carPath, str(body.car), str(body.track, 80), cleanFile(body.name), str(body.notes, 1000), body.data, body.sha, bytes.length, Date.now()).run();
+      "INSERT INTO community_setups (id, user_id, car_path, car, track, name, notes, data, sha, size, created, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12) ON CONFLICT(user_id, sha) DO NOTHING"
+    ).bind(id, u.id, body.carPath, str(body.car), str(body.track, 80), cleanFile(body.name), str(body.notes, 1000), body.data, body.sha, bytes.length, Date.now(), game).run();
     if (!r.meta || !r.meta.changes) return json({ kept: "you already shared this setup" });
     return json({ shared: true, id });
   }
@@ -170,13 +174,13 @@ export async function community(req, env, url) {
     const trace = body.trace ? JSON.stringify(body.trace) : null;
     if (trace && trace.length > 900000) return err("lap trace too large", 400);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
-    const old = await env.DB.prepare("SELECT time FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
-    if (old && old.time <= time) return json({ kept: "your faster lap is already shared" });
+    const old = await env.DB.prepare("SELECT time, game FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
+    if (old && old.game === game && old.time <= time) return json({ kept: "your faster lap is already shared" });
     const sectors = Array.isArray(body.sectors) ? JSON.stringify(body.sectors.filter((x) => typeof x === "number").slice(0, 10)) : null;
     await env.DB.prepare(
-      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
-       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon`
-    ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0).run();
+      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
+       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
+    ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game).run();
     return json({ shared: true });
   }
   if (p === "/reports" && m === "POST") {
@@ -184,8 +188,8 @@ export async function community(req, env, url) {
     if (data.length < 20 || data.length > 900000) return err("report missing or too large", 400);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     const r = body.report;
-    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)")
-      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), data, Date.now(), body.anon ? 1 : 0).run();
+    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)")
+      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), data, Date.now(), body.anon ? 1 : 0, gameOf(body.game || r.game)).run();
     return json({ shared: true });
   }
   return err("not found", 404);

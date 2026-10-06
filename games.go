@@ -1,10 +1,41 @@
 package main
 
-// Which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, or whichever is running.
+// Which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, Assetto Corsa
+// Competizione, Assetto Corsa, or whichever is running.
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
-var gameNames = map[string]string{"iracing": "iRacing", "lmu": "Le Mans Ultimate"}
+var gameNames = map[string]string{"iracing": "iRacing", "lmu": "Le Mans Ultimate", "acc": "Assetto Corsa Competizione", "ac": "Assetto Corsa"}
+
+// currentGame is the game whose data Pitlane HQ reads now (the demo counts as iRacing).
+func currentGame() string {
+	tel.mu.RLock()
+	g := tel.source
+	tel.mu.RUnlock()
+	if _, ok := gameNames[g]; ok {
+		return g
+	}
+	return "iracing"
+}
+
+// gameKey keeps the keys of iRacing data as they were and prefixes the other games'.
+func gameKey(game string, carID, trackID int) string {
+	if game == "" || game == "iracing" {
+		return fmt.Sprintf("%d:%d", carID, trackID)
+	}
+	return fmt.Sprintf("%s:%d:%d", game, carID, trackID)
+}
+
+// gameTag: what is stored with data (empty for iRacing, as before).
+func gameTag(g string) string {
+	if g == "iracing" {
+		return ""
+	}
+	return g
+}
 
 func gamePref() string {
 	cfgMu.Lock()
@@ -24,8 +55,19 @@ func openGame(pref string) Source {
 		try = []func() Source{newSimSource}
 	case "lmu":
 		try = []func() Source{newLMUSource}
+	case "acc":
+		try = []func() Source{newACCSource}
+	case "ac":
+		try = []func() Source{newACSource}
 	default:
 		try = []func() Source{newSimSource, newLMUSource}
+		// both Assetto Corsa games use the same memory names: tell them apart by the program
+		switch runningAC() {
+		case "acc":
+			try = append(try, newACCSource)
+		case "ac":
+			try = append(try, newACSource)
+		}
 	}
 	for _, f := range try {
 		s := f()

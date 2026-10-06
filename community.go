@@ -196,7 +196,8 @@ func shareLap(l cloudLap) {
 	if c.CarID == 0 || c.TrackID == 0 {
 		return
 	}
-	key := fmt.Sprintf("%d:%d", c.CarID, c.TrackID)
+	game := currentGame()
+	key := gameKey(game, c.CarID, c.TrackID)
 	commMu.Lock()
 	if b, ok := commBest[key]; ok && b <= l.Time {
 		commMu.Unlock()
@@ -209,7 +210,7 @@ func shareLap(l cloudLap) {
 			commNote(err)
 			return
 		}
-		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon}
+		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon, "game": game}
 		if traces && l.Trace != nil {
 			body["trace"] = l.Trace
 		}
@@ -247,7 +248,7 @@ func shareReport(r *raceReport) {
 			commNote(err)
 			return
 		}
-		_, err := commCall("POST", "/reports", map[string]any{"report": cp, "anon": anon}, true)
+		_, err := commCall("POST", "/reports", map[string]any{"report": cp, "anon": anon, "game": firstNonEmpty(cp.Game, "iracing")}, true)
 		commNote(err)
 	}()
 }
@@ -368,7 +369,9 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				}
 				p += "/" + id
 			} else if q := r.URL.Query(); q.Get("trackId") != "" || q.Get("carId") != "" {
-				p += "?trackId=" + url.QueryEscape(q.Get("trackId")) + "&carId=" + url.QueryEscape(q.Get("carId"))
+				p += "?trackId=" + url.QueryEscape(q.Get("trackId")) + "&carId=" + url.QueryEscape(q.Get("carId")) + "&game=" + url.QueryEscape(q.Get("game"))
+			} else if g := r.URL.Query().Get("game"); g != "" {
+				p += "?game=" + url.QueryEscape(g)
 			}
 			b, err := commCall("GET", p, nil, false)
 			if err != nil {
@@ -452,7 +455,7 @@ func handleCommSetups(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		q := r.URL.Query()
 		v := url.Values{}
-		for _, k := range []string{"car", "track", "q"} {
+		for _, k := range []string{"car", "track", "q", "game"} {
 			if x := q.Get(k); x != "" {
 				v.Set(k, x)
 			}
