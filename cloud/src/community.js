@@ -140,8 +140,19 @@ export async function community(req, env, url) {
   }
 
   // everything below needs the driver's token
-  const u = await me(req, env);
+  let u = await me(req, env);
   if (!u) return err("wrong or missing token", 401);
+  // Friday night mode: an admin shares the laps of friends who drive on the admin's PC,
+  // each under the friend's own name (one community driver per name, owned by that admin)
+  if (m === "POST" && (p === "/laps" || p === "/reports") && typeof body.guest === "string" && body.guest.trim()) {
+    if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can share laps for other drivers", 403);
+    const name = cleanAlias(body.guest);
+    const gid = "guest-" + (await sha256(u.id + ":" + name.toLowerCase())).slice(0, 20);
+    await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias")
+      .bind(gid, await sha256("guest:" + gid + ":" + rid()), name, Date.now()).run();
+    u = await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(gid).first();
+    body.anon = false;
+  }
   if (p === "/season" && m === "POST") {
     const allowed = String(env.SEASON_UPLOADERS || env.ADMINS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!u.account || !allowed.includes(u.id)) return err("this account cannot publish the season schedule", 403);

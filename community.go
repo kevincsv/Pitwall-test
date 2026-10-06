@@ -46,6 +46,12 @@ type commConfig struct {
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
 	NoLive       bool   `json:"noLive,omitempty"`      // do not offer live telemetry to my browsers and phones through the server
+	// Friday night mode (admins only): friends drive on this PC and their laps go to the
+	// community under their own names, so the model learns from them; they stay out of My laps
+	Friday    bool     `json:"friday,omitempty"`
+	Guest     string   `json:"guest,omitempty"`     // who is driving now ("" = me)
+	GuestAuto bool     `json:"guestAuto,omitempty"` // take the name from iRacing (each friend in their own iRacing account)
+	Guests    []string `json:"guests,omitempty"`    // names used before, for a quick pick
 }
 
 var (
@@ -187,10 +193,42 @@ func commNote(err error) {
 }
 
 // shareLap: called for every valid lap; sends it only when it beats what you shared for that car and track.
+// fridayDriver: on Friday night mode, the friend driving now; "" when it is the account owner.
+func fridayDriver() string {
+	loadPL()
+	plMu.Lock()
+	admin, signed, own := plAcc.Admin, plAcc.Token != "", plAcc.Display
+	plMu.Unlock()
+	commMu.Lock()
+	on, name, auto := commCfg.Friday, commCfg.Guest, commCfg.GuestAuto
+	commMu.Unlock()
+	if !on || !admin || !signed {
+		return ""
+	}
+	if auto {
+		y := sessionYAML()
+		name = ""
+		if d := driverBlock(y, yamlField(y, "DriverCarIdx")); d != "" {
+			name = yamlField(d, "UserName")
+		}
+		if own != "" && strings.EqualFold(own, name) { // the owner driving: their own laps as usual
+			name = ""
+		}
+	}
+	return cleanText(name, 32)
+}
+
 func shareLap(l cloudLap) {
 	commMu.Lock()
 	on, traces, anon := commCfg.ShareTimes, commCfg.ShareTraces, commCfg.Anonymous
 	commMu.Unlock()
+	if tel.isDemo() { // the demo race is never shared
+		return
+	}
+	guest := fridayDriver()
+	if guest != "" { // a friend's lap: always shared with its telemetry, under their name
+		on, traces, anon = true, true, false
+	}
 	if !on || !l.Valid {
 		return
 	}
@@ -199,7 +237,7 @@ func shareLap(l cloudLap) {
 		return
 	}
 	game := currentGame()
-	key := gameKey(game, c.CarID, c.TrackID)
+	key := gameKey(game, c.CarID, c.TrackID) + "|" + guest
 	commMu.Lock()
 	if b, ok := commBest[key]; ok && b <= l.Time {
 		commMu.Unlock()
@@ -213,6 +251,9 @@ func shareLap(l cloudLap) {
 			return
 		}
 		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon, "game": game}
+		if guest != "" {
+			body["guest"] = guest
+		}
 		if traces && l.Trace != nil {
 			body["trace"] = l.Trace
 		}
@@ -302,6 +343,8 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				Action, Alias, URL, NameKind, DeleteAfter        string
 				ShareTimes, ShareTraces, ShareReports, Anonymous bool
 				ShareMaps, LiveWeb                               *bool
+				Friday, GuestAuto                                bool
+				Guest                                            string
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
@@ -348,6 +391,29 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				if reg {
 					commCall("POST", "/me", map[string]string{"alias": alias}, true)
 				}
+			case "friday":
+				loadPL()
+				plMu.Lock()
+				admin := plAcc.Admin
+				plMu.Unlock()
+				if !admin {
+					fail(errors.New("only the admins of the server can use Friday night mode"))
+					return
+				}
+				g := cleanText(in.Guest, 32)
+				commMu.Lock()
+				commCfg.Friday, commCfg.Guest, commCfg.GuestAuto = in.Friday, g, in.GuestAuto
+				if g != "" {
+					list := []string{g}
+					for _, x := range commCfg.Guests {
+						if !strings.EqualFold(x, g) && len(list) < 30 {
+							list = append(list, x)
+						}
+					}
+					commCfg.Guests = list
+				}
+				saveCommLocked()
+				commMu.Unlock()
 			case "deleteAll":
 				if _, err := commCall("DELETE", "/me", nil, true); err != nil && err.Error() != "not registered" {
 					fail(err)
@@ -365,7 +431,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		c := commCfg
 		commMu.Unlock()
 		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "server": commBase(), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
-			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "liveWeb": !c.NoLive, "live": liveStatus(), "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
+			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "liveWeb": !c.NoLive, "live": liveStatus(), "friday": c.Friday, "guest": c.Guest, "guestAuto": c.GuestAuto, "guests": c.Guests, "fridayDriver": fridayDriver(), "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {

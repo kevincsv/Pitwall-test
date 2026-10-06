@@ -204,6 +204,9 @@ func kickCloud() {
 }
 
 func queueLap(s cloudSession, l cloudLap) {
+	if fridayDriver() != "" { // a friend's lap on Friday night: community only, not the owner's laps
+		return
+	}
 	acct := accountCloud()
 	cloudMu.Lock()
 	defer cloudMu.Unlock()
