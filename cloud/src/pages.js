@@ -35,6 +35,7 @@ const S = {
   mismatch: { en: "The passwords do not match.", es: "Las contraseñas no coinciden.", de: "Die Passwörter stimmen nicht überein.", pt: "As senhas não coincidem." },
   short: { en: "The password needs at least 10 characters.", es: "La contraseña necesita al menos 10 caracteres.", de: "Das Passwort braucht mindestens 10 Zeichen.", pt: "A senha precisa de pelo menos 10 caracteres." },
   working: { en: "Working…", es: "Un momento…", de: "Einen Moment…", pt: "Um momento…" },
+  back: { en: "Back to Pitlane HQ", es: "Volver a Pitlane HQ", de: "Zurück zu Pitlane HQ", pt: "Voltar ao Pitlane HQ" },
   noMail: { en: "Emails are not set up on this server yet.", es: "Los emails aún no están configurados en este servidor.", de: "E-Mails sind auf diesem Server noch nicht eingerichtet.", pt: "Os emails ainda não estão configurados neste servidor." },
 };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -53,7 +54,7 @@ function page(l, body, script = "") {
 h1{font-size:22px;letter-spacing:.05em;text-transform:uppercase}p{color:#a9b4c3}label{display:block;margin:12px 0 4px;font-size:13px;color:#8a97a9;text-transform:uppercase;letter-spacing:.06em}
 input{width:100%;box-sizing:border-box;font:16px system-ui;padding:12px;border-radius:8px;border:1px solid #2b3542;background:#19202a;color:#e7ebf1}
 button{margin-top:16px;width:100%;padding:13px;border:0;border-radius:8px;background:#ffb02e;color:#11151b;font:700 15px system-ui;text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
-.err{color:#ff6363;min-height:1.4em}.ok{color:#38c97c}</style><main>${body}</main>${script ? `<script>${script}</script>` : ""}</html>`,
+.err{color:#ff6363;min-height:1.4em}.ok{color:#38c97c}.back{display:inline-block;margin-top:22px;color:#8a97a9;font-size:14px;text-decoration:none}.back:hover{color:#e7ebf1}</style><main>${body}<a class="back" href="/">← ${esc(S.back[l])}</a></main>${script ? `<script>${script}</script>` : ""}</html>`,
     {
       headers: {
         "content-type": "text/html; charset=utf-8",
