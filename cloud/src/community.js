@@ -185,7 +185,9 @@ export async function community(req, env, url) {
   }
   // the admin's own laps from Garage 61 (garage61.net), once, with their telemetry: they go into the
   // admin's account like laps from the PC, and the coach model learns them. The token is used for
-  // this request only and never stored. Imports a few laps per call; the app calls again with `next`.
+  // this request only and never stored. Garage 61 lists laps per track only (`tracks` is required),
+  // so the import walks its track list; each call imports a few laps and hands the app its place
+  // ("g61|track index|page|first lap of the page") to come back with as `next`.
   if (m === "POST" && p === "/admin/import/garage61") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
@@ -193,72 +195,123 @@ export async function community(req, env, url) {
     const token = (typeof body.token === "string" ? body.token.trim() : "").replace(/^Bearer\s+/i, "").replace(/[^A-Za-z0-9._~+/=-]/g, "");
     if (!token) return err("paste your Garage 61 token", 400);
     const base = (env.G61_BASE || "https://garage61.net/api/v1/").replace(/\/?$/, "/");
+    let fetches = 0;
     const g61 = async (path) => {
+      fetches++;
       const r = await fetch(base + path, { headers: { authorization: "Bearer " + token, accept: "application/json, text/csv" } });
       if (!r.ok) {
         // Garage 61 says why (a bad parameter, an expired token…): pass it on, so it can be fixed
-        const why = (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 240);
+        let why = await r.text().catch(() => "");
+        try { const j = JSON.parse(why); why = String(j.error_message || j.message || j.error || why); } catch (x) { /* not JSON */ }
+        why = why.replace(/\s+/g, " ").slice(0, 240);
         const e = new Error("Garage 61 answered HTTP " + r.status + (r.status === 401 ? ": the token is not valid" : "") + (why ? " · " + why : "") + " · " + path.split("?")[0]);
-        e.status = r.status; throw e;
+        e.status = r.status; e.param = (why.match(/"([A-Za-z]+)"/) || [])[1] || ""; throw e;
       }
       return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
     };
-    const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results)) || []);
-    // pages by offset, or by the cursor Garage 61 hands back when it paginates that way
-    const batch = Math.min(8, Math.max(1, +body.batch || 6)), cursor = typeof body.next === "string" && body.next ? body.next : "", offset = cursor ? 0 : Math.max(0, +body.next || 0);
-    // the laps list: with the paging and grouping parameters first; if Garage 61 rejects them (400), plainer forms
-    let page;
-    const forms = [`laps?drivers=me&limit=${batch}&group=none&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset), `laps?drivers=me&limit=${batch}&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset), `laps?drivers=me&limit=${batch}`, `laps?drivers=me`];
-    for (let i = 0; i < forms.length; i++) {
-      try { page = await g61(forms[i]); break; } catch (e) { if (e.status !== 400 || i === forms.length - 1) throw e; }
-    }
-    const laps = listOf(page), total = page && typeof page.total === "number" ? page.total : null;
-    const nextCursor = page && (page.nextCursor || page.next_cursor || page.cursor || (page.meta && (page.meta.nextCursor || page.meta.next_cursor))) || null;
-    let imported = 0, skipped = 0, noTrace = 0;
-    const combos = new Map();
-    for (const l of laps) {
-      const lid = "acct_" + acc.id + ":g61:" + String(l.id).replace(/[^A-Za-z0-9_.:-]/g, "_");
-      if (await env.DB.prepare("SELECT 1 FROM laps WHERE id=?1").bind(lid).first()) { skipped++; continue; }
-      const time = +(l.lapTime || l.time || 0);
-      if (!(time > 10 && time < 3600)) { skipped++; continue; }
-      let csv = null;
-      try { csv = await g61(`laps/${encodeURIComponent(l.id)}/csv`); } catch (e) { csv = null; }
-      const tr = csv ? g61Trace(String(csv), time) : null;
-      if (!tr) noTrace++;
-      const trk = l.track || {}, car = l.car || {};
-      const tName = str(trk.name || trk.track || "Unknown track", 80), tCfg = str(trk.variant || trk.config || trk.layout || "", 60), cName = str(car.name || car.car || "Unknown car", 80);
-      const full = tName + (tCfg ? " · " + tCfg : "");
-      // iRacing ids: from Garage 61 when it gives them, else from what this server already knows by name, else provisional
-      let trackId = int(trk.platformId || trk.iracingId) || null, carId = int(car.platformId || car.iracingId) || null;
-      if (!trackId || !carId) {
-        const o = await env.DB.prepare("SELECT track_id, car_id FROM sessions WHERE game='iracing' AND lower(car)=lower(?1) AND (lower(track)=lower(?2) OR lower(track||' · '||COALESCE(track_config,''))=lower(?3)) AND track_id>0 AND car_id>0 ORDER BY started DESC LIMIT 1").bind(cName, tName, full).first()
-          || await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE game='iracing' AND lower(car)=lower(?1) AND (lower(track)=lower(?2) OR lower(track)=lower(?3)) ORDER BY (track_id<900000000) DESC LIMIT 1").bind(cName, tName, full).first();
-        if (o) { trackId = trackId || o.track_id; carId = carId || o.car_id; }
+    const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results || v.laps || v.tracks)) || []);
+    const batch = Math.min(8, Math.max(1, +body.batch || 6));
+    const st = String(body.next || "").match(/^g61\|(\d+)\|([^|]*)\|([^|]*)\|(\d+)$/);
+    let ti = st ? +st[1] : 0, page = st ? st[2] : "", prevFirst = st ? st[3] : "", k = st ? +st[4] : 0; // k: laps of this page already handled
+    const tracks = listOf(await g61("tracks")).filter((t) => t && t.id != null).sort((a, b) => (+a.id || 0) - (+b.id || 0) || String(a.id).localeCompare(String(b.id)));
+    if (!tracks.length) return err("Garage 61 returned no tracks", 502);
+    const meInfo = await g61("me").catch(() => null);
+    const meId = meInfo && typeof meInfo === "object" ? (meInfo.id != null ? String(meInfo.id) : meInfo.slug || "") : "";
+    // the laps list: adapted when Garage 61 names a parameter it does not take
+    let drivers = "me", group = "&group=none", limit = 25, cursorKey = "after";
+    const listLaps = async (track, pg) => {
+      for (let tries = 0; ; tries++) {
+        const q = `laps?tracks=${encodeURIComponent(track.id)}&drivers=${encodeURIComponent(drivers)}${group}&limit=${limit}` + (pg ? (pg[0] === "c" ? "&" + cursorKey + "=" + encodeURIComponent(pg.slice(1)) : "&offset=" + pg.slice(1)) : "");
+        try { return await g61(q); } catch (e) {
+          if (e.status !== 400 || tries >= 3) throw e;
+          if (e.param === "limit" && limit > 10) limit = 10;
+          else if (e.param === "group" && group) group = "";
+          else if (e.param === "drivers" && meId && drivers === "me") drivers = meId;
+          else if (e.param === cursorKey && pg && pg[0] === "c" && cursorKey === "after") cursorKey = "cursor";
+          else throw e;
+        }
       }
-      if (!trackId) trackId = await pseudoId("t", "iracing", full);
-      if (!carId) carId = await pseudoId("c", "iracing", cName);
-      const started = Date.parse(l.startTime || l.start || l.date || "") || Date.now();
-      // one of our sessions per Garage 61 session when it names one, else per track, car and day
-      const g61Session = l.sessionId || (l.session && (l.session.id || l.session)) || l.eventId || "";
-      const grp = g61Session ? "s" + String(g61Session).replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 40) : new Date(started).toISOString().slice(0, 10);
-      const sid = "acct_" + acc.id + ":g61:" + (trk.id || trackId) + ":" + (car.id || carId) + ":" + grp;
-      await env.DB.prepare(
-        `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
-         ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id)`
-      ).bind(sid, started, tName, tCfg || null, cName, "acct:" + acc.id, trackId, carId).run();
-      const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.map((x) => +(x && x.time != null ? x.time : x)).filter((x) => x > 0).slice(0, 10)) : null;
-      const n = (await env.DB.prepare("SELECT COUNT(*) AS n FROM laps WHERE session_id=?1").bind(sid).first()).n + 1;
-      await env.DB.batch([
-        env.DB.prepare("INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) VALUES (?1,?2,?3,?4,1,NULL,?5,?6,?7,?8,0) ON CONFLICT(id) DO NOTHING")
-          .bind(lid, sid, n, time, tr ? tr.vmax : null, sectors, tr ? await sealData(env, JSON.stringify({ d: tr.d })) : null, started),
-        env.DB.prepare("UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1), best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1").bind(sid),
-      ]);
-      imported++;
-      if (tr) combos.set(trackId + ":" + carId, [trackId, carId]);
+    };
+    const lidOf = (l) => "acct_" + acc.id + ":g61:" + String(l.id).replace(/[^A-Za-z0-9_.:-]/g, "_");
+    let imported = 0, skipped = 0, noTrace = 0, others = 0, trackName = "";
+    const combos = new Map(), ids = [];
+    // up to ~30 requests to Garage 61 per call: tracks without laps cost one each, a lap its telemetry
+    while (ti < tracks.length && fetches < 30 && imported < batch) {
+      const track = tracks[ti];
+      trackName = str([track.name || track.track, track.variant || track.config || track.layout].filter(Boolean).join(" · "), 120) || String(track.id);
+      const res = await listLaps(track, page);
+      const laps = listOf(res).filter((l) => l && l.id != null);
+      const firstId = laps.length ? String(laps[0].id) : "";
+      // only the admin's own laps, even if Garage 61 lists others; the ones a previous call handled are passed over
+      const mine = laps.slice(k).filter((l) => { const d = l.driver || {}, did = d.id != null ? String(d.id) : d.slug || ""; if (meId && did && did !== meId) { others++; return false; } return true; });
+      const have = new Set();
+      for (let i = 0; i < mine.length; i += 40) {
+        const part = mine.slice(i, i + 40).map(lidOf);
+        const rows = await env.DB.prepare(`SELECT id FROM laps WHERE id IN (${part.map((_, k) => "?" + (k + 1)).join(",")})`).bind(...part).all();
+        for (const r of rows.results || []) have.add(r.id);
+      }
+      const todo = []; let kEnd = k, more = false;
+      for (const l of laps.slice(k)) {
+        if (!mine.includes(l)) { kEnd++; continue; }
+        if (have.has(lidOf(l))) { skipped++; kEnd++; continue; }
+        if (todo.length >= batch - imported) { more = true; break; }
+        todo.push(l); kEnd++;
+      }
+      for (const l of todo) {
+        const lid = lidOf(l);
+        ids.push(String(l.id));
+        const time = +(l.lapTime || l.time || 0);
+        if (!(time > 10 && time < 3600)) { skipped++; continue; }
+        let csv = null;
+        try { csv = await g61(`laps/${encodeURIComponent(l.id)}/csv`); } catch (e) { csv = null; }
+        const tr = csv ? g61Trace(String(csv), time) : null;
+        if (!tr) noTrace++;
+        const trk = Object.assign({}, track, l.track || {}), car = l.car || {};
+        const tName = str(trk.name || trk.track || "Unknown track", 80), tCfg = str(trk.variant || trk.config || trk.layout || "", 60), cName = str(car.name || car.car || "Unknown car", 80);
+        const full = tName + (tCfg ? " · " + tCfg : "");
+        // iRacing ids: from Garage 61 when it gives them, else from what this server already knows by name, else provisional
+        let trackId = int(trk.platformId || trk.iracingId) || null, carId = int(car.platformId || car.iracingId) || null;
+        if (!trackId || !carId) {
+          const o = await env.DB.prepare("SELECT track_id, car_id FROM sessions WHERE game='iracing' AND lower(car)=lower(?1) AND (lower(track)=lower(?2) OR lower(track||' · '||COALESCE(track_config,''))=lower(?3)) AND track_id>0 AND car_id>0 ORDER BY started DESC LIMIT 1").bind(cName, tName, full).first()
+            || await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE game='iracing' AND lower(car)=lower(?1) AND (lower(track)=lower(?2) OR lower(track)=lower(?3)) ORDER BY (track_id<900000000) DESC LIMIT 1").bind(cName, tName, full).first();
+          if (o) { trackId = trackId || o.track_id; carId = carId || o.car_id; }
+        }
+        if (!trackId) trackId = await pseudoId("t", "iracing", full);
+        if (!carId) carId = await pseudoId("c", "iracing", cName);
+        const started = Date.parse(l.startTime || l.start || l.date || "") || Date.now();
+        // one of our sessions per Garage 61 session when it names one, else per track, car and day
+        const g61Session = l.sessionId || (l.session && (l.session.id || l.session)) || l.eventId || "";
+        const grp = g61Session ? "s" + String(g61Session).replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 40) : new Date(started).toISOString().slice(0, 10);
+        const sid = "acct_" + acc.id + ":g61:" + track.id + ":" + (car.id || carId) + ":" + grp;
+        await env.DB.prepare(
+          `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
+           ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id)`
+        ).bind(sid, started, tName, tCfg || null, cName, "acct:" + acc.id, trackId, carId).run();
+        const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.map((x) => +(x && x.time != null ? x.time : x)).filter((x) => x > 0).slice(0, 10)) : null;
+        await env.DB.batch([
+          env.DB.prepare("INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) SELECT ?1,?2,(SELECT COUNT(*)+1 FROM laps WHERE session_id=?2),?3,1,NULL,?4,?5,?6,?7,0 WHERE NOT EXISTS (SELECT 1 FROM laps WHERE id=?1)")
+            .bind(lid, sid, time, tr ? tr.vmax : null, sectors, tr ? await sealData(env, JSON.stringify({ d: tr.d })) : null, started),
+          env.DB.prepare("UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1), best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1").bind(sid),
+        ]);
+        imported++;
+        if (tr) combos.set(trackId + ":" + carId, [trackId, carId]);
+      }
+      if (more) { k = kEnd; break; } // this page has more: the next call comes back to it
+      k = 0;
+      // the next page of this track when Garage 61 hands back a cursor or the page was full, else the next track;
+      // a page that repeats the previous one means Garage 61 ignored the paging: the track is done
+      const cursor = res && typeof res === "object" ? res.cursor || res.nextCursor || res.next_cursor || res.after || (res.meta && (res.meta.nextCursor || res.meta.cursor)) : null;
+      const total = res && typeof res.total === "number" ? res.total : null;
+      const off = page && page[0] === "o" ? +page.slice(1) || 0 : 0;
+      const repeats = firstId && firstId === prevFirst;
+      if (!repeats && laps.length && typeof cursor === "string" && cursor && "c" + cursor !== page) { page = "c" + cursor; prevFirst = firstId; }
+      else if (!repeats && laps.length >= limit && (total == null || off + laps.length < total)) { page = "o" + (off + laps.length); prevFirst = firstId; }
+      else { ti++; page = ""; prevFirst = ""; }
     }
+    if (!(ti < tracks.length)) k = 0;
     for (const [t, c] of combos.values()) await markModel(env, "iracing", t, c);
-    const done = laps.length === 0 || (!nextCursor && laps.length < batch) || (total != null && !nextCursor && offset + laps.length >= total);
-    return json({ imported, skipped, noTrace, next: done ? null : nextCursor || offset + laps.length, total, done, ids: laps.map((l) => String(l.id)) });
+    const done = ti >= tracks.length;
+    return json({ imported, skipped, noTrace, others, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
   }
   if (m === "GET" && p === "/admin/status") {
     const acc = await sessionAccount(req, env);
