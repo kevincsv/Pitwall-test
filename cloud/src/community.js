@@ -31,6 +31,12 @@ function g61Trace(csv, lapTime) {
   const head = lines[0].split(",").map((x) => x.trim().replace(/^"|"$/g, "")), ix = (k) => head.indexOf(k);
   const iV = ix("Speed"), iD = ix("LapDist"), iP = ix("LapDistPct"), iT = ix("Throttle"), iB = ix("Brake"), iG = ix("Gear"), iS = ix("SteeringWheelAngle"), iL = ix("LapCurrentLapTime"), iST = ix("SessionTime");
   if (iV < 0 || (iL < 0 && iST < 0)) return null;
+  // where the car was, like the PC records it: from Lat/Lon when the CSV has them, else dead reckoning
+  // from the yaw and the car's velocity; the track's shape for the analyzer's map
+  const iF = ix("FuelLevel"); let fuel0 = null, fuel1 = null;
+  const iLat = ix("Lat"), iLon = ix("Lon"), iYaw = ix("Yaw") >= 0 ? ix("Yaw") : ix("YawNorth"), iVX = ix("VelocityX"), iVY = ix("VelocityY");
+  const withPos = (iLat >= 0 && iLon >= 0) || (iYaw >= 0 && (iVX >= 0 || iV >= 0));
+  const xy = []; let pos = [0, 0], lat0 = null, lon0 = null, pyaw = null, pvx = 0, pvy = 0, pt = null, posBad = false;
   const bins = []; let d = 0, lastT = null, t0 = null, vmax = 0;
   for (let k = 1; k < lines.length; k++) {
     const c = lines[k].split(","), v = +c[iV];
@@ -39,9 +45,35 @@ function g61Trace(csv, lapTime) {
     if (!isFinite(t)) continue;
     if (iL < 0) { if (t0 == null) t0 = t; t -= t0; }
     if (iD >= 0 && isFinite(+c[iD])) d = +c[iD]; else if (lastT != null && t > lastT) d += v * (t - lastT);
+    if (withPos) {
+      if (iLat >= 0) {
+        const la = +c[iLat], lo = +c[iLon];
+        if (isFinite(la) && isFinite(lo) && (la || lo)) {
+          if (lat0 == null) { lat0 = la; lon0 = lo; }
+          pos = [(lo - lon0) * 111320 * Math.cos((lat0 * Math.PI) / 180), (la - lat0) * 110540];
+        }
+      } else {
+        const yaw = +c[iYaw], vx = iVX >= 0 ? +c[iVX] : v, vy = iVY >= 0 ? +c[iVY] : 0;
+        if (isFinite(yaw)) {
+          if (pt != null) {
+            const dt = t - pt;
+            if (dt <= 0 || dt > 0.25) { if (dt > 0.25) posBad = true; } else {
+              let dy = yaw - pyaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+              const h = pyaw + dy / 2, mx = (vx + pvx) / 2, my = (vy + pvy) / 2;
+              pos = [pos[0] + (mx * Math.cos(h) - my * Math.sin(h)) * dt, pos[1] + (mx * Math.sin(h) + my * Math.cos(h)) * dt];
+            }
+          }
+          pt = t; pyaw = yaw; pvx = vx; pvy = vy;
+        }
+      }
+    }
+    if (iF >= 0 && isFinite(+c[iF]) && +c[iF] > 0) { if (fuel0 == null) fuel0 = +c[iF]; fuel1 = +c[iF]; }
     lastT = t; vmax = Math.max(vmax, v);
     const b = Math.floor(d / 5);
-    if (b >= 0 && b < 12000 && !bins[b]) bins[b] = [+v.toFixed(2), iT >= 0 ? +(+c[iT]).toFixed(3) : 0, iB >= 0 ? +(+c[iB]).toFixed(3) : 0, iG >= 0 ? Math.round(+c[iG]) || 0 : 0, iS >= 0 ? +(+c[iS]).toFixed(3) : 0, +t.toFixed(3)];
+    if (b >= 0 && b < 12000 && !bins[b]) {
+      bins[b] = [+v.toFixed(2), iT >= 0 ? +(+c[iT]).toFixed(3) : 0, iB >= 0 ? +(+c[iB]).toFixed(3) : 0, iG >= 0 ? Math.round(+c[iG]) || 0 : 0, iS >= 0 ? +(+c[iS]).toFixed(3) : 0, +t.toFixed(3)];
+      if (withPos) xy[b] = [pos[0], pos[1]];
+    }
   }
   // holes filled from the neighbour before them, so the trace is continuous
   for (let i = 0; i < bins.length; i++) if (!bins[i]) bins[i] = bins[i - 1] ? bins[i - 1].slice() : null;
@@ -50,7 +82,29 @@ function g61Trace(csv, lapTime) {
   // a trace that does not add up to the lap time is not worth learning from
   let sum = 0; for (const x of d2) if (x[0] > 0.5) sum += 5 / x[0];
   if (Math.abs(sum - lapTime) / lapTime > 0.06) return null;
-  return { d: d2, vmax };
+  const out = { d: d2, vmax, fuel: fuel0 != null && fuel1 != null && fuel0 - fuel1 > 0 && fuel0 - fuel1 < 50 ? +(fuel0 - fuel1).toFixed(3) : null };
+  // the shape: holes filled from the neighbours, and a lap is a loop, so the gap between its end and its start is drift
+  if (withPos && !posBad) {
+    const n = bins.length, x = new Array(n), y = new Array(n); let prev = -1, missing = 0;
+    for (let i = 0; i < n; i++) {
+      if (!bins[i]) continue;
+      if (!xy[i]) { missing++; continue; }
+      x[i] = xy[i][0]; y[i] = xy[i][1];
+      if (prev >= 0 && i - prev > 1) for (let k = prev + 1; k < i; k++) { const f = (k - prev) / (i - prev); x[k] = x[prev] + (x[i] - x[prev]) * f; y[k] = y[prev] + (y[i] - y[prev]) * f; }
+      else if (prev < 0) for (let k = 0; k < i; k++) { x[k] = x[i]; y[k] = y[i]; }
+      prev = i;
+    }
+    if (prev >= 0 && missing <= n / 10) {
+      for (let k = prev + 1; k < n; k++) { x[k] = x[prev]; y[k] = y[prev]; }
+      const ex = x[n - 1] - x[0], ey = y[n - 1] - y[0];
+      if (Math.hypot(ex, ey) <= 150) {
+        const xs = [], ys = [];
+        for (let i = 0; i < n; i++) { if (!bins[i]) continue; const f = i / (n - 1); xs.push(+(x[i] - ex * f).toFixed(1)); ys.push(+(y[i] - ey * f).toFixed(1)); }
+        out.x = xs; out.y = ys;
+      }
+    }
+  }
+  return out;
 }
 const cleanAlias = (a) => (str(a, 32) || "").replace(/[\u0000-\u001f<>]/g, "").trim() || "Driver";
 // a Pitlane HQ account session, or the older per-PC community token
@@ -346,22 +400,32 @@ export async function community(req, env, url) {
         if (!trackId) trackId = await pseudoId("t", "iracing", full);
         if (!carId) carId = await pseudoId("c", "iracing", cName);
         const started = Date.parse(l.startTime || l.start || l.date || l.createdAt || "") || Date.now();
-        // one of our sessions per track, car and day
-        const grp = new Date(started).toISOString().slice(0, 10);
+        // everything Garage 61 says about the lap, onto Pitlane HQ's fields: the kind of session, the
+        // temperatures, incident points, whether the lap was clean, its number and the fuel it used
+        const kindRaw = String(l.sessionType || (l.session && (l.session.type || l.session.kind)) || l.eventType || "").toLowerCase();
+        const kind = /race/.test(kindRaw) ? "Race" : /qual/.test(kindRaw) ? "Qualify" : /time ?trial|^tt$/.test(kindRaw) ? "Time Trial" : /warm/.test(kindRaw) ? "Warmup" : /test/.test(kindRaw) ? "Testing" : "Practice";
+        const temp = (v) => (typeof v === "number" && isFinite(v) && v > -40 && v < 90 ? v : null);
+        const airT = temp(l.airTemp ?? l.airTemperature ?? l.air_temp), trackT = temp(l.trackTemp ?? l.trackTemperature ?? l.track_temp);
+        const incPts = Number.isInteger(l.incidents) ? l.incidents : Number.isInteger(l.incidentCount) ? l.incidentCount : Number.isInteger(l.inc) ? l.inc : 0;
+        const clean = !(l.valid === false || l.clean === false || l.invalid === true || l.offtrack === true || l.offTrack === true);
+        const lapN = Number.isInteger(l.lapNumber) ? l.lapNumber : Number.isInteger(l.lap) ? l.lap : Number.isInteger(l.number) ? l.number : null;
+        const fuelUsed = (tr && tr.fuel) || (typeof l.fuelUsed === "number" && l.fuelUsed > 0 ? +l.fuelUsed.toFixed(3) : null);
+        // one of our sessions per track, car, kind of session and day
+        const grp = new Date(started).toISOString().slice(0, 10) + (kind === "Practice" ? "" : ":" + kind.toLowerCase().replace(/\s+/g, ""));
         const sid = "acct_" + acc.id + ":g61:" + (trk.id != null ? trk.id : trackId) + ":" + (car.id || carId) + ":" + grp;
         await env.DB.prepare(
-          `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
-           ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id)`
-        ).bind(sid, started, tName, tCfg || null, cName, "acct:" + acc.id, trackId, carId).run();
+          `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id, air_temp, track_temp) VALUES (?1,?2,?3,?4,?5,?6,'Garage 61',NULL,?7,'iracing',?8,?9,?10,?11)
+           ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id), air_temp=COALESCE(air_temp, excluded.air_temp), track_temp=COALESCE(track_temp, excluded.track_temp)`
+        ).bind(sid, started, tName, tCfg || null, cName, kind, "acct:" + acc.id, trackId, carId, airT, trackT).run();
         const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.map((x) => +(x && x.time != null ? x.time : x)).filter((x) => x > 0).slice(0, 10)) : null;
         await env.DB.batch([
-          env.DB.prepare("INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) SELECT ?1,?2,(SELECT COUNT(*)+1 FROM laps WHERE session_id=?2),?3,1,NULL,?4,?5,?6,?7,0 WHERE NOT EXISTS (SELECT 1 FROM laps WHERE id=?1)")
-            .bind(lid, sid, time, tr ? tr.vmax : null, sectors, tr ? await sealData(env, JSON.stringify({ d: tr.d })) : null, started),
+          env.DB.prepare("INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) SELECT ?1,?2,COALESCE(?8,(SELECT COUNT(*)+1 FROM laps WHERE session_id=?2)),?3,?9,?10,?4,?5,?6,?7,?11 WHERE NOT EXISTS (SELECT 1 FROM laps WHERE id=?1)")
+            .bind(lid, sid, time, tr ? tr.vmax : null, sectors, tr ? await sealData(env, JSON.stringify(tr.x ? { bin: 5, d: tr.d, x: tr.x, y: tr.y } : { bin: 5, d: tr.d })) : null, started, lapN, clean ? 1 : 0, fuelUsed, incPts),
           env.DB.prepare("UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1), best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1").bind(sid),
         ]);
         imported++; kEnd++;
-        if (tr) combos.set(trackId + ":" + carId, [trackId, carId]);
-        touched.set(trackId + ":" + carId, { trackId, carId, car: cName, track: full });
+        if (tr && clean) combos.set(trackId + ":" + carId, [trackId, carId]);
+        if (clean) touched.set(trackId + ":" + carId, { trackId, carId, car: cName, track: full });
       }
       if (more) { k = kEnd; break; } // this page has more: the next call comes back to it
       k = 0;
@@ -382,7 +446,7 @@ export async function community(req, env, url) {
     // lap you shared before stays)
     if (touched.size) await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,'acct:'||?1,?2,?3) ON CONFLICT(id) DO NOTHING").bind(acc.id, cleanAlias(acc.display), Date.now()).run();
     for (const c of touched.values()) {
-      const best = await env.DB.prepare("SELECT l.time, l.sectors, l.trace FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?1 AND s.kind='Garage 61' AND s.track_id=?2 AND s.car_id=?3 AND l.valid=1 AND l.time>10 ORDER BY (l.trace IS NULL), l.time LIMIT 1").bind("acct:" + acc.id, c.trackId, c.carId).first();
+      const best = await env.DB.prepare("SELECT l.time, l.sectors, l.trace FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?1 AND s.series='Garage 61' AND s.track_id=?2 AND s.car_id=?3 AND l.valid=1 AND l.time>10 ORDER BY (l.trace IS NULL), l.time LIMIT 1").bind("acct:" + acc.id, c.trackId, c.carId).first();
       if (!best) continue;
       const r = await keepBestLap(env, acc.id, { game: "iracing", carId: c.carId, trackId: c.trackId, car: c.car, track: c.track, time: best.time, sectors: best.sectors, trace: best.trace, anon: false, shown: "nick" });
       if (r.shared) shared++;
@@ -396,11 +460,11 @@ export async function community(req, env, url) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     const up = "acct:" + acc.id;
-    const combos = (await env.DB.prepare("SELECT DISTINCT track_id, car_id FROM sessions WHERE uploader=?1 AND kind='Garage 61' AND track_id>0 AND car_id>0").bind(up).all()).results || [];
+    const combos = (await env.DB.prepare("SELECT DISTINCT track_id, car_id FROM sessions WHERE uploader=?1 AND series='Garage 61' AND track_id>0 AND car_id>0").bind(up).all()).results || [];
     const r = await env.DB.batch([
-      env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1 AND EXISTS (SELECT 1 FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?2 AND s.kind='Garage 61' AND ABS(l.time-community_laps.time)<0.002)").bind(acc.id, up),
-      env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1 AND kind='Garage 61')").bind(up),
-      env.DB.prepare("DELETE FROM sessions WHERE uploader=?1 AND kind='Garage 61'").bind(up),
+      env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1 AND EXISTS (SELECT 1 FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?2 AND s.series='Garage 61' AND ABS(l.time-community_laps.time)<0.002)").bind(acc.id, up),
+      env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1 AND series='Garage 61')").bind(up),
+      env.DB.prepare("DELETE FROM sessions WHERE uploader=?1 AND series='Garage 61'").bind(up),
     ]);
     for (const c of combos) await markModel(env, "iracing", c.track_id, c.car_id);
     return json({ deleted: true, laps: r[1].meta.changes, sessions: r[2].meta.changes, shared: r[0].meta.changes, combos: combos.length });

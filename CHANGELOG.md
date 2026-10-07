@@ -25,6 +25,12 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   whose track came in another shape was filed under the group's first track), one session per
   track, car and day; and the admin profile has "Delete import" to undo a Garage 61 import
   (its sessions, laps and the leaderboard laps that came from them) and run it again clean.
+- **Garage 61 laps look like laps recorded with Pitlane HQ**: the telemetry keeps the track's shape
+  (from Lat/Lon or from yaw and velocity), so the analyzer draws its map; the kind of session
+  (practice, qualifying, race), temperatures, incident points, whether the lap was clean, its
+  number and the fuel it used come along; dirty laps stay out of the leaderboard and the model.
+- **The coach model uses up to 10 laps of a lone driver** (3 when there are three or more), so one
+  driver's Garage 61 history gives a steadier ideal lap.
 - **Your own laps and analyses are marked "you" on the web too**: the web did not send your
   session when reading the leaderboard, so the server could not tell which were yours.
 - **The race summary's table shows each driver's sectors** of their best lap when the PC saw the

@@ -106,16 +106,19 @@ async function candidates(env, game, trackId, carId) {
   await adoptOldSessions(env, game, trackId, carId);
   const learnt = await learnNewLaps(env, game, trackId, carId);
   const all = await env.DB.prepare("SELECT drv, time, data FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all();
+  // the best 3 laps of each driver; with fewer than 3 drivers (one driver's Garage 61 history, say) up to 10
+  // of theirs, so the ideal lap settles on the median of many laps instead of three
+  const drivers = new Set((all.results || []).map((x) => x.drv)).size;
+  const cap = drivers < 3 ? 10 : 3;
   const per = new Map();
   for (const x of all.results || []) {
     const l = per.get(x.drv) || [];
-    if (l.length >= 3) continue;
+    if (l.length >= cap) continue;
     l.push(x);
     per.set(x.drv, l);
   }
-  const drivers = per.size;
   // one lap per driver first (the best), then their next best ones while there is room
-  const rounds = [[], [], []];
+  const rounds = Array.from({ length: cap }, () => []);
   for (const l of per.values()) l.forEach((x, i) => rounds[i].push(x));
   const pick = [];
   for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS) pick.push(x);
