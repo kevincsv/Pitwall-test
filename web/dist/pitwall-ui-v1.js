@@ -25,6 +25,9 @@ function installModals(){
  '<div class="pw-modal" id="pwDiag" hidden><div class="pw-modal-card"><div class="pw-modal-head"><h2>Diagnostics</h2><button class="pw-x" data-pwc="pwDiag">×</button></div><div class="pw-modal-body" id="pwDiagBody"></div></div></div>';
  document.body.appendChild(w);
  w.querySelectorAll("[data-pwc]").forEach(function(b){b.onclick=function(){$(b.dataset.pwc).hidden=true}});
+ // a click outside the card or Escape closes them too
+ w.querySelectorAll(".pw-modal").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.hidden=true})});
+ document.addEventListener("keydown",function(e){if(e.key==="Escape")w.querySelectorAll(".pw-modal").forEach(function(m){m.hidden=true})});
  $("#pwDiagBtn").onclick=function(){$("#pwCenter").hidden=true;$("#pwDiag").hidden=false;renderDiag()};
  $("#pwRefreshBtn").onclick=function(){refreshInfo(true)}
 }
@@ -46,16 +49,24 @@ async function refreshInfo(force){if(typeof MODE!=="undefined"&&!["bridge","loca
 function renderCenter(){
  var b=$("#pwCenterGrid");if(!b)return;var s=derive(),i=ST.info||{},st=typeof STATUS!=="undefined"?STATUS:{},hz=ST.times.length>2?Math.round((ST.times.length-1)/((ST.times.at(-1)-ST.times[0])/1000)):0,open=typeof OV_OPEN!=="undefined"?OV_OPEN.size:0;
  var cards=[["iRacing / Telemetry",s.telemetry,s.telemetry==="LIVE"?"Telemetry is updating normally.":s.telemetry==="DEMO"?"Demo data is active.":"Waiting for telemetry frames.",(st.source||"—")+" · "+(hz?hz+" Hz":"—")],["PitWall PC",s.pc,i.host?i.host:"Local PC",i.version?"v"+i.version:""],["Cloud / Remote",s.cloud,s.cloud==="CONNECTED"?"Live relay connected":"Ready for account/remote use",typeof CP!=="undefined"&&CP.acc?"Account signed in":""],["Overlays",open?open+" OPEN":"READY",(CFG.autoWidgets||[]).length+" automatic · "+(CFG.edit?"unlocked":"locked"),"Engine: "+(CFG.engine||"webview")]];
- b.innerHTML=cards.map(function(c){return'<div class="pw-center-card"><div class="top"><h3>'+safe(c[0])+'</h3>'+badge(c[1])+'</div><p>'+safe(c[2])+'</p><p class="mono">'+safe(c[3])+"</p></div>"}).join("")
+ var html=cards.map(function(c){return'<div class="pw-center-card"><div class="top"><h3>'+safe(c[0])+'</h3>'+badge(c[1])+'</div><p>'+safe(c[2])+'</p><p class="mono">'+safe(c[3])+"</p></div>"}).join("");if(b.__h!==html){b.__h=html;b.innerHTML=html}
 }
 function diagData(){
  var s=derive(),st=typeof STATUS!=="undefined"?STATUS:{},age=ST.last?Math.round(performance.now()-ST.last):null,hz=ST.times.length>2?Math.round((ST.times.length-1)/((ST.times.at(-1)-ST.times[0])/1000)):0,ov=typeof OV_OPEN!=="undefined"?Array.from(OV_OPEN):[];
  return{overall:s.overall,telemetry:s.telemetry,pc:s.pc,cloud:s.cloud,telemetryAgeMs:age,telemetryHz:hz,source:st.source||"",demo:!!st.demo,connected:!!st.connected,companion:!!st.companion,mode:typeof MODE!=="undefined"?MODE:"",remote:typeof REMOTE!=="undefined"?!!REMOTE:false,eventSource:typeof es!=="undefined"&&es?es.readyState:null,configPending:typeof cfgPending!=="undefined"&&!!cfgPending,overlays:ov,autoOverlays:CFG.autoWidgets||[],engine:CFG.engine,info:ST.info}
 }
+// built once and then only the values change: rebuilding it four times a second ate every click
+// (the copy button and the raw report were replaced before the click landed)
 function renderDiag(){
- var b=$("#pwDiagBody");if(!b)return;var d=diagData(),rows=[["Overall",d.overall],["Telemetry",d.telemetry],["PC",d.pc],["Cloud",d.cloud],["Telemetry age",d.telemetryAgeMs==null?"—":d.telemetryAgeMs+" ms"],["Estimated rate",d.telemetryHz+" Hz"],["Source",d.source||"—"],["Mode",d.mode],["EventSource",d.eventSource==null?"—":d.eventSource],["Config sync",d.configPending?"Pending":"Clean"],["Overlays",d.overlays.length+" open"],["Engine",d.engine||"—"]];
- b.innerHTML='<div class="pw-diag-grid">'+rows.map(function(x){return'<div class="pw-diag-item"><div class="k">'+safe(x[0])+'</div><b>'+safe(x[1])+"</b></div>"}).join("")+'</div><div class="pw-center-card" style="margin-top:10px"><div class="label">Open overlays</div><p class="mono">'+safe(d.overlays.join(", ")||"none")+'</p><div class="label">Automatic overlays</div><p class="mono">'+safe(d.autoOverlays.join(", ")||"none")+'</p></div><details style="margin-top:10px"><summary class="label">Raw diagnostic report</summary><pre class="discpre">'+safe(JSON.stringify(d,null,2))+'</pre></details><div class="pw-actions"><button class="btn primary" id="pwCopyDiag">Copy report</button></div>';
- var c=$("#pwCopyDiag");if(c)c.onclick=async function(){try{await navigator.clipboard.writeText(JSON.stringify(d,null,2));toast(tr("Diagnostic report copied.","Informe copiado."))}catch(e){toast(tr("Could not copy report.","No se pudo copiar el informe."))}}
+ var b=$("#pwDiagBody");if(!b)return;var d=diagData(),rows=[[tr("Overall","General"),d.overall],["Telemetry",d.telemetry],["PC",d.pc],["Cloud",d.cloud],[tr("Telemetry age","Edad de la telemetría"),d.telemetryAgeMs==null?"—":d.telemetryAgeMs+" ms"],[tr("Estimated rate","Frecuencia estimada"),d.telemetryHz+" Hz"],[tr("Source","Fuente"),d.source||"—"],[tr("Mode","Modo"),d.mode],["EventSource",d.eventSource==null?"—":d.eventSource],[tr("Config sync","Sincronización de ajustes"),d.configPending?tr("Pending","Pendiente"):tr("Clean","Al día")],["Overlays",d.overlays.length+" "+tr("open","abiertos")],[tr("Engine","Motor"),d.engine||"—"]];
+ if(!b.querySelector(".pw-diag-grid")){
+  b.innerHTML='<div class="pw-diag-grid">'+rows.map(function(x){return'<div class="pw-diag-item"><div class="k">'+safe(x[0])+'</div><b></b></div>'}).join("")+'</div><div class="pw-center-card" style="margin-top:10px"><div class="label">'+tr("Open overlays","Overlays abiertos")+'</div><p class="mono" data-d="ov"></p><div class="label">'+tr("Automatic overlays","Overlays automáticos")+'</div><p class="mono" data-d="auto"></p></div><details style="margin-top:10px"><summary class="label">'+tr("Raw diagnostic report","Informe completo")+'</summary><pre class="discpre" data-d="raw"></pre></details><div class="pw-actions"><button class="btn primary" id="pwCopyDiag">'+tr("Copy report","Copiar informe")+'</button></div>';
+  var c=$("#pwCopyDiag");if(c)c.onclick=async function(){var txt=JSON.stringify(diagData(),null,2);try{await navigator.clipboard.writeText(txt);toast(tr("Diagnostic report copied.","Informe copiado."))}catch(e){try{var t=document.createElement("textarea");t.value=txt;document.body.appendChild(t);t.select();document.execCommand("copy");t.remove();toast(tr("Diagnostic report copied.","Informe copiado."))}catch(x){toast(tr("Could not copy report.","No se pudo copiar el informe."))}}}
+ }
+ var vals=b.querySelectorAll(".pw-diag-item b");rows.forEach(function(x,i){var v=String(x[1]);if(vals[i]&&vals[i].textContent!==v)vals[i].textContent=v});
+ var set=function(k,v){var e=b.querySelector('[data-d="'+k+'"]');if(e&&e.textContent!==v)e.textContent=v};
+ set("ov",d.overlays.join(", ")||tr("none","ninguno"));set("auto",d.autoOverlays.join(", ")||tr("none","ninguno"));
+ var det=b.querySelector("details");if(det&&det.open)set("raw",JSON.stringify(d,null,2))
 }
 function installDashboard(){
  if(typeof OV!=="undefined"&&OV.on)return;

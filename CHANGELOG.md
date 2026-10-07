@@ -15,6 +15,15 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **A screen that fails to draw says so** with the error, instead of staying blank, so it can
   be reported and fixed.
 - **The coach model recognises your account laps** on tracks and cars nobody shared yet.
+- **Diagnostics no longer swallows clicks**: it was redrawn four times a second, so "Copy report"
+  and the full report did not respond. Now only the values change; Escape or a click outside closes
+  it and the connection center.
+- **The alerts panel has an X** to close it, next to "Clear all".
+
+**Changed**
+- **Settings shows a proper account card**: name, email, whether the email is confirmed and
+  two-step sign-in is on, the public name you use, this device, the last sync, and the buttons
+  to manage the account or sign out.
 
 ## 0.8.0 beta
 
