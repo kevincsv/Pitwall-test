@@ -1788,7 +1788,7 @@ const TxRaw=(en,es,de,pt)=>LANG==="es"?es:LANG==="de"||LANG==="pt"?trX(en,es,de,
 // the web version (/app in a browser) is not a phone: "this phone" reads "this device" there
 /* the web version: the same app as the phone, with the downloads for the PC and phones */
 const DL_BASE="https://pitlanehq.app/dl/";
-function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Windows",Tx("Installer (recommended)","Instalador (recomendado)","Installer (empfohlen)","Instalador (recomendado)")],["PitlaneHQ-windows.zip","Windows · ZIP",Tx("Portable, no install","Portátil, sin instalar","Portabel, ohne Installation","Portátil, sem instalar")]];
+function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Windows",Tx("Installer; it updates itself","Instalador; se actualiza solo","Installer; aktualisiert sich selbst","Instalador; atualiza-se sozinho")]];
   return `<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Download Pitlane HQ","Descargar Pitlane HQ","Pitlane HQ herunterladen","Baixar o Pitlane HQ"))}</h2></div><p class="note" style="margin:0 0 10px">${esc(Tx("Free. The same account on the PC and on this web, also from the phone.","Gratis. La misma cuenta en el PC y en esta web, también desde el móvil.","Kostenlos. Dasselbe Konto am PC und hier im Web, auch vom Handy.","Grátis. A mesma conta no PC e nesta web, também pelo celular."))}</p>
     <div class="dlgrid">${it.map(([f,n,d])=>`<a class="dlc" href="${DL_BASE+f}"><b>${esc(n)}</b><span>${esc(d)}</span></a>`).join("")}${PHONE_DL().map(([u,n,d])=>`<a class="dlc" href="${u}" rel="noopener"><b>${esc(n)}</b><span>${esc(d)}</span></a>`).join("")}</div></section>`}
 /* the phone apps: always the newest release of their repository */

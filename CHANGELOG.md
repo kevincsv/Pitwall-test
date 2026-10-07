@@ -14,6 +14,8 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   Accounts, laps and the community are the same.
 - **Clean addresses**: the web app is simply https://pitlanehq.app/ (no more `/app/?companion=1`;
   the old addresses land there), with its own icon in the browser tab and on the home screen.
+- **No portable ZIP any more**: Windows is installed with PitlaneHQ-Setup.exe and updates
+  itself (the ZIP stays only as what the updater downloads). iPhone comes with the App Store.
 - **Downloads and release notes from pitlanehq.app**: https://pitlanehq.app/downloads and
   https://pitlanehq.app/changelog, served from our own storage; the PC updater and the phone
   apps' version check read them there. Nothing in the apps points at GitHub any more.
