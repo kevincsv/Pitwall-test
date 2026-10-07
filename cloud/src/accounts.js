@@ -4,7 +4,7 @@
 // already encrypted with a key the server never has. Emails are stored only
 // as a hash, so the database holds nothing readable about you but your
 // public name. Turned on with the variable COMMUNITY = "1".
-import { mailReady, sendVerify, sendReset, lang } from "./email.js";
+import { mailReady, sendVerify, sendReset, sendTest, lang } from "./email.js";
 import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pages.js";
 import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes } from "./crypt.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
@@ -302,6 +302,13 @@ export async function accounts(req, env, url) {
     if (await tooMany(env, ["mail:" + a.id], [3])) return err("too many emails: try again in 15 minutes", 429);
     await fail(env, ["mail:" + a.id]);
     return json({ ok: await mailVerify(env, url, a.id, body.email.trim(), body.lang) });
+  }
+  // admins: a test email to the address given, with Resend's answer when it fails
+  if (p === "/mail/test" && m === "POST") {
+    if (!isAdmin(env, a.id)) return err("only the admins of this server can do this", 403);
+    if (!mailReady(env)) return err("emails are not set up on this server (RESEND_API_KEY and EMAIL_FROM)", 503);
+    if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) return err("write a valid email", 400);
+    return json(await sendTest(env, body.email.trim(), body.lang));
   }
   if (p === "/logout" && m === "POST") {
     await env.DB.prepare("DELETE FROM account_sessions WHERE id=?1").bind(a.sid).run();

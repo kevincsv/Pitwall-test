@@ -645,6 +645,15 @@ func registerPLRoutes(mux *http.ServeMux) {
 				plAcc.TwoFactor = false
 				savePLLocked()
 				plMu.Unlock()
+			case "mailtest": // admins: a test email, with the server's reason when it fails
+				b, e := plCall("POST", "/mail/test", map[string]any{"email": in.Email, "lang": in.Lang})
+				if e != nil {
+					err = e
+					break
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(b)
+				return
 			case "logout":
 				plCall("POST", "/logout", nil)
 				plMu.Lock()

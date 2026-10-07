@@ -38,7 +38,19 @@ async function send(env, to, subject, text, link, button, l) {
     headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
     body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: env.EMAIL_REPLY_TO || SUPPORT, to: [to], subject, text: text + "\n\n" + link + "\n\n" + SUPPORT, html }),
   });
+  if (!r.ok) {
+    // Resend said no (domain not verified, sender not allowed, bad key…): keep the reason for the admins' test
+    lastError = { at: Date.now(), status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
+    console.error("email not sent", lastError);
+  } else lastError = null;
   return r.ok;
+}
+let lastError = null;
+export const mailLastError = () => lastError;
+/** For the admins: sends a test email and answers with Resend's status and reason. */
+export async function sendTest(env, to, l) {
+  const ok = await send(env, to, "Pitlane HQ: " + (lang(l) === "es" ? "email de prueba" : "test email"), lang(l) === "es" ? "Si lees esto, los emails del servidor funcionan." : "If you read this, the server's emails work.", "https://pitlanehq.app/", "Pitlane HQ", l);
+  return { ok, from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
 }
 
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);
