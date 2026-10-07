@@ -195,9 +195,11 @@ export async function community(req, env, url) {
       return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
     };
     const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results)) || []);
-    const offset = Math.max(0, +body.next || 0), batch = Math.min(8, Math.max(1, +body.batch || 6));
-    const page = await g61(`laps?drivers=me&limit=${batch}&offset=${offset}&group=none`);
+    // pages by offset, or by the cursor Garage 61 hands back when it paginates that way
+    const batch = Math.min(8, Math.max(1, +body.batch || 6)), cursor = typeof body.next === "string" && body.next ? body.next : "", offset = cursor ? 0 : Math.max(0, +body.next || 0);
+    const page = await g61(`laps?drivers=me&limit=${batch}&group=none&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset));
     const laps = listOf(page), total = page && typeof page.total === "number" ? page.total : null;
+    const nextCursor = page && (page.nextCursor || page.next_cursor || page.cursor || (page.meta && (page.meta.nextCursor || page.meta.next_cursor))) || null;
     let imported = 0, skipped = 0, noTrace = 0;
     const combos = new Map();
     for (const l of laps) {
@@ -222,8 +224,10 @@ export async function community(req, env, url) {
       if (!trackId) trackId = await pseudoId("t", "iracing", full);
       if (!carId) carId = await pseudoId("c", "iracing", cName);
       const started = Date.parse(l.startTime || l.start || l.date || "") || Date.now();
-      const day = new Date(started).toISOString().slice(0, 10);
-      const sid = "acct_" + acc.id + ":g61:" + (trk.id || trackId) + ":" + (car.id || carId) + ":" + day;
+      // one of our sessions per Garage 61 session when it names one, else per track, car and day
+      const g61Session = l.sessionId || (l.session && (l.session.id || l.session)) || l.eventId || "";
+      const grp = g61Session ? "s" + String(g61Session).replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 40) : new Date(started).toISOString().slice(0, 10);
+      const sid = "acct_" + acc.id + ":g61:" + (trk.id || trackId) + ":" + (car.id || carId) + ":" + grp;
       await env.DB.prepare(
         `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
          ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id)`
@@ -239,8 +243,8 @@ export async function community(req, env, url) {
       if (tr) combos.set(trackId + ":" + carId, [trackId, carId]);
     }
     for (const [t, c] of combos.values()) await markModel(env, "iracing", t, c);
-    const done = laps.length < batch || (total != null && offset + laps.length >= total);
-    return json({ imported, skipped, noTrace, next: done ? null : offset + laps.length, total, done });
+    const done = laps.length === 0 || (!nextCursor && laps.length < batch) || (total != null && !nextCursor && offset + laps.length >= total);
+    return json({ imported, skipped, noTrace, next: done ? null : nextCursor || offset + laps.length, total, done, ids: laps.map((l) => String(l.id)) });
   }
   if (m === "GET" && p === "/admin/status") {
     const acc = await sessionAccount(req, env);
