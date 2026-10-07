@@ -18,7 +18,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 **Added**
 - **Import my laps from Garage 61** (admin profile → Server, on the web): once, every lap of
   yours in Garage 61 with its telemetry goes into your account like laps from the PC, and the
-  coach model learns them. The token is used for the import only and never stored.
+  coach model learns them. The token is used for the import only and never stored. (Server fix
+  the same day: when Garage 61 refuses a request, its own reason is shown, and plainer requests
+  are tried.)
 
 **Changed**
 - **DRINKS mode is a bounded card** (text and controls on the left, its state on the right)

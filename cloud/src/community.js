@@ -115,11 +115,13 @@ export async function community(req, env, url) {
   if (p === "/laps" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
+    // signed in: your own laps are marked as yours (also the anonymous ones; only you see that)
+    const who = await me(req, env).catch(() => null);
     const r = await env.DB.prepare(
-      `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
+      `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
        WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 200`
     ).bind(t, c, game).all();
-    return json({ laps: (r.results || []).map((x) => ({ ...x, hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
+    return json({ laps: (r.results || []).map(({ uid, ...x }) => ({ ...x, mine: !!who && uid === who.id, hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
   }
   if (p.startsWith("/laps/") && m === "GET") {
     const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
@@ -134,12 +136,13 @@ export async function community(req, env, url) {
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     const r = await env.DB.prepare(
-      `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
+      `SELECT r.id, r.user_id AS uid, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
        COALESCE(r.field, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.field') END) AS field,
        COALESCE(r.best, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.best') END) AS best
        FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
     ).bind(t || 0, c || 0, game).all();
-    return json({ reports: r.results || [] });
+    const who = await me(req, env).catch(() => null);
+    return json({ reports: (r.results || []).map(({ uid, ...x }) => ({ ...x, mine: !!who && uid === who.id })) });
   }
   // track outlines (from clean best laps): anyone can read them
   if (p === "/trackmaps" && m === "GET") {
@@ -186,18 +189,29 @@ export async function community(req, env, url) {
   if (m === "POST" && p === "/admin/import/garage61") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
-    const token = typeof body.token === "string" ? body.token.trim() : "";
+    // the token alone; "Bearer xxx" pasted whole works too
+    const token = (typeof body.token === "string" ? body.token.trim() : "").replace(/^Bearer\s+/i, "").replace(/[^A-Za-z0-9._~+/=-]/g, "");
     if (!token) return err("paste your Garage 61 token", 400);
     const base = (env.G61_BASE || "https://garage61.net/api/v1/").replace(/\/?$/, "/");
     const g61 = async (path) => {
       const r = await fetch(base + path, { headers: { authorization: "Bearer " + token, accept: "application/json, text/csv" } });
-      if (!r.ok) throw new Error("Garage 61 answered HTTP " + r.status + (r.status === 401 ? ": the token is not valid" : ""));
+      if (!r.ok) {
+        // Garage 61 says why (a bad parameter, an expired token…): pass it on, so it can be fixed
+        const why = (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 240);
+        const e = new Error("Garage 61 answered HTTP " + r.status + (r.status === 401 ? ": the token is not valid" : "") + (why ? " · " + why : "") + " · " + path.split("?")[0]);
+        e.status = r.status; throw e;
+      }
       return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
     };
     const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results)) || []);
     // pages by offset, or by the cursor Garage 61 hands back when it paginates that way
     const batch = Math.min(8, Math.max(1, +body.batch || 6)), cursor = typeof body.next === "string" && body.next ? body.next : "", offset = cursor ? 0 : Math.max(0, +body.next || 0);
-    const page = await g61(`laps?drivers=me&limit=${batch}&group=none&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset));
+    // the laps list: with the paging and grouping parameters first; if Garage 61 rejects them (400), plainer forms
+    let page;
+    const forms = [`laps?drivers=me&limit=${batch}&group=none&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset), `laps?drivers=me&limit=${batch}&` + (cursor ? "cursor=" + encodeURIComponent(cursor) : "offset=" + offset), `laps?drivers=me&limit=${batch}`, `laps?drivers=me`];
+    for (let i = 0; i < forms.length; i++) {
+      try { page = await g61(forms[i]); break; } catch (e) { if (e.status !== 400 || i === forms.length - 1) throw e; }
+    }
     const laps = listOf(page), total = page && typeof page.total === "number" ? page.total : null;
     const nextCursor = page && (page.nextCursor || page.next_cursor || page.cursor || (page.meta && (page.meta.nextCursor || page.meta.next_cursor))) || null;
     let imported = 0, skipped = 0, noTrace = 0;
