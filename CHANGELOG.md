@@ -4,6 +4,20 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.5 beta
+
+**Changed**
+- **TrackIQ needs your account**, like the phone apps: on the PC and on the web, until you sign in
+  (or create your free account) only the Account page opens; the menus come back as soon as you
+  are signed in. The overlays on top of the game are never blocked, and neither is a PC whose
+  TrackIQ server is not set up, so racing never stops for this.
+
+**Fixed**
+- Web app on phones: the session bar of the lap analyzer and of the Coach broke into a narrow
+  column (the "Compare with the community" button stood on end). Both now show the same layout:
+  the session on its own row, then lap A · vs · lap B · ＋ Session, then the buttons. On the PC
+  both stay on one row.
+
 ## 0.5.4 beta
 
 **Changed**
