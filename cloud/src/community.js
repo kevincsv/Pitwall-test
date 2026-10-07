@@ -72,6 +72,27 @@ export async function community(req, env, url) {
     ).bind(game).all();
     return json({ combos: r.results || [] });
   }
+  // laps for the model only: the best valid lap with telemetry of each account that did not share
+  // this car and track. They teach the ideal lap, the next level and the coach, and nothing else:
+  // no id, no name, no date, so they cannot be listed, opened or compared one by one.
+  if (p === "/model" && m === "GET") {
+    const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
+    if (!t || !c) return err("trackId and carId", 400);
+    const r = await env.DB.prepare(
+      `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
+       WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM community_laps x WHERE 'acct:'||x.user_id=s.uploader AND x.track_id=?1 AND x.car_id=?2 AND x.game=?3)
+       ORDER BY a.time LIMIT 300`
+    ).bind(t, c, game).all();
+    const seen = new Set(), out = [];
+    for (const x of r.results || []) {
+      if (seen.has(x.up)) continue;
+      seen.add(x.up);
+      try { const tr = JSON.parse(await openData(env, x.trace)); if (tr && Array.isArray(tr.d) && tr.d.length) out.push({ time: x.time, trace: tr }); } catch (e) {}
+      if (out.length >= 16) break;
+    }
+    return json({ laps: out });
+  }
   if (p === "/laps" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
