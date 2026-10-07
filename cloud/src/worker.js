@@ -1,6 +1,7 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { downloads } from "./downloads.js";
+import { markModel, rebuildDirty } from "./model.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -98,6 +99,8 @@ async function api(req, env, url) {
       e = await addLap(env, body.session.id, l);
       if (e) return err(e, 400);
     }
+    // a valid lap with telemetry: the community model learns it (works with only the PC open)
+    if ((body.laps || []).some((l) => l.valid !== false && l.trace)) await markModel(env, gameOf(body.session.game), posInt(body.session.trackId), posInt(body.session.carId));
     return json({ ok: true });
   }
 
@@ -261,6 +264,8 @@ function harden(r) {
 }
 
 export default {
+  // every 10 minutes: the models of the cars and tracks that got new laps
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

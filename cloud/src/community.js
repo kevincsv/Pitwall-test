@@ -4,6 +4,7 @@
 // server with the variable COMMUNITY = "1".
 import { sessionAccount, isAdmin, nameTaken } from "./accounts.js";
 import { sealData, openData } from "./crypt.js";
+import { getModel, markModel } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -72,26 +73,14 @@ export async function community(req, env, url) {
     ).bind(game).all();
     return json({ combos: r.results || [] });
   }
-  // laps for the model only: the best valid lap with telemetry of each account that did not share
-  // this car and track. They teach the ideal lap, the next level and the coach, and nothing else:
-  // no id, no name, no date, so they cannot be listed, opened or compared one by one.
+  // the community model, learnt on the server from every valid lap (shared or not): only what it
+  // learnt goes out (the ideal lap and the next-level references), never the laps
   if (p === "/model" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
-    const r = await env.DB.prepare(
-      `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
-       WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
-         AND NOT EXISTS (SELECT 1 FROM community_laps x WHERE 'acct:'||x.user_id=s.uploader AND x.track_id=?1 AND x.car_id=?2 AND x.game=?3)
-       ORDER BY a.time LIMIT 300`
-    ).bind(t, c, game).all();
-    const seen = new Set(), out = [];
-    for (const x of r.results || []) {
-      if (seen.has(x.up)) continue;
-      seen.add(x.up);
-      try { const tr = JSON.parse(await openData(env, x.trace)); if (tr && Array.isArray(tr.d) && tr.d.length) out.push({ time: x.time, trace: tr }); } catch (e) {}
-      if (out.length >= 16) break;
-    }
-    return json({ laps: out });
+    const md = await getModel(env, game, t, c);
+    const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
+    return json({ ...md, fastShared: fs || null });
   }
   if (p === "/laps" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
@@ -342,6 +331,7 @@ export async function community(req, env, url) {
       `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
        ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
     ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g, shownAs).run();
+    await markModel(env, g, trackId, carId);
     return json({ shared: true, traced });
   }
   if (p === "/laps" && m === "POST") {
@@ -359,6 +349,7 @@ export async function community(req, env, url) {
       `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
        ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
     ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game, shownAs).run();
+    await markModel(env, game, trackId, carId);
     return json({ shared: true });
   }
   // a track outline from a lap without incidents: kept when it is the fastest one

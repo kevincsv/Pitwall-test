@@ -1699,7 +1699,7 @@ async function cpRoute(url,method,raw){await cpReady;const u=new URL(url,"https:
   if(p==="/api/community/admin"&&method==="POST"){const b=B();if(b.action==="uncut")return ok(await cpCall("POST","/community/admin/reports/"+encodeURIComponent(b.id)+"/uncut",{}));return ok(await cpCall("DELETE","/community/admin/"+encodeURIComponent(b.kind)+"/"+encodeURIComponent(b.id)+"?game="+encodeURIComponent(b.game||"")))}
   if(p==="/api/news")return ok(await cpCall("GET","/news"+(q.get("refresh")==="1"?"?refresh=1":""),null,false));
   if(p==="/api/community/season")return ok(await cpCall("GET","/community/season",null,false));
-  const cm=p.match(/^\/api\/community\/(combos|laps|reports)$/);if(cm){const id=q.get("id");return ok(await cpCall("GET","/community/"+cm[1]+(id?"/"+encodeURIComponent(id):q.toString()?"?"+q:""),null,false))}
+  const cm=p.match(/^\/api\/community\/(combos|laps|reports|model)$/);if(cm){const id=q.get("id");return ok(await cpCall("GET","/community/"+cm[1]+(id?"/"+encodeURIComponent(id):q.toString()?"?"+q:""),null,false))}
   return no(cpNeedPC())}
 const cpReady=COMPANION?(async()=>{try{const s=await (await cpLocal("server.json")).json();CP.server=String(s.url||"").replace(/\/+$/,"")}catch(e){}
   try{const own=localStorage.getItem("pw.server");if(own)CP.server=own}catch(e){}
@@ -1824,7 +1824,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.7.0",APP_STAGE="beta";
+const WEB_VERSION="0.7.1",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -5553,7 +5553,7 @@ if(!OV.on&&FEATURES.subscription)setTimeout(()=>loadLicense().then(()=>applyProG
 /* ===================== community: shared laps and race analyses ===================== */
 Object.assign(I18N,{"g.community":["Community","Comunidad"],"tab.community":["Community","Comunidad"]});
 let COMM=null,COMMSEL=null,SHARED_REPORTS={};
-async function cget(p){if(/^\/api\/community\/(combos|laps|reports|setups)/.test(p))p=withGame(p);if(MODE==="bridge")return jget(p);const u=new URL(p,location.href),t=+u.searchParams.get("trackId"),c=+u.searchParams.get("carId"),id=u.searchParams.get("id");
+async function cget(p){if(/^\/api\/community\/(combos|laps|reports|setups|model)/.test(p))p=withGame(p);if(MODE==="bridge")return jget(p);const u=new URL(p,location.href),t=+u.searchParams.get("trackId"),c=+u.searchParams.get("carId"),id=u.searchParams.get("id");
   return u.pathname.endsWith("/combos")?{combos:[]}:u.pathname.endsWith("/reports")?{reports:[]}:{laps:[]}}
 async function loadComm(){if(MODE==="bridge"){try{COMM=await jget("/api/community")}catch(e){COMM={ready:false,error:e.message}}}else COMM=COMM||{ready:false};return COMM}
 const DEL_OPTS=[["","Keep it","Conservarla","Behalten","Manter"],["now","Right away","Inmediatamente","Sofort","Imediatamente"],["1d","After 1 day","Tras 1 día","Nach 1 Tag","Após 1 dia"],["2d","After 2 days","Tras 2 días","Nach 2 Tagen","Após 2 dias"],["7d","After 1 week","Tras 1 semana","Nach 1 Woche","Após 1 semana"]];
@@ -6051,7 +6051,7 @@ async function askShare(){if(MODE!=="bridge"||REMOTE||COMPANION||OV.on||$("#shar
     <p class="note" style="margin:0 0 10px">${esc(Tx("Your best lap per car and track (and the whole lap, so others can compare) and your race analyses. Other drivers' names are always removed. You can change this any time in Community.","Tu mejor vuelta por coche y circuito (y la vuelta completa, para que otros se comparen) y tus análisis de carrera. Los nombres de los demás pilotos se quitan siempre. Puedes cambiarlo cuando quieras en Comunidad.","Deine beste Runde pro Auto und Strecke (und die ganze Runde zum Vergleichen) und deine Rennanalysen. Namen anderer Fahrer werden immer entfernt. Du kannst das jederzeit unter Community ändern.","Sua melhor volta por carro e pista (e a volta completa, para outros compararem) e suas análises de corrida. Os nomes dos outros pilotos são sempre removidos. Você pode mudar isso a qualquer momento em Comunidade."))}</p>
     <div class="sa-list">${opt("name",Tx("Yes, with my name","Sí, con mi nombre","Ja, mit meinem Namen","Sim, com meu nome"),Tx("Others see your public name","Los demás ven tu nombre público","Andere sehen deinen öffentlichen Namen","Os outros veem seu nome público"),true)}
       ${opt("anon",Tx("Yes, anonymously","Sí, de forma anónima","Ja, anonym","Sim, anonimamente"),Tx("Others see “Anonymous”","Los demás ven «Anónimo»","Andere sehen „Anonym“","Os outros veem “Anônimo”"),false)}
-      ${opt("no",Tx("No, keep everything on this PC","No, dejarlo todo en este PC","Nein, alles auf diesem PC behalten","Não, manter tudo neste PC"),Tx("Nothing is shared","No se comparte nada","Nichts wird geteilt","Nada é compartilhado"),false)}</div>
+      ${opt("no",Tx("Do not share with the community","No compartir con la comunidad","Nicht mit der Community teilen","Não compartilhar com a comunidade"),Tx("Nothing goes to the community. Your valid laps still teach the coach model, without your name and without being shown.","Nada va a la comunidad. Tus vueltas válidas siguen enseñando al modelo del coach, sin tu nombre y sin mostrarse.","Nichts geht an die Community. Deine gültigen Runden trainieren weiter das Coach-Modell, ohne Namen und ohne angezeigt zu werden.","Nada vai para a comunidade. Suas voltas válidas continuam ensinando o modelo do coach, sem seu nome e sem aparecer."),false)}</div>
     <label id="saDel" style="display:block;margin-top:12px"><span class="label">${esc(Tx("Once shared, delete it from this PC","Una vez compartida, borrarla de este PC","Nach dem Teilen von diesem PC löschen","Depois de compartilhar, apagar deste PC"))}</span>${delSelect("saDA","")}</label>
     <div class="uidlg-b" style="margin-top:14px"><button type="button" class="btn primary" id="saOK">${esc(Tx("Save","Guardar","Speichern","Salvar"))}</button></div></div>`;
   document.body.appendChild(m);

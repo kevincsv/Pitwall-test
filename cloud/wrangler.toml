@@ -50,3 +50,7 @@ new_sqlite_classes = ["LiveRoom"]
 type = "Text"
 globs = ["**/*.html"]
 fallthrough = false
+
+# the community model learns the cars and tracks that got new laps
+[triggers]
+crons = ["*/10 * * * *"]

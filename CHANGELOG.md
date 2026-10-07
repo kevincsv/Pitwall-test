@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.7.1 beta
+
+**Changed**
+- **The coach model learns on the server** from every valid lap with telemetry of a car and
+  track, shared or not. Laps that were not shared only teach it: they are never listed, opened
+  or shown, and their telemetry never leaves the server. Only what the model learnt goes to
+  the apps (the realistic ideal lap and the next level at every pace).
+- **It learns as soon as a lap arrives.** The PC uploads laps on its own, so nothing else has
+  to be open. The model is rebuilt on the next request and every 10 minutes.
+- **Sturdier model:** at most three laps per driver so nobody weighs too much, broken or
+  mismatched recordings and far slower laps left out, and the ideal lap never slower than the
+  fastest lap really driven.
+
 ## 0.7.0 beta
 
 **Added**
