@@ -14,6 +14,10 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   Accounts, laps and the community are the same.
 - **Clean addresses**: the web app is simply https://pitlanehq.app/ (no more `/app/?companion=1`;
   the old addresses land there), with its own icon in the browser tab and on the home screen.
+- **Signing in first**: without a session the app shows the sign-in with the slogan and a button
+  to create a free account. The first time an account signs in, a welcome explains the two pieces
+  and offers them: the **agent** (Pitlane HQ for Windows, which records the laps) and the
+  **companion** (the phone apps, which show them).
 - **No portable ZIP any more**: Windows is installed with PitlaneHQ-Setup.exe and updates
   itself (the ZIP stays only as what the updater downloads). iPhone comes with the App Store.
 - **Downloads and release notes from pitlanehq.app**: https://pitlanehq.app/downloads and
