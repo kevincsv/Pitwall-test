@@ -1,0 +1,64 @@
+{
+  "versions": [
+    {
+      "v": "0.6.2",
+      "date": "2026-10-07",
+      "en": [
+        "We're Pitlane HQ again, now at pitlanehq.app.",
+        "New sign-in screen, and a quick welcome that tells you what to install on your PC and phone.",
+        "The ⓘ button at the top has the news, updates, Patreon and a way to write to us.",
+        "Track maps show the three sectors.",
+        "Downloads now come straight from pitlanehq.app. The PC version installs and updates itself."
+      ],
+      "es": [
+        "Volvemos a ser Pitlane HQ, ahora en pitlanehq.app.",
+        "Nueva pantalla para entrar y una bienvenida rápida que te dice qué instalar en el PC y en el móvil.",
+        "El botón ⓘ de arriba tiene las novedades, las actualizaciones, Patreon y cómo escribirnos.",
+        "Los mapas del circuito muestran los tres sectores.",
+        "Las descargas salen directamente de pitlanehq.app. La versión de PC se instala y se actualiza sola."
+      ]
+    },
+    {
+      "v": "0.6.1",
+      "date": "2026-10-07",
+      "en": [
+        "Two-step sign-in with an authenticator app. Optional, but we recommend it.",
+        "Your laps and race analyses are now stored encrypted on our server.",
+        "The app tells you when there's a new version, with a link to what changed."
+      ],
+      "es": [
+        "Inicio de sesión en dos pasos con una app de autenticación. Es opcional, pero te lo recomendamos.",
+        "Tus vueltas y análisis de carrera se guardan cifrados en nuestro servidor.",
+        "La app te avisa cuando hay una versión nueva, con un enlace a lo que ha cambiado."
+      ]
+    },
+    {
+      "v": "0.6.0",
+      "date": "2026-10-06",
+      "en": [
+        "Home shows the days you drove, like a calendar. Tap a day to see those races.",
+        "Filters in My races: track, session type and your fastest ever.",
+        "Your best-ever lap is marked in the analyzer and the Coach."
+      ],
+      "es": [
+        "Inicio muestra los días que has corrido, como un calendario. Toca un día para ver esas carreras.",
+        "Filtros en Mis carreras: circuito, tipo de sesión y tu vuelta más rápida de siempre.",
+        "Tu mejor vuelta de siempre aparece marcada en el analizador y en el Coach."
+      ]
+    },
+    {
+      "v": "0.5",
+      "date": "2026-10",
+      "en": [
+        "Incidents on the lap list and the map, the same way iRacing names them.",
+        "One track map for the analyzer, the Coach and the race summary, with hover and touch.",
+        "Invalid laps show greyed out and crossed."
+      ],
+      "es": [
+        "Incidentes en la lista de vueltas y en el mapa, igual que los llama iRacing.",
+        "Un solo mapa para el analizador, el Coach y el resumen de carrera, con hover y toque.",
+        "Las vueltas inválidas salen en gris y tachadas."
+      ]
+    }
+  ]
+}

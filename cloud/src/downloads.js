@@ -42,8 +42,12 @@ ${ph.apk ? row("Android", t("App (APK); Google Play soon", "App (APK); pronto en
     return new Response(page(body), { headers: H });
   }
   if (p === "/changelog" || p === "/changelog/phones") {
-    const md = (await read(p.endsWith("phones") ? "CHANGELOG-phones.md" : "CHANGELOG-pc.md")) || "# Changelog\n\nNothing published yet.";
-    return new Response(page(renderMd(md) + `<p class="n"><a href="/downloads">${es ? "Descargas" : "Downloads"}</a> · <a href="${p.endsWith("phones") ? "/changelog" : "/changelog/phones"}">${p.endsWith("phones") ? (es ? "PC y web" : "PC and web") : (es ? "Apps de móvil" : "Phone apps")}</a></p>`), { headers: H });
+    // the short notes for people (web/dist/whats-new.json), the same ones the apps show
+    let vs = [];
+    try { vs = (await (await env.ASSETS.fetch(new Request(new URL("/whats-new.json", url.origin)))).json()).versions || []; } catch (e) { /* none yet */ }
+    const l = es ? "es" : "en";
+    const body = `<h1>${es ? "Novedades" : "What's new"}</h1>` + vs.map((x) => `<h2 id="${esc(String(x.v).replace(/\./g, ""))}-beta">${esc(x.v)} <small>${esc(x.date || "")}</small></h2><ul>${(x[l] || x.en || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`).join("");
+    return new Response(page(body + `<p class="n"><a href="/downloads">${es ? "Descargas" : "Downloads"}</a> · <a href="/">${es ? "Abrir la app" : "Open the app"}</a></p>`), { headers: H });
   }
   return new Response("not found", { status: 404 });
 }
