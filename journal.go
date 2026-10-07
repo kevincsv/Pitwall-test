@@ -1,6 +1,6 @@
 package main
 
-// Your racing journal: what TrackIQ learns about each car at each track
+// Your racing journal: what Pitlane HQ learns about each car at each track
 // (best lap, fuel per lap), a report after every race, and your notes for each
 // corner of each track (the engineer can read them to you).
 
@@ -720,8 +720,8 @@ func notifyRaceSummary(r *raceReport) {
 		res += fmt.Sprintf(" (%+d)", d)
 	}
 	if uiLanguage() == "es" {
-		notify("Resumen de la carrera · "+res, r.Track+" · Abre TrackIQ → Análisis → Carreras para ver qué salió bien y dónde perdiste tiempo.")
+		notify("Resumen de la carrera · "+res, r.Track+" · Abre Pitlane HQ → Análisis → Carreras para ver qué salió bien y dónde perdiste tiempo.")
 		return
 	}
-	notify("Race summary · "+res, r.Track+" · Open TrackIQ → Analysis → Races to see what went well and where you lost time.")
+	notify("Race summary · "+res, r.Track+" · Open Pitlane HQ → Analysis → Races to see what went well and where you lost time.")
 }

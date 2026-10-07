@@ -1,7 +1,7 @@
 package main
 
 // Minimal reader for Windows shortcut (.lnk) files: returns the program the
-// shortcut points to, so TrackIQ can tell whether it is already running.
+// shortcut points to, so Pitlane HQ can tell whether it is already running.
 
 import (
 	"encoding/binary"

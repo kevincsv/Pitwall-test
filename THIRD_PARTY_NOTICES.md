@@ -2,13 +2,13 @@
 
 ## Lucide icons
 
-TrackIQ uses icons from Lucide (https://lucide.dev), version 1.52.0: the
+Pitlane HQ uses icons from Lucide (https://lucide.dev), version 1.52.0: the
 section icons, header buttons, reminder bell, settings, search and credits
 icons. They are free for commercial use under the ISC licence (and MIT for
 the icons derived from Feather), which only asks to keep this notice.
 
 The licence category icons (oval, sports car, formula, dirt) and the licence
-rings are TrackIQ's own drawings.
+rings are Pitlane HQ's own drawings.
 
 ```
 ISC License

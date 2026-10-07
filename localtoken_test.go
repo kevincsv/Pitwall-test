@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// A program on this PC without a ticket is treated like an unpaired device; TrackIQ's own
+// A program on this PC without a ticket is treated like an unpaired device; Pitlane HQ's own
 // windows swap their one-use ticket for a cookie and are let through for the rest of the run.
 func TestLocalWindowTicket(t *testing.T) {
 	pairLoad.Do(func() {})

@@ -1,8 +1,8 @@
 package main
 
-// The local API is only for TrackIQ's own windows. Another program or a web page on this PC
+// The local API is only for Pitlane HQ's own windows. Another program or a web page on this PC
 // used to be able to call http://localhost:8484/api/* just because it ran here; now a window
-// needs a ticket that only TrackIQ hands out: the app window and each overlay open their
+// needs a ticket that only Pitlane HQ hands out: the app window and each overlay open their
 // address with a one-use ticket (?lt=…) that the server swaps for a cookie (HttpOnly,
 // SameSite=Strict, so another site in your browser never sends it). Without it a loopback
 // request is treated like an unpaired device: the PIN. The PIN can be turned off as before.
@@ -22,7 +22,7 @@ const localCookie = "pw_lt"
 
 var (
 	ltMu         sync.Mutex
-	localSecret  string                   // the cookie value every TrackIQ window ends up with (this run only)
+	localSecret  string                   // the cookie value every Pitlane HQ window ends up with (this run only)
 	localTickets = map[string]time.Time{} // one-use tickets and when they expire
 )
 
@@ -86,7 +86,7 @@ func useTicket(t string) bool {
 	return time.Now().Before(exp)
 }
 
-// localWindow reports whether a loopback request comes from one of TrackIQ's own windows.
+// localWindow reports whether a loopback request comes from one of Pitlane HQ's own windows.
 // A valid ticket in the address sets the cookie for the rest of the run.
 func localWindow(w http.ResponseWriter, r *http.Request) bool {
 	if t := r.URL.Query().Get("lt"); t != "" && useTicket(t) {
@@ -107,7 +107,7 @@ func localWindow(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // localOpen: what any program on this PC may still ask without a ticket (nothing private):
-// who is here, the pairing flow, and "bring the window to the front" when TrackIQ starts twice.
+// who is here, the pairing flow, and "bring the window to the front" when Pitlane HQ starts twice.
 func localOpen(p string) bool {
 	return p == "/api/info" || p == "/api/pair" || p == "/pair" || p == "/api/show" || p == "/favicon.ico" || strings.HasPrefix(p, "/icon-") || p == "/manifest.webmanifest" || p == "/api/qr"
 }

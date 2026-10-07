@@ -1,6 +1,6 @@
-name: Build TrackIQ.exe
+name: Build PitlaneHQ.exe
 
-# Compiles TrackIQ.exe and the installer and uploads them as a download on the
+# Compiles PitlaneHQ.exe and the installer and uploads them as a download on the
 # run page (Actions → this run → Artifacts) and on the downloads page.
 
 on:
@@ -35,19 +35,19 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build TrackIQ.exe
+      - name: Build PitlaneHQ.exe
         shell: pwsh
         env:
           GOOS: windows
           GOARCH: amd64
         run: |
-          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o TrackIQ.exe .
+          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o PitlaneHQ.exe .
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item TrackIQ.exe out/
+          Copy-Item PitlaneHQ.exe out/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TrackIQ-windows
+          name: PitlaneHQ-windows
           path: out/
 
       - name: Build the installer (Inno Setup)
@@ -56,28 +56,28 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
           $ver = (Select-String -Path main.go -Pattern 'const appVersion = "(.*)"').Matches[0].Groups[1].Value
-          & $iscc "/DAppVersion=$ver" installer\TrackIQ.iss
+          & $iscc "/DAppVersion=$ver" installer\PitlaneHQ.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TrackIQ-Setup
-          path: dist-installer/TrackIQ-Setup.exe
+          name: PitlaneHQ-Setup
+          path: dist-installer/PitlaneHQ-Setup.exe
 
       - name: Publish on the downloads page
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd out && 7z a -tzip ../TrackIQ-windows.zip . >/dev/null)
+          (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
           # the phone apps are built in their own repository now: no old ones on this page
           for old in PitlaneHQ-android.apk PitlaneHQ.ipa; do gh release delete-asset pitlanehq-latest "$old" -y 2>/dev/null || true; done
-          # installs made before the rename update from PitlaneHQ-windows.zip (with PitlaneHQ.exe
-          # inside): keep publishing it, so they reach TrackIQ and keep updating
-          mkdir legacy && cp out/TrackIQ.exe legacy/PitlaneHQ.exe && (cd legacy && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
-          bash .github/scripts/publish.sh PitlaneHQ-windows.zip
+          # installs made while the app was called TrackIQ (0.5–0.6.1) update from TrackIQ-windows.zip:
+          # keep publishing it (their updater accepts PitlaneHQ.exe inside), so they come back too
+          cp PitlaneHQ-windows.zip TrackIQ-windows.zip
           bash .github/scripts/publish.sh TrackIQ-windows.zip
-          bash .github/scripts/publish.sh dist-installer/TrackIQ-Setup.exe
+          bash .github/scripts/publish.sh PitlaneHQ-windows.zip
+          bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
           # version.json goes last: the app only sees a new version once its zip is there
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           min=$(sed -n 's/^const appMinVersion = "\(.*\)"/\1/p' main.go)
@@ -87,12 +87,12 @@ jobs:
           # same version only refresh its files)
           tag="v$ver-beta"
           awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
-          printf '\n---\nWindows: download **TrackIQ-Setup.exe** (installer) or **TrackIQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
-          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "TrackIQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
-          gh release upload "$tag" TrackIQ-windows.zip dist-installer/TrackIQ-Setup.exe --clobber || true
+          printf '\n---\nWindows: download **PitlaneHQ-Setup.exe** (installer) or **PitlaneHQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Pitlane HQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
+          gh release upload "$tag" PitlaneHQ-windows.zip dist-installer/PitlaneHQ-Setup.exe --clobber || true
 
   # the native Windows window (desktop/, C# / WPF) over the same engine: a preview next to the
-  # normal download. It needs TrackIQ.exe next to it, so it ships with a copy.
+  # normal download. It needs PitlaneHQ.exe next to it, so it ships with a copy.
   desktop:
     runs-on: windows-latest
     needs: build
@@ -103,23 +103,23 @@ jobs:
           dotnet-version: "8.0.x"
       - uses: actions/download-artifact@v4
         with:
-          name: TrackIQ-windows
+          name: PitlaneHQ-windows
           path: engine
-      - name: Build TrackIQ Desktop
+      - name: Build Pitlane HQ Desktop
         shell: pwsh
         run: |
-          dotnet publish desktop/TrackIQ.Desktop/TrackIQ.Desktop.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -o out-desktop
+          dotnet publish desktop/PitlaneHQ.Desktop/PitlaneHQ.Desktop.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -o out-desktop
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          Copy-Item engine/TrackIQ.exe out-desktop/
+          Copy-Item engine/PitlaneHQ.exe out-desktop/
           Copy-Item desktop/README.md out-desktop/README-Desktop.md
-          7z a -tzip TrackIQ-Desktop.zip ./out-desktop/* | Out-Null
+          7z a -tzip PitlaneHQ-Desktop.zip ./out-desktop/* | Out-Null
       - uses: actions/upload-artifact@v4
         with:
-          name: TrackIQ-Desktop
-          path: TrackIQ-Desktop.zip
+          name: PitlaneHQ-Desktop
+          path: PitlaneHQ-Desktop.zip
       - name: Publish on the downloads page
         if: github.ref == 'refs/heads/master'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash .github/scripts/publish.sh TrackIQ-Desktop.zip
+        run: bash .github/scripts/publish.sh PitlaneHQ-Desktop.zip

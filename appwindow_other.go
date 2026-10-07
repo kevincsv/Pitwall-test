@@ -12,5 +12,5 @@ func logFilePath() string {
 	if d == "" {
 		return ""
 	}
-	return d + "/TrackIQ/pitlanehq.log"
+	return d + "/Pitlane HQ/pitlanehq.log"
 }

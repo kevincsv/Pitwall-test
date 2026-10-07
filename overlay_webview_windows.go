@@ -3,7 +3,7 @@
 package main
 
 // Frameless overlay window, run as a child process of PitWall:
-//   TrackIQ.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
+//   PitlaneHQ.exe -overlay-window relative -url http://localhost:8484/?overlay=relative -x 100 -y 100 -w 600 -h 360
 // The window has no title bar, has a taskbar button, stays on top, does not take
 // focus away from iRacing, and is moved/resized from the page in edit mode.
 
@@ -58,7 +58,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	// its own browser data, apart from the main window's
 	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2-overlays")
 	// a window that never shows the page (blank and impossible to close) gives up after
-	// a few seconds; TrackIQ then opens this overlay in an Edge window instead
+	// a few seconds; Pitlane HQ then opens this overlay in an Edge window instead
 	var ready atomic.Bool
 	go func() {
 		time.Sleep(8 * time.Second)

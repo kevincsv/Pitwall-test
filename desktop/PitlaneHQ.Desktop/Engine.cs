@@ -4,10 +4,10 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace TrackIQ.Desktop;
+namespace PitlaneHQ.Desktop;
 
 /// <summary>
-/// The Go engine (TrackIQ.exe -engine): started by the shell, it prints the address of its
+/// The Go engine (PitlaneHQ.exe -engine): started by the shell, it prints the address of its
 /// local API with a one-use ticket and the cookie of this run. The shell calls the API with
 /// that cookie; the WebView gets its own by opening the ticket address. Closing stdin stops it.
 /// </summary>
@@ -23,15 +23,15 @@ public sealed class Engine : IDisposable
     public string Token { get; private set; } = "";
     public bool Running => _proc is { HasExited: false };
 
-    /// <summary>Finds TrackIQ.exe: the first argument, next to this program, or the Program Files install.</summary>
+    /// <summary>Finds PitlaneHQ.exe: the first argument, next to this program, or the Program Files install.</summary>
     public static string? FindExe(string[] args)
     {
         var c = new List<string>();
         if (args.Length > 0 && args[0].EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) c.Add(args[0]);
-        c.Add(Path.Combine(AppContext.BaseDirectory, "TrackIQ.exe"));
-        c.Add(Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd('\\')) ?? "", "TrackIQ.exe"));
-        c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "TrackIQ", "TrackIQ.exe"));
-        c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "TrackIQ", "TrackIQ.exe"));
+        c.Add(Path.Combine(AppContext.BaseDirectory, "PitlaneHQ.exe"));
+        c.Add(Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd('\\')) ?? "", "PitlaneHQ.exe"));
+        c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Pitlane HQ", "PitlaneHQ.exe"));
+        c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Pitlane HQ", "PitlaneHQ.exe"));
         return c.FirstOrDefault(File.Exists);
     }
 
@@ -47,20 +47,20 @@ public sealed class Engine : IDisposable
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(exe) ?? AppContext.BaseDirectory,
         };
-        _proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not start TrackIQ.exe");
+        _proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not start PitlaneHQ.exe");
         _proc.ErrorDataReceived += (_, _) => { };
         _proc.BeginErrorReadLine();
         var deadline = DateTime.UtcNow.AddSeconds(20);
         while (DateTime.UtcNow < deadline && (Url == "" || Token == ""))
         {
             ct.ThrowIfCancellationRequested();
-            if (_proc.HasExited) throw new InvalidOperationException("TrackIQ.exe stopped while starting");
+            if (_proc.HasExited) throw new InvalidOperationException("PitlaneHQ.exe stopped while starting");
             var line = await _proc.StandardOutput.ReadLineAsync(ct);
             if (line == null) break;
-            if (line.StartsWith("TRACKIQ_URL=")) Url = line["TRACKIQ_URL=".Length..].Trim();
-            if (line.StartsWith("TRACKIQ_TOKEN=")) Token = line["TRACKIQ_TOKEN=".Length..].Trim();
+            if (line.StartsWith("PITLANEHQ_URL=")) Url = line["PITLANEHQ_URL=".Length..].Trim();
+            if (line.StartsWith("PITLANEHQ_TOKEN=")) Token = line["PITLANEHQ_TOKEN=".Length..].Trim();
         }
-        if (Url == "" || Token == "") throw new InvalidOperationException("TrackIQ.exe did not give its address (is it 0.6.1 or newer?)");
+        if (Url == "" || Token == "") throw new InvalidOperationException("PitlaneHQ.exe did not give its address (is it 0.6.2 or newer?)");
         Base = Url[..Url.IndexOf('/', "http://".Length)];
         _http.DefaultRequestHeaders.Add("Cookie", "pw_lt=" + Token);
         // the rest of stdout is the engine's log: keep reading so it never blocks

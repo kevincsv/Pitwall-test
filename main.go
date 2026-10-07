@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-// One version for TrackIQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
+// One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.6.1"
+const appVersion = "0.6.2"
 
-// appMinVersion: the oldest TrackIQ.exe that still works with today's server and files. Raise it
+// appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
 // made to update (the notice has no "later"). Published in version.json as "min".
 const appMinVersion = "0.6.1"
@@ -420,7 +420,7 @@ func main() {
 	demo := flag.Bool("demo", false, "development only: a simulated race instead of the game")
 	noBrowser := flag.Bool("no-browser", false, "do not open the app window on start")
 	minimized := flag.Bool("minimized", false, "start with this window minimized")
-	engine := flag.Bool("engine", false, "run as the engine of the desktop app: no window; prints TRACKIQ_URL=<address with a ticket> and TRACKIQ_TOKEN=<cookie> and quits when stdin closes")
+	engine := flag.Bool("engine", false, "run as the engine of the desktop app: no window; prints PITLANEHQ_URL=<address with a ticket> and PITLANEHQ_TOKEN=<cookie> and quits when stdin closes")
 	ovName := flag.String("overlay-window", "", "internal: run one overlay window")
 	ovURL := flag.String("url", "", "internal: overlay address")
 	ovX := flag.Int("x", 100, "internal")
@@ -478,7 +478,7 @@ func main() {
 	go licenseWatcher()
 	go liveRelay()
 	go cloudUploader()
-	go func() { // programs you chose to start with TrackIQ
+	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
 		launchGroup("pitwall")
 	}()
@@ -631,15 +631,15 @@ func main() {
 		// the native desktop shell (desktop/) owns the window: it reads these two lines, opens the
 		// address in its own WebView and calls the API with the cookie; when it closes stdin we quit
 		*noBrowser = true
-		fmt.Println("TRACKIQ_URL=" + withTicket(local))
-		fmt.Println("TRACKIQ_TOKEN=" + localCookieValue())
+		fmt.Println("PITLANEHQ_URL=" + withTicket(local))
+		fmt.Println("PITLANEHQ_TOKEN=" + localCookieValue())
 		go func() {
 			io.Copy(io.Discard, os.Stdin)
 			quitApp()
 		}()
 	}
 	fmt.Println()
-	fmt.Println("  TRACKIQ " + appVersion + " " + appStage)
+	fmt.Println("  PITLANE HQ " + appVersion + " " + appStage)
 	fmt.Println("  ------------------------------------------------------------")
 	fmt.Println("  Keep this window open while you race. / Deja esta ventana abierta.")
 	fmt.Println()
@@ -664,7 +664,7 @@ func main() {
 				os.Exit(1)
 			}
 		}()
-		// the app in its own window; closing it quits TrackIQ (the desktop shell brings its own window)
+		// the app in its own window; closing it quits Pitlane HQ (the desktop shell brings its own window)
 		if !*engine && runMainWindow(withTicket(local), *minimized || *noBrowser) {
 			quitApp()
 		}

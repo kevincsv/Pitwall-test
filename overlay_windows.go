@@ -34,7 +34,7 @@ var (
 )
 
 const (
-	overlayTitlePrefix = "TrackIQ overlay · "
+	overlayTitlePrefix = "Pitlane HQ overlay · "
 	wsExLayered        = 0x00080000
 	wsExTransparent    = 0x00000020
 	lwaAlpha           = 0x2
@@ -151,7 +151,7 @@ func openOverlay(o overlayReq, url, engine string) error {
 				go func() {
 					err := cmd.Wait()
 					procsMu.Lock()
-					mine := procs[o.Widget] == cmd // false when TrackIQ closed it on purpose
+					mine := procs[o.Widget] == cmd // false when Pitlane HQ closed it on purpose
 					if mine {
 						delete(procs, o.Widget)
 					}
@@ -284,7 +284,7 @@ func metric(i int) int { v, _, _ := procGetSystemMetrics.Call(uintptr(i)); retur
 var procSetThreadDpiCtx = user32.NewProc("SetThreadDpiAwarenessContext")
 
 // unaware runs f with this thread in "DPI unaware" mode, the mode of the overlay
-// windows: places and sizes are then the same numbers for TrackIQ and for the
+// windows: places and sizes are then the same numbers for Pitlane HQ and for the
 // overlays, whatever the Windows scaling (125 %, 150 %…).
 func unaware(f func()) {
 	runtime.LockOSThread()

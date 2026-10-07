@@ -6,12 +6,12 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>TrackIQ.Desktop</AssemblyName>
-    <RootNamespace>TrackIQ.Desktop</RootNamespace>
+    <AssemblyName>PitlaneHQ.Desktop</AssemblyName>
+    <RootNamespace>PitlaneHQ.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.6.1</Version>
-    <Company>TrackIQ</Company>
-    <Product>TrackIQ Desktop</Product>
+    <Version>0.6.2</Version>
+    <Company>Pitlane HQ</Company>
+    <Product>Pitlane HQ Desktop</Product>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 

@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 
-namespace TrackIQ.Desktop;
+namespace PitlaneHQ.Desktop;
 
 public partial class MainWindow : Window
 {
@@ -26,7 +26,7 @@ public partial class MainWindow : Window
         var exe = Engine.FindExe(Environment.GetCommandLineArgs().Skip(1).ToArray());
         if (exe == null)
         {
-            StartError.Text = "TrackIQ.exe was not found. Put TrackIQ.Desktop.exe in the same folder as TrackIQ.exe, or start it with the path of TrackIQ.exe as its first argument.";
+            StartError.Text = "PitlaneHQ.exe was not found. Put PitlaneHQ.Desktop.exe in the same folder as PitlaneHQ.exe, or start it with the path of PitlaneHQ.exe as its first argument.";
             EngineText.Text = "Engine: not found";
             return;
         }

@@ -2,8 +2,8 @@
 
 package main
 
-// The main TrackIQ window: the app in its own window (WebView2, built into
-// Windows 10/11), no console and no browser. Closing it quits TrackIQ.
+// The main Pitlane HQ window: the app in its own window (WebView2, built into
+// Windows 10/11), no console and no browser. Closing it quits Pitlane HQ.
 // Links to other websites open in your normal browser.
 
 import (
@@ -44,7 +44,7 @@ func runMainWindow(url string, minimized bool) bool {
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      data,
 		AutoFocus:     true,
-		WindowOptions: webview2.WindowOptions{Title: "TrackIQ - Telemetry & Coach", Width: 1360, Height: 860, Center: true},
+		WindowOptions: webview2.WindowOptions{Title: "Pitlane HQ - Telemetry & Coach", Width: 1360, Height: 860, Center: true},
 	})
 	if wv == nil {
 		return false
@@ -111,7 +111,7 @@ func runMainWindow(url string, minimized bool) bool {
 	return true
 }
 
-// showMainWindow brings the window back (used when TrackIQ is started a second time).
+// showMainWindow brings the window back (used when Pitlane HQ is started a second time).
 func showMainWindow() bool {
 	if mainWV == nil {
 		return false
@@ -170,7 +170,7 @@ func iconFromICO(size int) uintptr {
 	return h
 }
 
-// setWindowIcon puts the TrackIQ icon on the window title and taskbar button.
+// setWindowIcon puts the Pitlane HQ icon on the window title and taskbar button.
 func setWindowIcon(hwnd uintptr) {
 	const wmSetIcon = 0x0080
 	if h := iconFromICO(16); h != 0 {

@@ -107,7 +107,7 @@ func fetchNews(force bool) ([]newsItem, error) {
 	cl := &http.Client{Timeout: 20 * time.Second}
 	for _, f := range newsFeeds {
 		req, _ := http.NewRequest("GET", f, nil)
-		req.Header.Set("User-Agent", "TrackIQ/"+appVersion)
+		req.Header.Set("User-Agent", "Pitlane HQ/"+appVersion)
 		resp, err := cl.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("could not reach iracing.com: %w", err)

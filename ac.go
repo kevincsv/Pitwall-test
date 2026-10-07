@@ -488,7 +488,7 @@ func (s *acSource) convert(p, g, st []byte) bool {
 	return true
 }
 
-// sessionTime: the game gives no session clock, so a steady one since TrackIQ connected
+// sessionTime: the game gives no session clock, so a steady one since Pitlane HQ connected
 func (s *acSource) sessionTime(g []byte) float64 {
 	if s.t0.IsZero() {
 		s.t0 = time.Now()

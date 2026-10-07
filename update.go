@@ -1,7 +1,7 @@
 package main
 
-// Updates: the downloads page has a version.json next to TrackIQ-windows.zip.
-// TrackIQ compares it with its own build, and on request downloads the zip,
+// Updates: the downloads page has a version.json next to PitlaneHQ-windows.zip.
+// Pitlane HQ compares it with its own build, and on request downloads the zip,
 // replaces its files (the running .exe is renamed, Windows allows that) and
 // starts the new version.
 
@@ -123,7 +123,7 @@ func updateWatcher() {
 					if v == "" {
 						v = "new"
 					}
-					notify("TrackIQ "+v+" is available", "Open TrackIQ and press Update now. Your settings and laps are kept.")
+					notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
 				}
 			}
 		}
@@ -158,7 +158,7 @@ func applyUpdate() error {
 	if latest.Build == buildID {
 		return errors.New("you already have the latest version")
 	}
-	resp, err := updHTTP.Get(updateBase() + "TrackIQ-windows.zip")
+	resp, err := updHTTP.Get(updateBase() + "PitlaneHQ-windows.zip")
 	if err != nil {
 		return fmt.Errorf("could not download the update: %w", err)
 	}
@@ -186,13 +186,13 @@ func applyUpdate() error {
 		}
 	}
 	if !hasExe {
-		return errors.New("the download does not contain TrackIQ.exe")
+		return errors.New("the download does not contain PitlaneHQ.exe")
 	}
-	// installs made before the rename keep their PitlaneHQ.exe name (shortcuts point to it): the new
-	// program replaces that file instead of appearing beside it under another name
-	exeName := "TrackIQ.exe"
-	if strings.EqualFold(filepath.Base(exe), "PitlaneHQ.exe") {
-		exeName = "PitlaneHQ.exe"
+	// installs made while the app was called TrackIQ keep their TrackIQ.exe name (shortcuts point
+	// to it): the new program replaces that file instead of appearing beside it under another name
+	exeName := "PitlaneHQ.exe"
+	if strings.EqualFold(filepath.Base(exe), "TrackIQ.exe") {
+		exeName = "TrackIQ.exe"
 	}
 	var newExe string
 	for _, f := range zr.File {
@@ -239,10 +239,10 @@ func applyUpdate() error {
 	return nil
 }
 
-// isProgramName: the program inside an update zip. Its old name was PitlaneHQ.exe; the zip that
-// installs made before the rename download still carries it under that name.
+// isProgramName: the program inside an update zip, under its name or the one it had while the
+// app was called TrackIQ (0.5–0.6.1).
 func isProgramName(n string) bool {
-	return strings.EqualFold(n, "TrackIQ.exe") || strings.EqualFold(n, "PitlaneHQ.exe")
+	return strings.EqualFold(n, "PitlaneHQ.exe") || strings.EqualFold(n, "TrackIQ.exe")
 }
 
 func registerUpdateRoutes(mux *http.ServeMux) {

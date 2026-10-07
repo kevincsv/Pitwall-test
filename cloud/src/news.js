@@ -42,7 +42,7 @@ export async function news(req, env, ctx) {
   if (url.searchParams.get("refresh") !== "1") { const hit = await cache.match(key); if (hit) return new Response(hit.body, { headers: H }); }
   let items;
   try {
-    const r = await fetch(FEED, { headers: { "user-agent": "TrackIQ-server" }, cf: { cacheTtl: 900 } });
+    const r = await fetch(FEED, { headers: { "user-agent": "PitlaneHQ-server" }, cf: { cacheTtl: 900 } });
     if (!r.ok) throw new Error("iracing.com answered HTTP " + r.status);
     items = parseFeed(await r.text());
   } catch (e) {

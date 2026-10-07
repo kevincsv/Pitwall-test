@@ -1,8 +1,21 @@
 # Changelog
 
-TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the phone apps share one version
+Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share one version
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
+
+## 0.6.2 beta
+
+**Changed**
+- **The app is called Pitlane HQ again** everywhere: TrackIQ.exe becomes PitlaneHQ.exe (the
+  installer and the updater take care of it; the 0.5–0.6.1 installs keep updating), the web,
+  the phone apps, the server emails and the documents.
+- **The server lives at https://pitlanehq.app**: the PC, the web and the phone apps point there.
+  Accounts, laps and the community are the same.
+- The track maps also show the three sectors on the phones; on the web, every chart of the lap
+  analyzer always says something above it (the whole lap when nothing is touched, the point when
+  you touch), and a finger on the map reads the nearest point even when it is not exactly on
+  the line.
 
 ## 0.6.1 beta
 
@@ -18,9 +31,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **Sessions**: a session also ends 400 days after it was opened, however much it is used
   (180 days without use, as before). Every answer of the server carries protective headers
   (no sniffing, no framing, no referrer, HSTS).
-- **The PC's local API is only for TrackIQ's own windows**: they get a one-use ticket in their
+- **The PC's local API is only for Pitlane HQ's own windows**: they get a one-use ticket in their
   address; any other program or web page on the PC gets the pairing PIN instead of your data.
-  Everything TrackIQ.exe sends to the internet uses TLS 1.2 or newer.
+  Everything PitlaneHQ.exe sends to the internet uses TLS 1.2 or newer.
 
 **New**
 - **Inbox**: a floating bell (PC, web, phones) with what matters now: a new version with its
@@ -29,8 +42,8 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **New version notice at start**, everywhere, with a **What's new** button that opens that
   version's changelog. On the PC a version can be marked as **required** (`appMinVersion`):
   then the notice cannot be put off until the update is done.
-- **TrackIQ Desktop (preview)**: the native Windows window (C#/WPF) over the same Go engine,
-  built screen by screen. `TrackIQ-Desktop.zip` on the downloads page; `TrackIQ.exe -engine`
+- **Pitlane HQ Desktop (preview)**: the native Windows window (C#/WPF) over the same Go engine,
+  built screen by screen. `PitlaneHQ-Desktop.zip` on the downloads page; `PitlaneHQ.exe -engine`
   runs the engine for it.
 
 **Fixed**
@@ -111,7 +124,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 ## 0.5.6 beta
 
 **Changed**
-- Light contact and loss of control are told apart. Both are 2x in iRacing; TrackIQ.exe now calls
+- Light contact and loss of control are told apart. Both are 2x in iRacing; PitlaneHQ.exe now calls
   a 2x a light contact when another car was right beside you a moment before (CarLeftRight), and a
   loss of control otherwise. The race summary, the lap analyzer, the maps and the phone apps name
   them separately ("Loss of control 2x", "Light contact 2x"); light contacts are blue on the map.
@@ -126,10 +139,10 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 ## 0.5.5 beta
 
 **Changed**
-- **TrackIQ needs your account**, like the phone apps: on the PC and on the web, until you sign in
+- **Pitlane HQ needs your account**, like the phone apps: on the PC and on the web, until you sign in
   (or create your free account) only the Account page opens; the menus come back as soon as you
   are signed in. The overlays on top of the game are never blocked, and neither is a PC whose
-  TrackIQ server is not set up, so racing never stops for this.
+  Pitlane HQ server is not set up, so racing never stops for this.
 
 **Fixed**
 - Web app on phones: the session bar of the lap analyzer and of the Coach broke into a narrow
@@ -180,7 +193,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 ## 0.5.1 beta
 
 **New**
-- **Incidents on your laps.** TrackIQ.exe records the incidents of every lap (how many points and
+- **Incidents on your laps.** PitlaneHQ.exe records the incidents of every lap (how many points and
   where on the lap). The lap analyzer shows them in the lap table and in the selectors (⚠), the
   track map marks where they happened (a switch hides them) and the hover reads them. Incidents
   never make a lap invalid; only leaving the track does. The phone apps show them too.
@@ -200,7 +213,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 ## 0.5.0 beta
 
 **New**
-- **Track maps draw themselves.** TrackIQ.exe now records where the car was on every lap (from its
+- **Track maps draw themselves.** PitlaneHQ.exe now records where the car was on every lap (from its
   heading and speed) and keeps it in the lap's telemetry (`x`, `y`), so the map in the lap analyzer,
   the Coach and the phone apps comes from the lap itself: no Live screen open, no community layout
   needed. Every valid lap also sends the circuit's outline to the community when it is faster than
@@ -217,7 +230,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   (cutting), exactly as the race summary decides it. Laps through the pit lane, laps with a hole in
   their telemetry and laps whose official time arrived late are no longer crossed out in the
   analyzer; they still never count as your best and are never shared.
-- TrackIQ.exe starts cleaner: the window stays hidden and dark until the app has painted itself,
+- PitlaneHQ.exe starts cleaner: the window stays hidden and dark until the app has painted itself,
   instead of showing a white window and a page loading in pieces.
 
 **Fixed**
@@ -235,9 +248,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 ## 0.4.1 beta
 
 **New**
-- Pitlane HQ is now **TrackIQ** everywhere: the app, the web, the emails, the installer
-  (TrackIQ-Setup.exe), the program (TrackIQ.exe) and the browser tab, which reads
-  "TrackIQ - Telemetry & Coach". Your data, settings and sign-ins stay where they were, and
+- Pitlane HQ is now **Pitlane HQ** everywhere: the app, the web, the emails, the installer
+  (PitlaneHQ-Setup.exe), the program (PitlaneHQ.exe) and the browser tab, which reads
+  "Pitlane HQ - Telemetry & Coach". Your data, settings and sign-ins stay where they were, and
   installs made before the rename keep updating (the update still reaches them under their old file
   name).
 - Lap analyzer: the sector lines (S1, S2, S3) now show on every chart, not only on speed: delta,

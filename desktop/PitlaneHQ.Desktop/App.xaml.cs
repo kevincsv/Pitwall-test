@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace TrackIQ.Desktop;
+namespace PitlaneHQ.Desktop;
 
 public partial class App : Application
 {
@@ -9,7 +9,7 @@ public partial class App : Application
         base.OnStartup(e);
         DispatcherUnhandledException += (_, a) =>
         {
-            MessageBox.Show(a.Exception.Message, "TrackIQ", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(a.Exception.Message, "Pitlane HQ", MessageBoxButton.OK, MessageBoxImage.Error);
             a.Handled = true;
         };
     }

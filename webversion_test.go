@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// The web (web/dist/index.html) and TrackIQ.exe are one release: same version number.
+// The web (web/dist/index.html) and PitlaneHQ.exe are one release: same version number.
 func TestWebVersionMatchesApp(t *testing.T) {
 	b, err := os.ReadFile("web/dist/index.html")
 	if err != nil {

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>TrackIQ - Telemetry &amp; Coach</title>
+<title>Pitlane HQ - Telemetry &amp; Coach</title>
 <meta name="theme-color" content="#11151b">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Same look as the TrackIQ app: timing-screen panels on a dark pit wall. */
+/* Same look as the Pitlane HQ app: timing-screen panels on a dark pit wall. */
 :root{
   --bg:#11151b;--surface:#19202a;--surface2:#1e2631;--line:#2b3542;--fg:#e7ebf1;--muted:#8a97a9;
   --accent:#ffb02e;--accent-ink:#11151b;--good:#38c97c;--bad:#ff6363;--pb:#b98cff;--blue:#5c9dff;
@@ -68,7 +68,7 @@ html.embed header .brand,html.embed #out,html.embed #game,html.embed nav a.btn,h
 <body>
 <div class="wrap">
 <header>
-  <div class="brand"><i aria-hidden="true"></i>TrackIQ <small>CLOUD</small></div>
+  <div class="brand"><i aria-hidden="true"></i>Pitlane HQ <small>CLOUD</small></div>
   <nav id="nav" hidden><button type="button" data-v="sessions" aria-selected="true" data-t="Sesiones"></button><button type="button" data-v="bests" aria-selected="false" data-t="Récords"></button><button type="button" data-v="team" aria-selected="false" data-t="Equipo"></button><select id="game" aria-label="Game"><option value="iracing">iRacing</option><option value="lmu" disabled>Le Mans Ultimate · WIP</option><option value="acc" disabled>ACC · WIP</option><option value="ac" disabled>Assetto Corsa · WIP</option></select><a class="btn" href="/app/?companion=1" data-t="Abrir la app"></a><button type="button" id="out" data-t="Salir"></button></nav>
   <label class="langsel"><span class="sr" data-t="Idioma"></span><select id="lang" aria-label="Language / Idioma"><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="pt">Português</option></select></label>
 </header>
@@ -76,7 +76,7 @@ html.embed header .brand,html.embed #out,html.embed #game,html.embed nav a.btn,h
 <div id="login" hidden>
 <form class="login panel" id="accLogin">
   <h1 data-t="Tus vueltas, en cualquier sitio"></h1>
-  <p class="sub" data-t="TrackIQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de TrackIQ."></p>
+  <p class="sub" data-t="PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ."></p>
   <label><span class="label" data-t="Email"></span><input type="email" id="aEmail" autocomplete="username" required></label>
   <label><span class="label" data-t="Contraseña"></span><input type="password" id="aPass" autocomplete="current-password" required></label>
   <div class="err" id="accErr" role="alert"></div>
@@ -107,11 +107,11 @@ html.embed header .brand,html.embed #out,html.embed #game,html.embed nav a.btn,h
 
 <section class="dl panel" id="downloads">
   <p style="margin:0 0 12px"><a class="btn primary" href="/app/?companion=1" data-t="Abrir la app en el navegador (análisis, comunidad, en vivo)"></a></p>
-  <h2 data-t="Descargar TrackIQ"></h2>
+  <h2 data-t="Descargar Pitlane HQ"></h2>
   <p class="sub" data-t="Gratis. Usa la misma cuenta en el PC, el móvil y esta web."></p>
   <div class="dlgrid">
-    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/TrackIQ-Setup.exe"><b>Windows</b><span data-t="Instalador (recomendado)"></span></a>
-    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/TrackIQ-windows.zip"><b>Windows · ZIP</b><span data-t="Portátil, sin instalar"></span></a>
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-Setup.exe"><b>Windows</b><span data-t="Instalador (recomendado)"></span></a>
+    <a class="dlc" href="https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-windows.zip"><b>Windows · ZIP</b><span data-t="Portátil, sin instalar"></span></a>
   </div>
 </section>
 
@@ -129,9 +129,9 @@ const $=s=>document.querySelector(s);
 const I18N={
 "Acelerador y freno":["Throttle and brake","Gas und Bremse","Acelerador e freio"],
 "Aún no hay compañeros.":["No teammates yet.","Noch keine Teamkollegen.","Ainda não há colegas."],
-"Aún no hay sesiones. En TrackIQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.":["No sessions yet. In TrackIQ: Account → My account → turn on “Keep my laps in my account” and drive a few laps in iRacing.","Noch keine Sitzungen. In TrackIQ: Konto → Mein Konto → „Meine Runden im Konto speichern“ einschalten und ein paar Runden in iRacing fahren.","Ainda não há sessões. No TrackIQ: Conta → Minha conta → ative “Guardar minhas voltas na conta” e dê algumas voltas no iRacing."],
+"Aún no hay sesiones. En Pitlane HQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.":["No sessions yet. In Pitlane HQ: Account → My account → turn on “Keep my laps in my account” and drive a few laps in iRacing.","Noch keine Sitzungen. In Pitlane HQ: Konto → Mein Konto → „Meine Runden im Konto speichern“ einschalten und ein paar Runden in iRacing fahren.","Ainda não há sessões. No Pitlane HQ: Conta → Minha conta → ative “Guardar minhas voltas na conta” e dê algumas voltas no iRacing."],
 "Borrar sesión":["Delete session","Sitzung löschen","Apagar sessão"],
-"Cada compañero usa su propia clave en TrackIQ (Ajustes → Conexiones → TrackIQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.":["Each teammate uses their own key in TrackIQ (Settings → Connections → TrackIQ Cloud) and their laps show up here, in Records and for comparing.","Jeder Teamkollege nutzt seinen eigenen Schlüssel in TrackIQ (Einstellungen → Verbindungen → TrackIQ Cloud); seine Runden erscheinen hier, in den Rekorden und zum Vergleichen.","Cada colega usa a sua própria chave no TrackIQ (Configurações → Conexões → TrackIQ Cloud) e as voltas aparecem aqui, em Recordes e para comparar."],
+"Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.":["Each teammate uses their own key in Pitlane HQ (Settings → Connections → Pitlane HQ Cloud) and their laps show up here, in Records and for comparing.","Jeder Teamkollege nutzt seinen eigenen Schlüssel in Pitlane HQ (Einstellungen → Verbindungen → Pitlane HQ Cloud); seine Runden erscheinen hier, in den Rekorden und zum Vergleichen.","Cada colega usa a sua própria chave no Pitlane HQ (Configurações → Conexões → Pitlane HQ Cloud) e as voltas aparecem aqui, em Recordes e para comparar."],
 "Cargando…":["Loading…","Wird geladen…","Carregando…"],
 "Circuito":["Track","Strecke","Pista"],
 "Clave de":["Key for","Schlüssel für","Chave de"],
@@ -188,7 +188,7 @@ const I18N={
 "Contraseña":["Password","Passwort","Senha"],
 "Crear cuenta":["Create account","Konto erstellen","Criar conta"],
 "Crear una cuenta gratis":["Create a free account","Kostenloses Konto erstellen","Criar uma conta grátis"],
-"Descargar TrackIQ":["Download TrackIQ","TrackIQ herunterladen","Baixar TrackIQ"],
+"Descargar Pitlane HQ":["Download Pitlane HQ","Pitlane HQ herunterladen","Baixar Pitlane HQ"],
 "Email":["Email","E-Mail","Email"],
 "Entrar con clave":["Sign in with key","Mit Schlüssel anmelden","Entrar com chave"],
 "Entrar con una clave (dueño del servidor, equipo o solo lectura)":["Sign in with a key (server owner, team or read-only)","Mit einem Schlüssel anmelden (Server-Besitzer, Team oder nur lesen)","Entrar com uma chave (dono do servidor, equipe ou só leitura)"],
@@ -201,7 +201,7 @@ const I18N={
 "Idioma":["Language","Sprache","Idioma"],
 "Instalador (recomendado)":["Installer (recommended)","Installer (empfohlen)","Instalador (recomendado)"],
 "Nombre público":["Public name","Öffentlicher Name","Nome público"],
-"TrackIQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de TrackIQ.":["TrackIQ.exe uploads every lap you drive in iRacing here. Sign in with your TrackIQ account.","TrackIQ.exe lädt jede Runde, die du in iRacing fährst, hierher hoch. Melde dich mit deinem TrackIQ-Konto an.","O TrackIQ.exe envia para cá cada volta que você dá no iRacing. Entre com sua conta TrackIQ."],
+"PitlaneHQ.exe sube aquí cada vuelta que das en iRacing. Entra con tu cuenta de Pitlane HQ.":["PitlaneHQ.exe uploads every lap you drive in iRacing here. Sign in with your Pitlane HQ account.","PitlaneHQ.exe lädt jede Runde, die du in iRacing fährst, hierher hoch. Melde dich mit deinem PitlaneHQ-Konto an.","O PitlaneHQ.exe envia para cá cada volta que você dá no iRacing. Entre com sua conta Pitlane HQ."],
 "Portátil, sin instalar":["Portable, no install","Portabel, ohne Installation","Portátil, sem instalar"],
 "Repite la contraseña":["Repeat the password","Passwort wiederholen","Repita a senha"],
 "Récords":["Records","Rekorde","Recordes"],
@@ -230,7 +230,7 @@ const fmtT=t=>{if(!(t>0))return"–";const m=Math.floor(t/60),s=t-m*60;return m+
 const day=t=>new Date(t).toLocaleString(LOC(),{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 const sessionKind=k=>{const x=String(k||"").toLowerCase();if(/qual|qualif/.test(x))return T("Qualifying");if(/race|racing/.test(x))return T("Race");if(/pract|practice|test/.test(x))return T("Practice");return k?String(k):T("Practice")};
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-// inside the TrackIQ app (embed=1): the app hands its session in the address (#k=…), nothing is kept here
+// inside the Pitlane HQ app (embed=1): the app hands its session in the address (#k=…), nothing is kept here
 const EMBED=new URLSearchParams(location.search).get("embed")==="1";
 // one game at a time: laps of different games are never listed or compared together
 const GAMES=["iracing","lmu","acc","ac"];let GAME=new URLSearchParams(location.search).get("game")||"";try{GAME=GAME||localStorage.getItem("plq.game")||""}catch(e){}if(!GAMES.includes(GAME))GAME="iracing";
@@ -239,7 +239,7 @@ let KEY="";if(EMBED){const m=location.hash.match(/^#k=([A-Za-z0-9._-]{20,200})$/
 async function get(p,opt){const r=await fetch(p,Object.assign({headers:{authorization:"Bearer "+KEY}},opt||{}));const j=await r.json().catch(()=>({error:T("respuesta no válida")}));if(r.status===401){logout();throw new Error(T("clave incorrecta"))}if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
 function logout(){if(EMBED){KEY="";document.body.innerHTML="";return}KEY="";$("#downloads").hidden=false;$("#accLogin").hidden=false;$("#accReg").hidden=true;try{localStorage.removeItem("plq.key")}catch(e){}$("#app").hidden=true;$("#nav").hidden=true;$("#login").hidden=false}
 let ROLE="viewer",ME="";
-// sign in with the TrackIQ account: the password becomes keys here (same as the app), only the login key is sent
+// sign in with the Pitlane HQ account: the password becomes keys here (same as the app), only the login key is sent
 async function accountAuth(email,password){const te=new TextEncoder(),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
   const salt=await crypto.subtle.digest("SHA-256",te.encode("pitlanehq-account-v1:"+email.trim().toLowerCase()));
   const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);
@@ -289,7 +289,7 @@ async function sessions(){const box=$("#v-sessions");box.innerHTML=`<div class="
   try{const list=await get("/api/sessions?limit=120&game="+GAME);
     const laps=list.reduce((s,x)=>s+(x.laps||0),0);
     box.innerHTML=`<div class="grid" style="margin-bottom:10px"><div class="panel s4 stat"><span class="label">${T("Sesiones")}</span><b class="mono">${list.length}</b></div><div class="panel s4 stat"><span class="label">${T("Vueltas")}</span><b class="mono">${laps}</b></div><div class="panel s4 stat"><span class="label">${T("Última")}</span><b style="font-size:20px">${list[0]?esc(day(list[0].started)):"–"}</b></div></div>
-    <div class="panel"><h2>${T("Sesiones")}</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>${T("Fecha")}</th><th>${T("Circuito")}</th><th>${T("Coche")}</th><th>${T("Tipo")}</th><th class="r">${T("Vueltas")}</th><th class="r">${T("Mejor")}</th></tr></thead><tbody>${list.map(s=>`<tr class="click" data-id="${esc(s.id)}"><td>${esc(day(s.started))}</td><td>${esc(s.track)}${s.track_config?` <span class="muted">${esc(s.track_config)}</span>`:""}</td><td>${esc(s.car)}</td><td><span class="pill">${esc(sessionKind(s.kind))}</span></td><td class="r mono">${s.laps||0}</td><td class="r mono">${fmtT(s.best)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">${T("Aún no hay sesiones. En TrackIQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.")}</div>`}</div>`;
+    <div class="panel"><h2>${T("Sesiones")}</h2>${list.length?`<div class="tscroll"><table><thead><tr><th>${T("Fecha")}</th><th>${T("Circuito")}</th><th>${T("Coche")}</th><th>${T("Tipo")}</th><th class="r">${T("Vueltas")}</th><th class="r">${T("Mejor")}</th></tr></thead><tbody>${list.map(s=>`<tr class="click" data-id="${esc(s.id)}"><td>${esc(day(s.started))}</td><td>${esc(s.track)}${s.track_config?` <span class="muted">${esc(s.track_config)}</span>`:""}</td><td>${esc(s.car)}</td><td><span class="pill">${esc(sessionKind(s.kind))}</span></td><td class="r mono">${s.laps||0}</td><td class="r mono">${fmtT(s.best)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">${T("Aún no hay sesiones. En Pitlane HQ: Cuenta → Mi cuenta → activa “Guardar mis vueltas en mi cuenta” y da unas vueltas en iRacing.")}</div>`}</div>`;
     box.querySelectorAll("[data-id]").forEach(r=>r.onclick=()=>openSession(r.dataset.id))}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
 
 async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
@@ -299,7 +299,7 @@ async function bests(){const box=$("#v-bests");box.innerHTML=`<div class="empty"
 
 document.addEventListener("click",e=>{const row=e.target.closest&&e.target.closest("#v-bests [data-best-session]");if(row&&row.dataset.bestSession)openSession(row.dataset.bestSession,row.dataset.bestLap)},{passive:true});
 async function team(){const box=$("#v-team");box.innerHTML=`<div class="empty">${T("Cargando…")}</div>`;
-  try{const t=await get("/api/team");box.innerHTML=`<div class="panel"><h2>${T("Tu equipo")}</h2><p class="sub">${T("Cada compañero usa su propia clave en TrackIQ (Ajustes → Conexiones → TrackIQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.")}</p>
+  try{const t=await get("/api/team");box.innerHTML=`<div class="panel"><h2>${T("Tu equipo")}</h2><p class="sub">${T("Cada compañero usa su propia clave en Pitlane HQ (Ajustes → Conexiones → Pitlane HQ Cloud) y sus vueltas aparecen aquí, en Récords y para comparar.")}</p>
     ${t.members.length?`<div class="tscroll"><table><thead><tr><th>${T("Piloto")}</th><th>${T("Desde")}</th><th></th></tr></thead><tbody>${t.members.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(new Date(m.created).toLocaleDateString(LOC()))}</td><td>${ROLE==="owner"?`<button class="btn" type="button" data-rm="${esc(m.name)}">${T("Quitar")}</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="sub">${T("Aún no hay compañeros.")}</p>`}
     ${ROLE==="owner"?`<form class="frow" id="addM" style="margin-top:12px"><input type="text" id="mName" placeholder="${T("Nombre del compañero")}" maxlength="40" required style="flex:1;min-width:180px"><button class="btn primary" type="submit">${T("Crear su clave")}</button></form><div id="newKey"></div>`:""}</div>`;
     box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{if(b.dataset.sure!=="1"){b.dataset.sure="1";b.textContent=T("¿Seguro?");return}await get("/api/team/"+encodeURIComponent(b.dataset.rm),{method:"DELETE",headers:{authorization:"Bearer "+KEY}});team()});

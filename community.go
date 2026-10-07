@@ -89,7 +89,7 @@ func commBase() string {
 	if u == "" {
 		u = bundledServer()
 	}
-	if u == "" { // your own TrackIQ Cloud site is also your server
+	if u == "" { // your own Pitlane HQ Cloud site is also your server
 		cloudMu.Lock()
 		u = cloudCfg.URL
 		cloudMu.Unlock()
@@ -108,7 +108,7 @@ func commCall(method, path string, body any, auth bool) ([]byte, error) {
 	return commRequest(method, "/community"+path, body, tok)
 }
 
-// commToken: your TrackIQ account when you are signed in, else this PC's community token.
+// commToken: your Pitlane HQ account when you are signed in, else this PC's community token.
 func commToken() string {
 	loadPL()
 	plMu.Lock()
@@ -139,7 +139,7 @@ func commRequest(method, path string, body any, tok string) ([]byte, error) {
 	}
 	resp, err := commHTTP.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("could not reach the TrackIQ server: %w", err)
+		return nil, fmt.Errorf("could not reach the Pitlane HQ server: %w", err)
 	}
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
@@ -538,7 +538,7 @@ func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
 	plMu.Unlock()
 	if tok == "" {
 		w.WriteHeader(http.StatusForbidden)
-		writeJSON(w, map[string]string{"error": "sign in with your TrackIQ account"})
+		writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
 		return
 	}
 	method, path := "DELETE", "/community/admin/"+in.Kind+"/"+url.PathEscape(in.ID)+"?game="+url.QueryEscape(in.Game)
@@ -729,7 +729,7 @@ func handleCommSetups(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// bundledServer is the TrackIQ server written in web/dist/server.json
+// bundledServer is the Pitlane HQ server written in web/dist/server.json
 // (the same file the phone apps read), so the address lives in one place.
 var bundledServerOnce sync.Once
 var bundledServerURL string

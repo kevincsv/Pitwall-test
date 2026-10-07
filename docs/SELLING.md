@@ -1,4 +1,4 @@
-# Selling TrackIQ / Vender TrackIQ
+# Selling Pitlane HQ / Vender Pitlane HQ
 
 ## 1. Store (Lemon Squeezy, or your own server)
 
@@ -9,19 +9,19 @@
    - `trialDays`. Once activated, a licence keeps working offline with no time limit; only the store's answer (expired, cancelled…) turns it off.
    - `proViews` / `proFeatures`: what needs Pro.
    - **`enforce: true`** when you start selling. While it is `false`, everything is free.
-3. Own server instead: `"provider": "custom"`, `"customUrl": "https://your-api"`. TrackIQ POSTs JSON to `/activate {key, device}`, `/validate {key, instance}`, `/deactivate {key, instance}` and expects `{status:"active"|"expired"|..., plan:"monthly"|"yearly"|"lifetime", expires:"RFC3339", instance:"id"}` or `{error:"..."}`.
-4. You can also put a `license_plans.json` next to `TrackIQ.exe` to override the built-in one (for testing).
+3. Own server instead: `"provider": "custom"`, `"customUrl": "https://your-api"`. Pitlane HQ POSTs JSON to `/activate {key, device}`, `/validate {key, instance}`, `/deactivate {key, instance}` and expects `{status:"active"|"expired"|..., plan:"monthly"|"yearly"|"lifetime", expires:"RFC3339", instance:"id"}` or `{error:"..."}`.
+4. You can also put a `license_plans.json` next to `PitlaneHQ.exe` to override the built-in one (for testing).
 
 ## 2. Before the first sale
 
 - **Make the GitHub repository private** and host the downloads yourself (e.g. Cloudflare R2). Then set `updateRepo`/download URLs accordingly (ask Claude to switch the updater to your host).
-- **Code signing** (avoids the SmartScreen warning): Azure Trusted Signing or an OV/EV certificate; add a signing step to `.github/workflows/windows.yml` for `TrackIQ.exe` and `TrackIQ-Setup.exe`.
+- **Code signing** (avoids the SmartScreen warning): Azure Trusted Signing or an OV/EV certificate; add a signing step to `.github/workflows/windows.yml` for `PitlaneHQ.exe` and `PitlaneHQ-Setup.exe`.
 - Have a lawyer review `installer/EULA.txt` and `docs/legal/PRIVACY.md`; add your company name and contact e-mail.
 - Ask iRacing about commercial use of the Data API (account/results features).
 
 ## 3. Installer
 
-CI builds `TrackIQ-Setup.exe` (Inno Setup, `installer/TrackIQ.iss`): per-user install (no administrator), Start menu and desktop shortcuts, optional "start with Windows", uninstaller. The built-in updater keeps working in the installed folder.
+CI builds `PitlaneHQ-Setup.exe` (Inno Setup, `installer/PitlaneHQ.iss`): per-user install (no administrator), Start menu and desktop shortcuts, optional "start with Windows", uninstaller. The built-in updater keeps working in the installed folder.
 
 ## 4. Phone PIN
 

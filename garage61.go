@@ -1,6 +1,6 @@
 package main
 
-// Garage 61 (garage61.net) connection: lets TrackIQ load reference laps
+// Garage 61 (garage61.net) connection: lets Pitlane HQ load reference laps
 // (yours or your team's) from Garage 61 to compare against while you drive.
 // Uses a personal developer token from garage61.net/developer.
 

@@ -22,7 +22,7 @@ async function sha256(t) {
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 const cleanAlias = (a) => (str(a, 32) || "").replace(/[\u0000-\u001f<>]/g, "").trim() || "Driver";
-// a TrackIQ account session, or the older per-PC community token
+// a Pitlane HQ account session, or the older per-PC community token
 async function me(req, env) {
   const a = await sessionAccount(req, env);
   if (a) {
@@ -241,7 +241,7 @@ export async function community(req, env, url) {
   // a lap from your account to the community: the one you chose, or the session's fastest valid lap
   // (with telemetry when it has some; without it, only the time goes and the leaderboard says so)
   if (p === "/share-lap" && m === "POST") {
-    if (!u.account) return err("sign in with your TrackIQ account", 401);
+    if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(String(body.sessionId || ""), "acct:" + u.id).first();
     if (!s) return err("session not found in your account", 404);
     const lap = body.lapId
@@ -272,7 +272,7 @@ export async function community(req, env, url) {
       const c = await env.DB.prepare("SELECT car_id FROM community_laps WHERE car=?1 AND game=?2 LIMIT 1").bind(s.car, g).first();
       if (c) carId = c.car_id;
     }
-    if (!trackId || !carId) return err("the track or car of this session is not known yet: drive it once with the new TrackIQ, then it can be shared", 400);
+    if (!trackId || !carId) return err("the track or car of this session is not known yet: drive it once with the new Pitlane HQ, then it can be shared", 400);
     if (!s.track_id || !s.car_id) await env.DB.prepare("UPDATE sessions SET track_id=COALESCE(track_id,?2), car_id=COALESCE(car_id,?3) WHERE id=?1").bind(s.id, trackId, carId).run();
     const traced = !!lap.trace;
     const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();

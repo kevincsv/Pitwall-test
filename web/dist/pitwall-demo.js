@@ -40,7 +40,7 @@
       const next = raw[Math.min(n - 1, i + 3)] * f, braking = next < v - 1.5;
       return [v, braking ? 0 : Math.min(1, 0.55 + v / 80), braking ? Math.min(1, (v - next) / 8) : 0, Math.min(6, Math.floor(1 + v / 14)), Math.cos(i * 0.05) * 0.1, t];
     });
-    // the shape of the track, like the position TrackIQ records: a loop that turns at every corner
+    // the shape of the track, like the position Pitlane HQ records: a loop that turns at every corner
     const turns = corners.map((_, k) => (k % 3 === 2 ? -0.6 : 1) * rc.f(0.6, 1.3)), tot = turns.reduce((p, q) => p + q, 0);
     const x = [], y = []; let h = 0, px = 0, py = 0;
     for (let i = 0; i < n; i++) {
@@ -116,7 +116,7 @@
     return COMBOS.map((c, i) => ({ id: "set" + i, alias: NAMES[i], carPath: c.car.toLowerCase().replace(/[^a-z0-9]+/g, ""), car: c.car, track: c.track, name: c.track.split(" ")[0] + " race", notes: "Stable on entry, a click less rear wing for the long straight.", size: 4200, downloads: 12 + i * 9, created: NOW - i * 3 * DAY }));
   }
 
-  /** The demo answer for a GET of the TrackIQ API, or undefined when the demo has none. */
+  /** The demo answer for a GET of the Pitlane HQ API, or undefined when the demo has none. */
   function get(path) {
     const u = new URL(path, "https://x"), p = u.pathname, q = u.searchParams;
     if (p === "/api/sessions") return sessions();

@@ -48,7 +48,7 @@ func registerAssetRoutes(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/manifest+json")
-		w.Write([]byte(`{"name":"TrackIQ - Telemetry & Coach","short_name":"TrackIQ","start_url":"/","display":"standalone","orientation":"any","background_color":"#11151b","theme_color":"#11151b","icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}`))
+		w.Write([]byte(`{"name":"Pitlane HQ - Telemetry & Coach","short_name":"Pitlane HQ","start_url":"/","display":"standalone","orientation":"any","background_color":"#11151b","theme_color":"#11151b","icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}`))
 	})
 }
 

@@ -1,6 +1,6 @@
 package main
 
-// TrackIQ account: optional, to keep your profile in sync between PCs and
+// Pitlane HQ account: optional, to keep your profile in sync between PCs and
 // to show a public name in the community.
 //
 // Your data is end-to-end encrypted: the password never leaves this PC.
@@ -55,7 +55,7 @@ type plAccount struct {
 	SyncErr   string    `json:"syncErr,omitempty"`
 	Conflict  bool      `json:"conflict,omitempty"`
 	NoLaps    bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server
-	Admin     bool      `json:"admin,omitempty"`     // an admin of the TrackIQ server (sees Connections)
+	Admin     bool      `json:"admin,omitempty"`     // an admin of the Pitlane HQ server (sees Connections)
 	Verified  bool      `json:"verified,omitempty"`  // the email was confirmed
 	Mail      bool      `json:"mail,omitempty"`      // the server can send emails
 	TwoFactor bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
@@ -478,7 +478,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		plMu.Unlock()
 		if tok == "" {
 			w.WriteHeader(401)
-			writeJSON(w, map[string]string{"error": "sign in with your TrackIQ account"})
+			writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
 			return
 		}
 		var body any

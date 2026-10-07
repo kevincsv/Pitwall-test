@@ -85,7 +85,7 @@ export async function totpOK(secret, code) {
   return false;
 }
 
-export const otpauthURL = (secret, label, issuer = "TrackIQ") =>
+export const otpauthURL = (secret, label, issuer = "Pitlane HQ") =>
   `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(label)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 
 /** Recovery codes: 8 codes like "k4m7-p2x9", shown once; only their hashes are stored. */

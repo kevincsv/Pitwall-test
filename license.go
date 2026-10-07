@@ -1,7 +1,7 @@
 package main
 
 // Subscription and licences. license_plans.json (built in, and overridable
-// with a license_plans.json next to TrackIQ.exe) says whether licences are
+// with a license_plans.json next to PitlaneHQ.exe) says whether licences are
 // required, the plans and prices shown, and the shop. Licence keys are
 // checked with Lemon Squeezy's licence API or with your own server
 // ("custom") when there is internet; offline it keeps working. The key is stored
@@ -198,7 +198,7 @@ func applyLicResult(m map[string]any) {
 
 func machineName() string {
 	h, _ := os.Hostname()
-	return "TrackIQ · " + h
+	return "Pitlane HQ · " + h
 }
 
 func activateLicense(key string) error {

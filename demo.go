@@ -643,7 +643,7 @@ WeekendInfo:
  TrackName: pitwalldemo
  TrackID: 9001
  TrackLength: 3.60 km
- TrackDisplayName: TrackIQ Demo Circuit
+ TrackDisplayName: Pitlane HQ Demo Circuit
  TrackDisplayShortName: Demo Circuit
  TrackConfigName: Full Course
  TrackCity: Demo
