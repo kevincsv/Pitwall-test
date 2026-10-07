@@ -14,8 +14,6 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   follow your changes.
 - **Admin profile** in My account (admins only, every device): the accounts, and every shared
   lap and race analysis with the name it shows and who really uploaded it, with a delete button.
-- **DRINKS mode names** are checked against the rest of the platform. They never clash with each
-  other or with the admin who runs them.
 
 ## 0.6.2 beta
 

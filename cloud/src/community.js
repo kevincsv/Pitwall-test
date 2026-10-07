@@ -222,7 +222,10 @@ export async function community(req, env, url) {
   if (shownAs === "iracing" && typeof body.iracingName === "string" && body.iracingName.trim())
     await env.DB.prepare("UPDATE community_users SET iracing=?2 WHERE id=?1").bind(u.id, cleanAlias(body.iracingName)).run();
   // is this name free? (Drinks drivers of an admin only clash with other people on the platform)
-  if (p === "/name-check" && m === "POST") return json({ free: !(await nameTaken(env, cleanAlias(body.name), u.id)) });
+  if (p === "/name-check" && m === "POST") {
+    if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);
+    return json({ free: !(await nameTaken(env, cleanAlias(body.name), u.id)) });
+  }
   if (p === "/season" && m === "POST") {
     const allowed = String(env.SEASON_UPLOADERS || env.ADMINS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!u.account || !allowed.includes(u.id)) return err("this account cannot publish the season schedule", 403);
