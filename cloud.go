@@ -55,12 +55,15 @@ type cloudLap struct {
 	Fuel    float64   `json:"fuel,omitempty"`
 	Vmax    float64   `json:"vmax,omitempty"`
 	Sectors []float64 `json:"sectors,omitempty"`
+	Pit     bool      `json:"pit,omitempty"` // through the pit lane: a real lap, but never a best or shared
 	Trace   *lapTrace `json:"trace,omitempty"`
 }
 
 type lapTrace struct {
 	Bin int          `json:"bin"`
-	D   [][6]float64 `json:"d"` // speed m/s, throttle, brake, gear, steering rad, lap time s
+	D   [][6]float64 `json:"d"`           // speed m/s, throttle, brake, gear, steering rad, lap time s
+	X   []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
+	Y   []float64    `json:"y,omitempty"`
 }
 
 type cloudItem struct {
@@ -304,7 +307,8 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 // ---------- lap recorder ----------
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
-	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface"}
+	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
+	"Yaw", "VelocityX", "VelocityY"}
 
 const lapBin = 5 // metres
 
@@ -317,6 +321,37 @@ type lapRec struct {
 	off                  int // samples with the car off the track (cutting a corner)
 	hasLast              bool
 	lastD, lastT, lastSp float64
+	// where the car was at every 5 m point, from its heading and speed (dead reckoning):
+	// the shape of the track, drawn by the app from the lap itself
+	xy               [][2]float64
+	pos, lastPos     [2]float64
+	pyaw, pvx, pvy   float64
+	pt               float64
+	hasPos, posBad   bool
+}
+
+// move integrates the car's position from its yaw and velocity (m/s, in the car's frame).
+func (r *lapRec) move(t, yaw, vx, vy float64) {
+	if r.hasPos {
+		dt := t - r.pt
+		if dt <= 0 || dt > .25 { // a lost stretch: the shape is no longer trusted
+			if dt > .25 {
+				r.posBad = true
+			}
+		} else {
+			d := yaw - r.pyaw
+			for d > math.Pi {
+				d -= 2 * math.Pi
+			}
+			for d < -math.Pi {
+				d += 2 * math.Pi
+			}
+			h, mx, my := r.pyaw+d/2, (vx+r.pvx)/2, (vy+r.pvy)/2
+			r.pos[0] += (mx*math.Cos(h) - my*math.Sin(h)) * dt
+			r.pos[1] += (mx*math.Sin(h) + my*math.Cos(h)) * dt
+		}
+	}
+	r.hasPos, r.pt, r.pyaw, r.pvx, r.pvy = true, t, yaw, vx, vy
 }
 
 // add records one telemetry sample at lap distance d (m) and lap time t (s).
@@ -335,23 +370,27 @@ func (r *lapRec) add(d, t, speed float64, ch [4]float64) {
 	}
 	for len(r.bins) <= b {
 		r.bins = append(r.bins, [6]float64{-1})
+		r.xy = append(r.xy, [2]float64{math.NaN(), math.NaN()})
 	}
-	set := func(k int, sp, tt float64) {
+	set := func(k int, sp, tt, f float64) {
 		if r.bins[k][0] < 0 {
 			r.bins[k] = [6]float64{round(sp, 2), round(ch[0], 3), round(ch[1], 3), ch[2], round(ch[3], 3), round(tt, 4)}
+			if r.hasPos {
+				r.xy[k] = [2]float64{r.lastPos[0] + (r.pos[0]-r.lastPos[0])*f, r.lastPos[1] + (r.pos[1]-r.lastPos[1])*f}
+			}
 		}
 	}
 	if r.hasLast && d >= r.lastD && d-r.lastD < 150 {
 		for k := int(r.lastD/lapBin) + 1; k <= b; k++ {
 			f := (float64(k*lapBin) - r.lastD) / math.Max(d-r.lastD, 1e-6)
-			set(k, r.lastSp+(speed-r.lastSp)*f, r.lastT+(t-r.lastT)*f)
+			set(k, r.lastSp+(speed-r.lastSp)*f, r.lastT+(t-r.lastT)*f, f)
 		}
 	} else if b == 0 {
-		set(0, speed, math.Max(0, t-d/math.Max(speed, 1)))
+		set(0, speed, math.Max(0, t-d/math.Max(speed, 1)), 1)
 	} else {
-		set(b, speed, t)
+		set(b, speed, t, 1)
 	}
-	r.hasLast, r.lastD, r.lastT, r.lastSp = true, d, t, speed
+	r.hasLast, r.lastD, r.lastT, r.lastSp, r.lastPos = true, d, t, speed, r.pos
 }
 
 func lapRecorder() {
@@ -367,6 +406,7 @@ func lapRecorder() {
 			continue
 		}
 		v := telNums(lapVars)
+		hasYaw := telHas("Yaw") && telHas("VelocityX")
 		prevLL := lastLL
 		lastLL = v[8]
 		lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
@@ -409,6 +449,9 @@ func lapRecorder() {
 		if pct < 0 || dist < 0 {
 			continue
 		}
+		if hasYaw {
+			cur.move(v[14], v[19], v[20], v[21])
+		}
 		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
 		cur.vmax = math.Max(cur.vmax, speed)
 		if v[10] > 0 {
@@ -435,7 +478,7 @@ func sessionKey(y string) string {
 
 // waitLastLap returns iRacing's official time of the lap just finished: it waits up to
 // 6 s for LapLastLapTime to change and to agree with the time measured here (within 1.5 s).
-// If it never does, the measured time is used and the lap is not trusted as valid.
+// If it never does, the measured time is used.
 func waitLastLap(r *lapRec, prev float64) float64 {
 	measured := r.lastT
 	for i := 0; i < 30; i++ {
@@ -451,7 +494,6 @@ func waitLastLap(r *lapRec, prev float64) float64 {
 			return lt
 		}
 	}
-	r.bad = true
 	if measured > 0 {
 		return measured
 	}
@@ -501,8 +543,13 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	for k := prev + 1; k < len(r.bins); k++ {
 		r.bins[k] = r.bins[prev]
 	}
-	l := cloudLap{ID: fmt.Sprintf("%s-%d", s.ID, r.n), N: r.n, Time: round(lt, 3), Valid: !r.pit && !r.bad && maxGap*lapBin <= 40,
+	// valid means the same here as in the race summary: the car stayed on the track (no cut).
+	// A pit lane lap or one with a hole in its telemetry is still a lap, just never a best.
+	l := cloudLap{ID: fmt.Sprintf("%s-%d", s.ID, r.n), N: r.n, Time: round(lt, 3), Valid: !r.bad, Pit: r.pit,
 		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Trace: &lapTrace{Bin: lapBin, D: r.bins}}
+	if x, y := r.shape(maxGap); x != nil {
+		l.Trace.X, l.Trace.Y = x, y
+	}
 	// sectors: thirds of the lap distance, from the interpolated times
 	n := len(r.bins)
 	t1, t2 := r.bins[n/3][5], r.bins[2*n/3][5]
@@ -512,12 +559,63 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	if l.Fuel < 0 {
 		l.Fuel = 0
 	}
-	if l.Valid {
+	best := l.Valid && !l.Pit && maxGap*lapBin <= 40
+	if best {
 		recordSetupLap(l.Time)
 	}
-	recordBookLap(l.Time, l.Fuel, l.Valid)
-	shareLap(l)
+	recordBookLap(l.Time, l.Fuel, best)
+	if best {
+		shareLap(l)
+	}
+	if best && l.Trace.X != nil {
+		shareLayout(l, s)
+	}
 	queueLap(s, l)
+}
+
+// shape: the lap's x/y at every 5 m point, closed into a loop (the small drift of dead
+// reckoning spread along the lap); nil when the position was not recorded or part is missing.
+func (r *lapRec) shape(maxGap int) ([]float64, []float64) {
+	n := len(r.bins)
+	if !r.hasPos || r.posBad || len(r.xy) != n || n < 40 || maxGap*lapBin > 40 {
+		return nil, nil
+	}
+	x, y := make([]float64, n), make([]float64, n)
+	prev, missing := -1, 0
+	for i := range r.xy {
+		if math.IsNaN(r.xy[i][0]) {
+			missing++
+			continue
+		}
+		x[i], y[i] = r.xy[i][0], r.xy[i][1]
+		if prev >= 0 && i-prev > 1 {
+			for k := prev + 1; k < i; k++ {
+				f := float64(k-prev) / float64(i-prev)
+				x[k], y[k] = x[prev]+(x[i]-x[prev])*f, y[prev]+(y[i]-y[prev])*f
+			}
+		} else if prev < 0 {
+			for k := 0; k < i; k++ {
+				x[k], y[k] = x[i], y[i]
+			}
+		}
+		prev = i
+	}
+	if prev < 0 || missing > n/10 {
+		return nil, nil
+	}
+	for k := prev + 1; k < n; k++ {
+		x[k], y[k] = x[prev], y[prev]
+	}
+	// a lap is a loop: the gap between where it ended and where it started is drift
+	ex, ey := x[n-1]-x[0], y[n-1]-y[0]
+	if math.Hypot(ex, ey) > 150 { // not a loop (a partial lap or a reset): no shape
+		return nil, nil
+	}
+	for i := range x {
+		f := float64(i) / float64(n-1)
+		x[i], y[i] = round(x[i]-ex*f, 1), round(y[i]-ey*f, 1)
+	}
+	return x, y
 }
 
 // offTrackSamples: a third of a second off the track (at 30 samples a second) makes the lap invalid.

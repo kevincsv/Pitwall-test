@@ -13,7 +13,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
+	"time"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
@@ -48,13 +50,29 @@ func runMainWindow(url string, minimized bool) bool {
 		return false
 	}
 	mainWV, mainHwnd = wv, uintptr(wv.Window())
+	// the window stays hidden (and dark) until the app has painted itself: no white window and no
+	// half-drawn page while it starts. The page says when (pwReady); 6 s is the safety net.
+	procShowWindow.Call(mainHwnd, 0) // SW_HIDE
+	darkWindowBackground(mainHwnd)
 	setWindowIcon(mainHwnd)
 	styleTitleBar(mainHwnd)
 	ownTitleBar(mainHwnd)
-	procShowWindow.Call(mainHwnd, 3) // SW_MAXIMIZE: use the whole screen
-	if minimized {
-		procShowWindow.Call(mainHwnd, 6) // SW_MINIMIZE
+	var shown atomic.Bool
+	show := func() {
+		if !shown.CompareAndSwap(false, true) {
+			return
+		}
+		wv.Dispatch(func() {
+			if minimized {
+				procShowWindow.Call(mainHwnd, 6) // SW_MINIMIZE
+				return
+			}
+			procShowWindow.Call(mainHwnd, 3) // SW_MAXIMIZE: use the whole screen
+			procSetForegroundWindow.Call(mainHwnd)
+		})
 	}
+	wv.Bind("pwReady", func() { show() })
+	time.AfterFunc(6*time.Second, show)
 	wv.Bind("pwOpen", func(u string) {
 		if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
 			openExternal(u)
@@ -258,4 +276,21 @@ func ownTitleBar(hwnd uintptr) {
 	})
 	origMainProc, _, _ = procSetWindowLongPtrW.Call(hwnd, ^uintptr(3), mainProcCB) // GWLP_WNDPROC (-4)
 	procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate|0x0004|swpFrameChanged)
+}
+
+var (
+	procCreateSolidBrush = syscall.NewLazyDLL("gdi32.dll").NewProc("CreateSolidBrush")
+	procSetClassLongPtrW = user32.NewProc("SetClassLongPtrW")
+)
+
+// darkWindowBackground paints the window itself in the app's background colour, so nothing white
+// ever shows behind the page (while WebView2 starts, or when the window is resized).
+func darkWindowBackground(hwnd uintptr) {
+	if procCreateSolidBrush.Find() != nil || procSetClassLongPtrW.Find() != nil {
+		return
+	}
+	br, _, _ := procCreateSolidBrush.Call(0x001B1511) // COLORREF 0x00BBGGRR: #11151b
+	if br != 0 {
+		procSetClassLongPtrW.Call(hwnd, ^uintptr(9), br) // GCLP_HBRBACKGROUND (-10)
+	}
 }

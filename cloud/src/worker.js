@@ -129,7 +129,17 @@ async function api(req, env, url) {
     return json(results);
   }
 
-  let mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)$/);
+  // admins of this server: every lap of a session counts as valid again (a wrong cut check)
+  let mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)\/validate$/);
+  if (mm && m === "POST") {
+    const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
+    if (role !== "account" || !admins.includes(me.name.replace(/^acct:/, ""))) return err("only the admins of this server can do this", 403);
+    const sid = decodeURIComponent(mm[1]);
+    const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0").bind(sid).run();
+    return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
+  }
+
+  mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)$/);
   if (mm) {
     if (m === "DELETE") {
       const own = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(mm[1]).first();

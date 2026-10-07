@@ -40,7 +40,17 @@
       const next = raw[Math.min(n - 1, i + 3)] * f, braking = next < v - 1.5;
       return [v, braking ? 0 : Math.min(1, 0.55 + v / 80), braking ? Math.min(1, (v - next) / 8) : 0, Math.min(6, Math.floor(1 + v / 14)), Math.cos(i * 0.05) * 0.1, t];
     });
-    return { bin, d };
+    // the shape of the track, like the position TrackIQ records: a loop that turns at every corner
+    const turns = corners.map((_, k) => (k % 3 === 2 ? -0.6 : 1) * rc.f(0.6, 1.3)), tot = turns.reduce((p, q) => p + q, 0);
+    const x = [], y = []; let h = 0, px = 0, py = 0;
+    for (let i = 0; i < n; i++) {
+      const q = i / n; let dh = 0;
+      corners.forEach((k, j) => { const dd = q - k; dh += turns[j] * 2 * Math.PI / tot * Math.exp(-(dd * dd) / 0.0006) / (Math.sqrt(Math.PI * 0.0006) * n); });
+      h += dh; px += bin * Math.cos(h); py += bin * Math.sin(h); x.push(px); y.push(py);
+    }
+    const ex = x[n - 1] - x[0], ey = y[n - 1] - y[0];
+    for (let i = 0; i < n; i++) { const f = i / (n - 1); x[i] = Math.round((x[i] - ex * f) * 10) / 10; y[i] = Math.round((y[i] - ey * f) * 10) / 10; }
+    return { bin, d, x, y };
   }
   function sectors(lap, r) {
     const a = [0.31, 0.37, 0.32].map((x) => x * lap + r.f(-0.15, 0.15)), s = a.reduce((p, x) => p + x, 0);

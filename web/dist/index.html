@@ -1760,7 +1760,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as TrackIQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.4.2",APP_STAGE="beta";
+const WEB_VERSION="0.5.0",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("TrackIQ version "+v,"Versión de TrackIQ "+v,"TrackIQ Version "+v,"Versão do TrackIQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -1993,7 +1993,7 @@ async function pickCommLapCloud(){
       try{
         const full=await cget(`/api/community/laps?id=${encodeURIComponent(l.id)}`),tr=full.trace;
         if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
-        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,comm:true,cid:l.id,sectors:full.sectors||l.sectors||null,track:full.track||l.track,car:full.car||l.car};
+        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,xy:traceXY(tr),comm:true,cid:l.id,sectors:full.sectors||l.sectors||null,track:full.track||l.track,car:full.car||l.car};
         CREF.push(ref);COMM_LOADED=COMM_LOADED.filter(x=>x.cid!==l.id);COMM_LOADED.push(ref);if(COMM_LOADED.length>6)COMM_LOADED.shift();
         close();renderLaps();renderCoach();
         const sel=$("#lapB"),refIdx=CREF.length-1;
@@ -2011,7 +2011,7 @@ async function pickCommLap(){if(coachCloudOn())return pickCommLapCloud();const w
   const close=()=>m.remove();m.querySelector(".bg").onclick=close;$("#cpX").onclick=close;
   m.querySelectorAll("[data-cl]").forEach(b=>b.onclick=async()=>{const l=laps[+b.dataset.cl];b.querySelector("b").textContent="…";
     try{const full=await cget(`/api/community/laps?id=${encodeURIComponent(l.id)}`),tr=full.trace;if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
-      const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);CREF.push({n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins,maxBin:bins.length-1,comm:true});
+      const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);CREF.push({n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins,maxBin:bins.length-1,xy:traceXY(tr),comm:true});
       close();renderLaps();$("#lapB").value="c"+(CREF.length-1);drawCmp()}catch(e){toast(e.message);b.querySelector("b").textContent=l.alias||"–"}})}
 function lapSource(l){if(!l)return"";if(l.comm||l.cid||/^⟡ /.test(String(l.n||"")))return Tx("Community","Comunidad","Community","Comunidade");if(l.cloud)return Tx("My account","Mi cuenta","Mein Konto","Minha conta");return Tx("Your lap","Tu vuelta","Deine Runde","Sua volta")}
 function lapName(l){if(!l)return"";const n=String(l.n??"").replace(/^⟡ /,"");if(l.comm||l.cid)return l.alias||l.name||n;if(l._sessionBest)return Tx("MY BEST · Lap","MI MEJOR VUELTA · Vuelta","MEINE BESTE · Runde","MINHA MELHOR · Volta")+" "+n;return Tx("Lap","Vuelta","Runde","Volta")+" "+n}
@@ -2046,7 +2046,11 @@ let LAPF={q:"",track:"",extra:false};function lapCloudBar(){let sel=$("#lapSess"
   // with your account, the session pickers stay: a session with one lap can be compared with another session or the community
   if(!has&&cloud&&!CLOUD.busy)$("#lapsEmpty").textContent=CLOUD.err||(LP.length===1?Tx("This session has only one lap with telemetry: compare it with the community, or add a second session (＋).","Esta sesión solo tiene una vuelta con telemetría: compárala con la comunidad o añade una segunda sesión (＋).","Diese Sitzung hat nur eine Runde mit Telemetrie: vergleiche sie mit der Community oder füge eine zweite Sitzung hinzu (＋).","Esta sessão tem só uma volta com telemetria: compare com a comunidade ou adicione uma segunda sessão (＋)."):Tx("This session has no laps with telemetry: choose another one.","Esta sesión no tiene vueltas con telemetría: elige otra.","Diese Sitzung hat keine Runden mit Telemetrie: wähle eine andere.","Esta sessão não tem voltas com telemetria: escolha outra."));
   else if(!has&&cloud&&CLOUD.busy)$("#lapsEmpty").textContent=Tx("Loading the laps…","Cargando las vueltas…","Runden werden geladen…","Carregando as voltas…");if(!has){renderLapCompareHeads(null,null);renderLapAnalyzer(null,null)}
-  {const nt=$("#lapInvNote");if(nt){nt.hidden=!LP.some(l=>l.valid===false);nt.textContent=Tx("Crossed out: not valid laps (you left the track or went through the pit lane). They are never shared.","Tachadas: vueltas no válidas (saliste de la pista o pasaste por el pit lane). Nunca se comparten.","Durchgestrichen: ungültige Runden (neben der Strecke oder Boxengasse). Sie werden nie geteilt.","Riscadas: voltas inválidas (saiu da pista ou passou pelo pit lane). Nunca são compartilhadas.")}}
+  {const nt=$("#lapInvNote");if(nt){nt.hidden=!LP.some(l=>l.valid===false);nt.textContent=Tx("Crossed out: not valid laps (you left the track). They are never shared. Incidents alone do not make a lap invalid.","Tachadas: vueltas no válidas (saliste de la pista). Nunca se comparten. Los incidentes por sí solos no invalidan una vuelta.","Durchgestrichen: ungültige Runden (neben der Strecke). Sie werden nie geteilt. Zwischenfälle allein machen eine Runde nicht ungültig.","Riscadas: voltas inválidas (saiu da pista). Nunca são compartilhadas. Incidentes sozinhos não invalidam uma volta.")
+    // admins: when the cut check got it wrong, every lap of the session counts as valid again (the same as in the race summary)
+    let vb=$("#lapValidate");if(!vb){vb=document.createElement("button");vb.type="button";vb.id="lapValidate";vb.className="btn small";vb.style.marginTop="6px";nt.after(vb)}
+    const A=lapOf($("#lapA")&&$("#lapA").value),sid=A&&A.sessionId;vb.hidden=!(cloud&&!demoOn()&&commAdmin()&&sid&&LP.some(l=>l.valid===false&&l.sessionId===sid));vb.textContent=Tx("Admin: mark the laps of this session valid","Admin: marcar las vueltas de esta sesión como válidas","Admin: Runden dieser Sitzung als gültig markieren","Admin: marcar as voltas desta sessão como válidas");
+    vb.onclick=async()=>{if(!await uiConfirm(Tx("Mark every lap of this session as valid?","¿Marcar todas las vueltas de esta sesión como válidas?","Alle Runden dieser Sitzung als gültig markieren?","Marcar todas as voltas desta sessão como válidas?")))return;vb.disabled=true;try{await cloudPost("/api/sessions/"+encodeURIComponent(sid).replace(/%3A/gi,":")+"/validate");CLOUD_CACHE.delete(sid);await cloudLoadSession(sid);toast(Tx("Laps marked valid","Vueltas marcadas como válidas","Runden als gültig markiert","Voltas marcadas como válidas"))}catch(e){toast(e.message)}vb.disabled=false}}}
   const best=markAnalysisBest(LP);$("#lapTable tbody").innerHTML=LP.slice().reverse().map(l=>`<tr><td class="mono">${l.n}</td><td class="r mono ${l===best?"pb":""}">${fmtT(l.time)}</td><td class="r mono">${l.fuel!=null?vol(l.fuel).toFixed(2)+" "+volU():"–"}</td><td class="r mono">${Math.round(spd(l.vmax||0))} ${spdU()}</td></tr>`).join("");
   if(!has)return;
   const A=$("#lapA"),B=$("#lapB"),pa=A.value,pb=B.value;
@@ -2110,14 +2114,18 @@ let CMP_SECN=3;
 let CMP_MAPTOK=0;
 /* which circuit a lap was driven on: the id the lap carries, else the one the session names (by name in the track book
    and the community list), else the circuit of the live session for laps driven now */
+let COMM_COMBOS=null;async function commCombosCached(){if(COMM_COMBOS)return COMM_COMBOS;try{COMM_COMBOS=(await cget(withGame("/api/community/combos",aGame()))).combos||[]}catch(e){COMM_COMBOS=[]}setTimeout(()=>{COMM_COMBOS=null},120000);return COMM_COMBOS}
 async function lapTrackId(A,B){let id=A.trackId||B.trackId;if(id)return id;const nm=A.track||B.track;
   if(!nm){const w=(S&&S.WeekendInfo)||{};return w.TrackID||null}
-  const list=[...((await loadTB().catch(()=>TB))||[]),...((COMM&&COMM.combos)||[])],cfg=A.track_config||B.track_config||"",tn=commNorm(nm),tc=commNorm(nm+" "+cfg);
+  const list=[...((await loadTB().catch(()=>TB))||[]),...((COMM&&COMM.combos)||[]),...(await commCombosCached())],cfg=A.track_config||B.track_config||"",tn=commNorm(nm),tc=commNorm(nm+" "+cfg);
   const hit=list.find(e=>e.trackId&&commNorm(e.track)===tc)||list.find(e=>e.trackId&&commNorm(e.track)===tn)||list.find(e=>e.trackId&&tn&&(commNorm(e.track).includes(tn)||tn.includes(commNorm(e.track))));
   return hit?hit.trackId:null}
-async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=null;try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}
+/* the shape of a lap TrackIQ recorded with the car's position: a track map without anyone else's help */
+const lapShape=l=>l&&l.xy&&l.xy.x.length>10?{x:l.xy.x,y:l.xy.y,N:l.xy.x.length,lap:true}:null;
+async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=lapShape(A)||lapShape(B);
+  if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
-  if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("Drive a lap at this track with TrackIQ open and its map appears here.","Da una vuelta en este circuito con TrackIQ abierto y aquí aparecerá su mapa.","Fahre eine Runde auf dieser Strecke mit geöffnetem TrackIQ, dann erscheint die Karte hier.","Dê uma volta nesta pista com o TrackIQ aberto e o mapa aparece aqui."))}</p>`;return}
+  if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("No map of this track yet: laps recorded with TrackIQ 0.5 or later draw it by themselves.","Aún no hay mapa de este circuito: las vueltas grabadas con TrackIQ 0.5 o posterior lo dibujan solas.","Noch keine Karte dieser Strecke: Runden, die mit TrackIQ 0.5 oder neuer aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o TrackIQ 0.5 ou posterior desenham-no sozinhas."))}</p>`;return}
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end);if(n<8){box.innerHTML="";return}
   const L=n*BIN,N=map.x.length,xs=map.x,ys=map.y,minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),W=600,H=360,pad=26,k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1)),f=q=>q.map(z=>z.toFixed(1)).join(",");
   const P=i=>{i=((i%N)+N)%N;return[pad+(xs[i]-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(ys[i]-miny)*k-(H-2*pad-(maxy-miny)*k)/2]},at=d=>P(Math.round(d/L*N));
@@ -2128,8 +2136,20 @@ async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAP
     ${cs.map(c=>{const q=f(out(at(c.d),16)).split(",");return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
     ${Array.from({length:cnt-1},(_,j)=>{const q=at((j+1)/cnt*L),t=out(q,18);return `<circle class="secdot" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="4"/><text class="sec" x="${t[0].toFixed(1)}" y="${t[1].toFixed(1)}" text-anchor="middle">S${j+1}</text>`}).join("")}
     <circle class="hdot" r="6" hidden/></svg>
-    <p class="note" style="margin:6px 0 0"><span class="bad">■</span> ${esc(Tx("A loses time","A pierde tiempo","A verliert Zeit","A perde tempo"))} · <span class="good">■</span> ${esc(Tx("A gains time","A gana tiempo","A gewinnt Zeit","A ganha tempo"))}</p>`;
-  box._at=at;box._L=L}
+    <p class="note" style="margin:6px 0 0"><span class="bad">■</span> ${esc(Tx("A loses time","A pierde tiempo","A verliert Zeit","A perde tempo"))} · <span class="good">■</span> ${esc(Tx("A gains time","A gana tiempo","A gewinnt Zeit","A ganha tempo"))} · ${esc(Tx("touch the map to read that point","toca el mapa para leer ese punto","berühre die Karte für diesen Punkt","toque no mapa para ler esse ponto"))}</p>`;
+  box._at=at;box._L=L;cmpMapWire(box,A,B,sa,sb,n,L,N,P,cs)}
+/* hover (or touch) on the map: the point on the lap under the pointer, with both laps there and the gap;
+   in the analyzer the charts follow it too */
+function cmpMapWire(box,A,B,sa,sb,n,L,N,P,cs){const svg=box.querySelector("svg.rbmap");if(!svg)return;const tip=document.createElement("div");tip.className="rb-tip";tip.hidden=true;svg.after(tip);
+  const pts=[];for(let i=0;i<N;i++)pts.push(P(i));const dot=svg.querySelector(".hdot"),sync=box.id==="lapMap";
+  const leave=()=>{tip.hidden=true;if(sync){CMP_HOVER=null;const t=$("#cmpTip");if(t)t.hidden=true;drawCmp(true)}else if(dot)dot.setAttribute("hidden","")};
+  const move=e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;let q;try{q=pt.matrixTransform(svg.getScreenCTM().inverse())}catch(err){return}let bi=0,bd=1e9;for(let i=0;i<N;i++){const dx=pts[i][0]-q.x,dy=pts[i][1]-q.y,d2=dx*dx+dy*dy;if(d2<bd){bd=d2;bi=i}}if(bd>45*45){leave();return}
+    const d=bi/N*L,i=Math.max(0,Math.min(n-1,Math.round(d/BIN))),a=sa.arr[i],b=sb.arr[i],c=cornerAt(cs,d,L),dl=a&&b?a[1]-b[1]:null;
+    if(dot){dot.setAttribute("cx",pts[bi][0].toFixed(1));dot.setAttribute("cy",pts[bi][1].toFixed(1));dot.removeAttribute("hidden")}
+    tip.innerHTML=`<b>${Math.round(d)} m${c?` · T${c.n}`:` · ${esc(Tx("straight","recta","Gerade","reta"))}`}</b>${a&&b?`<div>A ${Math.round(spd(a[0]))} · B ${Math.round(spd(b[0]))} ${esc(spdU())}</div>`:""}${dl!=null?`<div class="${dl>0?"bad":"good"}">${sgn(dl)} s</div>`:""}${a&&b&&a[2]!=null?`<div class="muted">${esc(Tx("throttle","gas","Gas","acelerador"))} ${Math.round(a[2]*100)}% · ${Math.round(b[2]*100)}% · ${esc(Tx("brake","freno","Bremse","freio"))} ${Math.round(a[3]*100)}% · ${Math.round(b[3]*100)}%</div>`:""}`;tip.hidden=false;
+    if(innerWidth>820){const tw=tip.offsetWidth||200,th=tip.offsetHeight||60;tip.style.left=Math.max(8,Math.min(e.clientX+14,innerWidth-tw-8))+"px";tip.style.top=(e.clientY+16+th>innerHeight?e.clientY-th-10:e.clientY+16)+"px"}
+    if(sync){CMP_HOVER={i,x:0,y:e.clientY,cx:e.clientX,cy:e.clientY,quiet:true};drawCmp(true)}};
+  svg.style.touchAction="pan-y";svg.addEventListener("pointermove",move);svg.addEventListener("pointerdown",move);svg.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")leave()})}
 function cmpMapHover(i){const b=$("#lapMap");if(!b||!b._at)return;const d=b.querySelector(".hdot");if(!d)return;if(i==null){d.setAttribute("hidden","");return}const q=b._at(i*BIN);d.setAttribute("cx",q[0].toFixed(1));d.setAttribute("cy",q[1].toFixed(1));d.removeAttribute("hidden")}
 function cmpSectorLines(x,w,bottom,pl,cnt,ty){x.save();x.setLineDash([4,4]);x.lineWidth=1;x.strokeStyle=css("--muted");x.fillStyle=css("--muted");for(let k=1;k<cnt;k++){const xx=pl+k/cnt*(w-pl-6);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,bottom);x.stroke();x.fillText("S"+k,xx+4,ty)}x.restore()}
 function drawCmp(hover){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(!A||!B)return;applyLapCh();if(!hover){renderLapCompareHeads(A,B);renderLapAnalyzer(A,B)}$("#legA").textContent="A · "+lapName(A);$("#legB").textContent="B · "+lapName(B);
@@ -2147,7 +2167,7 @@ function drawCmp(hover){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value
   drawChannels(sa,sb,n,len,pl);
   const third=Math.floor(n/3),tAt=(s,i)=>{for(let k=Math.min(i,n-1);k>=0;k--)if(s.arr[k])return s.arr[k][1];return 0};
   const secs=[[0,third],[third,2*third],[2*third,null]].map(([a,b],k)=>{const ta=(b==null?A.time:tAt(sa,b))-tAt(sa,a),tb=(b==null?B.time:tAt(sb,b))-tAt(sb,a);return[`S${k+1}`,ta,tb]});
-  if(!hover)renderBrakeTable(A,B);wireCmpHover();if(!hover)renderCmpMap(A,B,$("#lapMap"));cmpMapHover(CMP_HOVER?Math.min(n-1,CMP_HOVER.i):null);if(!CMP_HOVER)cmpTipHint();else{const i=Math.min(n-1,CMP_HOVER.i),px=X(i*BIN);mainX.strokeStyle=css("--fg");mainX.globalAlpha=.55;mainX.setLineDash([3,3]);mainX.beginPath();mainX.moveTo(px,0);mainX.lineTo(px,h);mainX.stroke();mainX.setLineDash([]);mainX.globalAlpha=1;drawCmpTip(A,B,sa,sb,i,px,CMP_HOVER.y)}
+  if(!hover)renderBrakeTable(A,B);wireCmpHover();if(!hover)renderCmpMap(A,B,$("#lapMap"));cmpMapHover(CMP_HOVER?Math.min(n-1,CMP_HOVER.i):null);if(!CMP_HOVER)cmpTipHint();else{const i=Math.min(n-1,CMP_HOVER.i),px=X(i*BIN);mainX.strokeStyle=css("--fg");mainX.globalAlpha=.55;mainX.setLineDash([3,3]);mainX.beginPath();mainX.moveTo(px,0);mainX.lineTo(px,h);mainX.stroke();mainX.setLineDash([]);mainX.globalAlpha=1;if(CMP_HOVER.quiet){const t=$("#cmpTip");if(t)t.hidden=true}else drawCmpTip(A,B,sa,sb,i,px,CMP_HOVER.y)}
   $("#sectors tbody").innerHTML=secs.map(([nm,ta,tb])=>`<tr><td>${nm}</td><td class="r mono">${ta.toFixed(3)}</td><td class="r mono">${tb.toFixed(3)}</td><td class="r mono ${ta-tb>0?"bad":"good"}">${sgn(ta-tb)}</td></tr>`).join("")+`<tr><td><b>${Tx("Lap","Vuelta")}</b></td><td class="r mono"><b>${fmtT(A.time)}</b></td><td class="r mono"><b>${fmtT(B.time)}</b></td><td class="r mono ${A.time-B.time>0?"bad":"good"}"><b>${sgn(A.time-B.time)}</b></td></tr>`}
 $("#lapA").onchange=$("#lapB").onchange=()=>{drawCmp();renderLapCompareHeads(lapOf($("#lapA").value),lapOf($("#lapB").value));renderLapAnalyzer(lapOf($("#lapA").value),lapOf($("#lapB").value))};$("#coachLap").onchange=$("#coachRef").onchange=()=>renderCoach();
 
@@ -4592,9 +4612,12 @@ const pcPick=()=>!COMPANION&&!!PCACC&&!demoOn();
 const coachCloudOn=()=>COMPANION&&!!CP.acc||demoOn()||pcPick()&&(PCSRC==="acct"||LAPS.length<2);
 const liveOpt=()=>pcPick()&&LAPS.length?`<option value="__live">${esc(Tx("Live · this session on this PC","En vivo · esta sesión en este PC","Live · diese Sitzung an diesem PC","Ao vivo · esta sessão neste PC"))}</option>`:"";
 const coachLaps=()=>coachCloudOn()?CLOUD.laps:LAPS;
+async function cloudPost(path){await cpReady;if(demoOn())return{ok:true};if(!COMPANION&&PCACC)return jpost("/api/sync/get?p="+encodeURIComponent(path),{});const acc=CP.acc&&CP.server?{server:CP.server,token:CP.acc.token}:null;if(!acc)throw new Error(Tx("Sign in with your TrackIQ account","Inicia sesión con tu cuenta de TrackIQ","Melde dich mit deinem TrackIQ-Konto an","Entre com sua conta TrackIQ"));
+  const r=await cpOrigFetch(acc.server+path,{method:"POST",headers:{Authorization:"Bearer "+acc.token,"Content-Type":"application/json"},body:"{}"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
 async function cloudGet(path){await cpReady;if(demoOn()){const d=window.PITLANE_DEMO.get(path);if(d!==undefined)return JSON.parse(JSON.stringify(d))}if(!COMPANION&&PCACC)return jget("/api/sync/get?p="+encodeURIComponent(path));const acc=CP.acc&&CP.server?{server:CP.server,token:CP.acc.token}:null;if(!acc)throw new Error(Tx("Sign in with your TrackIQ account","Inicia sesión con tu cuenta de TrackIQ","Melde dich mit deinem TrackIQ-Konto an","Entre com sua conta TrackIQ"));
   const r=await cpOrigFetch(acc.server+path,{headers:{Authorization:"Bearer "+acc.token},cache:"no-store"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
-const traceBins=tr=>{const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);return{bins,maxBin:bins.length-1}};
+const traceXY=tr=>tr&&Array.isArray(tr.x)&&Array.isArray(tr.y)&&tr.x.length>10&&tr.x.length===tr.y.length?{x:tr.x,y:tr.y}:null;
+const traceBins=tr=>{const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);return{bins,maxBin:bins.length-1,xy:traceXY(tr)}};
 async function cloudLoadSessions(listOnly){if(CLOUD.busy)return;CLOUD.busy=true;CLOUD.err="";CLOUD.game=aGame();
   try{const ss=await cloudGet("/api/sessions?limit=100&game="+aGame());CLOUD.sessions=(Array.isArray(ss)?ss:[]).filter(x=>x.laps>0);if(!listOnly&&!CLOUD.sid&&CLOUD.sessions.length){const s=CLOUD.sessions.find(x=>x.laps>=2)||CLOUD.sessions[0];CLOUD.busy=false;return cloudLoadSession(s.id)}}
   catch(e){CLOUD.err=e.message;if(CLOUD.sessions===null)CLOUD.sessions=[]}CLOUD.busy=false;if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps()}
@@ -4606,7 +4629,7 @@ async function cloudSessionLaps(id){if(CLOUD_CACHE.has(id))return CLOUD_CACHE.ge
   if(ls.length&&!("trace" in ls[0])){// an older server: one call per lap, six at a time
     const out=[];for(let k=0;k<ls.length;k+=6)out.push(...await Promise.all(ls.slice(k,k+6).map(l=>cloudGet("/api/laps/"+encodeURIComponent(l.id).replace(/%3A/gi,":")).catch(()=>null))));ls=out.filter(Boolean)}
   const meta=j.session||(CLOUD.sessions||[]).find(x=>x.id===id)||{};
-  const res={laps:ls.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,cloud:l.id,sessionId:id,trackId:meta.trackId??meta.track_id??null,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,vmax:l.vmax||null,fuel:l.fuel??null,...traceBins(l.trace)})),any:ls.length};
+  const res={laps:ls.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,pit:!!l.pit,cloud:l.id,sessionId:id,trackId:meta.trackId??meta.track_id??null,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,vmax:l.vmax||null,fuel:l.fuel??null,...traceBins(l.trace)})),any:ls.length};
   CLOUD_CACHE.set(id,res);if(CLOUD_CACHE.size>6)CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);return res}
 async function cloudLoadSession(id,slot){const req=++CLOUD_REQ;if(slot==="B"){CLOUD.bid=id;CLOUD.lapsB=[]}else{CLOUD.sid=id;CLOUD.laps=[]}CLOUD.busy=true;CLOUD.err="";
   if(CUR_VIEW==="laps")renderLaps();if(CUR_VIEW==="coach")renderCoach();
@@ -4809,6 +4832,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
   const phone=!!NATIVE||matchMedia("(max-width:820px)").matches,start=OV.on?"live":(location.hash||"").slice(1)||(phone?"home":store.get("pw.tab","live"));show(Object.values(GROUPS).flat().includes(start)?start:"live");
   syncNativePlan();
   {const sp=document.getElementById("splash");if(sp){requestAnimationFrame(()=>{sp.classList.add("out");setTimeout(()=>sp.remove(),300)})}}
+  if(!OV.on&&typeof window.pwReady==="function")requestAnimationFrame(()=>{try{window.pwReady()}catch(e){}}); // TrackIQ.exe: show the window now that the app is painted
   if(COMPANION){if(!CPLIVE.on)STATUS={connected:false,companion:true};renderConn();cpLive()}
   else if(MODE==="bridge"){connectBridge();setInterval(async()=>{try{INFO=await (await fetch("/api/info")).json();if(CUR_VIEW==="settings")renderSettings()}catch(e){}},15000);keepAwake()}
   else{STATUS={connected:false,source:"",demo:false};renderConn()}
@@ -5445,7 +5469,7 @@ async function renderCommLaps(){const box=$("#cmLaps"),rb=$("#cmReps");if(!box||
 let COMM_LOADED=[];
 const NO_TRACE=()=>Tx("This driver shared the time but not the telemetry of this lap.","Este piloto compartió el tiempo pero no la telemetría de esta vuelta.","Dieser Fahrer hat die Zeit geteilt, aber nicht die Telemetrie dieser Runde.","Este piloto compartilhou o tempo, mas não a telemetria desta volta.");
 async function loadCommLap(id,btn){if(btn)btn.textContent="…";try{const l=await cget(`/api/community/laps?id=${encodeURIComponent(id)}`),tr=l.trace;if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
-    const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);G61REF={n:"COM",name:Tx("Community · ","Comunidad · ")+(l.alias||""),time:l.time,bins,maxBin:bins.length-1,cid:l.id};
+    const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);G61REF={n:"COM",name:Tx("Community · ","Comunidad · ")+(l.alias||""),time:l.time,bins,maxBin:bins.length-1,xy:traceXY(tr),cid:l.id};
     // the community laps you opened: on the web (no laps of your own here) two of them can be compared
     COMM_LOADED=COMM_LOADED.filter(x=>x.cid!==l.id);COMM_LOADED.push(G61REF);if(COMM_LOADED.length>6)COMM_LOADED.shift();
     toast(Tx(`Reference: ${l.alias} ${fmtT(l.time)}`,`Referencia: ${l.alias} ${fmtT(l.time)}`,`Referenz: ${l.alias} ${fmtT(l.time)}`,`Referência: ${l.alias} ${fmtT(l.time)}`));BM.key=null;show("coach")}catch(e){toast(e.message);if(btn)btn.textContent=Tx("Compare","Comparar")}}

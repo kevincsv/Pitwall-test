@@ -416,7 +416,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 				ok = true
 			}
 		}
-		if r.Method != http.MethodGet || !ok || strings.Contains(p, "..") {
+		// admins may also mark the laps of a session valid again (POST .../validate)
+		post := r.Method == http.MethodPost && strings.HasPrefix(p, "/api/sessions/") && strings.HasSuffix(p, "/validate")
+		if (r.Method != http.MethodGet && !post) || !ok || strings.Contains(p, "..") {
 			w.WriteHeader(400)
 			writeJSON(w, map[string]string{"error": "not available"})
 			return
@@ -430,7 +432,11 @@ func registerPLRoutes(mux *http.ServeMux) {
 			writeJSON(w, map[string]string{"error": "sign in with your TrackIQ account"})
 			return
 		}
-		b, err := commRequest("GET", p, nil, tok)
+		var body any
+		if post {
+			body = map[string]any{}
+		}
+		b, err := commRequest(r.Method, p, body, tok)
 		if err != nil {
 			w.WriteHeader(502)
 			writeJSON(w, map[string]string{"error": err.Error()})

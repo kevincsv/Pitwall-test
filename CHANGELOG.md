@@ -4,6 +4,34 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.0 beta
+
+**New**
+- **Track maps draw themselves.** TrackIQ.exe now records where the car was on every lap (from its
+  heading and speed) and keeps it in the lap's telemetry (`x`, `y`), so the map in the lap analyzer,
+  the Coach and the phone apps comes from the lap itself: no Live screen open, no community layout
+  needed. Every valid lap also sends the circuit's outline to the community when it is faster than
+  the one everyone has, so the race summaries of other drivers get the map too.
+- **Hover on the map**: in the lap analyzer and the Coach, moving over (or touching) the track map
+  reads that point: distance and corner, the speed of both laps, the gap there, throttle and brake.
+  In the analyzer the charts follow the point on the map, and the map follows the charts.
+- **Admin: mark the laps of a session valid** from the lap analyzer (My races), for sessions where
+  the cut check got it wrong; the race summary already had this button.
+- Demo data: laps carry the shape of the track too, so the maps show in the demo.
+
+**Changed**
+- **Valid laps mean the same everywhere.** A lap is invalid only when the car left the track
+  (cutting), exactly as the race summary decides it. Laps through the pit lane, laps with a hole in
+  their telemetry and laps whose official time arrived late are no longer crossed out in the
+  analyzer; they still never count as your best and are never shared.
+- TrackIQ.exe starts cleaner: the window stays hidden and dark until the app has painted itself,
+  instead of showing a white window and a page loading in pieces.
+
+**Fixed**
+- The track map was empty in the web app for laps of your account: the web could not find the
+  circuit's id (older sessions have none and the web never loaded the community's track list). It
+  now uses the community's combos too, and the lap's own shape when there is no layout.
+
 ## 0.4.2 beta
 
 **Fixed**

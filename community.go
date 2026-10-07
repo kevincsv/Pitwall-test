@@ -811,3 +811,78 @@ func handleTrackMap(w http.ResponseWriter, r *http.Request) {
 	}()
 	writeJSON(w, map[string]bool{"sending": true})
 }
+
+// ---------- the shape of the track, from your own laps ----------
+
+// commLayoutBest: the lap time of the layout the community already has per track (-1: none), so a
+// slower lap is never sent; filled the first time a track is seen in this run.
+var commLayoutBest = map[int]float64{}
+
+// shareLayout sends the outline of a valid lap (only its x/y points) to the community when it is
+// faster than the layout everyone already has. iRacing only, and never when sharing layouts is off:
+// it is what draws the track map in the analyzer, the coach, the race summaries and the phone apps.
+func shareLayout(l cloudLap, s cloudSession) {
+	if tel.isDemo() || currentGame() != "iracing" || l.Trace == nil || len(l.Trace.X) < 100 || len(l.Trace.X) > 3000 || !(l.Time > 10) {
+		return
+	}
+	commMu.Lock()
+	off := commCfg.NoMaps
+	commMu.Unlock()
+	if off {
+		return
+	}
+	y := sessionYAML()
+	c := currentCarTrack(y)
+	if c.TrackID == 0 {
+		return
+	}
+	n := len(l.Trace.X)
+	body := map[string]any{"game": "iracing", "clean": true, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "n": n,
+		"len": trackLengthM(y), "x": l.Trace.X, "y": l.Trace.Y}
+	go func() {
+		commMu.Lock()
+		best, known := commLayoutBest[c.TrackID]
+		commMu.Unlock()
+		if !known {
+			best = -1
+			if b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(c.TrackID)+"&game=iracing", nil, false); err == nil {
+				var m struct {
+					Time float64 `json:"time"`
+				}
+				if json.Unmarshal(b, &m) == nil && m.Time > 0 {
+					best = m.Time
+				}
+			}
+		}
+		if best > 0 && best <= l.Time {
+			commMu.Lock()
+			commLayoutBest[c.TrackID] = best
+			commMu.Unlock()
+			return
+		}
+		commMu.Lock()
+		commLayoutBest[c.TrackID] = l.Time
+		commMu.Unlock()
+		if err := ensureRegistered(); err != nil {
+			commNote(err)
+			return
+		}
+		_, err := commCall("POST", "/trackmaps", body, true)
+		commNote(err)
+	}()
+}
+
+// trackLengthM: the track length from the session info ("5.80 km", "2.5 mi"), 0 when unknown.
+func trackLengthM(y string) float64 {
+	f := strings.Fields(yamlField(y, "TrackLength"))
+	if len(f) == 0 {
+		return 0
+	}
+	v := atof(f[0])
+	if len(f) > 1 && strings.HasPrefix(f[1], "mi") {
+		v *= 1609.34
+	} else {
+		v *= 1000
+	}
+	return v
+}
