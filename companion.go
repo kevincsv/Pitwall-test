@@ -3,7 +3,7 @@ package main
 // Companion snapshot: the phone app can show your iRacing account, licences,
 // credits, recent races and the season schedule without the PC. The PC keeps
 // the last answer of a few iRacing Data API calls in companion.json; with a
-// Pitlane HQ account it travels end-to-end encrypted with the rest of your
+// TrackIQ account it travels end-to-end encrypted with the rest of your
 // synced profile. Big answers are trimmed to the fields the app uses.
 
 import (
@@ -121,7 +121,7 @@ func companionStore(path, rawQuery string, body []byte) {
 	os.WriteFile(compPath(), b, 0o600)
 }
 
-// companionRefresher keeps the snapshot fresh while you are signed in to iRacing and to a Pitlane HQ account.
+// companionRefresher keeps the snapshot fresh while you are signed in to iRacing and to a TrackIQ account.
 func companionRefresher() {
 	time.Sleep(90 * time.Second)
 	for {
@@ -172,7 +172,7 @@ func refreshCompanion() {
 	publishSeason()
 }
 
-// publishSeason shares the season schedule (no personal data) with the Pitlane HQ
+// publishSeason shares the season schedule (no personal data) with the TrackIQ
 // server so apps without an iRacing login see the real season. The server only
 // accepts it from the accounts its owner lists in SEASON_UPLOADERS.
 func publishSeason() {

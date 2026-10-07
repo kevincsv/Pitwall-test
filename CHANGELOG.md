@@ -1,6 +1,6 @@
 # Changelog
 
-Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share one version
+TrackIQ is in **beta**. TrackIQ.exe, the web app and the phone apps share one version
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
@@ -125,7 +125,7 @@ PC app and web only: the phone apps wait for the next build.
 - The coach explains each corner in plain words: what the driver you compare with does
   differently and what to try. One card per corner, also on phones.
 - Shared race analyses show the track map too: the community layout of any track someone has
-  driven with Pitlane HQ.
+  driven with TrackIQ.
 - Community leaderboard: a lap with its telemetry replaces your faster shared lap when that one
   went without telemetry, so your shared lap can always be compared in full.
 
@@ -185,10 +185,10 @@ the numbers move slowly and each one comes with this changelog.
   laps, races and community laps. Nothing is uploaded, and a banner shows while it is on.
 - DRINKS mode (formerly Friday night mode, admins only): friends drive on your PC and their laps
   go to the community under their name. It can also be switched from the phone app.
-- A loading screen while Pitlane HQ starts, instead of a half-drawn live view.
+- A loading screen while TrackIQ starts, instead of a half-drawn live view.
 - The web shows its version in About.
 - Downloads: the Android app (APK) and the iPhone app, always the newest version.
-- About: support Pitlane HQ on Patreon.
+- About: support TrackIQ on Patreon.
 
 **Changed**
 - Everything still in development is closed except for admins, on every device: Le Mans

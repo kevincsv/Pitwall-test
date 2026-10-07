@@ -104,7 +104,7 @@
     return COMBOS.map((c, i) => ({ id: "set" + i, alias: NAMES[i], carPath: c.car.toLowerCase().replace(/[^a-z0-9]+/g, ""), car: c.car, track: c.track, name: c.track.split(" ")[0] + " race", notes: "Stable on entry, a click less rear wing for the long straight.", size: 4200, downloads: 12 + i * 9, created: NOW - i * 3 * DAY }));
   }
 
-  /** The demo answer for a GET of the Pitlane HQ API, or undefined when the demo has none. */
+  /** The demo answer for a GET of the TrackIQ API, or undefined when the demo has none. */
   function get(path) {
     const u = new URL(path, "https://x"), p = u.pathname, q = u.searchParams;
     if (p === "/api/sessions") return sessions();

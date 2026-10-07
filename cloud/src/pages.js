@@ -3,15 +3,15 @@
 import { lang } from "./email.js";
 
 const S = {
-  title: { en: "Pitlane HQ", es: "Pitlane HQ", de: "Pitlane HQ", pt: "Pitlane HQ" },
+  title: { en: "TrackIQ", es: "TrackIQ", de: "TrackIQ", pt: "TrackIQ" },
   verified: { en: "Your email is confirmed. You can close this page.", es: "Tu email está confirmado. Ya puedes cerrar esta página.", de: "Deine E-Mail ist bestätigt. Du kannst diese Seite schließen.", pt: "Seu email está confirmado. Pode fechar esta página." },
   badLink: { en: "This link is not valid any more. Ask for a new one from the app.", es: "Este enlace ya no es válido. Pide uno nuevo desde la app.", de: "Dieser Link ist nicht mehr gültig. Fordere in der App einen neuen an.", pt: "Este link não é mais válido. Peça um novo pelo app." },
   forgotTitle: { en: "Forgot your password?", es: "¿Olvidaste tu contraseña?", de: "Passwort vergessen?", pt: "Esqueceu a senha?" },
   forgotText: {
-    en: "Type the email of your Pitlane HQ account and we send you a link to choose a new password.",
-    es: "Escribe el email de tu cuenta de Pitlane HQ y te enviamos un enlace para elegir una contraseña nueva.",
+    en: "Type the email of your TrackIQ account and we send you a link to choose a new password.",
+    es: "Escribe el email de tu cuenta de TrackIQ y te enviamos un enlace para elegir una contraseña nueva.",
     de: "Gib die E-Mail deines Pitlane-HQ-Kontos ein und wir senden dir einen Link für ein neues Passwort.",
-    pt: "Digite o email da sua conta Pitlane HQ e enviamos um link para escolher uma nova senha.",
+    pt: "Digite o email da sua conta TrackIQ e enviamos um link para escolher uma nova senha.",
   },
   send: { en: "Send me the link", es: "Enviarme el enlace", de: "Link senden", pt: "Enviar o link" },
   sent: {
@@ -48,7 +48,7 @@ export function pageLang(req, url) {
 
 function page(l, body, script = "") {
   return new Response(
-    `<!doctype html><html lang="${l}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pitlane HQ</title>
+    `<!doctype html><html lang="${l}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TrackIQ</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#11151b;color:#e7ebf1;font:16px/1.5 system-ui,sans-serif}main{width:min(420px,calc(100% - 32px))}
 h1{font-size:22px;letter-spacing:.05em;text-transform:uppercase}p{color:#a9b4c3}label{display:block;margin:12px 0 4px;font-size:13px;color:#8a97a9;text-transform:uppercase;letter-spacing:.06em}
 input{width:100%;box-sizing:border-box;font:16px system-ui;padding:12px;border-radius:8px;border:1px solid #2b3542;background:#19202a;color:#e7ebf1}

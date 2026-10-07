@@ -1,6 +1,6 @@
 package main
 
-// Which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, Assetto Corsa
+// Which sim TrackIQ reads: iRacing, Le Mans Ultimate, Assetto Corsa
 // Competizione, Assetto Corsa, or whichever is running.
 
 import (
@@ -10,7 +10,7 @@ import (
 
 var gameNames = map[string]string{"iracing": "iRacing", "lmu": "Le Mans Ultimate", "acc": "Assetto Corsa Competizione", "ac": "Assetto Corsa"}
 
-// currentGame is the game whose data Pitlane HQ reads now (the demo counts as iRacing).
+// currentGame is the game whose data TrackIQ reads now (the demo counts as iRacing).
 func currentGame() string {
 	tel.mu.RLock()
 	g := tel.source
@@ -37,7 +37,7 @@ func gameTag(g string) string {
 	return g
 }
 
-// gameWIP: games still in development. Their readers stay in the code but Pitlane HQ
+// gameWIP: games still in development. Their readers stay in the code but TrackIQ
 // does not open them yet: their tracks and data do not match iRacing's everywhere.
 var gameWIP = map[string]bool{"lmu": true, "acc": true, "ac": true}
 

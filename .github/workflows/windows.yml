@@ -1,6 +1,6 @@
-name: Build PitlaneHQ.exe
+name: Build TrackIQ.exe
 
-# Compiles PitlaneHQ.exe and the installer and uploads them as a download on the
+# Compiles TrackIQ.exe and the installer and uploads them as a download on the
 # run page (Actions → this run → Artifacts) and on the downloads page.
 
 on:
@@ -34,19 +34,19 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build PitlaneHQ.exe
+      - name: Build TrackIQ.exe
         shell: pwsh
         env:
           GOOS: windows
           GOARCH: amd64
         run: |
-          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o PitlaneHQ.exe .
+          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o TrackIQ.exe .
           New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item PitlaneHQ.exe out/
+          Copy-Item TrackIQ.exe out/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PitlaneHQ-windows
+          name: TrackIQ-windows
           path: out/
 
       - name: Build the installer (Inno Setup)
@@ -55,24 +55,24 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
           $ver = (Select-String -Path main.go -Pattern 'const appVersion = "(.*)"').Matches[0].Groups[1].Value
-          & $iscc "/DAppVersion=$ver" installer\PitlaneHQ.iss
+          & $iscc "/DAppVersion=$ver" installer\TrackIQ.iss
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PitlaneHQ-Setup
-          path: dist-installer/PitlaneHQ-Setup.exe
+          name: TrackIQ-Setup
+          path: dist-installer/TrackIQ-Setup.exe
 
       - name: Publish on the downloads page
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
+          (cd out && 7z a -tzip ../TrackIQ-windows.zip . >/dev/null)
           # the phone apps are built in their own repository now: no old ones on this page
-          for old in PitlaneHQ-android.apk PitlaneHQ.ipa; do gh release delete-asset pitlanehq-latest "$old" -y 2>/dev/null || true; done
-          bash .github/scripts/publish.sh PitlaneHQ-windows.zip
-          bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
+          for old in TrackIQ-android.apk TrackIQ.ipa; do gh release delete-asset pitlanehq-latest "$old" -y 2>/dev/null || true; done
+          bash .github/scripts/publish.sh TrackIQ-windows.zip
+          bash .github/scripts/publish.sh dist-installer/TrackIQ-Setup.exe
           # version.json goes last: the app only sees a new version once its zip is there
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           printf '{"version":"%s","build":"%s","date":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > version.json
@@ -81,6 +81,6 @@ jobs:
           # same version only refresh its files)
           tag="v$ver-beta"
           awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
-          printf '\n---\nWindows: download **PitlaneHQ-Setup.exe** (installer) or **PitlaneHQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
+          printf '\n---\nWindows: download **TrackIQ-Setup.exe** (installer) or **TrackIQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Pitlane HQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
-          gh release upload "$tag" PitlaneHQ-windows.zip dist-installer/PitlaneHQ-Setup.exe --clobber || true
+          gh release upload "$tag" TrackIQ-windows.zip dist-installer/TrackIQ-Setup.exe --clobber || true

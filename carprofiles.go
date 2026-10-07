@@ -1,6 +1,6 @@
 package main
 
-// Per-car rig profiles: when you get in a car, Pitlane HQ applies what you
+// Per-car rig profiles: when you get in a car, TrackIQ applies what you
 // saved for it: which overlays open.
 
 import (

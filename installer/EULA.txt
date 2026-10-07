@@ -3,20 +3,20 @@ PITLANE HQ — LICENCIA DE USO / END USER LICENCE AGREEMENT
 
 ESPAÑOL
 
-1. Licencia. Se te concede una licencia personal, no exclusiva e intransferible para instalar y usar Pitlane HQ en tus propios ordenadores y dispositivos, según el plan que tengas (Gratis, Pro mensual, Pro anual o De por vida).
+1. Licencia. Se te concede una licencia personal, no exclusiva e intransferible para instalar y usar TrackIQ en tus propios ordenadores y dispositivos, según el plan que tengas (Gratis, Pro mensual, Pro anual o De por vida).
 2. Suscripciones. Las suscripciones se renuevan solas hasta que las canceles en la tienda. "De por vida" significa durante la vida comercial del producto, con sus actualizaciones.
 3. Restricciones. No puedes revender, compartir claves de licencia, ni eludir la comprobación de licencia.
-4. Software de terceros. Pitlane HQ puede abrir o usar software de terceros con su propia licencia. Esas licencias se aplican a esos programas.
-5. iRacing. Pitlane HQ no está afiliado ni respaldado por iRacing.com Motorsport Simulations. iRacing es una marca de su titular. El uso de tu cuenta de iRacing está sujeto a sus condiciones.
+4. Software de terceros. TrackIQ puede abrir o usar software de terceros con su propia licencia. Esas licencias se aplican a esos programas.
+5. iRacing. TrackIQ no está afiliado ni respaldado por iRacing.com Motorsport Simulations. iRacing es una marca de su titular. El uso de tu cuenta de iRacing está sujeto a sus condiciones.
 6. Sin garantía. El software se entrega "tal cual". No nos hacemos responsables de daños derivados de su uso, en la medida que permita la ley.
 7. Privacidad. Ver PRIVACY.md.
 
 ENGLISH
 
-1. Licence. You get a personal, non-exclusive, non-transferable licence to install and use Pitlane HQ on your own computers and devices, according to your plan (Free, Pro monthly, Pro yearly or Lifetime).
+1. Licence. You get a personal, non-exclusive, non-transferable licence to install and use TrackIQ on your own computers and devices, according to your plan (Free, Pro monthly, Pro yearly or Lifetime).
 2. Subscriptions renew automatically until you cancel them in the store. "Lifetime" means for the commercial life of the product, including its updates.
 3. Restrictions. You may not resell, share licence keys or bypass the licence check.
-4. Third-party software. Pitlane HQ can open or work with third-party software under its own licence. Those licences apply to those programs.
-5. iRacing. Pitlane HQ is not affiliated with or endorsed by iRacing.com Motorsport Simulations. iRacing is a trademark of its owner. Use of your iRacing account is subject to its terms.
+4. Third-party software. TrackIQ can open or work with third-party software under its own licence. Those licences apply to those programs.
+5. iRacing. TrackIQ is not affiliated with or endorsed by iRacing.com Motorsport Simulations. iRacing is a trademark of its owner. Use of your iRacing account is subject to its terms.
 6. No warranty. The software is provided "as is". To the extent the law allows, we are not liable for damages from its use.
 7. Privacy: see PRIVACY.md.

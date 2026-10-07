@@ -1,9 +1,9 @@
 package main
 
-// Profiles: each person who uses Pitlane HQ on this PC gets their own settings,
+// Profiles: each person who uses TrackIQ on this PC gets their own settings,
 // overlay layout, Live layout, favourite series, apps to start, iRacing and
 // Garage 61 sign-ins. Everything stays on this PC under
-// %APPDATA%\PitlaneHQ\profiles\<id>\ — nothing goes to any cloud.
+// %APPDATA%\TrackIQ\profiles\<id>\ — nothing goes to any cloud.
 
 import (
 	"crypto/rand"
@@ -48,7 +48,7 @@ func dataDir() string {
 	if err != nil {
 		dir = "."
 	}
-	return filepath.Join(dir, "PitlaneHQ")
+	return filepath.Join(dir, "TrackIQ")
 }
 
 // migrateDataDir moves the data of versions called Pit Wall to the new folder.
@@ -401,7 +401,7 @@ func registerProfileRoutes(mux *http.ServeMux) {
 			}
 			return r
 		}, name)
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="Pitlane HQ profile - %s.json"`, fn))
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="TrackIQ profile - %s.json"`, fn))
 		writeJSON(w, pf)
 	})
 
@@ -412,7 +412,7 @@ func registerProfileRoutes(mux *http.ServeMux) {
 		}
 		var pf profileFile
 		if err := json.NewDecoder(io.LimitReader(r.Body, 4<<20)).Decode(&pf); err != nil || pf.Kind != "pitwall-profile" {
-			http.Error(w, "this is not a Pitlane HQ profile file", 400)
+			http.Error(w, "this is not a TrackIQ profile file", 400)
 			return
 		}
 		p, err := createProfile(pf.Name, "")

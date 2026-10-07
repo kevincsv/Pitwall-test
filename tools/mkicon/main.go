@@ -1,6 +1,6 @@
 //go:build ignore
 
-// mkicon draws the Pitlane HQ icon (a checkered flag tile on a dark rounded
+// mkicon draws the TrackIQ icon (a checkered flag tile on a dark rounded
 // square, in the app colours) and writes assets/pitlanehq.ico and a 1024 px PNG.
 //
 //	go run tools/mkicon/main.go

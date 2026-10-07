@@ -2,8 +2,8 @@
 
 package main
 
-// The main Pitlane HQ window: the app in its own window (WebView2, built into
-// Windows 10/11), no console and no browser. Closing it quits Pitlane HQ.
+// The main TrackIQ window: the app in its own window (WebView2, built into
+// Windows 10/11), no console and no browser. Closing it quits TrackIQ.
 // Links to other websites open in your normal browser.
 
 import (
@@ -38,11 +38,11 @@ var o=window.open;window.open=function(u){if(u&&ext(u)){window.pwOpen(new URL(u,
 func runMainWindow(url string, minimized bool) bool {
 	setDPIAware()
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
-	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2")
+	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "TrackIQ", "WebView2")
 	wv := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:      data,
 		AutoFocus:     true,
-		WindowOptions: webview2.WindowOptions{Title: "Pitlane HQ", Width: 1360, Height: 860, Center: true},
+		WindowOptions: webview2.WindowOptions{Title: "TrackIQ", Width: 1360, Height: 860, Center: true},
 	})
 	if wv == nil {
 		return false
@@ -93,7 +93,7 @@ func runMainWindow(url string, minimized bool) bool {
 	return true
 }
 
-// showMainWindow brings the window back (used when Pitlane HQ is started a second time).
+// showMainWindow brings the window back (used when TrackIQ is started a second time).
 func showMainWindow() bool {
 	if mainWV == nil {
 		return false
@@ -112,9 +112,9 @@ func openExternal(u string) {
 	cmd.Start()
 }
 
-// logToFile: without a console the log goes to %LOCALAPPDATA%\PitlaneHQ\pitlanehq.log.
+// logToFile: without a console the log goes to %LOCALAPPDATA%\TrackIQ\pitlanehq.log.
 func logFilePath() string {
-	return filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "pitlanehq.log")
+	return filepath.Join(os.Getenv("LOCALAPPDATA"), "TrackIQ", "pitlanehq.log")
 }
 
 // iconFromICO makes a Windows icon of the given size from the embedded .ico.
@@ -152,7 +152,7 @@ func iconFromICO(size int) uintptr {
 	return h
 }
 
-// setWindowIcon puts the Pitlane HQ icon on the window title and taskbar button.
+// setWindowIcon puts the TrackIQ icon on the window title and taskbar button.
 func setWindowIcon(hwnd uintptr) {
 	const wmSetIcon = 0x0080
 	if h := iconFromICO(16); h != 0 {

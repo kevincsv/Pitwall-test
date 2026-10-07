@@ -1,4 +1,4 @@
-// Pitlane HQ accounts: sign-in and end-to-end encrypted sync between PCs.
+// TrackIQ accounts: sign-in and end-to-end encrypted sync between PCs.
 // The PC derives a login key from the password (PBKDF2, 600 000 rounds) and
 // sends only that; it is stored salted and hashed. Synced data arrives
 // already encrypted with a key the server never has. Emails are stored only

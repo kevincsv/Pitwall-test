@@ -1,7 +1,7 @@
 package main
 
-// Live telemetry through your Pitlane HQ server: while you are signed in,
-// PitlaneHQ.exe keeps a WebSocket open to your account's live room
+// Live telemetry through your TrackIQ server: while you are signed in,
+// TrackIQ.exe keeps a WebSocket open to your account's live room
 // (cloud/src/live.js) and, only while a browser or phone of yours is watching,
 // sends the same events as /api/stream. Every message is sealed with the
 // account's data key (AES-256-GCM), which the server never has.
