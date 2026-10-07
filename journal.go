@@ -394,6 +394,11 @@ func sessionResults(y string, sn int) []raceResult {
 		if d := driverBlock(y, idx); d != "" {
 			r.Name, r.Car, r.Class = yamlField(d, "UserName"), yamlField(d, "CarScreenName"), yamlField(d, "CarClassShortName")
 			r.IR, r.ClassID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID"))
+			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
+			// up to date are the ones per driver (the team's in a team race, else the driver's own)
+			if r.Inc == 0 {
+				r.Inc = max(atoi(yamlField(d, "TeamIncidentCount")), atoi(yamlField(d, "CurDriverIncidentCount")))
+			}
 		}
 		r.Me = idx == yamlField(y, "DriverCarIdx")
 		out = append(out, r)
@@ -515,6 +520,9 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 			// the results can still say 0 at the flag: keep what was counted during the race
 			if cls[i].Inc > r.Inc {
 				r.Inc = cls[i].Inc
+			}
+			if r.Inc > cls[i].Inc {
+				cls[i].Inc = r.Inc
 			}
 			if cls[i].Best > 0 {
 				r.Best = cls[i].Best

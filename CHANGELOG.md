@@ -14,6 +14,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **Your own laps and analyses are marked "you" in the community lists**, also the anonymous
   ones (only you see that mark), on the PC, the web and the phones; the separate "You" row
   appears only when your best lap is not shared.
+- **The race summary's table showed 0 incidents for everyone.** iRacing leaves the incidents of
+  its results at 0 while the session runs; the table now takes each driver's own count (the
+  team's in a team race) and, for you, what was counted during the race.
 - **The Garage 61 import stopped with "HTTP 400".** Garage 61 only lists laps per track, so the
   import now walks its track list (one query per track, shown as "track 12/310" while it runs),
   takes the token with or without "Bearer" in front, and shows Garage 61's own reason when

@@ -40,7 +40,7 @@ SessionInfo:
      Lap: 12
      FastestTime: 97.900
      LapsComplete: 12
-     Incidents: 2
+     Incidents: 0
      ReasonOutStr: Running
    - Position: 3
      ClassPosition: 2
@@ -48,7 +48,7 @@ SessionInfo:
      Lap: 11
      FastestTime: 98.300
      LapsComplete: 11
-     Incidents: 4
+     Incidents: 0
      ReasonOutStr: Running
    ResultsFastestLap:
    - CarIdx: 0
@@ -78,6 +78,8 @@ DriverInfo:
    CarScreenName: Global Mazda MX-5 Cup
    CarClassID: 74
    IRating: 1500
+   CurDriverIncidentCount: 4
+   TeamIncidentCount: 4
 `
 
 func TestRaceReport(t *testing.T) {
@@ -89,11 +91,18 @@ func TestRaceReport(t *testing.T) {
 	if len(res) != 3 || res[0].Name != "Fast One" || res[1].Name != "Driver C" || !res[1].Me || res[1].ClassPos != 2 || res[2].Best != 98.3 {
 		t.Fatalf("results: %+v", res)
 	}
+	// the results' Incidents stay 0 live: the per-driver counts fill them in, and the player's own count from the race
+	if res[2].Inc != 4 || res[0].Inc != 0 {
+		t.Fatalf("incidents from the driver counts: %+v", res)
+	}
 	tr := &raceTrack{id: "900-2", meta: c, started: true, start: 3, lastPos: 2, lastInc: 2, fuel0: 30, lastFuel: 6, pits: 0,
 		laps: []raceLap{{N: 1, Time: 99.5, Pos: 3}, {N: 2, Time: 98.0, Pos: 3}, {N: 3, Time: 98.2, Pos: 2}, {N: 4, Time: 101.0, Pos: 2, Inc: 2}, {N: 5, Time: 97.9, Pos: 2}}}
 	r := buildReport(testRaceYAML, tr, false)
 	if r.Finish != 2 || r.Start != 3 || r.Field != 3 || r.Inc != 2 || r.Best != 97.9 || r.FieldBest != 97.5 || r.FuelUsed != 24 {
 		t.Fatalf("report: %+v", r)
+	}
+	if r.Results[1].Inc != 2 || r.Results[2].Inc != 4 {
+		t.Fatalf("incidents in the table: %+v", r.Results)
 	}
 	if r.Avg != 98.033 || r.Consistency <= 0 || r.Consistency > 0.2 {
 		t.Fatalf("clean laps: avg %v sd %v", r.Avg, r.Consistency)
