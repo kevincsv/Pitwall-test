@@ -46,6 +46,12 @@ async function countUpload(env, u) {
 
 import { gameOf } from "./games.js";
 
+/** "Max Verstappen2" → "Max": only the first name of another driver is shown. */
+function firstName(n) {
+  const w = String(n || "").trim().split(/\s+/);
+  return w[0] ? w[0].replace(/\d+$/, "") : "";
+}
+
 export async function community(req, env, url) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
@@ -110,7 +116,7 @@ export async function community(req, env, url) {
     const r = await env.DB.prepare("SELECT data FROM community_reports WHERE id=?1").bind(um[1]).first();
     if (!r) return err("not found", 404);
     const d = JSON.parse(r.data);
-    if (Array.isArray(d.laps)) d.laps = d.laps.map((l) => ({ ...l, cut: false }));
+    if (Array.isArray(d.laps)) d.laps = d.laps.map((l) => (l.i ? l : { ...l, cut: false })); // only the laps without incidents
     await env.DB.prepare("UPDATE community_reports SET data=?2 WHERE id=?1").bind(um[1], JSON.stringify(d)).run();
     return json({ ok: true });
   }
@@ -132,9 +138,8 @@ export async function community(req, env, url) {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
     const data = JSON.parse(r.data);
-    if (r.anon) {
-      for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (x && x.me ? { ...x, name: "Anonymous" } : x));
-    }
+    // the other drivers only by their first name (their privacy); the sharer as "Anonymous" when asked
+    for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (!x ? x : x.me ? (r.anon ? { ...x, name: "Anonymous" } : x) : { ...x, name: firstName(x.name) }));
     return json({ ...data, id: r.id, alias: r.alias, game: r.game, shared: true });
   }
 

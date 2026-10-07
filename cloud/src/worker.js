@@ -61,9 +61,9 @@ async function addLap(env, sessionId, l) {
   const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.filter((x) => typeof x === "number").slice(0, 40)) : null;
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
+      `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
        ON CONFLICT(id) DO NOTHING`
-    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now()),
+    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0))),
     env.DB.prepare(
       `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
        best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1`
@@ -135,7 +135,8 @@ async function api(req, env, url) {
     const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (role !== "account" || !admins.includes(me.name.replace(/^acct:/, ""))) return err("only the admins of this server can do this", 403);
     const sid = decodeURIComponent(mm[1]);
-    const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0").bind(sid).run();
+    // only the laps without incidents: an incident lap stays as it is
+    const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0 AND COALESCE(inc,0)=0").bind(sid).run();
     return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
   }
 
@@ -152,7 +153,7 @@ async function api(req, env, url) {
     if (!s || (own && s.uploader !== own)) return err("not found", 404);
     // ?traces=1: every lap with its telemetry in one answer (the app's analyzer), instead of one call per lap
     const withTraces = url.searchParams.get("traces") === "1";
-    const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
+    const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
     return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(l.trace) : null } : {}) })) });
   }
 

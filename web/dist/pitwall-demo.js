@@ -52,6 +52,8 @@
     for (let i = 0; i < n; i++) { const f = i / (n - 1); x[i] = Math.round((x[i] - ex * f) * 10) / 10; y[i] = Math.round((y[i] - ey * f) * 10) / 10; }
     return { bin, d, x, y };
   }
+  // a lap with incidents carries where they happened: [distance m, points]
+  function withInc(tr, l, c) { return l && l.inc ? { ...tr, inc: [Math.round(c.len * 0.42), l.inc] } : tr; }
   function sectors(lap, r) {
     const a = [0.31, 0.37, 0.32].map((x) => x * lap + r.f(-0.15, 0.15)), s = a.reduce((p, x) => p + x, 0);
     return a.map((x) => (x * lap) / s);
@@ -72,7 +74,7 @@
     const r = rng(hash(sid)), out = [];
     for (let n = 1; n <= s.laps; n++) {
       const time = n === 3 ? s.best : s.best + r.f(0.1, 1.6) + (n === 1 ? 4 : 0);
-      out.push({ id: `${sid}:${n}`, n, time, valid: n === 6 ? 0 : 1, fuel: null, vmax: null, sectors: sectors(time, r) });
+      out.push({ id: `${sid}:${n}`, n, time, valid: n === 6 ? 0 : 1, fuel: null, vmax: null, sectors: sectors(time, r), inc: n === 3 ? 2 : 0 });
     }
     return out;
   }
@@ -123,12 +125,12 @@
       const id = decodeURIComponent(m[1]), s = sessions().find((x) => x.id === id);
       if (!s) return undefined;
       const ls = laps(id);
-      return { session: s, laps: q.get("traces") === "1" ? ls.map((l) => ({ ...l, trace: trace(comboOf(l.id), l.time, hash(l.id)) })) : ls };
+      return { session: s, laps: q.get("traces") === "1" ? ls.map((l) => ({ ...l, trace: withInc(trace(comboOf(l.id), l.time, hash(l.id)), l, comboOf(l.id)) })) : ls };
     }
     m = p.match(/^\/api\/laps\/(.+)$/);
     if (m) {
       const id = decodeURIComponent(m[1]), sid = id.slice(0, id.lastIndexOf(":")), l = laps(sid).find((x) => x.id === id), s = sessions().find((x) => x.id === sid);
-      return l && s ? { ...l, session_id: sid, track: s.track, car: s.car, started: s.started, trace: trace(comboOf(id), l.time, hash(id)) } : undefined;
+      return l && s ? { ...l, session_id: sid, track: s.track, car: s.car, started: s.started, trace: withInc(trace(comboOf(id), l.time, hash(id)), l, comboOf(id)) } : undefined;
     }
     if (p === "/api/bests") return COMBOS.map((c, i) => ({ game: "iracing", track: c.track, track_config: c.cfg, car: c.car, who: "you", driver: "You", best: c.lap + 0.2, laps: 23, last: NOW - i * 2 * DAY, bestLapId: `demo:${i}:r:3`, bestSessionId: `demo:${i}:r` }));
     if (p === "/api/races") return { races: races() };

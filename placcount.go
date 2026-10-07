@@ -463,6 +463,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		if r.Method == http.MethodPost {
 			var in struct {
 				Action, Email, Password, NewPassword, Nick, NameKind, ID, Lang string
+				Anon                                                          *bool // share as "Anonymous" (kept with the account)
 				On                                                             bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&in)
@@ -555,11 +556,21 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				if _, err = plCall("POST", "/me", map[string]string{"display": name, "nameKind": kind}); err == nil {
+				body := map[string]any{"display": name, "nameKind": kind}
+				if in.Anon != nil {
+					body["anon"] = *in.Anon
+				}
+				if _, err = plCall("POST", "/me", body); err == nil {
 					plMu.Lock()
 					plAcc.Display, plAcc.NameKind = name, kind
 					savePLLocked()
 					plMu.Unlock()
+					if in.Anon != nil { // the PC shares with the same choice
+						commMu.Lock()
+						commCfg.Anonymous, commCfg.Asked = *in.Anon, true
+						saveCommLocked()
+						commMu.Unlock()
+					}
 				}
 			case "password":
 				if err = checkPassword(in.NewPassword); err != nil {

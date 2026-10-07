@@ -56,6 +56,7 @@ type cloudLap struct {
 	Vmax    float64   `json:"vmax,omitempty"`
 	Sectors []float64 `json:"sectors,omitempty"`
 	Pit     bool      `json:"pit,omitempty"` // through the pit lane: a real lap, but never a best or shared
+	Inc     int       `json:"inc,omitempty"` // incident points during the lap (they do not make it invalid)
 	Trace   *lapTrace `json:"trace,omitempty"`
 }
 
@@ -64,6 +65,7 @@ type lapTrace struct {
 	D   [][6]float64 `json:"d"`           // speed m/s, throttle, brake, gear, steering rad, lap time s
 	X   []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
 	Y   []float64    `json:"y,omitempty"`
+	Inc []float64    `json:"inc,omitempty"` // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 }
 
 type cloudItem struct {
@@ -328,6 +330,8 @@ type lapRec struct {
 	pyaw, pvx, pvy   float64
 	pt               float64
 	hasPos, posBad   bool
+	incPrev          float64   // the incident count at the previous sample
+	incAt            []float64 // [distance, points] of every incident on this lap
 }
 
 // move integrates the car's position from its yaw and velocity (m/s, in the car's frame).
@@ -444,7 +448,7 @@ func lapRecorder() {
 					finishLap(done, s, fuelNow, waitLastLap(done, prevLast))
 				}()
 			}
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11]}
+			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11]}
 		}
 		if pct < 0 || dist < 0 {
 			continue
@@ -452,6 +456,10 @@ func lapRecorder() {
 		if hasYaw {
 			cur.move(v[14], v[19], v[20], v[21])
 		}
+		if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap and how many points
+			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), v[11]-cur.incPrev)
+		}
+		cur.incPrev = v[11]
 		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
 		cur.vmax = math.Max(cur.vmax, speed)
 		if v[10] > 0 {
@@ -549,6 +557,12 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Trace: &lapTrace{Bin: lapBin, D: r.bins}}
 	if x, y := r.shape(maxGap); x != nil {
 		l.Trace.X, l.Trace.Y = x, y
+	}
+	if len(r.incAt) > 0 {
+		l.Trace.Inc = r.incAt
+		for i := 1; i < len(r.incAt); i += 2 {
+			l.Inc += int(r.incAt[i])
+		}
 	}
 	// sectors: thirds of the lap distance, from the interpolated times
 	n := len(r.bins)

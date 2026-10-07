@@ -4,6 +4,26 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.1 beta
+
+**New**
+- **Incidents on your laps.** TrackIQ.exe records the incidents of every lap (how many points and
+  where on the lap). The lap analyzer shows them in the lap table and in the selectors (⚠), the
+  track map marks where they happened (a switch hides them) and the hover reads them. Incidents
+  never make a lap invalid; only leaving the track does. The phone apps show them too.
+- **Your name in the community, one choice:** your iRacing name (the one of your registered
+  session), a nickname, or Anonymous, in which case nothing you share carries a name: not the
+  leaderboard, not the telemetry of a fast lap, not an analysis. The choice is kept with your
+  account, so the PC, the web and the phones share the same way. The other drivers in a shared
+  analysis only ever show by their first name, whoever shared it.
+
+**Changed**
+- Lap analyzer and Coach use the same session bar: A session, ＋ session, B session. Lap B
+  lists the laps of session A as well as those of the added session, and both lists mark the
+  fastest lap (★), the not valid ones (✂) and the incidents (⚠). The Coach's reference can be a
+  lap of the added session too.
+- Admin "mark laps valid" (analyzer and race summary) only validates the laps without incidents.
+
 ## 0.5.0 beta
 
 **New**

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS laps (
   fuel REAL,                      -- litres used
   vmax REAL,                      -- m/s
   sectors TEXT,                   -- JSON array of seconds
+  inc INTEGER NOT NULL DEFAULT 0, -- incident points during the lap
   trace TEXT,                     -- JSON {bin, d:[[speed,throttle,brake,gear,steer],…]}
   created INTEGER NOT NULL
 );
@@ -85,6 +86,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   wrapped_key TEXT NOT NULL,
   display TEXT NOT NULL,
   name_kind TEXT NOT NULL DEFAULT 'nick',
+  anon INTEGER NOT NULL DEFAULT 0,  -- shares as "Anonymous"
   created INTEGER NOT NULL,
   verified INTEGER NOT NULL DEFAULT 0
 );

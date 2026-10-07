@@ -117,7 +117,7 @@ function colourLapTable(LP){const tb=$("#lapTable tbody"),th=$("#lapTable thead 
   const rows=LP.slice().reverse();[...tb.rows].forEach((tr,ri)=>{const l=rows[ri];if(!l)return;tr.classList.toggle("lap-invalid",l.valid===false);const t=tr.cells[1];if(t)t.classList.toggle("pb",l.valid!==false&&l.time===bestT);
     tr.querySelectorAll(".sec-c").forEach(c=>c.remove());for(let i=0;i<5;i++){if(i>=ns)break;const v=l.sectors&&l.sectors[i];tr.insertAdjacentHTML("beforeend",`<td class="r mono sec-c ${v>0&&l.valid!==false&&v===bestS[i]?"pb":""}">${v>0?(+v).toFixed(3):"–"}</td>`)}});
   // the ideal lap: the best sector of each
-  tb.querySelector(".ideal-row")?.remove();if(ns>1&&bestS.every(v=>v<1e9)){const it=bestS.reduce((a,b)=>a+b,0);tb.insertAdjacentHTML("afterbegin",`<tr class="ideal-row"><td>${E(TX("Ideal","Ideal","Ideal","Ideal"))}</td><td class="r mono pb">${FT(it)}</td><td></td><td></td>${bestS.map(v=>`<td class="r mono pb">${v.toFixed(3)}</td>`).join("")}</tr>`)}}
+  tb.querySelector(".ideal-row")?.remove();if(ns>1&&bestS.every(v=>v<1e9)){const it=bestS.reduce((a,b)=>a+b,0);tb.insertAdjacentHTML("afterbegin",`<tr class="ideal-row"><td>${E(TX("Ideal","Ideal","Ideal","Ideal"))}</td><td class="r mono pb">${FT(it)}</td>${Array.from({length:Math.max(0,th.querySelectorAll("th:not(.sec-h)").length-2)},()=>"<td></td>").join("")}${bestS.map(v=>`<td class="r mono pb">${v.toFixed(3)}</td>`).join("")}</tr>`)}}
 
 /* ---------- the panel under the analyzer (and in the coach) ---------- */
 function panel(id,after){let p=document.getElementById(id);if(!p&&after){p=document.createElement("div");p.id=id;p.className="panel pw-model";after.after(p)}return p}

@@ -191,19 +191,21 @@ export async function accounts(req, env, url) {
       return err("wrong email or password", 401);
     }
     const token = await newSession(env, a.id, body.device);
-    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified });
+    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified });
   }
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, created: a.created, admin: isAdmin(env, a.id), verified: !!a.verified, mail: mailReady(env) });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), verified: !!a.verified, mail: mailReady(env) });
   if (p === "/me" && m === "POST") {
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);
+    // anon: what you share shows as "Anonymous" (kept with the account so every device agrees)
+    const anon = body.anon === undefined ? !!a.anon : body.anon ? 1 : 0;
     await env.DB.batch([
-      env.DB.prepare("UPDATE accounts SET display=?2, name_kind=?3 WHERE id=?1").bind(a.id, display, body.nameKind === "iracing" ? "iracing" : "nick"),
+      env.DB.prepare("UPDATE accounts SET display=?2, name_kind=?3, anon=?4 WHERE id=?1").bind(a.id, display, body.nameKind === "iracing" ? "iracing" : "nick", anon ? 1 : 0),
       env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(a.id, display),
     ]);
     return json({ ok: true });
