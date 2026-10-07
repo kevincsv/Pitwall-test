@@ -85,13 +85,16 @@ async function useEmailToken(env, t, kind, consume) {
   if (consume) await env.DB.prepare("DELETE FROM email_tokens WHERE token_hash=?1").bind(h).run();
   return r.account_id;
 }
+// accounts created from here on confirm their email before they can sign in (older ones keep working)
+const VERIFY_SINCE = 1791396000000; // 2026-10-07 18:00 UTC
+const mustVerify = (env, a) => !a.verified && (a.created || 0) >= VERIFY_SINCE && mailReady(env) && !isAdmin(env, a.id);
 async function mailVerify(env, url, accountId, email, l) {
   if (!mailReady(env)) return false;
   const t = await newEmailToken(env, accountId, "verify", 7 * 86400e3);
   return sendVerify(env, email, url.origin + "/account/verify?t=" + t + "&lang=" + lang(l), l);
 }
 
-async function deleteAccount(env, id) {
+export async function deleteAccount(env, id) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(id),
@@ -190,8 +193,11 @@ export async function accounts(req, env, url) {
         .bind(id, eh, salt, await authHash(salt, body.auth), body.wrappedKey, display, body.nameKind === "iracing" ? "iracing" : "nick", Date.now()),
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
-    const token = await newSession(env, id, body.device);
     const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
+    // the email went out: confirm it first, then sign in. If it could not be sent, the account
+    // still works (signed in) so nobody is locked out while the email service is down.
+    if (mailed) return json({ verifyFirst: true, mailed: true, error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 202);
+    const token = await newSession(env, id, body.device);
     return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id), verified: false, mailed });
   }
   const signedIn = (a, token) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on });
@@ -203,6 +209,12 @@ export async function accounts(req, env, url) {
     if (!a || !same(await authHash(a.auth_salt, body.auth), a.auth_hash)) {
       await fail(env, keys);
       return err("wrong email or password", 401);
+    }
+    if (mustVerify(env, a)) {
+      // the password is right but the email is not confirmed: a new link (at most one every 2 minutes)
+      const recent = await env.DB.prepare("SELECT 1 FROM email_tokens WHERE account_id=?1 AND kind='verify' AND expires>?2").bind(a.id, Date.now() + 7 * 86400e3 - 120e3).first();
+      if (!recent) await mailVerify(env, url, a.id, body.email.trim(), body.lang).catch(() => false);
+      return json({ error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 403);
     }
     if (a.totp_on) {
       // the password is right: the session only exists once the authenticator code is right too

@@ -4,6 +4,22 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.0 beta
+
+**Added**
+- **Confirm your email before signing in.** A new account gets an email with a link; it signs in
+  once the link is opened. "Send it again" sends a new one. Accounts made before this keep
+  working. If the email cannot be sent, the account still signs in so nobody is locked out.
+- **Welcome popup that fits the device**: what to install on the PC app, Windows, Mac or Linux,
+  Android and iPhone (with how to add the web to the home screen).
+- **Admin profile:** delete an account (with its synced data, laps and shares), and a Server
+  tab with the state of the emails, the last email error and the numbers of the platform.
+
+**Changed**
+- **Sign out is in Settings** on every device.
+- **Every popup has an X** to close it.
+- **Light theme with a purple accent.**
+
 ## 0.7.2 beta
 
 **Fixed**

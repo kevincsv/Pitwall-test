@@ -28,8 +28,17 @@ const T = {
 export const lang = (l) => (["en", "es", "de", "pt"].includes(l) ? l : "en");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
+// the last result is kept in the database too, so the admin profile shows why emails do not go out
+async function note(env, ok) {
+  await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES (?1,?2,?3) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at")
+    .bind(ok ? "mail_ok" : "mail_error", ok ? "" : JSON.stringify(lastError), Date.now()).run().catch(() => {});
+}
 async function send(env, to, subject, text, link, button, l) {
-  if (!mailReady(env)) return false;
+  if (!mailReady(env)) { lastError = { at: Date.now(), message: "emails are not set up: EMAIL_FROM and SMTP_TOKEN (or RESEND_API_KEY) are missing" }; await note(env, false); return false; }
+  try { return await send1(env, to, subject, text, link, button, l); }
+  catch (e) { lastError = { at: Date.now(), message: String((e && e.message) || e) }; await note(env, false); return false; }
+}
+async function send1(env, to, subject, text, link, button, l) {
   const html = `<div style="font:15px/1.5 system-ui,sans-serif;color:#141a22;max-width:520px">
 <p style="font:700 20px system-ui;letter-spacing:.04em;text-transform:uppercase">Pitlane HQ</p>
 <p>${esc(text)}</p><p><a href="${esc(link)}" style="display:inline-block;background:#ffb02e;color:#11151b;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">${esc(button)}</a></p>
@@ -42,6 +51,7 @@ async function send(env, to, subject, text, link, button, l) {
       lastError = { at: Date.now(), via: "smtp", ...r.error, from: env.EMAIL_FROM };
       console.error("email not sent", lastError);
     } else lastError = null;
+    await note(env, r.ok);
     return r.ok;
   }
   const r = await fetch("https://api.resend.com/emails", {
@@ -54,6 +64,7 @@ async function send(env, to, subject, text, link, button, l) {
     lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
     console.error("email not sent", lastError);
   } else lastError = null;
+  await note(env, r.ok);
   return r.ok;
 }
 let lastError = null;

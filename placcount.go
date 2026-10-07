@@ -552,6 +552,10 @@ func registerPLRoutes(mux *http.ServeMux) {
 				}
 				var res plLoginRes
 				json.Unmarshal(b, &res)
+				if res.Token == "" { // the email has to be confirmed first: then sign in
+					err = errors.New("verify your email first: we sent you a link, open it and then sign in")
+					break
+				}
 				if err = plSignedIn(res, in.Email, wrap, key); err == nil {
 					go func() {
 						plBusy.Lock()
@@ -565,7 +569,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				b, e := commRequest("POST", "/account/login", map[string]any{"email": normEmail(in.Email), "auth": auth, "device": host}, "")
+				b, e := commRequest("POST", "/account/login", map[string]any{"email": normEmail(in.Email), "auth": auth, "device": host, "lang": in.Lang}, "")
 				if e != nil {
 					err = e
 					break

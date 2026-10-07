@@ -205,3 +205,9 @@ CREATE TABLE IF NOT EXISTS model_laps (
 );
 CREATE INDEX IF NOT EXISTS model_laps_combo ON model_laps(game, track_id, car_id, time);
 CREATE INDEX IF NOT EXISTS sessions_combo_ids ON sessions(track_id, car_id, game);
+
+CREATE TABLE IF NOT EXISTS app_state (
+  k TEXT PRIMARY KEY,
+  v TEXT,
+  at INTEGER NOT NULL
+);

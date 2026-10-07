@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.8.0",
+      "en": [
+        "New accounts confirm their email before signing in.",
+        "A welcome that tells you what to install on the device you are using.",
+        "Sign out is now in Settings, and every popup has an X.",
+        "The light theme is purple."
+      ],
+      "es": [
+        "Las cuentas nuevas confirman su email antes de entrar.",
+        "Una bienvenida que te dice qué instalar en el dispositivo que usas.",
+        "Cerrar sesión ahora está en Ajustes, y cada popup tiene una X.",
+        "El tema claro es morado."
+      ]
+    },
+    {
       "v": "0.7.2",
       "en": [
         "Your older laps now teach the coach too, and it never forgets what it learnt."

@@ -2,7 +2,9 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
-import { sessionAccount, isAdmin, nameTaken } from "./accounts.js";
+import { sessionAccount, isAdmin, nameTaken, deleteAccount } from "./accounts.js";
+import { mailReady } from "./email.js";
+import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, markModel } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
@@ -134,6 +136,34 @@ export async function community(req, env, url) {
     return json({ ok: true });
   }
   // the admin profile: who really shared each item (also anonymous ones and Drinks drivers), and the accounts
+  // the admin deletes an account: the account, its synced data, its laps and everything it shared
+  const du = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})$/);
+  if (du && m === "DELETE") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const id = du[1];
+    if (id === acc.id || isAdmin(env, id)) return err("an admin account cannot be deleted from here", 400);
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1)").bind("acct:" + id),
+      env.DB.prepare("DELETE FROM sessions WHERE uploader=?1").bind("acct:" + id),
+      env.DB.prepare("DELETE FROM community_laps WHERE user_id IN (SELECT id FROM community_users WHERE owner=?1)").bind(id),
+      env.DB.prepare("DELETE FROM community_users WHERE owner=?1").bind(id),
+    ]);
+    await deleteAccount(env, id);
+    return json({ deleted: true });
+  }
+  if (m === "GET" && p === "/admin/status") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const st = await env.DB.prepare("SELECT k, v, at FROM app_state WHERE k IN ('mail_error','mail_ok')").all().catch(() => ({ results: [] }));
+    const get = (k) => (st.results || []).find((x) => x.k === k);
+    const e = get("mail_error"), ok = get("mail_ok");
+    const counts = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM accounts) AS accounts, (SELECT COUNT(*) FROM accounts WHERE verified=1) AS verified, (SELECT COUNT(*) FROM sessions) AS sessions, (SELECT COUNT(*) FROM community_laps) AS shared, (SELECT COUNT(*) FROM model_laps) AS learnt, (SELECT COUNT(*) FROM model_cache) AS models").first().catch(() => null);
+    return json({
+      mail: { ready: mailReady(env), via: smtpReady(env) ? "smtp" : env.RESEND_API_KEY ? "resend" : "", from: env.EMAIL_FROM || "", lastOk: ok ? ok.at : 0, lastError: e && (!ok || e.at > ok.at) ? { at: e.at, ...JSON.parse(e.v || "{}") } : null },
+      counts,
+    });
+  }
   if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
