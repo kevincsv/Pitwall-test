@@ -976,6 +976,8 @@ html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwal
 #splash .sp-bar i{display:block;width:40%;height:100%;background:var(--acc,#ffb02e);animation:spmove 1s ease-in-out infinite}
 @keyframes spmove{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 @media (prefers-reduced-motion:reduce){#splash .sp-bar i{animation:none;width:100%}}
+/* one menu everywhere (PC, web, phones): Home, Analysis, Community, Live, Account; the Planner (in development) only for admins, last */
+nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{order:2!important}nav.tabs button[data-g=community]{order:3!important}nav.tabs button[data-g=race]{order:4!important}nav.tabs button[data-g=account]{order:5!important}nav.tabs button[data-g=season]{order:6!important}nav.tabs button[data-g=more]{order:7!important}
 </style>
 
 <div id="splash" role="status" aria-label="Pitlane HQ"><div class="sp-logo"><span class="sp-flag" aria-hidden="true"></span>PITLANE HQ</div><div class="sp-bar"><i></i></div></div>
@@ -3954,7 +3956,7 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=WEBAPP?["Analysis","Análisis","Analyse","Análise"]:["Tracks","Circuitos"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Analysis","Análisis","Analyse","Análise"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
 // the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
 const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
 if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}
@@ -4426,7 +4428,7 @@ document.querySelectorAll("#setNav a").forEach(a=>a.onclick=e=>{e.preventDefault
 document.querySelectorAll("#v-settings .sethead").forEach(h=>{h.scrollIntoView=()=>{setSection(h.id);scrollTo(0,0)}});
 
 /* ===================== voice engineer ===================== */
-Object.assign(I18N,{"tab.analyzer":["Lap analyzer","Analizador de vueltas","Rundenanalyse","Analisador de voltas"],"tab.coach":["Coach","Coach","Coach","Coach"],"tab.strategy":["Strategy","Estrategia"],"tab.goals":["Goals","Objetivos"],"tab.setups":["Setups","Setups"],"tab.cars":["Car profiles","Perfiles por coche"],
+Object.assign(I18N,{"tab.analyzer":["Laps","Vueltas","Runden","Voltas"],"tab.coach":["Coach","Coach","Coach","Coach"],"tab.strategy":["Strategy","Estrategia"],"tab.goals":["Goals","Objetivos"],"tab.setups":["Setups","Setups"],"tab.cars":["Car profiles","Perfiles por coche"],
  "w.coach":["Braking coach","Coach de frenada"],"d.coach":["Where you lose time braking, with tips","Dónde pierdes tiempo frenando, con consejos"],
  "tab.engineer":["Engineer","Ingeniero"],"w.radio":["Radio","Radio"],"d.radio":["Ask your engineer: fuel, gaps, position… (the phone works as a button box)","Pregunta al ingeniero: gasolina, gaps, posición… (el móvil sirve de botonera)"]});
 /* Per screen: on/off, voice, speed and volume (turn it on in one screen only).
@@ -5837,7 +5839,7 @@ function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div")
   const f=m.querySelector("button");if(f)f.focus()}
 
 /* ===================== my account: Pitlane HQ sign-in, encrypted sync, public name ===================== */
-Object.assign(I18N,{"tab.cloudlaps":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"tab.cloudlaps":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Live","En vivo","Live","Ao vivo"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
  "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
 let ME=null,SETUP_TAB="mine";
 /* how others see you: your iRacing name (the registered session's), a nickname, or "Anonymous" (nothing of yours carries a name) */
