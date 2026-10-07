@@ -251,14 +251,14 @@ export async function community(req, env, url) {
     // of this page are done, how many tracks go in one request and in which form Garage 61 takes them
     const st = String(body.next || "").match(/^g61\|(\d+)\|([^|]*)\|([^|]*)\|(\d+)(?:\|(\d+)\|([ecs]))?$/);
     let ti = st ? +st[1] : 0, page = st ? st[2] : "", prevFirst = st ? st[3] : "", k = st ? +st[4] : 0;
-    let tb = st && st[5] ? Math.max(1, +st[5]) : 40, form = st && st[6] ? st[6] : "e"; // e: tracks=1&tracks=2, c: tracks=1,2, s: one track per request
+    let tb = st && st[5] ? Math.max(1, +st[5]) : 10, form = st && st[6] ? st[6] : "e"; // Garage 61 takes at most 10 tracks per request // e: tracks=1&tracks=2, c: tracks=1,2, s: one track per request
     const idle = { imported: 0, skipped: 0, noTrace: 0, others: 0, shared: 0, done: false, track: null, ids: [] };
     let tracks, meInfo = null;
     try {
       tracks = listOf(await cached("tracks")).filter((t) => t && t.id != null).sort((a, b) => (+a.id || 0) - (+b.id || 0) || String(a.id).localeCompare(String(b.id)));
       meInfo = await cached("me").catch((e) => { if (e.status === 429) throw e; return null; });
     } catch (e) {
-      if (throttled(e)) return json({ ...idle, wait, next: st ? body.next : "g61|0|||0|40|e" });
+      if (throttled(e)) return json({ ...idle, wait, next: st ? body.next : "g61|0|||0|10|e" });
       throw e;
     }
     if (!tracks.length) return err("Garage 61 returned no tracks", 502);
@@ -274,7 +274,9 @@ export async function community(req, env, url) {
         const q = `laps?${tq}&drivers=${encodeURIComponent(drivers)}${group}&limit=${limit}` + (pg ? (pg[0] === "c" ? "&" + cursorKey + "=" + encodeURIComponent(pg.slice(1)) : "&offset=" + pg.slice(1)) : "");
         try { return await g61(q); } catch (e) {
           if (e.status !== 400 || tries >= 5) throw e;
-          if (e.param === "limit") limit = limit > 50 ? 50 : limit > 25 ? 25 : limit > 10 ? 10 : (() => { throw e; })();
+          const most = (e.message || "").match(/more than (\d+) tracks/i);
+          if (most && group_.length > 1 && +most[1] >= 1 && +most[1] < group_.length) { tb = +most[1]; group_ = group_.slice(0, tb); }
+          else if (e.param === "limit") limit = limit > 50 ? 50 : limit > 25 ? 25 : limit > 10 ? 10 : (() => { throw e; })();
           else if (e.param === "group" && group) group = "";
           else if (e.param === "drivers" && meId && drivers === "me") drivers = meId;
           else if (e.param === cursorKey && pg && pg[0] === "c" && cursorKey === "after") cursorKey = "cursor";
