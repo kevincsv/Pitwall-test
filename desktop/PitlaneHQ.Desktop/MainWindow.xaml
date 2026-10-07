@@ -43,15 +43,13 @@
             <!-- navigation -->
             <Border Grid.Column="0" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
                 <StackPanel Margin="0,10">
-                    <RadioButton Style="{StaticResource NavButton}" Content="Home" Tag="home" IsChecked="True" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Live" Tag="live" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Analysis" Tag="laps" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Coach" Tag="coach" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="My races" Tag="races" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Community" Tag="community" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Overlays" Tag="overlays" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Account" Tag="me" Checked="OnNav"/>
-                    <RadioButton Style="{StaticResource NavButton}" Content="Settings" Tag="settings" Checked="OnNav"/>
+                    <!-- the same menu as everywhere (PC, web, phones): Home, Analysis, Community, Live, Account; Settings last -->
+                    <RadioButton x:Name="NavHome" Style="{StaticResource NavButton}" Content="Home" Tag="home" IsChecked="True" Checked="OnNav"/>
+                    <RadioButton x:Name="NavAnalysis" Style="{StaticResource NavButton}" Content="Analysis" Tag="laps" Checked="OnNav"/>
+                    <RadioButton x:Name="NavCommunity" Style="{StaticResource NavButton}" Content="Community" Tag="community" Checked="OnNav"/>
+                    <RadioButton x:Name="NavLive" Style="{StaticResource NavButton}" Content="Live" Tag="live" Checked="OnNav"/>
+                    <RadioButton x:Name="NavAccount" Style="{StaticResource NavButton}" Content="Account" Tag="me" Checked="OnNav"/>
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Content="Settings" Tag="settings" Checked="OnNav"/>
                 </StackPanel>
             </Border>
 

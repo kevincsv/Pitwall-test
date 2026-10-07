@@ -9,8 +9,9 @@ The PC app is being rewritten in two halves, step by step:
   status bar, native screens where they pay off (first the Home status), and the rest of the
   app inside a WebView2 while each screen is moved over. Closing the window stops the engine.
 
-Every build is published as `PitlaneHQ-Desktop.zip` next to the normal download (the installer
-still installs the Go app on its own). It is a **preview** for admins and the curious: both
+Every build is published as an installer, `PitlaneHQ-Desktop-Setup.exe`, next to the normal
+download. It installs the window and its own copy of the engine in "Pitlane HQ Desktop", with the
+.NET runtime inside (nothing else to install). The normal installer still installs the Go app. It is a **preview** for admins and the curious: both
 windows show the same data, from the same engine.
 
 ## Run it
@@ -30,7 +31,8 @@ Needs the .NET 8 SDK and the WebView2 runtime (part of Windows 11 and of Edge). 
 
 ## What is native already
 
-- The frame: title bar buttons, navigation (Home, Live, Analysis, Community, Account, Settings),
+- The frame: title bar buttons, the same menu as everywhere (Home, Analysis, Community, Live,
+  Account, then Settings),
   the status bar (engine, game, track and car, account).
 - Home: the live status card (connection, track and car), from the engine's `/api/now`.
 

@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.1 beta
+
+**Changed**
+- **Pitlane HQ Desktop (preview) comes as an installer**, PitlaneHQ-Desktop-Setup.exe, with
+  everything inside. Its menu is the same as everywhere: Home, Analysis, Community, Live,
+  Account and Settings ("My races" opened an old screen).
+
+**Fixed**
+- **A screen that fails to draw says so** with the error, instead of staying blank, so it can
+  be reported and fixed.
+- **The coach model recognises your account laps** on tracks and cars nobody shared yet.
+
 ## 0.8.0 beta
 
 **Added**

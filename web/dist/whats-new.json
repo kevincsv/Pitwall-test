@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.8.1",
+      "en": [
+        "Pitlane HQ Desktop (preview) now has its own installer.",
+        "If a screen fails to load, it now tells you why."
+      ],
+      "es": [
+        "Pitlane HQ Desktop (preview) ahora tiene su propio instalador.",
+        "Si una pantalla no carga, ahora te dice por qué."
+      ]
+    },
+    {
       "v": "0.8.0",
       "en": [
         "New accounts confirm their email before signing in.",

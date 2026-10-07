@@ -18,6 +18,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        // the menu in the language of Windows (Spanish or English, like the rest of the app)
+        if (System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es")
+        {
+            NavHome.Content = "Inicio"; NavAnalysis.Content = "Análisis"; NavCommunity.Content = "Comunidad";
+            NavLive.Content = "En vivo"; NavAccount.Content = "Cuenta"; NavSettings.Content = "Ajustes";
+        }
         _poll.Tick += async (_, _) => await RefreshAsync();
     }
 

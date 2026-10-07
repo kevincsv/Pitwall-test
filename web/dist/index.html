@@ -1846,7 +1846,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.0",APP_STAGE="beta";
+const WEB_VERSION="0.8.1",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -4813,7 +4813,7 @@ async function cloudSessionLaps(id){if(CLOUD_CACHE.has(id))return CLOUD_CACHE.ge
   if(ls.length&&!("trace" in ls[0])){// an older server: one call per lap, six at a time
     const out=[];for(let k=0;k<ls.length;k+=6)out.push(...await Promise.all(ls.slice(k,k+6).map(l=>cloudGet("/api/laps/"+encodeURIComponent(l.id).replace(/%3A/gi,":")).catch(()=>null))));ls=out.filter(Boolean)}
   const meta=j.session||(CLOUD.sessions||[]).find(x=>x.id===id)||{};
-  const res={laps:ls.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,pit:!!l.pit,inc:l.inc||0,incAt:Array.isArray(l.trace.inc)?l.trace.inc:[],incK:Array.isArray(l.trace.incK)?l.trace.incK:[],cloud:l.id,sessionId:id,trackId:meta.trackId??meta.track_id??null,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,vmax:l.vmax||null,fuel:l.fuel??null,...traceBins(l.trace)})),any:ls.length};
+  const res={laps:ls.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,pit:!!l.pit,inc:l.inc||0,incAt:Array.isArray(l.trace.inc)?l.trace.inc:[],incK:Array.isArray(l.trace.incK)?l.trace.incK:[],cloud:l.id,sessionId:id,trackId:meta.trackId??meta.track_id??null,carId:meta.carId??meta.car_id??null,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,vmax:l.vmax||null,fuel:l.fuel??null,...traceBins(l.trace)})),any:ls.length};
   await mergeRaceIncidents(id,meta,res.laps);
   CLOUD_CACHE.set(id,res);if(CLOUD_CACHE.size>6)CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);return res}
 /* laps recorded before 0.5.1 have no incidents of their own: the race summary of the same session has them per lap
@@ -5915,6 +5915,13 @@ function openOutside(url){if(!/^(https:\/\/|mailto:)/.test(url))return;if(COMPAN
 async function openForgot(){const u=await acctServer();if(!u){toast(Tx("The Pitlane HQ server is not set up yet","El servidor de Pitlane HQ aún no está configurado","Der PitlaneHQ-Server ist noch nicht eingerichtet","O servidor do Pitlane HQ ainda não está configurado"));return}openOutside(u+"/account/forgot?lang="+LANG)}
 /* ---------- two-step sign-in (authenticator app): optional, recommended ---------- */
 // a small dialog with our own content; resolves with what `wire` passes to done()
+/* when a screen fails to draw, say so on it (with the error) instead of leaving it blank */
+function pwReport(e,v){try{console.error(e);const sec=document.getElementById("v-"+(v||CUR_VIEW));if(!sec)return;let c=sec.querySelector(":scope>.pw-err");if(!c){c=document.createElement("div");c.className="callout pw-err";c.style.cssText="border-color:var(--bad);margin:10px 0";sec.prepend(c)}
+  const at=String((e&&e.stack)||"").split("\n").slice(1,2).join("").trim();c.innerHTML=`<b class="bad">${esc(Tx("This screen could not be drawn","Esta pantalla no se pudo dibujar","Diese Ansicht konnte nicht gezeichnet werden","Esta tela não pôde ser desenhada"))}</b><div class="note mono" style="margin-top:4px;white-space:pre-wrap">${esc(String((e&&e.message)||e))}${at?"\n"+esc(at):""}</div><div class="note" style="margin-top:4px">${esc(Tx("Send us a screenshot of this from About → Feedback.","Envíanos una captura de esto desde Acerca de → Opinión.","Schick uns einen Screenshot davon über Info → Feedback.","Envie-nos uma captura disto em Sobre → Feedback."))} v${esc(WEB_VERSION)}</div>`}catch(x){}}
+{const s0=show;show=function(v){const sec=document.getElementById("v-"+v),old=sec&&sec.querySelector(":scope>.pw-err");if(old)old.remove();try{return s0.apply(this,arguments)}catch(e){pwReport(e,v)}}}
+const pwAdm=()=>{try{return isAdmin()}catch(e){return false}};
+window.addEventListener("error",ev=>{if(ev.error&&pwAdm()&&typeof CUR_VIEW!=="undefined")pwReport(ev.error,CUR_VIEW)});
+window.addEventListener("unhandledrejection",ev=>{const r=ev.reason;if(r&&r.stack&&pwAdm()&&!/fetch|network|HTTP \d|Failed to fetch|abort/i.test(String(r.message)))pwReport(r,CUR_VIEW)});
 /* every popup gets an X to close it: it does what a click outside does, and closes it if that does nothing */
 (()=>{const add=()=>document.querySelectorAll(".uidlg .pn").forEach(pn=>{if(pn.querySelector(":scope>.uidlg-x"))return;const b=document.createElement("button");b.type="button";b.className="uidlg-x";b.setAttribute("aria-label",Tx("Close","Cerrar","Schließen","Fechar"));b.textContent="×";
     b.onclick=()=>{const d=pn.closest(".uidlg"),bg=d&&d.querySelector(".bg");if(bg)bg.click();setTimeout(()=>{if(d&&d.isConnected&&!d.hidden&&getComputedStyle(d).display!=="none")d.remove()},0)};pn.prepend(b)});
