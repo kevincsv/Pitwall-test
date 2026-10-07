@@ -4,6 +4,18 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.2 beta
+
+**New**
+- Recorded laps: the incidents of each lap as the game names them (Off track 1x, Loss of control
+  or slight contact 2x, Car contact 4x), and for admins a button per lap to mark it valid or not
+  valid by hand.
+- Coach and lap analyzer now have exactly the same session bar and lap lists: one row, the same
+  laps in B (with ★, ✂ and ⚠) and the fastest lap chosen by default; the Coach's synthetic "My
+  best lap" entry is gone.
+- My races: the race summaries open from here on the PC and the web too (a list of your recorded
+  races, and "Race summary" when you open a session that has one), not only on the phone.
+
 ## 0.5.1 beta
 
 **New**

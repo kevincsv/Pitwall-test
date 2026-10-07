@@ -140,6 +140,16 @@ async function api(req, env, url) {
     return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
   }
 
+  // admins: one lap valid or not valid by hand (the cut check got it wrong)
+  mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)\/valid$/);
+  if (mm && m === "POST") {
+    const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
+    if (role !== "account" || !admins.includes(me.name.replace(/^acct:/, ""))) return err("only the admins of this server can do this", 403);
+    const b = await req.json().catch(() => ({}));
+    const r = await env.DB.prepare("UPDATE laps SET valid=?2 WHERE id=?1").bind(decodeURIComponent(mm[1]), b.valid === false ? 0 : 1).run();
+    return json({ ok: true, changed: r.meta ? r.meta.changes : undefined, valid: b.valid !== false });
+  }
+
   mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)$/);
   if (mm) {
     if (m === "DELETE") {
