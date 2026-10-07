@@ -257,6 +257,9 @@ async function api(req, env, url) {
 // no referrer, nothing cached by proxies unless the handler said so)
 const HARDEN = { "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "permissions-policy": "camera=(), microphone=(), geolocation=()", "strict-transport-security": "max-age=31536000; includeSubDomains", "cross-origin-opener-policy": "same-origin" };
 function harden(r) {
+  // a WebSocket (the live telemetry) goes through untouched: copying it into a new Response drops the
+  // socket (status 101), and the web and the phones could never connect to the live view
+  if (r.status === 101 || r.webSocket) return r;
   const h = new Headers(r.headers);
   for (const k in HARDEN) if (!h.has(k)) h.set(k, HARDEN[k]);
   if (h.get("x-frame-options") === "DENY" && (h.get("content-security-policy") || "").includes("frame-ancestors *")) h.delete("x-frame-options"); // the embedded viewer

@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.3 beta
+
+**Fixed**
+- **Live telemetry on the web and the phones works again.** Since 0.6.1 the server rewrapped every
+  answer to add its security headers, and that broke the live connection (a WebSocket): the web and
+  the phones could not connect to the PC's live view. It now passes through untouched.
+
+**Changed**
+- **The coach model's map is the analyzer's map**, with everything it has (corners, sectors, your
+  braking points and the reference's, incidents, coach tips, green and red where you gain and lose,
+  and hover or touch to read a point), here your lap against the model's next level for your pace.
+  It is the same model in Analysis and in Coach.
+
 ## 0.8.2 beta
 
 **Fixed**

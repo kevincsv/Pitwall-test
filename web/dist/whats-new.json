@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.8.3",
+      "en": [
+        "Live telemetry on the web and the phones works again.",
+        "The coach model's map now has everything the analyzer's map has."
+      ],
+      "es": [
+        "La telemetría en vivo en la web y los móviles vuelve a funcionar.",
+        "El mapa del modelo del coach ahora tiene todo lo del mapa del analizador."
+      ]
+    },
+    {
       "v": "0.8.2",
       "en": [
         "The coach's ideal lap is realistic again: laps that do not add up are left out.",
