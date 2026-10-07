@@ -510,7 +510,8 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 			} else if g := r.URL.Query().Get("game"); g != "" {
 				p += "?game=" + url.QueryEscape(g)
 			}
-			b, err := commCall("GET", p, nil, false)
+			// with your account token when you are signed in: the server then marks your own laps as yours
+			b, err := commRequest("GET", "/community"+p, nil, commToken())
 			if err != nil {
 				w.WriteHeader(502)
 				writeJSON(w, map[string]string{"error": err.Error()})

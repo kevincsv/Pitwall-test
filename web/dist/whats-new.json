@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.8.5",
+      "en": [
+        "The estimated iRating change is right way round now.",
+        "Your own laps are marked as yours in the community lists, anonymous ones too."
+      ],
+      "es": [
+        "La estimación del cambio de iRating ya va en el sentido correcto.",
+        "Tus propias vueltas aparecen marcadas como tuyas en las listas de la comunidad, también las anónimas."
+      ]
+    },
+    {
       "v": "0.8.4",
       "en": [
         "A bigger top menu on the PC and the web.",

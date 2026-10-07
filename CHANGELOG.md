@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.5 beta
+
+**Fixed**
+- **The estimated iRating change was biased.** It summed the chance of each rival beating you
+  instead of the chance of you beating each rival, so drivers below the field's level were
+  over-penalised and those above it flattered (a −43 that iRacing settled as −28). The known
+  formula is applied the right way round.
+- **Your own laps and analyses are marked "you" in the community lists**, also the anonymous
+  ones (only you see that mark), on the PC, the web and the phones; the separate "You" row
+  appears only when your best lap is not shared.
+
 ## 0.8.4 beta
 
 **Fixed**
