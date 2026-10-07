@@ -4,6 +4,21 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.4 beta
+
+**Changed**
+- **One map everywhere.** The map in the lap analyzer and in the Coach now shows exactly what the
+  race summary's map shows: where lap A brakes (orange) and where lap B brakes (blue), the
+  incidents with their points next to the mark (1x, 2x, 4x, as the game gives them), the coach's
+  corners (where you lose time) and the corner numbers, with switches for Braking, Incidents,
+  Coach and the A-vs-B time colouring. One line sums up the incidents of the lap (how many, of
+  what kind, in which corner most of them). The hover reads the braking of both laps at that
+  point. The race summary's map shows the points of each incident too.
+- Race summary: the lap table names the incidents of each lap by kind (Off track 1x, Loss of
+  control 2x, Car contact 4x), like the lap analyzer.
+- The phone apps draw the same map (braking of both laps, incidents with points, coach corners,
+  switches).
+
 ## 0.5.3 beta
 
 **Fixed**
