@@ -4,6 +4,23 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.9 beta
+
+**New**
+- **Home is the landing everywhere.** The PC and the web on a computer open on Home (your
+  races, stats and recent races), like the phone apps and the web on a phone, and Home is the
+  first item of the menu.
+- **Demo data runs a live race.** With demo data on (admins only) and no real telemetry, the
+  Live page shows an invented race at Spa: 10 drivers, positions, relative, delta, fuel, tyres
+  and the track map with every car. Nothing is uploaded.
+
+**Changed**
+- No game selector anywhere (Community, races, tracks, My races): everything follows the game you
+  drive, iRacing unless an admin is testing another one.
+- Race reminders in Settings are in development like the planner they belong to: only admins
+  can use them, everyone else sees that they come back with the planner.
+- Community: the subtitle no longer mentions race analyses (their sharing is switched off).
+
 ## 0.5.8 beta
 
 **Changed**

@@ -148,5 +148,46 @@
     return undefined;
   }
 
-  window.PITLANE_DEMO = { get, live: (tick) => { const c = COMBOS[0], tr = trace(c, c.lap, 1), row = tr.d[tick % tr.d.length]; return { Speed: row[0], Throttle: row[1], Brake: row[2], Gear: row[3], LapCurrentLapTime: row[5] }; } };
+  // ---------- a live race to look at (Live, overlays): 10 invented drivers at Spa, the player is car 3 ----------
+  const LIVE = (() => {
+    const c = COMBOS[0], tr = trace(c, c.lap, 1), n = tr.d.length, bin = tr.bin, L = n * bin, N = 10, ME = 3;
+    const pace = Array.from({ length: N }, (_, i) => c.lap * (1 + (i - 3) * 0.0035)), off = Array.from({ length: N }, (_, i) => -i * 0.012);
+    const times = tr.d.map((r) => r[5]), lapT = times[n - 1];
+    // where a car is after `f` of its lap (by time): the row whose lap time matches
+    const rowAt = (f) => { const t = f * lapT; let lo = 0, hi = n - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (times[m] < t) lo = m + 1; else hi = m; } return lo; };
+    const yaml = () => {
+      let y = `---\nWeekendInfo:\n TrackName: demospa\n TrackID: ${c.trackId}\n TrackLength: ${(c.len / 1000).toFixed(2)} km\n TrackDisplayName: ${c.track}\n TrackDisplayShortName: Spa\n TrackConfigName: ${c.cfg}\n TrackNumTurns: 19\n TrackSurfaceTemp: 27.80 C\n TrackAirTemp: 19.40 C\n SeriesID: 0\n SubSessionID: 0\n Official: 0\n EventType: Race\n Category: Road\n NumCarClasses: 1\nSessionInfo:\n CurrentSessionNum: 0\n Sessions:\n - SessionNum: 0\n   SessionLaps: 20\n   SessionTime: unlimited\n   SessionType: Race\n   SessionName: RACE\nDriverInfo:\n DriverCarIdx: ${ME}\n DriverCarIdleRPM: 1200.000\n DriverCarRedLine: 9200.000\n DriverCarFuelMaxLtr: 120.000\n DriverCarMaxFuelPct: 1.000\n DriverCarSLShiftRPM: 8800.000\n DriverCarEstLapTime: ${c.lap.toFixed(4)}\n DriverCarGearNumForward: 6\n Drivers:\n`;
+      for (let i = 0; i < N; i++) y += ` - CarIdx: ${i}\n   UserName: ${NAMES[i]}\n   AbbrevName: ${NAMES[i]}\n   UserID: ${500000 + i}\n   CarNumber: "${10 + i}"\n   CarNumberRaw: ${10 + i}\n   CarClassID: 1\n   CarID: ${c.carId}\n   CarScreenName: ${c.car}\n   CarClassShortName: GT3\n   CarClassColor: 0xffda59\n   IRating: ${2600 - i * 90}\n   LicString: A ${(3.2 - i * 0.1).toFixed(2)}\n   IsSpectator: 0\n   CarIsPaceCar: 0\n   CurDriverIncidentCount: ${i % 4}\n`;
+      return y + "...\n";
+    };
+    const frame = (t) => {
+      const prog = pace.map((p, i) => t / p + 1 + off[i]), order = prog.map((_, i) => i).sort((a, b) => prog[b] - prog[a]), pos = []; order.forEach((ci, k) => (pos[ci] = k + 1));
+      const lead = prog[order[0]], A = (f) => Array.from({ length: 64 }, (_, i) => (i < N ? f(i) : -1));
+      const mp = prog[ME], lapN = Math.floor(mp), frac = mp - lapN, ri = rowAt(frac), r = tr.d[ri], nx = tr.d[Math.min(n - 1, ri + 1)];
+      const sp = r[0], yaw = Math.atan2(tr.y[Math.min(n - 1, ri + 1)] - tr.y[ri], tr.x[Math.min(n - 1, ri + 1)] - tr.x[ri]);
+      const gear = Math.max(1, Math.min(6, r[3])), rpm = Math.min(9100, 3500 + (sp % 15) / 15 * 5400), fuel = Math.max(4, 110 - (mp - 1) * 2.9);
+      const T = {
+        SessionTime: t, SessionState: 4, SessionNum: 0, SessionFlags: 0, SessionLapsTotal: 20, SessionLapsRemainEx: Math.max(0, 20 - lapN), SessionTimeRemain: 604800,
+        PlayerCarIdx: ME, PlayerCarPosition: pos[ME], PlayerCarClassPosition: pos[ME], IsOnTrack: 1, OnPitRoad: 0, PlayerTrackSurface: 3, CarLeftRight: 1,
+        Speed: sp, RPM: rpm, Gear: gear, Throttle: r[1], Brake: r[2], Clutch: 1, SteeringWheelAngle: r[4], LongAccel: (nx[0] - sp) * 3,
+        Lap: lapN, LapCompleted: lapN - 1, LapDist: frac * L, LapDistPct: frac, LapCurrentLapTime: r[5] * pace[ME] / lapT,
+        LapLastLapTime: lapN > 1 ? pace[ME] + 0.21 * Math.sin(lapN) : -1, LapBestLapTime: lapN > 1 ? pace[ME] - 0.15 : -1,
+        LapDeltaToBestLap: 0.25 * Math.sin(frac * 6.283 + lapN), LapDeltaToBestLap_OK: lapN > 1, LapDeltaToSessionBestLap: 0.6 + 0.25 * Math.sin(frac * 6.283), LapDeltaToSessionBestLap_OK: lapN > 1,
+        LapDeltaToOptimalLap: 0.4 * Math.sin(frac * 6.283), LapDeltaToOptimalLap_OK: lapN > 1,
+        FuelLevel: fuel, FuelLevelPct: fuel / 120, FuelUsePerHour: 75, FuelUsePerLap: 2.9, WaterTemp: 88, OilTemp: 102, OilPress: 5.1, Voltage: 13.8, AirTemp: 19.4, TrackTempCrew: 27.8,
+        dcBrakeBias: 54.5, dcTractionControl: 3, dcTractionControlMax: 12, dcABS: 4, dcABSMax: 12, dcEngineMap: 1, dcEngineMapMax: 8,
+        Yaw: yaw, YawNorth: yaw, VelocityX: sp, VelocityY: 0, PlayerCarMyIncidentCount: 2, PlayerCarDriverIncidentCount: 2, Precipitation: 0, TrackWetness: 1, PlayerTireCompound: 0,
+        CarIdxLap: A((i) => Math.floor(prog[i])), CarIdxLapCompleted: A((i) => Math.floor(prog[i]) - 1), CarIdxLapDistPct: A((i) => prog[i] % 1),
+        CarIdxPosition: A((i) => pos[i]), CarIdxClassPosition: A((i) => pos[i]), CarIdxEstTime: A((i) => (prog[i] % 1) * pace[i]), CarIdxF2Time: A((i) => (lead - prog[i]) * pace[i]),
+        CarIdxLastLapTime: A((i) => (prog[i] > 2 ? pace[i] : -1)), CarIdxBestLapTime: A((i) => (prog[i] > 2 ? pace[i] - 0.1 : -1)), CarIdxOnPitRoad: A(() => 0), CarIdxTrackSurface: A(() => 3), CarIdxTireCompound: A(() => 0),
+      };
+      ["LF", "RF", "LR", "RR"].forEach((w, k) => { ["CL", "CM", "CR"].forEach((z, j) => (T[w + "temp" + z] = 82 + k * 3 + j * 2 + 4 * Math.sin(t / 9 + k))); ["L", "M", "R"].forEach((z, j) => (T[w + "wear" + z] = Math.max(0.6, 1 - (mp - 1) * 0.012 - j * 0.004))); T[w + "pressure"] = 172 + k; T[w + "coldPressure"] = 165; });
+      return T;
+    };
+    // the track's outline for the Live map, so it shows at once instead of after a lap
+    const shape = () => ({ x: tr.x.slice(), y: tr.y.slice(), len: L, trackId: c.trackId, name: c.track });
+    return { yaml, frame, shape };
+  })();
+
+  window.PITLANE_DEMO = { get, liveSession: LIVE.yaml, liveFrame: LIVE.frame, liveShape: LIVE.shape };
 })();
