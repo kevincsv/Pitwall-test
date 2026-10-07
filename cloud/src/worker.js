@@ -282,20 +282,23 @@ async function handle(req, env, ctx) {
         return err("server error: " + (e && e.message), 500);
       }
     }
-    // the full Pitlane HQ app (analysis, community, account, live from your PC), same as the phone app: /app/
+    // the full Pitlane HQ app (analysis, community, account, live from your PC), same as the phone app, at the
+    // address itself: https://pitlanehq.app/ (the old /app/?companion=1 addresses still land here)
     if (url.pathname === "/app" || url.pathname.startsWith("/app/")) {
+      const to = new URL(req.url);
+      to.pathname = url.pathname.slice(4) || "/";
+      to.searchParams.delete("companion");
+      return Response.redirect(to.href, 301);
+    }
+    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png)$/.test(url.pathname);
+    if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
-      if ((url.pathname === "/app" || url.pathname === "/app/") && url.searchParams.get("companion") !== "1") {
-        return Response.redirect(url.origin + "/app/?companion=1" + url.hash, 302);
-      }
-      const inner = new URL(req.url);
-      inner.pathname = url.pathname.slice(4) || "/";
-      const r = await env.ASSETS.fetch(new Request(inner, req));
+      const r = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin), req));
       const h = new Headers(r.headers);
       h.set("referrer-policy", "no-referrer");
       h.set("x-frame-options", "DENY");
       h.set("x-content-type-options", "nosniff");
-      if (inner.pathname === "/" || inner.pathname.endsWith(".html") || inner.pathname.endsWith(".json")) h.set("cache-control", "no-cache");
+      if (url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname.endsWith(".json")) h.set("cache-control", "no-cache");
       return new Response(r.body, { status: r.status, headers: h });
     }
     // live telemetry from your PC to your browser or phone, end-to-end encrypted
@@ -307,9 +310,7 @@ async function handle(req, env, ctx) {
         return err("server error: " + (e && e.message), 500);
       }
     }
-    // one app everywhere: the address of the server opens the Pitlane HQ app (sign in once, same as the phone).
-    // My laps lives inside it (/laps?embed=1); /laps alone still signs in with a server key (owner, team, read-only)
-    if (url.pathname === "/" && url.searchParams.get("embed") !== "1") return Response.redirect(url.origin + "/app/?companion=1", 302);
+    // the lap viewer: My laps lives inside the app (/?embed=1); /laps alone still signs in with a server key (owner, team, read-only)
     return new Response(VIEWER, {
       headers: {
         "content-type": "text/html; charset=utf-8",

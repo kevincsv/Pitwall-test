@@ -12,6 +12,11 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   the phone apps, the server emails and the documents.
 - **The server lives at https://pitlanehq.app**: the PC, the web and the phone apps point there.
   Accounts, laps and the community are the same.
+- **Clean addresses**: the web app is simply https://pitlanehq.app/ (no more `/app/?companion=1`;
+  the old addresses land there), with its own icon in the browser tab and on the home screen.
+- **Info** replaces the floating bell: a button in the header (PC, web, phones) with the alerts
+  that matter now (new version, app news, account to-dos; dismissable) and, always, how to
+  support Pitlane HQ and send feedback.
 - The track maps also show the three sectors on the phones; on the web, every chart of the lap
   analyzer always says something above it (the whole lap when nothing is touched, the point when
   you touch), and a finger on the map reads the nearest point even when it is not exactly on

@@ -6,8 +6,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Pitlane HQ">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -714,18 +716,17 @@ nav.tabs button[data-g=more]{display:none}nav.tabs button[data-g=home]{order:-1}
 .pc-card .hm-bar,.pc-card .devlist{width:100%}
 html.companion #lockBtn,html.companion #fsBtn,html.companion #logoutBtn,html.companion #exForm,html.companion #exForm+pre{display:none}
 /* update pop-up */
-/* the inbox: a floating button with what matters now (new version, app news, support, feedback, account to-dos) */
-.inbox-btn{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:45;width:48px;height:48px;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--fg);display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.inbox-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.inbox-btn b{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:var(--bg);font:800 11px/20px var(--f-mono);text-align:center;padding:0 5px}
-.inbox-btn[hidden]{display:none}html.phone .inbox-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
-.inbox{position:fixed;right:18px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:46;width:min(380px,calc(100% - 36px));max-height:min(70vh,560px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:8px}
-.inbox[hidden]{display:none}html.phone .inbox{bottom:calc(142px + env(safe-area-inset-bottom,0px))}
-.inbox-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 4px;font:700 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* Info: a button in the header with the alerts that matter now (new version, app news, account to-dos) and,
+   always, how to support the app and send feedback. Alerts can be dismissed; the badge counts the new ones */
+#inboxBtn{position:relative}#inboxBtn b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--bg);font:800 10px/18px var(--f-mono);text-align:center;padding:0 5px}
+#inboxBtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.inbox{position:fixed;right:12px;top:64px;z-index:46;width:min(400px,calc(100% - 24px));max-height:min(75vh,620px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:8px}
+.inbox[hidden]{display:none}
+.inbox-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 4px;font:700 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.inbox-h+.inbox-h{margin-top:6px;border-top:1px solid var(--line);padding-top:10px}
 .inbox-it{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:start;padding:10px 8px;border-radius:10px;border-left:3px solid transparent}.inbox-it.new{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .inbox-it .ic{width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;color:var(--accent)}.inbox-it .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .inbox-it b{display:block;font-size:13px}.inbox-it p{margin:2px 0 0;font-size:12px;color:var(--muted);line-height:1.4}.inbox-it .acts{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.inbox-it .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}.inbox-empty{padding:18px 8px;color:var(--muted);font-size:13px;text-align:center}
+.inbox .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}.inbox-empty{padding:14px 8px;color:var(--muted);font-size:13px;text-align:center}
 .updpop{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}.updpop[hidden]{display:none}
 .up-card{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;gap:12px;justify-items:center;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45)}
 .up-card h2{margin:0}.up-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
@@ -992,6 +993,7 @@ html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwal
   </nav>
   <button class="profbtn" id="profBtn" type="button" hidden></button>
   <button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
+  <button class="iconbtn" id="inboxBtn" type="button" title="Info" aria-label="Info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><b hidden></b></button>
   <button class="iconbtn" id="qsBtn" type="button" title="Search (Ctrl+K)" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" /></svg></button>
   <button class="iconbtn" id="fsBtn" type="button" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M21 8V5a2 2 0 0 0-2-2h-3" /><path d="M3 16v3a2 2 0 0 0 2 2h3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /></svg></button>
   <button class="iconbtn" id="setBtn" type="button" aria-pressed="false" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" /></svg></button>
@@ -1576,7 +1578,7 @@ let LANG=store.get("pw.lang","en"),UNITS=store.get("pw.units","metric");
    with the code it shows. Calls to /api/… are answered here instead of by the PC. */
 /* the phone apps live in their own repository: here the app always runs in a browser or in PitlaneHQ.exe */
 const NATIVE_RAW=null;
-const COMPANION=new URLSearchParams(location.search).get("companion")==="1";
+const COMPANION=new URLSearchParams(location.search).get("companion")==="1"||(location.protocol==="https:"&&!/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname)&&!/\.trycloudflare\.com$/.test(location.hostname));
 const CP={server:"",acc:null,files:{},ver:0,lastSync:0,err:"",pending:null,pushT:0};
 const cpTE=new TextEncoder(),cpTD=new TextDecoder();
 const cpHex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
@@ -5390,18 +5392,21 @@ function inboxItems(){const it=[],L=k=>o=>o&&typeof o==="object"?(o[LANG]||o.en|
   const me=ME||{};if(me.signedIn&&me.verified===false&&me.mail)it.push({id:"verify",kind:"account",title:Tx("Confirm your email","Confirma tu email"),text:Tx("Open the link we sent you: it lets you reset your password if you forget it.","Abre el enlace que te enviamos: así podrás restablecer la contraseña si la olvidas."),acts:[[Tx("Send it again","Enviarlo otra vez"),()=>jpost("/api/sync",{action:"verify"}).then(()=>toast(Tx("Email sent","Email enviado"))).catch(e=>toast(e.message))]]});
   if(me.signedIn&&!me.twoFactor)it.push({id:"2fa",kind:"account",title:Tx("Recommended: two-step sign-in","Recomendado: inicio de sesión en dos pasos"),text:Tx("An authenticator app on your phone. Even with your password nobody gets in without the code. Optional.","Una app de autenticación en el móvil. Ni con tu contraseña entra nadie sin el código. Opcional."),acts:[[Tx("Turn on","Activar"),()=>{show("me");setTimeout(setup2fa,300)},1]]});
   (INBOX_NEWS||[]).forEach(n=>it.push({id:"news:"+n.id,kind:"news",title:tl(n.title),text:tl(n.text),date:n.date,acts:[n.url?[Tx("Open","Abrir"),()=>openOutside(n.url)]:n.view?[Tx("See it","Verlo"),()=>show(n.view)]:null].filter(Boolean)}));
-  if(PATREON_URL)it.push({id:"support",kind:"support",title:Tx("Support Pitlane HQ","Apoya Pitlane HQ","Pitlane HQ unterstützen","Apoie o Pitlane HQ"),text:Tx("Pitlane HQ is free. If it helps you, you can support its development on Patreon.","Pitlane HQ es gratis. Si te ayuda, puedes apoyar su desarrollo en Patreon."),acts:[["Patreon",()=>openOutside(PATREON_URL),1]]});
-  it.push({id:"feedback",kind:"feedback",title:Tx("Tell us what you think","Cuéntanos qué te parece"),text:Tx("A bug, an idea, something confusing: every message is read.","Un fallo, una idea, algo confuso: todos los mensajes se leen."),acts:[[Tx("Send feedback","Enviar feedback"),()=>openOutside(FEEDBACK_URL)]]});
   return it}
+// always there, never dismissed: support and feedback
+function inboxAlways(){const it=[];if(PATREON_URL)it.push({id:"support",kind:"support",title:Tx("Support Pitlane HQ","Apoya Pitlane HQ","Pitlane HQ unterstützen","Apoie o Pitlane HQ"),text:Tx("Pitlane HQ is free. If it helps you, you can support its development on Patreon.","Pitlane HQ es gratis. Si te ayuda, puedes apoyar su desarrollo en Patreon."),acts:[["Patreon",()=>openOutside(PATREON_URL),1]]});
+  it.push({id:"feedback",kind:"feedback",title:Tx("Tell us what you think","Cuéntanos qué te parece"),text:Tx("A bug, an idea, something confusing: every message is read.","Un fallo, una idea, algo confuso: todos los mensajes se leen."),acts:[[Tx("Send feedback","Enviar feedback"),()=>openOutside(FEEDBACK_URL)]]});return it}
 const INBOX_ICONS={update:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',account:'<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',news:'<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',support:'<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>',feedback:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>'};
-function renderInbox(){if(OV.on||REMOTE)return;let btn=$("#inboxBtn"),box=$("#inbox");if(!btn){btn=document.createElement("button");btn.id="inboxBtn";btn.className="inbox-btn";btn.type="button";btn.setAttribute("aria-label","Inbox");btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0v5l2 3H4l2-3z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><b hidden></b>';document.body.appendChild(btn);
-    box=document.createElement("div");box.id="inbox";box.className="inbox";box.hidden=true;document.body.appendChild(box);btn.onclick=()=>{INBOX_OPEN=!INBOX_OPEN;renderInbox()};document.addEventListener("click",e=>{if(INBOX_OPEN&&!box.contains(e.target)&&!btn.contains(e.target)){INBOX_OPEN=false;renderInbox()}})}
-  const seen=inboxSeen(),items=inboxItems().filter(x=>x.keep||!seen.has(x.id));const fresh=items.filter(x=>x.kind!=="support"&&x.kind!=="feedback"&&!seen.has("seen:"+x.id));
-  const badge=btn.querySelector("b");badge.hidden=!fresh.length;badge.textContent=fresh.length;box.hidden=!INBOX_OPEN;if(!INBOX_OPEN)return;
-  box.innerHTML=`<div class="inbox-h"><span>${esc(Tx("For you","Para ti"))}</span><button type="button" class="x" id="inboxClear" title="${esc(Tx("Dismiss all","Descartar todo"))}">${esc(Tx("Clear","Limpiar"))}</button></div>`+(items.length?items.map(x=>`<div class="inbox-it ${!seen.has("seen:"+x.id)&&x.kind!=="support"&&x.kind!=="feedback"?"new":""}" data-id="${esc(x.id)}"><div class="ic">${INBOX_ICONS[x.kind]||INBOX_ICONS.news}</div><div><b>${esc(x.title)}</b><p>${esc(x.text)}${x.date?` <span class="mono">· ${esc(x.date)}</span>`:""}</p><div class="acts">${(x.acts||[]).map((a,i)=>`<button type="button" class="btn small ${a[2]?"primary":""}" data-act="${i}">${esc(a[0])}</button>`).join("")}</div></div>${x.keep?"":`<button type="button" class="x" data-x title="${esc(Tx("Dismiss","Descartar"))}">×</button>`}</div>`).join(""):`<div class="inbox-empty">${esc(Tx("Nothing new. You are up to date.","Nada nuevo. Estás al día."))}</div>`);
-  const mark=id=>{const s=inboxSeen();s.add(id);store.set("pw.inboxSeen",[...s])};items.forEach(x=>mark("seen:"+x.id));badge.hidden=true;
-  box.querySelectorAll(".inbox-it").forEach(el=>{const x=items.find(i=>i.id===el.dataset.id);el.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{INBOX_OPEN=false;renderInbox();x.acts[+b.dataset.act][1]()});const xb=el.querySelector("[data-x]");if(xb)xb.onclick=()=>{mark(x.id);renderInbox()}});
-  $("#inboxClear").onclick=()=>{items.forEach(x=>{if(!x.keep)mark(x.id)});renderInbox()}}
+function renderInbox(){const btn=$("#inboxBtn");if(!btn)return;if(OV.on||REMOTE){btn.hidden=true;return}let box=$("#inbox");
+  if(!box){box=document.createElement("div");box.id="inbox";box.className="inbox";box.hidden=true;document.body.appendChild(box);btn.onclick=()=>{INBOX_OPEN=!INBOX_OPEN;renderInbox()};document.addEventListener("click",e=>{if(INBOX_OPEN&&!box.contains(e.target)&&!btn.contains(e.target)){INBOX_OPEN=false;renderInbox()}});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&INBOX_OPEN){INBOX_OPEN=false;renderInbox()}})}
+  const seen=inboxSeen(),alerts=inboxItems().filter(x=>x.keep||!seen.has(x.id)),fresh=alerts.filter(x=>!seen.has("seen:"+x.id));
+  const badge=btn.querySelector("b");badge.hidden=!fresh.length;badge.textContent=fresh.length;btn.setAttribute("aria-pressed",INBOX_OPEN);box.hidden=!INBOX_OPEN;if(!INBOX_OPEN)return;
+  const row=x=>`<div class="inbox-it ${x.dismiss&&!seen.has("seen:"+x.id)?"new":""}" data-id="${esc(x.id)}"><div class="ic">${INBOX_ICONS[x.kind]||INBOX_ICONS.news}</div><div><b>${esc(x.title)}</b><p>${esc(x.text)}${x.date?` <span class="mono">· ${esc(x.date)}</span>`:""}</p><div class="acts">${(x.acts||[]).map((a,i)=>`<button type="button" class="btn small ${a[2]?"primary":""}" data-act="${i}">${esc(a[0])}</button>`).join("")}</div></div>${x.dismiss&&!x.keep?`<button type="button" class="x" data-x title="${esc(Tx("Dismiss","Descartar"))}">×</button>`:"<span></span>"}</div>`;
+  const al=alerts.map(x=>({...x,dismiss:true})),always=inboxAlways();
+  box.innerHTML=`<div class="inbox-h"><span>${esc(Tx("Alerts","Avisos","Hinweise","Avisos"))}</span>${al.some(x=>!x.keep)?`<button type="button" class="x" id="inboxClear">${esc(Tx("Clear","Limpiar"))}</button>`:""}</div>`+(al.length?al.map(row).join(""):`<div class="inbox-empty">${esc(Tx("Nothing new. You are up to date.","Nada nuevo. Estás al día."))}</div>`)+`<div class="inbox-h"><span>${esc(Tx("Pitlane HQ","Pitlane HQ"))}</span></div>`+always.map(row).join("");
+  const mark=id=>{const z=inboxSeen();z.add(id);store.set("pw.inboxSeen",[...z])};al.forEach(x=>mark("seen:"+x.id));badge.hidden=true;
+  const all=[...al,...always];box.querySelectorAll(".inbox-it").forEach(el=>{const x=all.find(i=>i.id===el.dataset.id);el.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{INBOX_OPEN=false;renderInbox();x.acts[+b.dataset.act][1]()});const xb=el.querySelector("[data-x]");if(xb)xb.onclick=()=>{mark(x.id);renderInbox()}});
+  const cl=$("#inboxClear");if(cl)cl.onclick=()=>{al.forEach(x=>{if(!x.keep)mark(x.id)});renderInbox()}}
 async function loadAppNews(){try{const r=await fetch("app-news.json",{cache:"no-cache"});const j=await r.json();INBOX_NEWS=(j.items||[]).slice(0,10)}catch(e){INBOX_NEWS=[]}renderInbox()}
 if(!OV.on)setTimeout(()=>{loadAppNews();setInterval(renderInbox,60000)},3000);
 
@@ -5917,7 +5922,7 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
   $("#meOut").onclick=()=>act({action:"logout"},Tx("Signed out","Sesión cerrada"));$("#meSync").onclick=()=>act({action:"sync"},Tx("Synced","Sincronizado"));
   const au=$("#meAuto");if(au)au.onclick=()=>act({action:"autosync",on:!a.autoSync});
   const ml=$("#meLaps");if(ml)ml.onclick=()=>act({action:"laps",on:!a.lapsToAccount});
-  const mw=$("#meWeb");if(mw)mw.onclick=async()=>{try{const c=await jget("/api/community");const u=(c.server||c.url||c.defaultUrl||"").replace(/\/+$/,"");if(u)window.open(u+"/app/?companion=1#cloudlaps","_blank");else toast(Tx("The server is not set up yet.","El servidor aún no está configurado."))}catch(e){toast(e.message)}};
+  const mw=$("#meWeb");if(mw)mw.onclick=async()=>{try{const c=await jget("/api/community");const u=(c.server||c.url||c.defaultUrl||"").replace(/\/+$/,"");if(u)window.open(u+"/#cloudlaps","_blank");else toast(Tx("The server is not set up yet.","El servidor aún no está configurado."))}catch(e){toast(e.message)}};
   const pl=$("#mePull");if(pl)pl.onclick=async()=>{if(await uiConfirm(Tx("Replace this PC's settings and history with your account's copy?","¿Reemplazar los ajustes e historial de este PC con la copia de tu cuenta?")))act({action:"pull"},Tx("Done","Hecho")).then(()=>location.reload())};
   const ps=$("#mePush");if(ps)ps.onclick=async()=>{if(await uiConfirm(Tx("Replace your account's copy with this PC's data?","¿Reemplazar la copia de tu cuenta con los datos de este PC?")))act({action:"push"},Tx("Uploaded","Subido"))};
   {const g=$("#meGoComm");if(g)g.onclick=e=>{e.preventDefault();show("community")}}
