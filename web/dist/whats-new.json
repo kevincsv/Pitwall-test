@@ -1,6 +1,19 @@
 {
   "versions": [
     {
+      "v": "0.8.2",
+      "en": [
+        "The coach's ideal lap is realistic again: laps that do not add up are left out.",
+        "Analysis takes less room, and the sector times are right.",
+        "Diagnostics closes again, and Settings shows your account clearly."
+      ],
+      "es": [
+        "La vuelta ideal del coach vuelve a ser realista: se descartan las vueltas que no cuadran.",
+        "Análisis ocupa menos y los tiempos por sector son correctos.",
+        "El diagnóstico se vuelve a cerrar y Ajustes muestra tu cuenta con claridad."
+      ]
+    },
+    {
       "v": "0.8.1",
       "en": [
         "Pitlane HQ Desktop (preview) now has its own installer.",

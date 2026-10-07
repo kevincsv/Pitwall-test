@@ -9,7 +9,7 @@
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 2;
+export const MODEL_VERSION = 3; // 3: laps that do not add up or do not fit the others are left out
 const SEG_M = 250;          // metres per micro-sector
 const IDEAL_MAX = 0.005;    // the ideal lap is never more than 0.5 % faster than the fastest real lap
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -54,13 +54,23 @@ async function adoptOldSessions(env, game, trackId, carId) {
   const names = await env.DB.prepare(
     `SELECT track, car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3
      UNION SELECT track, car FROM community_reports WHERE track_id=?1 AND car_id=?2 AND game=?3 LIMIT 20`).bind(trackId, carId, game).all();
+  // the exact name only: the track and its layout ("Okayama · Full"), or a track without layouts.
+  // (0.7.2 matched the track name alone and could give a session of another layout these ids)
+  const full = [];
   for (const n of names.results || []) {
     if (!n.track || !n.car) continue;
-    const base = String(n.track).split(" · ")[0];
+    full.push(n.track);
     await env.DB.prepare(
       `UPDATE sessions SET track_id=?1, car_id=?2 WHERE (track_id IS NULL OR car_id IS NULL) AND game=?3 AND car=?4
-         AND (track=?5 OR track=?6 OR (track||' · '||COALESCE(track_config,''))=?5)`
-    ).bind(trackId, carId, game, n.car, n.track, base).run().catch(() => {});
+         AND ((track||' · '||COALESCE(track_config,''))=?5 OR (track=?5 AND COALESCE(track_config,'')=''))`
+    ).bind(trackId, carId, game, n.car, n.track).run().catch(() => {});
+  }
+  if (full.length) {
+    const ph = full.map((_, i) => "?" + (i + 4)).join(",");
+    await env.DB.prepare(
+      `UPDATE sessions SET track_id=NULL, car_id=NULL WHERE track_id=?1 AND car_id=?2 AND game=?3 AND COALESCE(track_config,'')<>''
+         AND (track||' · '||track_config) NOT IN (${ph})`
+    ).bind(trackId, carId, game, ...full).run().catch(() => {});
   }
 }
 
@@ -125,9 +135,28 @@ export async function buildModel(env, game, trackId, carId) {
   // same length of track for every lap (another layout or a broken recording would not line up)
   const len = median(raw.map((l) => l.bins.length));
   let laps = raw.filter((l) => Math.abs(l.bins.length - len) <= len * 0.03);
+  // the telemetry has to add up to the lap time (speed over every 5 m gives the time back): a lap that
+  // started part way round (out of the pits, a reset, a tow) has a short clock and is left out
+  laps = laps.filter((l) => { let t = 0, n = 0; for (const b of l.bins) if (b[0] > 0.5) { t += 5 / b[0]; n++; } return n >= l.bins.length * 0.9 && Math.abs(t - l.time) / l.time < 0.04; });
   // far slower laps (spins, traffic, out laps that slipped through) say nothing about the line
   const tMed = median(laps.map((l) => l.time));
   laps = laps.filter((l) => l.time <= tMed * 1.12);
+  // with a few laps, each one has to look like the others: the same speed profile along the lap
+  // (another layout of the same track does not) and no part impossibly faster than the rest
+  if (laps.length >= 3) {
+    const nb = Math.min(...laps.map((l) => l.bins.length)), prof = [];
+    for (let i = 0; i < nb; i++) prof.push(median(laps.map((l) => l.bins[i][0])));
+    const M0 = Math.max(8, Math.round((nb * 5) / SEG_M));
+    laps.forEach((l) => { l.seg0 = segTimes(l, M0, nb); });
+    const segMed = [];
+    for (let k = 0; k < M0; k++) segMed.push(median(laps.map((l) => l.seg0[k])));
+    laps = laps.filter((l) => {
+      let dev = 0;
+      for (let i = 0; i < nb; i++) dev += Math.abs(l.bins[i][0] - prof[i]) / Math.max(prof[i], 5);
+      if (dev / nb > 0.2) return false;
+      return l.seg0.every((v, k) => v == null || segMed[k] == null || v >= segMed[k] * 0.88);
+    });
+  }
   if (laps.length < 2) return { ...base, n: laps.length };
   const n = Math.min(...laps.map((l) => l.bins.length)), M = Math.max(8, Math.round((n * 5) / SEG_M));
   laps.forEach((l) => { l.seg = segTimes(l, M, n); });

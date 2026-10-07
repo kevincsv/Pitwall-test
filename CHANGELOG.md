@@ -4,6 +4,29 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.2 beta
+
+**Fixed**
+- **The coach model ignores laps that do not add up.** A lap whose telemetry does not give back its
+  time (it started part way round: out of the pits, a reset) or that does not fit the other laps
+  (another layout, a part impossibly faster) no longer makes the ideal lap faster than any real one.
+- **Old sessions are matched to a car and track by the exact name and layout.** 0.7.2 used the track
+  name alone, so sessions of another layout could end up in a model; those are undone.
+- **"My best lap" in the analyzer** skips laps whose telemetry does not add up to their time.
+- **Sector times are right**: they are the game's own (the same as the lap table); a lap whose first
+  points still carried the previous lap's clock showed a negative S1.
+- **Diagnostics and the connection center close with their ×** (it never found the window, so the
+  app had to be closed), the full report opens and stays open, and "Copy report" works. They also
+  close with Escape or a click outside.
+- **The alerts panel has an X** to close it, next to "Clear all".
+
+**Changed**
+- **Analysis takes less room**: the sectors are a strip of four boxes (S1, S2, S3, lap) and the lap
+  list uses the whole width; the braking points table is compact.
+- **Settings shows a proper account card**: name, email, whether the email is confirmed and
+  two-step sign-in is on, the public name you use, this device, the last sync, and the buttons to
+  manage the account or sign out.
+
 ## 0.8.1 beta
 
 **Changed**
@@ -15,15 +38,6 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **A screen that fails to draw says so** with the error, instead of staying blank, so it can
   be reported and fixed.
 - **The coach model recognises your account laps** on tracks and cars nobody shared yet.
-- **Diagnostics no longer swallows clicks**: it was redrawn four times a second, so "Copy report"
-  and the full report did not respond. Now only the values change; Escape or a click outside closes
-  it and the connection center.
-- **The alerts panel has an X** to close it, next to "Clear all".
-
-**Changed**
-- **Settings shows a proper account card**: name, email, whether the email is confirmed and
-  two-step sign-in is on, the public name you use, this device, the last sync, and the buttons
-  to manage the account or sign out.
 
 ## 0.8.0 beta
 
