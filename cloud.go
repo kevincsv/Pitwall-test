@@ -61,12 +61,12 @@ type cloudLap struct {
 }
 
 type lapTrace struct {
-	Bin int          `json:"bin"`
-	D   [][6]float64 `json:"d"`           // speed m/s, throttle, brake, gear, steering rad, lap time s
-	X   []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
-	Y   []float64    `json:"y,omitempty"`
-	Inc []float64    `json:"inc,omitempty"` // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
-	IncK []string    `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
+	Bin  int          `json:"bin"`
+	D    [][6]float64 `json:"d"`           // speed m/s, throttle, brake, gear, steering rad, lap time s
+	X    []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
+	Y    []float64    `json:"y,omitempty"`
+	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
+	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
 }
 
 type cloudItem struct {
@@ -85,7 +85,7 @@ var (
 	cloudErr    string
 	cloudSent   int
 	cloudKick   = make(chan struct{}, 1)
-	cloudClient = &http.Client{Timeout: 20 * time.Second}
+	cloudClient = &http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}
 )
 
 func cloudPath() string  { return filepath.Join(activeDir(), "cloud.json") }
@@ -326,15 +326,15 @@ type lapRec struct {
 	lastD, lastT, lastSp float64
 	// where the car was at every 5 m point, from its heading and speed (dead reckoning):
 	// the shape of the track, drawn by the app from the lap itself
-	xy               [][2]float64
-	pos, lastPos     [2]float64
-	pyaw, pvx, pvy   float64
-	pt               float64
-	hasPos, posBad   bool
-	incPrev          float64   // the incident count at the previous sample
-	incAt            []float64 // [distance, points] of every incident on this lap
-	incK             []string  // the kind of each incident
-	besideAt         time.Time // the last moment another car was right beside you
+	xy             [][2]float64
+	pos, lastPos   [2]float64
+	pyaw, pvx, pvy float64
+	pt             float64
+	hasPos, posBad bool
+	incPrev        float64   // the incident count at the previous sample
+	incAt          []float64 // [distance, points] of every incident on this lap
+	incK           []string  // the kind of each incident
+	besideAt       time.Time // the last moment another car was right beside you
 }
 
 // move integrates the car's position from its yaw and velocity (m/s, in the car's frame).

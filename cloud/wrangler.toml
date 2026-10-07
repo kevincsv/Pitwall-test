@@ -13,6 +13,10 @@ migrations_dir = "migrations"
 # secrets (set with `npx wrangler secret put NAME`):
 #   PITLANE_KEY  key that PitlaneHQ.exe uses to upload and you use to sign in
 #   VIEW_KEY     optional read-only key to share with your engineer or team
+#   DATA_KEY     seals telemetry, race analyses and authenticator secrets in the database (AES-GCM).
+#                A long random string (`openssl rand -hex 32`). Never change it once rows are sealed.
+#   EMAIL_PEPPER optional, salts the email hashes; set it before the first account is created
+#   RESEND_API_KEY + EMAIL_FROM   emails (see README)
 
 [vars]
 # accounts, end-to-end encrypted sync, community and shared setups on this server

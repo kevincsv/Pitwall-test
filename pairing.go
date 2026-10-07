@@ -3,7 +3,7 @@ package main
 // Pairing: a phone, tablet or another PC on your network must enter the PIN
 // shown on this PC before it can see or control TrackIQ. Paired devices
 // get a long random token (only its hash is stored) and can be removed.
-// The PC itself and its overlay windows (loopback addresses) never need it.
+// TrackIQ's own windows (a ticket in their address, localtoken.go) never need it.
 
 import (
 	"crypto/rand"
@@ -112,14 +112,20 @@ func pinRequired() bool {
 	return !pairs.Off
 }
 
-// needsPairing: requests from the network (not this PC, not the engineer link) without a paired token.
-func needsPairing(r *http.Request) bool {
-	if isLoopback(r) || isRemote(r) || !pinRequired() {
+// needsPairing: requests from the network (not the engineer link) without a paired token, and
+// requests from this PC that do not come from one of TrackIQ's own windows (see localtoken.go).
+func needsPairing(w http.ResponseWriter, r *http.Request) bool {
+	if isRemote(r) || !pinRequired() {
 		return false
 	}
 	p := r.URL.Path
 	if p == "/pair" || p == "/api/pair" || p == "/api/info" || p == "/favicon.ico" {
 		return false
+	}
+	if isLoopback(r) {
+		if localOpen(p) || localWindow(w, r) {
+			return false
+		}
 	}
 	return !devicePaired(r)
 }

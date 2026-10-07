@@ -70,8 +70,11 @@ CREATE TABLE IF NOT EXISTS community_reports (
   car TEXT,
   track_id INTEGER,
   track TEXT,
-  data TEXT NOT NULL,
-  created INTEGER NOT NULL
+  data TEXT NOT NULL,                -- sealed with DATA_KEY when the server has one
+  created INTEGER NOT NULL,
+  finish INTEGER,                    -- what the list shows without opening the data
+  field INTEGER,
+  best REAL
 );
 CREATE INDEX IF NOT EXISTS community_reports_combo ON community_reports(track_id, car_id, created);
 -- Pitlane HQ accounts (end-to-end encrypted sync) and shared setups.
@@ -88,7 +91,21 @@ CREATE TABLE IF NOT EXISTS accounts (
   name_kind TEXT NOT NULL DEFAULT 'nick',
   anon INTEGER NOT NULL DEFAULT 0,  -- shares as "Anonymous"
   created INTEGER NOT NULL,
-  verified INTEGER NOT NULL DEFAULT 0
+  verified INTEGER NOT NULL DEFAULT 0,
+  totp TEXT,                         -- authenticator secret, sealed with DATA_KEY
+  totp_on INTEGER NOT NULL DEFAULT 0,
+  totp_pending TEXT                  -- secret shown but not confirmed yet
+);
+CREATE TABLE IF NOT EXISTS recovery_codes (  -- one-use codes for when the phone is lost (hashes only)
+  account_id TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  PRIMARY KEY (account_id, code_hash)
+);
+CREATE TABLE IF NOT EXISTS login_pending (   -- a sign-in waiting for its second factor (5 minutes)
+  token_hash TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  device TEXT,
+  expires INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS account_sessions (
   id TEXT PRIMARY KEY,

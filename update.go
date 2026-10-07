@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +32,25 @@ type updateInfo struct {
 	Version string `json:"version"`
 	Build   string `json:"build"`
 	Date    string `json:"date,omitempty"`
+	Min     string `json:"min,omitempty"` // older versions than this must update (they no longer work with the server)
+}
+
+// versionLess: "0.6.1" < "0.6.10" (numbers, not text)
+func versionLess(a, b string) bool {
+	pa, pb := strings.Split(strings.TrimPrefix(a, "v"), "."), strings.Split(strings.TrimPrefix(b, "v"), ".")
+	for i := 0; i < len(pa) || i < len(pb); i++ {
+		var x, y int
+		if i < len(pa) {
+			x, _ = strconv.Atoi(strings.SplitN(pa[i], "-", 2)[0])
+		}
+		if i < len(pb) {
+			y, _ = strconv.Atoi(strings.SplitN(pb[i], "-", 2)[0])
+		}
+		if x != y {
+			return x < y
+		}
+	}
+	return false
 }
 
 var (
@@ -39,7 +59,7 @@ var (
 	updChecked time.Time
 	updErr     string
 	updBusy    bool
-	updHTTP    = &http.Client{Timeout: 5 * time.Minute}
+	updHTTP    = &http.Client{Transport: tlsTransport(), Timeout: 5 * time.Minute}
 )
 
 func updateBase() string {
@@ -47,7 +67,7 @@ func updateBase() string {
 }
 
 func checkUpdate() error {
-	resp, err := (&http.Client{Timeout: 20 * time.Second}).Get(updateBase() + "version.json")
+	resp, err := (&http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}).Get(updateBase() + "version.json")
 	if err != nil {
 		return fmt.Errorf("could not check for updates: %w", err)
 	}
@@ -69,7 +89,9 @@ func updateStatus() map[string]any {
 	updMu.Lock()
 	defer updMu.Unlock()
 	avail := updLatest != nil && buildID != "dev" && updLatest.Build != buildID
-	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev"}
+	// required: this version is older than the newest one's minimum, so it no longer works properly
+	required := avail && updLatest.Min != "" && versionLess(appVersion, updLatest.Min)
+	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev"}
 	if updLatest != nil {
 		m["latest"] = updLatest
 	}

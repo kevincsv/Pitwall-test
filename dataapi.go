@@ -39,7 +39,7 @@ type accountConfig struct {
 var (
 	acctMu sync.Mutex
 	acct   accountConfig
-	httpc  = &http.Client{Timeout: 25 * time.Second}
+	httpc  = &http.Client{Transport: tlsTransport(), Timeout: 25 * time.Second}
 	cache  = map[string]cacheEntry{}
 )
 

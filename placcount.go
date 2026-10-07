@@ -35,27 +35,30 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 const kdfRounds = 600000
 
 type plAccount struct {
-	Email    string    `json:"email,omitempty"`
-	ID       string    `json:"id,omitempty"`
-	Token    string    `json:"token,omitempty"`
-	DataKey  string    `json:"dataKey,omitempty"` // hex, never sent anywhere
-	Display  string    `json:"display,omitempty"`
-	NameKind string    `json:"nameKind,omitempty"` // "iracing" or "nick"
-	AutoSync bool      `json:"autoSync"`
-	Version  int64     `json:"version"`  // server version this PC last synced
-	LastHash string    `json:"lastHash"` // hash of the data at that time
-	LastSync time.Time `json:"lastSync"`
-	SyncErr  string    `json:"syncErr,omitempty"`
-	Conflict bool      `json:"conflict,omitempty"`
-	NoLaps   bool      `json:"noLaps,omitempty"`   // do not keep my laps on the server
-	Admin    bool      `json:"admin,omitempty"`    // an admin of the TrackIQ server (sees Connections)
-	Verified bool      `json:"verified,omitempty"` // the email was confirmed
-	Mail     bool      `json:"mail,omitempty"`     // the server can send emails
+	Email     string    `json:"email,omitempty"`
+	ID        string    `json:"id,omitempty"`
+	Token     string    `json:"token,omitempty"`
+	DataKey   string    `json:"dataKey,omitempty"` // hex, never sent anywhere
+	Display   string    `json:"display,omitempty"`
+	NameKind  string    `json:"nameKind,omitempty"` // "iracing" or "nick"
+	AutoSync  bool      `json:"autoSync"`
+	Version   int64     `json:"version"`  // server version this PC last synced
+	LastHash  string    `json:"lastHash"` // hash of the data at that time
+	LastSync  time.Time `json:"lastSync"`
+	SyncErr   string    `json:"syncErr,omitempty"`
+	Conflict  bool      `json:"conflict,omitempty"`
+	NoLaps    bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server
+	Admin     bool      `json:"admin,omitempty"`     // an admin of the TrackIQ server (sees Connections)
+	Verified  bool      `json:"verified,omitempty"`  // the email was confirmed
+	Mail      bool      `json:"mail,omitempty"`      // the server can send emails
+	TwoFactor bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
 }
 
 var (
@@ -364,11 +367,57 @@ func syncWatcher() {
 	}
 }
 
-func plSignedIn(r struct {
+type plLoginRes struct {
 	ID, Token, Display, NameKind, WrappedKey string
-	Admin, Verified                          bool
+	Admin, Verified, TwoFactor               bool
 	Mailed                                   *bool
-}, email string, wrap []byte, newKey []byte) error {
+}
+
+// a sign-in that passed the password and waits for the authenticator code (5 minutes)
+type pending2faT struct {
+	Pending, Email string
+	Wrap           []byte
+	At             time.Time
+}
+
+var (
+	pending2fa   *pending2faT
+	pending2faMu sync.Mutex
+	plRecovery   int // recovery codes left (shown on the account page)
+)
+
+func plEmail() string {
+	plMu.Lock()
+	defer plMu.Unlock()
+	return plAcc.Email
+}
+
+// plFinishLogin keeps the signed-in account and decides between uploading this PC or asking which copy to keep.
+func plFinishLogin(b []byte, email string, wrap []byte) error {
+	var res plLoginRes
+	json.Unmarshal(b, &res)
+	if err := plSignedIn(res, email, wrap, nil); err != nil {
+		return err
+	}
+	// nothing saved yet: upload this PC; otherwise you choose which copy to keep
+	var meta struct{ Version int64 }
+	if mb, e := plCall("GET", "/sync/meta", nil); e == nil {
+		json.Unmarshal(mb, &meta)
+	}
+	plBusy.Lock()
+	if meta.Version == 0 {
+		syncPush(true)
+	} else {
+		plMu.Lock()
+		plAcc.Conflict = true
+		savePLLocked()
+		plMu.Unlock()
+	}
+	plBusy.Unlock()
+	return nil
+}
+
+func plSignedIn(r plLoginRes, email string, wrap []byte, newKey []byte) error {
 	key := newKey
 	if key == nil {
 		k, err := openAES(wrap, r.WrappedKey)
@@ -378,7 +427,7 @@ func plSignedIn(r struct {
 		key = k
 	}
 	plMu.Lock()
-	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil}
+	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil, TwoFactor: r.TwoFactor}
 	savePLLocked()
 	plMu.Unlock()
 	return nil
@@ -390,7 +439,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "verified": a.Verified, "mail": a.Mail, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -467,9 +516,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 		}
 		if r.Method == http.MethodPost {
 			var in struct {
-				Action, Email, Password, NewPassword, Nick, NameKind, ID, Lang string
-				Anon                                                          *bool // share as "Anonymous" (kept with the account)
-				On                                                             bool
+				Action, Email, Password, NewPassword, Nick, NameKind, ID, Lang, Code string
+				Anon                                                                 *bool // share as "Anonymous" (kept with the account)
+				On                                                                   bool
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 8192)).Decode(&in)
 			host, _ := os.Hostname()
@@ -501,11 +550,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				var res struct {
-					ID, Token, Display, NameKind, WrappedKey string
-					Admin, Verified                          bool
-					Mailed                                   *bool
-				}
+				var res plLoginRes
 				json.Unmarshal(b, &res)
 				if err = plSignedIn(res, in.Email, wrap, key); err == nil {
 					go func() {
@@ -525,30 +570,81 @@ func registerPLRoutes(mux *http.ServeMux) {
 					err = e
 					break
 				}
-				var res struct {
-					ID, Token, Display, NameKind, WrappedKey string
-					Admin, Verified                          bool
-					Mailed                                   *bool
+				var step struct {
+					TwoFactor bool
+					Pending   string
 				}
-				json.Unmarshal(b, &res)
-				if err = plSignedIn(res, in.Email, wrap, nil); err != nil {
+				json.Unmarshal(b, &step)
+				if step.TwoFactor {
+					// the password is right; the authenticator code comes next (login2fa), the key waits here
+					pending2faMu.Lock()
+					pending2fa = &pending2faT{Pending: step.Pending, Email: in.Email, Wrap: wrap, At: time.Now()}
+					pending2faMu.Unlock()
+					writeJSON(w, map[string]any{"twoFactor": true})
+					return
+				}
+				err = plFinishLogin(b, in.Email, wrap)
+			case "login2fa":
+				pending2faMu.Lock()
+				pd := pending2fa
+				pending2faMu.Unlock()
+				if pd == nil || time.Since(pd.At) > 5*time.Minute {
+					err = errors.New("sign in again")
 					break
 				}
-				// nothing saved yet: upload this PC; otherwise you choose which copy to keep
-				var meta struct{ Version int64 }
-				if mb, e := plCall("GET", "/sync/meta", nil); e == nil {
-					json.Unmarshal(mb, &meta)
+				b, e := commRequest("POST", "/account/login/2fa", map[string]any{"pending": pd.Pending, "code": strings.TrimSpace(in.Code)}, "")
+				if e != nil {
+					err = e
+					break
 				}
-				plBusy.Lock()
-				if meta.Version == 0 {
-					syncPush(true)
-				} else {
-					plMu.Lock()
-					plAcc.Conflict = true
-					savePLLocked()
-					plMu.Unlock()
+				pending2faMu.Lock()
+				pending2fa = nil
+				pending2faMu.Unlock()
+				err = plFinishLogin(b, pd.Email, pd.Wrap)
+			case "2fa-setup":
+				auth, _, e := deriveKeys(plEmail(), in.Password)
+				if e != nil {
+					err = e
+					break
 				}
-				plBusy.Unlock()
+				b, e := plCall("POST", "/2fa/setup", map[string]any{"auth": auth})
+				if e != nil {
+					err = e
+					break
+				}
+				var st struct{ Secret, URL string }
+				json.Unmarshal(b, &st)
+				png, _ := qrcode.Encode(st.URL, qrcode.Medium, 320)
+				writeJSON(w, map[string]any{"secret": st.Secret, "url": st.URL, "qr": "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)})
+				return
+			case "2fa-enable":
+				b, e := plCall("POST", "/2fa/enable", map[string]any{"code": strings.TrimSpace(in.Code)})
+				if e != nil {
+					err = e
+					break
+				}
+				var st struct{ Codes []string }
+				json.Unmarshal(b, &st)
+				plMu.Lock()
+				plAcc.TwoFactor = true
+				savePLLocked()
+				plMu.Unlock()
+				writeJSON(w, map[string]any{"ok": true, "codes": st.Codes})
+				return
+			case "2fa-disable":
+				auth, _, e := deriveKeys(plEmail(), in.Password)
+				if e != nil {
+					err = e
+					break
+				}
+				if _, e := plCall("POST", "/2fa/disable", map[string]any{"auth": auth, "code": strings.TrimSpace(in.Code)}); e != nil {
+					err = e
+					break
+				}
+				plMu.Lock()
+				plAcc.TwoFactor = false
+				savePLLocked()
+				plMu.Unlock()
 			case "logout":
 				plCall("POST", "/logout", nil)
 				plMu.Lock()
@@ -687,18 +783,21 @@ func plRefreshMe() {
 		return
 	}
 	var me struct {
-		ID       string `json:"id"`
-		Admin    bool   `json:"admin"`
-		Verified bool   `json:"verified"`
-		Mail     bool   `json:"mail"`
+		ID           string `json:"id"`
+		Admin        bool   `json:"admin"`
+		Verified     bool   `json:"verified"`
+		Mail         bool   `json:"mail"`
+		TwoFactor    bool   `json:"twoFactor"`
+		RecoveryLeft int    `json:"recoveryLeft"`
 	}
 	if json.Unmarshal(b, &me) != nil || me.ID == "" {
 		return
 	}
 	plMu.Lock()
-	if plAcc.ID == me.ID && (plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail) {
-		plAcc.Admin, plAcc.Verified, plAcc.Mail = me.Admin, me.Verified, me.Mail
+	if plAcc.ID == me.ID && (plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor) {
+		plAcc.Admin, plAcc.Verified, plAcc.Mail, plAcc.TwoFactor = me.Admin, me.Verified, me.Mail, me.TwoFactor
 		savePLLocked()
 	}
+	plRecovery = me.RecoveryLeft
 	plMu.Unlock()
 }

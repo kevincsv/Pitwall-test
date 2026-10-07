@@ -212,7 +212,7 @@ func guard(next http.Handler) http.Handler {
 			}
 		}
 		// devices on your network must be paired with the PIN first
-		if needsPairing(r) {
+		if needsPairing(w, r) {
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				w.WriteHeader(401)
 				writeJSON(w, map[string]string{"error": "pair this device with the PIN shown on the PC"})

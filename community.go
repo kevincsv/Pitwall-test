@@ -57,7 +57,7 @@ type commConfig struct {
 var (
 	commMu     sync.Mutex
 	commCfg    commConfig
-	commHTTP   = &http.Client{Timeout: 25 * time.Second}
+	commHTTP   = &http.Client{Transport: tlsTransport(), Timeout: 25 * time.Second}
 	commBest   = map[string]float64{} // carId:trackId → best shared this run
 	commTraced = map[string]bool{}    // … and whether it went with its telemetry
 )

@@ -1,6 +1,7 @@
 // TrackIQ cloud: receives sessions and laps from TrackIQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { news } from "./news.js";
+import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
@@ -56,8 +57,9 @@ async function upsertSession(env, s, uploader) {
 
 async function addLap(env, sessionId, l) {
   if (!idOk(sessionId) || !idOk(l.id) || !num(l.n) || !num(l.time) || l.time <= 0 || l.time > 3600) return "lap needs id, n and time";
-  const trace = l.trace ? JSON.stringify(l.trace) : null;
-  if (trace && trace.length > 900000) return "lap trace too large";
+  const plain = l.trace ? JSON.stringify(l.trace) : null;
+  if (plain && plain.length > 900000) return "lap trace too large";
+  const trace = await sealData(env, plain); // telemetry is sealed at rest
   const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.filter((x) => typeof x === "number").slice(0, 40)) : null;
   await env.DB.batch([
     env.DB.prepare(
@@ -149,12 +151,23 @@ async function api(req, env, url) {
     const b = await req.json().catch(() => ({}));
     const laps = Array.isArray(b.laps) ? b.laps.slice(0, 200) : [];
     const stmts = [];
+    const have = (await env.DB.prepare("SELECT n, trace FROM laps WHERE session_id=?1 AND COALESCE(inc,0)=0").bind(sid).all()).results || [];
+    const byN = new Map(have.map((r) => [r.n, r]));
     for (const l of laps) {
       const n = Math.round(num(l.n) || 0), inc = Math.max(0, Math.round(num(l.inc) || 0));
       const at = Array.isArray(l.at) ? l.at.filter((v) => typeof v === "number" && isFinite(v)).slice(0, 160) : [];
-      if (!n) continue;
+      if (!n || !byN.has(n)) continue;
       const ks = Array.isArray(l.k) ? l.k.filter((v) => ["off", "loss", "light", "contact"].includes(v)).slice(0, 80) : [];
-      stmts.push(env.DB.prepare("UPDATE laps SET inc=?3, trace=CASE WHEN trace IS NULL THEN trace ELSE json_set(trace,'$.inc',json(?4),'$.incK',json(?5)) END WHERE session_id=?1 AND n=?2 AND COALESCE(inc,0)=0").bind(sid, n, inc, JSON.stringify(at), JSON.stringify(ks)));
+      let trace = byN.get(n).trace;
+      if (trace) {
+        try {
+          const t = JSON.parse(await openData(env, trace));
+          t.inc = at;
+          t.incK = ks;
+          trace = await sealData(env, JSON.stringify(t));
+        } catch (e) { /* an unreadable trace keeps what it has */ }
+      }
+      stmts.push(env.DB.prepare("UPDATE laps SET inc=?3, trace=?4 WHERE session_id=?1 AND n=?2 AND COALESCE(inc,0)=0").bind(sid, n, inc, trace));
     }
     if (stmts.length) await env.DB.batch(stmts);
     return json({ ok: true, laps: stmts.length });
@@ -184,7 +197,9 @@ async function api(req, env, url) {
     // ?traces=1: every lap with its telemetry in one answer (the app's analyzer), instead of one call per lap
     const withTraces = url.searchParams.get("traces") === "1";
     const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
-    return json({ session: s, laps: results.map((l) => ({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(l.trace) : null } : {}) })) });
+    const laps = [];
+    for (const l of results) laps.push({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null } : {}) });
+    return json({ session: s, laps });
   }
 
   // fastest valid lap of anyone in the team for a track, layout and car
@@ -228,14 +243,29 @@ async function api(req, env, url) {
     const lid = decodeURIComponent(mm[1]);
     const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(lid).first();
     if (!l || (own && l.uploader !== own)) return err("not found", 404);
-    return json({ ...l, trace: l.trace ? JSON.parse(l.trace) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
+    return json({ ...l, trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
   }
 
   return err("not found", 404);
 }
 
+// every answer leaves with the same protective headers (no sniffing, no framing by other sites,
+// no referrer, nothing cached by proxies unless the handler said so)
+const HARDEN = { "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "permissions-policy": "camera=(), microphone=(), geolocation=()", "strict-transport-security": "max-age=31536000; includeSubDomains", "cross-origin-opener-policy": "same-origin" };
+function harden(r) {
+  const h = new Headers(r.headers);
+  for (const k in HARDEN) if (!h.has(k)) h.set(k, HARDEN[k]);
+  if (h.get("x-frame-options") === "DENY" && (h.get("content-security-policy") || "").includes("frame-ancestors *")) h.delete("x-frame-options"); // the embedded viewer
+  return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
+}
+
 export default {
   async fetch(req, env, ctx) {
+    return harden(await handle(req, env, ctx));
+  },
+};
+
+async function handle(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === "/news") return news(req, env, ctx);
     if (url.pathname.startsWith("/community/")) {
@@ -288,5 +318,4 @@ export default {
         "referrer-policy": "no-referrer",
       },
     });
-  },
-};
+}

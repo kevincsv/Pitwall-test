@@ -53,7 +53,7 @@ var (
 	licMu   sync.Mutex
 	lic     licState
 	plans   planCfg
-	licHTTP = &http.Client{Timeout: 20 * time.Second}
+	licHTTP = &http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}
 	lsAPI   = "https://api.lemonsqueezy.com/v1/licenses/"
 )
 

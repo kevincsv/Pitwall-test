@@ -3,6 +3,7 @@
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
 import { sessionAccount, isAdmin } from "./accounts.js";
+import { sealData, openData } from "./crypt.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -88,12 +89,14 @@ export async function community(req, env, url) {
       const a = await env.DB.prepare(`SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id WHERE ${ACCT_TRACE_WHERE} LIMIT 1`).bind(l.user_id, l.time, l.game).first();
       if (a) trace = a.trace;
     }
-    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(trace) : null });
+    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(await openData(env, trace)) : null });
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     const r = await env.DB.prepare(
-      `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, r.car, r.track, r.created, json_extract(r.data,'$.finish') AS finish, json_extract(r.data,'$.field') AS field, json_extract(r.data,'$.best') AS best
+      `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
+       COALESCE(r.field, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.field') END) AS field,
+       COALESCE(r.best, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.best') END) AS best
        FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
     ).bind(t || 0, c || 0, game).all();
     return json({ reports: r.results || [] });
@@ -115,9 +118,9 @@ export async function community(req, env, url) {
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     const r = await env.DB.prepare("SELECT data FROM community_reports WHERE id=?1").bind(um[1]).first();
     if (!r) return err("not found", 404);
-    const d = JSON.parse(r.data);
+    const d = JSON.parse(await openData(env, r.data));
     if (Array.isArray(d.laps)) d.laps = d.laps.map((l) => (l.i ? l : { ...l, cut: false })); // only the laps without incidents
-    await env.DB.prepare("UPDATE community_reports SET data=?2 WHERE id=?1").bind(um[1], JSON.stringify(d)).run();
+    await env.DB.prepare("UPDATE community_reports SET data=?2 WHERE id=?1").bind(um[1], await sealData(env, JSON.stringify(d))).run();
     return json({ ok: true });
   }
   const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
@@ -137,7 +140,7 @@ export async function community(req, env, url) {
   if (p.startsWith("/reports/") && m === "GET") {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
-    const data = JSON.parse(r.data);
+    const data = JSON.parse(await openData(env, r.data));
     // the other drivers only by their first name (their privacy); the sharer as "Anonymous" when asked
     for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (!x ? x : x.me ? (r.anon ? { ...x, name: "Anonymous" } : x) : { ...x, name: firstName(x.name) }));
     return json({ ...data, id: r.id, alias: r.alias, game: r.game, shared: true });
@@ -285,8 +288,9 @@ export async function community(req, env, url) {
   if (p === "/laps" && m === "POST") {
     const carId = int(body.carId), trackId = int(body.trackId), time = num(body.time);
     if (!carId || !trackId || !time || time <= 10 || time > 3600) return err("lap needs carId, trackId and time", 400);
-    const trace = body.trace ? JSON.stringify(body.trace) : null;
-    if (trace && trace.length > 900000) return err("lap trace too large", 400);
+    const plainTrace = body.trace ? JSON.stringify(body.trace) : null;
+    if (plainTrace && plainTrace.length > 900000) return err("lap trace too large", 400);
+    const trace = await sealData(env, plainTrace);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
     // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
@@ -322,8 +326,8 @@ export async function community(req, env, url) {
     if (data.length < 20 || data.length > 900000) return err("report missing or too large", 400);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     const r = body.report;
-    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)")
-      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), data, Date.now(), body.anon ? 1 : 0, gameOf(body.game || r.game)).run();
+    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon, game, finish, field, best) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)")
+      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), await sealData(env, data), Date.now(), body.anon ? 1 : 0, gameOf(body.game || r.game), int(r.finish), int(r.field), num(r.best)).run();
     return json({ shared: true });
   }
   return err("not found", 404);

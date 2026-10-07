@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net"
@@ -23,7 +24,12 @@ import (
 
 // One version for TrackIQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.6.0"
+const appVersion = "0.6.1"
+
+// appMinVersion: the oldest TrackIQ.exe that still works with today's server and files. Raise it
+// only when an older one really breaks (a changed API, a new data format): those PCs are then
+// made to update (the notice has no "later"). Published in version.json as "min".
+const appMinVersion = "0.6.1"
 
 // appStage is shown next to the version everywhere until 1.0.0.
 const appStage = "beta"
@@ -414,6 +420,7 @@ func main() {
 	demo := flag.Bool("demo", false, "development only: a simulated race instead of the game")
 	noBrowser := flag.Bool("no-browser", false, "do not open the app window on start")
 	minimized := flag.Bool("minimized", false, "start with this window minimized")
+	engine := flag.Bool("engine", false, "run as the engine of the desktop app: no window; prints TRACKIQ_URL=<address with a ticket> and TRACKIQ_TOKEN=<cookie> and quits when stdin closes")
 	ovName := flag.String("overlay-window", "", "internal: run one overlay window")
 	ovURL := flag.String("url", "", "internal: overlay address")
 	ovX := flag.Int("x", 100, "internal")
@@ -492,6 +499,19 @@ func main() {
 			return
 		}
 		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
+	})
+	// what is on screen right now, for the native desktop window (desktop/): the game and its track and car
+	mux.HandleFunc("/api/now", func(w http.ResponseWriter, r *http.Request) {
+		st := currentStatus()
+		tel.mu.RLock()
+		y := tel.session
+		tel.mu.RUnlock()
+		out := map[string]any{"connected": st.Connected, "demo": st.Demo, "game": st.Game, "source": st.Source}
+		if y != "" {
+			ct := currentCarTrack(y)
+			out["track"], out["car"] = ct.Track, ct.Car
+		}
+		writeJSON(w, out)
 	})
 	mux.HandleFunc("/api/show", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || !isLoopback(r) || isRemote(r) {
@@ -607,6 +627,17 @@ func main() {
 		log.Fatalf("Could not open a port: %v", err)
 	}
 	local := fmt.Sprintf("http://localhost:%d", listenPort)
+	if *engine {
+		// the native desktop shell (desktop/) owns the window: it reads these two lines, opens the
+		// address in its own WebView and calls the API with the cookie; when it closes stdin we quit
+		*noBrowser = true
+		fmt.Println("TRACKIQ_URL=" + withTicket(local))
+		fmt.Println("TRACKIQ_TOKEN=" + localCookieValue())
+		go func() {
+			io.Copy(io.Discard, os.Stdin)
+			quitApp()
+		}()
+	}
 	fmt.Println()
 	fmt.Println("  TRACKIQ " + appVersion + " " + appStage)
 	fmt.Println("  ------------------------------------------------------------")
@@ -633,19 +664,19 @@ func main() {
 				os.Exit(1)
 			}
 		}()
-		// the app in its own window; closing it quits TrackIQ
-		if runMainWindow(local, *minimized || *noBrowser) {
+		// the app in its own window; closing it quits TrackIQ (the desktop shell brings its own window)
+		if !*engine && runMainWindow(withTicket(local), *minimized || *noBrowser) {
 			quitApp()
 		}
 		if !*noBrowser {
-			openAppWindow(local) // no WebView2 on this PC: an Edge app window
+			openAppWindow(withTicket(local)) // no WebView2 on this PC: an Edge app window
 		}
 		select {}
 	}
 	if !*noBrowser {
 		go func() {
 			time.Sleep(400 * time.Millisecond)
-			openAppWindow(local)
+			openAppWindow(withTicket(local))
 		}()
 	}
 	if err := srv.Serve(ln); err != nil {

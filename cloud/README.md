@@ -119,6 +119,16 @@ Everyone reads it from `GET /community/season`; if it is not there yet, the apps
 - **Admins** see *Settings → Connections* (iRacing, Garage 61, own site, Discord) and the iRacing page in the app; everyone else does not. In GitHub → Settings → Secrets and variables → Actions → **Variables**, add `ADMINS` with your TrackIQ account id (My account shows it; several ids separated by commas). Without `ADMINS`, the ids in `SEASON_UPLOADERS` are the admins. Run the workflow again, then sign out and in once in the app (or wait a few hours).
 - **Your own domain**: add the domain to your Cloudflare account (buy it in Cloudflare → Domain Registration, or add one you own and change its nameservers to Cloudflare's). Give the API token **Zone · Workers Routes · Edit** and **Zone · DNS · Edit** for that zone. Then add the repository variable `CUSTOM_DOMAIN` (for example `pitlanehq.com` or `app.pitlanehq.com`) and run the workflow: the server answers on that address too. Put the new address in `web/dist/server.json`.
 
+## What the database holds (and what it cannot reveal)
+
+- **Passwords: never.** The app turns the password into keys on the PC or phone (PBKDF2, 600 000 rounds); the server receives a login key and stores it salted and hashed. A copy of the database cannot be used to sign in.
+- **Emails: only a hash** (plus the optional `EMAIL_PEPPER`).
+- **Sessions: only the hash of the token.** A session expires after 180 days without use and 400 days in all; every device can be signed out from the account page.
+- **Synced settings: end-to-end encrypted** with a key only your devices have.
+- **Telemetry, race analyses and authenticator secrets: sealed at rest** with `DATA_KEY` (AES-256-GCM), a secret only the Worker has. Set it once, before anyone uploads: `openssl rand -hex 32`, then GitHub → Settings → Secrets and variables → Actions → secret `DATA_KEY` (or `npx wrangler secret put DATA_KEY`). Never change it afterwards: the rows sealed with the old one could not be read. Without it those rows are stored readable, as before.
+- **Two-step sign-in** (optional, recommended in the app): the authenticator secret is sealed with `DATA_KEY`; the recovery codes are stored only as hashes.
+- Every answer carries the usual protective headers (no sniffing, no framing, no referrer, HSTS); sign-ins and codes are rate-limited (5 wrong ones lock for 15 minutes).
+
 ## Emails: confirm the address and reset the password
 
 TrackIQ sends two emails: one to confirm the address after creating an account, and one with a link to choose a new password ("Forgot your password?" in the app and on the website). The address is still not stored: the email goes to the address typed at that moment.

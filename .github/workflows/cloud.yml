@@ -10,6 +10,8 @@ name: TrackIQ Cloud (web version)
 # variables SEASON_UPLOADERS and ADMINS (your TrackIQ account id) and
 # CUSTOM_DOMAIN (your own domain in Cloudflare, e.g. pitlanehq.com).
 # Emails: secret RESEND_API_KEY and variable EMAIL_FROM ("TrackIQ <no-reply@your-domain>").
+# Encryption at rest: secret DATA_KEY (a long random string; never change it once set, or the
+# sealed rows cannot be read). Optional EMAIL_PEPPER (set before the first account).
 
 on:
   workflow_dispatch:
@@ -37,6 +39,8 @@ jobs:
       PITLANE_KEY: ${{ secrets.PITLANE_KEY }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+      DATA_KEY: ${{ secrets.DATA_KEY }}
+      EMAIL_PEPPER: ${{ secrets.EMAIL_PEPPER }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
       ADMINS: ${{ vars.ADMINS }}
       CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
@@ -72,6 +76,9 @@ jobs:
           # emails (confirm the address, reset the password) through Resend
           if [ -n "$RESEND_API_KEY" ]; then echo "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY; fi
           if [ -n "$EMAIL_FROM" ]; then printf '%s' "$EMAIL_FROM" | npx wrangler secret put EMAIL_FROM; fi
+          # DATA_KEY seals telemetry, race analyses and authenticator secrets at rest; EMAIL_PEPPER salts the email hashes
+          if [ -n "$DATA_KEY" ]; then printf '%s' "$DATA_KEY" | npx wrangler secret put DATA_KEY; fi
+          if [ -n "$EMAIL_PEPPER" ]; then printf '%s' "$EMAIL_PEPPER" | npx wrangler secret put EMAIL_PEPPER; fi
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
           if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
           {

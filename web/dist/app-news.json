@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": "2026-10-desktop-preview",
+      "date": "2026-10-07",
+      "title": {"en": "A native Windows window is on its way", "es": "Llega una ventana nativa para Windows"},
+      "text": {"en": "TrackIQ Desktop (preview) is the new native window over the same engine, built screen by screen. Try it from the downloads page.", "es": "TrackIQ Desktop (preview) es la nueva ventana nativa sobre el mismo motor, hecha pantalla a pantalla. Pruébala desde la página de descargas."},
+      "url": "https://github.com/kevincsv/Pitwall-test/releases/tag/pitlanehq-latest"
+    },
+    {
+      "id": "2026-10-two-step",
+      "date": "2026-10-07",
+      "title": {"en": "Protect your account with two-step sign-in", "es": "Protege tu cuenta con el inicio de sesión en dos pasos"},
+      "text": {"en": "Optional and recommended: an authenticator app on your phone. Turn it on in Account.", "es": "Opcional y recomendado: una app de autenticación en el móvil. Actívalo en Cuenta."},
+      "view": "me"
+    }
+  ]
+}

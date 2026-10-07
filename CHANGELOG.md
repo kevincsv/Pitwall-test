@@ -4,6 +4,39 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.6.1 beta
+
+**Security**
+- **Two-step sign-in** (optional, recommended): an authenticator app on your phone (Google
+  Authenticator, Microsoft Authenticator, Authy, 1Password…). Turn it on in Account on the PC,
+  the web or the phone apps; you get 8 one-use recovery codes. Signing in then asks for the
+  password and the 6-digit code; 5 wrong codes lock it for 15 minutes.
+- **Nothing readable in the database**: telemetry, race analyses and the authenticator secrets
+  are sealed at rest with a server key (`DATA_KEY`, AES-256-GCM) on top of what was already
+  there (passwords never stored, only hashed login keys; emails and session tokens only as
+  hashes; synced settings end-to-end encrypted).
+- **Sessions**: a session also ends 400 days after it was opened, however much it is used
+  (180 days without use, as before). Every answer of the server carries protective headers
+  (no sniffing, no framing, no referrer, HSTS).
+- **The PC's local API is only for TrackIQ's own windows**: they get a one-use ticket in their
+  address; any other program or web page on the PC gets the pairing PIN instead of your data.
+  Everything TrackIQ.exe sends to the internet uses TLS 1.2 or newer.
+
+**New**
+- **Inbox**: a floating bell (PC, web, phones) with what matters now: a new version with its
+  notes, news of the app, Patreon, feedback, and your account's to-dos (confirm the email, turn
+  on two-step sign-in). Dismiss what you have read; a badge counts what is new.
+- **New version notice at start**, everywhere, with a **What's new** button that opens that
+  version's changelog. On the PC a version can be marked as **required** (`appMinVersion`):
+  then the notice cannot be put off until the update is done.
+- **TrackIQ Desktop (preview)**: the native Windows window (C#/WPF) over the same Go engine,
+  built screen by screen. `TrackIQ-Desktop.zip` on the downloads page; `TrackIQ.exe -engine`
+  runs the engine for it.
+
+**Fixed**
+- The server's list of shared race analyses no longer reads inside the analysis data (it has
+  its own columns now), so sealed analyses list as fast as before.
+
 ## 0.6.0 beta
 
 **New**

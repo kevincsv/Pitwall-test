@@ -31,7 +31,7 @@ var (
 	discordMu   sync.Mutex
 	discordCfg  discordConfig
 	webhookRe   = regexp.MustCompile(`^https://(discord\.com|discordapp\.com|ptb\.discord\.com|canary\.discord\.com)/api/webhooks/\d+/[A-Za-z0-9_\-]+$`)
-	discordHTTP = &http.Client{Timeout: 15 * time.Second}
+	discordHTTP = &http.Client{Transport: tlsTransport(), Timeout: 15 * time.Second}
 )
 
 func discordPath() string { return filepath.Join(activeDir(), "discord.json") }

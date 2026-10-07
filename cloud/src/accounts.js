@@ -6,6 +6,7 @@
 // public name. Turned on with the variable COMMUNITY = "1".
 import { mailReady, sendVerify, sendReset, lang } from "./email.js";
 import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pages.js";
+import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes } from "./crypt.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -29,6 +30,7 @@ const authHash = (salt, auth) => sha256(salt + ":" + auth);
 const ipOf = (req) => req.headers.get("cf-connecting-ip") || "unknown";
 const CHUNK = 900000; // D1 rows stay well under 2 MB
 const SESSION_IDLE = 180 * 86400e3;
+const SESSION_MAX = 400 * 86400e3; // a session never lives longer than this, however much it is used
 
 // failed sign-ins: 5 per email and 30 per address in 15 minutes
 async function tooMany(env, keys, limits) {
@@ -55,10 +57,10 @@ export async function sessionAccount(req, env) {
   const t = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (t.length < 40) return null;
   const s = await env.DB.prepare(
-    "SELECT s.id AS sid, s.last_seen, a.* FROM account_sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=?1"
+    "SELECT s.id AS sid, s.last_seen, s.created AS session_created, a.* FROM account_sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=?1"
   ).bind(await sha256(t)).first();
   if (!s) return null;
-  if (Date.now() - s.last_seen > SESSION_IDLE) {
+  if (Date.now() - s.last_seen > SESSION_IDLE || Date.now() - s.session_created > SESSION_MAX) {
     await env.DB.prepare("DELETE FROM account_sessions WHERE id=?1").bind(s.sid).run();
     return null;
   }
@@ -99,6 +101,8 @@ async function deleteAccount(env, id) {
     env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM login_pending WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
   ]);
 }
@@ -181,6 +185,7 @@ export async function accounts(req, env, url) {
     const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
     return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id), verified: false, mailed });
   }
+  const signedIn = (a, token) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on });
   if (p === "/login" && m === "POST") {
     if (typeof body.email !== "string" || !isKey(body.auth)) return err("missing email or key", 400);
     const eh = await emailHash(env, body.email), keys = ["login:" + eh, ip];
@@ -190,15 +195,95 @@ export async function accounts(req, env, url) {
       await fail(env, keys);
       return err("wrong email or password", 401);
     }
-    const token = await newSession(env, a.id, body.device);
-    return json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified });
+    if (a.totp_on) {
+      // the password is right: the session only exists once the authenticator code is right too
+      const t = rid(24);
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM login_pending WHERE expires<?1").bind(Date.now()),
+        env.DB.prepare("INSERT INTO login_pending (token_hash, account_id, device, expires) VALUES (?1,?2,?3,?4)").bind(await sha256(t), a.id, cleanName(body.device) || "PC", Date.now() + 5 * 60e3),
+      ]);
+      return json({ twoFactor: true, pending: t });
+    }
+    return signedIn(a, await newSession(env, a.id, body.device));
+  }
+  // second step of a sign-in: the 6-digit code of the authenticator app, or one recovery code
+  if (p === "/login/2fa" && m === "POST") {
+    if (typeof body.pending !== "string" || !/^[0-9a-f]{48}$/.test(body.pending)) return err("sign in again", 400);
+    const ph = await sha256(body.pending);
+    const pend = await env.DB.prepare("SELECT * FROM login_pending WHERE token_hash=?1").bind(ph).first();
+    if (!pend || pend.expires < Date.now()) return err("the code took too long: sign in again", 401);
+    const keys = ["2fa:" + pend.account_id, ip];
+    if (await tooMany(env, keys, [5, 30])) return err("too many wrong codes: wait 15 minutes", 429);
+    const a = await env.DB.prepare("SELECT * FROM accounts WHERE id=?1").bind(pend.account_id).first();
+    if (!a || !a.totp_on) return err("sign in again", 401);
+    const code = String(body.code || "").trim().toLowerCase();
+    let ok = await totpOK(await openData(env, a.totp), code);
+    if (!ok && /^[a-z0-9]{4}-?[a-z0-9]{4}$/.test(code)) {
+      const h = await sha256("recovery:" + code.replace("-", ""));
+      const r = await env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1 AND code_hash=?2 RETURNING code_hash").bind(a.id, h).first();
+      ok = !!r;
+    }
+    if (!ok) {
+      await fail(env, keys);
+      return err("wrong code", 401);
+    }
+    await env.DB.prepare("DELETE FROM login_pending WHERE token_hash=?1").bind(ph).run();
+    return signedIn(a, await newSession(env, a.id, pend.device));
   }
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), verified: !!a.verified, mail: mailReady(env) });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
+  // two-step sign-in with an authenticator app (Google Authenticator, Authy, 1Password…):
+  // setup gives the secret (and the QR address), enable confirms it with a first code and hands
+  // out the recovery codes once; disable needs the password and a code
+  if (p === "/2fa/setup" && m === "POST") {
+    if (await tooMany(env, ["login:" + a.email_hash], [5])) return err("too many wrong passwords: wait 15 minutes", 429);
+    if (!(await reauth())) {
+      await fail(env, ["login:" + a.email_hash]);
+      return err("the password is wrong", 401);
+    }
+    if (a.totp_on) return err("two-step sign-in is already on", 409);
+    const secret = newTotpSecret();
+    await env.DB.prepare("UPDATE accounts SET totp_pending=?2 WHERE id=?1").bind(a.id, await sealData(env, secret)).run();
+    return json({ secret, url: otpauthURL(secret, a.display || a.id) });
+  }
+  if (p === "/2fa/enable" && m === "POST") {
+    if (a.totp_on) return err("two-step sign-in is already on", 409);
+    if (!a.totp_pending) return err("start the setup first", 400);
+    if (await tooMany(env, ["2fa:" + a.id], [5])) return err("too many wrong codes: wait 15 minutes", 429);
+    const secret = await openData(env, a.totp_pending);
+    if (!(await totpOK(secret, body.code))) {
+      await fail(env, ["2fa:" + a.id]);
+      return err("wrong code: check the time of your phone and try again", 401);
+    }
+    const codes = newRecoveryCodes();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET totp=?2, totp_on=1, totp_pending=NULL WHERE id=?1").bind(a.id, await sealData(env, secret)),
+      env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(a.id),
+      ...(await Promise.all(codes.map(async (c) => env.DB.prepare("INSERT INTO recovery_codes (account_id, code_hash) VALUES (?1,?2)").bind(a.id, await sha256("recovery:" + c.replace("-", "")))))),
+      env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1 AND id<>?2").bind(a.id, a.sid), // every other device signs in again, with the code
+    ]);
+    return json({ ok: true, codes });
+  }
+  if (p === "/2fa/disable" && m === "POST") {
+    if (!a.totp_on) return json({ ok: true });
+    if (await tooMany(env, ["login:" + a.email_hash, "2fa:" + a.id], [5, 5])) return err("too many attempts: wait 15 minutes", 429);
+    const code = String(body.code || "").trim().toLowerCase();
+    let codeOK = await totpOK(await openData(env, a.totp), code);
+    if (!codeOK && /^[a-z0-9]{4}-?[a-z0-9]{4}$/.test(code)) codeOK = !!(await env.DB.prepare("SELECT 1 AS x FROM recovery_codes WHERE account_id=?1 AND code_hash=?2").bind(a.id, await sha256("recovery:" + code.replace("-", ""))).first());
+    if (!(await reauth()) || !codeOK) {
+      await fail(env, ["login:" + a.email_hash, "2fa:" + a.id]);
+      return err("the password or the code is wrong", 401);
+    }
+    await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET totp=NULL, totp_on=0, totp_pending=NULL WHERE id=?1").bind(a.id),
+      env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(a.id),
+    ]);
+    return json({ ok: true });
+  }
   if (p === "/me" && m === "POST") {
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);

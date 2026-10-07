@@ -16,6 +16,7 @@ on:
       - ".github/workflows/windows.yml"
       - ".github/scripts/**"
       - ".github/release-notes.md"
+      - "desktop/**"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -79,7 +80,8 @@ jobs:
           bash .github/scripts/publish.sh dist-installer/TrackIQ-Setup.exe
           # version.json goes last: the app only sees a new version once its zip is there
           ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
-          printf '{"version":"%s","build":"%s","date":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > version.json
+          min=$(sed -n 's/^const appMinVersion = "\(.*\)"/\1/p' main.go)
+          printf '{"version":"%s","build":"%s","date":"%s","min":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${min:-0}" > version.json
           bash .github/scripts/publish.sh version.json
           # one release per version with its part of CHANGELOG.md (made once; later builds of the
           # same version only refresh its files)
@@ -88,3 +90,36 @@ jobs:
           printf '\n---\nWindows: download **TrackIQ-Setup.exe** (installer) or **TrackIQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "TrackIQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
           gh release upload "$tag" TrackIQ-windows.zip dist-installer/TrackIQ-Setup.exe --clobber || true
+
+  # the native Windows window (desktop/, C# / WPF) over the same engine: a preview next to the
+  # normal download. It needs TrackIQ.exe next to it, so it ships with a copy.
+  desktop:
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TrackIQ-windows
+          path: engine
+      - name: Build TrackIQ Desktop
+        shell: pwsh
+        run: |
+          dotnet publish desktop/TrackIQ.Desktop/TrackIQ.Desktop.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -o out-desktop
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Copy-Item engine/TrackIQ.exe out-desktop/
+          Copy-Item desktop/README.md out-desktop/README-Desktop.md
+          7z a -tzip TrackIQ-Desktop.zip ./out-desktop/* | Out-Null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TrackIQ-Desktop
+          path: TrackIQ-Desktop.zip
+      - name: Publish on the downloads page
+        if: github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/publish.sh TrackIQ-Desktop.zip

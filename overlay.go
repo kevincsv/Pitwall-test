@@ -41,7 +41,7 @@ func overlayHost(name string) string {
 }
 
 func overlayURL(name string) string {
-	return fmt.Sprintf("http://%s:%d/?overlay=%s&win=1", overlayHost(name), listenPort, url.QueryEscape(name))
+	return withTicket(fmt.Sprintf("http://%s:%d/?overlay=%s&win=1", overlayHost(name), listenPort, url.QueryEscape(name)))
 }
 
 // openNamedOverlay opens a widget at its saved position, or a default one.
