@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "v": "0.7.2",
+      "en": [
+        "Your older laps now teach the coach too, and it never forgets what it learnt."
+      ],
+      "es": [
+        "Tus vueltas antiguas ahora también enseñan al coach, y nunca olvida lo que aprendió."
+      ]
+    },
+    {
       "v": "0.7.1",
       "en": [
         "The coach learns from every valid lap as soon as it is driven, so its tips keep getting better.",

@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.7.2 beta
+
+**Fixed**
+- **Laps from before the model keep teaching it.** Sessions recorded before the PC sent the
+  iRacing ids of the track and car are recognised by name, so laps that already worked are
+  learnt too. Every car and track with laps gets its model, even if nobody opened it yet.
+
+**Changed**
+- **The model never forgets.** Every lap that teaches it is kept in its own anonymous memory
+  (no account, no name), in its original telemetry. A new version of the model relearns from
+  all of it, and if a lap is later deleted, what the model learnt from it stays.
+
 ## 0.7.1 beta
 
 **Changed**

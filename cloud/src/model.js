@@ -8,9 +8,12 @@
 // every 10 minutes rebuilds whatever is still marked.
 import { openData } from "./crypt.js";
 
+// raise it when the way the model learns changes: every model is rebuilt from its memory
+export const MODEL_VERSION = 2;
 const SEG_M = 250;          // metres per micro-sector
 const IDEAL_MAX = 0.005;    // the ideal lap is never more than 0.5 % faster than the fastest real lap
 const MAX_LAPS = 80;        // laps the model reads per car and track
+const LEARN_PER_RUN = 120;  // new laps taken into the memory per run (the rest on the next one)
 const LADDER_STEP = 0.004;  // a "next level" reference every 0.4 % of pace
 const LADDER_SPAN = 0.08;   // up to 8 % slower than the fastest lap
 const LEVEL_BIN = 2;        // the references keep one bin in two (10 m) to stay small
@@ -43,42 +46,81 @@ function goodLap(time, tr) {
   return { time, bins };
 }
 
-async function candidates(env, game, trackId, carId) {
-  // every account's valid laps with telemetry, and shared laps of drivers without an account
-  // (DRINKS drivers, older PCs); the best few of each driver
+const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("").slice(0, 24);
+
+// laps from before the PC sent the iRacing ids of the track and car: found by name and given the ids,
+// so the laps that already worked keep teaching the model
+async function adoptOldSessions(env, game, trackId, carId) {
+  const names = await env.DB.prepare(
+    `SELECT track, car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3
+     UNION SELECT track, car FROM community_reports WHERE track_id=?1 AND car_id=?2 AND game=?3 LIMIT 20`).bind(trackId, carId, game).all();
+  for (const n of names.results || []) {
+    if (!n.track || !n.car) continue;
+    const base = String(n.track).split(" · ")[0];
+    await env.DB.prepare(
+      `UPDATE sessions SET track_id=?1, car_id=?2 WHERE (track_id IS NULL OR car_id IS NULL) AND game=?3 AND car=?4
+         AND (track=?5 OR track=?6 OR (track||' · '||COALESCE(track_config,''))=?5)`
+    ).bind(trackId, carId, game, n.car, n.track, base).run().catch(() => {});
+  }
+}
+
+// every valid lap with telemetry that is not in the memory yet goes in: account laps (shared or
+// not), shared laps of drivers without an account (DRINKS drivers, older PCs)
+async function learnNewLaps(env, game, trackId, carId) {
+  const known = new Set(((await env.DB.prepare("SELECT k FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).all()).results || []).map((x) => x.k));
   const a = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
      WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
-     ORDER BY a.time LIMIT 1500`).bind(trackId, carId, game).all();
+     ORDER BY a.time LIMIT 3000`).bind(trackId, carId, game).all();
   const c = await env.DB.prepare(
-    `SELECT 'acct:'||user_id AS up, time, trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL ORDER BY time LIMIT 400`
+    `SELECT 'acct:'||user_id AS up, time, trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL ORDER BY time LIMIT 800`
   ).bind(trackId, carId, game).all();
-  const per = new Map();
+  let added = 0;
   for (const x of [...(a.results || []), ...(c.results || [])]) {
-    const l = per.get(x.up) || [];
-    if (l.length >= 3 || l.some((y) => Math.abs(y.time - x.time) < 0.002)) continue;
+    const k = await sha(x.up + ":" + x.time.toFixed(3));
+    if (known.has(k)) continue;
+    if (added >= LEARN_PER_RUN) return { added, more: true }; // the rest on the next run
+    known.add(k);
+    let tr = null;
+    try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
+    if (!goodLap(x.time, tr)) continue;
+    await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT DO NOTHING")
+      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.d)), Date.now()).run();
+    added++;
+  }
+  return { added, more: false };
+}
+
+// what the model learns from: its memory, the best few laps of every driver
+async function candidates(env, game, trackId, carId) {
+  await adoptOldSessions(env, game, trackId, carId);
+  const learnt = await learnNewLaps(env, game, trackId, carId);
+  const all = await env.DB.prepare("SELECT drv, time, data FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all();
+  const per = new Map();
+  for (const x of all.results || []) {
+    const l = per.get(x.drv) || [];
+    if (l.length >= 3) continue;
     l.push(x);
-    per.set(x.up, l);
+    per.set(x.drv, l);
   }
   const drivers = per.size;
   // one lap per driver first (the best), then their next best ones while there is room
   const rounds = [[], [], []];
-  for (const l of per.values()) l.sort((p, q) => p.time - q.time).forEach((x, i) => rounds[i].push(x));
+  for (const l of per.values()) l.forEach((x, i) => rounds[i].push(x));
   const pick = [];
-  for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS * 2) pick.push(x);
+  for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS) pick.push(x);
   const laps = [];
   for (const x of pick) {
-    if (laps.length >= MAX_LAPS) break;
-    try { const g = goodLap(x.time, JSON.parse(await openData(env, x.trace))); if (g) { g.up = x.up; laps.push(g); } } catch (e) {}
+    try { const g = goodLap(x.time, { d: JSON.parse(await gunz(x.data)) }); if (g) { g.up = x.drv; laps.push(g); } } catch (e) {}
   }
-  return { laps, drivers };
+  return { laps, drivers, more: learnt.more };
 }
 
 export async function buildModel(env, game, trackId, carId) {
-  const { laps: raw, drivers } = await candidates(env, game, trackId, carId);
+  const { laps: raw, drivers, more } = await candidates(env, game, trackId, carId);
   const shared = await env.DB.prepare(
     `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3`).bind(trackId, carId, game).first();
-  const base = { v: 1, game, trackId, carId, built: Date.now(), drivers, shared: (shared && shared.n) || 0 };
+  const base = { v: MODEL_VERSION, game, trackId, carId, built: Date.now(), more: !!more, drivers, shared: (shared && shared.n) || 0 };
   if (raw.length < 2) return { ...base, n: raw.length };
   // same length of track for every lap (another layout or a broken recording would not line up)
   const len = median(raw.map((l) => l.bins.length));
@@ -165,22 +207,31 @@ export async function markModel(env, game, trackId, carId) {
 async function rebuild(env, game, trackId, carId) {
   const m = await buildModel(env, game, trackId, carId);
   await env.DB.prepare(
-    `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data) VALUES (?1,?2,?3,0,?4,?5)
-     ON CONFLICT(game, track_id, car_id) DO UPDATE SET dirty=0, built=excluded.built, data=excluded.data`
-  ).bind(game, trackId, carId, m.built, await gz(JSON.stringify(m))).run();
+    `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data) VALUES (?1,?2,?3,?6,?4,?5)
+     ON CONFLICT(game, track_id, car_id) DO UPDATE SET dirty=excluded.dirty, built=excluded.built, data=excluded.data`
+  ).bind(game, trackId, carId, m.built, await gz(JSON.stringify(m)), m.more ? 1 : 0).run();
   return m;
 }
 
 // what the apps ask for: the model of a car and track, rebuilt when new laps came in
 export async function getModel(env, game, trackId, carId) {
   const row = await env.DB.prepare("SELECT dirty, built, data FROM model_cache WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).first();
-  if (row && row.data && !row.dirty) return JSON.parse(await gunz(row.data));
+  if (row && row.data && !row.dirty) {
+    const m = JSON.parse(await gunz(row.data));
+    if (m.v === MODEL_VERSION) return m; // a model from an older version is relearnt below
+  }
   // new laps (or never built): learn them now; if that fails, the last model is still good
   try { return await rebuild(env, game, trackId, carId); } catch (e) { if (row && row.data) return JSON.parse(await gunz(row.data)); throw e; }
 }
 
 // the cron: whatever got new laps and nobody looked at yet
 export async function rebuildDirty(env) {
+  // cars and tracks with laps that never had a model (laps from before the model): they get one
+  await env.DB.prepare(
+    `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data)
+     SELECT DISTINCT game, track_id, car_id, 1, 0, NULL FROM community_laps WHERE track_id>0 AND car_id>0
+     UNION SELECT DISTINCT game, track_id, car_id, 1, 0, NULL FROM sessions WHERE track_id>0 AND car_id>0 AND uploader LIKE 'acct:%'
+     ON CONFLICT DO NOTHING`).run().catch(() => {});
   const r = await env.DB.prepare("SELECT game, track_id, car_id FROM model_cache WHERE dirty=1 ORDER BY built LIMIT 25").all();
   for (const x of r.results || []) { try { await rebuild(env, x.game, x.track_id, x.car_id); } catch (e) {} }
 }
