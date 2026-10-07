@@ -4,6 +4,13 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.4.2 beta
+
+**Fixed**
+- The track map in the Coach and in the lap analyzer did not show for laps whose session had no
+  circuit id (older sessions, laps from your account): it now finds the circuit by its name, and a
+  map that could not be loaded is tried again a moment later instead of staying empty.
+
 ## 0.4.1 beta
 
 **New**

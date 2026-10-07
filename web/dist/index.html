@@ -1760,7 +1760,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as TrackIQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.4.1",APP_STAGE="beta";
+const WEB_VERSION="0.4.2",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("TrackIQ version "+v,"Versión de TrackIQ "+v,"TrackIQ Version "+v,"Versão do TrackIQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2108,7 +2108,14 @@ function applyLapCh(){const sp=$("#cmp")&&$("#cmp").closest(".cmpwrap");if(sp)sp
 let CMP_SECN=3;
 /* the track map of two laps: where A gains (green) or loses (red) time against B, the corners, the sectors and the point under the cursor */
 let CMP_MAPTOK=0;
-async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK,tid=A.trackId||B.trackId,live=!tid&&MAP.data&&MAP.data.x&&MAP.data.x.length>10;let map=null;try{map=tid?await trackMapFor(tid,A.game||B.game):live?MAP.data:null}catch(e){}
+/* which circuit a lap was driven on: the id the lap carries, else the one the session names (by name in the track book
+   and the community list), else the circuit of the live session for laps driven now */
+async function lapTrackId(A,B){let id=A.trackId||B.trackId;if(id)return id;const nm=A.track||B.track;
+  if(!nm){const w=(S&&S.WeekendInfo)||{};return w.TrackID||null}
+  const list=[...((await loadTB().catch(()=>TB))||[]),...((COMM&&COMM.combos)||[])],cfg=A.track_config||B.track_config||"",tn=commNorm(nm),tc=commNorm(nm+" "+cfg);
+  const hit=list.find(e=>e.trackId&&commNorm(e.track)===tc)||list.find(e=>e.trackId&&commNorm(e.track)===tn)||list.find(e=>e.trackId&&tn&&(commNorm(e.track).includes(tn)||tn.includes(commNorm(e.track))));
+  return hit?hit.trackId:null}
+async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=null;try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
   if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("Drive a lap at this track with TrackIQ open and its map appears here.","Da una vuelta en este circuito con TrackIQ abierto y aquí aparecerá su mapa.","Fahre eine Runde auf dieser Strecke mit geöffnetem TrackIQ, dann erscheint die Karte hier.","Dê uma volta nesta pista com o TrackIQ aberto e o mapa aparece aqui."))}</p>`;return}
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end);if(n<8){box.innerHTML="";return}
@@ -4995,9 +5002,9 @@ function brakePointsJS(raw,bin){const n=raw.length,v=raw.slice();let last=-1;for
 async function trackMapFor(id,game){if(MAP.data&&MAP.key&&MAP.key.replace(/^demo_|^t/,"")===String(id))return MAP.data;const loc=store.get("pw.map.t"+id,null)||store.get("pw.map.demo_"+id,null);if(loc)return loc;
   if(MODE==="bridge"&&!COMPANION){for(const k of["t"+id,"demo_"+id]){try{const r=await fetch("/api/map?key="+k);if(r.ok){const d=await r.json();if(d&&d.x&&d.x.length)return d}}catch(e){}}}
   // the layout the community drew from clean laps: any track someone has driven with TrackIQ
-  const key=(game||"iracing")+":"+id;if(key in TRACKMAPS)return TRACKMAPS[key];TRACKMAPS[key]=null;
+  const key=(game||"iracing")+":"+id;if(key in TRACKMAPS&&(TRACKMAPS[key]||Date.now()-(TRACKMAPS_T[key]||0)<30000))return TRACKMAPS[key];TRACKMAPS[key]=null;TRACKMAPS_T[key]=Date.now();
   if(MODE==="bridge"&&id){try{const d=await jget("/api/trackmap?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||"iracing"));if(d&&d.x&&d.x.length>10)TRACKMAPS[key]=d}catch(e){}}return TRACKMAPS[key]}
-const TRACKMAPS={},RB_CORNERS={};
+const TRACKMAPS={},TRACKMAPS_T={},RB_CORNERS={};
 const RBV={inc:true,coach:true};let RB_AT=null; // distance on the lap → point on the drawn map (set when the map is drawn)
 /* the corners of a track from the shape of its map: where the direction changes, in order from the line */
 function trackCorners(map,L){const xs=map&&map.x,ys=map&&map.y,N=xs?xs.length:0;if(N<60||!(L>300))return[];const step=L/N,P=i=>((i%N)+N)%N;
