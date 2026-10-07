@@ -4,6 +4,30 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.4.0 beta
+
+**New**
+- Coach (formerly Braking coach): a plan for your next session from everything the telemetry
+  says about a lap against a reference: time lost in corners by phase (braking, entry, apex,
+  exit) and on the straights, what to work on first with the gain each item brings, the
+  sectors, how steady each corner is over the session, and how you drive the lap (flat out,
+  coasting, lifts, steering). One card per corner with braking point, slowest speed, trail
+  braking and coasting.
+- The braking coach lives in the lap analyzer too: corner cards under the charts.
+- Lap analyzer: every channel (speed, delta, throttle, brake, gear, steering) has its own panel
+  with the values at the point you hover or touch shown right above it, and can still be switched
+  on or off. On the PC the card follows the pointer over any chart.
+- Race analysis map: hover or touch the track to see the distance, the corner, where you brake
+  (and the driver you compare with), the incidents there and the coach's tip.
+- Home on phones (web) like the phone apps: licences (in development), a race summary (iRating,
+  change, races, wins, top 5, incidents) and your recent races, which open the race summary.
+- Admins: a race analysis whose cut check was wrong can have every lap marked as valid again
+  (local reports and shared analyses); incidents stay as they are.
+
+**Fixed**
+- Demo data: the corners of a track are in the same place on every lap, so the coach's phases
+  make sense on the demo too.
+
 ## 0.3.9 beta
 
 **Changed**

@@ -23,7 +23,8 @@
   // a lap trace: a speed profile with braking zones; rows of speed m/s, throttle, brake, gear, steering, lap time
   function trace(c, lapTime, seed) {
     const r = rng(seed), bin = 10, n = Math.floor(c.len / bin);
-    const corners = Array.from({ length: 9 }, (_, k) => (k + 0.5 + r.f(-0.2, 0.2)) / 9);
+    // the corners of a track are always in the same place: every lap of a combination shares them
+    const rc = rng(hash(c.track)), corners = Array.from({ length: 9 }, (_, k) => (k + 0.5 + rc.f(-0.2, 0.2)) / 9);
     const raw = [];
     for (let i = 0; i < n; i++) {
       const x = i / n;

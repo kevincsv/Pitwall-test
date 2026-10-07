@@ -525,7 +525,7 @@ func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
 		return
 	}
-	var in struct{ Kind, ID, Game string }
+	var in struct{ Kind, ID, Game, Action string }
 	json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&in)
 	switch in.Kind {
 	case "laps", "reports", "setups", "trackmaps":
@@ -541,7 +541,11 @@ func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
 		return
 	}
-	b, err := commRequest("DELETE", "/community/admin/"+in.Kind+"/"+url.PathEscape(in.ID)+"?game="+url.QueryEscape(in.Game), nil, tok)
+	method, path := "DELETE", "/community/admin/"+in.Kind+"/"+url.PathEscape(in.ID)+"?game="+url.QueryEscape(in.Game)
+	if in.Action == "uncut" && in.Kind == "reports" { // every lap of a shared analysis valid again
+		method, path = "POST", "/community/admin/reports/"+url.PathEscape(in.ID)+"/uncut"
+	}
+	b, err := commRequest(method, path, nil, tok)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		writeJSON(w, map[string]string{"error": err.Error()})

@@ -639,6 +639,12 @@ func registerJournalRoutes(mux *http.ServeMux) {
 						races = append(races[:i], races[i+1:]...)
 						writeJSONFile(journalFile("races.json"), races)
 					}
+					if in.Action == "uncut" && wipAllowed() { // admins: every lap of the report counts as valid again (a wrong cut check)
+						for k := range x.Laps {
+							x.Laps[k].Cut = false
+						}
+						writeJSONFile(journalFile("races.json"), races)
+					}
 					break
 				}
 			}

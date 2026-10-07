@@ -102,6 +102,18 @@ export async function community(req, env, url) {
     return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
   }
   // the admins of this server (ADMINS) can remove anything shared in the community
+  // admins: every lap of a shared race analysis counts as valid again (a wrong cut check)
+  const um = p.match(/^\/admin\/reports\/([A-Za-z0-9_.:-]{1,64})\/uncut$/);
+  if (um && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare("SELECT data FROM community_reports WHERE id=?1").bind(um[1]).first();
+    if (!r) return err("not found", 404);
+    const d = JSON.parse(r.data);
+    if (Array.isArray(d.laps)) d.laps = d.laps.map((l) => ({ ...l, cut: false }));
+    await env.DB.prepare("UPDATE community_reports SET data=?2 WHERE id=?1").bind(um[1], JSON.stringify(d)).run();
+    return json({ ok: true });
+  }
   const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
   if (am && m === "DELETE") {
     const acc = await sessionAccount(req, env);
