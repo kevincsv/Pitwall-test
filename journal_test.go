@@ -59,6 +59,7 @@ DriverInfo:
  DriverCarFuelMaxLtr: 45.000
  Drivers:
  - CarIdx: 0
+   UserID: 100001
    UserName: Driver C
    CarID: 67
    CarPath: mx5 mx52016
@@ -67,12 +68,14 @@ DriverInfo:
    CarClassShortName: MX5
    IRating: 2000
  - CarIdx: 1
+   UserID: 100002
    UserName: Fast One
    CarID: 67
    CarScreenName: Global Mazda MX-5 Cup
    CarClassID: 74
    IRating: 2600
  - CarIdx: 2
+   UserID: 100003
    UserName: Slow One
    CarID: 67
    CarScreenName: Global Mazda MX-5 Cup
@@ -103,6 +106,19 @@ func TestRaceReport(t *testing.T) {
 	}
 	if r.Results[1].Inc != 2 || r.Results[2].Inc != 4 {
 		t.Fatalf("incidents in the table: %+v", r.Results)
+	}
+	// the top 3 for the community: P1 and P3 (P2 is me), by car and track, time and an opaque key, no name
+	top := fieldTopLaps(r)
+	if len(top) != 2 || top[0]["time"] != 97.5 || top[1]["time"] != 98.3 || top[0]["carId"] != 67 || top[0]["trackId"] != 515 || top[0]["other"] == "" || top[0]["other"] == top[1]["other"] {
+		t.Fatalf("top 3 laps: %v", top)
+	}
+	for _, b := range top {
+		if _, ok := b["name"]; ok || len(b["other"].(string)) != 32 || b["other"].(string) == driverKey("100001") {
+			t.Fatalf("a name or the wrong key went with a top-3 lap: %v", b)
+		}
+	}
+	if driverKey("") != "" || driverKey("-1") != "" || driverKey("100002") != top[0]["other"] {
+		t.Fatalf("driver keys: %q %q", driverKey(""), driverKey("100002"))
 	}
 	if r.Avg != 98.033 || r.Consistency <= 0 || r.Consistency > 0.2 {
 		t.Fatalf("clean laps: avg %v sd %v", r.Avg, r.Consistency)
@@ -169,6 +185,33 @@ func TestNotesAndDiscordRoutes(t *testing.T) {
 	if discordCfg.Webhook == "" || discordCfg.Lang != "es" {
 		t.Fatalf("discord config not kept: %+v", discordCfg)
 	}
+}
+
+func TestFieldSectors(t *testing.T) {
+	fieldMu.Lock()
+	fieldCars = map[int]*carLapProf{7: {lapsS: []lapSecs{{time: 97.5, s: []float64{31.2, 33.1, 33.2}}, {time: 98.1, s: []float64{31.5, 33.3, 33.3}}}}}
+	fieldMu.Unlock()
+	if s := fieldSectors(7, 98.1); len(s) != 3 || s[1] != 33.3 {
+		t.Fatalf("sectors of the 98.1 lap: %v", s)
+	}
+	if fieldSectors(7, 99) != nil || fieldSectors(8, 97.5) != nil || fieldSectors(7, 0) != nil {
+		t.Fatal("sectors for a lap or car that was not seen")
+	}
+	// a race result takes its driver's sectors from the watcher
+	fieldMu.Lock()
+	fieldCars[1] = &carLapProf{lapsS: []lapSecs{{time: 97.5, s: []float64{31.2, 33.1, 33.2}}}}
+	fieldMu.Unlock()
+	tr := &raceTrack{id: "900-2", meta: currentCarTrack(testRaceYAML), started: true, start: 3, lastPos: 2, laps: []raceLap{{N: 1, Time: 99.5, Pos: 3}}}
+	r := buildReport(testRaceYAML, tr, false)
+	if len(r.Results[0].Sectors) != 3 || r.Results[0].Sectors[0] != 31.2 || r.Results[1].Sectors != nil {
+		t.Fatalf("sectors in the results: %+v", r.Results)
+	}
+	if top := fieldTopLaps(r); len(top) != 2 || top[0]["sectors"] == nil || top[1]["sectors"] != nil {
+		t.Fatalf("sectors with the top-3 laps: %v", top)
+	}
+	fieldMu.Lock()
+	fieldCars = map[int]*carLapProf{}
+	fieldMu.Unlock()
 }
 
 func TestDriverBlockSkipsFastestLap(t *testing.T) {

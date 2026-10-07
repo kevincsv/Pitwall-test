@@ -4,6 +4,28 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.6 beta
+
+**Added**
+- **The top 3 of each race go to the community, anonymously.** After a race, the best lap of each
+  of the top 3 of your class (you aside) goes to the leaderboard as an anonymous driver: lap time
+  and sectors only, no name and no telemetry (iRacing sends nobody else's). One anonymous driver
+  per real driver, so their faster lap of a later race replaces the earlier one. It needs your
+  account and that you share your own laps; it has its switch in Settings → Community.
+- **The Garage 61 import also shares your best laps**: for every car and track it imports, your
+  best lap (with its telemetry when Garage 61 had it) goes to the leaderboard under your nickname;
+  a faster lap you shared before stays.
+
+**Fixed**
+- **The Garage 61 import works with the real Garage 61** (already on the server): it lists laps
+  per track (Garage 61 takes no other way), 40 tracks per request out of its 479, and when
+  Garage 61 asks for a pause it waits and goes on from the same lap; the progress shows the
+  track group and the pause.
+- **Your own laps and analyses are marked "you" on the web too**: the web did not send your
+  session when reading the leaderboard, so the server could not tell which were yours.
+- **The race summary's table shows each driver's sectors** of their best lap when the PC saw the
+  lap whole (thirds of the lap, like yours).
+
 ## 0.8.5 beta
 
 **Fixed**

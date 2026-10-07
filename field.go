@@ -25,6 +25,38 @@ type carLapProf struct {
 	pendAt         float64
 	best           float64
 	bestV          []float32
+	// sector times (thirds of the lap, like your own): the moments this lap crossed the line and the
+	// third marks, the sectors of the lap just finished (paired with its time when that arrives), and
+	// the sectors of every lap whose time matched
+	cross   [3]float64
+	pendS   []float64
+	pendSAt float64
+	lapsS   []lapSecs
+}
+
+type lapSecs struct {
+	time float64
+	s    []float64
+}
+
+// fieldSectors: the sector times of a car's lap of that time (its best lap, for the race table and
+// the community), when the field watcher saw the lap whole.
+func fieldSectors(carIdx int, lapTime float64) []float64 {
+	if lapTime <= 0 {
+		return nil
+	}
+	fieldMu.Lock()
+	defer fieldMu.Unlock()
+	c := fieldCars[carIdx]
+	if c == nil {
+		return nil
+	}
+	for _, l := range c.lapsS {
+		if math.Abs(l.time-lapTime) < 0.002 {
+			return append([]float64{}, l.s...)
+		}
+	}
+	return nil
 }
 
 var (
@@ -125,10 +157,33 @@ func fieldWatcher() {
 				}
 				c.pendV = nil
 			}
+			if c.pendS != nil && t-c.pendSAt > 2 {
+				if lt := a[2][i]; lt > 0 && math.Abs(c.pendS[0]+c.pendS[1]+c.pendS[2]-lt) < 0.02*lt {
+					// the sectors add up to the lap time: keep them, scaled onto the official time
+					k := lt / (c.pendS[0] + c.pendS[1] + c.pendS[2])
+					c.lapsS = append(c.lapsS, lapSecs{time: lt, s: []float64{round(c.pendS[0]*k, 3), round(c.pendS[1]*k, 3), round(lt-round(c.pendS[0]*k, 3)-round(c.pendS[1]*k, 3), 3)}})
+					if len(c.lapsS) > 300 {
+						c.lapsS = c.lapsS[1:]
+					}
+				}
+				c.pendS = nil
+			}
 			if c.lastT > 0 && t > c.lastT && t-c.lastT < 0.5 {
 				d := pct - c.lastPct
 				if d < -0.5 {
 					d++
+					// the line, crossed between the two samples: the lap just finished has its sectors
+					at := c.lastT + (t-c.lastT)*(1-c.lastPct)/d
+					if c.cross[0] > 0 && c.cross[1] > c.cross[0] && c.cross[2] > c.cross[1] && at > c.cross[2] {
+						c.pendS, c.pendSAt = []float64{c.cross[1] - c.cross[0], c.cross[2] - c.cross[1], at - c.cross[2]}, t
+					}
+					c.cross = [3]float64{at, 0, 0}
+				} else if d > 0 && d < 0.05 {
+					for k, m := range []float64{1.0 / 3, 2.0 / 3} {
+						if c.lastPct < m && pct >= m {
+							c.cross[k+1] = c.lastT + (t-c.lastT)*(m-c.lastPct)/d
+						}
+					}
 				}
 				if d >= 0 && d < 0.05 {
 					sp := d * L / (t - c.lastT)

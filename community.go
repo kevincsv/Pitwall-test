@@ -46,6 +46,7 @@ type commConfig struct {
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
 	NoLive       bool   `json:"noLive,omitempty"`      // do not offer live telemetry to my browsers and phones through the server
+	NoField      bool   `json:"noField,omitempty"`     // do not share the top 3 of each race anonymously (shared by default, times only)
 	// DRINKS mode, formerly Friday night mode (admins only): friends drive on this PC and their laps go to the
 	// community under their own names, so the model learns from them; they stay out of My laps
 	Friday    bool     `json:"friday,omitempty"`
@@ -306,6 +307,31 @@ func shareLap(l cloudLap) {
 	}()
 }
 
+// shareFieldTop: after a race, the best laps of the top 3 of your class go to the community as
+// anonymous drivers (times and sectors only: iRacing sends no one else's telemetry), when you
+// share your own laps and did not switch this off. Needs your account: the server keeps one
+// anonymous driver per real driver, so a later faster lap replaces the earlier one.
+func shareFieldTop(r *raceReport) {
+	commMu.Lock()
+	on := commCfg.ShareTimes && !commCfg.NoField
+	commMu.Unlock()
+	if !on || tel.isDemo() || (r.Game != "" && r.Game != "iracing") || !accountSignedIn() {
+		return
+	}
+	for _, body := range fieldTopLaps(r) {
+		_, err := commCall("POST", "/laps", body, true)
+		commNote(err)
+	}
+}
+
+// accountSignedIn: this PC is signed in to a Pitlane HQ account.
+func accountSignedIn() bool {
+	loadPL()
+	plMu.Lock()
+	defer plMu.Unlock()
+	return plAcc.Token != ""
+}
+
 // shareReport sends a race analysis without the other drivers' names.
 // shareRaceReports: sharing race analyses with the community is switched off for now
 var shareRaceReports = false
@@ -401,7 +427,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 			var in struct {
 				Action, Alias, URL, NameKind, DeleteAfter        string
 				ShareTimes, ShareTraces, ShareReports, Anonymous bool
-				ShareMaps, LiveWeb                               *bool
+				ShareMaps, LiveWeb, ShareField                   *bool
 				Friday, GuestAuto                                bool
 				Guest                                            string
 				SessionID, LapID                                 string
@@ -458,6 +484,9 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				if in.LiveWeb != nil {
 					commCfg.NoLive = !*in.LiveWeb
 				}
+				if in.ShareField != nil {
+					commCfg.NoField = !*in.ShareField
+				}
 				switch in.DeleteAfter {
 				case "now", "1d", "2d", "7d":
 					commCfg.DeleteAfter = in.DeleteAfter
@@ -493,7 +522,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		c := commCfg
 		commMu.Unlock()
 		writeJSON(w, map[string]any{"alias": c.Alias, "url": c.URL, "defaultUrl": firstNonEmpty(communityURL, bundledServer()), "server": commBase(), "ready": commBase() != "", "shareTimes": c.ShareTimes, "shareTraces": c.ShareTraces,
-			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "liveWeb": !c.NoLive, "live": liveStatus(), "friday": c.Friday, "guest": c.Guest, "guestAuto": c.GuestAuto, "guests": c.Guests, "fridayDriver": fridayDriver(), "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
+			"shareReports": c.ShareReports, "shareMaps": !c.NoMaps, "liveWeb": !c.NoLive, "shareField": !c.NoField, "live": liveStatus(), "friday": c.Friday, "guest": c.Guest, "guestAuto": c.GuestAuto, "guests": c.Guests, "fridayDriver": fridayDriver(), "anonymous": c.Anonymous, "deleteAfter": c.DeleteAfter, "asked": c.Asked, "nameKind": c.NameKind, "account": plStatus()["signedIn"], "registered": c.Token != "", "shared": c.Shared, "error": c.LastErr})
 	})
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {

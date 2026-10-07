@@ -5,6 +5,8 @@ package main
 // corner of each track (the engineer can read them to you).
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -180,19 +182,34 @@ type raceLap struct {
 }
 
 type raceResult struct {
-	Pos      int     `json:"pos"`
-	ClassPos int     `json:"cpos"`
-	Name     string  `json:"name"`
-	Car      string  `json:"car,omitempty"`
-	Class    string  `json:"class,omitempty"`
-	ClassID  int     `json:"classId,omitempty"`
-	IR       int     `json:"ir,omitempty"`
-	Laps     int     `json:"laps"`
-	Best     float64 `json:"best,omitempty"`
-	Inc      int     `json:"inc"`
-	Out      string  `json:"out,omitempty"`
-	Me       bool    `json:"me,omitempty"`
-	IRChange int     `json:"irChange,omitempty"`
+	Pos      int       `json:"pos"`
+	ClassPos int       `json:"cpos"`
+	Name     string    `json:"name"`
+	Car      string    `json:"car,omitempty"`
+	CarID    int       `json:"carId,omitempty"`
+	Class    string    `json:"class,omitempty"`
+	ClassID  int       `json:"classId,omitempty"`
+	IR       int       `json:"ir,omitempty"`
+	Laps     int       `json:"laps"`
+	Best     float64   `json:"best,omitempty"`
+	Sectors  []float64 `json:"sectors,omitempty"` // of the best lap, when the field watcher saw it whole
+	Inc      int       `json:"inc"`
+	Out      string    `json:"out,omitempty"`
+	Me       bool      `json:"me,omitempty"`
+	IRChange int       `json:"irChange,omitempty"`
+	carIdx   int
+	key      string // an opaque key of the driver (never their id or name): the same driver gets the same key
+}
+
+// driverKey: the key of an iRacing driver for the community's anonymous laps, from their customer
+// id; the id itself never leaves this PC.
+func driverKey(userID string) string {
+	userID = strings.TrimSpace(userID)
+	if userID == "" || userID == "-1" || userID == "0" {
+		return ""
+	}
+	h := sha256.Sum256([]byte("pitlanehq-other|" + userID))
+	return hex.EncodeToString(h[:16])
 }
 
 type raceReport struct {
@@ -391,9 +408,11 @@ func sessionResults(y string, sn int) []raceResult {
 			r.Best = round(ft, 3)
 		}
 		idx := yamlField(p, "CarIdx")
+		r.carIdx = atoi(idx)
 		if d := driverBlock(y, idx); d != "" {
 			r.Name, r.Car, r.Class = yamlField(d, "UserName"), yamlField(d, "CarScreenName"), yamlField(d, "CarClassShortName")
-			r.IR, r.ClassID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID"))
+			r.IR, r.ClassID, r.CarID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID")), atoi(yamlField(d, "CarID"))
+			r.key = driverKey(yamlField(d, "UserID"))
 			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
 			// up to date are the ones per driver (the team's in a team race, else the driver's own)
 			if r.Inc == 0 {
@@ -529,6 +548,11 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 			}
 		}
 	}
+	for i := range cls {
+		if !cls[i].Me {
+			cls[i].Sectors = fieldSectors(cls[i].carIdx, cls[i].Best)
+		}
+	}
 	r.Field, r.SOF, r.Results = len(cls), strengthOfField(irs), cls
 	r.Brakes, r.TrackLen = fieldBrakes(y, cls), round(trackLength(y), 0)
 	if r.Field == 0 {
@@ -567,6 +591,30 @@ func saveRace(r *raceReport) {
 	go notifyRaceSummary(r)
 	go discordRace(r)
 	shareReport(r)
+	go shareFieldTop(r)
+}
+
+// fieldTopLaps: the best laps of the top 3 of your class (you aside: your own laps go the usual way),
+// as the community takes them: time, sectors, car and track, and an opaque key per driver. No names.
+func fieldTopLaps(r *raceReport) []map[string]any {
+	var out []map[string]any
+	if r == nil || r.TrackID == 0 {
+		return nil
+	}
+	for i, x := range r.Results {
+		if i >= 3 {
+			break
+		}
+		if x.Me || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
+			continue
+		}
+		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key}
+		if len(x.Sectors) == 3 {
+			b["sectors"] = x.Sectors
+		}
+		out = append(out, b)
+	}
+	return out
 }
 
 // ---------- notices to open screens (a new race report) ----------
