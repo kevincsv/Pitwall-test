@@ -2093,7 +2093,7 @@ function drawChannels(sa,sb,n,len,pl){const host=$("#cmpCh"),chips=$("#cmpChips"
   lanes.forEach(([k,t,col])=>{const cv=host.querySelector(`[data-chp="${k}"] canvas`);if(!cv)return;const [x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);x.font="10px "+css("--f-data");
     let lo=0,hi=1;if(k==="gear"){for(let i=0;i<n;i++)[sa,sb].forEach(s=>{const b=s.arr[i];if(b&&b[4]>hi)hi=b[4]})}if(k==="steer"){let m=.1;for(let i=0;i<n;i++)[sa,sb].forEach(s=>{const b=s.arr[i];if(b&&isFinite(b[5]))m=Math.max(m,Math.abs(b[5]))});lo=-m;hi=m}
     const bh=h-14,Y=v=>4+(1-(v-lo)/(hi-lo||1))*bh;x.strokeStyle=css("--line");x.lineWidth=1;x.beginPath();x.moveTo(pl,4+bh);x.lineTo(w-6,4+bh);x.stroke();if(k==="steer"){x.beginPath();x.moveTo(pl,Y(0));x.lineTo(w-6,Y(0));x.stroke()}
-    x.fillStyle=css("--muted");x.fillText(k==="gear"?String(Math.round(hi)):k==="steer"?"L / R":"100%",4,12);x.fillText(k==="gear"?"1":k==="steer"?"":"0%",4,4+bh);
+    x.fillStyle=css("--muted");x.fillText(k==="gear"?String(Math.round(hi)):k==="steer"?"L / R":"100%",4,12);x.fillText(k==="gear"?"1":k==="steer"?"":"0%",4,4+bh);cmpSectorLines(x,w,4+bh,pl,CMP_SECN,12);
     [[sb,"--pb"],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b||!isFinite(b[col]))continue;const px=X(w,i*BIN),py=Y(b[col]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.4;x.stroke()});
     if(CMP_HOVER){const hx=X(w,Math.min(n-1,CMP_HOVER.i)*BIN);x.strokeStyle=css("--fg");x.globalAlpha=.55;x.setLineDash([3,3]);x.beginPath();x.moveTo(hx,0);x.lineTo(hx,h);x.stroke();x.setLineDash([]);x.globalAlpha=1}
     if(!cv.dataset.hoverWired&&typeof wireCmpExtra==="function")wireCmpExtra(cv)});
@@ -2103,16 +2103,18 @@ function drawChannels(sa,sb,n,len,pl){const host=$("#cmpCh"),chips=$("#cmpChips"
     if(k==="delta"){const d=a&&b?a[1]-b[1]:null;el.innerHTML=d==null?"":`${Math.round(i*BIN)} m · <b class="${d>0?"bad":"good"}">${sgn(d,3)} s</b>`;return}
     el.innerHTML=`${Math.round(i*BIN)} m · <b class="ta">A ${a?f[k](a):"–"}</b> · <b class="tb">B ${b?f[k](b):"–"}</b>`})}
 function applyLapCh(){const sp=$("#cmp")&&$("#cmp").closest(".cmpwrap");if(sp)sp.classList.toggle("choff",!LAPCH.speed);const sh=$("#lapsBody .ch-head");if(sh)sh.hidden=!LAPCH.speed;document.querySelectorAll(".ch-delta").forEach(e=>e.hidden=!LAPCH.delta)}
+let CMP_SECN=3;
+function cmpSectorLines(x,w,bottom,pl,cnt,ty){x.save();x.setLineDash([4,4]);x.lineWidth=1;x.strokeStyle=css("--muted");x.fillStyle=css("--muted");for(let k=1;k<cnt;k++){const xx=pl+k/cnt*(w-pl-6);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,bottom);x.stroke();x.fillText("S"+k,xx+4,ty)}x.restore()}
 function drawCmp(hover){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(!A||!B)return;applyLapCh();if(!hover){renderLapCompareHeads(A,B);renderLapAnalyzer(A,B)}$("#legA").textContent="A · "+lapName(A);$("#legB").textContent="B · "+lapName(B);
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end),len=n*BIN;let vmax=0;for(let i=0;i<n;i++){if(sa.arr[i])vmax=Math.max(vmax,sa.arr[i][0]);if(sb.arr[i])vmax=Math.max(vmax,sb.arr[i][0])}
   const top=Math.ceil(spd(vmax)/50)*50||200;let [x,w,h]=fitCanvas($("#cmp"));if(!x)return;const mainX=x;x.clearRect(0,0,w,h);const pl=40,pb=18,X=d=>pl+d/len*(w-pl-6),Y=v=>6+(1-spd(v)/top)*(h-pb-6);
   x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.lineWidth=1;
   for(let v=50;v<=top;v+=50){const y=6+(1-v/top)*(h-pb-6);x.beginPath();x.moveTo(pl,y);x.lineTo(w-6,y);x.stroke();x.fillText(v,4,y+4)}
-  const step=len>3000?1000:500;for(let d=0;d<len;d+=step)x.fillText(d+" m",X(d)+(d?-14:0),h-3);const sectorCount=Math.max(A.sectors?.length||0,B.sectors?.length||0,3);x.save();x.setLineDash([4,4]);for(let k=1;k<sectorCount;k++){const xx=pl+k/sectorCount*(w-pl-6);x.strokeStyle=css("--muted");x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.stroke();x.setLineDash([]);x.fillStyle=css("--muted");x.fillText("S"+k,xx+4,14);x.setLineDash([4,4])}x.restore();
+  const step=len>3000?1000:500;for(let d=0;d<len;d+=step)x.fillText(d+" m",X(d)+(d?-14:0),h-3);CMP_SECN=Math.max(A.sectors?.length||0,B.sectors?.length||0,3);cmpSectorLines(x,w,h-18,pl,CMP_SECN,14);
   [[sb,"--pb"],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b)continue;const px=X(i*BIN),py=Y(b[0]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.8;x.stroke()});
   const dts=[];for(let i=0;i<n;i++){const a=sa.arr[i],b=sb.arr[i];if(a&&b)dts.push([i,a[1]-b[1]])}
   if(LAPCH.delta){[x,w,h]=fitCanvas($("#cmpDelta"));if(x){x.clearRect(0,0,w,h);let mx=.2;dts.forEach(([,d])=>mx=Math.max(mx,Math.abs(d)));mx=Math.ceil(mx*10)/10;const Yd=v=>h/2-v/mx*(h/2-8);
-  x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.beginPath();x.moveTo(pl,h/2);x.lineTo(w-6,h/2);x.stroke();x.fillText("0",4,h/2+4);x.fillText("+"+mx.toFixed(1),4,Yd(mx)+10);x.fillText("−"+mx.toFixed(1),4,Yd(-mx));
+  x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.beginPath();x.moveTo(pl,h/2);x.lineTo(w-6,h/2);x.stroke();x.fillText("0",4,h/2+4);x.fillText("+"+mx.toFixed(1),4,Yd(mx)+10);x.fillText("−"+mx.toFixed(1),4,Yd(-mx));cmpSectorLines(x,w,h,pl,CMP_SECN,12);
   x.beginPath();dts.forEach(([i,d],k)=>k?x.lineTo(X(i*BIN),Yd(d)):x.moveTo(X(i*BIN),Yd(d)));x.strokeStyle=css("--accent");x.lineWidth=1.8;x.stroke();
   if(CMP_HOVER){const hi=Math.min(n-1,CMP_HOVER.i),hx=X(hi*BIN);x.strokeStyle=css("--fg");x.globalAlpha=.55;x.setLineDash([3,3]);x.beginPath();x.moveTo(hx,0);x.lineTo(hx,h);x.stroke();x.setLineDash([]);x.globalAlpha=1}}}
   drawChannels(sa,sb,n,len,pl);
