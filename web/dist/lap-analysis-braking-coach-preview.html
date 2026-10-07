@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pitwall — Lap Analysis Preview</title>
+<style>
+:root{--bg:#080b10;--panel:#10151c;--panel2:#151b23;--line:#28313d;--text:#eef2f7;--muted:#8490a0;--accent:#ff5a36;--green:#2bd576;--red:#ff4d5d;--blue:#58a6ff;--yellow:#f4c95d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:13px Inter,system-ui,-apple-system,sans-serif}
+.app{max-width:1500px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.brand{font-weight:900;letter-spacing:.08em;font-size:18px}.crumb{color:var(--muted);margin-left:12px}.status{border:1px solid #245d3f;color:var(--green);border-radius:20px;padding:7px 11px;font-size:11px;font-weight:800}
+h1{font-size:30px;margin:0 0 5px}.sub{color:var(--muted)}.tabs{display:flex;gap:7px;margin:20px 0}.tab{padding:9px 14px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-weight:700}.tab.active{color:white;border-color:var(--accent);background:#241711}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px}.label{text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-size:10px;font-weight:800}.big{font-size:27px;font-weight:900;margin-top:5px}.good{color:var(--green)}.bad{color:var(--red)}
+.main{display:grid;grid-template-columns:1.55fr .9fr;gap:12px;margin-top:12px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}.panelhead{padding:13px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panelhead b{font-size:14px}.map{height:310px;position:relative;background:radial-gradient(circle at 45% 45%,#18202a,#0c1016 65%);display:grid;place-items:center}.track{width:72%;height:72%;border:16px solid #2b3440;border-radius:45% 55% 50% 42%;transform:rotate(-9deg);box-shadow:0 0 0 3px #121820 inset}.track:after{content:"";display:block;width:100%;height:100%;border:3px dashed #626e7c;border-radius:inherit;transform:scale(.82)}.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--red);box-shadow:0 0 0 6px #ff4d5d22}.dot.d1{left:29%;top:36%}.dot.d2{left:65%;top:30%;background:var(--yellow);box-shadow:0 0 0 6px #f4c95d22}.dot.d3{left:57%;top:69%;background:var(--green);box-shadow:0 0 0 6px #2bd57622}.legend{position:absolute;bottom:12px;left:15px;display:flex;gap:12px;color:var(--muted);font-size:11px}.loss{display:grid;grid-template-columns:55px 1fr 70px;gap:10px;align-items:center;padding:12px 15px;border-bottom:1px solid var(--line)}.loss:last-child{border-bottom:0}.sector{font-weight:900}.bar{height:7px;background:#252d38;border-radius:5px;overflow:hidden}.fill{height:100%;background:var(--red);border-radius:5px}.fill.y{background:var(--yellow)}.fill.g{background:var(--green)}.right .panel{margin-bottom:12px}.coach{padding:15px}.corner{font-size:20px;font-weight:900}.coachgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.metric{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:10px}.metric b{display:block;font-size:17px;margin-top:4px}.callout{border-left:3px solid var(--accent);background:#211611;padding:12px;margin-top:12px;line-height:1.5}.action{margin-top:12px;width:100%;padding:11px;border:0;border-radius:7px;background:var(--accent);color:white;font-weight:900}.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compare>div{background:var(--panel2);padding:12px;border-radius:7px}.mini{font-size:11px;color:var(--muted)}@media(max-width:900px){.main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.app{padding:12px}.map{height:250px}}
+</style></head>
+<body><div class="app">
+<div class="top"><div><span class="brand">PITWALL</span><span class="crumb">/ Lap Analysis</span></div><div class="status">● TELEMETRY LIVE</div></div>
+<h1>Lap Analysis</h1><div class="sub">Porsche 992 GT3 · Spa-Francorchamps · Lap 42 · Reference: Best Lap</div>
+<div class="tabs"><div class="tab active">Overview</div><div class="tab">Braking Coach</div><div class="tab">Throttle</div><div class="tab">Cornering</div><div class="tab">Delta</div></div>
+<div class="kpis">
+<div class="card"><div class="label">Your Lap</div><div class="big">1:38.421</div></div>
+<div class="card"><div class="label">Reference</div><div class="big">1:37.612</div></div>
+<div class="card"><div class="label">Delta</div><div class="big bad">+0.809s</div></div>
+<div class="card"><div class="label">Potential</div><div class="big good">1:37.9</div></div>
+</div>
+<div class="main">
+<div>
+<div class="panel"><div class="panelhead"><b>Lap Delta Map</b><span class="mini">Click a loss to inspect coaching</span></div><div class="map"><div class="track"></div><i class="dot d1"></i><i class="dot d2"></i><i class="dot d3"></i><div class="legend"><span>● Time loss</span><span style="color:#f4c95d">● Focus</span><span style="color:#2bd576">● Gain</span></div></div></div>
+<div class="panel" style="margin-top:12px"><div class="panelhead"><b>Where you lost time</b><span class="mini">Total +0.809s</span></div>
+<div class="loss"><b class="sector">T1</b><div><div class="bar"><div class="fill" style="width:18%"></div></div></div><strong class="bad">+0.04s</strong></div>
+<div class="loss"><b class="sector">T3</b><div><div class="bar"><div class="fill" style="width:45%"></div></div></div><strong class="bad">+0.18s</strong></div>
+<div class="loss"><b class="sector">T5</b><div><div class="bar"><div class="fill" style="width:78%"></div></div></div><strong class="bad">+0.31s</strong></div>
+<div class="loss"><b class="sector">T7</b><div><div class="bar"><div class="fill y" style="width:24%"></div></div></div><strong>+0.09s</strong></div>
+<div class="loss"><b class="sector">T10</b><div><div class="bar"><div class="fill" style="width:48%"></div></div></div><strong class="bad">+0.19s</strong></div>
+</div></div>
+<div class="right">
+<div class="panel"><div class="panelhead"><b>Braking Coach</b><span class="status">ACTIVE</span></div><div class="coach"><div class="mini">SELECTED CORNER</div><div class="corner">T5 — Hairpin</div>
+<div class="coachgrid"><div class="metric"><div class="label">Brake Point</div><b>92m <span class="bad">+8m</span></b><span class="mini">Reference 84m</span></div><div class="metric"><div class="label">Brake Peak</div><b>91% <span class="bad">+4%</span></b><span class="mini">Reference 87%</span></div><div class="metric"><div class="label">Entry Speed</div><b>118 <span class="bad">km/h</span></b><span class="mini">Reference 123 km/h</span></div><div class="metric"><div class="label">Apex Speed</div><b>74 <span class="bad">km/h</span></b><span class="mini">Reference 78 km/h</span></div></div>
+<div class="callout"><b>💡 COACH</b><br>You are braking <strong>8m too late</strong>, then over-slowing the corner. Try moving the brake point earlier and releasing pressure progressively into the apex.</div>
+<div class="compare"><div><div class="label">Time Lost</div><div class="big bad">+0.31s</div></div><div><div class="label">Expected Gain</div><div class="big good">0.18–0.25s</div></div></div>
+<button class="action">Analyse this corner</button></div></div>
+<div class="panel"><div class="panelhead"><b>Next priority</b></div><div class="coach"><div class="corner">T10 — +0.19s</div><div class="sub">Early throttle lift · exit speed 6 km/h below reference.</div></div></div>
+</div></div>
+</div></body></html>
