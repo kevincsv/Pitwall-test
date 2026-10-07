@@ -78,6 +78,20 @@ async function countUpload(env, u) {
 
 import { gameOf } from "./games.js";
 
+// one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
+// replaces a faster one only when it brings the telemetry the faster one lacks
+async function keepBestLap(env, uid, x) {
+  const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
+  if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
+  if (x.count && !(await x.count())) return { limit: true };
+  await env.DB.prepare(
+    `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
+     ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
+  ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick").run();
+  await markModel(env, x.game, x.trackId, x.carId);
+  return { shared: true, traced: !!x.trace };
+}
+
 /** "Max Verstappen2" → "Max": only the first name of another driver is shown. */
 function firstName(n) {
   const w = String(n || "").trim().split(/\s+/);
@@ -195,7 +209,10 @@ export async function community(req, env, url) {
     const token = (typeof body.token === "string" ? body.token.trim() : "").replace(/^Bearer\s+/i, "").replace(/[^A-Za-z0-9._~+/=-]/g, "");
     if (!token) return err("paste your Garage 61 token", 400);
     const base = (env.G61_BASE || "https://garage61.net/api/v1/").replace(/\/?$/, "/");
-    let fetches = 0;
+    // Garage 61 limits how often it may be asked: at most ~10 requests per call, and on a 429 the
+    // call stops where it is and tells the app how long to wait (Retry-After) before calling again
+    const BUDGET = 10;
+    let fetches = 0, wait = 0;
     const g61 = async (path) => {
       fetches++;
       const r = await fetch(base + path, { headers: { authorization: "Bearer " + token, accept: "application/json, text/csv" } });
@@ -205,17 +222,37 @@ export async function community(req, env, url) {
         try { const j = JSON.parse(why); why = String(j.error_message || j.message || j.error || why); } catch (x) { /* not JSON */ }
         why = why.replace(/\s+/g, " ").slice(0, 240);
         const e = new Error("Garage 61 answered HTTP " + r.status + (r.status === 401 ? ": the token is not valid" : "") + (why ? " · " + why : "") + " · " + path.split("?")[0]);
-        e.status = r.status; e.param = (why.match(/"([A-Za-z]+)"/) || [])[1] || ""; throw e;
+        e.status = r.status; e.param = (why.match(/"([A-Za-z]+)"/) || [])[1] || "";
+        if (r.status === 429) { const ra = parseInt(r.headers.get("retry-after") || "", 10); e.retry = ra > 0 ? Math.min(60, Math.max(3, ra)) : 15; }
+        throw e;
       }
       return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
+    };
+    const throttled = (e) => { if (e && e.status === 429) { wait = e.retry || 15; return true; } return false; };
+    // the track list and who you are change slowly: kept 15 minutes, so each call does not ask again
+    const tokHash = (await sha256(token)).slice(0, 32);
+    const cache = typeof caches !== "undefined" && caches.default ? caches.default : null;
+    const cached = async (name) => {
+      const key = new Request("https://garage61-cache.invalid/" + tokHash + "/" + name);
+      if (cache) { const hit = await cache.match(key).catch(() => null); if (hit) return hit.json(); }
+      const v = await g61(name);
+      if (cache) await cache.put(key, new Response(JSON.stringify(v), { headers: { "content-type": "application/json", "cache-control": "max-age=900" } })).catch(() => {});
+      return v;
     };
     const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results || v.laps || v.tracks)) || []);
     const batch = Math.min(8, Math.max(1, +body.batch || 6));
     const st = String(body.next || "").match(/^g61\|(\d+)\|([^|]*)\|([^|]*)\|(\d+)$/);
     let ti = st ? +st[1] : 0, page = st ? st[2] : "", prevFirst = st ? st[3] : "", k = st ? +st[4] : 0; // k: laps of this page already handled
-    const tracks = listOf(await g61("tracks")).filter((t) => t && t.id != null).sort((a, b) => (+a.id || 0) - (+b.id || 0) || String(a.id).localeCompare(String(b.id)));
+    const idle = { imported: 0, skipped: 0, noTrace: 0, others: 0, shared: 0, done: false, track: null, ids: [] };
+    let tracks, meInfo = null;
+    try {
+      tracks = listOf(await cached("tracks")).filter((t) => t && t.id != null).sort((a, b) => (+a.id || 0) - (+b.id || 0) || String(a.id).localeCompare(String(b.id)));
+      meInfo = await cached("me").catch((e) => { if (e.status === 429) throw e; return null; });
+    } catch (e) {
+      if (throttled(e)) return json({ ...idle, wait, next: st ? body.next : "g61|0|||0" });
+      throw e;
+    }
     if (!tracks.length) return err("Garage 61 returned no tracks", 502);
-    const meInfo = await g61("me").catch(() => null);
     const meId = meInfo && typeof meInfo === "object" ? (meInfo.id != null ? String(meInfo.id) : meInfo.slug || "") : "";
     // the laps list: adapted when Garage 61 names a parameter it does not take
     let drivers = "me", group = "&group=none", limit = 25, cursorKey = "after";
@@ -233,13 +270,14 @@ export async function community(req, env, url) {
       }
     };
     const lidOf = (l) => "acct_" + acc.id + ":g61:" + String(l.id).replace(/[^A-Za-z0-9_.:-]/g, "_");
-    let imported = 0, skipped = 0, noTrace = 0, others = 0, trackName = "";
-    const combos = new Map(), ids = [];
-    // up to ~30 requests to Garage 61 per call: tracks without laps cost one each, a lap its telemetry
-    while (ti < tracks.length && fetches < 30 && imported < batch) {
+    let imported = 0, skipped = 0, noTrace = 0, others = 0, shared = 0, trackName = "";
+    const combos = new Map(), touched = new Map(), ids = [];
+    // tracks without laps cost one request each, a lap one more for its telemetry
+    while (ti < tracks.length && fetches < BUDGET && imported < batch) {
       const track = tracks[ti];
       trackName = str([track.name || track.track, track.variant || track.config || track.layout].filter(Boolean).join(" · "), 120) || String(track.id);
-      const res = await listLaps(track, page);
+      let res;
+      try { res = await listLaps(track, page); } catch (e) { if (throttled(e)) break; throw e; }
       const laps = listOf(res).filter((l) => l && l.id != null);
       const firstId = laps.length ? String(laps[0].id) : "";
       // only the admin's own laps, even if Garage 61 lists others; the ones a previous call handled are passed over
@@ -247,23 +285,25 @@ export async function community(req, env, url) {
       const have = new Set();
       for (let i = 0; i < mine.length; i += 40) {
         const part = mine.slice(i, i + 40).map(lidOf);
-        const rows = await env.DB.prepare(`SELECT id FROM laps WHERE id IN (${part.map((_, k) => "?" + (k + 1)).join(",")})`).bind(...part).all();
-        for (const r of rows.results || []) have.add(r.id);
+        const rows = await env.DB.prepare(`SELECT l.id, s.track_id, s.car_id, s.car, s.track, s.track_config FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id IN (${part.map((_, k) => "?" + (k + 1)).join(",")})`).bind(...part).all();
+        for (const r of rows.results || []) {
+          have.add(r.id);
+          if (r.track_id && r.car_id) touched.set(r.track_id + ":" + r.car_id, { trackId: r.track_id, carId: r.car_id, car: r.car, track: r.track + (r.track_config ? " · " + r.track_config : "") });
+        }
       }
-      const todo = []; let kEnd = k, more = false;
+      // the laps of this page still to do, in page order; the call stops (and the next one comes back to
+      // this very lap) when it has done its share, spent its requests or Garage 61 asked for a pause
+      let kEnd = k, more = false;
       for (const l of laps.slice(k)) {
         if (!mine.includes(l)) { kEnd++; continue; }
         if (have.has(lidOf(l))) { skipped++; kEnd++; continue; }
-        if (todo.length >= batch - imported) { more = true; break; }
-        todo.push(l); kEnd++;
-      }
-      for (const l of todo) {
+        if (imported >= batch || fetches >= BUDGET) { more = true; break; }
         const lid = lidOf(l);
-        ids.push(String(l.id));
         const time = +(l.lapTime || l.time || 0);
-        if (!(time > 10 && time < 3600)) { skipped++; continue; }
+        if (!(time > 10 && time < 3600)) { skipped++; kEnd++; continue; }
         let csv = null;
-        try { csv = await g61(`laps/${encodeURIComponent(l.id)}/csv`); } catch (e) { csv = null; }
+        try { csv = await g61(`laps/${encodeURIComponent(l.id)}/csv`); } catch (e) { if (throttled(e)) { more = true; break; } csv = null; }
+        ids.push(String(l.id));
         const tr = csv ? g61Trace(String(csv), time) : null;
         if (!tr) noTrace++;
         const trk = Object.assign({}, track, l.track || {}), car = l.car || {};
@@ -293,8 +333,9 @@ export async function community(req, env, url) {
             .bind(lid, sid, time, tr ? tr.vmax : null, sectors, tr ? await sealData(env, JSON.stringify({ d: tr.d })) : null, started),
           env.DB.prepare("UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1), best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1").bind(sid),
         ]);
-        imported++;
+        imported++; kEnd++;
         if (tr) combos.set(trackId + ":" + carId, [trackId, carId]);
+        touched.set(trackId + ":" + carId, { trackId, carId, car: cName, track: full });
       }
       if (more) { k = kEnd; break; } // this page has more: the next call comes back to it
       k = 0;
@@ -310,8 +351,18 @@ export async function community(req, env, url) {
     }
     if (!(ti < tracks.length)) k = 0;
     for (const [t, c] of combos.values()) await markModel(env, "iracing", t, c);
+    // your best Garage 61 lap of each of these cars and tracks goes to the leaderboard under your nickname,
+    // with its telemetry when Garage 61 had it (the fastest lap with telemetry, else the fastest; a faster
+    // lap you shared before stays)
+    if (touched.size) await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,'acct:'||?1,?2,?3) ON CONFLICT(id) DO NOTHING").bind(acc.id, cleanAlias(acc.display), Date.now()).run();
+    for (const c of touched.values()) {
+      const best = await env.DB.prepare("SELECT l.time, l.sectors, l.trace FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?1 AND s.kind='Garage 61' AND s.track_id=?2 AND s.car_id=?3 AND l.valid=1 AND l.time>10 ORDER BY (l.trace IS NULL), l.time LIMIT 1").bind("acct:" + acc.id, c.trackId, c.carId).first();
+      if (!best) continue;
+      const r = await keepBestLap(env, acc.id, { game: "iracing", carId: c.carId, trackId: c.trackId, car: c.car, track: c.track, time: best.time, sectors: best.sectors, trace: best.trace, anon: false, shown: "nick" });
+      if (r.shared) shared++;
+    }
     const done = ti >= tracks.length;
-    return json({ imported, skipped, noTrace, others, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
+    return json({ imported, skipped, noTrace, others, shared, wait, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
   }
   if (m === "GET" && p === "/admin/status") {
     const acc = await sessionAccount(req, env);
@@ -523,35 +574,33 @@ export async function community(req, env, url) {
     if (!trackId) trackId = await pseudoId("t", g, name);
     if (!carId) carId = await pseudoId("c", g, s.car);
     if (!s.track_id || !s.car_id) await env.DB.prepare("UPDATE sessions SET track_id=COALESCE(track_id,?2), car_id=COALESCE(car_id,?3) WHERE id=?1").bind(s.id, trackId, carId).run();
-    const traced = !!lap.trace;
-    const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
     // your faster lap stays, unless it has no telemetry and this one does
-    if (old && old.game === g && old.time <= lap.time && (old.traced || !traced)) return json({ kept: "your faster lap is already shared", traced: !!old.traced });
-    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
-    await env.DB.prepare(
-      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
-       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
-    ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g, shownAs).run();
-    await markModel(env, g, trackId, carId);
-    return json({ shared: true, traced });
+    const r = await keepBestLap(env, u.id, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!body.anon, shown: shownAs, count: () => countUpload(env, u) });
+    if (r.limit) return err("too many uploads today", 429);
+    if (r.kept) return json({ kept: "your faster lap is already shared", traced: r.traced });
+    return json({ shared: true, traced: r.traced });
   }
   if (p === "/laps" && m === "POST") {
     const carId = int(body.carId), trackId = int(body.trackId), time = num(body.time);
     if (!carId || !trackId || !time || time <= 10 || time > 3600) return err("lap needs carId, trackId and time", 400);
+    const sectors = Array.isArray(body.sectors) ? JSON.stringify(body.sectors.filter((x) => typeof x === "number").slice(0, 10)) : null;
+    // the top 3 of a race you drove: their best lap times go up anonymously (no name, no telemetry), one
+    // anonymous driver per real driver, so their faster lap of a later race replaces this one
+    if (typeof body.other === "string" && /^[0-9a-f]{16,64}$/i.test(body.other)) {
+      if (!u.account) return err("sign in with your Pitlane HQ account to share other drivers' times", 401);
+      const oid = "o:" + (await sha256("other|" + (env.DATA_KEY || "") + "|" + body.other.toLowerCase())).slice(0, 24);
+      await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,'Anonymous',?3,?4) ON CONFLICT(id) DO NOTHING").bind(oid, "other:" + oid, Date.now(), u.id).run();
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: null, anon: true, shown: "nick", count: () => countUpload(env, u) });
+      if (r.limit) return err("too many uploads today", 429);
+      return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
+    }
     const plainTrace = body.trace ? JSON.stringify(body.trace) : null;
     if (plainTrace && plainTrace.length > 900000) return err("lap trace too large", 400);
     const trace = await sealData(env, plainTrace);
-    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
-    const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, carId, trackId).first();
     // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
-    if (old && old.game === game && old.time <= time && (old.traced || !trace)) return json({ kept: "your faster lap is already shared" });
-    const sectors = Array.isArray(body.sectors) ? JSON.stringify(body.sectors.filter((x) => typeof x === "number").slice(0, 10)) : null;
-    await env.DB.prepare(
-      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
-       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
-    ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game, shownAs).run();
-    await markModel(env, game, trackId, carId);
-    return json({ shared: true });
+    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, count: () => countUpload(env, u) });
+    if (r.limit) return err("too many uploads today", 429);
+    return json(r.kept ? { kept: "your faster lap is already shared" } : { shared: true });
   }
   // a track outline from a lap without incidents: kept when it is the fastest one
   if (p === "/trackmaps" && m === "POST") {
