@@ -24,7 +24,7 @@ function installModals(){
  w.innerHTML='<div class="pw-modal" id="pwCenter" hidden><div class="pw-modal-card"><div class="pw-modal-head"><h2>'+tr("Connection Center","Centro de conexiones")+'</h2><button class="pw-x" data-pwc="pwCenter">×</button></div><div class="pw-modal-body"><div class="pw-center-grid" id="pwCenterGrid"></div><div class="pw-actions"><button class="btn" id="pwDiagBtn">'+tr("Open diagnostics","Abrir diagnóstico")+'</button><button class="btn" id="pwRefreshBtn">'+tr("Refresh","Actualizar")+'</button></div></div></div></div>'+
  '<div class="pw-modal" id="pwDiag" hidden><div class="pw-modal-card"><div class="pw-modal-head"><h2>Diagnostics</h2><button class="pw-x" data-pwc="pwDiag">×</button></div><div class="pw-modal-body" id="pwDiagBody"></div></div></div>';
  document.body.appendChild(w);
- w.querySelectorAll("[data-pwc]").forEach(function(b){b.onclick=function(){$(b.dataset.pwc).hidden=true}});
+ w.querySelectorAll("[data-pwc]").forEach(function(b){b.onclick=function(){var m=document.getElementById(b.dataset.pwc);if(m)m.hidden=true}}); // by id: querySelector("pwDiag") found nothing and the window never closed
  // a click outside the card or Escape closes them too
  w.querySelectorAll(".pw-modal").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.hidden=true})});
  document.addEventListener("keydown",function(e){if(e.key==="Escape")w.querySelectorAll(".pw-modal").forEach(function(m){m.hidden=true})});
