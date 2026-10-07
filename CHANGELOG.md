@@ -4,6 +4,19 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.7 beta
+
+**Fixed**
+- Home (web and PC): a race showed 0x incidents (and the incident average 0.0) until you opened
+  its summary; every race is now checked as it loads, so the total is right at once.
+- Names saved with the wrong encoding by an older PC ("AutÃ³dromo", "LÃ©o") read right again in
+  the race summary, the Home and the results, also when the name has correct characters too (the
+  " · " between track and layout made the old repair give up).
+
+**Changed**
+- Lap selectors: no symbols. Each lap reads "Lap 3 · 1:44.906 · invalid · 1x"; the incidents near
+  a point on the map read "Car contact 4x".
+
 ## 0.5.6 beta
 
 **Changed**
