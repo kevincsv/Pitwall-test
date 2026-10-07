@@ -4,6 +4,14 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.8 beta
+
+**Changed**
+- The incidents of a lap read clearly: how many in front, the points in brackets, e.g.
+  "2 × Off track (1x) · Loss of control (2x)", in the lap analyzer, the race summary, the map
+  readout and the phone apps.
+- Lap analyzer: the button reads "Compare with the community", like the Coach's.
+
 ## 0.5.7 beta
 
 **Fixed**
