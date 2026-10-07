@@ -108,6 +108,14 @@ async function deleteAccount(env, id) {
 }
 
 // admins of this server: the account ids in ADMINS (or SEASON_UPLOADERS); they see the Connections settings in the app
+// a nickname is free when no other account and no Drinks-mode driver of another admin uses it
+// (case-insensitive). "Anonymous" is kept for what is shared without a name.
+export async function nameTaken(env, name, mine) {
+  const n = String(name || "").trim().toLowerCase();
+  if (!n) return false;
+  if (n === "anonymous" || n === "anónimo" || n === "anonimo") return true;
+  return !!(await env.DB.prepare("SELECT 1 FROM community_users WHERE lower(alias)=?1 AND id<>?2 AND (owner IS NULL OR owner<>?2) AND (token_hash LIKE 'acct:%' OR id LIKE 'guest-%') LIMIT 1").bind(n, mine || "").first());
+}
 export const isAdmin = (env, id) => String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean).includes(id);
 
 export async function accounts(req, env, url) {
@@ -169,6 +177,7 @@ export async function accounts(req, env, url) {
     if (typeof body.email !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) || !isKey(body.auth) || !isB64(body.wrappedKey, 200)) return err("missing email, key or data key", 400);
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);
+    if (await nameTaken(env, display, "")) return json({ error: "this nickname is already taken, choose another one", code: "name_taken" }, 409);
     const eh = await emailHash(env, body.email);
     if (await env.DB.prepare("SELECT id FROM accounts WHERE email_hash=?1").bind(eh).first()) {
       await fail(env, ["reg:" + ip]);
@@ -287,6 +296,7 @@ export async function accounts(req, env, url) {
   if (p === "/me" && m === "POST") {
     const display = cleanName(body.display);
     if (!display) return err("choose a public name", 400);
+    if (await nameTaken(env, display, a.id)) return json({ error: "this nickname is already taken, choose another one", code: "name_taken" }, 409);
     // anon: what you share shows as "Anonymous" (kept with the account so every device agrees)
     const anon = body.anon === undefined ? !!a.anon : body.anon ? 1 : 0;
     await env.DB.batch([

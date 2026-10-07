@@ -2,7 +2,7 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
-import { sessionAccount, isAdmin } from "./accounts.js";
+import { sessionAccount, isAdmin, nameTaken } from "./accounts.js";
 import { sealData, openData } from "./crypt.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -76,13 +76,13 @@ export async function community(req, env, url) {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
     const r = await env.DB.prepare(
-      `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
+      `SELECT l.id, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
        WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 200`
     ).bind(t, c, game).all();
     return json({ laps: (r.results || []).map((x) => ({ ...x, hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
   }
   if (p.startsWith("/laps/") && m === "GET") {
-    const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
+    const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
     if (!l) return err("not found", 404);
     let trace = l.trace;
     if (!trace) {
@@ -94,7 +94,7 @@ export async function community(req, env, url) {
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     const r = await env.DB.prepare(
-      `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
+      `SELECT r.id, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
        COALESCE(r.field, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.field') END) AS field,
        COALESCE(r.best, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.best') END) AS best
        FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
@@ -123,6 +123,29 @@ export async function community(req, env, url) {
     await env.DB.prepare("UPDATE community_reports SET data=?2 WHERE id=?1").bind(um[1], await sealData(env, JSON.stringify(d))).run();
     return json({ ok: true });
   }
+  // the admin profile: who really shared each item (also anonymous ones and Drinks drivers), and the accounts
+  if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    if (p === "/admin/users") {
+      const r = await env.DB.prepare(`SELECT a.id, a.display, a.name_kind AS nameKind, a.anon, a.verified, a.created, a.totp_on AS twoFactor,
+        (SELECT COUNT(*) FROM sessions s WHERE s.uploader='acct:'||a.id) AS sessions,
+        (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=a.id) AS laps,
+        (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests
+        FROM accounts a ORDER BY a.created DESC LIMIT 500`).all();
+      return json({ users: (r.results || []).map((x) => ({ ...x, admin: isAdmin(env, x.id) })) });
+    }
+    const q = (t, extra) => env.DB.prepare(`SELECT x.id, '${t}' AS kind, x.car, x.track, x.created, x.anon, COALESCE(x.shown,'nick') AS shown, ${extra}
+      u.id AS userId, u.alias, u.iracing, u.owner, o.display AS ownerName, ac.display AS account
+      FROM community_${t} x JOIN community_users u ON u.id=x.user_id LEFT JOIN accounts o ON o.id=u.owner LEFT JOIN accounts ac ON ac.id=u.id
+      ORDER BY x.created DESC LIMIT 300`).all();
+    const [l, r] = await Promise.all([q("laps", "x.time,"), q("reports", "x.best AS time,")]);
+    const items = [...(l.results || []), ...(r.results || [])].sort((a, b) => b.created - a.created).map((x) => ({
+      ...x, shownAs: x.anon ? "Anonymous" : x.shown === "iracing" && x.iracing ? x.iracing : x.alias,
+      realUploader: x.owner ? `${x.alias} (Drinks · ${x.ownerName || x.owner})` : x.account || x.alias,
+    }));
+    return json({ items });
+  }
   const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
   if (am && m === "DELETE") {
     const acc = await sessionAccount(req, env);
@@ -138,7 +161,7 @@ export async function community(req, env, url) {
     return json({ deleted: !!(r.meta && r.meta.changes) });
   }
   if (p.startsWith("/reports/") && m === "GET") {
-    const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
+    const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
     const data = JSON.parse(await openData(env, r.data));
     // the other drivers only by their first name (their privacy); the sharer as "Anonymous" when asked
@@ -183,11 +206,23 @@ export async function community(req, env, url) {
     if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can share laps for other drivers", 403);
     const name = cleanAlias(body.guest);
     const gid = "guest-" + (await sha256(u.id + ":" + name.toLowerCase())).slice(0, 20);
-    await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias")
-      .bind(gid, await sha256("guest:" + gid + ":" + rid()), name, Date.now()).run();
+    // your own Drinks drivers never clash with each other or with you, only with the rest of the platform
+    if (await nameTaken(env, name, u.id)) return json({ error: `"${name}" is already used by another driver on Pitlane HQ, choose another name`, code: "name_taken" }, 409);
+    await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias, owner=excluded.owner")
+      .bind(gid, await sha256("guest:" + gid + ":" + rid()), name, Date.now(), u.id).run();
     u = await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(gid).first();
     body.anon = false;
+    body.as = "nick";
   }
+  // the name a shared item goes under, asked before every share: anonymous (stays anonymous
+  // whatever you change later), your nickname or your iRacing name (both follow your changes)
+  if (body.as === "anon") body.anon = true;
+  else if (body.as === "nick" || body.as === "iracing") body.anon = false;
+  const shownAs = body.as === "iracing" ? "iracing" : "nick";
+  if (shownAs === "iracing" && typeof body.iracingName === "string" && body.iracingName.trim())
+    await env.DB.prepare("UPDATE community_users SET iracing=?2 WHERE id=?1").bind(u.id, cleanAlias(body.iracingName)).run();
+  // is this name free? (Drinks drivers of an admin only clash with other people on the platform)
+  if (p === "/name-check" && m === "POST") return json({ free: !(await nameTaken(env, cleanAlias(body.name), u.id)) });
   if (p === "/season" && m === "POST") {
     const allowed = String(env.SEASON_UPLOADERS || env.ADMINS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (!u.account || !allowed.includes(u.id)) return err("this account cannot publish the season schedule", 403);
@@ -280,9 +315,9 @@ export async function community(req, env, url) {
     if (old && old.game === g && old.time <= lap.time && (old.traced || !traced)) return json({ kept: "your faster lap is already shared", traced: !!old.traced });
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     await env.DB.prepare(
-      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
-       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
-    ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g).run();
+      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
+       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
+    ).bind(rid(), u.id, carId, str(s.car), trackId, str(name), lap.time, lap.sectors, lap.trace, Date.now(), body.anon ? 1 : 0, g, shownAs).run();
     return json({ shared: true, traced });
   }
   if (p === "/laps" && m === "POST") {
@@ -297,9 +332,9 @@ export async function community(req, env, url) {
     if (old && old.game === game && old.time <= time && (old.traced || !trace)) return json({ kept: "your faster lap is already shared" });
     const sectors = Array.isArray(body.sectors) ? JSON.stringify(body.sectors.filter((x) => typeof x === "number").slice(0, 10)) : null;
     await env.DB.prepare(
-      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
-       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game`
-    ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game).run();
+      `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
+       ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown`
+    ).bind(rid(), u.id, carId, str(body.car), trackId, str(body.track), time, sectors, trace, Date.now(), body.anon ? 1 : 0, game, shownAs).run();
     return json({ shared: true });
   }
   // a track outline from a lap without incidents: kept when it is the fastest one
@@ -326,8 +361,8 @@ export async function community(req, env, url) {
     if (data.length < 20 || data.length > 900000) return err("report missing or too large", 400);
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     const r = body.report;
-    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon, game, finish, field, best) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)")
-      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), await sealData(env, data), Date.now(), body.anon ? 1 : 0, gameOf(body.game || r.game), int(r.finish), int(r.field), num(r.best)).run();
+    await env.DB.prepare("INSERT INTO community_reports (id, user_id, car_id, car, track_id, track, data, created, anon, game, finish, field, best, shown) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)")
+      .bind(rid(), u.id, int(r.carId), str(r.car), int(r.trackId), str(r.track), await sealData(env, data), Date.now(), body.anon ? 1 : 0, gameOf(body.game || r.game), int(r.finish), int(r.field), num(r.best), shownAs).run();
     return json({ shared: true });
   }
   return err("not found", 404);

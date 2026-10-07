@@ -406,11 +406,21 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				Guest                                            string
 				SessionID, LapID                                 string
 				Anon                                             bool
+				As, IracingName                                  string
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
 			switch in.Action {
+			case "nameCheck": // a DRINKS driver name: free on the platform?
+				b, err := commCall("POST", "/name-check", map[string]any{"name": in.Guest}, true)
+				if err != nil {
+					fail(err)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(b)
+				return
 			case "shareLap": // a lap of your account to the community: the server takes it from the account
-				b, err := commCall("POST", "/share-lap", map[string]any{"sessionId": in.SessionID, "lapId": in.LapID, "anon": in.Anon}, true)
+				b, err := commCall("POST", "/share-lap", map[string]any{"sessionId": in.SessionID, "lapId": in.LapID, "anon": in.Anon, "as": in.As, "iracingName": in.IracingName}, true)
 				if err != nil {
 					fail(err)
 					return
@@ -529,6 +539,8 @@ func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&in)
 	switch in.Kind {
 	case "laps", "reports", "setups", "trackmaps":
+	case "uploads", "users": // the admin profile: lists of shared items (with their real uploader) and accounts
+		in.Action = "list"
 	default:
 		http.Error(w, "unknown kind", http.StatusBadRequest)
 		return
@@ -542,7 +554,9 @@ func handleCommAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	method, path := "DELETE", "/community/admin/"+in.Kind+"/"+url.PathEscape(in.ID)+"?game="+url.QueryEscape(in.Game)
-	if in.Action == "uncut" && in.Kind == "reports" { // every lap of a shared analysis valid again
+	if in.Action == "list" {
+		method, path = "GET", "/community/admin/"+in.Kind
+	} else if in.Action == "uncut" && in.Kind == "reports" { // every lap of a shared analysis valid again
 		method, path = "POST", "/community/admin/reports/"+url.PathEscape(in.ID)+"/uncut"
 	}
 	b, err := commRequest(method, path, nil, tok)

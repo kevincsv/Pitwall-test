@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.7.0 beta
+
+**Added**
+- **Unique nicknames.** No two accounts can use the same nickname (capital letters don't make a
+  new one, and "Anonymous" is reserved). Picking a name that is taken shows a message.
+- **Choose your name before every share.** Anonymous, your nickname or your iRacing name.
+  Anonymous stays anonymous even if you change your name later. Nickname and iRacing name
+  follow your changes.
+- **Admin profile** in My account (admins only, every device): the accounts, and every shared
+  lap and race analysis with the name it shows and who really uploaded it, with a delete button.
+- **DRINKS mode names** are checked against the rest of the platform. They never clash with each
+  other or with the admin who runs them.
+
 ## 0.6.2 beta
 
 **Changed**

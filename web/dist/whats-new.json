@@ -1,6 +1,19 @@
 {
   "versions": [
     {
+      "v": "0.7.0",
+      "en": [
+        "Nicknames are unique now: if one is taken, we tell you.",
+        "Before you share a lap or a race, choose how it shows: anonymous, your nickname or your iRacing name.",
+        "Anonymous stays anonymous for good. Your nickname and iRacing name follow your changes."
+      ],
+      "es": [
+        "Los nicknames ahora son únicos: si uno ya está en uso, te avisamos.",
+        "Antes de compartir una vuelta o una carrera, eliges cómo aparece: anónimo, tu nickname o tu nombre de iRacing.",
+        "Lo anónimo sigue anónimo para siempre. Tu nickname y tu nombre de iRacing siguen tus cambios."
+      ]
+    },
+    {
       "v": "0.6.2",
       "en": [
         "We're Pitlane HQ again, now at pitlanehq.app.",
