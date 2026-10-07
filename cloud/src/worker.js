@@ -140,6 +140,25 @@ async function api(req, env, url) {
     return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
   }
 
+  // the incidents of older laps, copied from the race summary by the app (your own sessions only)
+  mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)\/incidents$/);
+  if (mm && m === "POST") {
+    const sid = decodeURIComponent(mm[1]);
+    const s = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(sid).first();
+    if (!s || role === "viewer" || (own && s.uploader !== own)) return err("not found", 404);
+    const b = await req.json().catch(() => ({}));
+    const laps = Array.isArray(b.laps) ? b.laps.slice(0, 200) : [];
+    const stmts = [];
+    for (const l of laps) {
+      const n = Math.round(num(l.n) || 0), inc = Math.max(0, Math.round(num(l.inc) || 0));
+      const at = Array.isArray(l.at) ? l.at.filter((v) => typeof v === "number" && isFinite(v)).slice(0, 160) : [];
+      if (!n) continue;
+      stmts.push(env.DB.prepare("UPDATE laps SET inc=?3, trace=CASE WHEN trace IS NULL THEN trace ELSE json_set(trace,'$.inc',json(?4)) END WHERE session_id=?1 AND n=?2 AND COALESCE(inc,0)=0").bind(sid, n, inc, JSON.stringify(at)));
+    }
+    if (stmts.length) await env.DB.batch(stmts);
+    return json({ ok: true, laps: stmts.length });
+  }
+
   // admins: one lap valid or not valid by hand (the cut check got it wrong)
   mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)\/valid$/);
   if (mm && m === "POST") {

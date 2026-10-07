@@ -4,6 +4,19 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.3 beta
+
+**Fixed**
+- Web app on a phone: "Connect PC" in the header failed (a missing helper in the connection
+  centre) and the Diagnostics and Refresh buttons did nothing; on phones it now opens the Live
+  page (pairing and live through your account), and the connection centre works on the PC.
+- The version number shows again on phones, next to the connection pill. Nothing on the Home can
+  push the page sideways any more (long names wrap or are cut instead).
+- Lap analyzer: laps recorded before 0.5.1 take their incidents from the race summary of the same
+  session (per lap and where they happened), and your account keeps them, so they show on every
+  device. Track names saved with the wrong encoding by an older version read right again.
+- Coach: the game selector is gone from it, like in the lap analyzer.
+
 ## 0.5.2 beta
 
 **New**

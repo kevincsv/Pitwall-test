@@ -417,7 +417,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 			}
 		}
 		// admins may also mark the laps of a session valid again (POST .../validate)
-		post := r.Method == http.MethodPost && ((strings.HasPrefix(p, "/api/sessions/") && strings.HasSuffix(p, "/validate")) || (strings.HasPrefix(p, "/api/laps/") && strings.HasSuffix(p, "/valid")))
+		post := r.Method == http.MethodPost && ((strings.HasPrefix(p, "/api/sessions/") && (strings.HasSuffix(p, "/validate") || strings.HasSuffix(p, "/incidents"))) || (strings.HasPrefix(p, "/api/laps/") && strings.HasSuffix(p, "/valid")))
 		if (r.Method != http.MethodGet && !post) || !ok || strings.Contains(p, "..") {
 			w.WriteHeader(400)
 			writeJSON(w, map[string]string{"error": "not available"})
@@ -435,7 +435,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		var body any
 		if post { // the request's JSON goes through as it is
 			var in map[string]any
-			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
+			json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&in)
 			if in == nil {
 				in = map[string]any{}
 			}

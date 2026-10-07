@@ -3,7 +3,7 @@
 "use strict";
 if(window.__PW_UI_V1)return;window.__PW_UI_V1=true;
 var $=function(s){return document.querySelector(s)}, escx=function(v){try{return esc(String(v==null?"":v))}catch(e){return String(v==null?"":v)}};
-var tr=function(a,b){return typeof Tx==="function"?Tx(a,b,a,b):a};
+var tr=function(a,b){return typeof Tx==="function"?Tx(a,b,a,b):a}, safe=escx;
 var fmt=function(v,d){return v==null||!isFinite(+v)?"—":(+v).toFixed(d==null?2:d)};
 var sec=function(v){if(v==null||!isFinite(+v)||v<0)return"—";v=+v;return Math.floor(v/60)+":"+String((v%60).toFixed(3)).padStart(6,"0")};
 var spd=function(v){if(v==null||!isFinite(+v))return"—";var n=+v*(UNITS==="imperial"?2.236936:3.6);return n.toFixed(n>=100?0:1)+" "+(UNITS==="imperial"?"mph":"km/h")};
@@ -111,7 +111,8 @@ function installFullTelemetry(){
 }
 function hook(){
  installCss();installModals();installDashboard();installFullTelemetry();
- var c=$("#conn");if(c)c.onclick=function(){$("#pwCenter").hidden=false;renderCenter();refreshInfo(true)};
+ // the web app on a phone: the header's "Connect PC" goes to the Live page (pairing, live through the account), the centre is for the PC
+ var c=$("#conn");if(c&&!(typeof COMPANION!=="undefined"&&COMPANION))c.onclick=function(){$("#pwCenter").hidden=false;renderCenter();refreshInfo(true)};
  setInterval(function(){headerState();updateDashboard();if($("#pwCenter")&&!$("#pwCenter").hidden)renderCenter();if($("#pwDiag")&&!$("#pwDiag").hidden)renderDiag();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays")overlayPresets()},250);
  setInterval(function(){refreshInfo(false)},5000);overlayPresets()
 }
