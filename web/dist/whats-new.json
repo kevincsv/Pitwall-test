@@ -2,7 +2,6 @@
   "versions": [
     {
       "v": "0.6.2",
-      "date": "2026-10-07",
       "en": [
         "We're Pitlane HQ again, now at pitlanehq.app.",
         "New sign-in screen, and a quick welcome that tells you what to install on your PC and phone.",
@@ -20,7 +19,6 @@
     },
     {
       "v": "0.6.1",
-      "date": "2026-10-07",
       "en": [
         "Two-step sign-in with an authenticator app. Optional, but we recommend it.",
         "Your laps and race analyses are now stored encrypted on our server.",
@@ -34,7 +32,6 @@
     },
     {
       "v": "0.6.0",
-      "date": "2026-10-06",
       "en": [
         "Home shows the days you drove, like a calendar. Tap a day to see those races.",
         "Filters in My races: track, session type and your fastest ever.",
@@ -48,7 +45,6 @@
     },
     {
       "v": "0.5",
-      "date": "2026-10",
       "en": [
         "Incidents on the lap list and the map, the same way iRacing names them.",
         "One track map for the analyzer, the Coach and the race summary, with hover and touch.",
