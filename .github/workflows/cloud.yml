@@ -1,4 +1,4 @@
-name: Pitlane HQ Cloud (web version)
+name: TrackIQ Cloud (web version)
 
 # Checks the web version on every change. When these repository secrets
 # exist it also publishes it to your Cloudflare account, creating the D1
@@ -7,9 +7,9 @@ name: Pitlane HQ Cloud (web version)
 #   CLOUDFLARE_ACCOUNT_ID
 #   PITLANE_KEY            optional: the older key sign-in of the lap site (owner/team keys)
 # Optional: PITLANE_D1_ID secret (an existing database) and the repository
-# variables SEASON_UPLOADERS and ADMINS (your Pitlane HQ account id) and
+# variables SEASON_UPLOADERS and ADMINS (your TrackIQ account id) and
 # CUSTOM_DOMAIN (your own domain in Cloudflare, e.g. pitlanehq.com).
-# Emails: secret RESEND_API_KEY and variable EMAIL_FROM ("Pitlane HQ <no-reply@your-domain>").
+# Emails: secret RESEND_API_KEY and variable EMAIL_FROM ("TrackIQ <no-reply@your-domain>").
 
 on:
   workflow_dispatch:
@@ -75,11 +75,11 @@ jobs:
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
           if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
           {
-            echo "## Pitlane HQ server is ready"
+            echo "## TrackIQ server is ready"
             echo
             echo "Address: **$url**"
             echo
-            echo "Drivers sign in to their laps on this address with their Pitlane HQ account."
+            echo "Drivers sign in to their laps on this address with their TrackIQ account."
             echo
-            echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
+            echo "Put it in web/dist/server.json so every TrackIQ uses it; drivers only create an account in the app."
           } >> "$GITHUB_STEP_SUMMARY"

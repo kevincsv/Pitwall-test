@@ -21,9 +21,9 @@ import (
 	"time"
 )
 
-// One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
+// One version for TrackIQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.4.0"
+const appVersion = "0.4.1"
 
 // appStage is shown next to the version everywhere until 1.0.0.
 const appStage = "beta"
@@ -471,7 +471,7 @@ func main() {
 	go licenseWatcher()
 	go liveRelay()
 	go cloudUploader()
-	go func() { // programs you chose to start with Pitlane HQ
+	go func() { // programs you chose to start with TrackIQ
 		time.Sleep(2 * time.Second)
 		launchGroup("pitwall")
 	}()
@@ -608,7 +608,7 @@ func main() {
 	}
 	local := fmt.Sprintf("http://localhost:%d", listenPort)
 	fmt.Println()
-	fmt.Println("  PITLANE HQ " + appVersion + " " + appStage)
+	fmt.Println("  TRACKIQ " + appVersion + " " + appStage)
 	fmt.Println("  ------------------------------------------------------------")
 	fmt.Println("  Keep this window open while you race. / Deja esta ventana abierta.")
 	fmt.Println()
@@ -633,7 +633,7 @@ func main() {
 				os.Exit(1)
 			}
 		}()
-		// the app in its own window; closing it quits Pitlane HQ
+		// the app in its own window; closing it quits TrackIQ
 		if runMainWindow(local, *minimized || *noBrowser) {
 			quitApp()
 		}

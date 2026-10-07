@@ -1,7 +1,7 @@
 package main
 
 // Pairing: a phone, tablet or another PC on your network must enter the PIN
-// shown on this PC before it can see or control Pitlane HQ. Paired devices
+// shown on this PC before it can see or control TrackIQ. Paired devices
 // get a long random token (only its hash is stored) and can be removed.
 // The PC itself and its overlay windows (loopback addresses) never need it.
 
@@ -198,11 +198,11 @@ func deviceName(ua string) string {
 	return "Device"
 }
 
-const pairPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pitlane HQ · Pair</title>
+const pairPage = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TrackIQ · Pair</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#11151b;color:#e7ebf1;font:16px system-ui,sans-serif}main{width:min(360px,calc(100% - 32px));text-align:center}
 h1{font-size:22px;letter-spacing:.06em;text-transform:uppercase}p{color:#8a97a9;line-height:1.5}input{width:100%;box-sizing:border-box;font:700 34px ui-monospace,monospace;letter-spacing:.3em;text-align:center;padding:14px;border-radius:10px;border:1px solid #2b3542;background:#19202a;color:#e7ebf1}
 button{margin-top:14px;width:100%;padding:14px;border:0;border-radius:10px;background:#ffb02e;color:#11151b;font:700 16px system-ui;text-transform:uppercase;letter-spacing:.06em}.err{color:#ff6363;min-height:1.4em}</style>
-<main><h1>Pitlane HQ</h1><p id="t">Enter the PIN shown on your PC: Pitlane HQ → Settings → Phone.<br>Escribe el PIN que aparece en tu PC: Pitlane HQ → Ajustes → Móvil.</p>
+<main><h1>TrackIQ</h1><p id="t">Enter the PIN shown on your PC: TrackIQ → Settings → Phone.<br>Escribe el PIN que aparece en tu PC: TrackIQ → Ajustes → Móvil.</p>
 <form id="f"><input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required autofocus><div class="err" id="e"></div><button>Pair / Emparejar</button></form></main>
 <script>const q=new URLSearchParams(location.search);const go=async pin=>{const r=await fetch("/api/pair",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin,name:""})});const j=await r.json().catch(()=>({}));if(r.ok){location.href=q.get("next")&&q.get("next").startsWith("/")?q.get("next"):"/"}else document.getElementById("e").textContent=j.error||"Error"};
 document.getElementById("f").onsubmit=e=>{e.preventDefault();go(document.getElementById("pin").value)};if(q.get("pin"))go(q.get("pin"));</script></html>`

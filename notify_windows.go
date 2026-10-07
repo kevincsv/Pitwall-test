@@ -16,7 +16,7 @@ func notify(title, body string) {
 	// (ZIP version) the notification comes from PowerShell
 	app := "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe"
 	for _, dir := range []string{os.Getenv("APPDATA"), os.Getenv("ProgramData")} {
-		if m, _ := filepath.Glob(filepath.Join(dir, "Microsoft", "Windows", "Start Menu", "Programs", "*", "Pitlane HQ.lnk")); dir != "" && len(m) > 0 {
+		if m, _ := filepath.Glob(filepath.Join(dir, "Microsoft", "Windows", "Start Menu", "Programs", "*", "TrackIQ.lnk")); dir != "" && len(m) > 0 {
 			app = "PitlaneHQ.App"
 		}
 	}

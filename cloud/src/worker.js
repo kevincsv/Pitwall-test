@@ -1,4 +1,4 @@
-// Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
+// TrackIQ cloud: receives sessions and laps from TrackIQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { news } from "./news.js";
 import { gameOf } from "./games.js";
@@ -30,7 +30,7 @@ async function who(req, env) {
   const h = req.headers.get("authorization") || "";
   const key = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (!key) return null;
-  // a Pitlane HQ account: uploads and sees only its own laps, with nothing to set up
+  // a TrackIQ account: uploads and sees only its own laps, with nothing to set up
   const acc = await sessionAccount(req, env).catch(() => null);
   if (acc) return { role: "account", name: "acct:" + acc.id, display: acc.display };
   if (env.PITLANE_KEY && same(key, env.PITLANE_KEY)) return { role: "owner", name: "owner" };
@@ -74,7 +74,7 @@ async function addLap(env, sessionId, l) {
 
 async function api(req, env, url) {
   const me = await who(req, env);
-  if (!me) return err(env.PITLANE_KEY ? "wrong or missing key" : "sign in with your Pitlane HQ account (this server has no PITLANE_KEY)", 401);
+  if (!me) return err(env.PITLANE_KEY ? "wrong or missing key" : "sign in with your TrackIQ account (this server has no PITLANE_KEY)", 401);
   const role = me.role;
   const p = url.pathname;
   const m = req.method;
@@ -211,7 +211,7 @@ export default {
         return err("server error: " + (e && e.message), 500);
       }
     }
-    // the full Pitlane HQ app (analysis, community, account, live from your PC), same as the phone app: /app/
+    // the full TrackIQ app (analysis, community, account, live from your PC), same as the phone app: /app/
     if (url.pathname === "/app" || url.pathname.startsWith("/app/")) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       if ((url.pathname === "/app" || url.pathname === "/app/") && url.searchParams.get("companion") !== "1") {
@@ -236,13 +236,13 @@ export default {
         return err("server error: " + (e && e.message), 500);
       }
     }
-    // one app everywhere: the address of the server opens the Pitlane HQ app (sign in once, same as the phone).
+    // one app everywhere: the address of the server opens the TrackIQ app (sign in once, same as the phone).
     // My laps lives inside it (/laps?embed=1); /laps alone still signs in with a server key (owner, team, read-only)
     if (url.pathname === "/" && url.searchParams.get("embed") !== "1") return Response.redirect(url.origin + "/app/?companion=1", 302);
     return new Response(VIEWER, {
       headers: {
         "content-type": "text/html; charset=utf-8",
-        // shown inside the Pitlane HQ apps with embed=1 (then it only uses the session handed in the address)
+        // shown inside the TrackIQ apps with embed=1 (then it only uses the session handed in the address)
         "content-security-policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; frame-ancestors " + (url.searchParams.get("embed") === "1" ? "*" : "'none'"),
         "referrer-policy": "no-referrer",
       },

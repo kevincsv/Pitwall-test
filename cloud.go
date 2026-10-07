@@ -1,7 +1,7 @@
 package main
 
-// Pitlane HQ Cloud agent: records every lap you drive in iRacing (whether or
-// not the app is open) and uploads it to your own Pitlane HQ Cloud
+// TrackIQ Cloud agent: records every lap you drive in iRacing (whether or
+// not the app is open) and uploads it to your own TrackIQ Cloud
 // (a Cloudflare Worker, see ./cloud). Laps wait on disk until the upload
 // works, so nothing is lost when the internet drops.
 
@@ -144,7 +144,7 @@ func cloudCall(c cloudConfig, method, path string, body any) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := cloudClient.Do(req)
 	if err != nil {
-		return nil, errors.New("could not reach your Pitlane HQ Cloud")
+		return nil, errors.New("could not reach your TrackIQ Cloud")
 	}
 	defer resp.Body.Close()
 	b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
@@ -179,7 +179,7 @@ func cloudUploader() {
 			cloudMu.Lock()
 			c := cloudCfg
 			if !c.Enabled || c.URL == "" || c.Key == "" {
-				c = acct // no own site set up: the laps go to your Pitlane HQ account
+				c = acct // no own site set up: the laps go to your TrackIQ account
 			}
 			if !c.Enabled || c.URL == "" || c.Key == "" || len(cloudQueue) == 0 {
 				cloudMu.Unlock()
@@ -631,7 +631,7 @@ func registerCloudRoutes(mux *http.ServeMux) {
 	})
 }
 
-// accountCloud: with a Pitlane HQ account your laps are kept on the Pitlane HQ
+// accountCloud: with a TrackIQ account your laps are kept on the TrackIQ
 // server under your account, with nothing to set up (no key to create).
 func accountCloud() cloudConfig {
 	loadPL()

@@ -1,8 +1,22 @@
 # Changelog
 
-Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share one version
+TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the phone apps share one version
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
+
+## 0.4.1 beta
+
+**New**
+- Pitlane HQ is now **TrackIQ** everywhere: the app, the web, the emails, the installer
+  (TrackIQ-Setup.exe), the program (TrackIQ.exe) and the browser tab, which reads
+  "TrackIQ - Telemetry & Coach". Your data, settings and sign-ins stay where they were, and
+  installs made before the rename keep updating (the update still reaches them under their old file
+  name).
+- Lap analyzer: the sector lines (S1, S2, S3) now show on every chart, not only on speed: delta,
+  throttle, brake, gear and steering.
+- Track map in the Coach and in the lap analyzer: shows where lap A gains (green) or loses (red)
+  time against lap B on the circuit, with the corner numbers and the sector marks. In the
+  analyzer a point follows the cursor on the map as you move over the charts.
 
 ## 0.4.0 beta
 

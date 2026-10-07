@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 )
 
-// uiLang is the language the app window uses, for messages Pitlane HQ shows on its own
+// uiLang is the language the app window uses, for messages TrackIQ shows on its own
 // (Windows notifications). The page sends it when it starts and when it changes.
 var uiLang atomic.Value
 

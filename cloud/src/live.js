@@ -1,4 +1,4 @@
-// Live telemetry relay: PitlaneHQ.exe sends, your browsers and phones watch.
+// Live telemetry relay: TrackIQ.exe sends, your browsers and phones watch.
 // One room (Durable Object) per account. Everything the PC sends is sealed with
 // the account's data key (AES-GCM), which the server never has: the room only
 // passes the sealed text along. The PC only streams while someone is watching.

@@ -2,7 +2,7 @@ package main
 
 // App launcher: finds your sim-racing programs (iRacing, Steam, CrewChief,
 // Garage 61, TrackImpulse, SimHub, MOZA Pit House…) and starts the ones you
-// pick when Pitlane HQ opens or when iRacing starts.
+// pick when TrackIQ opens or when iRacing starts.
 //
 // Safety: the app never accepts a program path from the network. Paths come
 // only from this PC's Start menu, known install folders, or a file dialog
@@ -53,13 +53,13 @@ var appCatalog = []catalogApp{
 		Match: regexp.MustCompile(`(?i)^iracing(\s*(ui|launcher|\.com.*|member site))?$`), What: [2]string{"The iRacing app", "La app de iRacing"}},
 	{ID: "lmu", Name: "Le Mans Ultimate", Procs: []string{"le mans ultimate.exe", "lmu.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\Steam\steamapps\common\Le Mans Ultimate\Le Mans Ultimate.exe`, `%ProgramFiles%\Steam\steamapps\common\Le Mans Ultimate\Le Mans Ultimate.exe`},
-		Match: regexp.MustCompile(`(?i)^le\s*mans\s*ultimate$`), What: [2]string{"The game (Pitlane HQ reads it too)", "El juego (Pitlane HQ también lo lee)"}},
+		Match: regexp.MustCompile(`(?i)^le\s*mans\s*ultimate$`), What: [2]string{"The game (TrackIQ reads it too)", "El juego (TrackIQ también lo lee)"}},
 	{ID: "acc", Name: "Assetto Corsa Competizione", Procs: []string{"ac2-win64-shipping.exe", "acc.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\Steam\steamapps\common\Assetto Corsa Competizione\acc.exe`, `%ProgramFiles%\Steam\steamapps\common\Assetto Corsa Competizione\acc.exe`},
-		Match: regexp.MustCompile(`(?i)^assetto\s*corsa\s*competizione$`), What: [2]string{"The game (Pitlane HQ reads it too)", "El juego (Pitlane HQ también lo lee)"}},
+		Match: regexp.MustCompile(`(?i)^assetto\s*corsa\s*competizione$`), What: [2]string{"The game (TrackIQ reads it too)", "El juego (TrackIQ también lo lee)"}},
 	{ID: "ac", Name: "Assetto Corsa", Procs: []string{"acs.exe", "assettocorsa.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\Steam\steamapps\common\assettocorsa\AssettoCorsa.exe`, `%ProgramFiles%\Steam\steamapps\common\assettocorsa\AssettoCorsa.exe`},
-		Match: regexp.MustCompile(`(?i)^assetto\s*corsa$`), What: [2]string{"The game (Pitlane HQ reads it too)", "El juego (Pitlane HQ también lo lee)"}},
+		Match: regexp.MustCompile(`(?i)^assetto\s*corsa$`), What: [2]string{"The game (TrackIQ reads it too)", "El juego (TrackIQ también lo lee)"}},
 	{ID: "steam", Name: "Steam", Procs: []string{"steam.exe"},
 		Paths: []string{`%ProgramFiles(x86)%\Steam\steam.exe`, `%ProgramFiles%\Steam\steam.exe`},
 		Match: regexp.MustCompile(`(?i)^steam$`), MinArgs: "-silent", What: [2]string{"Games and iRacing on Steam", "Juegos e iRacing en Steam"}},

@@ -60,7 +60,7 @@ func discordSend(content string) error {
 	}
 	name := c.Name
 	if name == "" {
-		name = "Pitlane HQ"
+		name = "TrackIQ"
 	}
 	if len(content) > 1900 {
 		content = content[:1900] + "…"
@@ -184,9 +184,9 @@ func registerDiscordRoutes(mux *http.ServeMux) {
 				saveDiscordLocked()
 				discordMu.Unlock()
 			case "test":
-				msg := "✅ Pitlane HQ is connected to this channel."
+				msg := "✅ TrackIQ is connected to this channel."
 				if in.Lang == "es" {
-					msg = "✅ Pitlane HQ está conectado a este canal."
+					msg = "✅ TrackIQ está conectado a este canal."
 				}
 				if err := discordSend(msg); err != nil {
 					fail(err)

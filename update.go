@@ -1,7 +1,7 @@
 package main
 
-// Updates: the downloads page has a version.json next to PitlaneHQ-windows.zip.
-// Pitlane HQ compares it with its own build, and on request downloads the zip,
+// Updates: the downloads page has a version.json next to TrackIQ-windows.zip.
+// TrackIQ compares it with its own build, and on request downloads the zip,
 // replaces its files (the running .exe is renamed, Windows allows that) and
 // starts the new version.
 
@@ -101,7 +101,7 @@ func updateWatcher() {
 					if v == "" {
 						v = "new"
 					}
-					notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
+					notify("TrackIQ "+v+" is available", "Open TrackIQ and press Update now. Your settings and laps are kept.")
 				}
 			}
 		}
@@ -136,7 +136,7 @@ func applyUpdate() error {
 	if latest.Build == buildID {
 		return errors.New("you already have the latest version")
 	}
-	resp, err := updHTTP.Get(updateBase() + "PitlaneHQ-windows.zip")
+	resp, err := updHTTP.Get(updateBase() + "TrackIQ-windows.zip")
 	if err != nil {
 		return fmt.Errorf("could not download the update: %w", err)
 	}
@@ -159,12 +159,18 @@ func applyUpdate() error {
 	dir := filepath.Dir(exe)
 	hasExe := false
 	for _, f := range zr.File {
-		if strings.EqualFold(filepath.Base(f.Name), "PitlaneHQ.exe") {
+		if isProgramName(filepath.Base(f.Name)) {
 			hasExe = true
 		}
 	}
 	if !hasExe {
-		return errors.New("the download does not contain PitlaneHQ.exe")
+		return errors.New("the download does not contain TrackIQ.exe")
+	}
+	// installs made before the rename keep their PitlaneHQ.exe name (shortcuts point to it): the new
+	// program replaces that file instead of appearing beside it under another name
+	exeName := "TrackIQ.exe"
+	if strings.EqualFold(filepath.Base(exe), "PitlaneHQ.exe") {
+		exeName = "PitlaneHQ.exe"
 	}
 	var newExe string
 	for _, f := range zr.File {
@@ -182,10 +188,10 @@ func applyUpdate() error {
 			return err
 		}
 		dst := filepath.Join(dir, name)
-		if strings.EqualFold(name, "PitlaneHQ.exe") {
+		if isProgramName(name) {
 			// write the new .exe beside the old one, then swap names
-			dst = filepath.Join(dir, "PitlaneHQ.exe")
-			if strings.EqualFold(filepath.Base(exe), "PitlaneHQ.exe") || filepath.Clean(exe) == filepath.Clean(dst) {
+			dst = filepath.Join(dir, exeName)
+			if strings.EqualFold(filepath.Base(exe), exeName) || filepath.Clean(exe) == filepath.Clean(dst) {
 				os.Remove(exe + ".old")
 				if err := os.Rename(exe, exe+".old"); err != nil {
 					return fmt.Errorf("could not replace the program: %w", err)
@@ -209,6 +215,12 @@ func applyUpdate() error {
 		restartInto(newExe)
 	}()
 	return nil
+}
+
+// isProgramName: the program inside an update zip. Its old name was PitlaneHQ.exe; the zip that
+// installs made before the rename download still carries it under that name.
+func isProgramName(n string) bool {
+	return strings.EqualFold(n, "TrackIQ.exe") || strings.EqualFold(n, "PitlaneHQ.exe")
 }
 
 func registerUpdateRoutes(mux *http.ServeMux) {
