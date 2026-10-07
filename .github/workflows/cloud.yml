@@ -9,7 +9,8 @@ name: Pitlane HQ Cloud (web version)
 # Optional: PITLANE_D1_ID secret (an existing database) and the repository
 # variables SEASON_UPLOADERS and ADMINS (your Pitlane HQ account id) and
 # CUSTOM_DOMAIN (your own domain in Cloudflare, e.g. pitlanehq.com).
-# Emails: secret RESEND_API_KEY and variable EMAIL_FROM ("Pitlane HQ <no-reply@your-domain>").
+# Emails: variable EMAIL_FROM ("Pitlane HQ <support@pitlanehq.app>") plus either the secret SMTP_TOKEN
+# (your mailbox, e.g. Proton Mail's SMTP submission; SMTP_USER if it is not the address) or RESEND_API_KEY.
 # Encryption at rest: secret DATA_KEY (a long random string; never change it once set, or the
 # sealed rows cannot be read). Optional EMAIL_PEPPER (set before the first account).
 
@@ -39,6 +40,8 @@ jobs:
       PITLANE_KEY: ${{ secrets.PITLANE_KEY }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+      SMTP_TOKEN: ${{ secrets.SMTP_TOKEN }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
       DATA_KEY: ${{ secrets.DATA_KEY }}
       EMAIL_PEPPER: ${{ secrets.EMAIL_PEPPER }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
@@ -77,6 +80,9 @@ jobs:
           # emails (confirm the address, reset the password) through Resend
           if [ -n "$RESEND_API_KEY" ]; then echo "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY; fi
           if [ -n "$EMAIL_FROM" ]; then printf '%s' "$EMAIL_FROM" | npx wrangler secret put EMAIL_FROM; fi
+          # your own mailbox over SMTP (Proton Mail's SMTP submission) instead of Resend
+          if [ -n "$SMTP_TOKEN" ]; then printf '%s' "$SMTP_TOKEN" | npx wrangler secret put SMTP_TOKEN; fi
+          if [ -n "$SMTP_USER" ]; then printf '%s' "$SMTP_USER" | npx wrangler secret put SMTP_USER; fi
           # DATA_KEY seals telemetry, race analyses and authenticator secrets at rest; EMAIL_PEPPER salts the email hashes
           if [ -n "$DATA_KEY" ]; then printf '%s' "$DATA_KEY" | npx wrangler secret put DATA_KEY; fi
           if [ -n "$EMAIL_PEPPER" ]; then printf '%s' "$EMAIL_PEPPER" | npx wrangler secret put EMAIL_PEPPER; fi

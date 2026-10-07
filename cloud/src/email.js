@@ -1,7 +1,9 @@
-// Emails (verify the address, reset the password) through Resend (resend.com).
-// Needs the secret RESEND_API_KEY and the variable EMAIL_FROM, e.g.
-// "Pitlane HQ <no-reply@your-domain.com>" with that domain verified in Resend.
-export const mailReady = (env) => !!(env.RESEND_API_KEY && env.EMAIL_FROM);
+// Emails (verify the address, reset the password), two ways:
+//  - your own mailbox over SMTP (Proton Mail's SMTP submission): secret SMTP_TOKEN + EMAIL_FROM (smtp.js)
+//  - or Resend (resend.com): secret RESEND_API_KEY + EMAIL_FROM, with the domain verified there
+// EMAIL_FROM looks like "Pitlane HQ <support@pitlanehq.app>".
+import { smtpReady, smtpSend } from "./smtp.js";
+export const mailReady = (env) => !!env.EMAIL_FROM && (smtpReady(env) || !!env.RESEND_API_KEY);
 // where people write to us; the answers to our emails land there too (Reply-To)
 export const SUPPORT = "support@pitlanehq.app";
 
@@ -33,14 +35,23 @@ async function send(env, to, subject, text, link, button, l) {
 <p>${esc(text)}</p><p><a href="${esc(link)}" style="display:inline-block;background:#ffb02e;color:#11151b;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">${esc(button)}</a></p>
 <p style="color:#5b677a;font-size:13px">${esc(link)}</p>
 <p style="color:#5b677a;font-size:12px;margin-top:24px">${esc(lang(l) === "es" ? "¿Dudas? Escríbenos a" : lang(l) === "de" ? "Fragen? Schreib uns an" : lang(l) === "pt" ? "Dúvidas? Escreva para" : "Questions? Write to")} <a href="mailto:${SUPPORT}" style="color:#5b677a">${SUPPORT}</a></p></div>`;
+  const plain = text + "\n\n" + link + "\n\n" + SUPPORT, replyTo = env.EMAIL_REPLY_TO || SUPPORT;
+  if (smtpReady(env)) {
+    const r = await smtpSend(env, { to, subject, text: plain, html, replyTo });
+    if (!r.ok) {
+      lastError = { at: Date.now(), via: "smtp", ...r.error, from: env.EMAIL_FROM };
+      console.error("email not sent", lastError);
+    } else lastError = null;
+    return r.ok;
+  }
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: env.EMAIL_REPLY_TO || SUPPORT, to: [to], subject, text: text + "\n\n" + link + "\n\n" + SUPPORT, html }),
+    body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: replyTo, to: [to], subject, text: plain, html }),
   });
   if (!r.ok) {
     // Resend said no (domain not verified, sender not allowed, bad key…): keep the reason for the admins' test
-    lastError = { at: Date.now(), status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
+    lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
     console.error("email not sent", lastError);
   } else lastError = null;
   return r.ok;
@@ -50,7 +61,7 @@ export const mailLastError = () => lastError;
 /** For the admins: sends a test email and answers with Resend's status and reason. */
 export async function sendTest(env, to, l) {
   const ok = await send(env, to, "Pitlane HQ: " + (lang(l) === "es" ? "email de prueba" : "test email"), lang(l) === "es" ? "Si lees esto, los emails del servidor funcionan." : "If you read this, the server's emails work.", "https://pitlanehq.app/", "Pitlane HQ", l);
-  return { ok, from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
+  return { ok, via: smtpReady(env) ? "smtp" : "resend", from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
 }
 
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);

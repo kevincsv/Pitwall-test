@@ -131,6 +131,10 @@ Everyone reads it from `GET /community/season`; if it is not there yet, the apps
 
 ## Emails: confirm the address and reset the password
 
+**With your own mailbox (Proton Mail, no DNS changes):** Proton Mail → Settings → IMAP/SMTP → *SMTP submission* (Mail Professional / Business plans) → generate a token for `support@pitlanehq.app`. In GitHub → Settings → Secrets and variables → Actions: secret `SMTP_TOKEN` with the token, variable `EMAIL_FROM` = `Pitlane HQ <support@pitlanehq.app>` (secret `SMTP_USER` only if the login is not that address). Run the "Pitlane HQ Cloud" workflow. Admins have a *Send test email* button in Account that shows the mail server's answer when it fails.
+
+**Or with Resend** (any mailbox, needs the domain verified there):
+
 Pitlane HQ sends two emails: one to confirm the address after creating an account, and one with a link to choose a new password ("Forgot your password?" in the app and on the website). The address is still not stored: the email goes to the address typed at that moment.
 
 1. You need your own domain in Cloudflare (see "Your own domain" above).
