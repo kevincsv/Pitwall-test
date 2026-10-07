@@ -39,9 +39,9 @@ func TestLapRecIgnoresOldClock(t *testing.T) {
 }
 
 func TestSessionMeta(t *testing.T) {
-	y := "WeekendInfo:\n TrackDisplayName: Spa\n SubSessionID: 123\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Practice\n - SessionNum: 2\n   SessionType: Race\nDriverInfo:\n DriverCarIdx: 7\n Drivers:\n - CarIdx: 6\n   UserName: Other\n   CarScreenName: Wrong\n - CarIdx: 7\n   UserName: Alex D.\n   CarScreenName: Porsche 911 GT3 R\n"
+	y := "WeekendInfo:\n TrackDisplayName: Spa\n SubSessionID: 123\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Practice\n - SessionNum: 2\n   SessionType: Race\nDriverInfo:\n DriverCarIdx: 7\n Drivers:\n - CarIdx: 6\n   UserName: Other\n   CarScreenName: Wrong\n - CarIdx: 7\n   UserName: Driver C.\n   CarScreenName: Porsche 911 GT3 R\n"
 	s := sessionMeta(y, 2, timeZero)
-	if s.Track != "Spa" || s.Car != "Porsche 911 GT3 R" || s.Driver != "Alex D." || s.Kind != "Race" || s.ID != "ir-123-2" {
+	if s.Track != "Spa" || s.Car != "Porsche 911 GT3 R" || s.Driver != "Driver C." || s.Kind != "Race" || s.ID != "ir-123-2" {
 		t.Fatalf("bad meta %+v", s)
 	}
 }

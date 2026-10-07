@@ -39,7 +39,7 @@ func fakeLMU() []byte {
 	}
 	cars := []car{
 		{"Ana Duarte", "Toyota GR010 #7", "Hypercar", 1, 5, 6000, 0, -40, false},
-		{"Alex", "Porsche 963 #6", "Hypercar", 2, 5, 5980, 0, 0, true},
+		{"Driver", "Porsche 963 #6", "Hypercar", 2, 5, 5980, 0, 0, true},
 		{"Luca Bianchi", "Ferrari 296 #55", "LMGT3", 3, 5, 5981, 3, 1, false}, // 3 m to the left (+x)
 	}
 	for i, c := range cars {

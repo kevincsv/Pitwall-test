@@ -41,7 +41,7 @@ jobs:
           GOOS: windows
           GOARCH: amd64
         run: |
-          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA -X main.updateRepo=$env:GITHUB_REPOSITORY" -o PitlaneHQ.exe .
+          go build -mod=vendor -ldflags "-s -w -H windowsgui -X main.buildID=$env:GITHUB_SHA" -o PitlaneHQ.exe .
           New-Item -ItemType Directory -Force out | Out-Null
           Copy-Item PitlaneHQ.exe out/
 
@@ -64,30 +64,45 @@ jobs:
           name: PitlaneHQ-Setup
           path: dist-installer/PitlaneHQ-Setup.exe
 
-      - name: Publish on the downloads page
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish on pitlanehq.app (R2)
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
+          cp PitlaneHQ-windows.zip TrackIQ-windows.zip
+          ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
+          min=$(sed -n 's/^const appMinVersion = "\(.*\)"/\1/p' main.go)
+          printf '{"version":"%s","build":"%s","date":"%s","min":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${min:-0}" > version.json
+          npx --yes wrangler@4 r2 bucket create pitlanehq-downloads 2>/dev/null || true
+          put() { npx --yes wrangler@4 r2 object put "pitlanehq-downloads/$2" --file "$1" --remote --content-type "$3"; }
+          put dist-installer/PitlaneHQ-Setup.exe PitlaneHQ-Setup.exe application/vnd.microsoft.portable-executable
+          put PitlaneHQ-windows.zip PitlaneHQ-windows.zip application/zip
+          put TrackIQ-windows.zip TrackIQ-windows.zip application/zip
+          put CHANGELOG.md CHANGELOG-pc.md text/markdown
+          # version.json goes last: the app only sees a new version once its files are there
+          put version.json version.json application/json
+      - name: Publish on the GitHub release (record)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          (cd out && 7z a -tzip ../PitlaneHQ-windows.zip . >/dev/null)
           # the phone apps are built in their own repository now: no old ones on this page
           for old in PitlaneHQ-android.apk PitlaneHQ.ipa; do gh release delete-asset pitlanehq-latest "$old" -y 2>/dev/null || true; done
-          # installs made while the app was called TrackIQ (0.5–0.6.1) update from TrackIQ-windows.zip:
-          # keep publishing it (their updater accepts PitlaneHQ.exe inside), so they come back too
-          cp PitlaneHQ-windows.zip TrackIQ-windows.zip
+          ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
           bash .github/scripts/publish.sh TrackIQ-windows.zip
           bash .github/scripts/publish.sh PitlaneHQ-windows.zip
           bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
-          # version.json goes last: the app only sees a new version once its zip is there
-          ver=$(sed -n 's/^const appVersion = "\(.*\)"/\1/p' main.go)
-          min=$(sed -n 's/^const appMinVersion = "\(.*\)"/\1/p' main.go)
-          printf '{"version":"%s","build":"%s","date":"%s","min":"%s"}\n' "$ver" "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${min:-0}" > version.json
           bash .github/scripts/publish.sh version.json
           # one release per version with its part of CHANGELOG.md (made once; later builds of the
           # same version only refresh its files)
           tag="v$ver-beta"
           awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
-          printf '\n---\nWindows: download **PitlaneHQ-Setup.exe** (installer) or **PitlaneHQ-windows.zip** (portable). Full history: [CHANGELOG.md](https://github.com/%s/blob/master/CHANGELOG.md)\n' "$GITHUB_REPOSITORY" >> notes.md
+          printf '\n---\nDownloads: https://pitlanehq.app/downloads · Full history: https://pitlanehq.app/changelog\n' >> notes.md
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Pitlane HQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
           gh release upload "$tag" PitlaneHQ-windows.zip dist-installer/PitlaneHQ-Setup.exe --clobber || true
 
@@ -117,9 +132,16 @@ jobs:
         with:
           name: PitlaneHQ-Desktop
           path: PitlaneHQ-Desktop.zip
-      - name: Publish on the downloads page
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish on pitlanehq.app (R2) and the GitHub release
         if: github.ref == 'refs/heads/master'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash .github/scripts/publish.sh PitlaneHQ-Desktop.zip
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 r2 object put pitlanehq-downloads/PitlaneHQ-Desktop.zip --file PitlaneHQ-Desktop.zip --remote --content-type application/zip
+          bash .github/scripts/publish.sh PitlaneHQ-Desktop.zip

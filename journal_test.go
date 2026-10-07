@@ -59,7 +59,7 @@ DriverInfo:
  DriverCarFuelMaxLtr: 45.000
  Drivers:
  - CarIdx: 0
-   UserName: Alex D
+   UserName: Driver C
    CarID: 67
    CarPath: mx5 mx52016
    CarScreenName: Global Mazda MX-5 Cup
@@ -86,7 +86,7 @@ func TestRaceReport(t *testing.T) {
 		t.Fatalf("car/track: %+v", c)
 	}
 	res := sessionResults(testRaceYAML, 2)
-	if len(res) != 3 || res[0].Name != "Fast One" || res[1].Name != "Alex D" || !res[1].Me || res[1].ClassPos != 2 || res[2].Best != 98.3 {
+	if len(res) != 3 || res[0].Name != "Fast One" || res[1].Name != "Driver C" || !res[1].Me || res[1].ClassPos != 2 || res[2].Best != 98.3 {
 		t.Fatalf("results: %+v", res)
 	}
 	tr := &raceTrack{id: "900-2", meta: c, started: true, start: 3, lastPos: 2, lastInc: 2, fuel0: 30, lastFuel: 6, pits: 0,
@@ -164,7 +164,7 @@ func TestNotesAndDiscordRoutes(t *testing.T) {
 
 func TestDriverBlockSkipsFastestLap(t *testing.T) {
 	d := driverBlock(testRaceYAML, "0")
-	if !strings.Contains(d, "UserName: Alex D") {
+	if !strings.Contains(d, "UserName: Driver C") {
 		t.Fatalf("driver block: %q", d)
 	}
 }

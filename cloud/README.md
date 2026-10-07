@@ -22,7 +22,7 @@ One Cloudflare Worker + D1 database does it all: Pitlane HQ accounts (end-to-end
 
 ## Create it with one click
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kevincsv/Pitwall-test/tree/pitlanehq-latest/cloud)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/<owner>/<repo>/tree/master/cloud)
 
 Sign in to (or create) your free Cloudflare account, keep the suggested names,
 and paste the key from Pitlane HQ → Settings → Connections → Create a key when

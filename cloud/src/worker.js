@@ -1,5 +1,6 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
+import { downloads } from "./downloads.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -268,6 +269,7 @@ export default {
 async function handle(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === "/news") return news(req, env, ctx);
+    if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     if (url.pathname.startsWith("/community/")) {
       try {
         return await community(req, env, url);

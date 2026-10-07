@@ -34,14 +34,14 @@ func TestCommunityShareReport(t *testing.T) {
 	}))
 	defer srv.Close()
 	commMu.Lock()
-	commCfg = commConfig{URL: srv.URL, Alias: "Alex", ShareReports: true}
+	commCfg = commConfig{URL: srv.URL, Alias: "Driver", ShareReports: true}
 	commMu.Unlock()
-	shareReport(&raceReport{ID: "r1", Track: "Navarra", Results: []raceResult{{Pos: 1, Name: "Real Person"}, {Pos: 2, Name: "Alex D", Me: true}},
-		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Alex D", Me: true}}})
+	shareReport(&raceReport{ID: "r1", Track: "Navarra", Results: []raceResult{{Pos: 1, Name: "Real Person"}, {Pos: 2, Name: "Driver C", Me: true}},
+		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Driver C", Me: true}}})
 	select {
 	case b := <-got:
 		// the other drivers by first name only, you by your name (not anonymous here)
-		if strings.Contains(b, "Real Person") || !strings.Contains(b, `"Real"`) || !strings.Contains(b, "Alex D") {
+		if strings.Contains(b, "Real Person") || !strings.Contains(b, `"Real"`) || !strings.Contains(b, "Driver C") {
 			t.Fatalf("other drivers must show by first name only: %s", b)
 		}
 		var m map[string]any
@@ -78,13 +78,13 @@ func TestCommunityShareReportAnonymous(t *testing.T) {
 	}))
 	defer srv.Close()
 	commMu.Lock()
-	commCfg = commConfig{URL: srv.URL, Alias: "Alex", ShareReports: true, Anonymous: true}
+	commCfg = commConfig{URL: srv.URL, Alias: "Driver", ShareReports: true, Anonymous: true}
 	commMu.Unlock()
-	shareReport(&raceReport{ID: "r2", Track: "Navarra", Results: []raceResult{{Pos: 1, Name: "Real Person"}, {Pos: 2, Name: "Alex D", Me: true}},
-		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Alex D", Me: true}}})
+	shareReport(&raceReport{ID: "r2", Track: "Navarra", Results: []raceResult{{Pos: 1, Name: "Real Person"}, {Pos: 2, Name: "Driver C", Me: true}},
+		Brakes: []carBrakes{{Name: "Real Person", Pos: 1}, {Name: "Driver C", Me: true}}})
 	select {
 	case b := <-got:
-		if strings.Contains(b, "Alex D") || !strings.Contains(b, `"Anonymous"`) || !strings.Contains(b, `"anon":true`) {
+		if strings.Contains(b, "Driver C") || !strings.Contains(b, `"Anonymous"`) || !strings.Contains(b, `"anon":true`) {
 			t.Fatalf("an anonymous report must not carry your name: %s", b)
 		}
 	case <-time.After(3 * time.Second):

@@ -1,12 +1,5 @@
-Latest build of **Pitlane HQ** (beta), updated automatically on every change. What changed in each version: [CHANGELOG.md](https://github.com/kevincsv/Pitwall-test/blob/master/CHANGELOG.md).
+Latest build of **Pitlane HQ** (beta), updated automatically on every change.
 
-| Platform | Download | How to install |
-|---|---|---|
-| Windows installer | [PitlaneHQ-Setup.exe](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-Setup.exe) | Run it (SmartScreen: More info → Run anyway). No administrator needed |
-| Windows (portable .zip) | [PitlaneHQ-windows.zip](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-windows.zip) | Unzip and run `PitlaneHQ.exe` |
-| Windows · native window (preview) | [PitlaneHQ-Desktop.zip](https://github.com/kevincsv/Pitwall-test/releases/download/pitlanehq-latest/PitlaneHQ-Desktop.zip) | Unzip and run `PitlaneHQ.Desktop.exe`: the new native window over the same engine, being built screen by screen |
-| Web version (your own site) | [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kevincsv/Pitwall-test/tree/pitlanehq-latest/cloud) | Free Cloudflare account; paste the key from Pitlane HQ → Settings → Connections when asked |
+Downloads for everyone: **https://pitlanehq.app/downloads** · What changed in each version: https://pitlanehq.app/changelog
 
----
-
-Última versión de **Pitlane HQ**, se actualiza sola con cada cambio. Windows: descomprime y abre `PitlaneHQ.exe`. Web: pulsa **Deploy to Cloudflare**, entra con tu cuenta gratuita y pega la clave de Pitlane HQ → Ajustes → Conexiones.
+The files here are the same ones, kept as a record of each build.

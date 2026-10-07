@@ -1,6 +1,6 @@
 package main
 
-// Updates: the downloads page has a version.json next to PitlaneHQ-windows.zip.
+// Updates: pitlanehq.app/dl/ has a version.json next to PitlaneHQ-windows.zip.
 // Pitlane HQ compares it with its own build, and on request downloads the zip,
 // replaces its files (the running .exe is renamed, Windows allows that) and
 // starts the new version.
@@ -22,11 +22,8 @@ import (
 	"time"
 )
 
-// set when CI builds the .exe: -X main.buildID=<commit> -X main.updateRepo=<owner/repo>
-var (
-	buildID    = "dev"
-	updateRepo = "kevincsv/Pitwall-test"
-)
+// set when CI builds the .exe: -X main.buildID=<commit>
+var buildID = "dev"
 
 type updateInfo struct {
 	Version string `json:"version"`
@@ -62,8 +59,9 @@ var (
 	updHTTP    = &http.Client{Transport: tlsTransport(), Timeout: 5 * time.Minute}
 )
 
+// updateBase: where the builds live (an R2 bucket behind the server, see cloud/src/downloads.js)
 func updateBase() string {
-	return "https://github.com/" + updateRepo + "/releases/download/pitlanehq-latest/"
+	return "https://pitlanehq.app/dl/"
 }
 
 func checkUpdate() error {

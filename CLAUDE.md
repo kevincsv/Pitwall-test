@@ -28,3 +28,5 @@
 - One app everywhere: `web/dist` is the PC app and the web app at `/app` (computers and phones).
   Web scripts are loaded with relative paths.
 - `master` is the main branch the builds come from (Windows and the server).
+- The owner's name never appears in the code, the documents or the tests; the apps never link to
+  GitHub: downloads and release notes come from https://pitlanehq.app (R2 bucket, `cloud/src/downloads.js`).

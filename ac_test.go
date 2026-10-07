@@ -54,7 +54,7 @@ func fakeACC() (p, g, st []byte) {
 	f(g, acg_fuelXLap, 2.9)
 	w(st, acs_track, "monza")
 	w(st, acs_carModel, "porsche_991ii_gt3_r")
-	w(st, acs_playerName, "Alex")
+	w(st, acs_playerName, "Driver")
 	i(st, acs_maxRpm, 9250)
 	f(st, acs_maxFuel, 120)
 	f(st, acs_trackSplineLength, 5793)
@@ -108,7 +108,7 @@ func TestACCConversion(t *testing.T) {
 		t.Errorf("CarLeftRight = %v, want a car alongside", lr)
 	}
 	y := readSessionInfo(s.img.mem, h)
-	for _, want := range []string{"TrackDisplayName: Monza", "CarScreenName: Porsche 991ii Gt3 R", "UserName: Alex", "Game: Assetto Corsa Competizione", "TrackLength: 5.79 km"} {
+	for _, want := range []string{"TrackDisplayName: Monza", "CarScreenName: Porsche 991ii Gt3 R", "UserName: Driver", "Game: Assetto Corsa Competizione", "TrackLength: 5.79 km"} {
 		if !strings.Contains(y, want) {
 			t.Errorf("session lacks %q", want)
 		}

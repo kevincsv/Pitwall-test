@@ -14,6 +14,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   Accounts, laps and the community are the same.
 - **Clean addresses**: the web app is simply https://pitlanehq.app/ (no more `/app/?companion=1`;
   the old addresses land there), with its own icon in the browser tab and on the home screen.
+- **Downloads and release notes from pitlanehq.app**: https://pitlanehq.app/downloads and
+  https://pitlanehq.app/changelog, served from our own storage; the PC updater and the phone
+  apps' version check read them there. Nothing in the apps points at GitHub any more.
 - **Info** replaces the floating bell: a button in the header (PC, web, phones) with the alerts
   that matter now (new version, app news, account to-dos; dismissable) and, always, how to
   support Pitlane HQ and send feedback.
