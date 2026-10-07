@@ -622,7 +622,8 @@ func sessionNumOf(id string) int {
 
 // fieldTopLaps: the best lap of every other driver of your class (your own laps go the usual way), as
 // the community takes them: time, sectors, car and track, the speed trace their position gave when
-// the PC saw the lap whole, and an opaque key per driver. No names.
+// the PC saw the lap whole, and an opaque key per driver. No names. Only the faster rivals with a
+// trace show on the leaderboard; the rest feed the model unseen.
 func fieldTopLaps(r *raceReport) []map[string]any {
 	var out []map[string]any
 	if r == nil || r.TrackID == 0 {
@@ -636,8 +637,14 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if len(x.Sectors) == 3 {
 			b["sectors"] = x.Sectors
 		}
-		if tr := fieldTrace(x.carIdx, x.Best); tr != nil {
+		tr := fieldTrace(x.carIdx, x.Best)
+		if tr != nil {
 			b["trace"] = tr
+		}
+		// on the leaderboard only the rivals faster than you whose lap the PC saw whole; every other
+		// lap goes hidden, for the model alone
+		if tr == nil || r.Best <= 0 || x.Best >= r.Best {
+			b["hidden"] = true
 		}
 		out = append(out, b)
 	}

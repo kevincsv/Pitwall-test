@@ -16,6 +16,16 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   wrote no summary of (the app closed before the flag, an older version) appears in My races as
   a reconstructed summary: laps, incidents, fuel, best lap and consistency, without positions.
 
+- **One model, from real laps.** The community model, the coach's reference and the "ideal" rows were
+  separate things with different numbers. Now there is one model per car and track, learnt from
+  every real lap it knows (yours, shared or not; the shared ones; your race rivals'), and its
+  references are real laps: the record (the fastest lap really driven) and, for your pace, the lap
+  of the driver just ahead. The coach compares against that lap by default, Analysis offers the
+  same two references, the lap list no longer invents an "ideal" from best sectors, and the race
+  summary drops its theoretical lap. It also says where your pace stands among the drivers it knows.
+- **Rivals on the leaderboard only when faster than you and with their trace**; the others (slower,
+  or whose lap the PC did not see whole) teach the model unseen.
+
 **Fixed**
 - **The real iRating change replaces the estimate.** When you join the next session, iRacing shows
   your new iRating; the difference with the one you had in the last race is what it really gave

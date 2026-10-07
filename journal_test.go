@@ -210,6 +210,21 @@ func TestFieldSectors(t *testing.T) {
 	if top := fieldTopLaps(r); len(top) != 2 || top[0]["sectors"] == nil || top[1]["sectors"] != nil {
 		t.Fatalf("sectors with the top-3 laps: %v", top)
 	}
+	// without a trace a rival's lap is hidden (the model alone takes it); with one, only when faster than you
+	if top := fieldTopLaps(r); top[0]["hidden"] != true || top[1]["hidden"] != true {
+		t.Fatalf("rivals without a trace should be hidden: %v", top)
+	}
+	raw := make([]float32, 300)
+	for i := range raw {
+		raw[i] = float32(31 - 0.01*float64(i%7))
+	}
+	fieldMu.Lock()
+	fieldCars[1] = &carLapProf{best: 97.5, bestV: raw, lapsS: []lapSecs{{time: 97.5, s: []float64{31.2, 33.1, 33.2}}}}
+	fieldMu.Unlock()
+	r = buildReport(testRaceYAML, tr, false)
+	if top := fieldTopLaps(r); top[0]["trace"] == nil || top[0]["hidden"] == true || top[1]["hidden"] != true {
+		t.Fatalf("the faster rival with a trace shows, the slower one without stays hidden: %v %v", top[0]["hidden"], top[1]["hidden"])
+	}
 	fieldMu.Lock()
 	fieldCars = map[int]*carLapProf{}
 	fieldMu.Unlock()

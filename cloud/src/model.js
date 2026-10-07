@@ -1,7 +1,9 @@
-// The community model, built here on the server from every valid lap with telemetry of a car
-// and track: the laps people shared and the valid laps of accounts that did not share them.
-// The browser and the apps only get what the model learnt (the realistic ideal lap and the
-// "next level" references at every pace), never the laps themselves.
+// The model: one per car and track, built here on the server from every real lap it knows of:
+// the valid laps with telemetry of the accounts (shared or not), the laps people shared, and the
+// laps of the rivals of your races (their speed from their position on track). Its references are
+// real laps, never composites: the record (the fastest lap really driven) and, for every pace, the
+// lap of the driver just ahead. The analysis, the coach and the lap list all use this one model.
+// The browser and the apps only get what it learnt, never anyone's laps as such.
 //
 // It is rebuilt as soon as a lap arrives (the PC uploads laps on its own, nothing else has to
 // be open): the upload marks the car and track, the next request rebuilds it, and a cron
@@ -9,9 +11,8 @@
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 3; // 3: laps that do not add up or do not fit the others are left out
+export const MODEL_VERSION = 4; // 4: real laps only — the record and the driver just ahead, no composites
 const SEG_M = 250;          // metres per micro-sector
-const IDEAL_MAX = 0.005;    // the ideal lap is never more than 0.5 % faster than the fastest real lap
 const MAX_LAPS = 80;        // laps the model reads per car and track
 const LEARN_PER_RUN = 120;  // new laps taken into the memory per run (the rest on the next one)
 const LADDER_STEP = 0.004;  // a "next level" reference every 0.4 % of pace
@@ -132,7 +133,7 @@ async function candidates(env, game, trackId, carId) {
 export async function buildModel(env, game, trackId, carId) {
   const { laps: raw, drivers, more } = await candidates(env, game, trackId, carId);
   const shared = await env.DB.prepare(
-    `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3`).bind(trackId, carId, game).first();
+    `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND COALESCE(shown,'')<>'model'`).bind(trackId, carId, game).first();
   const base = { v: MODEL_VERSION, game, trackId, carId, built: Date.now(), more: !!more, drivers, shared: (shared && shared.n) || 0 };
   if (raw.length < 2) return { ...base, n: raw.length };
   // same length of track for every lap (another layout or a broken recording would not line up)
@@ -160,67 +161,36 @@ export async function buildModel(env, game, trackId, carId) {
       return l.seg0.every((v, k) => v == null || segMed[k] == null || v >= segMed[k] * 0.88);
     });
   }
-  if (laps.length < 2) return { ...base, n: laps.length };
+  // the pace of every driver the model knows, with or without telemetry (the rivals of your races
+  // whose lap the PC did not see whole still bring their time): where your pace stands among them
+  const timed = await env.DB.prepare("SELECT user_id, MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND time>10 GROUP BY user_id").bind(trackId, carId, game).all();
+  const byDrv = new Map();
+  for (const l of laps) if (!byDrv.has(l.up) || l.time < byDrv.get(l.up)) byDrv.set(l.up, l.time);
+  for (const x of timed.results || []) { const k = await sha("drv:acct:" + x.user_id); if (!byDrv.has(k) || x.t < byDrv.get(k)) byDrv.set(k, x.t); }
+  const times = [...byDrv.values()].sort((a, b) => a - b).map((t) => r(t, 1000));
+  if (laps.length < 2) return { ...base, n: laps.length, drivers: Math.max(drivers, times.length), times };
   const n = Math.min(...laps.map((l) => l.bins.length)), M = Math.max(8, Math.round((n * 5) / SEG_M));
   laps.forEach((l) => { l.seg = segTimes(l, M, n); });
-  // realistic ideal: laps within 2 % of the fastest, the median of the best three of every
-  // micro-sector, and never more than IDEAL_MAX under the fastest lap really driven
+  // the record: the fastest lap really driven, whole, as the reference everyone can be measured against
   const fastest = laps.reduce((a, b) => (b.time < a.time ? b : a));
-  const pool = laps.filter((l) => l.time <= fastest.time * 1.02);
-  const best = [];
-  for (let k = 0; k < M; k++) {
-    const v = pool.map((l) => ({ v: l.seg[k], l })).filter((x) => x.v != null).sort((a, b) => a.v - b.v);
-    if (!v.length) { best.push(null); continue; }
-    const top = v.slice(0, v.length >= 5 ? 3 : v.length >= 2 ? 2 : 1), mid = top.length === 3 ? top[1].v : top.reduce((s, x) => s + x.v, 0) / top.length;
-    // never slower than the fastest lap in that micro-sector: an ideal is at least that lap
-    const fs = fastest.seg[k];
-    if (fs != null && fs < mid) best.push({ v: fs, l: fastest });
-    else best.push({ v: mid, l: top[top.length === 3 ? 1 : 0].l });
-  }
-  let idealTime = best.reduce((s, b) => s + (b ? b.v : 0), 0);
-  const floor = fastest.time * (1 - IDEAL_MAX);
-  if (idealTime < floor) {
-    const f = (fastest.time - floor) / Math.max(1e-6, fastest.time - idealTime);
-    best.forEach((b, k) => { if (b && fastest.seg[k] != null) b.v = fastest.seg[k] - (fastest.seg[k] - b.v) * f; });
-    idealTime = best.reduce((s, b) => s + (b ? b.v : 0), 0);
-  }
-  // the ideal lap as a trace: every micro-sector from the lap that gave its median, scaled to its time
-  const ideal = [];
-  let off = 0;
-  const step = n / M;
-  for (let k = 0; k < M; k++) {
-    const b = best[k];
-    const s = Math.round(k * step), e = k === M - 1 ? n : Math.round((k + 1) * step);
-    if (!b) { for (let i = s; i < e; i++) ideal[i] = ideal[i - 1] || [0, off, 0, 0, 0, 0]; continue; }
-    const t0 = tAt(b.l, s), raw0 = b.l.seg[k] || b.v, f = raw0 > 0 ? b.v / raw0 : 1;
-    for (let i = s; i < e; i++) { const x = b.l.bins[i]; ideal[i] = x ? [x[0] / f, off + (x[1] - t0) * f, x[2], x[3], x[4], x[5]] : ideal[i - 1] || [0, off, 0, 0, 0, 0]; }
-    off += b.v;
-  }
-  // the "next level" ladder: for every pace, the drivers 0.3–3 % faster, averaged bin by bin
+  const record = fastest.bins.slice(0, n).map((b) => [r(b[0], 10), r(b[1], 1000), r(b[2], 100), r(b[3], 100), Math.round(b[4] || 0), r(b[5], 100)]);
+  // the "next level" for every pace: the real lap of the driver just ahead (0.3 % to 3 % faster; the
+  // closest one), kept small (one bin in two); the same lap serves a stretch of paces
+  const compact = (l) => { const out = []; for (let i = 0; i < n; i += LEVEL_BIN) { const b = l.bins[i]; out.push([r(b[0], 10), r(b[1], 1000), r(b[2], 100), r(b[3], 100), Math.round(b[4] || 0)]); } return out; };
+  const sorted = laps.slice().sort((a, b) => a.time - b.time);
   const ladder = [];
   for (let j = 0; j * LADDER_STEP <= LADDER_SPAN; j++) {
     const t = fastest.time * (1 + j * LADDER_STEP);
-    let g = laps.filter((l) => l.time < t * 0.997 && l.time > t * 0.97);
-    if (g.length < 2) g = laps.filter((l) => l.time < t).sort((a, b) => b.time - a.time).slice(0, 3);
-    if (!g.length) g = laps.slice().sort((a, b) => a.time - b.time).slice(0, 3);
-    const key = g.map((l) => l.time).join(",");
-    if (ladder.length && ladder[ladder.length - 1].key === key) { ladder[ladder.length - 1].upTo = t; continue; }
-    const bins = [];
-    let time = 0;
-    for (let i = 0; i < n; i += LEVEL_BIN) {
-      const v = median(g.map((l) => l.bins[i] && l.bins[i][0])) || 0.1;
-      bins.push([r(v, 10), 0, r(median(g.map((l) => l.bins[i] && l.bins[i][2])), 100), r(median(g.map((l) => l.bins[i] && l.bins[i][3])), 100), Math.round(median(g.map((l) => l.bins[i] && l.bins[i][4])) || 0)]);
-      bins[bins.length - 1][1] = time;
-      time += (5 * LEVEL_BIN) / Math.max(v, 1);
-    }
-    const target = median(g.map((l) => l.time)), sc = target / time;
-    bins.forEach((b) => { b[1] = r(b[1] * sc, 1000); });
-    ladder.push({ key, upTo: t, time: r(target, 1000), n: g.length, seg: segTimes({ time: target, bins: bins.flatMap((b) => [b, b]) }, M, n).map((x) => r(x, 1000)), bins });
+    let g = sorted.filter((l) => l.time < t * 0.997 && l.time > t * 0.97);
+    if (!g.length) g = sorted.filter((l) => l.time < t * 0.997); // nobody that close ahead: the nearest faster lap
+    const pick = g.length ? g[g.length - 1] : fastest;
+    if (ladder.length && ladder[ladder.length - 1].lap === pick) { ladder[ladder.length - 1].upTo = t; continue; }
+    ladder.push({ lap: pick, upTo: t, time: r(pick.time, 1000), n: 1, seg: pick.seg.map((x) => r(x, 1000)), bins: compact(pick) });
   }
   return {
-    ...base, n: laps.length, M, nb: n, pool: pool.length, idealTime: r(idealTime, 1000), fastest: r(fastest.time, 1000),
-    ideal: ideal.map((b) => [r(b[0], 10), r(b[1], 1000), r(b[2], 100), r(b[3], 100), Math.round(b[4] || 0), r(b[5], 100)]),
-    ladder: ladder.map(({ key, ...x }) => ({ ...x, upTo: r(x.upTo, 1000) })),
+    ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times,
+    ideal: record,
+    ladder: ladder.map(({ lap, ...x }) => ({ ...x, upTo: r(x.upTo, 1000) })),
   };
 }
 

@@ -85,17 +85,17 @@ export async function community(req, env, url) {
   const game = gameOf(url.searchParams.get("game") || body.game);
   if (p === "/combos" && m === "GET") {
     const r = await env.DB.prepare(
-      "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best FROM community_laps WHERE game=?1 GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"
+      "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model' GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"
     ).bind(game).all();
     return json({ combos: r.results || [] });
   }
-  // the community model, learnt on the server from every valid lap (shared or not): only what it
-  // learnt goes out (the ideal lap and the next-level references), never the laps
+  // the model, learnt on the server from every real lap it knows (shared or not, rivals of races): only
+  // what it learnt goes out (the record and the next-level laps), never anyone's laps as such
   if (p === "/model" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);
     const md = await getModel(env, game, t, c);
-    const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
+    const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
     return json({ ...md, fastShared: fs || null });
   }
   if (p === "/laps" && m === "GET") {
@@ -105,7 +105,7 @@ export async function community(req, env, url) {
     const who = await me(req, env).catch(() => null);
     const r = await env.DB.prepare(
       `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track FROM community_laps l JOIN community_users u ON u.id=l.user_id
-       WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 ORDER BY l.time LIMIT 200`
+       WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 200`
     ).bind(t, c, game).all();
     // field: another driver of a race someone drove, anonymous (their speed trace with estimated pedals)
     return json({ laps: (r.results || []).map(({ uid, ...x }) => ({ ...x, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
@@ -399,7 +399,8 @@ export async function community(req, env, url) {
       // the speed trace their position gave (pedals estimated): the model, the leaderboard and comparisons use it
       const plain = body.trace && Array.isArray(body.trace.d) && body.trace.d.length >= 60 ? JSON.stringify({ ...body.trace, src: "field" }) : null;
       if (plain && plain.length > 900000) return err("lap trace too large", 400);
-      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: true, shown: "nick", count: () => countUpload(env, u) });
+      // on the leaderboard only when the PC says so (faster than you, with their trace); the rest teach the model unseen
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: true, shown: body.hidden ? "model" : "nick", count: () => countUpload(env, u) });
       if (r.limit) return err("too many uploads today", 429);
       return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
     }

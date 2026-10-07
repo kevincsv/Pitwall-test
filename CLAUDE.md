@@ -15,9 +15,11 @@
   Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
-- The community ideal lap must be realistic: built only from laps close to the fastest one,
-  the median of the best few per micro-sector, and never more than 0.5 % faster than the
-  fastest lap really driven (`IDEAL_MAX` in `web/dist/pitwall-model.js`).
+- One model per car and track (`cloud/src/model.js`, shown by `web/dist/pitwall-model.js`): it
+  learns from every real lap it knows (the accounts' laps, shared or not; shared laps; the laps
+  of the rivals of your races) and its references are real laps, never composites: the record
+  (the fastest lap really driven) and, for your pace, the lap of the driver just ahead. Analysis,
+  the coach and the lap list use this one model; no second "ideal" or theoretical lap anywhere.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
   NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.
