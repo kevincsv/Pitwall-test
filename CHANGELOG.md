@@ -4,6 +4,36 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.6.0 beta
+
+**New**
+- **Days you drove**, on Home everywhere (PC, web, phones): the last 26 weeks in squares like
+  RaceLab, brighter the more races and sessions that day. Tap or click a day to see what you
+  drove: its race summaries and its sessions, each one opening its summary or the analyzer.
+- **My races filters:** search a track or car, pick a track or a kind of session (race, qualify,
+  practice), order by newest, fastest lap or most laps, and "only my fastest ever" (the session
+  of each track and car where you drove your best lap). The race summaries follow the same
+  search.
+- **Your fastest lap ever** is marked in the session lists of the lap analyzer and the Coach
+  ("your fastest ever 1:33.369"), so you find that session straight away.
+- The small charts of the race summary (lap times, position, gap) answer to the mouse and to
+  touch like every other chart: a line and a box with that lap's value.
+
+**Changed**
+- The map of the lap analyzer and the Coach shows every incident of lap A's session, like the
+  race summary's map (lap A's in full, the other laps lighter), and the hover names the lap of
+  each one. Laps without their own incidents take them from the race summary.
+- Sector marks on the maps sit on the inside of the track with a bar across it, so they never
+  cover the corner numbers; the race summary's map has them too.
+- Not valid laps look the same everywhere: grey and crossed out, in the race summary, the lap
+  analyzer and the phone apps' lap lists ("invalid" in words, no ✂).
+- Sharing the fastest lap is in Community only (Share from your account); the lap analyzer and
+  the Coach now have exactly the same bar.
+
+**Fixed**
+- Demo data on and the analyzer showed your real sessions (the account was loaded before the
+  admin check): the sessions load again when demo data is switched or confirmed.
+
 ## 0.5.9 beta
 
 **New**
