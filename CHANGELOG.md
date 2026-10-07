@@ -21,6 +21,10 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   per track (Garage 61 takes no other way), 40 tracks per request out of its 479, and when
   Garage 61 asks for a pause it waits and goes on from the same lap; the progress shows the
   track group and the pause.
+- **Garage 61 laps are filed under their own track and car** (with several tracks per request a lap
+  whose track came in another shape was filed under the group's first track), one session per
+  track, car and day; and the admin profile has "Delete import" to undo a Garage 61 import
+  (its sessions, laps and the leaderboard laps that came from them) and run it again clean.
 - **Your own laps and analyses are marked "you" on the web too**: the web did not send your
   session when reading the leaderboard, so the server could not tell which were yours.
 - **The race summary's table shows each driver's sectors** of their best lap when the PC saw the

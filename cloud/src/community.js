@@ -290,6 +290,7 @@ export async function community(req, env, url) {
     let imported = 0, skipped = 0, noTrace = 0, others = 0, shared = 0, trackName = "";
     const combos = new Map(), touched = new Map(), ids = [];
     // tracks without laps cost one request each, a lap one more for its telemetry
+    let carsById = null;
     const nameOf = (t) => str([t.name || t.track, t.variant || t.config || t.layout].filter(Boolean).join(" · "), 120) || String(t.id);
     while (ti < tracks.length && fetches < BUDGET && imported < batch) {
       let group_ = tracks.slice(ti, ti + tb);
@@ -325,7 +326,13 @@ export async function community(req, env, url) {
         ids.push(String(l.id));
         const tr = csv ? g61Trace(String(csv), time) : null;
         if (!tr) noTrace++;
-        const lt = l.track || {}, trk = Object.assign({}, (lt.id != null && byId.get(String(lt.id))) || group_[0], lt), car = l.car || {};
+        // the lap's track: an object with an id, or a bare id; never guessed from the group (that mixed tracks up)
+        const lt = l.track, ltId = lt && typeof lt === "object" ? (lt.id ?? lt.trackId) : (lt ?? l.trackId ?? l.track_id);
+        const known = ltId != null ? byId.get(String(ltId)) : null;
+        if (!known && group_.length > 1) { tb = 1; more = true; break; } // unsure which track: this group again, one track per request
+        const trk = Object.assign({}, known || group_[0], lt && typeof lt === "object" ? lt : {});
+        let car = l.car && typeof l.car === "object" ? l.car : null;
+        if (!car) { const cid = l.car ?? l.carId ?? l.car_id; if (cid != null) { if (!carsById) carsById = new Map(listOf(await cached("cars").catch(() => [])).map((c) => [String(c.id), c])); car = carsById.get(String(cid)) || { id: cid }; } else car = {}; }
         const tName = str(trk.name || trk.track || "Unknown track", 80), tCfg = str(trk.variant || trk.config || trk.layout || "", 60), cName = str(car.name || car.car || "Unknown car", 80);
         const full = tName + (tCfg ? " · " + tCfg : "");
         // iRacing ids: from Garage 61 when it gives them, else from what this server already knows by name, else provisional
@@ -335,12 +342,12 @@ export async function community(req, env, url) {
             || await env.DB.prepare("SELECT track_id, car_id FROM community_laps WHERE game='iracing' AND lower(car)=lower(?1) AND (lower(track)=lower(?2) OR lower(track)=lower(?3)) ORDER BY (track_id<900000000) DESC LIMIT 1").bind(cName, tName, full).first();
           if (o) { trackId = trackId || o.track_id; carId = carId || o.car_id; }
         }
+        if (!trackId) { const t = await env.DB.prepare("SELECT track_id FROM track_maps WHERE game='iracing' AND (lower(track)=lower(?1) OR lower(track)=lower(?2)) LIMIT 1").bind(full, tName).first(); if (t) trackId = t.track_id; }
         if (!trackId) trackId = await pseudoId("t", "iracing", full);
         if (!carId) carId = await pseudoId("c", "iracing", cName);
-        const started = Date.parse(l.startTime || l.start || l.date || "") || Date.now();
-        // one of our sessions per Garage 61 session when it names one, else per track, car and day
-        const g61Session = l.sessionId || (l.session && (l.session.id || l.session)) || l.eventId || "";
-        const grp = g61Session ? "s" + String(g61Session).replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 40) : new Date(started).toISOString().slice(0, 10);
+        const started = Date.parse(l.startTime || l.start || l.date || l.createdAt || "") || Date.now();
+        // one of our sessions per track, car and day
+        const grp = new Date(started).toISOString().slice(0, 10);
         const sid = "acct_" + acc.id + ":g61:" + (trk.id != null ? trk.id : trackId) + ":" + (car.id || carId) + ":" + grp;
         await env.DB.prepare(
           `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
@@ -382,6 +389,21 @@ export async function community(req, env, url) {
     }
     const done = ti >= tracks.length;
     return json({ imported, skipped, noTrace, others, shared, wait, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}|${tb}|${form}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
+  }
+  // undo the Garage 61 import: its sessions and laps, and the leaderboard laps that came from them (same
+  // time as one of those laps); the models of those cars and tracks are rebuilt without them
+  if (m === "POST" && p === "/admin/import/garage61/delete") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const up = "acct:" + acc.id;
+    const combos = (await env.DB.prepare("SELECT DISTINCT track_id, car_id FROM sessions WHERE uploader=?1 AND kind='Garage 61' AND track_id>0 AND car_id>0").bind(up).all()).results || [];
+    const r = await env.DB.batch([
+      env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1 AND EXISTS (SELECT 1 FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?2 AND s.kind='Garage 61' AND ABS(l.time-community_laps.time)<0.002)").bind(acc.id, up),
+      env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1 AND kind='Garage 61')").bind(up),
+      env.DB.prepare("DELETE FROM sessions WHERE uploader=?1 AND kind='Garage 61'").bind(up),
+    ]);
+    for (const c of combos) await markModel(env, "iracing", c.track_id, c.car_id);
+    return json({ deleted: true, laps: r[1].meta.changes, sessions: r[2].meta.changes, shared: r[0].meta.changes, combos: combos.length });
   }
   if (m === "GET" && p === "/admin/status") {
     const acc = await sessionAccount(req, env);
