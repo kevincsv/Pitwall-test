@@ -1795,7 +1795,8 @@ function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Windows",Tx("Installer (reco
 const PHONE_REL="https://pitlanehq.app/downloads";
 // what changed in a version: its entry in the changelog (the release page of the PC app)
 const RELEASE_NOTES=v=>"https://pitlanehq.app/changelog#"+String(v||"").replace(/\./g,"")+"-beta";
-const PHONE_DL=()=>[[PHONE_REL+"/download/PitlaneHQ-Android.apk","Android",Tx("App (APK)","App (APK)","App (APK)","App (APK)")],[PHONE_REL,"iPhone",Tx("App (.ipa, sign with your Apple ID)","App (.ipa, fírmala con tu Apple ID)","App (.ipa, mit deiner Apple-ID signieren)","App (.ipa, assine com seu Apple ID)")]];
+// the phone downloads: Android now (the APK from our storage), iPhone when it reaches the App Store
+const PHONE_DL=()=>[[DL_BASE+"PitlaneHQ-Android.apk","Android",Tx("App (APK); Google Play soon","App (APK); pronto en Google Play","App (APK); bald bei Google Play","App (APK); em breve no Google Play")]];
 const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/This phone/g,"This device"],[/este móvil/g,"este dispositivo"],[/Este móvil/g,"Este dispositivo"],[/diesem Handy/g,"diesem Gerät"],[/dieses Handy/g,"dieses Gerät"],[/neste celular/g,"neste dispositivo"],[/este celular/g,"este dispositivo"]];
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";

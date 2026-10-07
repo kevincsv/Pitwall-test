@@ -38,7 +38,7 @@ ${row("Windows", t("Installer (recommended)", "Instalador (recomendado)"), "Pitl
 ${row("Windows · ZIP", t("Portable, no install", "Portátil, sin instalar"), "PitlaneHQ-windows.zip")}
 ${row(t("Native window (preview)", "Ventana nativa (preview)"), t("The new window over the same engine", "La ventana nueva sobre el mismo motor"), "PitlaneHQ-Desktop.zip")}</div>
 <h2>${t("Phones", "Móviles")} ${ph.version ? `<small>v${esc(ph.version)} beta</small>` : ""}</h2><div class="g">
-${ph.apk ? row("Android", "APK", ph.apk) : ""}${ph.ipa ? row("iPhone", t("IPA: sign it with your Apple ID (SideStore, AltStore…)", "IPA: fírmala con tu Apple ID (SideStore, AltStore…)"), ph.ipa) : ""}</div>
+${ph.apk ? row("Android", t("App (APK); Google Play soon", "App (APK); pronto en Google Play"), ph.apk) : ""}<div class="c" style="opacity:.7"><b>iPhone</b><span>${t("Coming to the App Store", "Pronto en la App Store")}</span></div></div>
 <p class="n"><a href="/changelog">${t("What changed in each version", "Qué cambió en cada versión")}</a> · <a href="/">${t("Open the web app", "Abrir la app web")}</a></p>`;
     return new Response(page(body), { headers: H });
   }
