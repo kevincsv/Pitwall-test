@@ -53,14 +53,16 @@ async function buildModel(c){
 
 /* the record lap (the fastest lap really driven) as a lap you can compare with */
 function idealLap(m){if(!m.ideal||!m.ideal.length)return null;
-  return{n:"★ "+TX("Record","Récord","Rekord","Recorde"),alias:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),time:m.idealTime,bins:m.ideal,maxBin:m.ideal.length-1,comm:true,model:"ideal"}}
+  return{n:"★ "+TX("Record","Récord","Rekord","Recorde"),alias:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),name:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),time:m.idealTime,bins:m.ideal,maxBin:m.ideal.length-1,comm:true,model:"ideal"}}
 /* where a lap time stands among the drivers the model knows: 1 = the fastest */
 function rankOf(m,t){const T=m.times||[];if(!T.length||!(t>0))return null;return{pos:T.filter(x=>x<t).length+1,of:T.length+(T.some(x=>Math.abs(x-t)<0.002)?0:1)}}
 /* the next level for a lap time: the real lap of the driver just ahead (0.3–3 % faster) */
-function refFor(m,t){const L=m.ladder||[];if(!L.length)return null;let x=L.find(x=>t<=x.upTo)||L[L.length-1];if(!x.bins)x.bins=up(x.raw).slice(0,m.nb);return x}
+function refFor(m,t){const L=m.ladder||[];if(!L.length)return null;let i=L.findIndex(x=>t<=x.upTo);if(i<0)i=L.length-1;
+  while(i>0&&!(L[i].time<t*0.997))i--; // the driver just ahead is really ahead (not this very lap)
+  const x=L[i];if(!x.bins)x.bins=up(x.raw).slice(0,m.nb);return x}
 function groupFor(m,t){const x=refFor(m,t);return x?[{time:x.time,bins:x.bins,seg:x.seg,n:x.n}]:[]}
 function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
-  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,comm:true,model:"level"}}
+  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,comm:true,model:"level"}}
 
 /* where this lap loses time against the next level, and why */
 function insights(m,A){const g=groupFor(m,A.time);if(!g.length)return[];const segA=segTimes(A,m.M,Math.min(m.nb,A.bins.length));const step=m.nb/m.M,out=[];

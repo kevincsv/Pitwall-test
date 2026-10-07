@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.8 beta
+
+**Fixed**
+- **Coach, as it is shown.** The sector table fits on a phone screen (columns B and Diff. were off
+  the edge). The coach and the lap analyzer use the same sector times: the game's when both laps
+  have them, otherwise thirds of the lap from the traces, and the coach says so when there are
+  none. The reference in the lap selector shows its name ("Record", "Next level") instead of an
+  empty label, lap A starts as your last valid lap (in the analyzer too), the next-level reference is always a lap
+  really ahead of yours (never your own lap at +0.000), and the time to gain of each plan item no
+  longer wraps or gets cut on narrow screens.
+- The phone apps' session screen shows the average of the valid laps instead of a lap made of the
+  best sectors: one model, from real laps, no theoretical lap anywhere.
+
 ## 0.8.7 beta
 
 **Added**
