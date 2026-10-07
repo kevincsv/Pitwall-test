@@ -298,7 +298,8 @@ async function handle(req, env, ctx) {
       h.set("referrer-policy", "no-referrer");
       h.set("x-frame-options", "DENY");
       h.set("x-content-type-options", "nosniff");
-      if (url.pathname === "/" || url.pathname.endsWith(".html") || url.pathname.endsWith(".json")) h.set("cache-control", "no-cache");
+      // the browser asks the server every time (ETag): a new build is seen at once, nothing stale after an update
+      h.set("cache-control", "no-cache");
       return new Response(r.body, { status: r.status, headers: h });
     }
     // live telemetry from your PC to your browser or phone, end-to-end encrypted
