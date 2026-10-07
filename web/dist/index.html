@@ -5384,7 +5384,7 @@ if(!OV.on)setTimeout(()=>{loadUpdate().then(renderUpdBanner);setInterval(()=>loa
 // New version, news of the app (web/dist/app-news.json, edited by hand), support (Patreon),
 // feedback, and the account's to-dos (confirm the email, two-step sign-in). Each item can be
 // dismissed; the badge counts the ones not seen yet. Nothing here is a hard block.
-const FEEDBACK_URL="https://github.com/kevincsv/Pitwall-test/issues/new?labels=feedback&template=feedback.md";
+const SUPPORT_EMAIL="support@pitlanehq.app",FEEDBACK_URL="mailto:"+SUPPORT_EMAIL+"?subject="+encodeURIComponent("Pitlane HQ feedback");
 let INBOX_NEWS=null,INBOX_OPEN=false;
 const inboxSeen=()=>new Set(store.get("pw.inboxSeen",[]));
 function inboxItems(){const it=[],L=k=>o=>o&&typeof o==="object"?(o[LANG]||o.en||""):(o||"");const tl=L();
@@ -5395,7 +5395,7 @@ function inboxItems(){const it=[],L=k=>o=>o&&typeof o==="object"?(o[LANG]||o.en|
   return it}
 // always there, never dismissed: support and feedback
 function inboxAlways(){const it=[];if(PATREON_URL)it.push({id:"support",kind:"support",title:Tx("Support Pitlane HQ","Apoya Pitlane HQ","Pitlane HQ unterstützen","Apoie o Pitlane HQ"),text:Tx("Pitlane HQ is free. If it helps you, you can support its development on Patreon.","Pitlane HQ es gratis. Si te ayuda, puedes apoyar su desarrollo en Patreon."),acts:[["Patreon",()=>openOutside(PATREON_URL),1]]});
-  it.push({id:"feedback",kind:"feedback",title:Tx("Tell us what you think","Cuéntanos qué te parece"),text:Tx("A bug, an idea, something confusing: every message is read.","Un fallo, una idea, algo confuso: todos los mensajes se leen."),acts:[[Tx("Send feedback","Enviar feedback"),()=>openOutside(FEEDBACK_URL)]]});return it}
+  it.push({id:"feedback",kind:"feedback",title:Tx("Tell us what you think","Cuéntanos qué te parece"),text:Tx(`A bug, an idea, something confusing: write to ${SUPPORT_EMAIL}. Every message is read.`,`Un fallo, una idea, algo confuso: escribe a ${SUPPORT_EMAIL}. Todos los mensajes se leen.`),acts:[[Tx("Send feedback","Enviar feedback"),()=>openOutside(FEEDBACK_URL)],[Tx("Copy the address","Copiar la dirección"),()=>{try{navigator.clipboard.writeText(SUPPORT_EMAIL);toast(Tx("Copied","Copiado"))}catch(e){}}]]});return it}
 const INBOX_ICONS={update:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',account:'<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',news:'<svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',support:'<svg viewBox="0 0 24 24"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg>',feedback:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>'};
 function renderInbox(){const btn=$("#inboxBtn");if(!btn)return;if(OV.on||REMOTE){btn.hidden=true;return}let box=$("#inbox");
   if(!box){box=document.createElement("div");box.id="inbox";box.className="inbox";box.hidden=true;document.body.appendChild(box);btn.onclick=()=>{INBOX_OPEN=!INBOX_OPEN;renderInbox()};document.addEventListener("click",e=>{if(INBOX_OPEN&&!box.contains(e.target)&&!btn.contains(e.target)){INBOX_OPEN=false;renderInbox()}});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&INBOX_OPEN){INBOX_OPEN=false;renderInbox()}})}
@@ -5818,7 +5818,7 @@ const SEC_LIST=()=>[(COMPANION?Tx("Your password never leaves this phone: it tur
   Tx("Your email is used only to send these links and to confirm it is yours; it is never shown to anyone.","Tu email solo se usa para enviarte estos enlaces y confirmar que es tuyo; nunca se muestra a nadie.","Deine E-Mail wird nur für diese Links und zur Bestätigung genutzt; sie wird niemandem gezeigt.","Seu email só é usado para enviar estes links e confirmar que é seu; nunca é mostrado a ninguém.")];
 // the Pitlane HQ server's own pages (forgot password) open in the normal browser
 async function acctServer(){if(COMPANION)return CP.server||"";try{const c=await jget("/api/community");return String(c.server||"").replace(/\/+$/,"")}catch(e){return""}}
-function openOutside(url){if(!/^https:\/\//.test(url))return;if(COMPANION&&NATIVE_RAW)NATIVE_RAW.postMessage({type:"browser",url});else if(typeof window.pwOpen==="function")window.pwOpen(url);else window.open(url,"_blank","noopener")}
+function openOutside(url){if(!/^(https:\/\/|mailto:)/.test(url))return;if(COMPANION&&NATIVE_RAW)NATIVE_RAW.postMessage({type:"browser",url});else if(typeof window.pwOpen==="function")window.pwOpen(url);else window.open(url,"_blank","noopener")}
 async function openForgot(){const u=await acctServer();if(!u){toast(Tx("The Pitlane HQ server is not set up yet","El servidor de Pitlane HQ aún no está configurado","Der PitlaneHQ-Server ist noch nicht eingerichtet","O servidor do Pitlane HQ ainda não está configurado"));return}openOutside(u+"/account/forgot?lang="+LANG)}
 /* ---------- two-step sign-in (authenticator app): optional, recommended ---------- */
 // a small dialog with our own content; resolves with what `wire` passes to done()

@@ -2,6 +2,8 @@
 // Needs the secret RESEND_API_KEY and the variable EMAIL_FROM, e.g.
 // "Pitlane HQ <no-reply@your-domain.com>" with that domain verified in Resend.
 export const mailReady = (env) => !!(env.RESEND_API_KEY && env.EMAIL_FROM);
+// where people write to us; the answers to our emails land there too (Reply-To)
+export const SUPPORT = "support@pitlanehq.app";
 
 const T = {
   verifySubject: { en: "Confirm your Pitlane HQ email", es: "Confirma tu email de Pitlane HQ", de: "Bestätige deine PitlaneHQ-E-Mail", pt: "Confirme seu email do Pitlane HQ" },
@@ -24,19 +26,20 @@ const T = {
 export const lang = (l) => (["en", "es", "de", "pt"].includes(l) ? l : "en");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-async function send(env, to, subject, text, link, button) {
+async function send(env, to, subject, text, link, button, l) {
   if (!mailReady(env)) return false;
   const html = `<div style="font:15px/1.5 system-ui,sans-serif;color:#141a22;max-width:520px">
 <p style="font:700 20px system-ui;letter-spacing:.04em;text-transform:uppercase">Pitlane HQ</p>
 <p>${esc(text)}</p><p><a href="${esc(link)}" style="display:inline-block;background:#ffb02e;color:#11151b;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">${esc(button)}</a></p>
-<p style="color:#5b677a;font-size:13px">${esc(link)}</p></div>`;
+<p style="color:#5b677a;font-size:13px">${esc(link)}</p>
+<p style="color:#5b677a;font-size:12px;margin-top:24px">${esc(lang(l) === "es" ? "¿Dudas? Escríbenos a" : lang(l) === "de" ? "Fragen? Schreib uns an" : lang(l) === "pt" ? "Dúvidas? Escreva para" : "Questions? Write to")} <a href="mailto:${SUPPORT}" style="color:#5b677a">${SUPPORT}</a></p></div>`;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, text: text + "\n\n" + link, html }),
+    body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: env.EMAIL_REPLY_TO || SUPPORT, to: [to], subject, text: text + "\n\n" + link + "\n\n" + SUPPORT, html }),
   });
   return r.ok;
 }
 
-export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)]);
-export const sendReset = (env, to, link, l) => send(env, to, T.resetSubject[lang(l)], T.resetText[lang(l)], link, T.resetButton[lang(l)]);
+export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);
+export const sendReset = (env, to, link, l) => send(env, to, T.resetSubject[lang(l)], T.resetText[lang(l)], link, T.resetButton[lang(l)], l);

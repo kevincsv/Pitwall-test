@@ -74,7 +74,7 @@ func runMainWindow(url string, minimized bool) bool {
 	wv.Bind("pwReady", func() { show() })
 	time.AfterFunc(6*time.Second, show)
 	wv.Bind("pwOpen", func(u string) {
-		if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
+		if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "mailto:") {
 			openExternal(u)
 		}
 	})

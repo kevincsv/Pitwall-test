@@ -136,7 +136,7 @@ Pitlane HQ sends two emails: one to confirm the address after creating an accoun
 1. You need your own domain in Cloudflare (see "Your own domain" above).
 2. Create a free account at resend.com (3,000 emails a month). Add your domain under **Domains** and press the button to add its DNS records to Cloudflare (or copy them by hand), then wait until it shows **Verified**.
 3. In Resend → **API Keys**, create a key with "Sending access".
-4. In GitHub → Settings → Secrets and variables → Actions: add the secret `RESEND_API_KEY` with that key, and the variable `EMAIL_FROM`, for example `Pitlane HQ <no-reply@your-domain.com>`.
+4. In GitHub → Settings → Secrets and variables → Actions: add the secret `RESEND_API_KEY` with that key, and the variable `EMAIL_FROM`, for example `Pitlane HQ <support@pitlanehq.app>` (the replies land at support@pitlanehq.app too; set `EMAIL_REPLY_TO` to use another address).
 5. Run the "Pitlane HQ Cloud (web version)" workflow again.
 
 Resetting the password keeps the account, name, laps and setups. The synced copy was encrypted with the old password, so it is replaced: the next time you sign in on your PC with the new password, the PC uploads your data again.
