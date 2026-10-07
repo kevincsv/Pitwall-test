@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.7.1",
+      "en": [
+        "The coach learns from every valid lap as soon as it is driven, so its tips keep getting better.",
+        "Laps you don't share only teach the coach: nobody sees them."
+      ],
+      "es": [
+        "El coach aprende de cada vuelta válida en cuanto la conduces, así sus consejos mejoran sin parar.",
+        "Las vueltas que no compartes solo enseñan al coach: nadie las ve."
+      ]
+    },
+    {
       "v": "0.7.0",
       "en": [
         "Nicknames are unique now: if one is taken, we tell you.",
