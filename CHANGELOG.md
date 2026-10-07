@@ -18,7 +18,12 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 **Changed**
 - **Sign out is in Settings** on every device.
 - **Every popup has an X** to close it.
-- **Light theme with a purple accent.**
+- **Light theme with a purple accent**, and the fastest laps and sectors in green there so they
+  do not look like it.
+
+**Fixed**
+- **Signed-in devices name the right browser**: Firefox, Chrome and Edge on iPhone showed as
+  Safari; the list now also says the system (Windows, Mac, iPhone, Android…).
 
 ## 0.7.2 beta
 

@@ -27,13 +27,13 @@
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
   --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5;
   --fg:#141a22; --muted:#5b677a; --accent:#6d28d9; --accent-ink:#ffffff;
-  --good:#178a4c; --bad:#c62f2f; --pb:#7a3fd1; --warn:#9a7300; --blue:#1f63c6;
+  --good:#178a4c; --bad:#c62f2f; --pb:#0f9d58; --warn:#9a7300; --blue:#1f63c6;
   --lic-r:#c62f2f; --lic-d:#d9661a; --lic-c:#b88a00; --lic-b:#178a4c; --lic-a:#1f63c6; --lic-p:#4a5568;
   color-scheme:light}}
 :root[data-theme="light"]{
   --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5;
   --fg:#141a22; --muted:#5b677a; --accent:#6d28d9; --accent-ink:#ffffff;
-  --good:#178a4c; --bad:#c62f2f; --pb:#7a3fd1; --warn:#9a7300; --blue:#1f63c6;
+  --good:#178a4c; --bad:#c62f2f; --pb:#0f9d58; --warn:#9a7300; --blue:#1f63c6;
   --lic-r:#c62f2f; --lic-d:#d9661a; --lic-c:#b88a00; --lic-b:#178a4c; --lic-a:#1f63c6; --lic-p:#4a5568;
   color-scheme:light}
 *{box-sizing:border-box}
@@ -1671,7 +1671,11 @@ async function cpPush(tries=0){if(!CP.acc)return;const pend=CP.pending;const sea
 const cpSnapAll=()=>CP.files["companion.json"]||{};
 function cpSnap(k){const c=cpSnapAll();if(c[k])return c[k].body;const path=k.split("?")[0],hits=Object.keys(c).filter(x=>x.split("?")[0]===path);return hits.length===1?c[hits[0]].body:null}
 function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,id:a&&a.id,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,admin:!!(a&&a.admin),verified:!!(a&&a.verified),mail:!!(a&&a.mail),twoFactor:!!(a&&a.twoFactor),recoveryLeft:a&&a.recoveryLeft,autoSync:true,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
-const cpDevice=()=>{const u=navigator.userAgent,b=/Edg\//.test(u)?"Edge":/Firefox\//.test(u)?"Firefox":/Chrome\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":"";return NATIVE_RAW?(/iPhone/.test(u)?"iPhone":/iPad/.test(u)?"iPad":/Android/.test(u)?"Android":"Phone"):"Web"+(b?" · "+b:"")};
+// the browser and system of this device, for the list of signed-in devices (on iPhone every browser
+// is Safari inside, so Firefox, Chrome and Edge say their own name with FxiOS, CriOS and EdgiOS)
+const cpDevice=()=>{const u=navigator.userAgent,b=/Edg(e|A|iOS)?\//.test(u)?"Edge":/Firefox\/|FxiOS\//.test(u)?"Firefox":/OPR\/|Opera/.test(u)?"Opera":/SamsungBrowser\//.test(u)?"Samsung Internet":/Chrome\/|CriOS\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":"";
+  const os=/iPhone/.test(u)?"iPhone":/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?"iPad":/Android/.test(u)?"Android":/Windows/.test(u)?"Windows":/Mac OS X|Macintosh/.test(u)?"Mac":/Linux/.test(u)?"Linux":"";
+  return NATIVE_RAW?(os||"Phone"):"Web"+(b?" · "+b:"")+(os?" · "+os:"")};
 async function cpSignedIn(r,email,wrap,key){if(!key){key=await cpOpen(wrap,r.wrappedKey)}
   CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind,anon:!!r.anon,admin:!!r.admin,verified:!!r.verified,mail:r.mailed!==undefined||!!r.mail,twoFactor:!!r.twoFactor};cpSecret.set("account",JSON.stringify(CP.acc))}
 async function cpAccount(b){const a=b.action;
