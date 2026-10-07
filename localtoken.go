@@ -52,6 +52,9 @@ func localTicket() string {
 
 // withTicket appends a one-use ticket to a local address.
 func withTicket(u string) string {
+	if i := strings.Index(u, "://"); i >= 0 && !strings.Contains(u[i+3:], "/") {
+		u += "/" // "http://localhost:8484" → ".../": a plain address for the desktop shell
+	}
 	sep := "?"
 	if strings.Contains(u, "?") {
 		sep = "&"

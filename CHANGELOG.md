@@ -34,6 +34,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   runs the engine for it.
 
 **Fixed**
+- The track map of the lap analyzer, the Coach and the race summary shows the **three sectors**:
+  the start/finish line, a cut at each sector change and S1, S2, S3 written in the middle of
+  each sector (before, only two unnamed cuts marked S1 and S2).
 - The server's list of shared race analyses no longer reads inside the analysis data (it has
   its own columns now), so sealed analyses list as fast as before.
 
