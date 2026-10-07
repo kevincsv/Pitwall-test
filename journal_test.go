@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -212,6 +213,57 @@ func TestFieldSectors(t *testing.T) {
 	fieldMu.Lock()
 	fieldCars = map[int]*carLapProf{}
 	fieldMu.Unlock()
+}
+
+func TestFieldTrace(t *testing.T) {
+	// a 3000 m lap seen every 10 m: fast on the straights, slow in six corners
+	raw := make([]float32, 300)
+	for i := range raw {
+		c := math.Max(0, math.Cos(float64(i)/300*2*math.Pi*6))
+		raw[i] = float32(60 * (1 - 0.5*c))
+	}
+	raw[17], raw[18] = 0, 0 // a hole
+	fieldMu.Lock()
+	fieldCars = map[int]*carLapProf{3: {best: 71.25, bestV: raw}}
+	fieldMu.Unlock()
+	tr := fieldTrace(3, 71.25)
+	if tr == nil || tr.Src != "field" || tr.Bin != lapBin || len(tr.D) != 600 {
+		t.Fatalf("trace: %+v", tr)
+	}
+	sum, brk, thr := 0.0, 0, 0
+	for _, b := range tr.D {
+		sum += float64(lapBin) / b[0]
+		if b[2] > 0 {
+			brk++
+		}
+		if b[1] > 0 {
+			thr++
+		}
+	}
+	if math.Abs(sum-71.25) > 0.05 || tr.D[0][5] != 0 || tr.D[599][5] <= tr.D[1][5] {
+		t.Fatalf("the trace does not add up to the lap: %.3f, t0 %v tN %v", sum, tr.D[0][5], tr.D[599][5])
+	}
+	if brk < 30 || thr < 100 {
+		t.Fatalf("estimated pedals: braking in %d bins, throttle in %d", brk, thr)
+	}
+	if fieldTrace(3, 70) != nil || fieldTrace(4, 71.25) != nil {
+		t.Fatal("a trace for another lap time or car")
+	}
+	fieldMu.Lock()
+	fieldCars = map[int]*carLapProf{}
+	fieldMu.Unlock()
+	if sessionNumOf("900-2") != 2 || sessionNumOf("t-Spa-0") != 0 || sessionNumOf("x") != -1 {
+		t.Fatal("session number of an id")
+	}
+	// the recorder's incidents replace the watcher's, lap by lap
+	setLapIncs(2, 4, []float64{420, 2, 900, 1}, []string{"loss", "off"})
+	evs, per := recorderIncidents(2, []raceLap{{N: 3}, {N: 4}})
+	if len(evs) != 2 || evs[0].Lap != 4 || evs[0].Pts != 2 || evs[0].Kind != "loss" || per[4] != 3 || per[3] != 0 {
+		t.Fatalf("recorder incidents: %+v %v", evs, per)
+	}
+	if _, per := recorderIncidents(9, []raceLap{{N: 1}}); per != nil {
+		t.Fatal("incidents of laps the recorder never saw")
+	}
 }
 
 func TestDriverBlockSkipsFastestLap(t *testing.T) {

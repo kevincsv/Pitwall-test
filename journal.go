@@ -236,7 +236,9 @@ type raceReport struct {
 	Pits        int          `json:"pits"`
 	FuelUsed    float64      `json:"fuelUsed,omitempty"`
 	IR          int          `json:"ir,omitempty"`
-	IRChange    int          `json:"irChange"` // estimate from the field's iRatings
+	IRChange    int          `json:"irChange"` // estimate from the field's iRatings, until iRacing shows the real one
+	IRReal      bool         `json:"irReal,omitempty"`
+	App         string       `json:"app,omitempty"` // the Pitlane HQ that wrote the report
 	SOF         int          `json:"sof,omitempty"`
 	DNF         bool         `json:"dnf,omitempty"`
 	Laps        []raceLap    `json:"laps"`
@@ -289,6 +291,7 @@ func sessionKind(y string, sn int) string {
 // cross the line after the checkered flag (or leave a race early).
 func raceWatcher() {
 	var cur *raceTrack
+	var irSeen string // the session whose iRating was already compared with the last race
 	end := func(dnf bool) {
 		if cur != nil && cur.started && !cur.saved && len(cur.laps) > 0 {
 			cur.saved = true
@@ -311,6 +314,12 @@ func raceWatcher() {
 		id := fmt.Sprintf("%d-%d", meta.Subsession, sn)
 		if meta.Subsession == 0 {
 			id = fmt.Sprintf("t-%s-%d", meta.Track, sn)
+		}
+		if id != irSeen {
+			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); myIR > 0 {
+				irSeen = id
+				applyRealIR(myIR, meta.Subsession)
+			}
 		}
 		if !strings.EqualFold(kind, "Race") {
 			end(cur != nil && cur.state < 5)
@@ -476,7 +485,14 @@ func strengthOfField(irs []int) int {
 func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	m := t.meta
 	r := &raceReport{Game: gameTag(currentGame()), ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
-		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1}
+		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1, App: appVersion}
+	// the incidents the lap recorder saw (what the analysis and the coach show): one story everywhere
+	if evs, per := recorderIncidents(sessionNumOf(t.id), t.laps); per != nil {
+		r.Incidents = evs
+		for i := range r.Laps {
+			r.Laps[i].Inc = per[r.Laps[i].N]
+		}
+	}
 	if r.Multiclass {
 		r.Start, r.Finish = t.startClass, t.lastClass
 	}
@@ -594,17 +610,25 @@ func saveRace(r *raceReport) {
 	go shareFieldTop(r)
 }
 
-// fieldTopLaps: the best laps of the top 3 of your class (you aside: your own laps go the usual way),
-// as the community takes them: time, sectors, car and track, and an opaque key per driver. No names.
+// sessionNumOf: the session number at the end of a race id ("subsession-sn", "t-track-sn").
+func sessionNumOf(id string) int {
+	if i := strings.LastIndex(id, "-"); i >= 0 {
+		if n, err := strconv.Atoi(id[i+1:]); err == nil {
+			return n
+		}
+	}
+	return -1
+}
+
+// fieldTopLaps: the best lap of every other driver of your class (your own laps go the usual way), as
+// the community takes them: time, sectors, car and track, the speed trace their position gave when
+// the PC saw the lap whole, and an opaque key per driver. No names.
 func fieldTopLaps(r *raceReport) []map[string]any {
 	var out []map[string]any
 	if r == nil || r.TrackID == 0 {
 		return nil
 	}
-	for i, x := range r.Results {
-		if i >= 3 {
-			break
-		}
+	for _, x := range r.Results {
 		if x.Me || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
 			continue
 		}
@@ -612,9 +636,35 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if len(x.Sectors) == 3 {
 			b["sectors"] = x.Sectors
 		}
+		if tr := fieldTrace(x.carIdx, x.Best); tr != nil {
+			b["trace"] = tr
+		}
 		out = append(out, b)
 	}
 	return out
+}
+
+// applyRealIR: iRacing shows your new iRating when you join the next session; its difference with
+// the iRating you had in your last race is what that race really gave or cost (the report keeps the
+// estimate until then).
+func applyRealIR(ir, subsession int) {
+	journalMu.Lock()
+	defer journalMu.Unlock()
+	if len(races) == 0 || ir <= 0 {
+		return
+	}
+	r := races[len(races)-1]
+	if (r.Game != "" && r.Game != "iracing") || r.IRReal || r.IR <= 0 || r.Subsession == subsession || ir == r.IR {
+		return
+	}
+	r.IRChange, r.IRReal = ir-r.IR, true
+	for i := range r.Results {
+		if r.Results[i].Me {
+			r.Results[i].IRChange = r.IRChange
+		}
+	}
+	writeJSONFile(journalFile("races.json"), races)
+	pushNoticeLocked("race", r)
 }
 
 // ---------- notices to open screens (a new race report) ----------

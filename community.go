@@ -307,10 +307,11 @@ func shareLap(l cloudLap) {
 	}()
 }
 
-// shareFieldTop: after a race, the best laps of the top 3 of your class go to the community as
-// anonymous drivers (times and sectors only: iRacing sends no one else's telemetry), when you
-// share your own laps and did not switch this off. Needs your account: the server keeps one
-// anonymous driver per real driver, so a later faster lap replaces the earlier one.
+// shareFieldTop: after a race, the best lap of every other driver of your class goes to the
+// community as an anonymous driver (time, sectors and the speed trace their position gave; iRacing
+// sends no one else's pedals, so those are estimated from the speed), when you share your own laps
+// and did not switch this off. Needs your account: the server keeps one anonymous driver per real
+// driver, so a later faster lap replaces the earlier one.
 func shareFieldTop(r *raceReport) {
 	commMu.Lock()
 	on := commCfg.ShareTimes && !commCfg.NoField

@@ -268,6 +268,90 @@ func brakePoints(raw []float32) (d, vmin []float64) {
 	return
 }
 
+// fillHoles: the empty bins of a speed profile take the value of their neighbours (the ends, the
+// nearest value).
+func fillHoles(raw []float32) []float64 {
+	n := len(raw)
+	v := make([]float64, n)
+	last := -1
+	for i, x := range raw {
+		if x <= 0 {
+			continue
+		}
+		v[i] = float64(x)
+		if last < 0 {
+			for k := 0; k < i; k++ {
+				v[k] = v[i]
+			}
+		} else if i-last > 1 {
+			for k := last + 1; k < i; k++ {
+				v[k] = v[last] + (v[i]-v[last])*float64(k-last)/float64(i-last)
+			}
+		}
+		last = i
+	}
+	for k := last + 1; k < n; k++ {
+		if last >= 0 {
+			v[k] = v[last]
+		}
+	}
+	return v
+}
+
+// fieldTrace: a car's best lap as one of our traces, from the speed its position gave every 10 m:
+// speed and lap time every 5 m, scaled so they add up to the official lap time, and the pedals
+// estimated from the speed (braking where it drops, full throttle where it rises or holds near the
+// top). For the community: its model, leaderboard and comparisons; marked "field" so the apps say
+// the pedals are estimates.
+func fieldTrace(carIdx int, lapTime float64) *lapTrace {
+	fieldMu.Lock()
+	c := fieldCars[carIdx]
+	var raw []float32
+	if c != nil && c.bestV != nil && math.Abs(c.best-lapTime) < 0.002 {
+		raw = append([]float32{}, c.bestV...)
+	}
+	fieldMu.Unlock()
+	if raw == nil || lapTime <= 0 || len(raw) < 20 || coverage(raw) < 0.85 {
+		return nil
+	}
+	v := fillHoles(raw)
+	n := len(v)
+	sp := make([]float64, 0, 2*n)
+	for i := 0; i < 2*n; i++ { // 5 m points between the 10 m bins
+		j, f := i/2, 0.5*float64(i%2)
+		x := v[j]
+		if j+1 < n {
+			x = v[j]*(1-f) + v[j+1]*f
+		}
+		sp = append(sp, math.Max(1, x))
+	}
+	sum := 0.0
+	for _, s := range sp {
+		sum += float64(lapBin) / s
+	}
+	k, vmax := sum/lapTime, 0.0
+	for i := range sp {
+		sp[i] *= k
+		vmax = math.Max(vmax, sp[i])
+	}
+	d := make([][6]float64, len(sp))
+	t := 0.0
+	for i, s := range sp {
+		// the speed 20 m back and ahead says what the pedals were doing
+		dv := sp[min(len(sp)-1, i+2)] - sp[max(0, i-2)]
+		thr, brk := 0.0, 0.0
+		switch {
+		case dv < -0.8:
+			brk = math.Min(1, -dv/6)
+		case dv > 0.3 || s > 0.85*vmax:
+			thr = 1
+		}
+		d[i] = [6]float64{round(s, 2), thr, round(brk, 2), 0, 0, round(t, 3)}
+		t += float64(lapBin) / s
+	}
+	return &lapTrace{Bin: lapBin, D: d, Src: "field"}
+}
+
 type carBrakes struct {
 	Name string    `json:"name"`
 	Pos  int       `json:"pos,omitempty"`

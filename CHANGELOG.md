@@ -4,6 +4,31 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.7 beta
+
+**Added**
+- **The community learns from everyone you race against.** After a race, the best lap of every other
+  driver of your class goes to the community as an anonymous driver: time, sectors and the speed
+  trace their position on track gave (iRacing sends nobody else's pedals, so those are estimated
+  from the speed and labelled as such). The coach model, the leaderboard ("rival of a race") and
+  the comparisons use them. One anonymous driver per real driver; switch in Settings → Community.
+- **Races without a report are rebuilt from the saved laps**: a race the PC recorded laps for but
+  wrote no summary of (the app closed before the flag, an older version) appears in My races as
+  a reconstructed summary: laps, incidents, fuel, best lap and consistency, without positions.
+
+**Fixed**
+- **The real iRating change replaces the estimate.** When you join the next session, iRacing shows
+  your new iRating; the difference with the one you had in the last race is what it really gave
+  or cost, and the summary says "real" instead of "est.".
+- **One story for incidents**: the race summary takes its incidents, lap by lap, from the lap
+  recorder (what Analysis and the coach show), instead of counting them on its own.
+- **"Compare with" in the race summary lists the drivers in finishing order.**
+- Reports carry the Pitlane HQ version that wrote them, to tell old ones apart.
+
+**Removed**
+- **The Garage 61 import.** What it brought (sessions, laps, leaderboard laps and the model's
+  memory of them) is removed from the server; the models of those cars and tracks are rebuilt.
+
 ## 0.8.6 beta
 
 **Added**

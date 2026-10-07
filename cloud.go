@@ -67,6 +67,7 @@ type lapTrace struct {
 	Y    []float64    `json:"y,omitempty"`
 	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
+	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated)
 }
 
 type cloudItem struct {
@@ -444,6 +445,7 @@ func lapRecorder() {
 		if cur == nil || lap != cur.n {
 			if cur != nil && lap == cur.n+1 {
 				setLapCut(sn, cur.n, cur.off >= offTrackSamples) // the race report reads the same verdict
+				setLapIncs(sn, cur.n, cur.incAt, cur.incK)       // and the same incidents
 				done, s := cur, sess
 				fuelNow := v[9]
 				prevLast := prevLL
@@ -658,6 +660,55 @@ var (
 	lapCutMu sync.Mutex
 	lapCuts  = map[[2]int]bool{}
 )
+
+// the incidents of each lap, as the recorder saw them: the race report takes them from here, so the
+// analysis, the summary and the coach tell the same story
+type lapIncRec struct {
+	at []float64 // [distance, points] pairs
+	k  []string
+}
+
+var (
+	lapIncMu sync.Mutex
+	lapIncs  = map[[2]int]lapIncRec{}
+)
+
+func setLapIncs(session, lap int, at []float64, k []string) {
+	lapIncMu.Lock()
+	defer lapIncMu.Unlock()
+	if len(lapIncs) > 2000 {
+		lapIncs = map[[2]int]lapIncRec{}
+	}
+	lapIncs[[2]int{session, lap}] = lapIncRec{at: append([]float64{}, at...), k: append([]string{}, k...)}
+}
+
+// recorderIncidents: the recorder's incidents of these laps as the race report keeps them, and the
+// points per lap; nil when the recorder did not see the laps.
+func recorderIncidents(session int, laps []raceLap) ([]incEvent, map[int]int) {
+	lapIncMu.Lock()
+	defer lapIncMu.Unlock()
+	var out []incEvent
+	per, seen := map[int]int{}, false
+	for _, l := range laps {
+		rec, ok := lapIncs[[2]int{session, l.N}]
+		if !ok {
+			continue
+		}
+		seen = true
+		for i := 0; i+1 < len(rec.at); i += 2 {
+			kind := "off"
+			if i/2 < len(rec.k) {
+				kind = rec.k[i/2]
+			}
+			out = append(out, incEvent{Lap: l.N, D: rec.at[i], Pts: int(rec.at[i+1]), Kind: kind})
+			per[l.N] += int(rec.at[i+1])
+		}
+	}
+	if !seen {
+		return nil, nil
+	}
+	return out, per
+}
 
 func setLapCut(session, lap int, cut bool) {
 	lapCutMu.Lock()
