@@ -234,12 +234,13 @@ type incEvent struct {
 	Lap  int     `json:"lap"`
 	D    float64 `json:"d"` // metres from the line
 	Pts  int     `json:"pts"`
-	Kind string  `json:"kind,omitempty"` // "off" (left the track), "loss" (loss of control) or "contact"
+	Kind string  `json:"kind,omitempty"` // "off" (left the track), "loss" (loss of control), "light" (light contact) or "contact"
 }
 
 type raceTrack struct {
 	incs                        []incEvent
 	incPrev                     float64
+	besideAt                    time.Time // the last moment another car was right beside you (CarLeftRight)
 	id, kind                    string
 	meta                        carTrack
 	started                     bool
@@ -258,7 +259,7 @@ type raceTrack struct {
 	saved                       bool
 }
 
-var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface"}
+var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface", "CarLeftRight"}
 
 func sessionKind(y string, sn int) string {
 	if si := listItem(y, "SessionNum", strconv.Itoa(sn)); si != "" {
@@ -316,12 +317,18 @@ func raceWatcher() {
 			cur.lastPos, cur.lastClass = pos, cpos
 		}
 		cur.lastInc, cur.lastFuel = int(inc-cur.inc0), fuel
+		if v[12] > 1 { // a car beside you, on either side
+			cur.besideAt = now
+		}
 		if inc > cur.incPrev && len(cur.incs) < 100 {
 			e := incEvent{Lap: lc + 1, D: round(math.Max(0, v[10]), 0), Pts: int(inc - cur.incPrev)}
-			// iRacing: 1x leaving the track, 2x a loss of control, 4x a contact
+			// iRacing: 1x leaving the track, 2x a loss of control or a light contact (another car was
+			// right beside you a moment before), 4x a contact
 			switch {
 			case e.Pts >= 4:
 				e.Kind = "contact"
+			case e.Pts == 2 && !cur.besideAt.IsZero() && now.Sub(cur.besideAt) < 2*time.Second:
+				e.Kind = "light"
 			case e.Pts == 2:
 				e.Kind = "loss"
 			case e.Pts == 1 || v[11] == 0:

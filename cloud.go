@@ -66,6 +66,7 @@ type lapTrace struct {
 	X   []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
 	Y   []float64    `json:"y,omitempty"`
 	Inc []float64    `json:"inc,omitempty"` // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
+	IncK []string    `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
 }
 
 type cloudItem struct {
@@ -310,7 +311,7 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
 	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
-	"Yaw", "VelocityX", "VelocityY"}
+	"Yaw", "VelocityX", "VelocityY", "CarLeftRight"}
 
 const lapBin = 5 // metres
 
@@ -332,6 +333,8 @@ type lapRec struct {
 	hasPos, posBad   bool
 	incPrev          float64   // the incident count at the previous sample
 	incAt            []float64 // [distance, points] of every incident on this lap
+	incK             []string  // the kind of each incident
+	besideAt         time.Time // the last moment another car was right beside you
 }
 
 // move integrates the car's position from its yaw and velocity (m/s, in the car's frame).
@@ -456,8 +459,22 @@ func lapRecorder() {
 		if hasYaw {
 			cur.move(v[14], v[19], v[20], v[21])
 		}
-		if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap and how many points
-			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), v[11]-cur.incPrev)
+		if v[22] > 1 { // a car beside you
+			cur.besideAt = time.Now()
+		}
+		if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap, how many points and what it was
+			pts := v[11] - cur.incPrev
+			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), pts)
+			k := "off"
+			switch {
+			case pts >= 4:
+				k = "contact"
+			case pts == 2 && !cur.besideAt.IsZero() && time.Since(cur.besideAt) < 2*time.Second:
+				k = "light"
+			case pts == 2:
+				k = "loss"
+			}
+			cur.incK = append(cur.incK, k)
 		}
 		cur.incPrev = v[11]
 		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
@@ -559,7 +576,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		l.Trace.X, l.Trace.Y = x, y
 	}
 	if len(r.incAt) > 0 {
-		l.Trace.Inc = r.incAt
+		l.Trace.Inc, l.Trace.IncK = r.incAt, r.incK
 		for i := 1; i < len(r.incAt); i += 2 {
 			l.Inc += int(r.incAt[i])
 		}

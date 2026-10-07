@@ -4,6 +4,21 @@ TrackIQ (formerly Pitlane HQ) is in **beta**. TrackIQ.exe, the web app and the p
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.5.6 beta
+
+**Changed**
+- Light contact and loss of control are told apart. Both are 2x in iRacing; TrackIQ.exe now calls
+  a 2x a light contact when another car was right beside you a moment before (CarLeftRight), and a
+  loss of control otherwise. The race summary, the lap analyzer, the maps and the phone apps name
+  them separately ("Loss of control 2x", "Light contact 2x"); light contacts are blue on the map.
+  Incidents recorded before this version keep showing as loss of control.
+- Lap analyzer and Coach on the PC: the title, and under it the session bar on its own row from
+  the left, the same in both (it used to float on the right).
+
+**Fixed**
+- Web app on an iPhone: Safari could widen the Home past the screen (a scroll row and the grids
+  took the width of their content); they are held to the screen width now.
+
 ## 0.5.5 beta
 
 **Changed**

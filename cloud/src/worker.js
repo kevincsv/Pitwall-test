@@ -153,7 +153,8 @@ async function api(req, env, url) {
       const n = Math.round(num(l.n) || 0), inc = Math.max(0, Math.round(num(l.inc) || 0));
       const at = Array.isArray(l.at) ? l.at.filter((v) => typeof v === "number" && isFinite(v)).slice(0, 160) : [];
       if (!n) continue;
-      stmts.push(env.DB.prepare("UPDATE laps SET inc=?3, trace=CASE WHEN trace IS NULL THEN trace ELSE json_set(trace,'$.inc',json(?4)) END WHERE session_id=?1 AND n=?2 AND COALESCE(inc,0)=0").bind(sid, n, inc, JSON.stringify(at)));
+      const ks = Array.isArray(l.k) ? l.k.filter((v) => ["off", "loss", "light", "contact"].includes(v)).slice(0, 80) : [];
+      stmts.push(env.DB.prepare("UPDATE laps SET inc=?3, trace=CASE WHEN trace IS NULL THEN trace ELSE json_set(trace,'$.inc',json(?4),'$.incK',json(?5)) END WHERE session_id=?1 AND n=?2 AND COALESCE(inc,0)=0").bind(sid, n, inc, JSON.stringify(at), JSON.stringify(ks)));
     }
     if (stmts.length) await env.DB.batch(stmts);
     return json({ ok: true, laps: stmts.length });
