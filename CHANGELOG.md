@@ -4,6 +4,22 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.4 beta
+
+**Fixed**
+- **The lap list showed its sector times stacked in boxes** (0.8.2 gave the sector strip the same
+  class name as the table's sector cells). The list also no longer stretches across an ultra-wide
+  window.
+- **Sharing a lap of an older session** finds the track and car ids in your own newer sessions
+  of the same track and car, not only in what others shared.
+
+**Changed**
+- **DRINKS mode is a bounded card** (text and controls on the left, its state on the right)
+  instead of a strip across the whole window, on ultra-wide and normal screens alike.
+- **Bigger top menu on every computer**: the labels were shrunk to 12.5 px on the most common
+  window widths and hidden under 1180 px; now they stay readable and are hidden only under
+  1000 px, where the brand shrinks to its mark so the header stays on one row.
+
 ## 0.8.3 beta
 
 **Fixed**

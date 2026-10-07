@@ -350,6 +350,13 @@ export async function community(req, env, url) {
       const c = await env.DB.prepare("SELECT car_id FROM community_laps WHERE car=?1 AND game=?2 LIMIT 1").bind(s.car, g).first();
       if (c) carId = c.car_id;
     }
+    // still unknown: another session of this account (or anyone's) with the same track and car names
+    // recorded by a newer PC carries the ids
+    if (!trackId || !carId) {
+      const o = await env.DB.prepare("SELECT track_id, car_id FROM sessions WHERE game=?1 AND car=?2 AND (track=?3 OR (track||' · '||COALESCE(track_config,''))=?4) AND track_id>0 AND car_id>0 ORDER BY (uploader=?5) DESC, started DESC LIMIT 1")
+        .bind(g, s.car, s.track, name, "acct:" + u.id).first();
+      if (o) { trackId = trackId || o.track_id; carId = carId || o.car_id; }
+    }
     if (!trackId || !carId) return err("the track or car of this session is not known yet: drive it once with the new Pitlane HQ, then it can be shared", 400);
     if (!s.track_id || !s.car_id) await env.DB.prepare("UPDATE sessions SET track_id=COALESCE(track_id,?2), car_id=COALESCE(car_id,?3) WHERE id=?1").bind(s.id, trackId, carId).run();
     const traced = !!lap.trace;

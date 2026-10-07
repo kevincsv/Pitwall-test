@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.8.4",
+      "en": [
+        "A bigger top menu on the PC and the web.",
+        "The lap list and DRINKS mode look right on ultra-wide screens."
+      ],
+      "es": [
+        "Menú superior más grande en el PC y la web.",
+        "La lista de vueltas y el modo DRINKS se ven bien en pantallas ultra anchas."
+      ]
+    },
+    {
       "v": "0.8.3",
       "en": [
         "Live telemetry on the web and the phones works again.",
