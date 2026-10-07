@@ -223,12 +223,18 @@ export async function community(req, env, url) {
         why = why.replace(/\s+/g, " ").slice(0, 240);
         const e = new Error("Garage 61 answered HTTP " + r.status + (r.status === 401 ? ": the token is not valid" : "") + (why ? " · " + why : "") + " · " + path.split("?")[0]);
         e.status = r.status; e.param = (why.match(/"([A-Za-z]+)"/) || [])[1] || "";
-        if (r.status === 429) { const ra = parseInt(r.headers.get("retry-after") || "", 10); e.retry = ra > 0 ? Math.min(60, Math.max(3, ra)) : 15; }
+        if (r.status === 429) {
+          // Retry-After: seconds, or a date; honoured up to an hour
+          const h = r.headers.get("retry-after") || "";
+          let ra = parseInt(h, 10);
+          if (!(ra > 0) && h) ra = Math.round((Date.parse(h) - Date.now()) / 1000);
+          e.retry = ra > 0 ? Math.min(3600, Math.max(3, ra)) : 20;
+        }
         throw e;
       }
       return (r.headers.get("content-type") || "").includes("json") ? r.json() : r.text();
     };
-    const throttled = (e) => { if (e && e.status === 429) { wait = e.retry || 15; return true; } return false; };
+    const throttled = (e) => { if (e && e.status === 429) { wait = e.retry || 20; return true; } return false; };
     // the track list and who you are change slowly: kept 15 minutes, so each call does not ask again
     const tokHash = (await sha256(token)).slice(0, 32);
     const cache = typeof caches !== "undefined" && caches.default ? caches.default : null;
@@ -241,30 +247,39 @@ export async function community(req, env, url) {
     };
     const listOf = (v) => (Array.isArray(v) ? v : (v && (v.items || v.data || v.results || v.laps || v.tracks)) || []);
     const batch = Math.min(8, Math.max(1, +body.batch || 6));
-    const st = String(body.next || "").match(/^g61\|(\d+)\|([^|]*)\|([^|]*)\|(\d+)$/);
-    let ti = st ? +st[1] : 0, page = st ? st[2] : "", prevFirst = st ? st[3] : "", k = st ? +st[4] : 0; // k: laps of this page already handled
+    // the place: first track of the current group, its page, the first lap of the previous page, how many laps
+    // of this page are done, how many tracks go in one request and in which form Garage 61 takes them
+    const st = String(body.next || "").match(/^g61\|(\d+)\|([^|]*)\|([^|]*)\|(\d+)(?:\|(\d+)\|([ecs]))?$/);
+    let ti = st ? +st[1] : 0, page = st ? st[2] : "", prevFirst = st ? st[3] : "", k = st ? +st[4] : 0;
+    let tb = st && st[5] ? Math.max(1, +st[5]) : 40, form = st && st[6] ? st[6] : "e"; // e: tracks=1&tracks=2, c: tracks=1,2, s: one track per request
     const idle = { imported: 0, skipped: 0, noTrace: 0, others: 0, shared: 0, done: false, track: null, ids: [] };
     let tracks, meInfo = null;
     try {
       tracks = listOf(await cached("tracks")).filter((t) => t && t.id != null).sort((a, b) => (+a.id || 0) - (+b.id || 0) || String(a.id).localeCompare(String(b.id)));
       meInfo = await cached("me").catch((e) => { if (e.status === 429) throw e; return null; });
     } catch (e) {
-      if (throttled(e)) return json({ ...idle, wait, next: st ? body.next : "g61|0|||0" });
+      if (throttled(e)) return json({ ...idle, wait, next: st ? body.next : "g61|0|||0|40|e" });
       throw e;
     }
     if (!tracks.length) return err("Garage 61 returned no tracks", 502);
     const meId = meInfo && typeof meInfo === "object" ? (meInfo.id != null ? String(meInfo.id) : meInfo.slug || "") : "";
-    // the laps list: adapted when Garage 61 names a parameter it does not take
-    let drivers = "me", group = "&group=none", limit = 25, cursorKey = "after";
-    const listLaps = async (track, pg) => {
+    // the laps list, for a group of tracks at once (Garage 61 limits requests, and most tracks have no lap of
+    // yours): adapted when Garage 61 names a parameter it does not take, down to one track per request
+    let drivers = "me", group = "&group=none", limit = 100, cursorKey = "after";
+    const byId = new Map(tracks.map((t) => [String(t.id), t]));
+    const listLaps = async (group_, pg) => {
       for (let tries = 0; ; tries++) {
-        const q = `laps?tracks=${encodeURIComponent(track.id)}&drivers=${encodeURIComponent(drivers)}${group}&limit=${limit}` + (pg ? (pg[0] === "c" ? "&" + cursorKey + "=" + encodeURIComponent(pg.slice(1)) : "&offset=" + pg.slice(1)) : "");
+        const ids = group_.map((t) => encodeURIComponent(t.id));
+        const tq = form === "c" ? "tracks=" + ids.join(",") : ids.map((x) => "tracks=" + x).join("&");
+        const q = `laps?${tq}&drivers=${encodeURIComponent(drivers)}${group}&limit=${limit}` + (pg ? (pg[0] === "c" ? "&" + cursorKey + "=" + encodeURIComponent(pg.slice(1)) : "&offset=" + pg.slice(1)) : "");
         try { return await g61(q); } catch (e) {
-          if (e.status !== 400 || tries >= 3) throw e;
-          if (e.param === "limit" && limit > 10) limit = 10;
+          if (e.status !== 400 || tries >= 5) throw e;
+          if (e.param === "limit") limit = limit > 50 ? 50 : limit > 25 ? 25 : limit > 10 ? 10 : (() => { throw e; })();
           else if (e.param === "group" && group) group = "";
           else if (e.param === "drivers" && meId && drivers === "me") drivers = meId;
           else if (e.param === cursorKey && pg && pg[0] === "c" && cursorKey === "after") cursorKey = "cursor";
+          else if (e.param === "tracks" && group_.length > 1 && form === "e") form = "c";
+          else if (e.param === "tracks" && group_.length > 1) { form = "s"; tb = 1; group_ = group_.slice(0, 1); }
           else throw e;
         }
       }
@@ -273,11 +288,13 @@ export async function community(req, env, url) {
     let imported = 0, skipped = 0, noTrace = 0, others = 0, shared = 0, trackName = "";
     const combos = new Map(), touched = new Map(), ids = [];
     // tracks without laps cost one request each, a lap one more for its telemetry
+    const nameOf = (t) => str([t.name || t.track, t.variant || t.config || t.layout].filter(Boolean).join(" · "), 120) || String(t.id);
     while (ti < tracks.length && fetches < BUDGET && imported < batch) {
-      const track = tracks[ti];
-      trackName = str([track.name || track.track, track.variant || track.config || track.layout].filter(Boolean).join(" · "), 120) || String(track.id);
+      let group_ = tracks.slice(ti, ti + tb);
       let res;
-      try { res = await listLaps(track, page); } catch (e) { if (throttled(e)) break; throw e; }
+      try { res = await listLaps(group_, page); } catch (e) { if (throttled(e)) break; throw e; }
+      group_ = tracks.slice(ti, ti + tb); // Garage 61 may have taken fewer tracks per request than asked
+      trackName = nameOf(group_[0]) + (group_.length > 1 ? " … " + nameOf(group_[group_.length - 1]) : "");
       const laps = listOf(res).filter((l) => l && l.id != null);
       const firstId = laps.length ? String(laps[0].id) : "";
       // only the admin's own laps, even if Garage 61 lists others; the ones a previous call handled are passed over
@@ -306,7 +323,7 @@ export async function community(req, env, url) {
         ids.push(String(l.id));
         const tr = csv ? g61Trace(String(csv), time) : null;
         if (!tr) noTrace++;
-        const trk = Object.assign({}, track, l.track || {}), car = l.car || {};
+        const lt = l.track || {}, trk = Object.assign({}, (lt.id != null && byId.get(String(lt.id))) || group_[0], lt), car = l.car || {};
         const tName = str(trk.name || trk.track || "Unknown track", 80), tCfg = str(trk.variant || trk.config || trk.layout || "", 60), cName = str(car.name || car.car || "Unknown car", 80);
         const full = tName + (tCfg ? " · " + tCfg : "");
         // iRacing ids: from Garage 61 when it gives them, else from what this server already knows by name, else provisional
@@ -322,7 +339,7 @@ export async function community(req, env, url) {
         // one of our sessions per Garage 61 session when it names one, else per track, car and day
         const g61Session = l.sessionId || (l.session && (l.session.id || l.session)) || l.eventId || "";
         const grp = g61Session ? "s" + String(g61Session).replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 40) : new Date(started).toISOString().slice(0, 10);
-        const sid = "acct_" + acc.id + ":g61:" + track.id + ":" + (car.id || carId) + ":" + grp;
+        const sid = "acct_" + acc.id + ":g61:" + (trk.id != null ? trk.id : trackId) + ":" + (car.id || carId) + ":" + grp;
         await env.DB.prepare(
           `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, uploader, game, track_id, car_id) VALUES (?1,?2,?3,?4,?5,'Garage 61',NULL,NULL,?6,'iracing',?7,?8)
            ON CONFLICT(id) DO UPDATE SET started=MIN(started, excluded.started), track_id=COALESCE(track_id, excluded.track_id), car_id=COALESCE(car_id, excluded.car_id)`
@@ -347,7 +364,7 @@ export async function community(req, env, url) {
       const repeats = firstId && firstId === prevFirst;
       if (!repeats && laps.length && typeof cursor === "string" && cursor && "c" + cursor !== page) { page = "c" + cursor; prevFirst = firstId; }
       else if (!repeats && laps.length >= limit && (total == null || off + laps.length < total)) { page = "o" + (off + laps.length); prevFirst = firstId; }
-      else { ti++; page = ""; prevFirst = ""; }
+      else { ti += group_.length; page = ""; prevFirst = ""; }
     }
     if (!(ti < tracks.length)) k = 0;
     for (const [t, c] of combos.values()) await markModel(env, "iracing", t, c);
@@ -362,7 +379,7 @@ export async function community(req, env, url) {
       if (r.shared) shared++;
     }
     const done = ti >= tracks.length;
-    return json({ imported, skipped, noTrace, others, shared, wait, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
+    return json({ imported, skipped, noTrace, others, shared, wait, next: done ? null : `g61|${ti}|${page}|${prevFirst}|${k}|${tb}|${form}`, done, track: { i: Math.min(ti + 1, tracks.length), of: tracks.length, name: trackName }, ids });
   }
   if (m === "GET" && p === "/admin/status") {
     const acc = await sessionAccount(req, env);
