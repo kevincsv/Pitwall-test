@@ -10,8 +10,15 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - **The lap list showed its sector times stacked in boxes** (0.8.2 gave the sector strip the same
   class name as the table's sector cells). The list also no longer stretches across an ultra-wide
   window.
-- **Sharing a lap of an older session** finds the track and car ids in your own newer sessions
-  of the same track and car, not only in what others shared.
+- **Sharing never waits for the ids any more.** A lap of a session recorded without iRacing's track
+  and car ids is shared anyway: the ids come from your own newer sessions or what others shared,
+  and if nobody recorded that track and car with its ids yet, provisional ids made from the names
+  are used and replaced everywhere by the real ones the first time a session brings them.
+
+**Added**
+- **Import my laps from Garage 61** (admin profile → Server, on the web): once, every lap of
+  yours in Garage 61 with its telemetry goes into your account like laps from the PC, and the
+  coach model learns them. The token is used for the import only and never stored.
 
 **Changed**
 - **DRINKS mode is a bounded card** (text and controls on the left, its state on the right)

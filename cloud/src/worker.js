@@ -1,7 +1,7 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { downloads } from "./downloads.js";
-import { markModel, rebuildDirty } from "./model.js";
+import { markModel, rebuildDirty, reconcileIds } from "./model.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -93,6 +93,8 @@ async function api(req, env, url) {
     // a member's sessions are kept apart from the owner's even with the same iRacing session id
     if ((role === "member" || role === "account") && body.session.id) body.session.id = (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + body.session.id).slice(0, 80);
     let e = await upsertSession(env, body.session, me.name);
+    // this session brings the real iRacing ids: what was shared under provisional ids of the same track and car moves over
+    if (!e && posInt(body.session.trackId) && posInt(body.session.carId)) await reconcileIds(env, gameOf(body.session.game), str(body.session.track), str(body.session.trackConfig), str(body.session.car), posInt(body.session.trackId), posInt(body.session.carId)).catch(() => {});
     if (role === "member" || role === "account") body.laps = (body.laps || []).map((l) => ({ ...l, id: (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + l.id).slice(0, 80) }));
     if (e) return err(e, 400);
     for (const l of (body.laps || []).slice(0, 50)) {

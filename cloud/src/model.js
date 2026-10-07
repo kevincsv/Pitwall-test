@@ -221,6 +221,37 @@ export async function buildModel(env, game, trackId, carId) {
   };
 }
 
+// ---------- ids for a track and car nobody recorded with iRacing's ids yet ----------
+// Sharing never waits for the ids: a car and track get provisional ids made from their names
+// (900 000 000 and up), and the first session that brings the real ids replaces them everywhere.
+export const PSEUDO_MIN = 900000000;
+const normName = (v) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "");
+export async function pseudoId(kind, game, name) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(kind + "|" + game + "|" + normName(name)));
+  const n = new DataView(b).getUint32(0);
+  return PSEUDO_MIN + (n % 99999999);
+}
+// a session with the real ids arrived: whatever was shared or learnt under provisional ids of the
+// same track and car moves to the real ones
+export async function reconcileIds(env, game, track, trackConfig, car, trackId, carId) {
+  if (!trackId || !carId || trackId >= PSEUDO_MIN || carId >= PSEUDO_MIN) return;
+  const full = track + (trackConfig ? " · " + trackConfig : "");
+  const pt = await pseudoId("t", game, full), pc = await pseudoId("c", game, car);
+  const hit = await env.DB.prepare("SELECT 1 FROM sessions WHERE game=?1 AND (track_id=?2 OR car_id=?3) LIMIT 1").bind(game, pt, pc).first()
+    || await env.DB.prepare("SELECT 1 FROM community_laps WHERE game=?1 AND (track_id=?2 OR car_id=?3) LIMIT 1").bind(game, pt, pc).first()
+    || await env.DB.prepare("SELECT 1 FROM community_reports WHERE game=?1 AND (track_id=?2 OR car_id=?3) LIMIT 1").bind(game, pt, pc).first();
+  if (!hit) return;
+  const fix = (t) => [
+    env.DB.prepare(`UPDATE OR IGNORE ${t} SET track_id=CASE WHEN track_id=?1 THEN ?2 ELSE track_id END, car_id=CASE WHEN car_id=?3 THEN ?4 ELSE car_id END WHERE game=?5 AND (track_id=?1 OR car_id=?3)`).bind(pt, trackId, pc, carId, game),
+    env.DB.prepare(`DELETE FROM ${t} WHERE game=?1 AND (track_id=?2 OR car_id=?3)`).bind(game, pt, pc), // a row the real combo already had wins
+  ];
+  await env.DB.batch([
+    env.DB.prepare("UPDATE sessions SET track_id=CASE WHEN track_id=?1 THEN ?2 ELSE track_id END, car_id=CASE WHEN car_id=?3 THEN ?4 ELSE car_id END WHERE game=?5 AND (track_id=?1 OR car_id=?3)").bind(pt, trackId, pc, carId, game),
+    ...fix("community_laps"), ...fix("community_reports"), ...fix("model_laps"),
+    env.DB.prepare("DELETE FROM model_cache WHERE game=?1 AND (track_id=?2 OR car_id=?3)").bind(game, pt, pc)]);
+  await markModel(env, game, trackId, carId);
+}
+
 const gz = async (s) => new Uint8Array(await new Response(new Blob([s]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
 // D1 gives a BLOB back as an array of numbers
 const gunz = async (b) => await new Response(new Blob([b instanceof ArrayBuffer || ArrayBuffer.isView(b) ? b : new Uint8Array(b)]).stream().pipeThrough(new DecompressionStream("gzip"))).text();

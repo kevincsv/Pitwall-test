@@ -4,11 +4,13 @@
       "v": "0.8.4",
       "en": [
         "A bigger top menu on the PC and the web.",
-        "The lap list and DRINKS mode look right on ultra-wide screens."
+        "The lap list and DRINKS mode look right on ultra-wide screens.",
+        "Sharing a lap works even on a track and car Pitlane HQ did not know yet."
       ],
       "es": [
         "Menú superior más grande en el PC y la web.",
-        "La lista de vueltas y el modo DRINKS se ven bien en pantallas ultra anchas."
+        "La lista de vueltas y el modo DRINKS se ven bien en pantallas ultra anchas.",
+        "Compartir una vuelta funciona aunque Pitlane HQ aún no conociera ese circuito y coche."
       ]
     },
     {
