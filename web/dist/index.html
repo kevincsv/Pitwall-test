@@ -270,7 +270,7 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 .drawer.float #dTitle{font-size:18px!important}
 .drawer.float .drawer-panel{width:min(640px,94vw)!important}
 /* a widget's settings: its live preview (sample data until the game sends real data) always in view on the left, the settings on the right */
-.rbmap .dirarr line{stroke:var(--bad);stroke-width:2.6;stroke-linecap:round}.rbmap .dirarr polygon{fill:var(--bad)}.rbmap .pitln{fill:none;stroke:#9fb1c8;stroke-width:3;stroke-dasharray:7 4;stroke-linecap:round;opacity:.85}.rbmap .pitin{fill:var(--bad)}.rbmap .pitout{fill:#5aa9ff}
+.rbmap .dirarr line{stroke:var(--bad);stroke-width:2.6;stroke-linecap:round}.rbmap .dirarr polygon{fill:var(--bad)}
 .drawer.float .drawer-panel:has(.cfgsplit){width:min(1120px,96vw)!important}
 .cfgsplit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-top:12px}
 .cfgpv{position:sticky;top:50px;z-index:1}
@@ -1921,7 +1921,6 @@ async function cpRoute(url,method,raw){await cpReady;const u=new URL(url,"https:
   if(p==="/api/community"){if(method==="POST")return no(cpNeedPC());const a=CP.acc,pf=F()["prefs.json"]||{};return ok({ready:!!CP.server,account:!!a,alias:a?a.display:"",nameKind:a?a.nameKind:"nick",anonymous:!!(a&&a.anon),shareTimes:!!pf.shareTimes,shareTraces:!!pf.shareTraces,shareReports:!!pf.shareReports,shareMaps:pf.shareMaps!==false,shareField:pf.shareField!==false,liveWeb:pf.liveWeb!==false,deleteAfter:pf.deleteAfter||"",asked:!!pf.asked,registered:!!a,shared:0,companion:true})}
   if(p==="/api/community/setups"){if(method==="POST")return no(cpNeedPC());const mine=q.get("mine")==="1";q.delete("mine");return ok(await cpCall("GET","/community/setups"+(mine?"/mine":"")+(q.toString()?"?"+q:""),null,mine))}
   if(p==="/api/trackmap"&&method==="GET")return ok(await cpCall("GET","/community/trackmaps?trackId="+encodeURIComponent(q.get("trackId")||"")+"&game="+encodeURIComponent(q.get("game")||"iracing"),null,false));
-  if(p==="/api/pitlane"&&method==="GET")return ok(await cpCall("GET","/community/pitlane?trackId="+encodeURIComponent(q.get("trackId")||"")+"&game="+encodeURIComponent(q.get("game")||"iracing"),null,false));
   if(p==="/api/turns"&&method==="GET")return ok(await cpCall("GET","/community/turns?trackId="+encodeURIComponent(q.get("trackId")||"")+"&game="+encodeURIComponent(q.get("game")||"iracing"),null,false));
   if(p==="/api/turns"&&method==="POST")return ok(await cpCall("POST","/community/turns",B()));
   if(p==="/api/community/admin"&&method==="POST"){const b=B();if(b.action==="uncut")return ok(await cpCall("POST","/community/admin/reports/"+encodeURIComponent(b.id)+"/uncut",{}));return ok(await cpCall("DELETE","/community/admin/"+encodeURIComponent(b.kind)+"/"+encodeURIComponent(b.id)+"?game="+encodeURIComponent(b.game||"")))}
@@ -5258,28 +5257,11 @@ var TURN_TID=null; // the track of the laps on screen (the analyzer's and the co
 var RB_OPEN=null; // redraws the race summary that is open (its corners take the official numbers once they arrive)
 /* the official turns as the corners of a drawn map (N points, L metres a lap), or null when the track has none */
 function officialCorners(tid,game,N,L){const t=tid?turnsFor(tid,game):null;return t&&t.length?t.map((f,i)=>({n:i+1,i:Math.round(f*N)%N,d:f*L,dir:1})):null}
-/* the pit lane of a track (/api/pitlane, from laps through the pits: [5 m point of the lap, metres to the left]) */
-var PITLANE={},PITLANE_T={};
-function pitsFor(id,game){if(!id)return null;const k=(game||aGame()||"iracing")+":"+id;if(Date.now()-(PITLANE_T[k]||0)<600000)return PITLANE[k]||null;PITLANE_T[k]=Date.now();
-  jget("/api/pitlane?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||aGame()||"iracing")).then(j=>{const v=j&&Array.isArray(j.pts)&&j.pts.length>=10&&j.n>0?{n:j.n,pts:j.pts}:null;
-    const ch=JSON.stringify(v)!==JSON.stringify(PITLANE[k]||null);PITLANE[k]=v;if(ch&&v)turnsChanged()}).catch(()=>{});return PITLANE[k]||null}
-/* the pit lane beside a drawn track (xs, ys: its points): its stretches of [x, y] in the track's own metres, with where
-   each starts and ends on the lap (an entry or an exit, unless it is the start/finish line) */
-function pitPaths(xs,ys,pl,minM){if(!pl||!pl.pts||pl.pts.length<10||!pl.n||!xs||xs.length<20)return[];const N=xs.length,W=i=>((i%N)+N)%N,out=[];let cur=null,last=-9;
-  // a pit lane 15 m off the track is under the drawn road at the map's scale: the whole lane moves out (same shape)
-  // until it is at least minM metres away, like iRacing's maps draw it beside the track
-  const far=Math.max(0,...pl.pts.map(q=>Math.abs(q[1]))),f=far>0&&minM>far?minM/far:1;
-  pl.pts.forEach(([i,lat0])=>{const lat=lat0*f;const j=Math.round(i*N/pl.n);let tx=xs[W(j+2)]-xs[W(j-2)],ty=ys[W(j+2)]-ys[W(j-2)];const m=Math.hypot(tx,ty)||1;tx/=m;ty/=m;
-    if(i-last>4){cur={pts:[],i0:i,i1:i};out.push(cur)}cur.pts.push([xs[W(j)]-ty*lat,ys[W(j)]+tx*lat]);cur.i1=i;last=i});
-  return out.filter(s=>s.pts.length>3).map(s=>({pts:s.pts,entry:s.i0>3,exit:s.i1<pl.n-4}))}
 /* the way the cars go, like iRacing's maps: an arrow beside the start/finish line, on the outside of the track
    (p0: the line on the map, p1: a point a little after it, cx/cy: the map's centre) */
 function dirArrowSvg(p0,p1,cx,cy){const dx=p1[0]-p0[0],dy=p1[1]-p0[1],m=Math.hypot(dx,dy)||1,ux=dx/m,uy=dy/m;let nx=-uy,ny=ux;
   if((p0[0]-cx)*nx+(p0[1]-cy)*ny<0){nx=-nx;ny=-ny}const b=[p0[0]+nx*15,p0[1]+ny*15],t=[b[0]+ux*22,b[1]+uy*22],h=7,f=v=>v.toFixed(1);
   return `<g class="dirarr"><title>${esc(Tx("Direction","Sentido","Fahrtrichtung","Sentido"))}</title><line x1="${f(b[0])}" y1="${f(b[1])}" x2="${f(t[0]-ux*h)}" y2="${f(t[1]-uy*h)}"/><polygon points="${f(t[0])},${f(t[1])} ${f(t[0]-ux*h+nx*h*.6)},${f(t[1]-uy*h+ny*h*.6)} ${f(t[0]-ux*h-nx*h*.6)},${f(t[1]-uy*h-ny*h*.6)}"/></g>`}
-/* the pit lane drawn on an svg map (not shown for now: the PC keeps learning it): TX turns the track's metres into the map's pixels */
-function pitSvg(paths,TX){return paths.map(s=>{const q=s.pts.map(p=>TX(p[0],p[1]).map(z=>z.toFixed(1)).join(",")).join(" "),a=TX(...s.pts[0]),b=TX(...s.pts[s.pts.length-1]);
-  return `<polyline class="pitln" points="${q}"><title>${esc(Tx("Pit lane","Pit lane","Boxengasse","Pit lane"))}</title></polyline>${s.entry?`<circle class="pitin" cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="3.5"><title>${esc(Tx("Pit entry","Entrada a boxes","Boxeneinfahrt","Entrada dos boxes"))}</title></circle>`:""}${s.exit?`<circle class="pitout" cx="${b[0].toFixed(1)}" cy="${b[1].toFixed(1)}" r="3.5"><title>${esc(Tx("Pit exit","Salida de boxes","Boxenausfahrt","Saída dos boxes"))}</title></circle>`:""}`}).join("")}
 function turnNo(id,d,L,fb){const t=id?turnsFor(id):null;if(!t||!t.length||!(L>0))return fb;const f=(((d/L)%1)+1)%1;let bi=0,bd=2;
   t.forEach((x,i)=>{let dd=Math.abs(x-f);dd=Math.min(dd,1-dd);if(dd<bd){bd=dd;bi=i}});return bi+1}
 function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length),lat=lineOffsets(A,B);
