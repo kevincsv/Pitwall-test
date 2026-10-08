@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.32 beta
+
+**Fixed**
+- The estimated iRating change is right at the start of a race: while iRacing gives no positions yet (or a car is
+  in the pits), the estimate uses the session's last results and then the qualifying grid, instead of putting the
+  drivers in an arbitrary order (it could show −43 in the place of +17). A driver whose place is not known shows –.
+
 ## 0.8.31 beta
 
 **Fixed**

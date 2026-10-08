@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.32",
+      "en": ["The estimated iRating change is right from the start of the race."],
+      "es": ["El cambio de iRating estimado es correcto desde la salida de la carrera."]
+    },
+    {
       "v": "0.8.31",
       "en": ["Smoother overlays.", "Overlay settings in a floating window you can move."],
       "es": ["Overlays más fluidos.", "Los ajustes de cada overlay en una ventana flotante que puedes mover."]
