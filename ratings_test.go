@@ -24,12 +24,12 @@ func TestRatingsPerDiscipline(t *testing.T) {
 	ratingsMu.Unlock()
 	ratingsFromRaces()
 	r := ratingsCopy()
-	if r["formula_car"] == nil || r["formula_car"].IR != 1858 || r["formula_car"].Lic != "A" || r["sports_car"].IR != 980 || r["oval"].IR != 1520 {
+	if r["formula_car"] == nil || r["formula_car"].IR != 1858 || r["formula_car"].Lic != "A" || r["sports_car"].IR != 995 || r["oval"].IR != 1520 {
 		t.Fatalf("from the races: %+v %+v %+v", r["formula_car"], r["sports_car"], r["oval"])
 	}
 	sessionRating("WeekendInfo:\n Category: Road\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Me\n   CarScreenName: Dallara F3\n   IRating: 1870\n   LicString: A 2.10\n")
 	r = ratingsCopy()
-	if r["formula_car"].IR != 1870 || r["formula_car"].Lic != "A 2.10" || r["formula_car"].Src != "session" || r["sports_car"].IR != 980 {
+	if r["formula_car"].IR != 1870 || r["formula_car"].Lic != "A 2.10" || r["formula_car"].Src != "session" || r["sports_car"].IR != 995 {
 		t.Fatalf("from a session: %+v", r["formula_car"])
 	}
 }

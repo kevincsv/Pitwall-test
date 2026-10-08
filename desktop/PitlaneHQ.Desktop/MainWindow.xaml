@@ -87,7 +87,7 @@
                             </Grid>
                         </Border>
                         <WrapPanel x:Name="HomeItems" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="RatingsTitle" Style="{StaticResource CardTitle}" Text="YOUR IRATING" Margin="0,8,0,8" Visibility="Collapsed"/>
+                        <TextBlock x:Name="RatingsTitle" Style="{StaticResource CardTitle}" Text="LICENCE SUMMARY" Margin="0,8,0,8" Visibility="Collapsed"/>
                         <WrapPanel x:Name="RatingsList"/>
                         <TextBlock x:Name="RatingsNote" Style="{StaticResource Note}" Margin="0,0,0,8" TextWrapping="Wrap" Visibility="Collapsed"/>
                         <TextBlock x:Name="RacesTitle" Style="{StaticResource CardTitle}" Text="RECENT RACES" Margin="0,8,0,8"/>

@@ -68,10 +68,7 @@ func ratingsFromRaces() {
 		if r == nil || (r.Game != "" && r.Game != "iracing") || r.IR <= 0 {
 			continue
 		}
-		ir := r.IR
-		if r.IRReal {
-			ir += r.IRChange
-		}
+		ir := r.IR + r.IRChange // the estimate until the real change comes: closer than the iRating before the race
 		lic := ""
 		for _, x := range r.Results {
 			if x.Me {

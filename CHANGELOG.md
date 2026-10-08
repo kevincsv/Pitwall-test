@@ -14,9 +14,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   not use the whole track on exit, in metres, also against the record and the next level.
 - The track map of the analyzer, the coach and the race summary is a road with depth, with the other lap's line
   along the middle and yours beside it (the difference drawn bigger so it shows), on the PC, the web and the phones.
-- Your iRating and licence of every category on Home (and Licences on the phones). iRacing only tells the one of
-  the category you are driving, so each updates every time you open a session of it with Pitlane HQ running on your
-  PC, and from the races it records.
+- Licence summary on Home (and on the phones): the iRating and licence of each category on its own, with what your
+  last races of it gave. iRacing only tells the one of the category you are driving, so each updates every time you
+  start Pitlane HQ with iRacing open and join a session of it, and from the races it records.
 - "+1L" / "−1L" next to the cars a lap or more up or down on you, in the relative, the standings and the race
   summary.
 
@@ -27,6 +27,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - Older race rivals on the leaderboards show their first name and initial instead of "Anonymous".
 - The car list in Community no longer shows a number after each car.
 - The Full telemetry view is gone.
+- Home no longer shows one "current iRating" mixed from every category.
 
 **Fixed**
 - A Formula Car race kept its estimated iRating when you raced Sports Car after it; races left on the estimate get

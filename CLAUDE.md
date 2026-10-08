@@ -50,7 +50,9 @@
   and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch.
 - Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`): the game
   only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
-  recorded races); Home on the PC/web ("Your iRating") and Licences on the phones show them with that note.
+  recorded races, ir + irChange); Home's "Licence summary" (PC, web, Pitlane HQ Desktop; the phones' Licence summary)
+  shows them per discipline with that note and the change of the last races of each. Never one "current iRating" mixed
+  from every discipline.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
   and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:

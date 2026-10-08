@@ -241,7 +241,7 @@ public partial class MainWindow : Window
             RatingsList.Children.Add(new Border { Style = (Style)FindResource("Card"), Margin = new Thickness(0, 0, 10, 8), MinWidth = 130, Child = sp });
         }
         var any = RatingsList.Children.Count > 0;
-        RatingsTitle.Text = T("YOUR IRATING", "TU IRATING");
+        RatingsTitle.Text = T("LICENCE SUMMARY", "RESUMEN DE LICENCIAS");
         RatingsNote.Text = T("Updated every time you start Pitlane HQ with iRacing open and join a session: iRacing only says the iRating of the category you are driving, so the others come from your last session or race in them.",
             "Se actualiza cada vez que abres Pitlane HQ con iRacing abierto y entras en una sesión: iRacing solo da el iRating de la categoría que estás corriendo, así que los demás salen de tu última sesión o carrera en ellas.");
         RatingsTitle.Visibility = RatingsNote.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
