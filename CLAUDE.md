@@ -33,7 +33,9 @@
   Analysis from another tab; the bars only show what is chosen; the car and the track are two
   filters. The phone apps filter their session list the same way. Laps A and B are one choice for the
   lap analyzer and the coach (`ANASEL`, a lap known by itself, not by its place in a list), with the same
-  default and the model's references as B in both; "MY BEST" goes after the time.
+  default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
+  "+ Session" lap B is only the laps of the other session (and the references). The window's title
+  and its × stay at the top while it scrolls. "MY BEST" goes after the time.
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin

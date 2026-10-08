@@ -4,6 +4,16 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.16 beta
+
+**Fixed**
+- Lap analyzer: with "+ Session" on, lap B is only the laps of the other session (and the model's
+  references), not the laps of session A again; the coach does the same.
+- The next level and the record show once each in lap B ("▲ Next level", "★ Record"), not twice
+  with two names.
+- "Choose a session": the title and the × stay at the top while you scroll the window (phones and
+  computers), and a filter keeps where you were in the list.
+
 ## 0.8.15 beta
 
 **New**
