@@ -12,9 +12,13 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   the settings, so you always see what each change does.
 - The delta bar settings no longer carry the long note under them.
 - Pitlane HQ no longer sends Windows notifications: updates and race summaries show inside the app.
+- On the PC, a finished race no longer pops up a notice: it just appears in Analysis → My races (the phones still tell
+  you).
+- Analysis: "My races" are your race summaries and "My sessions" every session you drove.
 
 **Fixed**
 - www.pitlanehq.app opens the site.
+- "See all" under your recent races on Home opens Analysis → My races instead of Telemetry.
 
 ## 0.9.0 beta
 

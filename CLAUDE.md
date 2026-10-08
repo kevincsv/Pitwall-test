@@ -78,7 +78,7 @@
   account, `drivers.go`, `/api/drivers`). A driver is known by the community's opaque key (`driverKey`, the races keep
   it as `k`; never their iRacing id) or by name for older races. The icon shows before the name in the relative and the
   standings (native overlays, the app, Pitlane HQ Desktop) and in the race summary, where you mark them (✎; the phone
-  apps tap the driver and write the account's bundle); Analysis → Races lists them; the engineer warns you when a driver
+  apps tap the driver and write the account's bundle); Analysis → My races lists them; the engineer warns you when a driver
   you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
 - Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
   first name and the initial of their last name ("Juan M.", `shortName` in journal.go, `shortDriverName` on the server),
@@ -190,6 +190,9 @@
   else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
 - Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
   installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
+- Analysis's sub-tabs: Laps, Coach, My sessions (`cloudlaps`, every session in the account) and My races (`races`, the
+  race summaries with the driver notes); Home's "See all" opens My races. A finished race shows no notice on the PC
+  (it appears in My races); only the phones tell you.
 - Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app
   schedules no browser notifications): what it has to say shows inside the app.
 - PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by

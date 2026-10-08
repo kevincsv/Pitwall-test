@@ -4480,7 +4480,7 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres"],overlays:["overlays"],analysis:["laps","coach","cloudlaps","data"],season:["calendar","series","news","goals"],rig:[],community:["community","leagues"],account:["me","account","plan"],settings:["settings"]};
+const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres"],overlays:["overlays"],analysis:["laps","coach","cloudlaps","races","data"],season:["calendar","series","news","goals"],rig:[],community:["community","leagues"],account:["me","account","plan"],settings:["settings"]};
 // the Data view: hidden from everyone for now (admins included); ADMIN_ANALYSIS would add a view back for admins
 const ADMIN_ANALYSIS=[];GROUPS.analysis=GROUPS.analysis.filter(v=>v!=="data"&&!ADMIN_ANALYSIS.includes(v));
 if(!FEATURES.goals)GROUPS.season=GROUPS.season.filter(v=>v!=="goals");
@@ -4496,7 +4496,7 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Analysis","Análisis","Analyse","Análise"];I18N["g.race"]=["Telemetry","Telemetría","Telemetrie","Telemetria"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps","races"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Analysis","Análisis","Analyse","Análise"];I18N["g.race"]=["Telemetry","Telemetría","Telemetrie","Telemetria"];if(typeof applyI18n==="function")applyI18n()},0)}
 // the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
 const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
 if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}else delete GROUPS.overlays; // overlays sit on top of the game: only on the PC
@@ -4523,7 +4523,7 @@ function applyAdmin(){demoBanner();renderViewToggle();{const a=GROUPS.analysis,w
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
 const VIEW_LABEL={leagues:"tab.leagues",fulltelemetry:"tab.fulltelemetry",cloudlaps:"tab.cloudlaps",share:"tab.share",me:"tab.me",home:"tab.home",live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.analyzer",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
-  const short=matchMedia("(max-width:820px)").matches,SH={laps:["Laps","Vueltas","Runden","Voltas"],coach:["Coach","Coach","Coach","Coach"],cloudlaps:["My races","Mis carreras","Meine Rennen","Minhas corridas"],field:["Field","Pista","Feld","Pista"],tyres:["Tyres","Neumáticos","Reifen","Pneus"]};
+  const short=matchMedia("(max-width:820px)").matches,SH={laps:["Laps","Vueltas","Runden","Voltas"],coach:["Coach","Coach","Coach","Coach"],cloudlaps:["My sessions","Mis sesiones","Meine Sitzungen","Minhas sessões"],field:["Field","Pista","Feld","Pista"],tyres:["Tyres","Neumáticos","Reifen","Pneus"]};
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${short&&SH[x]?esc(Tx(...SH[x])):L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 var VIEW_HIST=[];
@@ -5746,7 +5746,7 @@ function notesTick(){if(!RADIO.c.notes||RADIO.quiet)return;const tid=(S.WeekendI
   (n.corners||[]).forEach(c=>{let dTo=c.dist-d;if(dTo<-L/2)dTo+=L;const t=dTo/v,key=lc+":"+c.n;if(t>2.5&&t<=5&&!VS.nread[key]){VS.nread[key]=1;say({k:"note"+key,g:1000,c:null,t:(c.name?c.name+": ":VT(`Corner ${c.n}: `,`Curva ${c.n}: `))+c.note,fast:true})}})}
 
 /* ===================== journal: race reports, tracks, notes, race prep ===================== */
-Object.assign(I18N,{"tab.races":["Races","Carreras"],"tab.tracks":["Tracks","Circuitos"]});
+Object.assign(I18N,{"tab.races":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"tab.tracks":["Tracks","Circuitos"]});
 let RACES=null,TB=null,SETUPS_CACHE=null;
 const jget=async(p)=>{const r=await fetch(p);if(!r.ok)throw new Error("HTTP "+r.status);return r.json()};
 const jpost=async(p,body)=>{const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(/already taken|already used by another driver/.test(j.error||"")?nameTakenMsg(j.error):j.error||("HTTP "+r.status));return j};
@@ -5841,10 +5841,11 @@ async function openRace(id){await loadDrivers();const r0=(RACES||[]).find(x=>x.i
   if(MODE==="bridge"&&typeof ACC!=="undefined"&&ACC.loggedIn&&r.subsession){try{const j=await api("stats/member_recent_races");const x=(j.races||[]).find(z=>z.subsession_id===r.subsession);const o=$("#irOff");
     if(x&&o){const d=x.newi_rating-x.oldi_rating,sr=(x.new_sub_level-x.old_sub_level)/100;o.innerHTML=`${esc(Tx("official","oficial"))}: <b class="${d>=0?"good":"bad"}">${irTxt(d)}</b> · SR ${sr>=0?"+":""}${sr.toFixed(2)}`}}catch(e){}}}
 function onRaceReport(r){fixRace(r);if(gameMatch(r))RACES=[r,...(RACES||[]).filter(x=>x.id!==r.id)];const d=r.start-r.finish;
-  toast(Tx(`Race report: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Informe de carrera: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Rennbericht: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Relatório de corrida: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`));
+  // the "race finished" notices only on a phone: on the PC the race simply appears in Analysis → My races
+  if(PHONE)toast(Tx(`Race report: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Informe de carrera: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Rennbericht: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`,`Relatório de corrida: P${r.finish}${d?` (${d>0?"+":""}${d})`:""}`));
   if(VOICE.on&&!OV.on)say({k:"race",g:60000,c:null,t:VT(`Finished P${r.finish}${d>0?`, ${d} places gained`:d<0?`, ${-d} places lost`:""}. ${r.inc} incidents${r.irChange?`. iRating ${r.irChange>0?"plus":"minus"} ${Math.abs(r.irChange)}, estimated`:""}`,`Terminas ${r.finish}º${d>0?`, ganas ${d} posiciones`:d<0?`, pierdes ${-d} posiciones`:""}. ${r.inc} incidentes${r.irChange?`. iRating ${r.irChange>0?"más":"menos"} ${Math.abs(r.irChange)}, estimado`:""}`)});
   if(CUR_VIEW==="races")renderRaces();TB=null;
-  setTimeout(()=>toast(Tx("Race summary ready: Analysis → Races","Resumen de la carrera listo: Análisis → Carreras","Rennzusammenfassung fertig: Analyse → Rennen","Resumo da corrida pronto: Análise → Corridas")),3400)}
+  if(PHONE)setTimeout(()=>toast(Tx("Race summary ready: Analysis → My races","Resumen de la carrera listo: Análisis → Mis carreras","Rennzusammenfassung fertig: Analyse → Rennen","Resumo da corrida pronto: Análise → Corridas")),3400)}
 
 /* ---------- braking points of the race on the track map: you and the others ---------- */
 function brakePointsJS(raw,bin){const n=raw.length,v=raw.slice();let last=-1;for(let i=0;i<n;i++)if(v[i]>0){if(last>=0&&i-last>1)for(let k=last+1;k<i;k++)v[k]=v[last]+(v[i]-v[last])*(k-last)/(i-last);last=i}
@@ -6571,7 +6572,7 @@ function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div")
   const f=m.querySelector("button");if(f)f.focus()}
 
 /* ===================== my account: Pitlane HQ sign-in, encrypted sync, public name ===================== */
-Object.assign(I18N,{"tab.cloudlaps":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"tab.cloudlaps":["My sessions","Mis sesiones","Meine Sitzungen","Minhas sessões"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
  "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
 let ME=null,SETUP_TAB="mine";
 /* how others see you: your iRacing name (the registered session's), a nickname, or "Anonymous" (nothing of yours carries a name) */
