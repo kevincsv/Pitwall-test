@@ -269,9 +269,14 @@ func setOverlayVisible(name string, on bool) {
 }
 
 func setStartWithWindows(on bool) error {
+	// one entry, the installer's own name ("PitlaneHQ"); the old "PitWall" one goes, so Windows never starts it
+	// twice (the second copy would bring the window to the front); it starts minimized in the taskbar
 	key := `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+	old := exec.Command("reg", "delete", key, "/v", "PitWall", "/f")
+	hideChildWindow(old)
+	old.Run()
 	if !on {
-		cmd := exec.Command("reg", "delete", key, "/v", "PitWall", "/f")
+		cmd := exec.Command("reg", "delete", key, "/v", "PitlaneHQ", "/f")
 		hideChildWindow(cmd)
 		return cmd.Run()
 	}
@@ -279,7 +284,7 @@ func setStartWithWindows(on bool) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("reg", "add", key, "/v", "PitWall", "/t", "REG_SZ", "/d", `"`+exe+`" -no-browser -minimized`, "/f")
+	cmd := exec.Command("reg", "add", key, "/v", "PitlaneHQ", "/t", "REG_SZ", "/d", `"`+exe+`" -minimized`, "/f")
 	hideChildWindow(cmd)
 	return cmd.Run()
 }

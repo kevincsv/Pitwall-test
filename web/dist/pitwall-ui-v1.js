@@ -111,35 +111,8 @@ function overlayPresets(){
   var n=await uiPrompt(tr("Preset name","Nombre del perfil"),tr("My preset","Mi perfil"));n=String(n||"").trim().slice(0,32);if(!n)return;
   var l=myPresets();if(l[n]&&!await uiConfirm(tr("Replace the preset “"+n+"”?","¿Reemplazar el perfil «"+n+"»?")))return;l[n]=ws;savePresets(l);overlayPresets();toast(tr("Preset saved.","Perfil guardado."))}
 }
-function installFullTelemetry(){
- if(window.__PW_FULL_TEL)return;window.__PW_FULL_TEL=true;
- try{
-  if(typeof I18N!=="undefined")I18N["tab.fulltelemetry"]=["Full Telemetry","Telemetría completa","Vollständige Telemetrie","Telemetria completa"];
-  if(typeof VIEW_LABEL!=="undefined")VIEW_LABEL.fulltelemetry="tab.fulltelemetry";
-  if(typeof GROUPS!=="undefined"&&GROUPS.analysis&&!GROUPS.analysis.includes("fulltelemetry"))GROUPS.analysis.push("fulltelemetry");
- }catch(e){}
- var sec=document.getElementById("v-fulltelemetry");
- if(!sec){sec=document.createElement("section");sec.className="view";sec.id="v-fulltelemetry";sec.hidden=true;sec.innerHTML='<div class="vhead"><div><h1>'+tr("Full Telemetry","Telemetría completa")+'</h1><div class="sub">'+tr("All iRacing SDK variables received from the PC.","Todas las variables del SDK de iRacing que llegan del PC.")+'</div></div><div class="controls"><button class="btn small" id="ftClear">'+tr("Clear history","Borrar historial")+'</button></div></div><div class="panel" id="ftSummary"></div><div class="panel" style="margin-top:10px"><div class="frow"><input id="ftSearch" placeholder="'+tr("Search telemetry variable…","Buscar variable…")+'" style="flex:1;min-width:220px"><select id="ftVar" style="min-width:220px"></select></div><div id="ftChart" style="height:190px;margin-top:10px"></div><div id="ftTable" class="tscroll" style="margin-top:10px"></div></div>';document.body.appendChild(sec)}
- var hist=[],lastTick=null,lastSample=0,selected="",maxHist=300;
- function valText(v){if(v==null)return"—";if(Array.isArray(v))return"["+v.length+" values] "+v.slice(0,8).map(function(x){return x==null?"—":typeof x==="number"?Number(x).toFixed(3):String(x)}).join(", ")+(v.length>8?"…":"");if(typeof v==="number")return isFinite(v)?(Math.abs(v)>=1000?v.toFixed(1):v.toFixed(4)):"—";return String(v)}
- function render(){
-  var t=typeof T!=="undefined"&&T?T:{},sc=typeof SCHEMA!=="undefined"&&Array.isArray(SCHEMA)?SCHEMA:[],tick=t.SessionTick??t.SessionTime,now=performance.now();
-  // only real frames go to the history: nothing is recorded while no telemetry arrives,
-  // and it starts again when the session restarts
-  if(tick!=null&&isFinite(tick)){if(lastTick!=null&&tick<lastTick)hist=[];if(tick!==lastTick&&now-lastSample>=95){lastTick=tick;lastSample=now;hist.push({at:now,v:{...t}});if(hist.length>maxHist)hist.shift()}}
-  var span=hist.length>1?(hist[hist.length-1].at-hist[0].at)/1000:0;
-  var q=(($("#ftSearch")&&$("#ftSearch").value)||"").toLowerCase().trim(),rows=sc.filter(function(v){return!q||String(v.name).toLowerCase().includes(q)||String(v.desc||"").toLowerCase().includes(q)||String(v.unit||"").toLowerCase().includes(q)}).slice(0,500);
-  if(!selected||!rows.some(function(v){return v.name===selected}))selected=rows[0]?rows[0].name:"";
-  $("#ftVar").innerHTML=rows.map(function(v){return'<option value="'+escx(v.name)+'">'+escx(v.name)+(v.unit?" · "+escx(v.unit):"")+(v.count>1?" · ×"+v.count:"")+"</option>"}).join("");$("#ftVar").value=selected;
-  var missing=sc.filter(function(v){return!(v.name in t)}).length;$("#ftSummary").innerHTML='<div class="tiles"><div class="tile"><div class="label">'+tr("SDK variables","Variables del SDK")+'</div><div class="mid mono">'+sc.length+'</div></div><div class="tile"><div class="label">'+tr("Values in frame","Valores recibidos")+'</div><div class="mid mono">'+Object.keys(t).length+'</div></div><div class="tile"><div class="label">'+tr("History","Historial")+'</div><div class="mid mono">'+Math.round(span)+' s</div><div class="sub">'+hist.length+'/'+maxHist+' '+tr("samples","muestras")+'</div></div><div class="tile"><div class="label">'+tr("Missing","Faltan")+'</div><div class="mid mono">'+missing+'</div></div></div>';
-  $("#ftTable").innerHTML=rows.length?'<table class="wtable"><thead><tr><th>Variable</th><th>Type</th><th>Unit</th><th>Count</th><th class="r">Current</th></tr></thead><tbody>'+rows.map(function(v){return'<tr data-ft="'+escx(v.name)+'"><td class="mono">'+escx(v.name)+'</td><td>'+escx(v.type||"")+'</td><td>'+escx(v.unit||"")+'</td><td class="mono">'+(v.count||1)+'</td><td class="r mono">'+escx(valText(t[v.name]))+'</td></tr>'}).join("")+'</tbody></table>':'<div class="empty">No telemetry variables match the search.</div>';
-  $("#ftTable").querySelectorAll("[data-ft]").forEach(function(tr){tr.onclick=function(){selected=tr.dataset.ft;draw()}});draw()
- }
- function draw(){var box=$("#ftChart"),pts=[];hist.forEach(function(h){var v=h.v[selected];if(typeof v==="number"&&isFinite(v))pts.push(v)});if(pts.length<2){box.innerHTML='<div class="empty">Select a numeric variable to see its recent trace.</div>';return}var W=Math.max(420,box.clientWidth||700),H=180,p={l:48,r:12,t:12,b:24},lo=Math.min(...pts),hi=Math.max(...pts);if(hi===lo){hi+=1;lo-=1}var X=i=>p.l+i*(W-p.l-p.r)/(pts.length-1),Y=v=>p.t+(hi-v)/(hi-lo)*(H-p.t-p.b),d=pts.map((v,i)=>X(i)+","+Y(v)).join(" ");box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'"><line x1="'+p.l+'" x2="'+(W-p.r)+'" y1="'+Y(hi)+'" y2="'+Y(hi)+'" stroke="var(--line)"/><line x1="'+p.l+'" x2="'+(W-p.r)+'" y1="'+Y(lo)+'" y2="'+Y(lo)+'" stroke="var(--line)"/><polyline points="'+d+'" fill="none" stroke="var(--accent)" stroke-width="2"/><text x="4" y="18" fill="var(--muted)" font-size="11">'+escx(valText(hi))+'</text><text x="4" y="'+(H-8)+'" fill="var(--muted)" font-size="11">'+escx(valText(lo))+'</text><text x="'+p.l+'" y="'+(H-6)+'" fill="var(--muted)" font-size="11">'+escx(selected)+'</text></svg>'}
- $("#ftSearch").oninput=render;$("#ftVar").onchange=function(){selected=this.value;draw()};$("#ftClear").onclick=function(){hist=[];lastTick=null;render()};setInterval(function(){if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="fulltelemetry")render()},250)
-}
 function hook(){
- installCss();installModals();installDashboard();installFullTelemetry();
+ installCss();installModals();installDashboard();
  // the web app on a phone: the header's "Connect PC" goes to the Live page (pairing, live through the account), the centre is for the PC
  var c=$("#conn");if(c&&!(typeof COMPANION!=="undefined"&&COMPANION))c.onclick=function(){$("#pwCenter").hidden=false;renderCenter();refreshInfo(true)};
  setInterval(function(){headerState();updateDashboard();if($("#pwCenter")&&!$("#pwCenter").hidden)renderCenter();if($("#pwDiag")&&!$("#pwDiag").hidden)renderDiag();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays")overlayPresets()},250);

@@ -149,8 +149,7 @@ func autoOverlays() {
 		st := currentStatus()
 		c, _ := settingsSnapshot()
 		inCar, _ := telBool("IsOnTrack")
-		// overlays are in development: they open by themselves only for admins
-		if st.connected() && inCar && !opened && c.AutoStart && len(c.AutoWidgets) > 0 && !st.Demo && wipAllowed() {
+		if st.connected() && inCar && !opened && c.AutoStart && len(c.AutoWidgets) > 0 && !st.Demo {
 			open := map[string]bool{}
 			for _, n := range listOverlays() {
 				open[n] = true

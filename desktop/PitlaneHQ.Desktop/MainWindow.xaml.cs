@@ -176,7 +176,7 @@ public partial class MainWindow : Window
             VersionText.Text = st.Version == "" ? "desktop" : $"v{st.Version} {st.Stage}";
             AccountText.Text = st.Account == "" ? T("iRacing: not signed in", "iRacing: sin sesión") : "iRacing: " + st.Account;
             DemoPill.Visibility = st.Demo ? Visibility.Visible : Visibility.Collapsed;
-            if (_view == "home") await HomeRacesAsync();
+            if (_view == "home") { await HomeRacesAsync(); await HomeRatingsAsync(); }
             if (_view == "overlays") await OverlaysAsync();
             if (_view == "me") await AccountAsync();
         }
@@ -215,6 +215,36 @@ public partial class MainWindow : Window
             g.Children.Add(right);
             RacesList.Children.Add(new Border { Style = (Style)FindResource("Card"), Margin = new Thickness(0, 0, 12, 8), Child = g });
         }
+    }
+
+    // your iRating in every discipline: the game only says the one of the session you are in, so the engine keeps the
+    // last one seen of each (every time you join a session with Pitlane HQ open, and from your recorded races)
+    private string _ratingsKey = "";
+    private async Task HomeRatingsAsync()
+    {
+        var r = (await _engine.GetAsync("/api/ratings"))?["ratings"]?.AsObject();
+        var key = (r?.ToJsonString() ?? "") + _lang;
+        if (key == _ratingsKey) return;
+        _ratingsKey = key;
+        RatingsList.Children.Clear();
+        var discs = new[] { ("oval", "Oval", "Oval"), ("sports_car", "Sports Car", "Sports Car"), ("formula_car", "Formula Car", "Formula Car"), ("dirt_oval", "Dirt Oval", "Dirt Oval"), ("dirt_road", "Dirt Road", "Dirt Road") };
+        foreach (var (id, en, es) in discs)
+        {
+            var d = r?[id];
+            if (d == null || D(d["ir"]) <= 0) continue;
+            var sp = new StackPanel();
+            sp.Children.Add(new TextBlock { Text = T(en, es).ToUpperInvariant(), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 10, FontWeight = FontWeights.SemiBold });
+            sp.Children.Add(new TextBlock { Text = ((int)D(d["ir"])).ToString(), Foreground = B("Fg"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.SemiBold });
+            var lic = S(d["lic"]);
+            var at = DateTimeOffset.FromUnixTimeMilliseconds((long)D(d["at"])).LocalDateTime.ToString("d");
+            sp.Children.Add(new TextBlock { Text = (lic == "" ? "" : lic + " · ") + at, Foreground = B("Muted"), FontSize = 11 });
+            RatingsList.Children.Add(new Border { Style = (Style)FindResource("Card"), Margin = new Thickness(0, 0, 10, 8), MinWidth = 130, Child = sp });
+        }
+        var any = RatingsList.Children.Count > 0;
+        RatingsTitle.Text = T("YOUR IRATING", "TU IRATING");
+        RatingsNote.Text = T("Updated every time you start Pitlane HQ with iRacing open and join a session: iRacing only says the iRating of the category you are driving, so the others come from your last session or race in them.",
+            "Se actualiza cada vez que abres Pitlane HQ con iRacing abierto y entras en una sesión: iRacing solo da el iRating de la categoría que estás corriendo, así que los demás salen de tu última sesión o carrera en ellas.");
+        RatingsTitle.Visibility = RatingsNote.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private Border Chip(string text, Brush fg) => new()
@@ -388,7 +418,7 @@ public partial class MainWindow : Window
         var list = await _engine.GetAsync("/api/overlay/list");
         var conf = await _engine.GetAsync("/api/config");
         var desk = await _engine.GetAsync("/api/desk");
-        _wip = Bo(desk?["wip"]);
+        _wip = Bo(desk?["overlays"]) || Bo(desk?["wip"]); // the overlays are open to everyone
         ApplyLanguage(S(desk?["lang"], "en"));
         _cfg = conf?["config"]?.AsObject();
         if (_cfg == null) return;

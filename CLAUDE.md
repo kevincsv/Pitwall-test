@@ -12,7 +12,8 @@
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it slowly: PATCH for fixes, MINOR for a set of features, never on every build.
-  Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
+  Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release. Changelogs (CHANGELOG.md, the
+  phones' and whats-new.json) only say what users notice; internal or server changes go as "Fixes and improvements".
 - Every feature goes to the PC app, the web and the phone apps.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
@@ -47,10 +48,16 @@
   carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,
   phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
   and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch.
+- Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`): the game
+  only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
+  recorded races); Home on the PC/web ("Your iRating") and Licences on the phones show them with that note.
+- Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
+  and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
   matched by car, track and best lap; only Anonymous rivals this account shared).
-- In a race the relative marks the cars a lap or more up or down on you: a red "+1L" pill (they lap you) or a blue
-  "−1L" (you lap them), in the overlays, the app and Pitlane HQ Desktop. The Community car list shows no counts.
+- Wherever other drivers show (the relative and the standings in the overlays, the app and Pitlane HQ Desktop; the race
+  summary on the PC, web and phones), the cars a lap or more up or down on you carry a red "+1L" pill (they lap you,
+  or finished laps ahead) or a blue "−1L". The Community car list shows no counts.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
@@ -129,7 +136,8 @@
   key facts, the charts, the map, the sectors, the lap list and the braking points.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
-  NASCAR 26, team mode, leagues, the overlays on top of the game, and the Data and Full telemetry views.
+  NASCAR 26, team mode, leagues and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
+  Full telemetry view is gone everywhere.
   Switched off for now: setups, per-car settings, the Data view and sharing race analyses. Hidden from everyone
   on the PC (admins too) until the owner says otherwise: profiles (no button, no Settings section, the PC keeps its
   one profile), Settings → Connections (`CONN_ON` in index.html) and Full telemetry. Per-car settings never

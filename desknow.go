@@ -131,7 +131,7 @@ func registerDeskRoutes(mux *http.ServeMux) {
 		num := func(n string) float64 { v, _ := st.num(n); return v }
 		first, shift, blink := st.shiftPoints()
 		d, dOK := st.delta()
-		out := map[string]any{"connected": cs.Connected, "demo": cs.Demo, "lang": st.lang, "units": st.units, "wip": wipAllowed(),
+		out := map[string]any{"connected": cs.Connected, "demo": cs.Demo, "lang": st.lang, "units": st.units, "wip": wipAllowed(), "overlays": true,
 			"gear": gearText(st), "speed": int(math.Round(st.spd(num("Speed")))), "speedUnit": st.spdU(), "rpm": int(num("RPM")),
 			"rpmFirst": first, "rpmShift": shift, "rpmBlink": blink, "throttle": num("Throttle"), "brake": num("Brake"), "clutch": 1 - func() float64 {
 				if v, ok := st.num("Clutch"); ok {

@@ -1587,8 +1587,22 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 	})
 	all := make([]ovRow, len(drivers))
 	prev := -1
+	race := st.inRace()
+	lapsA, pctA := st.arr("CarIdxLap"), st.arr("CarIdxLapDistPct")
+	prog := func(i int) (float64, bool) {
+		if i < 0 || i >= len(lapsA) || i >= len(pctA) || pctA[i] < 0 {
+			return 0, false
+		}
+		return lapsA[i] + pctA[i], true
+	}
 	for k, d := range drivers {
 		r := ovRow{idx: d.Idx, nameCol: colText}
+		// in a race, whole laps this car is ahead of you (+) or behind you (−), like the relative
+		if pm, okM := prog(me); race && okM && d.Idx != me {
+			if pc, okC := prog(d.Idx); okC {
+				r.laps = int(pc - pm)
+			}
+		}
 		if k == 0 {
 			r.gap = st.T("Leader", "Líder")
 		} else if v := at(f2, d.Idx); v > 0 {

@@ -4,29 +4,34 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
-## 0.8.42 beta
+## 0.9.0 beta
+
+**Added**
+- The overlays on top of the game are open to everyone: every overlay drawn by Pitlane HQ itself, sharp and
+  light, with presets, Auto (they open when you get in the car) and your settings saved in your account.
+- The coach reads your racing line: where your car was on the track against the lap you compare with. It tells you
+  when you brake at the same point but on the wrong part of the track, turn in too far inside, miss the apex or do
+  not use the whole track on exit, in metres, also against the record and the next level.
+- The track map of the analyzer, the coach and the race summary is a road with depth, with the other lap's line
+  along the middle and yours beside it (the difference drawn bigger so it shows), on the PC, the web and the phones.
+- Your iRating and licence of every category on Home (and Licences on the phones). iRacing only tells the one of
+  the category you are driving, so each updates every time you open a session of it with Pitlane HQ running on your
+  PC, and from the races it records.
+- "+1L" / "−1L" next to the cars a lap or more up or down on you, in the relative, the standings and the race
+  summary.
 
 **Changed**
-- The game is found as soon as it starts (it is looked for twice a second, not every two seconds).
-- Your Auto overlays open the moment you get in the car, all together, and close a second after the game closes
-  (it was eight); the overlays change height at once when what they show changes.
-- In a race the relative marks the cars a lap or more up or down on you: a red "+1L" when they lap you, a blue
-  "−1L" when you lap them (overlays, the app and Pitlane HQ Desktop).
-- Community: the car list no longer shows a number after each car.
-- The coach reads your racing line: where your car was across the track against lap B, metre by metre (from the
-  path every lap records). It tells you when you brake where the reference does but on the wrong part of the track,
-  turn in from the inside, miss the apex or do not use the whole track on exit, in metres. The record and the next
-  level of the model carry their line too.
-- The coach map has depth: the track is drawn as a road with its shadow and rim, with lap B's line along the middle
-  and yours beside it (the difference drawn bigger so it shows), in the analyzer, the coach, the race summary and the
-  phone apps.
-- Race rivals shared before their names went up stop being "Anonymous": your PC names them from its race history
-  (first name and initial).
+- The game is found as soon as it starts, and your Auto overlays open the moment you get in the car and close a
+  second after you quit the game; the overlays resize at once when what they show changes.
+- Started with Windows, Pitlane HQ opens minimized.
+- Older race rivals on the leaderboards show their first name and initial instead of "Anonymous".
+- The car list in Community no longer shows a number after each car.
+- The Full telemetry view is gone.
 
 **Fixed**
-- A Formula Car race kept its estimated iRating when a Sports Car race came after it: iRacing calls both "Road", so
-  the car now tells the discipline, the next session of that discipline gives the real change, and a race left on
-  the estimate takes it from your next race of the same discipline.
+- A Formula Car race kept its estimated iRating when you raced Sports Car after it; races left on the estimate get
+  their real change by themselves.
+- Fixes and improvements.
 
 ## 0.8.41 beta
 
@@ -39,7 +44,6 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   and the recording of your laps keep working, and the parts not moved yet (the map, profiles, the full settings)
   open in it.
 - DRINKS mode: renaming and removing drivers works from the web connected to your PC and from the phone apps too.
-
 - Driver notes: mark any driver of your races as dangerous, careful, clean or a friend, with a note only you see.
   Their icon shows next to their name in the relative and the standings (overlays, the app and Pitlane HQ Desktop)
   and in the race summary, where you mark them (✎, or tap them on the phone); Analysis → Races lists them all; and
@@ -49,7 +53,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 **Changed**
 - Race rivals on the leaderboards show their first name and the initial of their last name ("Juan M.") instead of
   "Anonymous". When one of them signs up and drives with Pitlane HQ, their laps shared as a rival go to their
-  account by themselves (and the ones others share of them later too). Admins can undo a link.
+  account by themselves (and the ones others share of them later too).
 - The main menu is Home, Analysis, Telemetry, Overlays, Community and Account: Community sits just before Account,
   on the PC, the web, Pitlane HQ Desktop and the phone apps.
 

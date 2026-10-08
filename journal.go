@@ -130,6 +130,7 @@ func loadJournal() {
 	}
 	journalMu.Unlock()
 	loadDrivers()
+	loadRatings()
 }
 
 // maxRealIRStep: more than this between one race and the next session is not that race's result but the
@@ -497,6 +498,7 @@ func raceWatcher() {
 			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); myIR > 0 {
 				irSeen = id
 				applyRealIR(myIR, meta.Subsession, meta.Cat, meta.Car)
+				sessionRating(y) // your iRating and licence of this discipline, for every discipline's card
 			}
 		}
 		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account

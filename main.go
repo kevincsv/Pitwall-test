@@ -24,7 +24,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.8.42"
+const appVersion = "0.9.0"
 
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
@@ -458,7 +458,14 @@ func main() {
 		// already running: bring its window to the front instead of starting again
 		if os.Getenv("PITLANE_UPDATED") == "" && !*noBrowser {
 			c := &http.Client{Timeout: 1500 * time.Millisecond}
-			if resp, err := c.Post(fmt.Sprintf("http://localhost:%d/api/show", *port), "application/json", nil); err == nil {
+			// started with Windows (minimized) while it already runs: it just leaves, without bringing the window up
+			ask := func() (*http.Response, error) {
+				if *minimized {
+					return c.Get(fmt.Sprintf("http://localhost:%d/api/info", *port))
+				}
+				return c.Post(fmt.Sprintf("http://localhost:%d/api/show", *port), "application/json", nil)
+			}
+			if resp, err := ask(); err == nil {
 				resp.Body.Close()
 				if resp.StatusCode == 200 {
 					return
@@ -574,6 +581,7 @@ func main() {
 	registerOverlayRoutes(mux)
 	registerDeskRoutes(mux)
 	registerDriverRoutes(mux)
+	registerRatingRoutes(mux)
 	registerLangRoute(mux)
 	registerConfigRoutes(mux)
 	registerG61Routes(mux)

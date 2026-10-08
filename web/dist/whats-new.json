@@ -1,124 +1,260 @@
 {
   "versions": [
     {
-      "v": "0.8.42",
-      "en": ["The game is found at once; your overlays open the moment you get in the car and close a second after the game closes.", "In a race the relative shows +1L / −1L for the cars a lap up or down on you.", "A Formula race gets its real iRating even with a Sports Car race after it.", "The coach reads your racing line and the map shows both lines on a road with depth.", "Older race rivals get their first name and initial."],
-      "es": ["El juego se detecta al momento; tus overlays se abren nada más subir al coche y se cierran un segundo después de cerrar el juego.", "En carrera el relative muestra +1L / −1L en los coches con una vuelta de más o de menos que tú.", "Una carrera de Fórmula recibe su iRating real aunque después corras una de Sports Car.", "El coach lee tu trazada y el mapa muestra las dos líneas sobre una pista con relieve.", "Los rivales de carrera antiguos reciben su nombre e inicial."]
+      "v": "0.9.0",
+      "en": [
+        "The overlays on top of the game are open to everyone.",
+        "The coach reads your racing line: where you were on the track, not only where you braked.",
+        "The track map is a road with depth, with both lines.",
+        "Your iRating of every category on Home.",
+        "+1L / −1L in the relative, the standings and the race summary.",
+        "The game is found at once and the overlays open and close at once; started with Windows, Pitlane HQ opens minimized."
+      ],
+      "es": [
+        "Los overlays sobre el juego, abiertos para todos.",
+        "El coach lee tu trazada: por dónde ibas en la pista, no solo dónde frenaste.",
+        "El mapa del circuito es una pista con relieve, con las dos líneas.",
+        "Tu iRating de cada categoría en Inicio.",
+        "+1L / −1L en el relative, la clasificación y el resumen de carrera.",
+        "El juego se detecta al momento y los overlays se abren y cierran al instante; al iniciar con Windows, Pitlane HQ arranca minimizado."
+      ]
     },
     {
       "v": "0.8.41",
-      "en": ["Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.", "The real iRating of a race only comes from a session of the same category.", "Community sits just before Account in the menu.", "Race rivals show their first name and initial, and their laps go to their account when they sign up.", "Driver notes: mark drivers as dangerous, careful, clean or friend; their icon shows in the relative and the engineer warns you."],
-      "es": ["Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.", "El iRating real de una carrera solo sale de una sesión de la misma categoría.", "Comunidad va justo antes de Cuenta en el menú.", "Los rivales de carrera se ven con su nombre e inicial, y sus vueltas pasan a su cuenta cuando se registran.", "Notas de pilotos: marca pilotos como peligroso, cuidado, limpio o amigo; su icono sale en el relative y el ingeniero te avisa."]
+      "en": [
+        "Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.",
+        "The real iRating of a race only comes from a session of the same category.",
+        "Community sits just before Account in the menu.",
+        "Race rivals show their first name and initial, and their laps go to their account when they sign up.",
+        "Driver notes: mark drivers as dangerous, careful, clean or friend; their icon shows in the relative and the engineer warns you."
+      ],
+      "es": [
+        "Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.",
+        "El iRating real de una carrera solo sale de una sesión de la misma categoría.",
+        "Comunidad va justo antes de Cuenta en el menú.",
+        "Los rivales de carrera se ven con su nombre e inicial, y sus vueltas pasan a su cuenta cuando se registran.",
+        "Notas de pilotos: marca pilotos como peligroso, cuidado, limpio o amigo; su icono sale en el relative y el ingeniero te avisa."
+      ]
     },
     {
       "v": "0.8.40",
-      "en": ["Every overlay is native now.", "Overlay presets are saved, go with your account and can be deleted.", "DRINKS: rename a driver on the list."],
-      "es": ["Todos los overlays son nativos.", "Los perfiles de overlays se guardan, van con tu cuenta y se pueden borrar.", "DRINKS: cambia el nombre de un piloto de la lista."]
+      "en": [
+        "Every overlay is native now.",
+        "Overlay presets are saved, go with your account and can be deleted.",
+        "DRINKS: rename a driver on the list."
+      ],
+      "es": [
+        "Todos los overlays son nativos.",
+        "Los perfiles de overlays se guardan, van con tu cuenta y se pueden borrar.",
+        "DRINKS: cambia el nombre de un piloto de la lista."
+      ]
     },
     {
       "v": "0.8.39",
-      "en": ["Ten more overlays are native: flag, dash, timing, fuel, engine, tyres, inputs, DRS, telemetry and g-force."],
-      "es": ["Diez overlays más son nativos: bandera, dash, tiempos, gasolina, motor, neumáticos, pedales, DRS, telemetría y fuerzas g."]
+      "en": [
+        "Ten more overlays are native: flag, dash, timing, fuel, engine, tyres, inputs, DRS, telemetry and g-force."
+      ],
+      "es": [
+        "Diez overlays más son nativos: bandera, dash, tiempos, gasolina, motor, neumáticos, pedales, DRS, telemetría y fuerzas g."
+      ]
     },
     {
       "v": "0.8.38",
-      "en": ["The overlays use the app's fonts and look."],
-      "es": ["Los overlays usan las fuentes y el estilo de la app."]
+      "en": [
+        "The overlays use the app's fonts and look."
+      ],
+      "es": [
+        "Los overlays usan las fuentes y el estilo de la app."
+      ]
     },
     {
       "v": "0.8.37",
-      "en": ["Native overlays: radar, delta bar, relative and standings, sharp and see-through.", "Braking beeps from the model, with your speed and traffic, and an off switch in Settings → Engineer."],
-      "es": ["Overlays nativos: radar, delta bar, relative y standings, nítidos y transparentes.", "Pitidos de frenada según el modelo, tu velocidad y el tráfico, y se apagan en Ajustes → Ingeniero."]
+      "en": [
+        "Native overlays: radar, delta bar, relative and standings, sharp and see-through.",
+        "Braking beeps from the model, with your speed and traffic, and an off switch in Settings → Engineer."
+      ],
+      "es": [
+        "Overlays nativos: radar, delta bar, relative y standings, nítidos y transparentes.",
+        "Pitidos de frenada según el modelo, tu velocidad y el tráfico, y se apagan en Ajustes → Ingeniero."
+      ]
     },
     {
       "v": "0.8.36",
-      "en": ["A truly see-through radar: only the cars over the game.", "Overlays in your language."],
-      "es": ["Un radar realmente transparente: solo los coches sobre el juego.", "Los overlays en tu idioma."]
+      "en": [
+        "A truly see-through radar: only the cars over the game.",
+        "Overlays in your language."
+      ],
+      "es": [
+        "Un radar realmente transparente: solo los coches sobre el juego.",
+        "Los overlays en tu idioma."
+      ]
     },
     {
       "v": "0.8.35",
-      "en": ["Overlay settings show a live preview with sample data when the game is not running."],
-      "es": ["Los ajustes de los overlays muestran una vista previa en vivo con datos de ejemplo cuando el juego no está abierto."]
+      "en": [
+        "Overlay settings show a live preview with sample data when the game is not running."
+      ],
+      "es": [
+        "Los ajustes de los overlays muestran una vista previa en vivo con datos de ejemplo cuando el juego no está abierto."
+      ]
     },
     {
       "v": "0.8.34",
-      "en": ["Phone & sharing explains how to follow your PC from the phone with your account, and has the share code."],
-      "es": ["Móvil y compartir explica cómo seguir tu PC desde el móvil con tu cuenta, y tiene el código para compartir."]
+      "en": [
+        "Phone & sharing explains how to follow your PC from the phone with your account, and has the share code."
+      ],
+      "es": [
+        "Móvil y compartir explica cómo seguir tu PC desde el móvil con tu cuenta, y tiene el código para compartir."
+      ]
     },
     {
       "v": "0.8.33",
-      "en": ["Live is called Telemetry, and Overlays has its own tab on the PC."],
-      "es": ["En vivo se llama Telemetría, y Overlays tiene su propia pestaña en el PC."]
+      "en": [
+        "Live is called Telemetry, and Overlays has its own tab on the PC."
+      ],
+      "es": [
+        "En vivo se llama Telemetría, y Overlays tiene su propia pestaña en el PC."
+      ]
     },
     {
       "v": "0.8.32",
-      "en": ["The estimated iRating change is right from the start of the race."],
-      "es": ["El cambio de iRating estimado es correcto desde la salida de la carrera."]
+      "en": [
+        "The estimated iRating change is right from the start of the race."
+      ],
+      "es": [
+        "El cambio de iRating estimado es correcto desde la salida de la carrera."
+      ]
     },
     {
       "v": "0.8.31",
-      "en": ["Smoother overlays.", "Overlay settings in a floating window you can move."],
-      "es": ["Overlays más fluidos.", "Los ajustes de cada overlay en una ventana flotante que puedes mover."]
+      "en": [
+        "Smoother overlays.",
+        "Overlay settings in a floating window you can move."
+      ],
+      "es": [
+        "Overlays más fluidos.",
+        "Los ajustes de cada overlay en una ventana flotante que puedes mover."
+      ]
     },
     {
       "v": "0.8.30",
-      "en": ["A see-through radar and a cleaner delta bar.", "Overlays with rounded corners that fit what they show and stay on the screen."],
-      "es": ["Un radar transparente y una barra de delta más limpia.", "Overlays con esquinas redondeadas que se ajustan a lo que muestran y no salen de la pantalla."]
+      "en": [
+        "A see-through radar and a cleaner delta bar.",
+        "Overlays with rounded corners that fit what they show and stay on the screen."
+      ],
+      "es": [
+        "Un radar transparente y una barra de delta más limpia.",
+        "Overlays con esquinas redondeadas que se ajustan a lo que muestran y no salen de la pantalla."
+      ]
     },
     {
       "v": "0.8.29",
-      "en": ["The standings overlay no longer disappears when cars come near.", "A see-through radar that shows only the cars coming."],
-      "es": ["El overlay de la clasificación ya no desaparece cuando se acercan coches.", "Un radar transparente que solo muestra los coches que vienen."]
+      "en": [
+        "The standings overlay no longer disappears when cars come near.",
+        "A see-through radar that shows only the cars coming."
+      ],
+      "es": [
+        "El overlay de la clasificación ya no desaparece cuando se acercan coches.",
+        "Un radar transparente que solo muestra los coches que vienen."
+      ]
     },
     {
       "v": "0.8.28",
-      "en": ["The standings overlay keeps its size instead of growing and shrinking."],
-      "es": ["El overlay de la clasificación mantiene su tamaño en vez de crecer y encoger."]
+      "en": [
+        "The standings overlay keeps its size instead of growing and shrinking."
+      ],
+      "es": [
+        "El overlay de la clasificación mantiene su tamaño en vez de crecer y encoger."
+      ]
     },
     {
       "v": "0.8.27",
-      "en": ["Moving an overlay looks cleaner: a frame, corner marks to resize and a small label."],
-      "es": ["Mover un overlay se ve más limpio: un marco, marcas en las esquinas para el tamaño y una etiqueta pequeña."]
+      "en": [
+        "Moving an overlay looks cleaner: a frame, corner marks to resize and a small label."
+      ],
+      "es": [
+        "Mover un overlay se ve más limpio: un marco, marcas en las esquinas para el tamaño y una etiqueta pequeña."
+      ]
     },
     {
       "v": "0.8.26",
-      "en": ["Overlays stay open and steady, without a dark border."],
-      "es": ["Los overlays se quedan abiertos y estables, sin borde oscuro."]
+      "en": [
+        "Overlays stay open and steady, without a dark border."
+      ],
+      "es": [
+        "Los overlays se quedan abiertos y estables, sin borde oscuro."
+      ]
     },
     {
       "v": "0.8.25",
-      "en": ["On the PC, the lap analyzer and the coach load your sessions right away.", "\"Sign out on this PC\" is also in Settings."],
-      "es": ["En el PC, el analizador y el coach cargan tus sesiones enseguida.", "\"Cerrar sesión en este PC\" también está en Ajustes."]
+      "en": [
+        "On the PC, the lap analyzer and the coach load your sessions right away.",
+        "\"Sign out on this PC\" is also in Settings."
+      ],
+      "es": [
+        "En el PC, el analizador y el coach cargan tus sesiones enseguida.",
+        "\"Cerrar sesión en este PC\" también está en Ajustes."
+      ]
     },
     {
       "v": "0.8.24",
-      "en": ["\"Sign out on this PC\" in My account.", "If your session on the PC ends, it asks you to sign in again with your email filled in: no reinstall.", "Connect asks your PC again after it declined."],
-      "es": ["\"Cerrar sesión en este PC\" en Mi cuenta.", "Si tu sesión en el PC termina, te pide volver a entrar con tu email ya puesto: sin reinstalar.", "Conectar vuelve a preguntar a tu PC después de que lo rechazara."]
+      "en": [
+        "\"Sign out on this PC\" in My account.",
+        "If your session on the PC ends, it asks you to sign in again with your email filled in: no reinstall.",
+        "Connect asks your PC again after it declined."
+      ],
+      "es": [
+        "\"Cerrar sesión en este PC\" en Mi cuenta.",
+        "Si tu sesión en el PC termina, te pide volver a entrar con tu email ya puesto: sin reinstalar.",
+        "Conectar vuelve a preguntar a tu PC después de que lo rechazara."
+      ]
     },
     {
       "v": "0.8.22",
-      "en": ["Pitlane HQ's emails can show its logo in your inbox."],
-      "es": ["Los emails de Pitlane HQ pueden mostrar su logo en tu bandeja de entrada."]
+      "en": [
+        "Pitlane HQ's emails can show its logo in your inbox."
+      ],
+      "es": [
+        "Los emails de Pitlane HQ pueden mostrar su logo en tu bandeja de entrada."
+      ]
     },
     {
       "v": "0.8.21",
-      "en": ["Public pages with the iRacing records of every car and track, in English and Spanish."],
-      "es": ["Páginas públicas con los récords de iRacing de cada coche y circuito, en inglés y español."]
+      "en": [
+        "Public pages with the iRacing records of every car and track, in English and Spanish."
+      ],
+      "es": [
+        "Páginas públicas con los récords de iRacing de cada coche y circuito, en inglés y español."
+      ]
     },
     {
       "v": "0.8.20",
-      "en": ["A new logo, on every app and in the emails.", "Pitlane HQ's emails look like the app."],
-      "es": ["Logo nuevo, en todas las apps y en los emails.", "Los emails de Pitlane HQ se ven como la app."]
+      "en": [
+        "A new logo, on every app and in the emails.",
+        "Pitlane HQ's emails look like the app."
+      ],
+      "es": [
+        "Logo nuevo, en todas las apps y en los emails.",
+        "Los emails de Pitlane HQ se ven como la app."
+      ]
     },
     {
       "v": "0.8.19",
-      "en": ["Pitlane HQ's emails (confirm your email, reset your password) are sent a more reliable way."],
-      "es": ["Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían de una forma más fiable."]
+      "en": [
+        "Pitlane HQ's emails (confirm your email, reset your password) are sent a more reliable way."
+      ],
+      "es": [
+        "Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían de una forma más fiable."
+      ]
     },
     {
       "v": "0.8.18",
-      "en": ["Emails from Pitlane HQ (confirm your email, reset your password) are sent in a safer format."],
-      "es": ["Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían en un formato más seguro."]
+      "en": [
+        "Emails from Pitlane HQ (confirm your email, reset your password) are sent in a safer format."
+      ],
+      "es": [
+        "Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían en un formato más seguro."
+      ]
     },
     {
       "v": "0.8.17",
