@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.25",
+      "en": ["On the PC, the lap analyzer and the coach load your sessions right away.", "\"Sign out on this PC\" is also in Settings."],
+      "es": ["En el PC, el analizador y el coach cargan tus sesiones enseguida.", "\"Cerrar sesión en este PC\" también está en Ajustes."]
+    },
+    {
       "v": "0.8.24",
       "en": ["\"Sign out on this PC\" in My account.", "If your session on the PC ends, it asks you to sign in again with your email filled in: no reinstall.", "Connect asks your PC again after it declined."],
       "es": ["\"Cerrar sesión en este PC\" en Mi cuenta.", "Si tu sesión en el PC termina, te pide volver a entrar con tu email ya puesto: sin reinstalar.", "Conectar vuelve a preguntar a tu PC después de que lo rechazara."]

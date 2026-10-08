@@ -4,6 +4,14 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.25 beta
+
+**Fixed**
+- The lap analyzer, the coach and My races on the PC no longer stay on "Sign in with your Pitlane HQ account"
+  when they open before the PC has linked your account: the sessions load as soon as it does, and again after
+  signing in or out.
+- Settings on the PC shows your account card with "Sign out on this PC" on every section, like on the web.
+
 ## 0.8.24 beta
 
 **Fixed**
