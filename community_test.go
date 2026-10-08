@@ -5,15 +5,32 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
+// shareHome: a home folder for a sharing test. Not t.TempDir: sharing saves the community settings from a
+// goroutine that can still be writing when the test ends, and TempDir's cleanup fails on a folder that is not
+// empty yet; this one is removed a moment later.
+func shareHome(t *testing.T) string {
+	dir, err := os.MkdirTemp("", "pwshare")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		for i := 0; i < 10 && os.RemoveAll(dir) != nil; i++ {
+			time.Sleep(50 * time.Millisecond)
+		}
+	})
+	return dir
+}
+
 func TestCommunityShareReport(t *testing.T) {
 	shareRaceReports = true // switched off in the app for now; the sharing itself stays tested
 	defer func() { shareRaceReports = false }()
-	dir := t.TempDir()
+	dir := shareHome(t)
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("HOME", dir)
 	t.Setenv("APPDATA", dir)
@@ -61,7 +78,7 @@ func TestCommunityShareReport(t *testing.T) {
 func TestCommunityShareReportAnonymous(t *testing.T) {
 	shareRaceReports = true // switched off in the app for now; the sharing itself stays tested
 	defer func() { shareRaceReports = false }()
-	dir := t.TempDir()
+	dir := shareHome(t)
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("HOME", dir)
 	t.Setenv("APPDATA", dir)

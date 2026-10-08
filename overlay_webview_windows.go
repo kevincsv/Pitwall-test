@@ -55,7 +55,11 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 // could not start, so PitWall falls back to an Edge window.
 func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
-	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
+	bg := "FF11151B"
+	if seeThrough(name) {
+		bg = "FF010203" // radarKey: see-through from the first frame
+	}
+	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", bg)
 	// its own browser data, apart from the main window's
 	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2-overlays")
 	// a window that never shows the page (blank and impossible to close) gives up after
@@ -78,7 +82,14 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	// no title bar or borders, on top, never takes the focus from iRacing; it has its own
 	// taskbar button (like RaceLab), so it can also be closed from the taskbar
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
-	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
+	ex := uintptr(wsExAppWindow | wsExNoActivate | wsExTopmost)
+	if seeThrough(name) {
+		ex |= wsExLayered
+	}
+	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), ex)
+	if seeThrough(name) {
+		procSetLayeredWindowAtt.Call(hwnd, radarKey, 255, lwaAlpha|lwaColorKey)
+	}
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
 	noWinBorder(hwnd)
 	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws

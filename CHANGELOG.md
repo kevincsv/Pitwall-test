@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.29 beta
+
+**Fixed**
+- The standings overlay (and every overlay other than the radar) no longer hides and shows again when cars come
+  near: each overlay window drew the radar of the Live page too, and the radar hides its window when nobody is
+  close. Now a window draws only its own widget, and only the radar's window hides itself.
+
+**Changed**
+- The radar overlay is see-through and clean: no dish, rings, cross or border, just your car's outline, the cars
+  coming (grey far, amber close, red alongside), a red bar on the side where someone is next to you and the
+  nearest car's distance.
+
 ## 0.8.28 beta
 
 **Fixed**

@@ -38,10 +38,14 @@ const (
 	wsExLayered        = 0x00080000
 	wsExTransparent    = 0x00000020
 	lwaAlpha           = 0x2
-	swpNoSize          = 0x0001
-	swpNoMove          = 0x0002
-	swpNoActivate      = 0x0010
-	wmClose            = 0x0010
+	lwaColorKey        = 0x1
+	// radarKey: the radar window's background (#010203 in the page, a COLORREF is 0x00BBGGRR); Windows
+	// shows nothing where the window has exactly this colour, so only the cars show over the game
+	radarKey      = 0x00030201
+	swpNoSize     = 0x0001
+	swpNoMove     = 0x0002
+	swpNoActivate = 0x0010
+	wmClose       = 0x0010
 )
 
 var (
@@ -82,7 +86,11 @@ func overlayWindows() map[uintptr]string {
 	return out
 }
 
-func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool) {
+// seeThrough: overlays whose background colour Windows makes transparent
+func seeThrough(name string) bool { return name == "radar" }
+
+func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool, name string) {
+	key := seeThrough(name)
 	after := uintptr(hwndNoTop)
 	if top {
 		after = uintptr(hwndTopmost)
@@ -90,7 +98,7 @@ func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool) {
 	procSetWindowPos.Call(h, after, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate)
 	ex, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlExStyle))
 	ex |= wsExNoActivate
-	if alpha < 255 || lock {
+	if alpha < 255 || lock || key {
 		ex |= wsExLayered
 	} else {
 		ex &^= wsExLayered
@@ -105,7 +113,11 @@ func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool) {
 		if alpha < 40 {
 			alpha = 40
 		}
-		procSetLayeredWindowAtt.Call(h, 0, uintptr(alpha), lwaAlpha)
+		if key {
+			procSetLayeredWindowAtt.Call(h, radarKey, uintptr(alpha), lwaAlpha|lwaColorKey)
+		} else {
+			procSetLayeredWindowAtt.Call(h, 0, uintptr(alpha), lwaAlpha)
+		}
 	}
 }
 
@@ -207,7 +219,7 @@ func styleWhenReady(o overlayReq, frameless bool) {
 						procSetWindowPos.Call(h, 0, uintptr(o.X), uintptr(o.Y), uintptr(o.Width), uintptr(o.Height), swpNoActivate|0x0004) // SWP_NOZORDER
 					})
 				}
-				applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
+				applyOverlayStyle(h, o.Top, o.Alpha, o.Lock, name)
 				return
 			}
 		}
@@ -324,7 +336,7 @@ func minimizeConsole() {
 	}
 }
 
-func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock }
+func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock || seeThrough(o.Widget) }
 
 func setOverlays(o overlayReq) int {
 	n := 0
@@ -334,7 +346,7 @@ func setOverlays(o overlayReq) int {
 			_, webview := procs[name]
 			procsMu.Unlock()
 			_ = webview
-			applyOverlayStyle(h, o.Top, o.Alpha, o.Lock)
+			applyOverlayStyle(h, o.Top, o.Alpha, o.Lock, name)
 			n++
 		}
 	}
