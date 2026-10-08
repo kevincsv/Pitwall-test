@@ -27,7 +27,11 @@
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
-  (`DISC_IC`), never copied; the same discipline selector is in Community, the lap analyzer and the coach.
+  (`DISC_IC`), never copied; the same discipline cards are in Community and in "Choose a session".
+- Analysis (lap analyzer and coach): "Choose a session" is a window (discipline, kind of session, car
+  and track, a day you drove on the calendar, then the session) that opens by itself when you enter
+  Analysis from another tab; the bars only show what is chosen. The phone apps filter their session
+  list the same way.
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin
@@ -36,9 +40,17 @@
 - Live in the web and phone apps: Connect/Disconnect for your own PC (presence only until Connect),
   and watching someone else with a share code made on the PC (Settings → Phone) or from the phone.
   The room is one hash of the code and the key a PBKDF2 of it, so the server never reads the
-  telemetry; code viewers only watch (no DRINKS, no race summaries).
+  telemetry; code viewers only watch (no DRINKS, no race summaries). Connect asks the PC first: a
+  window there accepts or declines the device (by its name) and nothing is sent to it before you
+  accept; an accepted device is remembered while Pitlane HQ runs. No Wi-Fi pairing panel and no
+  encryption wording on the Live card.
 - Leagues (in development, admins only until LEAGUES_OPEN=1): drivers post their league with a
   Discord invite, its schedule, cars and language.
+- Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
+  account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
+  the leagues, the server's emails and the tools (rebuild the coach models, unblock sign-ins). An admin
+  can see the app as a normal user on one device (the shield in the header, the admin panel, or
+  Settings on the phones): everything for admins and in development hides until the admin view is back.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts, the charts, the map, the sectors, the lap list and the braking points.

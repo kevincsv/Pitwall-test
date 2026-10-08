@@ -18,7 +18,13 @@ func writeSecret(path string, data []byte) error {
 	if enc, err := protect(data); err == nil && enc != nil {
 		data = append(append([]byte{}, secretMagic...), enc...)
 	}
-	return os.WriteFile(path, data, 0o600)
+	// a new file put in place of the old one: a crash or a kill while it writes never leaves it empty
+	// (an empty account.json is a signed-out PC)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
 // readSecret reads a file written by writeSecret. Older plain files are

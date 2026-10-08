@@ -9,15 +9,15 @@ import (
 )
 
 func TestAccountKeysAndSealing(t *testing.T) {
-	a1, w1, err := deriveKeys("Kev@Example.com ", "correct horse battery")
+	a1, w1, err := deriveKeys("Driver@Example.com ", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
 	}
-	a2, w2, _ := deriveKeys("kev@example.com", "correct horse battery")
+	a2, w2, _ := deriveKeys("driver@example.com", "correct horse battery")
 	if a1 != a2 || !bytes.Equal(w1, w2) {
 		t.Fatal("keys must not depend on email case or spaces")
 	}
-	a3, _, _ := deriveKeys("kev@example.com", "correct horse battery!")
+	a3, _, _ := deriveKeys("driver@example.com", "correct horse battery!")
 	if a3 == a1 || len(a1) != 64 || strings.Contains(a1, "correct") {
 		t.Fatal("login key must change with the password and never contain it")
 	}
@@ -31,7 +31,7 @@ func TestAccountKeysAndSealing(t *testing.T) {
 	if out, err := openAES(w1, sealed); err != nil || string(out) != "secret profile" {
 		t.Fatal("round trip failed", err)
 	}
-	_, w3, _ := deriveKeys("kev@example.com", "another password")
+	_, w3, _ := deriveKeys("driver@example.com", "another password")
 	if _, err := openAES(w3, sealed); err == nil {
 		t.Fatal("a wrong key must not open the data")
 	}
@@ -79,5 +79,23 @@ func TestHostAllowed(t *testing.T) {
 		if hostAllowed(h) {
 			t.Error("should block", h)
 		}
+	}
+}
+
+// a secret file is put in place whole: never an empty one if the PC stops while it saves, no temp left behind
+func TestWriteSecretReplacesWhole(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "account.json")
+	if err := writeSecret(p, []byte(`{"email":"a@b.c"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeSecret(p, []byte(`{"email":"d@e.f"}`)); err != nil {
+		t.Fatal(err)
+	}
+	b, err := readSecret(p)
+	if err != nil || string(b) != `{"email":"d@e.f"}` {
+		t.Fatalf("read back %q, %v", b, err)
+	}
+	if _, err := os.Stat(p + ".tmp"); !os.IsNotExist(err) {
+		t.Fatal("the temp file must not stay")
 	}
 }

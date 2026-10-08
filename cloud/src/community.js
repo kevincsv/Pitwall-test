@@ -245,21 +245,34 @@ export async function community(req, env, url) {
     const st = await env.DB.prepare("SELECT k, v, at FROM app_state WHERE k IN ('mail_error','mail_ok')").all().catch(() => ({ results: [] }));
     const get = (k) => (st.results || []).find((x) => x.k === k);
     const e = get("mail_error"), ok = get("mail_ok");
-    const counts = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM accounts) AS accounts, (SELECT COUNT(*) FROM accounts WHERE verified=1) AS verified, (SELECT COUNT(*) FROM sessions) AS sessions, (SELECT COUNT(*) FROM community_laps) AS shared, (SELECT COUNT(*) FROM model_laps) AS learnt, (SELECT COUNT(*) FROM model_cache) AS models").first().catch(() => null);
+    const now = Date.now(), d1 = now - 86400e3, d7 = now - 7 * 86400e3, d30 = now - 30 * 86400e3;
+    const counts = await env.DB.prepare(`SELECT (SELECT COUNT(*) FROM accounts) AS accounts, (SELECT COUNT(*) FROM accounts WHERE verified=1) AS verified,
+      (SELECT COUNT(*) FROM accounts WHERE created>?1) AS new7, (SELECT COUNT(*) FROM accounts WHERE created>?2) AS new30, (SELECT COUNT(*) FROM accounts WHERE totp_on=1) AS twoFactor,
+      (SELECT COUNT(*) FROM sessions) AS sessions, (SELECT COUNT(*) FROM sessions WHERE started>?3) AS sessions1, (SELECT COUNT(*) FROM sessions WHERE started>?1) AS sessions7,
+      (SELECT COUNT(DISTINCT uploader) FROM sessions WHERE started>?1) AS drivers7,
+      (SELECT COUNT(*) FROM community_laps) AS shared, (SELECT COUNT(*) FROM (SELECT 1 FROM community_laps WHERE COALESCE(shown,'')<>'model' GROUP BY game, track_id, car_id)) AS boards,
+      (SELECT COUNT(*) FROM model_laps) AS learnt, (SELECT COUNT(*) FROM model_cache) AS models, (SELECT COUNT(*) FROM model_cache WHERE dirty=1) AS modelsDirty,
+      (SELECT COUNT(*) FROM leagues) AS leagues, (SELECT COUNT(*) FROM accounts WHERE supporter=1) AS supporters, (SELECT COUNT(*) FROM accounts WHERE supporter=1 AND supporter_src='patreon') AS supportersPatreon,
+      (SELECT COUNT(*) FROM patreon_patrons WHERE active=1) AS patrons, (SELECT MAX(updated) FROM patreon_patrons) AS patreonLast,
+      (SELECT COUNT(*) FROM auth_fails) AS authFails`).bind(d7, d30, d1).first().catch((x) => ({ error: String(x && x.message || x) }));
     return json({
       mail: { ready: mailReady(env), via: smtpReady(env) ? "smtp" : env.RESEND_API_KEY ? "resend" : "", from: env.EMAIL_FROM || "", lastOk: ok ? ok.at : 0, lastError: e && (!ok || e.at > ok.at) ? { at: e.at, ...JSON.parse(e.v || "{}") } : null },
       counts,
+      config: { patreon: !!env.PATREON_WEBHOOK_SECRET, leaguesOpen: env.LEAGUES_OPEN === "1", community: env.COMMUNITY !== "0", dataKey: !!env.DATA_KEY, pepper: !!env.EMAIL_PEPPER, admins: String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").filter(Boolean).length },
     });
   }
   if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     if (p === "/admin/users") {
-      const r = await env.DB.prepare(`SELECT a.id, a.display, a.name_kind AS nameKind, a.anon, a.verified, a.created, a.totp_on AS twoFactor, a.supporter, a.supporter_hidden AS supporterHidden,
+      const q = String(url.searchParams.get("q") || "").trim().slice(0, 60);
+      const r = await env.DB.prepare(`SELECT a.id, a.display, a.name_kind AS nameKind, a.anon, a.verified, a.created, a.member_since AS memberSince, a.totp_on AS twoFactor, a.supporter, a.supporter_src AS supporterSrc, a.supporter_hidden AS supporterHidden,
         (SELECT COUNT(*) FROM sessions s WHERE s.uploader='acct:'||a.id) AS sessions,
+        (SELECT MAX(started) FROM sessions s WHERE s.uploader='acct:'||a.id) AS lastSession,
         (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=a.id) AS laps,
-        (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests
-        FROM accounts a ORDER BY a.created DESC LIMIT 500`).all();
+        (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests,
+        (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues
+        FROM accounts a ${q ? "WHERE a.display LIKE ?1 OR a.id LIKE ?1" : ""} ORDER BY a.created DESC LIMIT 500`).bind(...(q ? ["%" + q.replace(/[%_]/g, "") + "%"] : [])).all();
       return json({ users: (r.results || []).map((x) => ({ ...x, admin: isAdmin(env, x.id) })) });
     }
     const q = (t, extra) => env.DB.prepare(`SELECT x.id, '${t}' AS kind, x.car, x.track, x.created, x.anon, COALESCE(x.shown,'nick') AS shown, ${extra}
@@ -280,6 +293,29 @@ export async function community(req, env, url) {
     const id = String(body.id || "");
     const r = await env.DB.prepare("UPDATE accounts SET supporter=?2, supporter_src=?3 WHERE id=?1").bind(id, body.on ? 1 : 0, body.on ? "manual" : null).run();
     return r.meta && r.meta.changes ? json({ ok: true, supporter: !!body.on }) : err("account not found", 404);
+  }
+  // "in Pitlane HQ since" by hand (empty: the day the account was created)
+  if (p === "/admin/since" && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const since = body.since == null || body.since === "" ? null : Number(body.since);
+    if (since !== null && !(isFinite(since) && since > 946684800000 && since < Date.now() + 86400e3)) return err("that date is not valid", 400);
+    const r = await env.DB.prepare("UPDATE accounts SET member_since=?2 WHERE id=?1").bind(String(body.id || ""), since === null ? null : Math.round(since)).run();
+    return r.meta && r.meta.changes ? json({ ok: true, since }) : err("account not found", 404);
+  }
+  // the coach models of every car and track learn again from all their laps (the cron rebuilds them)
+  if (p === "/admin/models" && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare("UPDATE model_cache SET dirty=1").run();
+    return json({ ok: true, models: (r.meta && r.meta.changes) || 0 });
+  }
+  // the sign-ins blocked after wrong passwords open again (someone locked out by mistake)
+  if (p === "/admin/unlock" && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare("DELETE FROM auth_fails").run();
+    return json({ ok: true, cleared: (r.meta && r.meta.changes) || 0 });
   }
   // a supporter hides (or shows again) their own badge
   if (p === "/profile/badge" && m === "POST") {
@@ -352,11 +388,12 @@ export async function community(req, env, url) {
     const viewer = await sessionAccount(req, env).catch(() => null), admin = !!viewer && isAdmin(env, viewer.id);
     let uid = null, fromAnon = false;
     if (url.searchParams.get("me") === "1") uid = viewer ? viewer.id : null;
+    else if (admin && /^[A-Za-z0-9]{8,40}$/.test(url.searchParams.get("id") || "")) uid = url.searchParams.get("id"); // the admin panel
     else {
       const l = await env.DB.prepare("SELECT user_id, anon FROM community_laps WHERE id=?1").bind(String(url.searchParams.get("lap") || "")).first();
       if (l) { uid = l.user_id; fromAnon = l.anon === 1; }
     }
-    const a = uid ? await env.DB.prepare("SELECT a.id, a.anon, a.created, a.supporter, a.supporter_hidden, u.alias, u.lics FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(uid).first() : null;
+    const a = uid ? await env.DB.prepare("SELECT a.id, a.anon, a.created, a.member_since, a.supporter, a.supporter_hidden, u.alias, u.lics FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(uid).first() : null;
     const mine = !!a && !!viewer && viewer.id === a.id;
     if (!a || ((fromAnon || a.anon) && !admin && !mine)) return err("this driver is anonymous", 404);
     const laps = (await env.DB.prepare(
@@ -378,7 +415,7 @@ export async function community(req, env, url) {
       days[k] = (days[k] || 0) + 1;
     }
     return json({
-      name: a.alias || "Driver", since: a.created, mine, admin, anonymous: !!a.anon,
+      name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days,
       laps: laps.map((x) => ({ ...x, anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),

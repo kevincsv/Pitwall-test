@@ -445,6 +445,18 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 		writeJSON(w, liveStatus())
 	})
 	go shareCleaner()
+	// a device that pressed Connect: GET the waiting ones, POST {id, ok} with your answer
+	mux.HandleFunc("/api/live/ask", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			var in struct {
+				ID string `json:"id"`
+				OK bool   `json:"ok"`
+			}
+			json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&in)
+			liveAnswer(in.ID, in.OK)
+		}
+		writeJSON(w, map[string]any{"asks": liveAskList()})
+	})
 	mux.HandleFunc("/api/community", func(w http.ResponseWriter, r *http.Request) {
 		fail := func(err error) {
 			w.WriteHeader(400)

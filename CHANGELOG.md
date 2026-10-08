@@ -4,6 +4,32 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.14 beta
+
+**New**
+- **"Choose a session" in Analysis.** The lap analyzer and the coach open a window to choose what to
+  analyse: the discipline, the kind of session (races, qualifying, practice, test drives), the car and
+  track, a day you drove on the calendar, and then the session itself (newest first, with its best lap).
+  It opens by itself when you enter Analysis; the bar at the top only says what is chosen.
+- **Your PC accepts or declines Connect.** When your phone or a browser of your account presses
+  Connect, Pitlane HQ on the PC asks you in a window (with the device's name); nothing is sent to it
+  before you accept. A device you accepted is remembered while Pitlane HQ runs.
+- **A bigger admin panel**, now also on the PC: an overview (accounts, activity, leaderboards, leagues,
+  supporters and Patreon, the coach models, what is set up), every account with its id, its "in
+  Pitlane HQ since" date (set by hand), its profile and the supporter badge, the shared items with a
+  filter, the leagues, the server's emails, and tools to rebuild the coach models and unblock sign-ins.
+- **See the app as a normal user** (admins): the shield in the header (or the admin panel) hides
+  everything for admins and in development on that device, to test what everyone sees; a bar at the
+  top takes you back.
+
+**Changed**
+- Live: no more "Or straight over your Wi-Fi" panel, and the Live card no longer talks about
+  encryption: it says whether your PC is online and offers Connect.
+
+**Fixed**
+- A PC that stopped while it saved its account (a crash, a power cut) could come back signed out: the
+  account file is now replaced whole, never left empty.
+
 ## 0.8.13 beta
 
 **Fixed**

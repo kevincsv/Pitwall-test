@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.8.14",
+      "en": [
+        "Analysis: \"Choose a session\" opens a window with the discipline, the kind of session, the car and track and the days you drove; it opens by itself when you enter Analysis.",
+        "Your PC accepts or declines when your phone or a browser presses Connect: nothing is sent before you accept.",
+        "Live is simpler: no Wi-Fi panel, just whether your PC is online and Connect.",
+        "A PC that stopped while saving can no longer come back signed out."
+      ],
+      "es": [
+        "Análisis: \"Elegir sesión\" abre una ventana con la disciplina, el tipo de sesión, el coche y circuito y los días que corriste; se abre sola al entrar en Análisis.",
+        "Tu PC acepta o rechaza cuando tu móvil o un navegador pulsa Conectar: no se envía nada antes de que aceptes.",
+        "En vivo es más simple: sin el panel de WiFi, solo si tu PC está online y Conectar.",
+        "Un PC que se apaga mientras guarda ya no vuelve con la sesión cerrada."
+      ]
+    },
+    {
       "v": "0.8.13",
       "en": [
         "Pitlane HQ no longer stays on the loading screen if you had chosen several race reminders before (the earliest one is used until you pick one)."

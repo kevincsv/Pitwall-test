@@ -8,6 +8,7 @@
     { track: "Okayama International Circuit", cfg: "Full Course", trackId: 166, car: "Toyota GR86", carId: 160, len: 3703, lap: 92.1 },
     { track: "Road Atlanta", cfg: "Full Course", trackId: 127, car: "BMW M4 GT3", carId: 132, len: 4088, lap: 85.6 },
     { track: "Laguna Seca", cfg: "Full Course", trackId: 47, car: "Mazda MX-5 Cup", carId: 67, len: 3602, lap: 95.3 },
+    { track: "Lime Rock Park", cfg: "Full Course", trackId: 54, car: "Ray Formula 1600", carId: 74, len: 2459, lap: 63.2, cat: "formula_car" },
   ];
   const NAMES = "ABCDEFGHIJ".split("").map((c) => "Demo Driver " + c);
   const DAY = 86400000, NOW = Date.now();
@@ -62,8 +63,8 @@
   function sessions() {
     const out = [];
     COMBOS.forEach((c, i) => {
-      out.push({ id: `demo:${i}:p`, started: NOW - (i * 2 + 1) * DAY, track: c.track, track_config: c.cfg, car: c.car, kind: "Practice", laps: 9, best: c.lap + 0.4 + i * 0.05, game: "iracing", driver: "You" });
-      out.push({ id: `demo:${i}:r`, started: NOW - i * 2 * DAY - 3600000, track: c.track, track_config: c.cfg, car: c.car, kind: "Race", laps: 14, best: c.lap + 0.2, game: "iracing", driver: "You" });
+      out.push({ id: `demo:${i}:p`, started: NOW - (i * 2 + 1) * DAY, track: c.track, track_config: c.cfg, car: c.car, kind: "Practice", laps: 9, cat: c.cat || "sports_car", best: c.lap + 0.4 + i * 0.05, game: "iracing", driver: "You" });
+      out.push({ id: `demo:${i}:r`, started: NOW - i * 2 * DAY - 3600000, track: c.track, track_config: c.cfg, car: c.car, kind: "Race", laps: 14, cat: c.cat || "sports_car", best: c.lap + 0.2, game: "iracing", driver: "You" });
     });
     return out.sort((a, b) => b.started - a.started);
   }

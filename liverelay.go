@@ -24,6 +24,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -391,6 +392,132 @@ func liveRelay() {
 }
 
 // liveRun streams until the connection drops or you sign out.
+// ---------- your phone or browser asks before it watches this PC ----------
+// Connect in the web or phone app sends "hello" (a device id and its name); this PC asks you in a window
+// (Accept / Decline) and sends your telemetry only once you accept. An accepted device is remembered while
+// Pitlane HQ runs. Apps from before 0.8.14 send no hello: their first "want" asks as "a device".
+
+type liveAsk struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	At   int64  `json:"at"`
+}
+
+type liveReply struct {
+	ID string
+	OK bool
+}
+
+const liveLegacy = "legacy"
+
+var liveAsks = struct {
+	sync.Mutex
+	ok        map[string]bool      // accepted while this PC runs
+	no        map[string]time.Time // declined (the device is told again for a while)
+	pending   map[string]liveAsk   // waiting for your answer
+	seen      map[string]time.Time // last hello of each device: an accepted one still watching
+	replies   []liveReply          // answers the relay still has to send
+	lastHello time.Time
+}{ok: map[string]bool{}, no: map[string]time.Time{}, pending: map[string]liveAsk{}, seen: map[string]time.Time{}}
+
+// liveAskHello: a device says it wants to watch (again every 20 s while it is connected).
+func liveAskHello(id, name string) {
+	if id == "" || len(id) > 64 {
+		return
+	}
+	if r := []rune(strings.TrimSpace(name)); len(r) > 60 {
+		name = string(r[:60])
+	}
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	now := time.Now()
+	liveAsks.seen[id] = now
+	if id != liveLegacy {
+		liveAsks.lastHello = now
+	}
+	if liveAsks.ok[id] {
+		liveAsks.replies = append(liveAsks.replies, liveReply{id, true})
+		return
+	}
+	if t, ok := liveAsks.no[id]; ok && now.Sub(t) < 2*time.Minute {
+		liveAsks.replies = append(liveAsks.replies, liveReply{id, false})
+		return
+	}
+	if a, ok := liveAsks.pending[id]; ok && now.UnixMilli()-a.At < 120000 {
+		return // already asked: one window
+	}
+	a := liveAsk{id, strings.TrimSpace(name), now.UnixMilli()}
+	liveAsks.pending[id] = a
+	journalMu.Lock()
+	pushNoticeLocked("liveask", a)
+	journalMu.Unlock()
+}
+
+// liveAskLegacy: a "want" from an app that never says hello (no hello from anyone for a while).
+func liveAskLegacy() bool {
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	return time.Since(liveAsks.lastHello) > 30*time.Second
+}
+
+// liveAnswer: your answer in the window on this PC.
+func liveAnswer(id string, ok bool) bool {
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	if _, p := liveAsks.pending[id]; !p {
+		return false
+	}
+	delete(liveAsks.pending, id)
+	if ok {
+		liveAsks.ok[id] = true
+		delete(liveAsks.no, id)
+	} else {
+		liveAsks.no[id] = time.Now()
+	}
+	liveAsks.replies = append(liveAsks.replies, liveReply{id, ok})
+	return true
+}
+
+func liveAskTake() []liveReply {
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	r := liveAsks.replies
+	liveAsks.replies = nil
+	return r
+}
+
+// liveAccepted: someone you accepted is watching (n: the viewers in the room).
+func liveAccepted(n int) bool {
+	if n == 0 {
+		return false
+	}
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	for id := range liveAsks.ok {
+		if id == liveLegacy || time.Since(liveAsks.seen[id]) < 50*time.Second {
+			return true
+		}
+	}
+	return false
+}
+
+// liveAskList: the devices waiting for your answer, oldest first.
+func liveAskList() []liveAsk {
+	liveAsks.Lock()
+	defer liveAsks.Unlock()
+	out := []liveAsk{}
+	now := time.Now().UnixMilli()
+	for id, a := range liveAsks.pending {
+		if now-a.At > 120000 {
+			delete(liveAsks.pending, id)
+			continue
+		}
+		out = append(out, a)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].At < out[j].At })
+	return out
+}
+
 func liveRun(c *wsConn, key []byte) { liveRunWith(c, key, nil) }
 
 // liveRunWith: share is the check of a share code's room (nil: your account's room). Viewers with a code
@@ -465,8 +592,21 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 				}
 				continue
 			}
+			if ev == "hello" { // Connect in the web or phone app: this PC asks you first
+				var d struct {
+					ID   string `json:"id"`
+					Name string `json:"name"`
+				}
+				if json.Unmarshal(data, &d) == nil {
+					liveAskHello(d.ID, d.Name)
+				}
+				continue
+			}
 			if ev != "want" {
 				continue
+			}
+			if share == nil && liveAskLegacy() {
+				liveAskHello(liveLegacy, "")
 			}
 			var w wantMsg
 			if json.Unmarshal(data, &w) == nil {
@@ -514,6 +654,31 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 		if n == 0 {
 			continue
 		}
+		out := func(ev string, v any) bool {
+			s, err := liveSeal(key, ev, v)
+			if err != nil {
+				return true
+			}
+			return c.send(s) == nil
+		}
+		// your devices: the answers to their hello, and nothing more until you accept one
+		if share == nil {
+			for _, r := range liveAskTake() {
+				ev := "no"
+				if r.OK {
+					ev = "ok"
+					mu.Lock()
+					reset = true // the device just accepted gets everything
+					mu.Unlock()
+				}
+				if !out(ev, map[string]any{"id": r.ID}) {
+					return
+				}
+			}
+			if !liveAccepted(n) {
+				continue
+			}
+		}
 		// a request to send everything again is only taken once someone is watching, so it
 		// is never lost while nobody was counted yet
 		mu.Lock()
@@ -523,13 +688,6 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 		if rs {
 			schemaVer, sessionVer, lastTick = -1, -1, -1
 			lastStatus = statusMsg{Source: "\x00"}
-		}
-		out := func(ev string, v any) bool {
-			s, err := liveSeal(key, ev, v)
-			if err != nil {
-				return true
-			}
-			return c.send(s) == nil
 		}
 		if st := currentStatus(); st != lastStatus {
 			if !out("status", st) {
@@ -546,7 +704,7 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 		}
 		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
 			for _, e := range evs {
-				if share == nil {
+				if share == nil && e.Kind != "liveask" {
 					out("notice", e)
 				}
 			}
