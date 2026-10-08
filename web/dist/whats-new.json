@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.41",
+      "en": ["Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.", "The real iRating of a race only comes from a session of the same category."],
+      "es": ["Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.", "El iRating real de una carrera solo sale de una sesión de la misma categoría."]
+    },
+    {
       "v": "0.8.40",
       "en": ["Every overlay is native now.", "Overlay presets are saved, go with your account and can be deleted.", "DRINKS: rename a driver on the list."],
       "es": ["Todos los overlays son nativos.", "Los perfiles de overlays se guardan, van con tu cuenta y se pueden borrar.", "DRINKS: cambia el nombre de un piloto de la lista."]

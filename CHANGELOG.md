@@ -4,6 +4,23 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.41 beta
+
+**Added**
+- Pitlane HQ Desktop (the native Windows window, its own download): Home, Analysis, Community, Telemetry,
+  Overlays, Account and Settings are native screens now, in the app's language and fonts. Analysis has your
+  sessions, laps A and B (with the model's next level and record), the gap, the charts along the lap, where you
+  lose time corner by corner and every lap; Community has the leaderboards; Telemetry is live ten times a second;
+  Overlays opens, places and sets every overlay. The app still runs hidden behind them, so the engineer, the beeps
+  and the recording of your laps keep working, and the parts not moved yet (the map, profiles, the full settings)
+  open in it.
+- DRINKS mode: renaming and removing drivers works from the web connected to your PC and from the phone apps too.
+
+**Fixed**
+- The real iRating of a race was taken from the next session even when it was of another category (a Sports Car
+  race after a Formula Car one showed −979 instead of −42). Now only a session of the same category gives it, and
+  races already spoiled go back to their estimate until it comes.
+
 ## 0.8.40 beta
 
 **Changed**

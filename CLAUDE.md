@@ -35,6 +35,9 @@
   markers widget): the braking points come from the model (the next level for your best lap of the session; your
   own best lap while the model has none or you are its fastest), and each beep moves with your speed against that
   lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside.
+- A race's real iRating comes from your next session of the same category only (each category has its own
+  iRating; a change over 300 is another category's), never from a session of another one (`applyRealIR`); races
+  spoiled so go back to the estimate (`repairRealIR`).
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
@@ -122,9 +125,10 @@
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
   the cars coming, the red side bar and the nearest distance. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
-  (the owner's choice): its Home, Telemetry, Overlays, Community (leaderboards), Account and Settings screens are native (WPF;
-  Telemetry fed by `/api/desk`, `desknow.go`); Analysis and the parts not moved yet are the app in a WebView that
-  runs hidden from the start (engineer, beeps and lap recording live there). Builds of other branches only check
+  (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, `/api/desk/coach`), Telemetry,
+  Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,
+  `desknow.go`); the parts not moved yet (map, profiles, full settings) are the app in a WebView that runs hidden
+  from the start (engineer, beeps and lap recording live there). Builds of other branches only check
   (nothing is published unless it is master). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
   both in the stream's config event, so they change at once.
   Overlay presets: the four built in and your own (saved in the overlay settings, `CFG.ui.ovpresets`, so they go

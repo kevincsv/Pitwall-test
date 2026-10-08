@@ -120,7 +120,7 @@ public partial class MainWindow
         var ideal = _model["ideal"]?.AsArray();
         var it = D(_model["idealTime"]);
         if (ideal != null && ideal.Count > 10 && it > 0 && Math.Abs(it - a.Time) >= 0.002)
-            yield return new AnaLap("★ " + T("Record", "Récord") + " · " + LapTime(it), it, ideal.Select(x => x is JsonArray b ? b.Select(D).ToArray() : Array.Empty<double>()).ToArray(), true, 0, 0, null, "record");
+            yield return new AnaLap("★ " + T("Record", "Récord") + " · " + LapTime(it), it, ideal.Select(r => r is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray(), true, 0, 0, null, "record");
         var ladder = _model["ladder"]?.AsArray();
         if (ladder == null || ladder.Count == 0) yield break;
         int nb = (int)D(_model["nb"]);
@@ -128,11 +128,11 @@ public partial class MainWindow
         for (int k = 0; k < ladder.Count; k++) if (a.Time <= D(ladder[k]?["upTo"])) { i = k; break; }
         if (i < 0) i = ladder.Count - 1;
         while (i > 0 && !(D(ladder[i]?["time"]) < a.Time * 0.997)) i--;
-        var x = ladder[i];
-        double t = D(x?["time"]);
+        var lv = ladder[i];
+        double t = D(lv?["time"]);
         if (!(t < a.Time - 0.001)) yield break;
         // the model keeps one point in two: back to every 5 m
-        var raw = x?["bins"]?.AsArray().Select(b => b is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray() ?? Array.Empty<double[]>();
+        var raw = lv?["bins"]?.AsArray().Select(r => r is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray() ?? Array.Empty<double[]>();
         var up = new List<double[]>();
         for (int k = 0; k < raw.Length; k++)
         {
