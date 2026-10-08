@@ -61,6 +61,8 @@ type plAccount struct {
 	Mail      bool      `json:"mail,omitempty"`      // the server can send emails
 	TwoFactor bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
 	Anon      bool      `json:"anon,omitempty"`      // what you share goes as "Anonymous" (kept with the account)
+	Supporter bool      `json:"supporter,omitempty"` // has the supporter badge (donates)
+	SupHidden bool      `json:"supHidden,omitempty"` // and chose to hide it
 	SyncAuto2 bool      `json:"syncAuto2,omitempty"` // moved to the automatic sync of 0.8.10 (once)
 }
 
@@ -672,7 +674,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -695,7 +697,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		// admins may also mark the laps of a session valid again (POST .../validate)
 		// and your profile: the summary of your recent races, hiding your supporter badge, your license classes
 		post := r.Method == http.MethodPost && ((strings.HasPrefix(p, "/api/sessions/") && (strings.HasSuffix(p, "/validate") || strings.HasSuffix(p, "/incidents"))) || (strings.HasPrefix(p, "/api/laps/") && strings.HasSuffix(p, "/valid")) ||
-			p == "/community/profile/races" || p == "/community/profile/badge" || p == "/community/lics")
+			p == "/community/profile/races" || p == "/community/profile/badge" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/"))
 		if (r.Method != http.MethodGet && !post) || !ok || strings.Contains(p, "..") {
 			w.WriteHeader(400)
 			writeJSON(w, map[string]string{"error": "not available"})
@@ -1040,6 +1042,8 @@ func plRefreshMe() {
 		NameKind     string `json:"nameKind"`
 		Anon         bool   `json:"anon"`
 		Admin        bool   `json:"admin"`
+		Supporter    bool   `json:"supporter"`
+		SupHidden    bool   `json:"supporterHidden"`
 		Verified     bool   `json:"verified"`
 		Mail         bool   `json:"mail"`
 		TwoFactor    bool   `json:"twoFactor"`
@@ -1056,7 +1060,8 @@ func plRefreshMe() {
 		plMu.Unlock()
 		return
 	}
-	if plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor || plAcc.Display != me.Display || plAcc.NameKind != me.NameKind || plAcc.Anon != me.Anon {
+	if plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor || plAcc.Display != me.Display || plAcc.NameKind != me.NameKind || plAcc.Anon != me.Anon || plAcc.Supporter != me.Supporter || plAcc.SupHidden != me.SupHidden {
+		plAcc.Supporter, plAcc.SupHidden = me.Supporter, me.SupHidden
 		plAcc.Admin, plAcc.Verified, plAcc.Mail, plAcc.TwoFactor = me.Admin, me.Verified, me.Mail, me.TwoFactor
 		plAcc.Display, plAcc.NameKind, plAcc.Anon = me.Display, me.NameKind, me.Anon
 		savePLLocked()

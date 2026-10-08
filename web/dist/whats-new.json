@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.8.12",
+      "en": [
+        "Watch another driver's live telemetry with a code: get yours on the PC (Settings → Phone) or from your phone, and type someone's in Live → Watch another driver.",
+        "Live connects when you press Connect and stops with Disconnect; the PC app download is right under it.",
+        "Profiles: each lap opens its leaderboard with the driver's place, and the days they drove.",
+        "The supporter badge comes by itself with Patreon (same email) and shows next to your name everywhere.",
+        "Leaderboards are just the fastest drivers of each car and track (no license classes); the lap analyzer and the coach use the same discipline selector.",
+        "A tidier account tab with your email and id hidden until you show them, one race reminder at a time, and What's new works again."
+      ],
+      "es": [
+        "Ve la telemetría en vivo de otro piloto con un código: crea el tuyo en el PC (Ajustes → Móvil) o desde el móvil, y escribe el de otro en En vivo → Ver a otro piloto.",
+        "En vivo se conecta al pulsar Conectar y para con Desconectar; la descarga de la app del PC está justo debajo.",
+        "Perfiles: cada vuelta abre su leaderboard con la posición del piloto, y los días que ha corrido.",
+        "El badge de supporter llega solo con Patreon (mismo email) y sale junto a tu nombre en todas partes.",
+        "Las leaderboards son solo los más rápidos de cada coche y circuito (sin clases de licencia); el analizador y el coach usan el mismo selector de disciplina.",
+        "La pestaña de cuenta más ordenada, con tu email e ID ocultos hasta que los muestres, un solo aviso por carrera, y Novedades vuelve a funcionar."
+      ]
+    },
+    {
       "v": "0.8.11",
       "en": [
         "Leaderboards by discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road) and license class, by lap time.",

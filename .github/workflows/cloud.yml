@@ -44,6 +44,7 @@ jobs:
       SMTP_USER: ${{ secrets.SMTP_USER }}
       DATA_KEY: ${{ secrets.DATA_KEY }}
       EMAIL_PEPPER: ${{ secrets.EMAIL_PEPPER }}
+      PATREON_WEBHOOK_SECRET: ${{ secrets.PATREON_WEBHOOK_SECRET }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
       ADMINS: ${{ vars.ADMINS }}
       # the server's own address (pitlanehq.app); the repository variable CUSTOM_DOMAIN overrides it
@@ -88,6 +89,8 @@ jobs:
           # DATA_KEY seals telemetry, race analyses and authenticator secrets at rest; EMAIL_PEPPER salts the email hashes
           if [ -n "$DATA_KEY" ]; then printf '%s' "$DATA_KEY" | npx wrangler secret put DATA_KEY; fi
           if [ -n "$EMAIL_PEPPER" ]; then printf '%s' "$EMAIL_PEPPER" | npx wrangler secret put EMAIL_PEPPER; fi
+          # the Patreon webhook's secret: the supporter badge by itself for the patrons
+          if [ -n "$PATREON_WEBHOOK_SECRET" ]; then printf '%s' "$PATREON_WEBHOOK_SECRET" | npx wrangler secret put PATREON_WEBHOOK_SECRET; fi
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
           if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
           {

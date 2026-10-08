@@ -4,6 +4,41 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.12 beta
+
+**New**
+- **Watch another driver's live telemetry with a code.** On the PC (Settings → Phone) or from your
+  phone while it watches your PC, "Get a code" makes a code like ABCD-EFGH-JK; whoever types it in
+  Pitlane HQ (web or phone) → Live → Watch another driver sees your telemetry from anywhere, read
+  only. A new code stops the old one; "Stop sharing" ends it. The server can neither read the
+  telemetry nor find the code (its room is one hash of the code, the key another one).
+- **Live on the web and the phones: Connect and Disconnect.** The screen shows whether your PC is
+  online and connects only when you press Connect (it stays connected until Disconnect); the
+  download of the PC app is right under it.
+- **Leagues** (in development, admins only): a menu to explore the leagues by discipline, post
+  yours with a direct link to its Discord (and its website, schedule, cars and language) and edit or
+  remove the ones you posted. Everyone else still reads that we are working on it.
+- **The supporter badge comes by itself** to the people who support Pitlane HQ on Patreon with the
+  same email as their account (also when they create the account later); a badge given by hand
+  stays. The badge shows next to your name everywhere: Home, Settings, your account and your profile.
+- **Profiles:** each lap on the leaderboards opens its leaderboard with that driver marked and says
+  their place (P3 / 14); the profile shows the days they drove, like Home.
+- **The lap analyzer and the coach use the same discipline selector as Community**, with the
+  disciplines you have no session in greyed out.
+
+**Changed**
+- **Leaderboards without license classes**: only the fastest drivers of each car and track of the
+  discipline. The discipline symbols are our own.
+- **The account tab in order**: your name and badges on top, with your email and account id hidden
+  until you press Show (one button each); security on one side, sync and devices on the other, and
+  everything for admins in one panel (shared items, accounts, server, test email).
+- **One race reminder at a time** (5, 15, 30 or 60 minutes before).
+
+**Fixed**
+- Choosing a discipline with no laps yet in Community broke the screen ("This screen could not be
+  drawn"); it now says the discipline has no laps yet.
+- What's new in Settings stayed on "…": the server did not hand the notes to the web.
+
 ## 0.8.11 beta
 
 **New**

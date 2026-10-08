@@ -278,7 +278,7 @@ export async function community(req, env, url) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     const id = String(body.id || "");
-    const r = await env.DB.prepare("UPDATE accounts SET supporter=?2 WHERE id=?1").bind(id, body.on ? 1 : 0).run();
+    const r = await env.DB.prepare("UPDATE accounts SET supporter=?2, supporter_src=?3 WHERE id=?1").bind(id, body.on ? 1 : 0, body.on ? "manual" : null).run();
     return r.meta && r.meta.changes ? json({ ok: true, supporter: !!body.on }) : err("account not found", 404);
   }
   // a supporter hides (or shows again) their own badge
@@ -304,6 +304,47 @@ export async function community(req, env, url) {
     ]);
     return json({ ok: true, races: list.length });
   }
+  // leagues: drivers post their league with a direct link to its Discord. In development: only the admins see
+  // and post them until LEAGUES_OPEN is "1"; the owner of a league (or an admin) edits or removes it
+  if (p === "/leagues" || p.startsWith("/leagues/")) {
+    const who = await sessionAccount(req, env).catch(() => null), admin = !!who && isAdmin(env, who.id);
+    if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
+    const lid = p.startsWith("/leagues/") ? p.slice(9) : "";
+    const row = (x) => ({ id: x.id, name: x.name, about: x.about || "", cat: x.cat || null, discord: x.discord, web: x.web || "", schedule: x.schedule || "", cars: x.cars || "", lang: x.lang || "",
+      created: x.created, updated: x.updated, mine: !!who && x.owner === who.id, by: x.alias || "Driver" });
+    if (m === "GET" && !lid) {
+      const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner ORDER BY l.updated DESC LIMIT 300").all();
+      return json({ leagues: (r.results || []).map(row), admin });
+    }
+    if (m !== "POST") return err("not found", 404);
+    if (!who) return err("sign in with your Pitlane HQ account", 401);
+    const cur = lid ? await env.DB.prepare("SELECT * FROM leagues WHERE id=?1").bind(lid).first() : null;
+    if (lid && (!cur || (cur.owner !== who.id && !admin))) return err("league not found", 404);
+    if (lid && body.delete) {
+      await env.DB.prepare("DELETE FROM leagues WHERE id=?1").bind(lid).run();
+      return json({ ok: true, deleted: true });
+    }
+    const txt = (v, n) => (typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, n) : "");
+    const link = (v, re) => { const t = txt(v, 200); return re.test(t) ? t : ""; };
+    const discord = link(body.discord, /^https:\/\/(discord\.gg|(www\.)?discord\.com\/invite)\/[A-Za-z0-9-]{2,40}\/?$/);
+    const name = txt(body.name, 60);
+    if (name.length < 3) return err("the league needs a name", 400);
+    if (!discord) return err("the Discord link must be an invite: https://discord.gg/… or https://discord.com/invite/…", 400);
+    const x = { name, about: txt(body.about, 600), cat: CATS.includes(body.cat) ? body.cat : null, discord, web: link(body.web, /^https:\/\/[^\s"'<>]{4,190}$/),
+      schedule: txt(body.schedule, 80), cars: txt(body.cars, 120), lang: txt(body.lang, 30) };
+    const now = Date.now();
+    if (cur) {
+      await env.DB.prepare("UPDATE leagues SET name=?2, about=?3, cat=?4, discord=?5, web=?6, schedule=?7, cars=?8, lang=?9, updated=?10 WHERE id=?1")
+        .bind(lid, x.name, x.about, x.cat, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
+      return json({ ok: true, id: lid });
+    }
+    const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first();
+    if (n && n.n >= 5 && !admin) return err("you can post up to 5 leagues", 429);
+    const id = rid();
+    await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, discord, web, schedule, cars, lang, created, updated) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
+      .bind(id, who.id, x.name, x.about, x.cat, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
+    return json({ ok: true, id });
+  }
   // a driver's profile, opened from one of their laps on a leaderboard (or yours, ?me=1): their nickname (never
   // their iRacing name), their license classes, their laps on the leaderboards and their recent races. An
   // anonymous driver has no profile; their anonymous laps never show on it. Admins see everything.
@@ -319,17 +360,27 @@ export async function community(req, env, url) {
     const mine = !!a && !!viewer && viewer.id === a.id;
     if (!a || ((fromAnon || a.anon) && !admin && !mine)) return err("this driver is anonymous", 404);
     const laps = (await env.DB.prepare(
-      `SELECT id, track, car, track_id AS trackId, car_id AS carId, time, created, anon, game, cat, lic FROM community_laps WHERE user_id=?1 AND COALESCE(shown,'')<>'model' ${admin || mine ? "" : "AND anon=0"} ORDER BY created DESC LIMIT 60`
+      `SELECT id, track, car, track_id AS trackId, car_id AS carId, time, created, anon, game, cat, lic,
+         (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model' AND o.time<l.time)+1 AS pos,
+         (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model') AS "of"
+       FROM community_laps l WHERE user_id=?1 AND COALESCE(shown,'')<>'model' ${admin || mine ? "" : "AND anon=0"} ORDER BY created DESC LIMIT 60`
     ).bind(a.id).all()).results || [];
     const cm = await catMap(env).catch(() => ({ tc: {}, c: {} }));
     const races = (((await env.DB.prepare("SELECT data FROM profile_races WHERE account_id=?1 ORDER BY at DESC LIMIT 20").bind(a.id).all()).results) || []).map((x) => JSON.parse(x.data));
     let lics = {};
     try { lics = JSON.parse(a.lics || "{}") || {}; } catch (e) {}
     const sup = !!a.supporter;
+    // the days they drove in the last 6 months (sessions per day, in the viewer's time zone), like the calendar of Home
+    const tz = Math.max(-840, Math.min(840, parseInt(url.searchParams.get("tz") || "0", 10) || 0));
+    const days = {};
+    for (const x of ((await env.DB.prepare("SELECT started FROM sessions WHERE uploader=?1 AND started>?2 LIMIT 3000").bind("acct:" + a.id, Date.now() - 200 * 86400e3).all()).results) || []) {
+      const d = new Date(x.started - tz * 60000), k = d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1) + "-" + d.getUTCDate();
+      days[k] = (days[k] || 0) + 1;
+    }
     return json({
       name: a.alias || "Driver", since: a.created, mine, admin, anonymous: !!a.anon,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
-      lics, races,
+      lics, races, days,
       laps: laps.map((x) => ({ ...x, anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
     });
   }

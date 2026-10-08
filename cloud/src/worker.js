@@ -4,6 +4,7 @@ import { downloads } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
 import { autoShare } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
+import { patreonWebhook } from "./patreon.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -319,7 +320,7 @@ async function handle(req, env, ctx) {
       to.searchParams.delete("companion");
       return Response.redirect(to.href, 301);
     }
-    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png)$/.test(url.pathname);
+    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png)$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       const r = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin), req));
@@ -333,6 +334,8 @@ async function handle(req, env, ctx) {
     }
     // live telemetry from your PC to your browser or phone, end-to-end encrypted
     if (url.pathname === "/live") return live(req, env);
+    // Patreon tells the server about memberships: the supporter badge by itself
+    if (url.pathname === "/patreon/webhook" && req.method === "POST") return patreonWebhook(req, env);
     if (url.pathname.startsWith("/api/")) {
       try {
         return await api(req, env, url);

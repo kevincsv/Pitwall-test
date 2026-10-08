@@ -46,6 +46,7 @@ type commConfig struct {
 	Asked        bool   `json:"asked,omitempty"`       // the first-start question was answered
 	NoMaps       bool   `json:"noMaps,omitempty"`      // do not share track layouts (shared by default)
 	NoLive       bool   `json:"noLive,omitempty"`      // do not offer live telemetry to my browsers and phones through the server
+	ShareCode    string `json:"shareCode,omitempty"`   // the code others type to watch your live telemetry (empty: not shared)
 	NoField      bool   `json:"noField,omitempty"`     // do not share the top 3 of each race anonymously (shared by default, times only)
 	// DRINKS mode, formerly Friday night mode (admins only): friends drive on this PC and their laps go to the
 	// community under their own names, so the model learns from them; they stay out of My laps
@@ -434,6 +435,15 @@ func shareCleaner() {
 }
 
 func registerCommunityRoutes(mux *http.ServeMux) {
+	// your live telemetry for others, with a code: GET the state, POST {on, new} to start, renew or stop
+	mux.HandleFunc("/api/live/share", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			var in struct{ On, New bool }
+			json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&in)
+			setShare(in.On, in.New)
+		}
+		writeJSON(w, liveStatus())
+	})
 	go shareCleaner()
 	mux.HandleFunc("/api/community", func(w http.ResponseWriter, r *http.Request) {
 		fail := func(err error) {

@@ -12,11 +12,14 @@ import (
 	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -239,12 +242,101 @@ var liveState struct {
 	on      bool // connected to the live room
 	viewers int
 	err     string
+	shareOn bool // connected to the room of the share code
+	shareN  int  // people watching with the code
 }
 
 func liveStatus() map[string]any {
 	liveState.Lock()
 	defer liveState.Unlock()
-	return map[string]any{"connected": liveState.on, "viewers": liveState.viewers, "error": liveState.err}
+	commMu.Lock()
+	code := commCfg.ShareCode
+	commMu.Unlock()
+	return map[string]any{"connected": liveState.on, "viewers": liveState.viewers, "error": liveState.err, "shareCode": shareShow(code), "shareOn": liveState.shareOn, "shareViewers": liveState.shareN}
+}
+
+// ---------- sharing your live telemetry with a code ----------
+// Anyone with the code watches (read only): the room on the server is one hash of the code and the key
+// that seals every message another one (PBKDF2), so the server can neither read the telemetry nor
+// find the code. A new code stops the old one at once.
+
+const shareAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // no 0/O, 1/I
+
+func shareNewCode() string {
+	b := make([]byte, 10)
+	rand.Read(b)
+	for i := range b {
+		b[i] = shareAlphabet[int(b[i])%len(shareAlphabet)]
+	}
+	return string(b)
+}
+
+// shareShow: "ABCDEFGHJK" → "ABCD-EFGH-JK"
+func shareShow(c string) string {
+	if len(c) != 10 {
+		return c
+	}
+	return c[:4] + "-" + c[4:8] + "-" + c[8:]
+}
+
+func shareRoom(code string) string {
+	h := sha256.Sum256([]byte("pitlanehq-share-room|" + code))
+	return hex.EncodeToString(h[:16])
+}
+
+func liveCodeKey(code string) []byte {
+	k, _ := pbkdf2.Key(sha256.New, code, []byte("pitlanehq-share-key-v1"), 100000, 32)
+	return k
+}
+
+// setShare starts sharing (a new code when asked or when there is none) or stops it; the code shown
+func setShare(on, fresh bool) string {
+	commMu.Lock()
+	defer commMu.Unlock()
+	switch {
+	case !on:
+		commCfg.ShareCode = ""
+	case fresh || commCfg.ShareCode == "":
+		commCfg.ShareCode = shareNewCode()
+	}
+	saveCommLocked()
+	return shareShow(commCfg.ShareCode)
+}
+
+func liveShareRelay() {
+	wait := 5 * time.Second
+	for {
+		token, _, base, ok := liveWanted()
+		commMu.Lock()
+		code := commCfg.ShareCode
+		commMu.Unlock()
+		if !ok || code == "" {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		c, err := wsDial(strings.TrimRight(base, "/")+"/live?role=pc&share="+shareRoom(code), token)
+		if err != nil {
+			time.Sleep(wait)
+			if wait < 2*time.Minute {
+				wait *= 2
+			}
+			continue
+		}
+		wait = 5 * time.Second
+		liveState.Lock()
+		liveState.shareOn, liveState.shareN = true, 0
+		liveState.Unlock()
+		liveRunWith(c, liveCodeKey(code), func() bool {
+			commMu.Lock()
+			defer commMu.Unlock()
+			return commCfg.ShareCode == code
+		})
+		c.close()
+		liveState.Lock()
+		liveState.shareOn, liveState.shareN = false, 0
+		liveState.Unlock()
+		time.Sleep(time.Second)
+	}
 }
 
 func liveWanted() (token string, key []byte, base string, ok bool) {
@@ -299,7 +391,12 @@ func liveRelay() {
 }
 
 // liveRun streams until the connection drops or you sign out.
-func liveRun(c *wsConn, key []byte) {
+func liveRun(c *wsConn, key []byte) { liveRunWith(c, key, nil) }
+
+// liveRunWith: share is the check of a share code's room (nil: your account's room). Viewers with a code
+// only watch: no DRINKS mode, no race summaries, no sharing control.
+func liveRunWith(c *wsConn, key []byte, share func() bool) {
+	shareReply := make(chan string, 4)
 	type wantMsg struct {
 		Vars []string `json:"vars"`
 		All  bool     `json:"all"`
@@ -328,13 +425,33 @@ func liveRun(c *wsConn, key []byte) {
 					viewers = ctl.N
 					mu.Unlock()
 					liveState.Lock()
-					liveState.viewers = ctl.N
+					if share != nil {
+						liveState.shareN = ctl.N
+					} else {
+						liveState.viewers = ctl.N
+					}
 					liveState.Unlock()
 				}
 				continue
 			}
 			ev, data, err := liveOpen(key, m)
 			if err != nil {
+				continue
+			}
+			if share != nil && ev != "want" { // with a code you only watch
+				continue
+			}
+			if ev == "share" { // your phone or browser starts, renews or stops the share code
+				var d struct {
+					On  bool `json:"on"`
+					New bool `json:"new"`
+				}
+				if json.Unmarshal(data, &d) == nil {
+					select {
+					case shareReply <- setShare(d.On, d.New):
+					default:
+					}
+				}
 				continue
 			}
 			if ev == "drinks" { // DRINKS mode from your phone (admins only)
@@ -381,8 +498,15 @@ func liveRun(c *wsConn, key []byte) {
 			continue
 		case <-tk.C:
 		}
-		if _, _, _, ok := liveWanted(); !ok {
+		if _, _, _, ok := liveWanted(); !ok || (share != nil && !share()) {
 			return
+		}
+		select {
+		case code := <-shareReply:
+			if s, err := liveSeal(key, "share", map[string]any{"code": code}); err == nil && c.send(s) != nil {
+				return
+			}
+		default:
 		}
 		mu.Lock()
 		n, w := viewers, want
@@ -413,8 +537,8 @@ func liveRun(c *wsConn, key []byte) {
 			}
 			lastStatus = st
 		}
-		// DRINKS mode: sent when it changes (and the driver, who can change with iRacing's name)
-		if b, err := json.Marshal(drinksState()); err == nil && (string(b) != lastDrinks || rs) {
+		// DRINKS mode: sent when it changes (and the driver, who can change with iRacing's name); never to a share code
+		if b, err := json.Marshal(drinksState()); share == nil && err == nil && (string(b) != lastDrinks || rs) {
 			if !out("drinks", json.RawMessage(b)) {
 				return
 			}
@@ -422,9 +546,18 @@ func liveRun(c *wsConn, key []byte) {
 		}
 		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
 			for _, e := range evs {
-				out("notice", e)
+				if share == nil {
+					out("notice", e)
+				}
 			}
 			noticeSeen = seq
+		}
+		// your share code, so the phone shows it (and knows whether you share)
+		if rs && share == nil {
+			commMu.Lock()
+			sc := commCfg.ShareCode
+			commMu.Unlock()
+			out("share", map[string]any{"code": shareShow(sc)})
 		}
 		tel.mu.RLock()
 		if tel.schemaVer != schemaVer || rs {
