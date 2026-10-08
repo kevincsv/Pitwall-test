@@ -25,6 +25,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -59,6 +60,8 @@ type plAccount struct {
 	Verified  bool      `json:"verified,omitempty"`  // the email was confirmed
 	Mail      bool      `json:"mail,omitempty"`      // the server can send emails
 	TwoFactor bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
+	Anon      bool      `json:"anon,omitempty"`      // what you share goes as "Anonymous" (kept with the account)
+	SyncAuto2 bool      `json:"syncAuto2,omitempty"` // moved to the automatic sync of 0.8.10 (once)
 }
 
 var (
@@ -182,17 +185,103 @@ func plCall(method, path string, body any) ([]byte, error) {
 
 var syncFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "trackbook.json", "races.json", "notes.json", "companion.json"}
 
-func syncBundle() ([]byte, string) {
+// prefs.json is not a file on this PC: it carries what you chose to share (the community settings without
+// this PC's own token), so every PC of the account shares the same way
+const prefsName = "prefs.json"
+
+type syncPrefs struct {
+	ShareTimes    bool   `json:"shareTimes"`
+	ShareTraces   bool   `json:"shareTraces"`
+	ShareReports  bool   `json:"shareReports"`
+	ShareMaps     bool   `json:"shareMaps"`
+	LiveWeb       bool   `json:"liveWeb"`
+	ShareField    bool   `json:"shareField"`
+	DeleteAfter   string `json:"deleteAfter"`
+	Asked         bool   `json:"asked"`
+	LapsToAccount bool   `json:"lapsToAccount"`
+}
+
+func prefsJSON() []byte {
+	commMu.Lock()
+	c := commCfg
+	commMu.Unlock()
+	plMu.Lock()
+	laps := !plAcc.NoLaps
+	plMu.Unlock()
+	b, _ := json.Marshal(syncPrefs{c.ShareTimes, c.ShareTraces, c.ShareReports, !c.NoMaps, !c.NoLive, !c.NoField, c.DeleteAfter, c.Asked, laps})
+	return b
+}
+
+func applyPrefs(b []byte) {
+	var p syncPrefs
+	if json.Unmarshal(b, &p) != nil {
+		return
+	}
+	commMu.Lock()
+	c := &commCfg
+	c.ShareTimes, c.ShareTraces, c.ShareReports, c.NoMaps, c.NoLive, c.NoField, c.DeleteAfter, c.Asked = p.ShareTimes, p.ShareTraces && p.ShareTimes, p.ShareReports, !p.ShareMaps, !p.LiveWeb, !p.ShareField, p.DeleteAfter, p.Asked
+	saveCommLocked()
+	commMu.Unlock()
+	plMu.Lock()
+	if plAcc.NoLaps != !p.LapsToAccount {
+		plAcc.NoLaps = !p.LapsToAccount
+		savePLLocked()
+	}
+	plMu.Unlock()
+}
+
+// bundleFiles: what goes to the account, file name → content
+func bundleFiles() map[string][]byte {
 	files := map[string][]byte{}
 	for _, f := range syncFiles {
 		if b, err := os.ReadFile(filepath.Join(activeDir(), f)); err == nil {
 			files[f] = b
 		}
 	}
+	files[prefsName] = prefsJSON()
+	return files
+}
+
+func bundleHash(files map[string][]byte) string {
 	raw, _ := json.Marshal(files) // map keys are sorted: same data, same hash
 	h := sha256.Sum256(raw)
-	return raw, hex.EncodeToString(h[:])
+	return hex.EncodeToString(h[:])
 }
+
+// syncBundle: the bundle as it is uploaded, and its hash
+func syncBundle() ([]byte, string) {
+	files := bundleFiles()
+	raw, _ := json.Marshal(files)
+	return raw, bundleHash(files)
+}
+
+// the base of the merge: the files as they were after the last sync, for the active profile
+type syncBaseT struct {
+	Profile string            `json:"profile"`
+	Version int64             `json:"version"`
+	Files   map[string][]byte `json:"files"`
+}
+
+func syncBasePath() string { return filepath.Join(dataDir(), "sync-base.json") }
+
+func loadSyncBase(version int64) map[string][]byte {
+	b, err := readSecret(syncBasePath())
+	if err != nil {
+		return nil
+	}
+	var x syncBaseT
+	if json.Unmarshal(b, &x) != nil || x.Profile != activeID() || x.Version != version {
+		return nil
+	}
+	return x.Files
+}
+
+func saveSyncBase(version int64, files map[string][]byte) {
+	b, _ := json.Marshal(syncBaseT{activeID(), version, files})
+	writeSecret(syncBasePath(), b)
+}
+
+func clearSyncBase() { os.Remove(syncBasePath()) }
 
 func gz(b []byte) []byte {
 	var buf bytes.Buffer
@@ -221,12 +310,24 @@ func dataKey() ([]byte, error) {
 	return b, nil
 }
 
-func syncPush(force bool) error {
+var errSyncConflict = errors.New("the account changed on another device at the same time")
+
+// syncRecord: this PC and the account hold the same files at this version
+func syncRecord(version int64, files map[string][]byte) {
+	plMu.Lock()
+	plAcc.Version, plAcc.LastHash, plAcc.LastSync, plAcc.Conflict, plAcc.SyncErr = version, bundleHash(files), time.Now(), false, ""
+	savePLLocked()
+	plMu.Unlock()
+	saveSyncBase(version, files)
+}
+
+// pushFiles uploads these files over the account's version base (force: whatever the account has)
+func pushFiles(files map[string][]byte, base int64, force bool) error {
 	key, err := dataKey()
 	if err != nil {
 		return err
 	}
-	raw, hash := syncBundle()
+	raw, _ := json.Marshal(files)
 	sealed, err := sealAES(key, gz(raw))
 	if err != nil {
 		return err
@@ -234,9 +335,6 @@ func syncPush(force bool) error {
 	if len(sealed) > 8<<20 {
 		return errors.New("your data is too large to sync (over 8 MB): delete old races first")
 	}
-	plMu.Lock()
-	base := plAcc.Version
-	plMu.Unlock()
 	body := map[string]any{"blob": sealed, "base": base}
 	if force {
 		body["force"] = true
@@ -244,127 +342,270 @@ func syncPush(force bool) error {
 	b, err := plCall("PUT", "/sync", body)
 	if err != nil {
 		if strings.Contains(err.Error(), "conflict") {
-			plMu.Lock()
-			plAcc.Conflict = true
-			savePLLocked()
-			plMu.Unlock()
+			return errSyncConflict
 		}
 		return err
 	}
 	var r struct{ Version int64 }
 	json.Unmarshal(b, &r)
-	plMu.Lock()
-	plAcc.Version, plAcc.LastHash, plAcc.LastSync, plAcc.Conflict, plAcc.SyncErr = r.Version, hash, time.Now(), false, ""
-	savePLLocked()
-	plMu.Unlock()
+	syncRecord(r.Version, files)
 	return nil
 }
 
-func syncPull() error {
+// fetchFiles reads and opens the account's copy
+func fetchFiles() (files map[string][]byte, version int64, updated time.Time, err error) {
 	key, err := dataKey()
 	if err != nil {
-		return err
+		return nil, 0, time.Time{}, err
 	}
 	b, err := plCall("GET", "/sync", nil)
 	if err != nil {
-		return err
+		return nil, 0, time.Time{}, err
 	}
 	var r struct {
 		Version int64
+		Updated int64
 		Blob    string
 	}
 	json.Unmarshal(b, &r)
 	if r.Blob == "" {
-		return errors.New("nothing saved in your account yet")
+		return map[string][]byte{}, r.Version, time.Time{}, nil
 	}
 	z, err := openAES(key, r.Blob)
 	if err != nil {
-		return errors.New("could not decrypt your data (was the password changed on another PC? sign in again)")
+		return nil, 0, time.Time{}, errors.New("could not decrypt your data (was the password changed on another PC? sign in again)")
 	}
 	raw, err := gunz(z)
 	if err != nil {
-		return err
+		return nil, 0, time.Time{}, err
 	}
-	var files map[string][]byte
 	if err := json.Unmarshal(raw, &files); err != nil {
-		return err
+		return nil, 0, time.Time{}, err
 	}
-	allowed := map[string]bool{}
+	allowed := map[string]bool{prefsName: true}
 	for _, f := range syncFiles {
 		allowed[f] = true
 	}
-	dir := activeDir()
-	os.MkdirAll(dir, 0o700)
 	for name, data := range files {
 		if !allowed[name] || !json.Valid(data) {
+			delete(files, name)
+		}
+	}
+	return files, r.Version, time.UnixMilli(r.Updated), nil
+}
+
+// writeLocal puts the merged files on this PC (only the ones that changed) and reloads what uses them
+func writeLocal(files, local map[string][]byte) {
+	dir := activeDir()
+	os.MkdirAll(dir, 0o700)
+	changed := false
+	for name, data := range files {
+		if bytes.Equal(data, local[name]) {
 			continue
 		}
-		os.WriteFile(filepath.Join(dir, name), data, 0o600)
+		if name == prefsName {
+			applyPrefs(data)
+			continue
+		}
+		if os.WriteFile(filepath.Join(dir, name), data, 0o600) == nil {
+			changed = true
+		}
 	}
-	loadProfileState()
-	bumpConfig()
-	_, hash := syncBundle()
+	if changed {
+		loadProfileState()
+		bumpConfig()
+	}
+}
+
+// syncPush keeps this PC's copy (whatever the account has); syncPull keeps the account's
+func syncPush(force bool) error {
 	plMu.Lock()
-	plAcc.Version, plAcc.LastHash, plAcc.LastSync, plAcc.Conflict, plAcc.SyncErr = r.Version, hash, time.Now(), false, ""
-	savePLLocked()
+	base := plAcc.Version
 	plMu.Unlock()
+	return pushFiles(bundleFiles(), base, force)
+}
+
+func syncPull() error {
+	files, version, _, err := fetchFiles()
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return errors.New("nothing saved in your account yet")
+	}
+	writeLocal(files, bundleFiles())
+	syncRecord(version, bundleFiles())
 	return nil
 }
 
-// syncNow pulls when only the account changed, pushes when only this PC changed
-// and stops on a conflict so you choose which copy to keep.
-func syncNow() error {
-	plBusy.Lock()
-	defer plBusy.Unlock()
+// syncOnce: nothing changed → nothing; only this PC changed → upload; the account changed → merge both
+// copies (see syncmerge.go), keep the result here and upload it when it differs from the account's
+func syncOnce() error {
 	b, err := plCall("GET", "/sync/meta", nil)
 	if err != nil {
 		return err
 	}
 	var m struct{ Version int64 }
 	json.Unmarshal(b, &m)
-	_, hash := syncBundle()
+	local := bundleFiles()
 	plMu.Lock()
 	ver, last := plAcc.Version, plAcc.LastHash
 	plMu.Unlock()
-	localChanged, remoteChanged := hash != last, m.Version != ver
-	switch {
-	case remoteChanged && !localChanged:
-		return syncPull()
-	case localChanged && !remoteChanged:
-		return syncPush(false)
-	case localChanged && remoteChanged:
-		plMu.Lock()
-		plAcc.Conflict = true
-		savePLLocked()
-		plMu.Unlock()
-		return errors.New("conflict: this PC and your account both changed")
+	if m.Version == ver && bundleHash(local) == last {
+		return nil
 	}
-	return nil
+	base := loadSyncBase(ver)
+	if m.Version != 0 && m.Version == ver && base != nil && sameBundle(local, base) {
+		syncRecord(ver, local) // only written differently (a file saved again as it was): nothing to upload
+		return nil
+	}
+	if m.Version == 0 || m.Version == ver {
+		return pushFiles(local, m.Version, false)
+	}
+	remote, rv, updated, err := fetchFiles()
+	if err != nil {
+		return err
+	}
+	// a value both copies changed: the newer one wins; on this PC's first sync the account's copy
+	preferRemote := func(name string) bool {
+		if base == nil {
+			return true
+		}
+		path := filepath.Join(activeDir(), name)
+		if name == prefsName {
+			path = commPath()
+		}
+		st, err := os.Stat(path)
+		return err != nil || updated.After(st.ModTime())
+	}
+	merged := mergeBundles(base, local, remote, preferRemote)
+	writeLocal(merged, local)
+	final := bundleFiles()
+	if sameBundle(final, remote) {
+		syncRecord(rv, final)
+		return nil
+	}
+	return pushFiles(final, rv, false)
 }
 
-func syncWatcher() {
-	loadPL()
-	for {
-		time.Sleep(5 * time.Minute)
-		plMu.Lock()
-		on := plAcc.Token != "" && plAcc.AutoSync && !plAcc.Conflict
-		plMu.Unlock()
-		if !on {
-			continue
-		}
-		err := syncNow()
-		plMu.Lock()
-		if err != nil {
-			plAcc.SyncErr = err.Error()
-		} else {
-			plAcc.SyncErr = ""
-		}
-		savePLLocked()
-		plMu.Unlock()
-		if err != nil {
-			log.Println("Sync:", err)
+// syncNow: one sync, tried again when another device uploaded at the same moment
+func syncNow() error {
+	plBusy.Lock()
+	defer plBusy.Unlock()
+	var err error
+	for try := 0; try < 3; try++ {
+		if err = syncOnce(); err != errSyncConflict {
+			break
 		}
 	}
+	plMu.Lock()
+	if err != nil {
+		plAcc.SyncErr = err.Error()
+	} else {
+		plAcc.SyncErr = ""
+	}
+	savePLLocked()
+	plMu.Unlock()
+	return err
+}
+
+// syncStamp changes when a synced file (or what you chose to share) changes
+func syncStamp() string {
+	var sb strings.Builder
+	for _, f := range syncFiles {
+		if st, err := os.Stat(filepath.Join(activeDir(), f)); err == nil {
+			fmt.Fprintf(&sb, "%s:%d:%d;", f, st.ModTime().UnixNano(), st.Size())
+		}
+	}
+	h := sha256.Sum256(prefsJSON())
+	sb.WriteString(hex.EncodeToString(h[:8]))
+	return sb.String()
+}
+
+var syncKick = make(chan struct{}, 1)
+
+// kickSync asks for a sync now (after a sign-in, a change of name, a press of Sync now)
+func kickSync() {
+	select {
+	case syncKick <- struct{}{}:
+	default:
+	}
+}
+
+// syncWatcher keeps every device of the account the same, by itself: it syncs when Pitlane HQ starts,
+// a few seconds after anything synced changes on this PC, and every minute for what changed on your
+// other devices (your profile and public name, the files); it also brings what this PC shared before
+// it signed in under the account's name.
+func syncWatcher() {
+	loadPL()
+	plMu.Lock()
+	if plAcc.Token != "" && !plAcc.SyncAuto2 { // everyone moves to the automatic sync once; the old conflict question is gone
+		plAcc.AutoSync, plAcc.Conflict, plAcc.SyncAuto2 = true, false, true
+		savePLLocked()
+	}
+	plMu.Unlock()
+	time.Sleep(3 * time.Second)
+	var stamp string
+	var changedAt, nextRemote, lastRun time.Time
+	adopted, kicked := false, false
+	for {
+		plMu.Lock()
+		signed := plAcc.Token != ""
+		on := signed && plAcc.AutoSync
+		plMu.Unlock()
+		now := time.Now()
+		remoteDue := now.After(nextRemote) || kicked
+		if signed && remoteDue {
+			plRefreshMe()
+			if !adopted {
+				adopted = plAdopt()
+			}
+		}
+		if on {
+			if st := syncStamp(); st != stamp {
+				if stamp != "" {
+					changedAt = now
+				}
+				stamp = st
+			}
+			// a change goes up 3 seconds after the last edit, and at most every 20 seconds (dragging an
+			// overlay during a race does not upload the account again and again)
+			if remoteDue || (!changedAt.IsZero() && now.Sub(changedAt) >= 3*time.Second && now.Sub(lastRun) >= 20*time.Second) {
+				if err := syncNow(); err != nil {
+					log.Println("Sync:", err)
+				}
+				changedAt, stamp, lastRun = time.Time{}, syncStamp(), time.Now()
+			}
+		}
+		if remoteDue {
+			nextRemote = now.Add(time.Minute)
+		}
+		kicked = false
+		select {
+		case <-syncKick:
+			kicked = true
+		case <-time.After(4 * time.Second):
+		}
+	}
+}
+
+// plAdopt: what this PC shared with its own community token (before it signed in, or an older version)
+// goes under the account and its one public name; the token is not needed any more
+func plAdopt() bool {
+	commMu.Lock()
+	dev := commCfg.Token
+	commMu.Unlock()
+	if dev == "" {
+		return true
+	}
+	if _, err := commRequest("POST", "/community/adopt", map[string]string{"token": dev}, commToken()); err != nil {
+		return false // the next minute
+	}
+	commMu.Lock()
+	commCfg.Token, commCfg.UserID = "", ""
+	saveCommLocked()
+	commMu.Unlock()
+	return true
 }
 
 type plLoginRes struct {
@@ -399,21 +640,13 @@ func plFinishLogin(b []byte, email string, wrap []byte) error {
 	if err := plSignedIn(res, email, wrap, nil); err != nil {
 		return err
 	}
-	// nothing saved yet: upload this PC; otherwise you choose which copy to keep
-	var meta struct{ Version int64 }
-	if mb, e := plCall("GET", "/sync/meta", nil); e == nil {
-		json.Unmarshal(mb, &meta)
-	}
-	plBusy.Lock()
-	if meta.Version == 0 {
-		syncPush(true)
-	} else {
-		plMu.Lock()
-		plAcc.Conflict = true
-		savePLLocked()
-		plMu.Unlock()
-	}
-	plBusy.Unlock()
+	// this PC and the account merge by themselves (nothing saved yet: this PC goes up as it is)
+	clearSyncBase()
+	go func() {
+		plRefreshMe()
+		syncNow()
+		kickSync()
+	}()
 	return nil
 }
 
@@ -427,7 +660,7 @@ func plSignedIn(r plLoginRes, email string, wrap []byte, newKey []byte) error {
 		key = k
 	}
 	plMu.Lock()
-	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil, TwoFactor: r.TwoFactor}
+	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil, TwoFactor: r.TwoFactor, SyncAuto2: true}
 	savePLLocked()
 	plMu.Unlock()
 	return nil
@@ -447,13 +680,7 @@ func plStatus() map[string]any {
 }
 
 func registerPLRoutes(mux *http.ServeMux) {
-	go syncWatcher()
-	go func() { // keep the admin flag (and public name) up to date
-		for {
-			plRefreshMe()
-			time.Sleep(6 * time.Hour)
-		}
-	}()
+	go syncWatcher() // also keeps the profile (public name, admin…) up to date
 	go companionRefresher()
 	// the PC reads your laps in your account through here (the server does not answer other origins);
 	// only reading, only the lap and community lists, and closed to remote viewers like /api/sync
@@ -557,6 +784,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					break
 				}
 				if err = plSignedIn(res, in.Email, wrap, key); err == nil {
+					clearSyncBase()
 					go func() {
 						plBusy.Lock()
 						defer plBusy.Unlock()
@@ -664,6 +892,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 				plAcc = plAccount{}
 				savePLLocked()
 				plMu.Unlock()
+				clearSyncBase()
 			case "name":
 				name, kind, e := publicName(in.NameKind, in.Nick)
 				if e != nil {
@@ -677,14 +906,18 @@ func registerPLRoutes(mux *http.ServeMux) {
 				if _, err = plCall("POST", "/me", body); err == nil {
 					plMu.Lock()
 					plAcc.Display, plAcc.NameKind = name, kind
+					if in.Anon != nil {
+						plAcc.Anon = *in.Anon
+					}
 					savePLLocked()
 					plMu.Unlock()
-					if in.Anon != nil { // the PC shares with the same choice
-						commMu.Lock()
+					commMu.Lock() // the PC shares under the same name and with the same choice
+					commCfg.Alias, commCfg.NameKind = name, kind
+					if in.Anon != nil {
 						commCfg.Anonymous, commCfg.Asked = *in.Anon, true
-						saveCommLocked()
-						commMu.Unlock()
 					}
+					saveCommLocked()
+					commMu.Unlock()
 				}
 			case "password":
 				if err = checkPassword(in.NewPassword); err != nil {
@@ -716,8 +949,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 				savePLLocked()
 				plMu.Unlock()
 				kickCloud()
-			case "refresh": // read the account again (email confirmed, admin)
+			case "refresh": // read the account again (public name, email confirmed, admin) and sync
 				plRefreshMe()
+				kickSync()
 			case "verify": // send the confirmation email again
 				plMu.Lock()
 				email, tok := plAcc.Email, plAcc.Token
@@ -763,6 +997,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					plAcc = plAccount{}
 					savePLLocked()
 					plMu.Unlock()
+					clearSyncBase()
 				}
 			default:
 				err = errors.New("unknown action")
@@ -782,7 +1017,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 	})
 }
 
-// plRefreshMe asks the server whether this account is an admin.
+// plRefreshMe reads the account's profile (public name, anonymous, admin, email confirmed, two-step
+// sign-in) so a change made on the phone or the web shows on this PC too; the PC's community settings
+// take the same name.
 func plRefreshMe() {
 	loadPL()
 	plMu.Lock()
@@ -797,6 +1034,9 @@ func plRefreshMe() {
 	}
 	var me struct {
 		ID           string `json:"id"`
+		Display      string `json:"display"`
+		NameKind     string `json:"nameKind"`
+		Anon         bool   `json:"anon"`
 		Admin        bool   `json:"admin"`
 		Verified     bool   `json:"verified"`
 		Mail         bool   `json:"mail"`
@@ -806,11 +1046,25 @@ func plRefreshMe() {
 	if json.Unmarshal(b, &me) != nil || me.ID == "" {
 		return
 	}
+	if me.NameKind != "iracing" {
+		me.NameKind = "nick"
+	}
 	plMu.Lock()
-	if plAcc.ID == me.ID && (plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor) {
+	if plAcc.ID != me.ID {
+		plMu.Unlock()
+		return
+	}
+	if plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor || plAcc.Display != me.Display || plAcc.NameKind != me.NameKind || plAcc.Anon != me.Anon {
 		plAcc.Admin, plAcc.Verified, plAcc.Mail, plAcc.TwoFactor = me.Admin, me.Verified, me.Mail, me.TwoFactor
+		plAcc.Display, plAcc.NameKind, plAcc.Anon = me.Display, me.NameKind, me.Anon
 		savePLLocked()
 	}
 	plRecovery = me.RecoveryLeft
 	plMu.Unlock()
+	commMu.Lock()
+	if me.Display != "" && (commCfg.Alias != me.Display || commCfg.NameKind != me.NameKind || commCfg.Anonymous != me.Anon) {
+		commCfg.Alias, commCfg.NameKind, commCfg.Anonymous = me.Display, me.NameKind, me.Anon
+		saveCommLocked()
+	}
+	commMu.Unlock()
 }

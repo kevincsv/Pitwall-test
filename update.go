@@ -50,6 +50,28 @@ func versionLess(a, b string) bool {
 	return false
 }
 
+// what the updates remember between runs: the version already announced, and whether they install by themselves
+type updPrefs struct {
+	Told   string `json:"told,omitempty"`
+	Manual bool   `json:"manual,omitempty"` // install only when you press Update now (by default they install by themselves)
+}
+
+func updPrefsPath() string { return filepath.Join(dataDir(), "update.json") }
+
+func loadUpdPrefs() updPrefs {
+	var p updPrefs
+	if b, err := os.ReadFile(updPrefsPath()); err == nil {
+		json.Unmarshal(b, &p)
+	}
+	return p
+}
+
+func saveUpdPrefs(p updPrefs) {
+	b, _ := json.Marshal(p)
+	os.MkdirAll(dataDir(), 0o700)
+	os.WriteFile(updPrefsPath(), b, 0o600)
+}
+
 var (
 	updMu      sync.Mutex
 	updLatest  *updateInfo
@@ -89,7 +111,8 @@ func updateStatus() map[string]any {
 	avail := updLatest != nil && buildID != "dev" && updLatest.Build != buildID
 	// required: this version is older than the newest one's minimum, so it no longer works properly
 	required := avail && updLatest.Min != "" && versionLess(appVersion, updLatest.Min)
-	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev"}
+	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev",
+		"auto": !loadUpdPrefs().Manual, "autoWorks": updateSupported && buildID != "dev" && !engineMode}
 	if updLatest != nil {
 		m["latest"] = updLatest
 	}
@@ -99,33 +122,70 @@ func updateStatus() map[string]any {
 	return m
 }
 
-// updateWatcher checks a minute after start and then every 12 hours; a new
-// version also shows a Windows notification (once per version).
+// updateWatcher checks 20 seconds after start and then every 30 minutes. A new version shows a Windows
+// notification (once per version) and the banner in the app, and installs by itself as soon as no sim
+// is running (unless you switched that off): Pitlane HQ restarts on the new version with its windows.
 func updateWatcher() {
 	cleanOldFiles()
-	time.Sleep(time.Minute)
-	told := ""
+	if os.Getenv("PITLANE_UPDATED") != "" && buildID != "dev" {
+		go func() {
+			time.Sleep(8 * time.Second)
+			notify("Pitlane HQ "+appVersion+" is installed", "Updated by itself. Your settings and laps are kept; see what's new in Settings → About.")
+		}()
+	}
+	started := time.Now()
+	time.Sleep(20 * time.Second)
+	var last time.Time
 	for {
 		if buildID != "dev" {
-			if err := checkUpdate(); err != nil {
-				updMu.Lock()
-				updErr = err.Error()
-				updMu.Unlock()
-			} else if st := updateStatus(); st["available"] == true {
+			if time.Since(last) >= 30*time.Minute {
+				last = time.Now()
+				if err := checkUpdate(); err != nil {
+					updMu.Lock()
+					updErr = err.Error()
+					updMu.Unlock()
+				}
+			}
+			if st := updateStatus(); st["available"] == true {
 				updMu.Lock()
 				l := *updLatest
+				busy := updBusy
 				updMu.Unlock()
-				if l.Build != told {
-					told = l.Build
-					v := l.Version
-					if v == "" {
-						v = "new"
+				p := loadUpdPrefs()
+				v := l.Version
+				if v == "" {
+					v = "new"
+				}
+				if p.Told != l.Build {
+					p.Told = l.Build
+					saveUpdPrefs(p)
+					if p.Manual || engineMode {
+						notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
+					} else {
+						notify("Pitlane HQ "+v+" is available", "It installs by itself as soon as you are not driving. Your settings and laps are kept.")
 					}
-					notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
+				}
+				// by itself: not while a sim is running, not in the first minutes after starting
+				if !p.Manual && !engineMode && updateSupported && !busy && !currentStatus().Connected && time.Since(started) > 2*time.Minute {
+					updMu.Lock()
+					updBusy = true
+					updMu.Unlock()
+					err := applyUpdate()
+					updMu.Lock()
+					updBusy = false
+					if err != nil {
+						updErr = err.Error()
+					}
+					updMu.Unlock()
+					if err == nil {
+						return // restarting on the new version
+					}
+					log.Println("Update:", err)
+					last = time.Now() // try again at the next check
 				}
 			}
 		}
-		time.Sleep(12 * time.Hour)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -250,6 +310,10 @@ func registerUpdateRoutes(mux *http.ServeMux) {
 			switch r.URL.Query().Get("action") {
 			case "check":
 				err = checkUpdate()
+			case "auto": // install by themselves (on) or only with Update now (off)
+				p := loadUpdPrefs()
+				p.Manual = r.URL.Query().Get("on") != "1"
+				saveUpdPrefs(p)
 			case "apply":
 				updMu.Lock()
 				busy := updBusy
@@ -276,6 +340,13 @@ func registerUpdateRoutes(mux *http.ServeMux) {
 				writeJSON(w, map[string]string{"error": err.Error()})
 				return
 			}
+		}
+		// the banner asks every few minutes: an answer older than a quarter of an hour is checked again
+		updMu.Lock()
+		stale := time.Since(updChecked) > 15*time.Minute && !updBusy
+		updMu.Unlock()
+		if r.Method == http.MethodGet && stale && buildID != "dev" {
+			checkUpdate()
 		}
 		writeJSON(w, updateStatus())
 	})

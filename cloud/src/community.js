@@ -2,11 +2,11 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
-import { sessionAccount, isAdmin, nameTaken, deleteAccount } from "./accounts.js";
+import { sessionAccount, isAdmin, nameTaken, purgeAccount } from "./accounts.js";
 import { mailReady } from "./email.js";
 import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
-import { getModel, markModel, pseudoId, PSEUDO_MIN } from "./model.js";
+import { getModel, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -161,13 +161,7 @@ export async function community(req, env, url) {
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     const id = du[1];
     if (id === acc.id || isAdmin(env, id)) return err("an admin account cannot be deleted from here", 400);
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1)").bind("acct:" + id),
-      env.DB.prepare("DELETE FROM sessions WHERE uploader=?1").bind("acct:" + id),
-      env.DB.prepare("DELETE FROM community_laps WHERE user_id IN (SELECT id FROM community_users WHERE owner=?1)").bind(id),
-      env.DB.prepare("DELETE FROM community_users WHERE owner=?1").bind(id),
-    ]);
-    await deleteAccount(env, id);
+    await purgeAccount(env, id);
     return json({ deleted: true });
   }
   if (m === "GET" && p === "/admin/status") {
@@ -319,6 +313,37 @@ export async function community(req, env, url) {
   if (p.startsWith("/setups/") && m === "DELETE") {
     await env.DB.prepare("DELETE FROM community_setups WHERE id=?1 AND user_id=?2").bind(p.slice(8), u.id).run();
     return json({ deleted: true });
+  }
+  // a PC signed in to an account brings what it shared before with its own community token (an older PC,
+  // or before the account existed): it all goes under the account and its one public name; per car and
+  // track the faster lap stays (or the one with telemetry), the model counts them as one driver
+  if (p === "/adopt" && m === "POST") {
+    if (!u.account) return err("sign in with your Pitlane HQ account", 401);
+    const t = typeof body.token === "string" ? body.token.trim() : "";
+    if (t.length < 20) return err("missing token", 400);
+    const d = await env.DB.prepare("SELECT id FROM community_users WHERE token_hash=?1").bind(await sha256(t)).first();
+    if (!d || d.id === u.id || /^(o:|guest-)/.test(d.id) || (await env.DB.prepare("SELECT 1 FROM accounts WHERE id=?1").bind(d.id).first())) return json({ adopted: 0 });
+    const laps = (await env.DB.prepare("SELECT id, car_id, track_id, time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1").bind(d.id).all()).results || [];
+    const q = [], combos = new Set();
+    for (const l of laps) {
+      const mine = await env.DB.prepare("SELECT id, time, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, l.car_id, l.track_id).first();
+      combos.add(l.game + "|" + l.track_id + "|" + l.car_id);
+      if (!mine) { q.push(env.DB.prepare("UPDATE community_laps SET user_id=?2 WHERE id=?1").bind(l.id, u.id)); continue; }
+      const better = mine.time > l.time || (!mine.traced && !!l.traced); // the same rule as keepBestLap
+      if (better) q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(mine.id), env.DB.prepare("UPDATE community_laps SET user_id=?2 WHERE id=?1").bind(l.id, u.id));
+      else q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(l.id));
+    }
+    q.push(
+      env.DB.prepare("UPDATE community_reports SET user_id=?2 WHERE user_id=?1").bind(d.id, u.id),
+      env.DB.prepare("UPDATE OR IGNORE community_setups SET user_id=?2 WHERE user_id=?1").bind(d.id, u.id),
+      env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(d.id),
+      env.DB.prepare("UPDATE track_maps SET user_id=?2 WHERE user_id=?1").bind(d.id, u.id),
+      env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(d.id),
+    );
+    await env.DB.batch(q);
+    await moveDriver(env, "acct:" + d.id, "acct:" + u.id);
+    for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
+    return json({ adopted: laps.length });
   }
   if (p === "/me" && m === "POST") {
     if (u.account) return err("change your public name in your account", 400);

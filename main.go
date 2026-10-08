@@ -24,7 +24,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.8.9"
+const appVersion = "0.8.10"
 
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
@@ -63,6 +63,9 @@ type Telemetry struct {
 }
 
 var tel = &Telemetry{index: map[string]int{}}
+
+// engineMode: running as the engine of the desktop shell (desktop/): the shell owns the window and restarts
+var engineMode bool
 
 func (t *Telemetry) setDemo(on bool) {
 	t.mu.Lock()
@@ -430,6 +433,7 @@ func main() {
 	rate := flag.Float64("demo-rate", 1, "demo playback speed (testing)")
 	cd := flag.Bool("cloud-demo", false, "internal: upload the demo race laps (testing)")
 	flag.Parse()
+	engineMode = *engine
 	cloudDemo = *cd
 	demoRate = *rate
 	if *ovName != "" {

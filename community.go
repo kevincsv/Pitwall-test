@@ -473,6 +473,29 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				} else {
 					in.NameKind = "nick"
 				}
+				// signed in, the name is the account's: one public name on every device and on everything
+				// shared under it (the server keeps it); a name someone else has is refused here
+				in.Alias = cleanText(in.Alias, 32)
+				if accountSignedIn() {
+					plMu.Lock()
+					cur, curKind, curAnon := plAcc.Display, plAcc.NameKind, plAcc.Anon
+					plMu.Unlock()
+					if in.Alias == "" {
+						in.Alias = cur
+					}
+					if in.Alias != cur || in.NameKind != firstNonEmpty(curKind, "nick") || in.Anonymous != curAnon {
+						if _, err := plCall("POST", "/me", map[string]any{"display": in.Alias, "nameKind": in.NameKind, "anon": in.Anonymous}); err != nil {
+							fail(err)
+							return
+						}
+						plMu.Lock()
+						plAcc.Display, plAcc.NameKind, plAcc.Anon = in.Alias, in.NameKind, in.Anonymous
+						savePLLocked()
+						plMu.Unlock()
+						kickSync()
+					}
+				}
+				signed := accountSignedIn()
 				commMu.Lock()
 				oldAlias := commCfg.Alias
 				commCfg.NameKind = in.NameKind
@@ -495,7 +518,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 					commCfg.DeleteAfter = ""
 				}
 				saveCommLocked()
-				reg := commCfg.Token != "" && oldAlias != commCfg.Alias
+				reg := commCfg.Token != "" && oldAlias != commCfg.Alias && !signed
 				alias := commCfg.Alias
 				commMu.Unlock()
 				if reg {

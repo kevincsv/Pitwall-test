@@ -1,6 +1,61 @@
 {
   "versions": [
     {
+      "v": "0.8.10",
+      "en": [
+        "Your account syncs by itself on the PC, the web and the phone apps: when they open, when they come back to the screen and a few seconds after every change. A name changed on the phone shows everywhere.",
+        "Changes made on two devices at once are merged; the question of which copy to keep is gone.",
+        "PitlaneHQ.exe checks for new versions every 30 minutes, tells you with a notification and installs them by itself when no sim is running (Settings → About).",
+        "Deleting your account keeps your leaderboard laps and what the coach model learnt, as an anonymous driver."
+      ],
+      "es": [
+        "Tu cuenta se sincroniza sola en el PC, la web y las apps del móvil: al abrirlas, al volver a la pantalla y unos segundos después de cada cambio. Un nombre cambiado en el móvil se ve en todas partes.",
+        "Si cambias algo en dos dispositivos a la vez, se juntan los dos cambios; ya no se pregunta qué copia conservar.",
+        "PitlaneHQ.exe busca versiones nuevas cada 30 minutos, te avisa con una notificación y se instala sola cuando no hay un simulador abierto (Ajustes → Acerca de).",
+        "Si borras tu cuenta, tus vueltas de la leaderboard y lo que aprendió el modelo del coach se quedan, como un piloto anónimo."
+      ]
+    },
+    {
+      "v": "0.8.9",
+      "en": [
+        "A shorter coach: the gap, what to work on first, the plan, the map, the sectors and the corners that cost the most.",
+        "The coach shows the record, the next level and your pace among the drivers of that car and track."
+      ],
+      "es": [
+        "Un coach más corto: la diferencia, qué trabajar primero, el plan, el mapa, los sectores y las curvas que más cuestan.",
+        "El coach muestra el récord, el siguiente nivel y tu ritmo entre los pilotos de ese coche y circuito."
+      ]
+    },
+    {
+      "v": "0.8.8",
+      "en": [
+        "The coach's sector table fits on phones, and the coach and the analyzer use the same sector times."
+      ],
+      "es": [
+        "La tabla de sectores del coach cabe en el móvil, y el coach y el analizador usan los mismos tiempos por sector."
+      ]
+    },
+    {
+      "v": "0.8.7",
+      "en": [
+        "The model learns from everyone you race against.",
+        "Races without a report are rebuilt from the saved laps; the real iRating change replaces the estimate."
+      ],
+      "es": [
+        "El modelo aprende de todos contra los que corres.",
+        "Las carreras sin resumen se reconstruyen con las vueltas guardadas; el cambio real de iRating sustituye a la estimación."
+      ]
+    },
+    {
+      "v": "0.8.6",
+      "en": [
+        "The race summary's table shows each driver's sectors."
+      ],
+      "es": [
+        "La tabla del resumen de carrera muestra los sectores de cada piloto."
+      ]
+    },
+    {
       "v": "0.8.5",
       "en": [
         "The estimated iRating change is right way round now.",

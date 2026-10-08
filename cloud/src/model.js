@@ -230,6 +230,20 @@ const gz = async (s) => new Uint8Array(await new Response(new Blob([s]).stream()
 const gunz = async (b) => await new Response(new Blob([b instanceof ArrayBuffer || ArrayBuffer.isView(b) ? b : new Uint8Array(b)]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
 
 // a car and track got a new lap: the model has to learn it
+// the laps one driver taught the model, moved to another driver (a PC's community token merged into its
+// account): the same laps, counted once and under the account
+export async function moveDriver(env, fromUp, toUp) {
+  const from = await sha("drv:" + fromUp), to = await sha("drv:" + toUp);
+  const rows = (await env.DB.prepare("SELECT game, track_id, car_id, k, time FROM model_laps WHERE drv=?1").bind(from).all()).results || [];
+  for (const r of rows) {
+    await env.DB.prepare("UPDATE OR IGNORE model_laps SET drv=?5, k=?6 WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4")
+      .bind(r.game, r.track_id, r.car_id, r.k, to, await sha(toUp + ":" + r.time.toFixed(3))).run();
+  }
+  // a lap both drivers had (the same lap learnt twice) stays once
+  await env.DB.prepare("DELETE FROM model_laps WHERE drv=?1").bind(from).run();
+  return rows.length;
+}
+
 export async function markModel(env, game, trackId, carId) {
   if (!trackId || !carId) return;
   await env.DB.prepare(

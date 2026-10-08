@@ -94,19 +94,53 @@ async function mailVerify(env, url, accountId, email, l) {
   return sendVerify(env, email, url.origin + "/account/verify?t=" + t + "&lang=" + lang(l), l);
 }
 
+// the account itself and what only it can open: the sign-in, the devices, the synced (encrypted) copy, the emails
+const accountRows = (env, id) => [
+  env.DB.prepare("DELETE FROM account_sync_chunks WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM login_pending WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
+];
+
+// you delete your account: the account goes, with your synced data, your devices, your race analyses,
+// your setups and the laps nobody can learn from. What the leaderboard shows and what the coach model
+// learns from stays, as an anonymous driver: your shared laps (with the telemetry they took from your
+// account's laps) and the valid laps with telemetry of your account, which the model keeps learning from.
 export async function deleteAccount(env, id) {
+  const up = "acct:" + id;
   await env.DB.batch([
+    // a shared lap without its own telemetry showed the same lap of the account: it keeps it now
+    env.DB.prepare(`UPDATE community_laps SET trace=(SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
+        WHERE s.uploader=?2 AND ABS(a.time-community_laps.time)<0.002 AND s.game=community_laps.game AND a.valid=1 AND a.trace IS NOT NULL LIMIT 1)
+      WHERE user_id=?1 AND trace IS NULL AND EXISTS (SELECT 1 FROM community_laps c2 WHERE c2.user_id=?1 AND c2.trace IS NOT NULL)`).bind(id, up),
+    env.DB.prepare("UPDATE community_laps SET anon=1 WHERE user_id=?1").bind(id),
+    env.DB.prepare("UPDATE community_users SET alias='Anonymous', iracing=NULL, owner=NULL, token_hash='deleted:'||id WHERE id=?1").bind(id),
+    // the rivals of your races and your Drinks drivers are other people: their laps stay as they are
+    env.DB.prepare("UPDATE community_users SET owner=NULL WHERE owner=?1").bind(id),
+    env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(id),
+    // of your own laps only the ones the model learns from stay (valid, with telemetry), under no name
+    env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1) AND (valid<>1 OR trace IS NULL OR time<=10)").bind(up),
+    env.DB.prepare("DELETE FROM sessions WHERE uploader=?1 AND NOT EXISTS (SELECT 1 FROM laps WHERE session_id=sessions.id)").bind(up),
+    ...accountRows(env, id),
+  ]);
+}
+
+// an admin removes an account (abuse, spam): everything it uploaded and shared goes too
+export async function purgeAccount(env, id) {
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM laps WHERE session_id IN (SELECT id FROM sessions WHERE uploader=?1)").bind("acct:" + id),
+    env.DB.prepare("DELETE FROM sessions WHERE uploader=?1").bind("acct:" + id),
+    env.DB.prepare("DELETE FROM community_laps WHERE user_id IN (SELECT id FROM community_users WHERE owner=?1)").bind(id),
+    env.DB.prepare("DELETE FROM community_users WHERE owner=?1").bind(id),
     env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(id),
-    env.DB.prepare("DELETE FROM account_sync_chunks WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM login_pending WHERE account_id=?1").bind(id),
-    env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
+    ...accountRows(env, id),
   ]);
 }
 
@@ -311,11 +345,18 @@ export async function accounts(req, env, url) {
     if (await nameTaken(env, display, a.id)) return json({ error: "this nickname is already taken, choose another one", code: "name_taken" }, 409);
     // anon: what you share shows as "Anonymous" (kept with the account so every device agrees)
     const anon = body.anon === undefined ? !!a.anon : body.anon ? 1 : 0;
-    await env.DB.batch([
-      env.DB.prepare("UPDATE accounts SET display=?2, name_kind=?3, anon=?4 WHERE id=?1").bind(a.id, display, body.nameKind === "iracing" ? "iracing" : "nick", anon ? 1 : 0),
+    const kind = body.nameKind === "iracing" ? "iracing" : "nick", was = a.name_kind === "iracing" ? "iracing" : "nick";
+    // one public name per account, on every device and on everything shared under it: the laps shared
+    // under your name (not the anonymous ones) show the new one, also when you switch nickname ↔ iRacing name
+    const q = [
+      env.DB.prepare("UPDATE accounts SET display=?2, name_kind=?3, anon=?4 WHERE id=?1").bind(a.id, display, kind, anon ? 1 : 0),
       env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(a.id, display),
-    ]);
-    return json({ ok: true });
+    ];
+    if (kind === "iracing") q.push(env.DB.prepare("UPDATE community_users SET iracing=?2 WHERE id=?1").bind(a.id, display));
+    if (kind !== was) for (const t of ["community_laps", "community_reports"])
+      q.push(env.DB.prepare(`UPDATE ${t} SET shown=?2 WHERE user_id=?1 AND anon=0 AND COALESCE(shown,'nick')=?3`).bind(a.id, kind, was));
+    await env.DB.batch(q);
+    return json({ ok: true, display, nameKind: kind, anon: !!anon });
   }
   if (p === "/verify/resend" && m === "POST") {
     if (a.verified) return json({ ok: true, verified: true });

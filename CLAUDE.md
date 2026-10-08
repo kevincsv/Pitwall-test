@@ -30,6 +30,15 @@
   NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.
   Switched off for now: setups, per-car settings, the Data view and sharing race analyses.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
+- Sync is automatic and covers everything in the account: every app reads the account when it starts,
+  when it comes back to the screen and every minute (the PC also a few seconds after any change), and
+  changes from several devices are merged (`syncmerge.go`), never a "which copy" question. One
+  public name per account: changing it anywhere changes it everywhere, shared laps included.
+- Deleting your own account never deletes what the leaderboard shows or what the model learns from:
+  those laps stay as an anonymous driver (`deleteAccount` in `cloud/src/accounts.js`); everything
+  else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
+- PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
+  itself when no sim is running (unless switched off in Settings → About).
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
   The Android and iOS apps live in their own repository.
 - One app everywhere: `web/dist` is the PC app and the web app at `/app` (computers and phones).

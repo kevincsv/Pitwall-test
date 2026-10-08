@@ -15,9 +15,16 @@ func notify(title, body string) {
 	// the installer's Start menu shortcut carries this id; without it
 	// (ZIP version) the notification comes from PowerShell
 	app := "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe"
+	// the installer's shortcut is "Pitlane HQ" in the "Pitlane HQ" folder of the Start menu
 	for _, dir := range []string{os.Getenv("APPDATA"), os.Getenv("ProgramData")} {
-		if m, _ := filepath.Glob(filepath.Join(dir, "Microsoft", "Windows", "Start Menu", "Programs", "*", "PitlaneHQ.lnk")); dir != "" && len(m) > 0 {
-			app = "PitlaneHQ.App"
+		if dir == "" {
+			continue
+		}
+		progs := filepath.Join(dir, "Microsoft", "Windows", "Start Menu", "Programs")
+		for _, pat := range []string{filepath.Join(progs, "*", "Pitlane HQ.lnk"), filepath.Join(progs, "Pitlane HQ.lnk"), filepath.Join(progs, "*", "PitlaneHQ.lnk")} {
+			if m, _ := filepath.Glob(pat); len(m) > 0 {
+				app = "PitlaneHQ.App"
+			}
 		}
 	}
 	x := func(s string) string {

@@ -4,6 +4,42 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.10 beta
+
+**Fixed**
+- **Your account syncs by itself, everywhere, with everything in it.** A public name changed on the
+  phone did not reach the PC (it read the account every 6 hours and never the name) nor the other
+  browsers. Now the PC reads your profile and syncs when it starts, every minute, when its window
+  comes back and a few seconds after anything synced changes on it; the web does it when it opens,
+  when it comes back to the screen and every minute; the phone apps when they open and every time
+  they come back to the screen. What is synced: your public name (and anonymous or not), settings,
+  layouts, overlays, per-car settings, setup notes, race history, track notes, calendar and, new,
+  what you chose to share (so every PC shares the same way; the web shows it too).
+- **No more "which copy do you keep?".** When two devices change things at the same time, the
+  changes are merged: setting by setting, race by race (a race recorded on one PC and a race
+  deleted on the phone both count); the same setting changed on both goes to the newer change.
+  A PC that signs in to an account takes the account's settings and adds its own races.
+- **One public name per account.** Changing your name in the PC's community settings changes the
+  account's (it used to stay on that PC); laps shared under your name show the new one, also when
+  you switch between nickname and iRacing name; and the laps a PC shared with its own token before
+  it signed in (an older version, or before the account existed) move under your account and its
+  name, keeping the faster lap of each car and track.
+- **Updates on the PC come by themselves.** PitlaneHQ.exe looked for a new version once every 12
+  hours and its notification never came from the app (it looked for a shortcut with the wrong
+  name). Now it checks every 30 minutes (and whenever the window asks), shows a Windows
+  notification once per version and the banner in the app, and installs the new version by
+  itself as soon as no sim is running; Settings → About has the switch to install only with
+  Update now. This version still has to be installed by hand once: from it on, they come alone.
+- The race summary's map no longer ends with the long note about T1, T2…, braking and the purple
+  ring.
+
+**Changed**
+- **Deleting your account keeps the leaderboard and the coach model whole.** Your account, email,
+  synced data, devices, race analyses and setups go; your laps on the leaderboard (with their
+  telemetry) and the laps the model learns from stay, as an anonymous driver without your name.
+  An admin removing an account (abuse, spam) still removes everything it shared. The privacy notice
+  and the delete button say so.
+
 ## 0.8.9 beta
 
 **Changed**
