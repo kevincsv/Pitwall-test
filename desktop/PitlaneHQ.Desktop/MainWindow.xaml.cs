@@ -227,23 +227,31 @@ public partial class MainWindow : Window
         if (key == _ratingsKey) return;
         _ratingsKey = key;
         RatingsList.Children.Clear();
-        var discs = new[] { ("oval", "Oval", "Oval"), ("sports_car", "Sports Car", "Sports Car"), ("formula_car", "Formula Car", "Formula Car"), ("dirt_oval", "Dirt Oval", "Dirt Oval"), ("dirt_road", "Dirt Road", "Dirt Road") };
-        foreach (var (id, en, es) in discs)
+        // the same symbols, colours and names as Community's discipline cards; one card for each, dim with nothing yet
+        foreach (var (id, en, es) in Disciplines)
         {
             var d = r?[id];
-            if (d == null || D(d["ir"]) <= 0) continue;
-            var sp = new StackPanel();
-            sp.Children.Add(new TextBlock { Text = T(en, es).ToUpperInvariant(), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 10, FontWeight = FontWeights.SemiBold });
-            sp.Children.Add(new TextBlock { Text = ((int)D(d["ir"])).ToString(), Foreground = B("Fg"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.SemiBold });
-            var lic = S(d["lic"]);
-            var at = DateTimeOffset.FromUnixTimeMilliseconds((long)D(d["at"])).LocalDateTime.ToString("d");
-            sp.Children.Add(new TextBlock { Text = (lic == "" ? "" : lic + " · ") + at, Foreground = B("Muted"), FontSize = 11 });
-            RatingsList.Children.Add(new Border { Style = (Style)FindResource("Card"), Margin = new Thickness(0, 0, 10, 8), MinWidth = 130, Child = sp });
+            var ir = (int)D(d?["ir"]);
+            var col = new SolidColorBrush(DiscColor(id));
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(DiscIcon(id, 30));
+            var sp = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            sp.Children.Add(new TextBlock { Text = T(en, es), Foreground = B("Muted"), FontSize = 12, FontWeight = FontWeights.SemiBold });
+            sp.Children.Add(new TextBlock { Text = ir > 0 ? ir.ToString() : "–", Foreground = ir > 0 ? col : B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.Bold });
+            if (ir > 0 && S(d?["lic"]) != "") sp.Children.Add(new TextBlock { Text = S(d?["lic"]), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 11 });
+            row.Children.Add(sp);
+            var c = DiscColor(id);
+            RatingsList.Children.Add(new Border
+            {
+                Background = B("Surface"), BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, c.R, c.G, c.B)), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12, 10, 14, 10), Margin = new Thickness(0, 0, 8, 8), MinWidth = 150, Opacity = ir > 0 ? 1 : 0.5, Child = row,
+                ToolTip = ir > 0 ? DateTimeOffset.FromUnixTimeMilliseconds((long)D(d?["at"])).LocalDateTime.ToString("d") : null,
+            });
         }
-        var any = RatingsList.Children.Count > 0;
+        var any = r != null && r.Count > 0;
         RatingsTitle.Text = T("LICENCE SUMMARY", "RESUMEN DE LICENCIAS");
-        RatingsNote.Text = T("Updated every time you start Pitlane HQ with iRacing open and join a session: iRacing only says the iRating of the category you are driving, so the others come from your last session or race in them.",
-            "Se actualiza cada vez que abres Pitlane HQ con iRacing abierto y entras en una sesión: iRacing solo da el iRating de la categoría que estás corriendo, así que los demás salen de tu última sesión o carrera en ellas.");
+        RatingsNote.Text = T("Updated when you join a session with iRacing and Pitlane HQ open.", "Se actualiza al entrar en una sesión con iRacing y Pitlane HQ abiertos.");
+        RatingsList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         RatingsTitle.Visibility = RatingsNote.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
     }
 
