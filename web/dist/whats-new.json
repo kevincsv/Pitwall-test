@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.26",
+      "en": ["Overlays stay open and steady, without a dark border."],
+      "es": ["Los overlays se quedan abiertos y estables, sin borde oscuro."]
+    },
+    {
       "v": "0.8.25",
       "en": ["On the PC, the lap analyzer and the coach load your sessions right away.", "\"Sign out on this PC\" is also in Settings."],
       "es": ["En el PC, el analizador y el coach cargan tus sesiones enseguida.", "\"Cerrar sesión en este PC\" también está en Ajustes."]

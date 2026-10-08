@@ -39,6 +39,7 @@ var (
 	procShowWindow     = user32.NewProc("ShowWindow")
 	procGetWindowRect  = user32.NewProc("GetWindowRect")
 	procGetConsoleWin  = syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
+	procDwmSetAttr     = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmSetWindowAttribute")
 	procFreeConsole    = syscall.NewLazyDLL("kernel32.dll").NewProc("FreeConsole")
 )
 
@@ -79,6 +80,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
+	noWinBorder(hwnd)
 	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
 	// a resize makes WebView2 lay itself out again in the new client area
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h+1), swpNoActivate)
@@ -121,6 +123,18 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	wv.Bind("pwReady", func() { ready.Store(true) })
 	wv.Navigate(url)
 	wv.Run()
+}
+
+// noWinBorder: Windows 11 draws a thin border and rounds the corners of every window; an overlay has
+// neither (nothing happens on Windows 10)
+func noWinBorder(hwnd uintptr) {
+	if procDwmSetAttr.Find() != nil {
+		return
+	}
+	none := uint32(0xFFFFFFFE)                                         // DWMWA_COLOR_NONE
+	procDwmSetAttr.Call(hwnd, 34, uintptr(unsafe.Pointer(&none)), 4)   // DWMWA_BORDER_COLOR
+	square := uint32(1)                                                // DWMWCP_DONOTROUND
+	procDwmSetAttr.Call(hwnd, 33, uintptr(unsafe.Pointer(&square)), 4) // DWMWA_WINDOW_CORNER_PREFERENCE
 }
 
 var gwlStyle = -16

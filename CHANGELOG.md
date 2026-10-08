@@ -4,6 +4,15 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.26 beta
+
+**Fixed**
+- Overlays no longer close and open again by themselves: the account's sync reloading the PC's files made a saved
+  per-car setting apply again, which closed every overlay and reopened it. Per-car settings are switched off, so
+  getting in a car never changes the overlays now.
+- An overlay window no longer has a dark border: the widget fills the window (no gap or rounded corners) and
+  Windows 11 draws no border or rounded corners around it. The window stops asking for a height it cannot get.
+
 ## 0.8.25 beta
 
 **Fixed**

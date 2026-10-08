@@ -44,6 +44,10 @@ const generalKey = "*"
 
 func carsPath() string { return filepath.Join(activeDir(), "carprofiles.json") }
 
+// carProfilesOn: per-car settings are switched off for now, so getting in a car never changes the
+// overlays (the watcher still learns the cars you drive)
+const carProfilesOn = false
+
 func loadCars() {
 	c := carFile{}
 	if b, err := os.ReadFile(carsPath()); err == nil {
@@ -56,7 +60,9 @@ func loadCars() {
 		c.Seen = map[string]string{}
 	}
 	carsMu.Lock()
-	cars, carApplied = c, ""
+	// the car already applied stays applied: a reload of the file (the account's sync brings it again
+	// every time something changes) must not close and reopen your overlays
+	cars = c
 	carsMu.Unlock()
 }
 
@@ -87,7 +93,7 @@ func carWatcher() {
 			saveCarsLocked()
 		}
 		p := cars.Profiles[key]
-		apply := p != nil && carApplied != key
+		apply := carProfilesOn && p != nil && carApplied != key
 		if apply {
 			carApplied = key
 		}

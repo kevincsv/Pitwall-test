@@ -392,6 +392,11 @@ html.ov nav.subtabs{display:none!important}
 @media (max-width:760px){nav.tabs button{flex-direction:column;gap:3px;font-size:11px}nav.tabs button svg{width:20px;height:20px}}
 /* overlay looks: glass (default), carbon, minimal */
 html.ov .panel{border-radius:10px}
+/* an overlay window is the widget itself: no gap, rounded corners or border showing the window's dark background around it */
+html.ovwin,html.ovwin body{background:var(--surface)}
+html.ovwin section.view{padding:0}
+html.ovwin.edit section.view{padding-top:26px}
+html.ovwin .panel{border-radius:0!important;border-color:transparent!important;box-shadow:none!important;margin:0}
 html.ov.ovt-glass,html.ov.ovt-glass body,html.ov.ovt-minimal,html.ov.ovt-minimal body{background:transparent!important}
 html.ov.ovt-glass .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--fg) 10%,transparent)}
 html.ov.ovt-glass .panel>.label:first-child,html.ov.ovt-glass .panel .vhead .label{display:flex;align-items:center;gap:6px}
@@ -2033,7 +2038,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.25",APP_STAGE="beta";
+const WEB_VERSION="0.8.26",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -3397,7 +3402,7 @@ let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
   if(!v)return;OV.on=true;OV.preview=q.get("preview")==="1";OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
-  document.documentElement.classList.add("ov");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="Pitlane HQ overlay · "+OV.list.join("+")})();
+  document.documentElement.classList.add("ov");if(OV.win)document.documentElement.classList.add("ovwin");if(!OV.bg)document.documentElement.classList.add("ov-clear");document.title="Pitlane HQ overlay · "+OV.list.join("+")})();
 // frameless Edge overlay windows (fl=1): Pitlane HQ moves and resizes them for the page
 if(OV.on&&new URLSearchParams(location.search).get("fl")==="1"&&typeof window.pwDrag!=="function")(function(){
   const name=OV.list[0]||"",dpr=()=>window.devicePixelRatio||1;let busy=false,pend=null;
@@ -4090,7 +4095,7 @@ function ovFit(){if(!OV.on||!OV.win||OV.list.length!==1)return;const sz=OVSZ[OV.
   const H=document.documentElement;OVFIT.dw=sz[0];H.classList.add("ovfit");H.style.setProperty("--ovdw",sz[0]+"px");
   const z=Math.max(OVFIT.min,Math.min(OVFIT.max,innerWidth/sz[0]));OVFIT.z=z;H.style.setProperty("--ovz",z);
   OVFIT.nh=sec.offsetHeight;const want=Math.ceil(OVFIT.nh*z);
-  if(!OVFIT.busy&&typeof window.pwSize==="function"&&Math.abs(want-innerHeight)>3)window.pwSize(Math.round(outerWidth),Math.min(screen.availHeight||2000,want+(outerHeight-innerHeight)))}
+  if(!OVFIT.busy&&typeof window.pwSize==="function"&&Math.abs(want-innerHeight)>3&&OVFIT.last!==want){OVFIT.last=want;window.pwSize(Math.round(outerWidth),Math.min(screen.availHeight||2000,want+(outerHeight-innerHeight)))}}
 if(OV.on&&OV.win){addEventListener("resize",()=>ovFit());setTimeout(ovFit,300);setInterval(ovFit,1000)}
 /* which overlays are open on the PC right now (shown on the Overlays cards) */
 let OV_OPEN=new Set();

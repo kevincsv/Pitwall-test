@@ -188,6 +188,9 @@ func switchProfile(id string) error {
 	}
 	closeOverlays("*")
 	loadProfileState()
+	carsMu.Lock()
+	carApplied = "" // another profile: its car settings apply again
+	carsMu.Unlock()
 	profileEpoch.Add(1)
 	log.Println("Profile:", activeName())
 	return nil
