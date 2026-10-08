@@ -31,9 +31,15 @@ Needs the .NET 8 SDK and the WebView2 runtime (part of Windows 11 and of Edge). 
 
 ## What is native already
 
-- The frame: title bar buttons, the same menu as everywhere (Home, Analysis, Community, Live,
-  Account, then Settings),
-  the status bar (engine, game, track and car, account).
-- Home: the live status card (connection, track and car), from the engine's `/api/now`.
+- The frame: title bar buttons, the same menu as everywhere (Home, Analysis, Community, Telemetry, Overlays,
+  Account, then Settings) in the app's language, with the app's fonts (`ovfonts/`, the same files the native
+  overlays draw with), and the status bar (engine, version, iRacing account).
+- Home: the game, track and car, the live header items (session, position, lap, laps or time left, SOF,
+  estimated iRating, incidents, fuel) and the recent races (from `/api/races`).
+- Telemetry: gear, speed, pedals, the shift lights, lap timing with the delta, fuel and the relative, ten times a
+  second from `/api/desk` (the engine works them out with the native overlays' own code).
+- Overlays: every overlay with Open/Close and Auto, Move/Lock, opacity, reset positions, close all, the built-in
+  presets and your own (save, apply, delete). The overlays themselves are drawn natively by the engine.
 
-Next: Live and the lap tables, then the analyzer. The WebView keeps the rest meanwhile.
+Not native yet (the app inside a WebView, started only when one of them is opened): Analysis, Community, Account
+and Settings. They move over one at a time.

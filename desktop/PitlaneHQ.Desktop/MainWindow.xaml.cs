@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     private readonly Border[] _rpm = new Border[16];
 
     // the native screens; every other view is the WebView
-    private static readonly HashSet<string> Native = new() { "home", "live", "overlays" };
+    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings" };
 
     public MainWindow()
     {
@@ -67,6 +67,9 @@ public partial class MainWindow : Window
             await _engine.StartAsync(exe, _cts.Token);
             EngineText.Text = "Engine: " + _engine.Base;
             Starting.Visibility = Visibility.Collapsed;
+            // the app runs behind the native screens from the start (hidden): the race engineer, the beeps and
+            // the recording of your laps live there
+            _ = EnsureWebAsync();
             _poll.Start();
             _fast.Start();
             await RefreshAsync();
@@ -86,7 +89,12 @@ public partial class MainWindow : Window
         _webStarted = true;
         try
         {
-            await Web.EnsureCoreWebView2Async();
+            // its own data folder (the install folder may not be writable) and no slowing down while hidden:
+            // the beeps and the engineer keep their timing behind a native screen
+            var env = await CoreWebView2Environment.CreateAsync(null,
+                System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PitlaneHQ", "WebView2-desktop"),
+                new CoreWebView2EnvironmentOptions("--disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows"));
+            await Web.EnsureCoreWebView2Async(env);
             Web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             Web.CoreWebView2.Settings.IsStatusBarEnabled = false;
             Web.CoreWebView2.NewWindowRequested += OnNewWindow;
@@ -121,6 +129,23 @@ public partial class MainWindow : Window
         OvReset.Content = T("Reset positions", "Restablecer posiciones"); OvCloseAll.Content = T("Close all", "Cerrar todos"); OvAlphaL.Text = T("OPACITY", "OPACIDAD");
         OvPresetsL.Text = T("PRESETS", "PERFILES"); OvPresetSave.Content = T("+ Save current", "+ Guardar el actual"); DemoText.Text = T("DEMO DATA", "DATOS DE PRUEBA");
         StartingText.Text = T("Starting the Pitlane HQ engine…", "Arrancando el motor de Pitlane HQ…");
+        AccTitle.Text = T("Account", "Cuenta"); AccSignInT.Text = T("SIGN IN", "INICIAR SESIÓN"); AccEmailL.Text = "EMAIL"; AccPassL.Text = T("PASSWORD", "CONTRASEÑA");
+        AccCodeL.Text = T("CODE FROM YOUR AUTHENTICATOR APP (OR A RECOVERY CODE)", "CÓDIGO DE TU APP DE AUTENTICACIÓN (O UN CÓDIGO DE RECUPERACIÓN)");
+        AccLogin.Content = T("Sign in", "Entrar"); AccCreate.Content = T("Create an account", "Crear una cuenta");
+        AccNameL.Text = T("PUBLIC NAME", "NOMBRE PÚBLICO"); AccNameSave.Content = T("Save", "Guardar");
+        AccNameNote.Text = T("Changing it here changes it everywhere, your shared laps too.", "Si lo cambias aquí cambia en todas partes, también en tus vueltas compartidas.");
+        AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar"); AccSyncT.Text = T("SYNC", "SINCRONIZACIÓN");
+        AccSync.Content = T("Sync now", "Sincronizar ahora"); AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
+        AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
+        SetTitle.Text = T("Settings", "Ajustes"); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
+        SetCloseOv.Content = T("Close the overlays when Pitlane HQ closes", "Cerrar los overlays al cerrar Pitlane HQ");
+        SetBeepT.Text = T("BRAKING BEEPS", "PITIDOS DE FRENADA"); SetBeepOff.Content = T("Off", "Apagados"); SetBeepOne.Content = T("1 beep", "1 pitido"); SetBeepCount.Content = T("3 beeps", "3 pitidos");
+        SetTraffic.Content = T("Earlier with traffic", "Antes con tráfico"); SetVolL.Text = T("VOLUME", "VOLUMEN");
+        SetBeepNote.Text = T("Where to brake comes from the model of your car and track; the beeps come earlier with more speed, or with a car close ahead or alongside.", "El punto de frenada sale del modelo de tu coche y circuito; los pitidos suenan antes con más velocidad o con un coche justo delante o al lado.");
+        SetUpdT.Text = T("UPDATES", "ACTUALIZACIONES"); SetUpdAuto.Content = T("Install updates by themselves when no sim is running", "Instalar las actualizaciones solas cuando no hay ningún simulador abierto");
+        SetUpdCheck.Content = T("Check now", "Comprobar ahora"); SetUpdApply.Content = T("Update now", "Actualizar ahora");
+        SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
+        SetMore.Content = T("Open all the settings", "Abrir todos los ajustes");
         _ovKey = "";
     }
 
@@ -148,6 +173,7 @@ public partial class MainWindow : Window
             DemoPill.Visibility = st.Demo ? Visibility.Visible : Visibility.Collapsed;
             if (_view == "home") await HomeRacesAsync();
             if (_view == "overlays") await OverlaysAsync();
+            if (_view == "me") await AccountAsync();
         }
         catch (Exception ex) { EngineText.Text = "Engine: " + ex.Message; }
         finally { _busyPoll = false; }
@@ -471,6 +497,171 @@ public partial class MainWindow : Window
     private async void OnOvReset(object sender, RoutedEventArgs e) { await Post("/api/overlay/reset"); _ovKey = ""; await OverlaysAsync(); }
     private async void OnOvCloseAll(object sender, RoutedEventArgs e) { await Post("/api/overlay/close?w=*"); _ovKey = ""; await OverlaysAsync(); }
 
+    // ---------- Account (native) ----------
+
+    private bool _reveal, _need2fa;
+    private string _email = "";
+
+    private async Task AccountAsync()
+    {
+        JsonNode? a;
+        try { a = await _engine.GetAsync("/api/sync"); } catch { return; }
+        bool signed = Bo(a?["signedIn"]);
+        AccSignIn.Visibility = signed ? Visibility.Collapsed : Visibility.Visible;
+        AccIn.Visibility = signed ? Visibility.Visible : Visibility.Collapsed;
+        if (!signed)
+        {
+            if (AccEmail.Text == "" && S(a?["email"]) != "") AccEmail.Text = S(a?["email"]);
+            if (Bo(a?["ended"]) && AccErr.Visibility != Visibility.Visible) ShowAccErr(T("You were signed out on the server: sign in again.", "Se cerró tu sesión en el servidor: vuelve a entrar."));
+            return;
+        }
+        _email = S(a?["email"]);
+        AccEmailV.Text = _reveal ? _email : "••••••";
+        if (!AccName.IsKeyboardFocusWithin) AccName.Text = S(a?["display"]);
+        AccFlags.Children.Clear();
+        AccFlags.Children.Add(Chip(Bo(a?["verified"]) ? T("Email confirmed", "Email confirmado") : T("Email not confirmed", "Email sin confirmar"), Bo(a?["verified"]) ? B("Good") : B("Warn")));
+        AccFlags.Children.Add(Chip(Bo(a?["twoFactor"]) ? T("Two-step sign-in on", "Verificación en dos pasos activada") : T("Two-step sign-in off", "Verificación en dos pasos desactivada"), B("Muted")));
+        if (Bo(a?["admin"])) AccFlags.Children.Add(Chip("Admin", B("Accent")));
+        if (Bo(a?["supporter"])) AccFlags.Children.Add(Chip(T("Supporter", "Supporter"), B("Pb")));
+        var last = D(a?["lastSync"]);
+        AccSyncV.Text = last > 0 ? T("Last sync: ", "Última sincronización: ") + DateTimeOffset.FromUnixTimeMilliseconds((long)last).LocalDateTime.ToString("g") : T("Not synced yet", "Aún sin sincronizar");
+        var err = S(a?["error"]);
+        AccSyncErr.Text = err == "" ? "" : T("This PC could not sync: ", "Este PC no pudo sincronizar: ") + err;
+        AccSyncErr.Visibility = err == "" ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ShowAccErr(string? m)
+    {
+        AccErr.Text = m ?? "";
+        AccErr.Visibility = string.IsNullOrEmpty(m) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void OnAccLogin(object sender, RoutedEventArgs e)
+    {
+        ShowAccErr(null);
+        AccLogin.IsEnabled = false;
+        try
+        {
+            if (_need2fa)
+            {
+                var (_, err2) = await _engine.SendAsync("/api/sync", new { action = "login2fa", code = AccCode.Text.Trim() });
+                if (err2 != null) { ShowAccErr(err2); return; }
+                _need2fa = false;
+                AccCodeBox.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                var (body, err) = await _engine.SendAsync("/api/sync", new { action = "login", email = AccEmail.Text.Trim(), password = AccPass.Password, lang = Es ? "es" : "en" });
+                if (err != null) { ShowAccErr(err); return; }
+                if (Bo(body?["twoFactor"])) { _need2fa = true; AccCodeBox.Visibility = Visibility.Visible; AccCode.Focus(); return; }
+            }
+            AccPass.Password = "";
+            await AccountAsync();
+        }
+        finally { AccLogin.IsEnabled = true; }
+    }
+
+    private async void OnAccName(object sender, RoutedEventArgs e)
+    {
+        var (_, err) = await _engine.SendAsync("/api/sync", new { action = "name", nick = AccName.Text.Trim(), nameKind = "nick" });
+        if (err != null) MessageBox.Show(this, err, "Pitlane HQ");
+        await AccountAsync();
+    }
+
+    private void OnAccReveal(object sender, RoutedEventArgs e)
+    {
+        _reveal = !_reveal;
+        AccEmailV.Text = _reveal ? _email : "••••••";
+        AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar");
+    }
+
+    private async void OnAccSync(object sender, RoutedEventArgs e)
+    {
+        AccSync.IsEnabled = false;
+        var (_, err) = await _engine.SendAsync("/api/sync", new { action = "sync" });
+        AccSync.IsEnabled = true;
+        if (err != null) MessageBox.Show(this, err, "Pitlane HQ");
+        await AccountAsync();
+    }
+
+    private async void OnAccOut(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(this, T("Sign out on this PC? Your account and laps stay on the server.", "¿Cerrar sesión en este PC? Tu cuenta y tus vueltas se quedan en el servidor."), "Pitlane HQ", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        await _engine.SendAsync("/api/sync", new { action = "logout" });
+        await AccountAsync();
+    }
+
+    // what is not native yet opens the app's own screen
+    private void OnAccMore(object sender, RoutedEventArgs e) => OpenInApp("me");
+    private void OnSetMore(object sender, RoutedEventArgs e) => OpenInApp("settings");
+
+    private async void OpenInApp(string view)
+    {
+        foreach (var v in new[] { HomeView, LiveView, OverlaysView, AccountView, SettingsView }) v.Visibility = Visibility.Collapsed;
+        Web.Visibility = Visibility.Visible;
+        await EnsureWebAsync();
+        if (_webReady && Web.CoreWebView2 != null)
+            _ = Web.CoreWebView2.ExecuteScriptAsync($"try{{show({System.Text.Json.JsonSerializer.Serialize(view)})}}catch(e){{location.hash='#{view}'}}");
+    }
+
+    // ---------- Settings (native) ----------
+
+    private JsonObject? _set;
+
+    private async Task SettingsAsync()
+    {
+        try
+        {
+            var conf = await _engine.GetAsync("/api/config");
+            _set = conf?["config"]?.AsObject();
+            if (_set == null) return;
+            SetStart.IsChecked = Bo(_set["startWithWindows"]);
+            SetCloseOv.IsChecked = Bo(_set["closeOnExit"]);
+            var br = _set["ui"]?["brakes"];
+            var beeps = S(br?["beeps"], "count");
+            SetBeepOff.IsChecked = beeps == "off"; SetBeepOne.IsChecked = beeps == "one"; SetBeepCount.IsChecked = beeps != "off" && beeps != "one";
+            SetTraffic.IsChecked = br?["traffic"] == null || Bo(br["traffic"]);
+            if (!SetVol.IsMouseCaptureWithin) SetVol.Value = Math.Clamp((br?["vol"] == null ? 0.7 : D(br["vol"])) * 100, 5, 100);
+            var u = await _engine.GetAsync("/api/update");
+            var latest = S(u?["latest"]?["version"]);
+            SetUpdV.Text = T("This version: ", "Esta versión: ") + S(u?["version"]) + (Bo(u?["available"]) && latest != "" ? T($" · {latest} is ready", $" · la {latest} está lista") : T(" · up to date", " · al día"));
+            SetUpdAuto.IsChecked = Bo(u?["auto"]);
+            SetUpdAuto.IsEnabled = Bo(u?["autoWorks"]);
+            SetUpdApply.Visibility = Bo(u?["available"]) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch { }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        if (_set == null) return;
+        _set.Remove("positions");
+        await Post("/api/config", _set);
+        await SettingsAsync();
+    }
+
+    private JsonObject Brakes()
+    {
+        var ui = _set!["ui"] as JsonObject;
+        if (ui == null) { ui = new JsonObject(); _set["ui"] = ui; }
+        var br = ui["brakes"] as JsonObject;
+        if (br == null) { br = new JsonObject { ["on"] = true, ["beeps"] = "count", ["traffic"] = true, ["vol"] = 0.7 }; ui["brakes"] = br; }
+        return br;
+    }
+
+    private async void OnSetStart(object sender, RoutedEventArgs e) { if (_set == null) return; _set["startWithWindows"] = SetStart.IsChecked == true; await SaveSettingsAsync(); }
+    private async void OnSetCloseOv(object sender, RoutedEventArgs e) { if (_set == null) return; _set["closeOnExit"] = SetCloseOv.IsChecked == true; await SaveSettingsAsync(); }
+    private async void OnSetBeeps(object sender, RoutedEventArgs e) { if (_set == null || sender is not RadioButton { Tag: string v }) return; Brakes()["beeps"] = v; await SaveSettingsAsync(); }
+    private async void OnSetTraffic(object sender, RoutedEventArgs e) { if (_set == null) return; Brakes()["traffic"] = SetTraffic.IsChecked == true; await SaveSettingsAsync(); }
+    private async void OnSetVol(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (_set == null) return; Brakes()["vol"] = Math.Round(SetVol.Value) / 100.0; await SaveSettingsAsync(); }
+    private async void OnSetUpdAuto(object sender, RoutedEventArgs e) { await Post("/api/update?action=auto&on=" + (SetUpdAuto.IsChecked == true ? "1" : "0")); await SettingsAsync(); }
+    private async void OnSetUpdCheck(object sender, RoutedEventArgs e) { await Post("/api/update?action=check"); await SettingsAsync(); }
+    private async void OnSetUpdApply(object sender, RoutedEventArgs e)
+    {
+        var (_, err) = await _engine.SendAsync("/api/update?action=apply");
+        if (err != null) MessageBox.Show(this, err, "Pitlane HQ");
+    }
+
     // ---------- navigation ----------
 
     private void OnNav(object sender, RoutedEventArgs e)
@@ -485,8 +676,13 @@ public partial class MainWindow : Window
         HomeView.Visibility = v == "home" ? Visibility.Visible : Visibility.Collapsed;
         LiveView.Visibility = v == "live" ? Visibility.Visible : Visibility.Collapsed;
         OverlaysView.Visibility = v == "overlays" ? Visibility.Visible : Visibility.Collapsed;
-        Web.Visibility = native ? Visibility.Collapsed : Visibility.Visible;
+        AccountView.Visibility = v == "me" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsView.Visibility = v == "settings" ? Visibility.Visible : Visibility.Collapsed;
+        // hidden, not closed: the app keeps running behind the native screens
+        Web.Visibility = native ? Visibility.Hidden : Visibility.Visible;
         if (!_engine.Running) return;
+        if (v == "me") await AccountAsync();
+        if (v == "settings") await SettingsAsync();
         if (v == "overlays") { _ovKey = ""; await OverlaysAsync(); }
         if (v == "home") { _racesKey = ""; await HomeRacesAsync(); }
         if (native) return;

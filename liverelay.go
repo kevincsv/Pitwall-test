@@ -591,9 +591,21 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 					On        bool   `json:"on"`
 					Guest     string `json:"guest"`
 					GuestAuto bool   `json:"guestAuto"`
+					Rename    *struct {
+						From string `json:"from"`
+						To   string `json:"to"`
+					} `json:"rename"` // a driver on the list gets another name
+					Forget string `json:"forget"` // a driver off the list
 				}
 				if json.Unmarshal(data, &d) == nil {
-					setDrinks(d.On, d.Guest, d.GuestAuto)
+					switch {
+					case d.Rename != nil:
+						renameGuest(d.Rename.From, d.Rename.To)
+					case d.Forget != "":
+						forgetGuest(d.Forget)
+					default:
+						setDrinks(d.On, d.Guest, d.GuestAuto)
+					}
 				}
 				continue
 			}

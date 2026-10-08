@@ -122,7 +122,9 @@
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
   the cars coming, the red side bar and the nearest distance. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
-  (the owner's choice). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
+  (the owner's choice): its Home, Telemetry and Overlays screens are native (WPF, fed by `/api/desk`, `desknow.go`);
+  Analysis, Community, Account and Settings are still the app in a WebView there. Builds of other branches only check
+  (nothing is published unless it is master). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
   both in the stream's config event, so they change at once.
   Overlay presets: the four built in and your own (saved in the overlay settings, `CFG.ui.ovpresets`, so they go
   with the account), applied with one click and deleted with their ×; names asked in the app's own dialog.

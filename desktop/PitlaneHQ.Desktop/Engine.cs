@@ -80,6 +80,22 @@ public sealed class Engine : IDisposable
         r.EnsureSuccessStatusCode();
     }
 
+    /// <summary>A POST that gives back the engine's answer, or its error message ({"error": …}) instead of throwing.</summary>
+    public async Task<(JsonNode? Body, string? Error)> SendAsync(string path, object? body = null)
+    {
+        try
+        {
+            using var c = new StringContent(body == null ? "{}" : JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json");
+            using var r = await _http.PostAsync(Base + path, c);
+            var text = await r.Content.ReadAsStringAsync();
+            JsonNode? n = null;
+            try { n = JsonNode.Parse(text); } catch { }
+            if (!r.IsSuccessStatusCode) return (n, n?["error"]?.ToString() ?? text.Trim());
+            return (n, null);
+        }
+        catch (Exception ex) { return (null, ex.Message); }
+    }
+
     public void Dispose()
     {
         try
