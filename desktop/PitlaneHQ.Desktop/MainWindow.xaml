@@ -234,6 +234,28 @@
                     </StackPanel>
                 </ScrollViewer>
 
+                <!-- COMMUNITY (native): the leaderboards -->
+                <ScrollViewer x:Name="CommunityView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed" Background="{StaticResource Bg}">
+                    <StackPanel>
+                        <TextBlock x:Name="ComTitle" Style="{StaticResource H1}" Text="Community"/>
+                        <TextBlock x:Name="ComSub" Style="{StaticResource Note}" Margin="0,0,0,12" Text="Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself."/>
+                        <WrapPanel x:Name="ComDisc" Margin="0,0,0,8"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBox x:Name="ComSearch" Width="220" Padding="8,6" Margin="0,0,8,6" Background="{StaticResource Surface2}" Foreground="{StaticResource Fg}" BorderBrush="{StaticResource Line}" CaretBrush="{StaticResource Fg}" TextChanged="OnComFilter"/>
+                            <ComboBox x:Name="ComTrack" Width="300" Margin="0,0,8,6" SelectionChanged="OnComTrack"/>
+                            <ComboBox x:Name="ComCar" Width="300" Margin="0,0,8,6" SelectionChanged="OnComCar"/>
+                        </WrapPanel>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock x:Name="ComBoardT" Style="{StaticResource CardTitle}" Text="LEADERBOARD"/>
+                                <StackPanel x:Name="ComRows"/>
+                                <TextBlock x:Name="ComEmpty" Style="{StaticResource Note}" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
+                        <Button x:Name="ComMore" Style="{StaticResource Btn}" HorizontalAlignment="Left" Content="Profiles, race summaries and leagues" Click="OnComMore"/>
+                    </StackPanel>
+                </ScrollViewer>
+
                 <!-- ACCOUNT (native) -->
                 <ScrollViewer x:Name="AccountView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed" Background="{StaticResource Bg}">
                     <StackPanel MaxWidth="760" HorizontalAlignment="Left">

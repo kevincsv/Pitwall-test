@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     private readonly Border[] _rpm = new Border[16];
 
     // the native screens; every other view is the WebView
-    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings" };
+    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings", "community" };
 
     public MainWindow()
     {
@@ -146,6 +146,10 @@ public partial class MainWindow : Window
         SetUpdCheck.Content = T("Check now", "Comprobar ahora"); SetUpdApply.Content = T("Update now", "Actualizar ahora");
         SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
         SetMore.Content = T("Open all the settings", "Abrir todos los ajustes");
+        ComTitle.Text = T("Community", "Comunidad"); ComBoardT.Text = "LEADERBOARD";
+        ComSub.Text = T("Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself.", "Leaderboards por tiempo de vuelta: la vuelta más rápida de cada coche y circuito de cada cuenta, compartida sola.");
+        ComMore.Content = T("Profiles, race summaries and leagues", "Perfiles, resúmenes de carrera y ligas");
+        _comKey = "";
         _ovKey = "";
     }
 
@@ -497,6 +501,133 @@ public partial class MainWindow : Window
     private async void OnOvReset(object sender, RoutedEventArgs e) { await Post("/api/overlay/reset"); _ovKey = ""; await OverlaysAsync(); }
     private async void OnOvCloseAll(object sender, RoutedEventArgs e) { await Post("/api/overlay/close?w=*"); _ovKey = ""; await OverlaysAsync(); }
 
+    // ---------- Community (native): the leaderboards ----------
+
+    private static readonly (string Id, string En, string Es)[] Disciplines =
+        { ("oval", "Oval", "Óvalo"), ("sports_car", "Sports Car", "Sports Car"), ("formula_car", "Formula Car", "Fórmula"), ("dirt_oval", "Dirt Oval", "Óvalo de tierra"), ("dirt_road", "Dirt Road", "Tierra") };
+    private JsonArray? _combos;
+    private string _disc = "sports_car", _comKey = "";
+    private int _comTrack, _comCar;
+    private bool _comFilling;
+
+    private async Task CommunityAsync()
+    {
+        try { _combos = (await _engine.GetAsync("/api/community/combos?game=iracing"))?["combos"]?.AsArray(); }
+        catch (Exception ex) { ComEmpty.Text = ex.Message; ComEmpty.Visibility = Visibility.Visible; return; }
+        // the discipline with laps first, the one chosen kept
+        if (_combos != null && !_combos.Any(c => S(c?["cat"]) == _disc))
+            _disc = _combos.Select(c => S(c?["cat"])).FirstOrDefault(c => c != "") ?? _disc;
+        ComDisc.Children.Clear();
+        foreach (var d in Disciplines)
+        {
+            var id = d.Id;
+            int n = _combos?.Count(c => S(c?["cat"]) == id) ?? 0;
+            var b = new Button { Style = (Style)FindResource(id == _disc ? "BtnPrimary" : "Btn"), Content = T(d.En, d.Es) + (n > 0 ? $"  {n}" : "") };
+            b.Click += async (_, _) => { _disc = id; _comTrack = 0; _comCar = 0; await CommunityAsync(); };
+            ComDisc.Children.Add(b);
+        }
+        FillCombos();
+        await BoardAsync();
+    }
+
+    private record ComboItem(int Id, string Name, int Laps) { public override string ToString() => Laps > 0 ? $"{Name} · {Laps}" : Name; }
+
+    private void FillCombos()
+    {
+        if (_combos == null) return;
+        _comFilling = true;
+        var q = (ComSearch.Text ?? "").Trim().ToLowerInvariant();
+        var list = _combos.Where(c => S(c?["cat"]) == _disc && (q == "" || (S(c?["track"]) + " " + S(c?["car"])).ToLowerInvariant().Contains(q))).ToList();
+        var tracks = list.GroupBy(c => (int)D(c?["trackId"])).Select(g => new ComboItem(g.Key, S(g.First()?["track"]), g.Sum(x => (int)D(x?["laps"])))).OrderBy(t => t.Name).ToList();
+        ComTrack.ItemsSource = tracks;
+        if (!tracks.Any(t => t.Id == _comTrack)) _comTrack = tracks.FirstOrDefault()?.Id ?? 0;
+        ComTrack.SelectedItem = tracks.FirstOrDefault(t => t.Id == _comTrack);
+        var cars = list.Where(c => (int)D(c?["trackId"]) == _comTrack).Select(c => new ComboItem((int)D(c?["carId"]), S(c?["car"]), (int)D(c?["laps"]))).OrderByDescending(c => c.Laps).ToList();
+        ComCar.ItemsSource = cars;
+        if (!cars.Any(c => c.Id == _comCar)) _comCar = cars.FirstOrDefault()?.Id ?? 0;
+        ComCar.SelectedItem = cars.FirstOrDefault(c => c.Id == _comCar);
+        _comFilling = false;
+    }
+
+    private async void OnComFilter(object sender, TextChangedEventArgs e) { if (_combos == null) return; FillCombos(); await BoardAsync(); }
+    private async void OnComTrack(object sender, SelectionChangedEventArgs e)
+    {
+        if (_comFilling || ComTrack.SelectedItem is not ComboItem t) return;
+        _comTrack = t.Id; _comCar = 0; FillCombos(); await BoardAsync();
+    }
+    private async void OnComCar(object sender, SelectionChangedEventArgs e)
+    {
+        if (_comFilling || ComCar.SelectedItem is not ComboItem c) return;
+        _comCar = c.Id; await BoardAsync();
+    }
+    private void OnComMore(object sender, RoutedEventArgs e) => OpenInApp("community");
+
+    private async Task BoardAsync()
+    {
+        var key = _comTrack + ":" + _comCar + ":" + _lang;
+        if (key == _comKey) return;
+        _comKey = key;
+        ComRows.Children.Clear();
+        if (_comTrack == 0 || _comCar == 0)
+        {
+            ComEmpty.Text = T("No laps in this discipline yet: the first one saved in an account starts its leaderboards.", "Aún no hay vueltas en esta disciplina: la primera que se guarde en una cuenta abre sus leaderboards.");
+            ComEmpty.Visibility = Visibility.Visible;
+            return;
+        }
+        JsonArray? laps;
+        try { laps = (await _engine.GetAsync($"/api/community/laps?trackId={_comTrack}&carId={_comCar}&game=iracing"))?["laps"]?.AsArray(); }
+        catch (Exception ex) { ComEmpty.Text = ex.Message; ComEmpty.Visibility = Visibility.Visible; return; }
+        ComEmpty.Visibility = laps == null || laps.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ComEmpty.Text = T("Nobody has a lap here yet.", "Nadie tiene vuelta aquí todavía.");
+        if (laps == null) return;
+        double first = laps.Count > 0 ? D(laps[0]?["time"]) : 0;
+        int k = 0;
+        foreach (var l in laps.Take(100))
+        {
+            if (l == null) continue;
+            var row = new Grid { Height = 30 };
+            foreach (var w in new[] { 44.0, 0, 46, 96, 84, 110 })
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = w == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(w) });
+            var border = new Border { Child = row, CornerRadius = new CornerRadius(5), Padding = new Thickness(6, 0, 6, 0) };
+            if (Bo(l["mine"])) border.Background = B("AccentSoft");
+            else if (k % 2 == 1) border.Background = new SolidColorBrush(Color.FromArgb(10, 255, 255, 255));
+            k++;
+            void Cell(int col, string text, Brush fg, bool mono, HorizontalAlignment al = HorizontalAlignment.Left)
+            {
+                var tb = new TextBlock { Text = text, Foreground = fg, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = al, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = mono ? 12.5 : 13.5 };
+                if (mono) tb.FontFamily = (FontFamily)FindResource("FData");
+                Grid.SetColumn(tb, col);
+                row.Children.Add(tb);
+            }
+            double t = D(l["time"]);
+            Cell(0, "P" + k, B("Muted"), true);
+            Cell(1, S(l["alias"]) + (Bo(l["sup"]) ? "  ★" : "") + (Bo(l["mine"]) ? T("  (you)", "  (tú)") : ""), Bo(l["field"]) ? B("Muted") : B("Fg"), false);
+            var lic = S(l["lic"]);
+            if (lic != "")
+            {
+                var lc = lic switch { "R" => "#FF6363", "D" => "#FF8F45", "C" => "#F2C94C", "B" => "#38C97C", "A" => "#5C9DFF", _ => "#C9D1DC" };
+                var lb = (SolidColorBrush)Hex(lc);
+                var badge = new Border { BorderBrush = lb, BorderThickness = new Thickness(1.5), CornerRadius = new CornerRadius(4), Padding = new Thickness(6, 1, 6, 1), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
+                    Background = new SolidColorBrush(Color.FromRgb((byte)(lb.Color.R * .62 + 11 * .38), (byte)(lb.Color.G * .62 + 13 * .38), (byte)(lb.Color.B * .62 + 16 * .38))),
+                    Child = new TextBlock { Text = lic, Foreground = Brushes.White, FontFamily = (FontFamily)FindResource("FData"), FontSize = 10.5, FontWeight = FontWeights.Bold } };
+                Grid.SetColumn(badge, 2);
+                row.Children.Add(badge);
+            }
+            Cell(3, LapTime(t), k == 1 ? B("Pb") : B("Fg"), true, HorizontalAlignment.Right);
+            Cell(4, k == 1 ? "" : "+" + (t - first).ToString("0.000"), B("Muted"), true, HorizontalAlignment.Right);
+            var created = D(l["created"]);
+            Cell(5, created > 0 ? DateTimeOffset.FromUnixTimeMilliseconds((long)created).LocalDateTime.ToString("d") : "", B("Muted"), true, HorizontalAlignment.Right);
+            ComRows.Children.Add(border);
+        }
+    }
+
+    private static string LapTime(double t)
+    {
+        if (!(t > 0)) return "–";
+        int m = (int)(t / 60);
+        return $"{m}:{t - m * 60:00.000}";
+    }
+
     // ---------- Account (native) ----------
 
     private bool _reveal, _need2fa;
@@ -597,7 +728,7 @@ public partial class MainWindow : Window
 
     private async void OpenInApp(string view)
     {
-        foreach (var v in new[] { HomeView, LiveView, OverlaysView, AccountView, SettingsView }) v.Visibility = Visibility.Collapsed;
+        foreach (var v in new[] { HomeView, LiveView, OverlaysView, AccountView, SettingsView, CommunityView }) v.Visibility = Visibility.Collapsed;
         Web.Visibility = Visibility.Visible;
         await EnsureWebAsync();
         if (_webReady && Web.CoreWebView2 != null)
@@ -677,11 +808,13 @@ public partial class MainWindow : Window
         LiveView.Visibility = v == "live" ? Visibility.Visible : Visibility.Collapsed;
         OverlaysView.Visibility = v == "overlays" ? Visibility.Visible : Visibility.Collapsed;
         AccountView.Visibility = v == "me" ? Visibility.Visible : Visibility.Collapsed;
+        CommunityView.Visibility = v == "community" ? Visibility.Visible : Visibility.Collapsed;
         SettingsView.Visibility = v == "settings" ? Visibility.Visible : Visibility.Collapsed;
         // hidden, not closed: the app keeps running behind the native screens
         Web.Visibility = native ? Visibility.Hidden : Visibility.Visible;
         if (!_engine.Running) return;
         if (v == "me") await AccountAsync();
+        if (v == "community") await CommunityAsync();
         if (v == "settings") await SettingsAsync();
         if (v == "overlays") { _ovKey = ""; await OverlaysAsync(); }
         if (v == "home") { _racesKey = ""; await HomeRacesAsync(); }
