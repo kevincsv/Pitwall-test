@@ -78,8 +78,19 @@ jobs:
           if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \".*\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
           # your own domain (for example pitlanehq.com), once it is in your Cloudflare account, and its www.
           # address (Cloudflare makes its DNS record; the Worker sends www visitors to the domain itself)
-          if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }, { pattern = "www.%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
-          npx wrangler deploy | tee deploy.log
+          # routes is a top-level key: it goes before the first [table], or TOML would make it part of that table
+          cp wrangler.toml wrangler.noroutes.toml
+          if [ -n "$CUSTOM_DOMAIN" ]; then printf 'routes = [{ pattern = "%s", custom_domain = true }, { pattern = "www.%s", custom_domain = true }]\n\n' "$CUSTOM_DOMAIN" "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} !done && /^\[/{printf "%s", r; done=1} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
+          npx wrangler deploy 2>&1 | tee deploy.log && st=${PIPESTATUS[0]} || st=1
+          if [ "$st" != 0 ]; then
+            if [ -n "$CUSTOM_DOMAIN" ]; then
+              echo "::warning::Cloudflare did not attach $CUSTOM_DOMAIN / www.$CUSTOM_DOMAIN to the Worker (see the log above: usually an old DNS record of that name in the zone). The site was published without changing its domains."
+              cp wrangler.noroutes.toml wrangler.toml
+              npx wrangler deploy | tee deploy.log
+            else
+              exit 1
+            fi
+          fi
           if [ -n "$PITLANE_KEY" ]; then echo "$PITLANE_KEY" | npx wrangler secret put PITLANE_KEY; fi
           # emails (confirm the address, reset the password) through Resend
           if [ -n "$RESEND_API_KEY" ]; then echo "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY; fi
