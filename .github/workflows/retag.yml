@@ -1,0 +1,51 @@
+# One use: moves the release tags onto the rewritten history (same files, commits without personal data).
+# Run it once from Actions, then this file is deleted.
+name: Move tags to the rewritten history
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          set -e
+          while read -r tag sha; do
+            [ -n "$tag" ] || continue
+            git cat-file -e "$sha^{commit}"
+            git push --force origin "$sha:refs/tags/$tag"
+          done <<'TAGS'
+          pitlanehq-latest cb8c88f46aad60e3482c49986f05c90e5b97a83e
+          v0.6.2-beta 474930e03e724234a8b3f99d69acca21d878dc22
+          v0.7.0-beta 0421fc2659e0a34af051a7996bd5ef17975fc383
+          v0.7.1-beta f5b343187cd5f2f6eeb6c0075dc64755979f678f
+          v0.7.2-beta e20851dfd068c933f5dd9f753ce27af42b1adc29
+          v0.8.0-beta 2afc1d051304be7310f41f158bd176567efca0e2
+          v0.8.1-beta 57bde9aabdd071b02794078d9de8e4244d3444aa
+          v0.8.11-beta 3b913b084c5b05bd3704832b4cf12edd99cbc1b6
+          v0.8.12-beta 89fbf31f73ded3b49d76c99259f2c2f970d38188
+          v0.8.13-beta 7264d7efd179bd83a555126ed2903b4c551b527a
+          v0.8.14-beta d1195909ee7eb203951aef12cd55b77d45c2e37d
+          v0.8.15-beta a649b3050e3ddd7e7c84a60a850355d8b066a730
+          v0.8.16-beta 3a0976d3d10fc213519fad5c4eea8ef8ba9bf0f9
+          v0.8.17-beta 786d2a0b6a802a9737dd8ad17fb2a0cb636a0072
+          v0.8.18-beta 03957176eb00c61aaff10beca33fa7c55e4e4815
+          v0.8.19-beta 8fc9e44e5d5e85bd33aaf149d43b8f660896c3de
+          v0.8.2-beta 462154618b2ba5ff2211070549f45d1b06be37a1
+          v0.8.20-beta 7348275c5535924bd20b09f951afeab9914eb421
+          v0.8.21-beta 6cf9dfd7639c861672f001436d822afdd41b7df9
+          v0.8.22-beta d77071ab8fd9ede242e50db252b48cb984955074
+          v0.8.23-beta 1c5a9283313485cb1818856ab9b616d3497f7137
+          v0.8.24-beta 8b14a929caf3698d842b2db36ed03f8cf4e3fc3b
+          v0.8.25-beta cb8c88f46aad60e3482c49986f05c90e5b97a83e
+          v0.8.3-beta fcd9017b07254f62a8b6a580b19bd04f2be911c5
+          v0.8.4-beta f72a15b8cbea558f2e585497cbe40d1e0d272375
+          v0.8.5-beta aac394a99ad58906b1adb483b27fb02bb2473b11
+          v0.8.6-beta 8395197242f48711b40417fcec61b66bce7b8f18
+          v0.8.7-beta 2616c51f82e653ae79997c2ec3f3d63c7b03bbcd
+          v0.8.8-beta 2101787ca47a710280c39130ec34f9cffb0e442c
+          v0.8.9-beta b9c356cc0ac38ea7af2f6ce0784ad592e0d0f993
+          TAGS
