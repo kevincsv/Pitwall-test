@@ -38,14 +38,10 @@ const (
 	wsExLayered        = 0x00080000
 	wsExTransparent    = 0x00000020
 	lwaAlpha           = 0x2
-	lwaColorKey        = 0x1
-	// radarKey: the radar window's background (#010203 in the page, a COLORREF is 0x00BBGGRR); Windows
-	// shows nothing where the window has exactly this colour, so only the cars show over the game
-	radarKey      = 0x00030201
-	swpNoSize     = 0x0001
-	swpNoMove     = 0x0002
-	swpNoActivate = 0x0010
-	wmClose       = 0x0010
+	swpNoSize          = 0x0001
+	swpNoMove          = 0x0002
+	swpNoActivate      = 0x0010
+	wmClose            = 0x0010
 )
 
 var (
@@ -86,11 +82,13 @@ func overlayWindows() map[uintptr]string {
 	return out
 }
 
-// seeThrough: overlays whose background colour Windows makes transparent
+// seeThrough: overlays with a see-through window (only what the page draws shows over the game)
 func seeThrough(name string) bool { return name == "radar" }
 
 func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool, name string) {
-	key := seeThrough(name)
+	if seeThrough(name) {
+		seeThroughWindow(h)
+	}
 	after := uintptr(hwndNoTop)
 	if top {
 		after = uintptr(hwndTopmost)
@@ -98,7 +96,7 @@ func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool, name string) {
 	procSetWindowPos.Call(h, after, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate)
 	ex, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlExStyle))
 	ex |= wsExNoActivate
-	if alpha < 255 || lock || key {
+	if alpha < 255 || lock {
 		ex |= wsExLayered
 	} else {
 		ex &^= wsExLayered
@@ -113,11 +111,7 @@ func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool, name string) {
 		if alpha < 40 {
 			alpha = 40
 		}
-		if key {
-			procSetLayeredWindowAtt.Call(h, radarKey, uintptr(alpha), lwaAlpha|lwaColorKey)
-		} else {
-			procSetLayeredWindowAtt.Call(h, 0, uintptr(alpha), lwaAlpha)
-		}
+		procSetLayeredWindowAtt.Call(h, 0, uintptr(alpha), lwaAlpha)
 	}
 }
 
@@ -324,7 +318,9 @@ func moveOverlay(name string, x, y, w, h int) {
 	unaware(func() {
 		for hw, n := range overlayWindows() {
 			if n == name {
-				procSetWindowPos.Call(hw, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpNoActivate)
+				r := winRect{int32(x), int32(y), int32(x + w), int32(y + h)}
+				clampMove(&r) // the screen editor cannot put it off the screen either
+				procSetWindowPos.Call(hw, uintptr(hwndTopmost), uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(r.Bottom-r.Top), swpNoActivate)
 			}
 		}
 	})
@@ -336,7 +332,7 @@ func minimizeConsole() {
 	}
 }
 
-func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock || seeThrough(o.Widget) }
+func needsLayer(o overlayReq) bool { return o.Alpha < 255 || o.Lock }
 
 func setOverlays(o overlayReq) int {
 	n := 0

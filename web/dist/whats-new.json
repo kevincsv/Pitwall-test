@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.30",
+      "en": ["A see-through radar and a cleaner delta bar.", "Overlays with rounded corners that fit what they show and stay on the screen."],
+      "es": ["Un radar transparente y una barra de delta más limpia.", "Overlays con esquinas redondeadas que se ajustan a lo que muestran y no salen de la pantalla."]
+    },
+    {
       "v": "0.8.29",
       "en": ["The standings overlay no longer disappears when cars come near.", "A see-through radar that shows only the cars coming."],
       "es": ["El overlay de la clasificación ya no desaparece cuando se acercan coches.", "Un radar transparente que solo muestra los coches que vienen."]

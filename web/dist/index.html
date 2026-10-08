@@ -403,6 +403,16 @@ html.ovwin .panel{border-radius:0!important;border-color:transparent!important;b
 html.ov.ovwin.ovradar,html.ov.ovwin.ovradar body{background:#010203!important}
 html.ov.ovwin.ovradar .panel{background:transparent!important;border:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 html.ov.ovwin.ovradar .panel>.label{display:none!important}
+/* the delta bar over the game: no title, a rounded track, the fill growing from the middle and the delta in a pill in the centre */
+html.ov.ovwin [data-w=deltabar]>.label{display:none!important}
+html.ov.ovwin [data-w=deltabar]{padding:8px 10px!important}
+html.ov.ovwin .dbar{display:block;position:relative;margin:0}
+html.ov.ovwin .dbar-track{height:34px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+html.ov.ovwin .dbar-track b.good{background:linear-gradient(90deg,color-mix(in srgb,var(--good) 30%,transparent),var(--good))}
+html.ov.ovwin .dbar-track b.bad{background:linear-gradient(90deg,var(--bad),color-mix(in srgb,var(--bad) 30%,transparent))}
+html.ov.ovwin .dbar-track i{top:5px;bottom:5px;width:2px;margin-left:-1px;border-radius:2px;background:rgba(255,255,255,.55)}
+html.ov.ovwin .dbar-val{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:0;padding:3px 12px;border-radius:999px;background:rgba(9,12,17,.88);border:1px solid rgba(255,255,255,.1);font:700 18px/1.1 var(--f-display);text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+html.ov.ovwin #dbTrend{position:absolute;top:50%;left:calc(50% + 52px);transform:translateY(-50%);font-size:12px}
 html.ov.ovt-glass,html.ov.ovt-glass body,html.ov.ovt-minimal,html.ov.ovt-minimal body{background:transparent!important}
 html.ov.ovt-glass .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--fg) 10%,transparent)}
 html.ov.ovt-glass .panel>.label:first-child,html.ov.ovt-glass .panel .vhead .label{display:flex;align-items:center;gap:6px}
@@ -2046,7 +2056,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.29",APP_STAGE="beta";
+const WEB_VERSION="0.8.30",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -4114,14 +4124,15 @@ setInterval(refreshScreenRects,1500);
    window, and the window's height follows the content (no scroll bars, nothing cut off).
    Resizing keeps the proportions, between half and two and a half times the normal size. */
 const OVFIT={dw:0,nh:0,z:1,busy:0,min:.5,max:2.5,free:false};
-/* lists whose length changes all the time (the standings): the window keeps the height you give it and the
-   rows that do not fit are cut, instead of the window growing and shrinking with every update */
-const OVFIT_FREE=["standings","incidents"];
+/* overlays that keep the height you give them instead of fitting what they show (none for now: every
+   overlay fits its content; it grows at once and shrinks only once it has been smaller for a moment) */
+const OVFIT_FREE=[];
 function ovFit(){if(!OV.on||!OV.win||OV.list.length!==1)return;const sz=OVSZ[OV.list[0]],sec=document.querySelector("section.view:not([hidden])");if(!sz||!sec)return;
   const H=document.documentElement;OVFIT.dw=sz[0];H.classList.add("ovfit");H.style.setProperty("--ovdw",sz[0]+"px");
   const z=Math.max(OVFIT.min,Math.min(OVFIT.max,innerWidth/sz[0]));OVFIT.z=z;H.style.setProperty("--ovz",z);
   OVFIT.nh=sec.offsetHeight;OVFIT.free=OVFIT_FREE.includes(OV.list[0]);if(OVFIT.free)return;const want=Math.ceil(OVFIT.nh*z);
-  if(!OVFIT.busy&&typeof window.pwSize==="function"&&Math.abs(want-innerHeight)>3&&OVFIT.last!==want){OVFIT.last=want;window.pwSize(Math.round(outerWidth),Math.min(screen.availHeight||2000,want+(outerHeight-innerHeight)))}}
+  const smaller=want<innerHeight-3,now=Date.now();if(!smaller)OVFIT.shrinkAt=0;else if(!OVFIT.shrinkAt)OVFIT.shrinkAt=now;
+  if(!OVFIT.busy&&typeof window.pwSize==="function"&&Math.abs(want-innerHeight)>3&&OVFIT.last!==want&&(!smaller||now-OVFIT.shrinkAt>1500)){OVFIT.last=want;OVFIT.shrinkAt=0;window.pwSize(Math.round(outerWidth),Math.min(screen.availHeight||2000,want+(outerHeight-innerHeight)))}}
 if(OV.on&&OV.win){addEventListener("resize",()=>ovFit());setTimeout(ovFit,300);setInterval(ovFit,1000)}
 /* which overlays are open on the PC right now (shown on the Overlays cards) */
 let OV_OPEN=new Set();

@@ -96,10 +96,12 @@
   on the PC (admins too) until the owner says otherwise: profiles (no button, no Settings section, the PC keeps its
   one profile), Settings → Connections (`CONN_ON` in index.html) and Full telemetry. Per-car settings never
   apply (`carProfilesOn` in carprofiles.go), and a sync reload never closes or reopens the overlays. An overlay
-  window is the widget itself: no gap, rounded corners or border (`ovwin`, `noWinBorder`); it fits its content's
-  height, except the standings and incidents (`OVFIT_FREE`), which keep the height you give them. An overlay window draws only its own widget; only the radar's window
-  hides itself when nobody is near. The radar overlay is see-through (`radarKey` colour key, `radarClean`): your
-  car's outline and the cars coming, nothing else.
+  window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
+  fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
+  dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
+  radar's window hides itself when nobody is near. The radar overlay is see-through (`seeThroughWindow`: a
+  transparent WebView2 on a DWM blur-behind window; `radarClean`): your car's outline and the cars coming, nothing
+  else, no title. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and

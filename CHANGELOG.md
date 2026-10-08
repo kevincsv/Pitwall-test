@@ -4,6 +4,21 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.30 beta
+
+**Fixed**
+- The radar overlay is really see-through now: the window itself is transparent (before, Windows ignored the
+  colour that was meant to vanish and a black square stayed around the cars).
+- Every overlay fits what it shows again, the standings included: it grows at once and shrinks only once it has
+  been smaller for a moment, so it does not jump.
+
+**Changed**
+- Overlays have rounded corners and a thin, quiet border on Windows 11.
+- An overlay stops at the edge of the screen: it cannot be dragged, resized or placed off it, and one saved off
+  the screen comes back inside.
+- The delta bar overlay has no title: a rounded bar that fills from the middle, with the delta in a pill in the
+  centre and its trend next to it.
+
 ## 0.8.29 beta
 
 **Fixed**

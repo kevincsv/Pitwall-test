@@ -40,6 +40,10 @@ var (
 	procGetWindowRect  = user32.NewProc("GetWindowRect")
 	procGetConsoleWin  = syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
 	procDwmSetAttr     = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmSetWindowAttribute")
+	procDwmBlurBehind  = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmEnableBlurBehindWindow")
+	procCreateRectRgn  = syscall.NewLazyDLL("gdi32.dll").NewProc("CreateRectRgn")
+	procCallWindowProc = user32.NewProc("CallWindowProcW")
+	procDefWindowProc  = user32.NewProc("DefWindowProcW")
 	procFreeConsole    = syscall.NewLazyDLL("kernel32.dll").NewProc("FreeConsole")
 )
 
@@ -57,7 +61,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
 	bg := "FF11151B"
 	if seeThrough(name) {
-		bg = "FF010203" // radarKey: see-through from the first frame
+		bg = "00000000" // WebView2 draws nothing where the page draws nothing
 	}
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", bg)
 	// its own browser data, apart from the main window's
@@ -82,16 +86,13 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	// no title bar or borders, on top, never takes the focus from iRacing; it has its own
 	// taskbar button (like RaceLab), so it can also be closed from the taskbar
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
-	ex := uintptr(wsExAppWindow | wsExNoActivate | wsExTopmost)
+	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
 	if seeThrough(name) {
-		ex |= wsExLayered
-	}
-	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), ex)
-	if seeThrough(name) {
-		procSetLayeredWindowAtt.Call(hwnd, radarKey, 255, lwaAlpha|lwaColorKey)
+		seeThroughWindow(hwnd)
 	}
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
-	noWinBorder(hwnd)
+	noWinBorder(hwnd, seeThrough(name))
+	keepOnScreen(hwnd)
 	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
 	// a resize makes WebView2 lay itself out again in the new client area
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h+1), swpNoActivate)
@@ -108,7 +109,10 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 			return
 		}
 		wv.Dispatch(func() {
-			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), 0, 0, uintptr(nw), uintptr(nh), swpNoMove|swpNoActivate)
+			x, y, _, _ := windowRect(hwnd)
+			r := winRect{int32(x), int32(y), int32(x + nw), int32(y + nh)}
+			clampMove(&r) // growing never pushes it off the screen
+			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(r.Bottom-r.Top), swpNoActivate)
 		})
 	})
 	// resize from any edge: the page sends the new position and size
@@ -117,7 +121,9 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 			return
 		}
 		wv.Dispatch(func() {
-			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(nx), uintptr(ny), uintptr(nw), uintptr(nh), swpNoActivate)
+			r := winRect{int32(nx), int32(ny), int32(nx + nw), int32(ny + nh)}
+			clampSize(&r) // an edge stops at the screen's border
+			procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(r.Bottom-r.Top), swpNoActivate)
 		})
 	})
 	wv.Bind("pwVisible", func(on bool) {
@@ -136,16 +142,125 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	wv.Run()
 }
 
-// noWinBorder: Windows 11 draws a thin border and rounds the corners of every window; an overlay has
-// neither (nothing happens on Windows 10)
-func noWinBorder(hwnd uintptr) {
+// noWinBorder: Windows 11 draws its own border and corners around every window. An overlay gets rounded corners
+// with a thin, quiet border (antialiased by Windows, like its own windows); a see-through one (the radar) gets
+// neither, so nothing outlines it over the game. Nothing happens on Windows 10.
+func noWinBorder(hwnd uintptr, clear bool) {
 	if procDwmSetAttr.Find() != nil {
 		return
 	}
-	none := uint32(0xFFFFFFFE)                                         // DWMWA_COLOR_NONE
-	procDwmSetAttr.Call(hwnd, 34, uintptr(unsafe.Pointer(&none)), 4)   // DWMWA_BORDER_COLOR
-	square := uint32(1)                                                // DWMWCP_DONOTROUND
-	procDwmSetAttr.Call(hwnd, 33, uintptr(unsafe.Pointer(&square)), 4) // DWMWA_WINDOW_CORNER_PREFERENCE
+	border, corner := uint32(0x00453a30), uint32(2) // #303a45; DWMWCP_ROUND
+	if clear {
+		border, corner = 0xFFFFFFFE, 1 // DWMWA_COLOR_NONE; DWMWCP_DONOTROUND
+	}
+	procDwmSetAttr.Call(hwnd, 34, uintptr(unsafe.Pointer(&border)), 4) // DWMWA_BORDER_COLOR
+	procDwmSetAttr.Call(hwnd, 33, uintptr(unsafe.Pointer(&corner)), 4) // DWMWA_WINDOW_CORNER_PREFERENCE
+}
+
+// seeThroughWindow: Windows composes the window with the alpha of what is drawn in it, so where the page
+// (and WebView2, with a transparent background) draws nothing the game shows through. Blur-behind with an
+// empty region turns that on without any blur (the way transparent WebView2 windows are made).
+func seeThroughWindow(hwnd uintptr) {
+	if procDwmBlurBehind.Find() != nil || procCreateRectRgn.Find() != nil {
+		return
+	}
+	rgn, _, _ := procCreateRectRgn.Call(0, 0, ^uintptr(0), ^uintptr(0)) // (0,0,-1,-1): an empty region
+	bb := struct {
+		Flags      uint32
+		Enable     int32
+		Region     uintptr
+		Transition int32
+	}{Flags: 0x1 | 0x2, Enable: 1, Region: rgn} // DWM_BB_ENABLE | DWM_BB_BLURREGION
+	procDwmBlurBehind.Call(hwnd, uintptr(unsafe.Pointer(&bb)))
+}
+
+// the desktop the overlays live in: every screen together (an overlay can still go from one screen to another)
+func desktopRect() winRect {
+	x, y := int32(metric(76)), int32(metric(77)) // SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN
+	return winRect{x, y, x + int32(metric(78)), y + int32(metric(79))}
+}
+
+// clampMove keeps a window's size and slides it back inside the desktop.
+func clampMove(r *winRect) {
+	s := desktopRect()
+	if s.Right <= s.Left || s.Bottom <= s.Top {
+		return
+	}
+	w, h := r.Right-r.Left, r.Bottom-r.Top
+	if w > s.Right-s.Left {
+		w = s.Right - s.Left
+	}
+	if h > s.Bottom-s.Top {
+		h = s.Bottom - s.Top
+	}
+	if r.Left < s.Left {
+		r.Left = s.Left
+	}
+	if r.Top < s.Top {
+		r.Top = s.Top
+	}
+	if r.Left+w > s.Right {
+		r.Left = s.Right - w
+	}
+	if r.Top+h > s.Bottom {
+		r.Top = s.Bottom - h
+	}
+	r.Right, r.Bottom = r.Left+w, r.Top+h
+}
+
+// clampSize cuts the edges that go past the desktop (resizing).
+func clampSize(r *winRect) {
+	s := desktopRect()
+	if s.Right <= s.Left || s.Bottom <= s.Top {
+		return
+	}
+	if r.Left < s.Left {
+		r.Left = s.Left
+	}
+	if r.Top < s.Top {
+		r.Top = s.Top
+	}
+	if r.Right > s.Right {
+		r.Right = s.Right
+	}
+	if r.Bottom > s.Bottom {
+		r.Bottom = s.Bottom
+	}
+}
+
+var (
+	ovPrevProc uintptr
+	ovProcCB   = syscall.NewCallback(ovWndProc)
+)
+
+// ovWndProc: while the overlay is dragged or resized by Windows, it never leaves the screen
+func ovWndProc(h, msg, wp, lp uintptr) uintptr {
+	switch msg {
+	case 0x0216: // WM_MOVING
+		clampMove((*winRect)(unsafe.Pointer(lp)))
+		return 1
+	case 0x0214: // WM_SIZING
+		clampSize((*winRect)(unsafe.Pointer(lp)))
+		return 1
+	}
+	if ovPrevProc == 0 {
+		r, _, _ := procDefWindowProc.Call(h, msg, wp, lp)
+		return r
+	}
+	r, _, _ := procCallWindowProc.Call(ovPrevProc, h, msg, wp, lp)
+	return r
+}
+
+// keepOnScreen puts ovWndProc in front of the window's own handler, and brings the window back inside the
+// screen if it was saved somewhere off it (a screen that is gone, another resolution).
+func keepOnScreen(hwnd uintptr) {
+	ovPrevProc, _, _ = procSetWindowLongPtrW.Call(hwnd, ^uintptr(3), ovProcCB) // GWLP_WNDPROC (-4)
+	x, y, w, h := windowRect(hwnd)
+	r := winRect{int32(x), int32(y), int32(x + w), int32(y + h)}
+	clampMove(&r)
+	if int(r.Left) != x || int(r.Top) != y {
+		procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(r.Left), uintptr(r.Top), 0, 0, swpNoSize|swpNoActivate)
+	}
 }
 
 var gwlStyle = -16
