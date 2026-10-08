@@ -46,9 +46,9 @@
                 <StackPanel Margin="0,10">
                     <RadioButton x:Name="NavHome" Style="{StaticResource NavButton}" Content="Home" Tag="home" IsChecked="True" Checked="OnNav"/>
                     <RadioButton x:Name="NavAnalysis" Style="{StaticResource NavButton}" Content="Analysis" Tag="laps" Checked="OnNav"/>
-                    <RadioButton x:Name="NavCommunity" Style="{StaticResource NavButton}" Content="Community" Tag="community" Checked="OnNav"/>
                     <RadioButton x:Name="NavLive" Style="{StaticResource NavButton}" Content="Telemetry" Tag="live" Checked="OnNav"/>
                     <RadioButton x:Name="NavOverlays" Style="{StaticResource NavButton}" Content="Overlays" Tag="overlays" Checked="OnNav"/>
+                    <RadioButton x:Name="NavCommunity" Style="{StaticResource NavButton}" Content="Community" Tag="community" Checked="OnNav"/>
                     <RadioButton x:Name="NavAccount" Style="{StaticResource NavButton}" Content="Account" Tag="me" Checked="OnNav"/>
                     <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Content="Settings" Tag="settings" Checked="OnNav"/>
                 </StackPanel>

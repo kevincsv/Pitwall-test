@@ -16,6 +16,10 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   open in it.
 - DRINKS mode: renaming and removing drivers works from the web connected to your PC and from the phone apps too.
 
+**Changed**
+- The main menu is Home, Analysis, Telemetry, Overlays, Community and Account: Community sits just before Account,
+  on the PC, the web, Pitlane HQ Desktop and the phone apps.
+
 **Fixed**
 - The real iRating of a race was taken from the next session even when it was of another category (a Sports Car
   race after a Formula Car one showed −979 instead of −42). Now only a session of the same category gives it, and
