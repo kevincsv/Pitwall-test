@@ -12,6 +12,7 @@ import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
 export const MODEL_VERSION = 4; // 4: real laps only — the record and the driver just ahead, no composites
+export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
 const LEARN_PER_RUN = 120;  // new laps taken into the memory per run (the rest on the next one)
@@ -139,11 +140,12 @@ async function candidates(env, game, trackId, carId) {
   for (const x of pick) {
     try { const g = goodLap(x.time, { d: JSON.parse(await gunz(x.data)) }); if (g) { g.up = x.drv; laps.push(g); } } catch (e) {}
   }
-  return { laps, drivers, more: learnt.more };
+  return { laps, drivers, more: learnt.more, added: learnt.added };
 }
 
 export async function buildModel(env, game, trackId, carId) {
-  const { laps: raw, drivers, more } = await candidates(env, game, trackId, carId);
+  const { laps: raw, drivers, more, added } = await candidates(env, game, trackId, carId);
+  if (added) await markCar(env, game, carId); // its memory of this car grew: the car card learns again
   const shared = await env.DB.prepare(
     `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND COALESCE(shown,'')<>'model'`).bind(trackId, carId, game).first();
   const base = { v: MODEL_VERSION, game, trackId, carId, built: Date.now(), more: !!more, drivers, shared: (shared && shared.n) || 0 };
@@ -206,6 +208,96 @@ export async function buildModel(env, game, trackId, carId) {
   };
 }
 
+// ---------- the car card: what a car does on every track it was driven on ----------
+// One per car and game, learnt from the model's memory of the car across its tracks: the hardest
+// braking the drivers get out of it (from its speed), the speeds the fast drivers shift up at in
+// every gear, and its top speed (and where). It serves the coach when nobody known has driven
+// this car on this track yet: what the car does elsewhere against what this lap did. Real laps
+// only, never a composite; it does not replace the record or the driver just ahead.
+const CARD_TRACKS = 12, CARD_PER_TRACK = 8, CARD_PER_DRIVER = 2;
+const pct = (a, q) => { const v = a.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); return v.length ? v[Math.min(v.length - 1, Math.floor(q * (v.length - 1) + 0.5))] : null; };
+// what one lap shows of its car: bins [speed m/s, time s, throttle, brake, gear, steering]
+export function lapFacts(bins) {
+  const dec = [], shifts = {};
+  let vmax = 0, geared = false;
+  for (let i = 0; i + 1 < bins.length; i++) {
+    const a = bins[i], b = bins[i + 1];
+    if (a[0] > vmax) vmax = a[0];
+    if (a[4] >= 1) geared = true;
+    // braking: how fast the speed falls while the brake is on (the pedal and the speed say the same thing)
+    const dt = b[1] - a[1];
+    if (dt > 0.01 && dt < 2 && a[3] >= 0.5 && a[0] > 12 && a[0] > b[0]) dec.push((a[0] - b[0]) / dt);
+    // a shift up: the speed the gear was taken to (its highest point on the lap, the straight)
+    if (a[4] >= 1 && b[4] === a[4] + 1 && a[0] > 5) shifts[a[4]] = Math.max(shifts[a[4]] || 0, a[0]);
+  }
+  // the lap's hardest braking: the top 5 % of its braking, so one broken reading does not speak for it
+  return { brake: dec.length >= 5 ? pct(dec, 0.95) : null, shifts: geared ? shifts : null, vmax };
+}
+// the card of a car from its laps [{trackId, drv, time, bins}]: the hardest braking the drivers get out of
+// it, the speeds the fast drivers shift up at (both the upper end of the laps, not the average), its top speed
+export function cardOf(laps) {
+  const f = laps.map((l) => ({ ...lapFacts(l.bins), trackId: l.trackId, drv: l.drv }));
+  const brakes = f.map((x) => x.brake).filter((x) => x != null);
+  const shifts = [];
+  for (let g = 1; g <= 8; g++) {
+    const v = f.map((x) => x.shifts && x.shifts[g]).filter((x) => x > 0);
+    if (v.length >= 3) shifts.push([g, r(pct(v, 0.8), 10)]);
+  }
+  let vmax = 0, vmaxAt = 0;
+  for (const x of f) if (x.vmax > vmax) { vmax = x.vmax; vmaxAt = x.trackId; }
+  return {
+    n: laps.length, tracks: new Set(laps.map((l) => l.trackId)).size, drivers: new Set(laps.map((l) => l.drv)).size,
+    brake: brakes.length >= 3 ? r(pct(brakes, 0.8), 100) : null, shifts, vmax: r(vmax, 10), vmaxAt,
+  };
+}
+export async function buildCarCard(env, game, carId) {
+  const all = (await env.DB.prepare("SELECT track_id, drv, time, data FROM model_laps WHERE game=?1 AND car_id=?2 ORDER BY time LIMIT 4000").bind(game, carId).all()).results || [];
+  // the best few laps of each driver on each track, and the tracks with most laps first: no track and no
+  // driver speaks for the car alone
+  const byTrack = new Map();
+  for (const x of all) { const t = byTrack.get(x.track_id) || []; t.push(x); byTrack.set(x.track_id, t); }
+  const pick = [];
+  for (const [, rows] of [...byTrack.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, CARD_TRACKS)) {
+    const per = new Map(); let n = 0;
+    for (const x of rows) {
+      const c = per.get(x.drv) || 0;
+      if (c >= CARD_PER_DRIVER || n >= CARD_PER_TRACK) continue;
+      per.set(x.drv, c + 1); n++; pick.push(x);
+    }
+  }
+  const laps = [];
+  for (const x of pick) {
+    try { const g = goodLap(x.time, { d: JSON.parse(await gunz(x.data)) }); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins }); } catch (e) {}
+  }
+  const card = { v: CARD_VERSION, game, carId, built: Date.now(), ...cardOf(laps) };
+  if (card.vmaxAt) {
+    const t = await env.DB.prepare("SELECT track, track_config FROM sessions WHERE game=?1 AND track_id=?2 AND track IS NOT NULL LIMIT 1").bind(game, card.vmaxAt).first().catch(() => null)
+      || await env.DB.prepare("SELECT track, NULL AS track_config FROM community_laps WHERE game=?1 AND track_id=?2 LIMIT 1").bind(game, card.vmaxAt).first().catch(() => null);
+    if (t && t.track) card.vmaxTrack = t.track + (t.track_config ? " · " + t.track_config : "");
+  }
+  await env.DB.prepare(
+    `INSERT INTO car_cards (game, car_id, dirty, built, data) VALUES (?1,?2,0,?3,?4)
+     ON CONFLICT(game, car_id) DO UPDATE SET dirty=0, built=excluded.built, data=excluded.data`).bind(game, carId, card.built, await gz(JSON.stringify(card))).run();
+  return card;
+}
+export async function markCar(env, game, carId) {
+  if (!carId) return;
+  await env.DB.prepare(
+    `INSERT INTO car_cards (game, car_id, dirty, built, data) VALUES (?1,?2,1,0,NULL)
+     ON CONFLICT(game, car_id) DO UPDATE SET dirty=1`).bind(game, carId).run().catch(() => {});
+}
+// what the apps ask for: the card of a car, rebuilt when its laps changed; null when it has no laps
+export async function getCarCard(env, game, carId) {
+  if (!carId) return null;
+  const row = await env.DB.prepare("SELECT dirty, data FROM car_cards WHERE game=?1 AND car_id=?2").bind(game, carId).first().catch(() => null);
+  if (row && row.data && !row.dirty) {
+    const c = JSON.parse(await gunz(row.data));
+    if (c.v === CARD_VERSION) return c.n ? c : null;
+  }
+  try { const c = await buildCarCard(env, game, carId); return c.n ? c : null; }
+  catch (e) { if (row && row.data) { const c = JSON.parse(await gunz(row.data)); return c.n ? c : null; } return null; }
+}
+
 // ---------- ids for a track and car nobody recorded with iRacing's ids yet ----------
 // Sharing never waits for the ids: a car and track get provisional ids made from their names
 // (900 000 000 and up), and the first session that brings the real ids replaces them everywhere.
@@ -233,6 +325,8 @@ export async function reconcileIds(env, game, track, trackConfig, car, trackId, 
   await env.DB.batch([
     env.DB.prepare("UPDATE sessions SET track_id=CASE WHEN track_id=?1 THEN ?2 ELSE track_id END, car_id=CASE WHEN car_id=?3 THEN ?4 ELSE car_id END WHERE game=?5 AND (track_id=?1 OR car_id=?3)").bind(pt, trackId, pc, carId, game),
     ...fix("community_laps"), ...fix("community_reports"), ...fix("model_laps"),
+    env.DB.prepare("UPDATE OR IGNORE car_cards SET car_id=?2, dirty=1 WHERE game=?3 AND car_id=?1").bind(pc, carId, game),
+    env.DB.prepare("DELETE FROM car_cards WHERE game=?2 AND car_id=?1").bind(pc, game),
     env.DB.prepare("DELETE FROM model_cache WHERE game=?1 AND (track_id=?2 OR car_id=?3)").bind(game, pt, pc)]);
   await markModel(env, game, trackId, carId);
 }
@@ -261,6 +355,7 @@ export async function markModel(env, game, trackId, carId) {
   await env.DB.prepare(
     `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data) VALUES (?1,?2,?3,1,0,NULL)
      ON CONFLICT(game, track_id, car_id) DO UPDATE SET dirty=1`).bind(game, trackId, carId).run().catch(() => {});
+  await markCar(env, game, carId);
 }
 
 async function rebuild(env, game, trackId, carId) {
@@ -293,4 +388,8 @@ export async function rebuildDirty(env) {
      ON CONFLICT DO NOTHING`).run().catch(() => {});
   const r = await env.DB.prepare("SELECT game, track_id, car_id FROM model_cache WHERE dirty=1 ORDER BY built LIMIT 25").all();
   for (const x of r.results || []) { try { await rebuild(env, x.game, x.track_id, x.car_id); } catch (e) {} }
+  // the car cards: every car the memory knows gets one, and the ones with new laps learn again
+  await env.DB.prepare("INSERT INTO car_cards (game, car_id, dirty, built, data) SELECT DISTINCT game, car_id, 1, 0, NULL FROM model_laps WHERE car_id>0 ON CONFLICT DO NOTHING").run().catch(() => {});
+  const c = await env.DB.prepare("SELECT game, car_id FROM car_cards WHERE dirty=1 ORDER BY built LIMIT 10").all().catch(() => ({ results: [] }));
+  for (const x of c.results || []) { try { await buildCarCard(env, x.game, x.car_id); } catch (e) {} }
 }

@@ -12,7 +12,7 @@ const $=s=>document.querySelector(s);
 const TX=(...a)=>typeof Tx==="function"?Tx(...a):a[0];
 const game=()=>typeof aGame==="function"?aGame():"iracing";
 const url=u=>typeof withGame==="function"?withGame(u,game()):u;
-const COMBOS={g:"",list:null,p:null},MODEL={key:"",busy:false,data:null,err:"",at:0,p:null};
+const COMBOS={g:"",list:null,p:null},MODEL={key:"",busy:false,data:null,err:"",at:0,p:null},CARD={id:0,data:null,busy:false,at:0,p:null};
 
 /* ---------- which car and track: ids from the community list, by name ---------- */
 const norm=s=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
@@ -40,6 +40,7 @@ function buildModel(c){
   MODEL.p=(async()=>{
     try{
       const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
+      if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
       MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
         times:r.times||[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins}))}}
     catch(e){MODEL.err=e.message}
@@ -68,6 +69,26 @@ function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
 function refsFor(m,A){if(!m||!A)return{rec:null,level:null};const rec=idealLap(m),lv=levelLap(m,A.time);
   return{rec:rec&&Math.abs(rec.time-A.time)>=0.002?rec:null,level:lv&&lv.time<A.time-0.001?lv:null}}
 
+/* ---------- the car card: what this car does on other tracks ---------- */
+/* one lap's facts, as the server reads them: its hardest braking (m/s², the top 5 % of its braking), the
+   speed it shifted up at in every gear (the highest point it took the gear to), its top speed */
+function lapFacts(bins){const dec=[],shifts={};let vmax=0,geared=false;
+  for(let i=0;i+1<bins.length;i++){const a=bins[i],b=bins[i+1];if(!a||!b)continue;if(a[0]>vmax)vmax=a[0];if(a[4]>=1)geared=true;
+    const dt=b[1]-a[1];if(dt>0.01&&dt<2&&a[3]>=0.5&&a[0]>12&&a[0]>b[0])dec.push((a[0]-b[0])/dt);
+    if(a[4]>=1&&b[4]===a[4]+1&&a[0]>5)shifts[a[4]]=Math.max(shifts[a[4]]||0,a[0])}
+  dec.sort((x,y)=>x-y);return{brake:dec.length>=5?dec[Math.min(dec.length-1,Math.floor(0.95*(dec.length-1)+0.5))]:null,shifts:geared?shifts:null,vmax}}
+/* the car of a lap, by its id or its name alone: the card needs no track, so a car and track nobody known
+   drove yet (the very case the card is for) still finds its car among the cars the community knows */
+function carIdSync(lap){if(!lap)return 0;const c=comboSync(lap);if(c)return c.carId;if(lap.carId)return lap.carId;
+  const car=norm(lap.car);if(!car||!COMBOS.list||COMBOS.g!==game())return 0;const hit=COMBOS.list.find(x=>norm(x.car)===car);return hit?hit.carId:0}
+function loadCard(id){if(!id)return Promise.resolve(null);
+  if(CARD.id===id&&(CARD.data||CARD.busy)&&Date.now()-(CARD.at||0)<300000)return CARD.busy?CARD.p:Promise.resolve(CARD.data);
+  CARD.id=id;CARD.busy=true;CARD.data=null;CARD.at=Date.now();
+  CARD.p=cget(url(`/api/community/car?carId=${id}`)).then(r=>r&&r.n?r:null).catch(()=>null).then(k=>{if(CARD.id===id){CARD.data=k;CARD.busy=false}return k});return CARD.p}
+async function cardFor(lap){if(!lap||lap.comm)return null;await combos();return loadCard(carIdSync(lap))}
+/* the card of lap A's car when it is already here (as the server learnt it on every track), with what lap A did */
+function carCard(A){if(!A||!Array.isArray(A.bins))return null;const id=carIdSync(A),k=id&&CARD.id===id&&!CARD.busy?CARD.data:null;return k?{card:k,mine:lapFacts(A.bins)}:null}
+
 /* ---------- lap list and sectors in purple, like the sims ---------- */
 function colourLapTable(LP){const tb=$("#lapTable tbody"),th=$("#lapTable thead tr");if(!tb||!th||!LP||!LP.length)return;
   const ns=Math.max(0,...LP.map(l=>Array.isArray(l.sectors)?l.sectors.length:0));if(!th.dataset.sec){th.dataset.sec="1";th.insertAdjacentHTML("beforeend",[1,2,3,4,5].map(i=>`<th class="r sec-h" data-s="${i}">S${i}</th>`).join(""))}
@@ -85,7 +106,7 @@ function syncRefs(m,A){if(typeof CREF==="undefined")return false;let changed=fal
     if(w){const same=!x.stale&&x.time===w.time&&x.key===m.key;CREF[i]=Object.assign(w,{key:m.key});if(!same)changed=true}else if(!x.stale){x.stale=true;changed=true}});
   want.forEach(w=>{if(!CREF.some(x=>x&&x.model===w.model)){CREF.push(Object.assign(w,{key:m.key}));changed=true}});
   return changed}
-let lapsKey="",coachKey="";
+let lapsKey="",coachKey="",cardKey="";
 const origLaps=window.renderLaps;
 if(typeof origLaps==="function")window.renderLaps=function(){const r=origLaps.apply(this,arguments);try{
     const LP=typeof analysisLaps==="function"?analysisLaps():[];colourLapTable(LP);
@@ -96,7 +117,9 @@ const origCoach=window.renderCoach;
 if(typeof origCoach==="function")window.renderCoach=function(){const r=origCoach.apply(this,arguments);try{
     const A=window.COACH_A;if(!A||A.comm)return r;
     // the coach reads the model as it renders (PW_MODEL.current); when the model arrives it renders once more
-    modelFor(A).then(m=>{const k=(m?m.key:"none")+"|"+A.time;if(k===coachKey)return;coachKey=k;window.renderCoach()}).catch(()=>{})}catch(e){console.warn(e)}return r};
+    modelFor(A).then(m=>{const k=(m?m.key:"none")+"|"+A.time;if(k===coachKey)return;coachKey=k;window.renderCoach()}).catch(()=>{});
+    // the car card the same way: once it is here, the coach renders once more
+    cardFor(A).then(c=>{const k=(c?c.carId+":"+c.built:"none")+"|"+A.time;if(k===cardKey)return;cardKey=k;if(c)window.renderCoach()}).catch(()=>{})}catch(e){console.warn(e)}return r};
 const st=document.createElement("style");st.textContent=`.pb,.pb-t{color:var(--pb)!important;font-weight:700}tr.lap-invalid td{opacity:.5;text-decoration:line-through}tr.lap-invalid td:last-child .pill{text-decoration:none}`;document.head.appendChild(st);
-window.PW_MODEL={buildModel,modelFor,current,loading,error,idealLap,levelLap,refsFor,rankOf,comboOf};
+window.PW_MODEL={buildModel,modelFor,current,loading,error,idealLap,levelLap,refsFor,rankOf,comboOf,carCard,cardFor,lapFacts};
 })();

@@ -6,7 +6,7 @@ import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName 
 import { mailReady } from "./email.js";
 import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
-import { getModel, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { getModel, getCarCard, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -166,7 +166,15 @@ export async function community(req, env, url) {
     if (!t || !c) return err("trackId and carId", 400);
     const md = await getModel(env, game, t, c);
     const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
-    return json({ ...md, fastShared: fs || null });
+    // with the card of the car: what it does on other tracks, for when nobody known drove it here yet
+    return json({ ...md, car: await getCarCard(env, game, c).catch(() => null), fastShared: fs || null });
+  }
+  // the card of a car alone (the phone apps): its hardest braking, the speeds the fast drivers shift up
+  // at, its top speed, learnt from its laps on every track; {} when it has no laps yet
+  if (p === "/car" && m === "GET") {
+    const c = +url.searchParams.get("carId");
+    if (!c) return err("carId", 400);
+    return json((await getCarCard(env, game, c).catch(() => null)) || {});
   }
   if (p === "/laps" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
@@ -251,7 +259,7 @@ export async function community(req, env, url) {
       (SELECT COUNT(*) FROM sessions) AS sessions, (SELECT COUNT(*) FROM sessions WHERE started>?3) AS sessions1, (SELECT COUNT(*) FROM sessions WHERE started>?1) AS sessions7,
       (SELECT COUNT(DISTINCT uploader) FROM sessions WHERE started>?1) AS drivers7,
       (SELECT COUNT(*) FROM community_laps) AS shared, (SELECT COUNT(*) FROM (SELECT 1 FROM community_laps WHERE COALESCE(shown,'')<>'model' GROUP BY game, track_id, car_id)) AS boards,
-      (SELECT COUNT(*) FROM model_laps) AS learnt, (SELECT COUNT(*) FROM model_cache) AS models, (SELECT COUNT(*) FROM model_cache WHERE dirty=1) AS modelsDirty,
+      (SELECT COUNT(*) FROM model_laps) AS learnt, (SELECT COUNT(*) FROM model_cache) AS models, (SELECT COUNT(*) FROM model_cache WHERE dirty=1) AS modelsDirty, (SELECT COUNT(*) FROM car_cards) AS cars,
       (SELECT COUNT(*) FROM leagues) AS leagues, (SELECT COUNT(*) FROM accounts WHERE supporter=1) AS supporters, (SELECT COUNT(*) FROM accounts WHERE supporter=1 AND supporter_src='patreon') AS supportersPatreon,
       (SELECT COUNT(*) FROM patreon_patrons WHERE active=1) AS patrons, (SELECT MAX(updated) FROM patreon_patrons) AS patreonLast,
       (SELECT COUNT(*) FROM auth_fails) AS authFails`).bind(d7, d30, d1).first().catch((x) => ({ error: String(x && x.message || x) }));
@@ -308,6 +316,7 @@ export async function community(req, env, url) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
     const r = await env.DB.prepare("UPDATE model_cache SET dirty=1").run();
+    await env.DB.prepare("UPDATE car_cards SET dirty=1").run().catch(() => {});
     return json({ ok: true, models: (r.meta && r.meta.changes) || 0 });
   }
   // what is blocked now after wrong passwords or too many tries (15 minutes): one row per account, email or

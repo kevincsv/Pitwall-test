@@ -24,6 +24,11 @@
   list is coloured by it. No second "ideal" or theoretical lap anywhere.
   Test drives never teach the model nor go to the leaderboards; the model learns only from practice,
   qualifying and race laps of official series (hosted, league and AI laps still show on the boards).
+  The car card (`car_cards`, one per car, `buildCarCard` in model.js, `/community/car`): what a car
+  does on every track it was driven on (hardest braking, the speeds the fast drivers shift up at, top
+  speed and where), from the model's memory. The coach shows it against lap A only when nobody known
+  is ahead on that car and track; the phone apps show it in the lap analysis. It is a hint of what the
+  car can do, never a reference lap.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own

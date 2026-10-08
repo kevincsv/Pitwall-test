@@ -3,11 +3,13 @@
     {
       "v": "0.8.16",
       "en": [
+        "The car card: what your car does on other tracks (hardest braking, shift speeds, top speed) against your lap, when nobody known is ahead of you here.",
         "With \"+ Session\" on, lap B shows only the laps of the other session.",
         "The next level and the record show once each in lap B.",
         "\"Choose a session\" keeps its title and × at the top while you scroll."
       ],
       "es": [
+        "La ficha del coche: lo que tu coche hace en otros circuitos (frenada máxima, cambios de marcha, velocidad punta) frente a tu vuelta, cuando nadie conocido va por delante aquí.",
         "Con \"+ Sesión\" activado, la vuelta B muestra solo las vueltas de la otra sesión.",
         "El siguiente nivel y el récord salen una sola vez en la vuelta B.",
         "\"Elegir sesión\" mantiene su título y la × arriba al bajar."

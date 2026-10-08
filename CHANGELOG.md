@@ -6,6 +6,15 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 
 ## 0.8.16 beta
 
+**New**
+- **The car card.** One per car, learnt by the server from the car's real laps on every track it was
+  driven on: the hardest braking the drivers get out of it, the speeds the fast drivers shift up at in
+  every gear, and its top speed (and where). The coach shows it against your lap when nobody known is
+  ahead of you on this car and track (nobody drove it here yet, or you are the fastest): what the car
+  does elsewhere, as a hint of what is left. The phone apps show it in the lap analysis. It never
+  replaces the record or the driver just ahead, and it is no theoretical lap: real laps only.
+- Admin: the overview counts the cars and tracks the model knows and the car cards.
+
 **Fixed**
 - Lap analyzer: with "+ Session" on, lap B is only the laps of the other session (and the model's
   references), not the laps of session A again; the coach does the same.
