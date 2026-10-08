@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.27",
+      "en": ["Moving an overlay looks cleaner: a frame, corner marks to resize and a small label."],
+      "es": ["Mover un overlay se ve más limpio: un marco, marcas en las esquinas para el tamaño y una etiqueta pequeña."]
+    },
+    {
       "v": "0.8.26",
       "en": ["Overlays stay open and steady, without a dark border."],
       "es": ["Los overlays se quedan abiertos y estables, sin borde oscuro."]

@@ -370,10 +370,13 @@ html.ov .grip{display:none}
 .pinvar{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 4px;font-size:14px}
 .pinvar[aria-pressed="true"]{color:var(--accent)}
 #ovBar,#ovRes{display:none}
-html.ov.edit #ovBar{display:block;position:fixed;left:0;right:0;top:0;z-index:50;background:var(--accent);color:var(--accent-ink);font:600 11px/1 var(--f-data);padding:5px 8px;cursor:move;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* moving an overlay: a frame around the window, corner marks to resize and a small floating label (nothing is pushed down) */
+html.ov.edit #ovBar{display:flex;align-items:center;gap:6px;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:52;max-width:calc(100% - 28px);box-sizing:border-box;padding:5px 11px 5px 8px;border-radius:999px;background:color-mix(in srgb,#090c11 86%,transparent);border:1px solid color-mix(in srgb,var(--accent) 70%,transparent);color:#e8edf3;font:600 11px/1.2 var(--f-data);letter-spacing:.02em;box-shadow:0 6px 18px rgba(0,0,0,.5);cursor:move;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(6px)}
+html.ov.edit #ovBar svg{width:14px;height:14px;flex:none;color:var(--accent)}
+html.ov.edit #ovBar small{font-weight:500;color:#9aa6b4;overflow:hidden;text-overflow:ellipsis}
+html.ov.edit body::after{content:"";position:fixed;inset:0;z-index:49;pointer-events:none;border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 5%,transparent)}
 html.ov.edit #ovRes{display:block;position:fixed;right:0;bottom:0;width:18px;height:18px;z-index:50;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--accent) 50%)}
-html.ov.edit body{outline:2px dashed var(--accent);outline-offset:-2px;cursor:move}
-html.ov.edit section.view{padding-top:26px}
+html.ov.edit body{cursor:move}
 html.ov .wpanel{min-height:0}
 html.ov #radarC{max-width:none}
 html.ov [data-w=radar]>.label,html.ov [data-w=boost]>.label{display:none}
@@ -395,7 +398,6 @@ html.ov .panel{border-radius:10px}
 /* an overlay window is the widget itself: no gap, rounded corners or border showing the window's dark background around it */
 html.ovwin,html.ovwin body{background:var(--surface)}
 html.ovwin section.view{padding:0}
-html.ovwin.edit section.view{padding-top:26px}
 html.ovwin .panel{border-radius:0!important;border-color:transparent!important;box-shadow:none!important;margin:0}
 html.ov.ovt-glass,html.ov.ovt-glass body,html.ov.ovt-minimal,html.ov.ovt-minimal body{background:transparent!important}
 html.ov.ovt-glass .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--fg) 10%,transparent)}
@@ -424,7 +426,9 @@ html.ov .resz{display:none}
 html.ov.edit .ovh{display:block}
 .ovh[data-e=n],.ovh[data-e=s]{left:10px;right:10px;height:7px;cursor:ns-resize}.ovh[data-e=n]{top:0}.ovh[data-e=s]{bottom:0}
 .ovh[data-e=e],.ovh[data-e=w]{top:10px;bottom:10px;width:7px;cursor:ew-resize}.ovh[data-e=e]{right:0}.ovh[data-e=w]{left:0}
-.ovh[data-e=ne],.ovh[data-e=nw],.ovh[data-e=se],.ovh[data-e=sw]{width:14px;height:14px}
+.ovh[data-e=ne],.ovh[data-e=nw],.ovh[data-e=se],.ovh[data-e=sw]{width:16px;height:16px;box-sizing:border-box;border:0 solid var(--accent)}
+.ovh[data-e=nw]{border-top-width:4px;border-left-width:4px}.ovh[data-e=ne]{border-top-width:4px;border-right-width:4px}.ovh[data-e=sw]{border-bottom-width:4px;border-left-width:4px}.ovh[data-e=se]{border-bottom-width:4px;border-right-width:4px}
+.ovh[data-e=n]:hover,.ovh[data-e=s]:hover,.ovh[data-e=e]:hover,.ovh[data-e=w]:hover{background:color-mix(in srgb,var(--accent) 45%,transparent)}
 .ovh[data-e=ne]{top:0;right:0;cursor:nesw-resize}.ovh[data-e=nw]{top:0;left:0;cursor:nwse-resize}.ovh[data-e=sw]{bottom:0;left:0;cursor:nesw-resize}.ovh[data-e=se]{bottom:0;right:0;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--accent) 50%)}
 /* calendar */
 .calwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;align-items:start}
@@ -2038,7 +2042,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.26",APP_STAGE="beta";
+const WEB_VERSION="0.8.27",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -3562,7 +3566,7 @@ function ovChrome(){if(!OV.on)return;let bar=$("#ovBar");if(!bar){bar=document.c
         if(OVFIT.dw){OVFIT.busy=1;const ch=outerHeight-innerHeight,nh=OVFIT.nh||1;if(ed==="n"||ed==="s")w=(hh-ch)/nh*OVFIT.dw;w=Math.max(OVFIT.dw*OVFIT.min,Math.min(OVFIT.dw*OVFIT.max,w));hh=Math.ceil(nh*w/OVFIT.dw)+ch;if(ed.includes("w"))x=x0+w0-w;if(ed.includes("n"))y=y0+h0-hh}
         if(typeof window.pwRect==="function")window.pwRect(Math.round(x),Math.round(y),Math.round(w),Math.round(hh));else window.pwSize(Math.round(w),Math.round(hh))};
       const up=()=>{OVFIT.busy=0;h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up)};h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up)})})}
-  const frameless=typeof window.pwDrag==="function";bar.innerHTML=`<b>${esc(OV.list.map(w=>Tx(...I18N["w."+w]||[w,w])).join(" + "))}</b> · ${esc(frameless?Tx("drag to move, any edge or corner to resize","arrastra para mover, cualquier borde o esquina para redimensionar"):Tx("move it by its title bar","muévelo por la barra de título"))}`;
+  const frameless=typeof window.pwDrag==="function";bar.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3"/></svg><b>${esc(OV.list.map(w=>Tx(...I18N["w."+w]||[w,w])).join(" + "))}</b><small>${esc(frameless?Tx("drag · corners resize","arrastra · esquinas para el tamaño","ziehen · Ecken für die Größe","arraste · cantos para o tamanho"):Tx("move it by its title bar","muévelo por la barra de título"))}</small>`;
   $("#ovRes").hidden=true}
 Object.assign(I18N,{"w.radar":["Radar","Radar"],"w.boost":["DRS & push-to-pass","DRS y push-to-pass"],"w.telemetry":["Telemetry","Telemetría"],
  lyScreen:["On this screen","En esta pantalla"],lyOverlays:["Overlays on your PC","Overlays en tu PC"],autoOpen:["Open my overlays when I get in the car","Abrir mis overlays al subirme al coche"],
