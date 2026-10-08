@@ -753,6 +753,16 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/community/setups", handleCommSetups)
 	mux.HandleFunc("/api/trackmap", handleTrackMap)
 	mux.HandleFunc("/api/turns", handleTurns)
+	mux.HandleFunc("/api/pitlane", func(w http.ResponseWriter, r *http.Request) {
+		t, _ := strconv.Atoi(r.URL.Query().Get("trackId"))
+		b, err := pitLaneQuery(t)
+		if t <= 0 || err != nil {
+			writeJSON(w, map[string]any{"trackId": t, "pts": [][2]float64{}})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	})
 	mux.HandleFunc("/api/community/season", proxy("/season"))
 	mux.HandleFunc("/api/community/combos", proxy("/combos"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))

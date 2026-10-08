@@ -52,6 +52,11 @@
   track's map in the race summary ("Official turns · Admin", clicks in order, saved for everyone, as fractions of the lap).
   The coach, the lap analyzer and the race summary (PC, web, phones: `turnNo`) give every corner the number of the
   official turn nearest its apex; a track without them keeps the corners counted from the laps.
+- The pit lane (`pitlane.go`, `track_pits` on the server, `/community/pitlane`, `/api/pitlane`): every lap through the
+  pits marks its points on the pit road (OnPitRoad); against a clean lap of the same track each becomes "metres to the
+  left of the track at this 5 m point" (drift taken from the points just before and after). Every map draws it dashed
+  beside the track with its entry (red) and exit (blue): analyzer, coach, race summary, phones and the map overlay
+  (whose cars on the pit road drive along it).
 - Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`): the game
   only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
   recorded races, ir + irChange); Home's "Licence summary" (PC, web, Pitlane HQ Desktop; the phones' Licence summary)

@@ -246,6 +246,14 @@ export async function community(req, env, url) {
     const r = await env.DB.prepare("SELECT turns, updated FROM track_turns WHERE game=?1 AND track_id=?2").bind(game, t).first();
     return new Response(JSON.stringify({ trackId: t, game, turns: r ? JSON.parse(r.turns) : [], updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
   }
+  // the pit lane of a track, from laps through the pits: [point of the lap (5 m), metres to the left of the track]
+  if (p === "/pitlane" && m === "GET") {
+    const t = +url.searchParams.get("trackId");
+    if (!t) return err("trackId", 400);
+    const r = await env.DB.prepare("SELECT n, pts, updated FROM track_pits WHERE game=?1 AND track_id=?2").bind(game, t).first();
+    const pts = r ? Object.entries(JSON.parse(r.pts)).map(([i, v]) => [+i, v]).sort((a, b) => a[0] - b[0]) : [];
+    return new Response(JSON.stringify({ trackId: t, game, n: r ? r.n : 0, pts, updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=600" } });
+  }
   if (p === "/turns" && m === "POST") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
@@ -857,6 +865,20 @@ export async function community(req, env, url) {
        ON CONFLICT(game, track_id) DO UPDATE SET track=excluded.track, n=excluded.n, len=excluded.len, pts=excluded.pts, time=excluded.time, user_id=excluded.user_id, created=excluded.created`
     ).bind(game, trackId, str(body.track), n, num(body.len), JSON.stringify({ x: x.map(r2), y: y.map(r2) }), time, u.id, Date.now()).run();
     return json({ shared: true });
+  }
+  if (p === "/pitlane" && m === "POST") {
+    const trackId = int(body.trackId), n = int(body.n), pts = body.pts;
+    if (!trackId || !(n >= 60 && n <= 4000) || !Array.isArray(pts) || pts.length < 10 || pts.length > 2000) return err("pit lane needs trackId, n and its points", 400);
+    const ok = pts.every(q => Array.isArray(q) && q.length === 2 && Number.isInteger(q[0]) && q[0] >= 0 && q[0] < n && typeof q[1] === "number" && isFinite(q[1]) && Math.abs(q[1]) <= 80);
+    if (!ok) return err("pit lane points out of range", 400);
+    if (!(await countUpload(env, u))) return err("too many uploads today", 429);
+    const old = await env.DB.prepare("SELECT n, pts FROM track_pits WHERE game=?1 AND track_id=?2").bind(game, trackId).first();
+    // each point is the average of what the laps through the pits measured there (a lap of another length starts over)
+    const keep = old && Math.abs(old.n - n) <= 4 ? JSON.parse(old.pts) : {};
+    for (const [i, v] of pts) keep[i] = keep[i] == null ? v : Math.round((keep[i] * 0.6 + v * 0.4) * 10) / 10;
+    await env.DB.prepare(`INSERT INTO track_pits (game, track_id, n, pts, updated) VALUES (?1,?2,?3,?4,?5)
+       ON CONFLICT(game, track_id) DO UPDATE SET n=excluded.n, pts=excluded.pts, updated=excluded.updated`).bind(game, trackId, n, JSON.stringify(keep), Date.now()).run();
+    return json({ shared: true, points: Object.keys(keep).length });
   }
   if (p === "/reports" && m === "POST") {
     const data = JSON.stringify(body.report || {});

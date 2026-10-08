@@ -16,8 +16,10 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   you).
 - Analysis: "My races" are your race summaries and "My sessions" every session you drove.
 - Corners carry the track's official turn numbers (T1 … T16 at Fuji) in the coach, the lap analyzer and the race
-  summary, on the PC, the web and the phones, wherever they have been set for the track.
+  summary, on the PC, the web and the phones (Fuji comes numbered; more tracks as they are set).
 - The lap analyzer shows which car, track and category you are looking at, like the coach.
+- Track maps show the pit lane beside the track, with its entry and exit, learnt from laps through the pits (the
+  analyzer, the coach, the race summary, the phones and the map overlay, where cars in the pits drive along it).
 
 **Fixed**
 - www.pitlanehq.app opens the site.

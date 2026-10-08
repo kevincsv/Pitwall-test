@@ -347,6 +347,8 @@ type lapRec struct {
 	incAt          []float64 // [distance, points] of every incident on this lap
 	incK           []string  // the kind of each incident
 	besideAt       time.Time // the last moment another car was right beside you
+	pitB           []bool    // the 5 m points on the pit road (pitlane.go)
+	lastPitB       int
 }
 
 // move integrates the car's position from its yaw and velocity (m/s, in the car's frame).
@@ -464,7 +466,7 @@ func lapRecorder() {
 					finishLap(done, s, fuelNow, waitLastLap(done, prevLast))
 				}()
 			}
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11]}
+			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1}
 		}
 		if pct < 0 || dist < 0 {
 			continue
@@ -494,6 +496,7 @@ func lapRecorder() {
 		cur.vmax = math.Max(cur.vmax, speed)
 		if v[10] > 0 {
 			cur.pit = true
+			cur.markPit(dist)
 		}
 		// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
 		// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
@@ -613,6 +616,10 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	}
 	if best && l.Trace.X != nil {
 		shareLayout(l, s)
+	}
+	// the pit lane: laps through the pits against a clean lap of the same track
+	if l.Trace.X != nil && (best || r.pit) {
+		go notePitLap(s.TrackID, l.Trace.X, l.Trace.Y, r.pitB, best)
 	}
 	queueLap(s, l)
 }

@@ -71,6 +71,8 @@ type ovExtra struct {
 	mapKey   string
 	mapX     []float64
 	mapY     []float64
+	pitN     int // the pit lane: points of a lap there and [point, metres to the left] (pitlane.go)
+	pitPts   [][2]float64
 	modelKey string
 	modelRef *ovLap
 	modelAt  time.Time
@@ -250,9 +252,17 @@ func (st *ovState) loadMap() {
 				d.X, d.Y, ok = c.X, c.Y, true
 			}
 		}
+		var pl struct {
+			N   int          `json:"n"`
+			Pts [][2]float64 `json:"pts"`
+		}
+		havePit := tid > 0 && st.fetchJSON("/api/pitlane?trackId="+strconv.Itoa(tid), &pl) && pl.N > 0 && len(pl.Pts) >= 10
 		if ok {
 			st.mu.Lock()
 			st.ext.mapX, st.ext.mapY = d.X, d.Y
+			if havePit {
+				st.ext.pitN, st.ext.pitPts = pl.N, pl.Pts
+			}
 			st.mu.Unlock()
 		}
 	}()
@@ -392,6 +402,26 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 			c.line(x0, y0, x1, y1, w, col, 1)
 		}
 	}
+	// the pit lane beside the track, dashed, like iRacing's map; the cars on the pit road are drawn on it
+	pitAt := func(k int) (float64, float64) {
+		q := st.ext.pitPts[k]
+		j := int(math.Round(q[0]*float64(N)/float64(st.ext.pitN))) % N
+		w := func(i int) int { return ((i % N) + N) % N }
+		tx, ty := X[w(j+2)]-X[w(j-2)], Y[w(j+2)]-Y[w(j-2)]
+		tm := math.Max(math.Hypot(tx, ty), 1e-6)
+		return P(X[w(j)]-ty/tm*q[1], Y[w(j)]+tx/tm*q[1])
+	}
+	pits := len(st.ext.pitPts) >= 10 && st.ext.pitN > 0
+	if pits {
+		for k := 1; k < len(st.ext.pitPts); k++ {
+			if st.ext.pitPts[k][0]-st.ext.pitPts[k-1][0] > 4 || k%3 == 0 {
+				continue
+			}
+			x0, y0 := pitAt(k - 1)
+			x1, y1 := pitAt(k)
+			c.line(x0, y0, x1, y1, 3*z, colMuted, 0.9)
+		}
+	}
 	// the start line
 	if N > 4 {
 		sx, sy := P(X[0], Y[0])
@@ -428,6 +458,19 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	numF := ovFace(fkDataB, 9.5*z)
 	for _, i := range idx {
 		x, y := at(pct[i])
+		if pits && i < len(pit) && pit[i] != 0 { // on the pit road: on the pit lane, at its point nearest the car's
+			b, bd := -1, math.Inf(1)
+			for k, q := range st.ext.pitPts {
+				d := math.Abs(q[0]/float64(st.ext.pitN) - pct[i])
+				d = math.Min(d, 1-d)
+				if d < bd {
+					b, bd = k, d
+				}
+			}
+			if b >= 0 && bd < 0.01 {
+				x, y = pitAt(b)
+			}
+		}
 		col := uint32(colText)
 		lapDiff := 0.0
 		if me >= 0 && me < len(pct) && i < len(laps) && me < len(laps) {
