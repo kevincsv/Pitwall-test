@@ -56,9 +56,9 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 // runOverlayWindow blocks until the window closes. Exit code 3 means WebView2
 // could not start, so PitWall falls back to an Edge window.
 func runOverlayWindow(name, url string, x, y, w, h int) {
-	procFreeConsole.Call() // the child does not need a console window
-	if seeThrough(name) {  // the radar is drawn natively: WebView2 cannot be see-through
-		runNativeRadar(url, x, y, w, h)
+	procFreeConsole.Call()   // the child does not need a console window
+	if nativeOverlay(name) { // drawn by Pitlane HQ itself, see-through (ovnative.go)
+		runNativeOverlay(name, url, x, y, w, h)
 		return
 	}
 	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
@@ -86,7 +86,7 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
-	noWinBorder(hwnd, seeThrough(name))
+	noWinBorder(hwnd, false)
 	keepOnScreen(hwnd)
 	procShowWindow.Call(hwnd, swShowNoActive) // a real show, so WebView2 draws
 	// a resize makes WebView2 lay itself out again in the new client area

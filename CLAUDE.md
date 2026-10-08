@@ -29,6 +29,10 @@
   speed and where), from the model's memory. The coach shows it against lap A only when nobody known
   is ahead on that car and track; the phone apps show it in the lap analysis. It is a hint of what the
   car can do, never a reference lap.
+- Braking beeps (Settings → Engineer → Beeps: Off, 1 or 3 beeps, earlier with traffic, volume; and the Braking
+  markers widget): the braking points come from the model (the next level for your best lap of the session; your
+  own best lap while the model has none or you are its fastest), and each beep moves with your speed against that
+  lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
@@ -103,10 +107,13 @@
   window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
   dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
-  radar's window hides itself when nobody is near. The radar overlay is not WebView2 (its content is always opaque):
-  it is drawn natively in Go on a layered window with alpha per pixel (`radar_windows.go`, `runNativeRadar`), fed by
-  the same live stream: your car's outline, the cars coming, the red side bar and the nearest distance, nothing
-  else; fully see-through and click-through, draggable and resizable from its corner while moving the overlays.
+  radar's window hides itself when nobody is near. The radar, the delta bar, the relative and the standings are not
+  WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the Go fonts, the
+  data from the live stream, the same settings as the web widgets; `ovnative_windows.go`: a layered window with alpha
+  per pixel and the overlays' opacity). Only the panel and its content show, the rest is see-through, every click goes
+  to the game, and while moving the overlays they are dragged and resized from the corner. They scale with the
+  window's width and fit their height to what they show. The radar is only your car's outline, the cars coming, the
+  red side bar and the nearest distance. Any other overlay is still a WebView2 window.
   Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the
   overlays that are open or Auto, always inside the screen. In a narrow PC window the main tabs show only icons. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,

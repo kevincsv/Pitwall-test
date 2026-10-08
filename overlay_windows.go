@@ -82,12 +82,8 @@ func overlayWindows() map[uintptr]string {
 	return out
 }
 
-// seeThrough: overlays drawn natively on a see-through window (radar_windows.go): only what they draw shows
-// over the game, and every click goes through
-func seeThrough(name string) bool { return name == "radar" }
-
 func applyOverlayStyle(h uintptr, top bool, alpha int, lock bool, name string) {
-	if seeThrough(name) { // its own window keeps its alpha and click-through; only "on top" is set from here
+	if nativeOverlay(name) { // its own window keeps its alpha and click-through; only "on top" is set from here
 		after := uintptr(hwndNoTop)
 		if top {
 			after = uintptr(hwndTopmost)

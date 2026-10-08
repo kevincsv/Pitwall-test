@@ -2061,7 +2061,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.36",APP_STAGE="beta";
+const WEB_VERSION="0.8.37",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -5077,7 +5077,7 @@ function renderVoicePanel(){const box=$("#voicePanel");if(!box)return;if(!FEATUR
   <p class="note">${Lp("What it says, the questions you can ask, your wheel buttons and your own audio packs are in Race → Engineer.","Qué dice, las preguntas que le puedes hacer, los botones del volante y tus propios paquetes de audio están en Carrera → Ingeniero.")} ${esc(VOICE.on?Tx("On in this screen.","Activado en esta pantalla."):Tx("Off in this screen.","Desactivado en esta pantalla."))}</p>`;$("#v-open").onclick=()=>show("engineer")}
 let engLoaded=false;
 async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLoaded&&MODE==="bridge"){engLoaded=true;await Promise.all([loadPacks(),loadRadioButtons()])}
-  const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[],C=RADIO.c,p=curPack();
+  const ok="speechSynthesis" in window,vs=ok?speechSynthesis.getVoices().filter(v=>/^(en|es)/i.test(v.lang)):[],C=RADIO.c,p=curPack(),bmc=ui("brakes");
   $("#engSub").innerHTML=Lp("A race engineer that talks to you, and answers when you ask","Un ingeniero de carrera que te habla y te responde cuando le preguntas");
   $("#engCtl").innerHTML=`<button class="btn${VOICE.on?" primary":""}" type="button" id="e-on" aria-pressed="${VOICE.on}">${esc(VOICE.on?Tx("Voice on in this screen","Voz activada en esta pantalla"):Tx("Turn the voice on","Activar la voz"))}</button><button class="btn" type="button" id="e-test">${esc(Tx("Radio check","Prueba de radio"))}</button>`;
   const learning=q=>MODE==="bridge"?RB.learning===q:VS.learn&&VS.learn.q===q;
@@ -5105,8 +5105,14 @@ async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLo
       <label class="frow" style="gap:8px"><span class="label" style="min-width:80px">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="e-vol" min="10" max="100" value="${Math.round(VOICE.vol*100)}" style="flex:1"></label></div>
     <p class="note">${Lp("It speaks through the speakers or headphones of the screen where you turn it on. Turn it on in one screen only (the PC, or the phone with headphones).","Habla por los altavoces o auriculares de la pantalla donde lo actives. Actívalo solo en una (el PC, o el móvil con auriculares).")}</p>${ok?"":`<p class="err">${esc(Tx("This browser cannot speak; only audio packs will play.","Este navegador no puede hablar; solo sonarán los paquetes de audio."))}</p>`}</div>
   <div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Beeps","Pitidos"))}</h2>${chk("e-beep",beepHere(),Lp("Beeps in this screen","Pitidos en esta pantalla",true))}</div>
-    <p class="note" style="margin-top:0">${Lp("Shift beep (set for each car in Rig → Car profiles) and braking-point beeps (Telemetry → Braking markers). By default they sound on the PC only.","Pitido de cambio (se configura para cada coche en Rig → Perfiles por coche) y pitidos del punto de frenada (Telemetría → Marcas de frenada). Por defecto solo suenan en el PC.")}</p>
-    <div class="frow"><button type="button" class="btn small" id="e-shift">${esc(Tx("Shift beep for this car","Pitido de cambio de este coche"))}</button><button type="button" class="btn small" id="e-bm">${esc(Tx("Braking markers","Marcas de frenada"))}</button><button type="button" class="btn small" id="e-notes">${esc(Tx("My track notes","Mis notas de circuitos"))}</button></div></div>`;
+    <div class="label">${esc(Tx("Braking beeps","Pitidos de frenada"))}</div>
+    <div class="frow" style="align-items:center;margin:4px 0 6px">${[["off","Off","Apagados"],["one","1 beep","1 pitido"],["count","3 beeps","3 pitidos"]].map(o=>`<button type="button" class="chip" data-ebm="${o[0]}" aria-pressed="${(bmc.beeps||"off")===o[0]}">${esc(Tx(o[1],o[2]))}</button>`).join("")}<button type="button" class="chip" id="e-bmt" aria-pressed="${!!bmc.traffic}">${esc(Tx("Earlier with traffic","Antes con tráfico"))}</button>
+      <label class="frow" style="gap:6px"><span class="label">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="e-bmvol" min="5" max="100" value="${Math.round((bmc.vol??.7)*100)}"></label><button type="button" class="btn small" id="e-bmtest">${esc(Tx("Test","Probar"))}</button></div>
+    <p class="note" style="margin-top:0">${Lp("Where to brake comes from the model of your car and track (the real lap of the driver just ahead of your pace; your own best lap while there is none). The beeps come earlier when you carry more speed than that lap, with a car close ahead or alongside. By default they sound on the PC only.","El punto de frenada sale del modelo de tu coche y circuito (la vuelta real del piloto justo por delante de tu ritmo; tu mejor vuelta mientras no lo haya). Los pitidos suenan antes si llevas más velocidad que esa vuelta, o con un coche justo delante o al lado. Por defecto solo suenan en el PC.")}</p>
+    <div class="frow"><button type="button" class="btn small" id="e-bm">${esc(Tx("Braking markers","Marcas de frenada"))}</button><button type="button" class="btn small" id="e-shift">${esc(Tx("Shift beep for this car","Pitido de cambio de este coche"))}</button><button type="button" class="btn small" id="e-notes">${esc(Tx("My track notes","Mis notas de circuitos"))}</button></div></div>`;
+  document.querySelectorAll("[data-ebm]").forEach(b=>b.onclick=()=>{setUI("brakes",{beeps:b.dataset.ebm});if(b.dataset.ebm!=="off")beep(1320,130,ui("brakes").vol);renderEngineer()});
+  $("#e-bmt").onclick=()=>{setUI("brakes",{traffic:!ui("brakes").traffic});renderEngineer()};
+  $("#e-bmvol").onchange=e=>{setUI("brakes",{vol:e.target.value/100});beep(1320,130,e.target.value/100)};$("#e-bmtest").onclick=()=>{const v=ui("brakes").vol;beep(880,55,v);setTimeout(()=>beep(880,55,v),300);setTimeout(()=>beep(1320,130,v),600)};
   $("#e-beep").onclick=()=>{store.set("pw.beepHere",!beepHere());renderEngineer()};$("#e-shift").onclick=()=>show("cars");$("#e-notes").onclick=()=>show("tracks");
   $("#e-bm").onclick=()=>{HIDDEN.delete("brakes");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();show("live");setTimeout(()=>{const w=document.querySelector('[data-w="brakes"]');if(w)w.scrollIntoView({behavior:"smooth",block:"center"})},150)};
   $("#e-on").onclick=()=>{VOICE.on=!VOICE.on;VS.base=false;saveVoice();if(VOICE.on)say(M("radio_check"),0,0,true);else stopSpeech();renderEngineer()};
@@ -5549,10 +5555,21 @@ function estimateShifts(k){const e=EST[k];if(!e)return{};const out={},top=topGea
   return out}
 
 /* ---------- braking markers ---------- */
-const BM={key:null,zones:[],beeped:{},lap:null,cur:null,traffic:null,watch:null,fb:null};
-const BM_LAT=.07;
-function bmZones(){const ref=coachRef(null);if(!ref)return[];const key=(ref.time||0)+"|"+(ref.n||0)+"|"+(ref.bins?ref.bins.length:0);
-  if(key!==BM.key){BM.key=key;BM.zones=brakeZones(serOf(ref)).map((z,i)=>({n:i+1,d:z.i*BIN,v:z.v,vmin:z.vmin}))}return BM.zones}
+/* The braking points come from the model of this car and track: the real lap of the driver just ahead of your pace
+   (your best lap of this session, else the slowest known level), or your own best lap while the model has none
+   (or when you are the fastest it knows). Each beep moves with the speed you carry (faster than the reference:
+   earlier, by the extra braking distance at the reference's own deceleration) and with the cars around you. */
+const BM={key:null,zones:[],beeped:{},lap:null,cur:null,traffic:null,watch:null,fb:null,src:""};
+const BM_LAT=.07,BMREF={key:"",lap:null,busy:false,at:0};
+function bmModelRef(){const PM=window.PW_MODEL,tid=S.WeekendInfo&&S.WeekendInfo.TrackID,cid=myDriver().CarID;if(!PM||!tid||!cid)return null;
+  const t=T.LapBestLapTime>0?T.LapBestLapTime:Infinity,key=tid+":"+cid+":"+(isFinite(t)?t.toFixed(1):"-");
+  if((BMREF.key!==key||!BMREF.lap&&Date.now()-BMREF.at>300000)&&!BMREF.busy){BMREF.busy=true;const done=lap=>{BMREF.key=key;BMREF.lap=lap;BMREF.busy=false;BMREF.at=Date.now()};
+    PM.buildModel({trackId:tid,carId:cid}).then(m=>{const lv=m?PM.levelLap(m,t):null;done(lv&&(!isFinite(t)||lv.time<t-.001)?lv:null)}).catch(()=>done(null))}
+  return BMREF.key===key?BMREF.lap:null}
+function bmZones(){const mr=bmModelRef(),ref=mr||coachRef(null);if(!ref){BM.src="";return[]}BM.src=mr?"model":"best";const key=BM.src+"|"+(ref.time||0)+"|"+(ref.n||0)+"|"+(ref.bins?ref.bins.length:0);
+  if(key!==BM.key){BM.key=key;BM.zones=brakeZones(serOf(ref)).map((z,i)=>{const d=z.i*BIN,dmin=Math.max(d+5,(z.imin||z.i)*BIN);
+    /* the reference's own deceleration in this zone (m/s²), to turn more speed into more braking distance */
+    const dec=Math.max(4,Math.min(40,(z.v*z.v-z.vmin*z.vmin)/(2*(dmin-d))));return{n:i+1,d,v:z.v,vmin:z.vmin,dec}})}return BM.zones}
 /* the nearest car physically ahead on track (not in the pits) */
 function carAhead(){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,surf=T.CarIdxTrackSurface||[],pit=T.CarIdxOnPitRoad||[],L=trackLenM(),v=Math.max(T.Speed||0,1),my=pct[me];if(my==null||my<0)return null;let best=null;
   for(let i=0;i<pct.length;i++){if(i===me||pct[i]==null||pct[i]<0||pit[i]||surf[i]===1||surf[i]===2||surf[i]===-1)continue;const dm=(((pct[i]-my)%1+1.5)%1-.5)*L;if(dm>6&&dm<150&&(!best||dm<best.dm))best={i,dm}} /* closer than 6 m is alongside, not ahead */
@@ -5560,11 +5577,14 @@ function carAhead(){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,surf=T.Ca
 function brakeTick(){const c=ui("brakes");if(!c.on||!T.IsOnTrack||T.OnPitRoad){BM.cur=null;return}const z=bmZones();if(!z.length){BM.cur=null;return}
   const d=T.LapDist,v=Math.max(T.Speed||0,1),L=trackLenM(),lap=T.LapCompleted;if(d==null)return;if(lap!==BM.lap){BM.lap=lap;BM.beeped={}}
   let k=z.findIndex(q=>q.d>d-3),wrap=false;if(k<0){k=0;wrap=true}const nz=z[k];let dTo=nz.d-d;if(wrap)dTo+=L;
-  const tr=carAhead();BM.traffic=tr&&tr.dt<1.2?tr:null;
-  /* a car close ahead brakes where you would: brake a bit earlier, more the closer it is */
-  const early=BM.traffic&&c.traffic?(BM.traffic.dt<.5?.35:.2)*v:0,mark=dTo-early,tTo=mark/v,key=(wrap?lap+1:lap)+":"+k;
-  BM.cur={n:nz.n,mark,tTo,early,vref:nz.v,vmin:nz.vmin};
-  if(c.beeps!=="off"&&beepHere()){const b=BM.beeped[key]||0,vol=c.vol;
+  const tr=carAhead();BM.traffic=tr&&tr.dt<1.2?tr:null;const side=(T.CarLeftRight||0)>=2;
+  /* a car close ahead brakes where you would: brake a bit earlier, more the closer it is; a car alongside, a little earlier too */
+  const early=c.traffic?(BM.traffic?(BM.traffic.dt<.5?.35:.2)*v:0)+(side&&!BM.traffic?.12*v:0):0;
+  /* more speed than the reference needs more room to slow down (less speed, a little less), at its own deceleration */
+  const fast=dTo<300?Math.max(-25,Math.min(60,(v*v-nz.v*nz.v)/(2*nz.dec))):0;
+  const mark=dTo-early-fast,tTo=mark/v,key=(wrap?lap+1:lap)+":"+k;
+  BM.cur={n:nz.n,mark,tTo,early,fast,side,vref:nz.v,vmin:nz.vmin};
+  if(c.beeps&&c.beeps!=="off"&&beepHere()){const b=BM.beeped[key]||0,vol=c.vol;
     if(c.beeps==="count"&&b<1&&tTo<=.6+BM_LAT&&tTo>.3+BM_LAT){beep(880,55,vol);BM.beeped[key]=1}
     else if(c.beeps==="count"&&b<2&&tTo<=.3+BM_LAT&&tTo>BM_LAT){beep(880,55,vol);BM.beeped[key]=2}
     else if(b<3&&tTo<=BM_LAT&&tTo>-.3){beep(1320,130,vol);BM.beeped[key]=3}}
@@ -5586,7 +5606,7 @@ function renderBrakes(){const box=$("#bmBox");if(!box)return;const c=ui("brakes"
   const now=cur.tTo<=0&&cur.tTo>-.6,pct=Math.max(0,Math.min(1,1-cur.mark/200));
   box.innerHTML=`<div class="bm${now?" now":""}${BM.traffic?" traffic":""}"><div class="bmtop"><span class="bmn">C${cur.n}</span><span class="bmd mono">${now?esc(Tx("BRAKE","FRENA")):cur.mark>999?"–":Math.max(0,Math.round(cur.mark))+" m"}</span><span class="bmv muted">${Math.round(spd(cur.vref))} → ${Math.round(spd(cur.vmin))} ${spdU()}</span></div>
     <div class="bmbar"><b style="width:${(pct*100).toFixed(1)}%"></b></div>
-    <div class="bmrow">${BM.traffic?`<span class="warn">${esc(Tx(`Car ahead ${BM.traffic.dt.toFixed(1)} s · brake ${Math.round(cur.early)} m earlier`,`Coche delante a ${BM.traffic.dt.toFixed(1)} s · frena ${Math.round(cur.early)} m antes`,`Auto vor dir ${BM.traffic.dt.toFixed(1)} s · ${Math.round(cur.early)} m früher bremsen`,`Carro à frente a ${BM.traffic.dt.toFixed(1)} s · freie ${Math.round(cur.early)} m antes`))}</span>`:"<span></span>"}<span class="bmfb ${fbCls}">${esc(fbTxt)}</span></div></div>`}
+    <div class="bmrow">${BM.traffic?`<span class="warn">${esc(Tx(`Car ahead ${BM.traffic.dt.toFixed(1)} s · brake ${Math.round(cur.early)} m earlier`,`Coche delante a ${BM.traffic.dt.toFixed(1)} s · frena ${Math.round(cur.early)} m antes`,`Auto vor dir ${BM.traffic.dt.toFixed(1)} s · ${Math.round(cur.early)} m früher bremsen`,`Carro à frente a ${BM.traffic.dt.toFixed(1)} s · freie ${Math.round(cur.early)} m antes`))}</span>`:cur.side&&cur.early>0?`<span class="warn">${esc(Tx(`Car alongside · brake ${Math.round(cur.early)} m earlier`,`Coche al lado · frena ${Math.round(cur.early)} m antes`))}</span>`:Math.abs(cur.fast)>=5?`<span class="muted">${esc(cur.fast>0?Tx(`Faster than the reference · ${Math.round(cur.fast)} m earlier`,`Más rápido que la referencia · ${Math.round(cur.fast)} m antes`):Tx(`Slower than the reference · ${Math.round(-cur.fast)} m later`,`Más lento que la referencia · ${Math.round(-cur.fast)} m después`))}</span>`:`<span class="muted">${esc(BM.src==="model"?Tx("From the model: the driver just ahead","Del modelo: el piloto justo por delante"):Tx("From your best lap","De tu mejor vuelta"))}</span>`}<span class="bmfb ${fbCls}">${esc(fbTxt)}</span></div></div>`}
 
 /* ---------- weather and multiclass for the engineer ---------- */
 const WET=[["unknown","desconocido"],["dry","seca"],["mostly dry","casi seca"],["very lightly wet","muy ligeramente mojada"],["lightly wet","ligeramente mojada"],["moderately wet","moderadamente mojada"],["very wet","muy mojada"],["extremely wet","extremadamente mojada"]];

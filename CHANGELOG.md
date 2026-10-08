@@ -4,6 +4,21 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.37 beta
+
+**Changed**
+- The radar, the delta bar, the relative and the standings overlays are native: Pitlane HQ draws them itself instead
+  of a web page. Only the panel shows over the game (no black box, no border), every click goes through, the text is
+  sharp at any size, they use the app's language and fit their height to what they show. They follow the same
+  settings as before (columns, header, footer, rows ahead and behind, range) and the overlays' opacity.
+- Braking beeps come from the model of your car and track: the real lap of the driver just ahead of your pace (your
+  own best lap while the model has none). They come earlier when you carry more speed than that lap, and with a car
+  close ahead or alongside.
+
+**Added**
+- Settings → Engineer → Beeps: turn the braking beeps off, or choose 1 or 3 beeps, earlier with traffic and the volume,
+  with a test button.
+
 ## 0.8.36 beta
 
 **Fixed**

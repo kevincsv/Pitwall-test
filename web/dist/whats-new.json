@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.37",
+      "en": ["Native overlays: radar, delta bar, relative and standings, sharp and see-through.", "Braking beeps from the model, with your speed and traffic, and an off switch in Settings → Engineer."],
+      "es": ["Overlays nativos: radar, delta bar, relative y standings, nítidos y transparentes.", "Pitidos de frenada según el modelo, tu velocidad y el tráfico, y se apagan en Ajustes → Ingeniero."]
+    },
+    {
       "v": "0.8.36",
       "en": ["A truly see-through radar: only the cars over the game.", "Overlays in your language."],
       "es": ["Un radar realmente transparente: solo los coches sobre el juego.", "Los overlays en tu idioma."]
