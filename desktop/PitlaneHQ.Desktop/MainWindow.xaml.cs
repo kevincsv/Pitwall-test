@@ -313,16 +313,31 @@ public partial class MainWindow : Window
             Cell(0, S(r["Pos"]), B("Fg"), true);
             Cell(1, S(r["Num"]), B("Muted"), true);
             var rowTag = S(r["Tag"]);
-            if (rowTag != "")
+            var lapsUp = (int?)r["Laps"]?.GetValue<double>() ?? 0;
+            if (rowTag != "" || lapsUp != 0)
             {
                 // your note on this driver: its tag's icon before the name, the note on hover
                 var nameBox = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Opacity = a };
-                var tagIc = TagIcon(rowTag, 15);
-                tagIc.Margin = new Thickness(0, 0, 6, 0);
-                nameBox.Children.Add(tagIc);
-                nameBox.Children.Add(new TextBlock { Text = S(r["Name"]) + (Bo(r["Pit"]) ? "  PIT" : ""), Foreground = Hex(S(r["NameColor"])), FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
-                var tagNote = S(r["Note"]);
-                nameBox.ToolTip = TagLabel(rowTag) + (tagNote != "" ? " · " + tagNote : "");
+                if (rowTag != "")
+                {
+                    var tagIc = TagIcon(rowTag, 15);
+                    tagIc.Margin = new Thickness(0, 0, 6, 0);
+                    nameBox.Children.Add(tagIc);
+                    var tagNote = S(r["Note"]);
+                    nameBox.ToolTip = TagLabel(rowTag) + (tagNote != "" ? " · " + tagNote : "");
+                }
+                nameBox.Children.Add(new TextBlock { Text = S(r["Name"]), Foreground = Hex(S(r["NameColor"])), FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                if (lapsUp != 0)
+                {
+                    // laps up (red: they lap you) or down (blue: you lap them), like the overlays' pill
+                    var lc = lapsUp > 0 ? B("Bad") : B("Blue");
+                    nameBox.Children.Add(new Border
+                    {
+                        BorderBrush = lc, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                        Child = new TextBlock { Text = (lapsUp > 0 ? "+" : "−") + Math.Abs(lapsUp) + "L", Foreground = lc, FontFamily = (FontFamily)FindResource("FData"), FontSize = 10.5, FontWeight = FontWeights.Bold }
+                    });
+                }
+                if (Bo(r["Pit"])) nameBox.Children.Add(new TextBlock { Text = "  PIT", Foreground = B("Muted"), FontSize = 11, VerticalAlignment = VerticalAlignment.Center });
                 Grid.SetColumn(nameBox, 2);
                 row.Children.Add(nameBox);
             }
@@ -545,7 +560,7 @@ public partial class MainWindow : Window
         await BoardAsync();
     }
 
-    private record ComboItem(int Id, string Name, int Laps) { public override string ToString() => Laps > 0 ? $"{Name} · {Laps}" : Name; }
+    private record ComboItem(int Id, string Name, int Laps) { public override string ToString() => Name; }
 
     private void FillCombos()
     {

@@ -35,9 +35,13 @@
   markers widget): the braking points come from the model (the next level for your best lap of the session; your
   own best lap while the model has none or you are its fastest), and each beep moves with your speed against that
   lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside.
-- A race's real iRating comes from your next session of the same category only (each category has its own
-  iRating; a change over 300 is another category's), never from a session of another one (`applyRealIR`); races
-  spoiled so go back to the estimate (`repairRealIR`).
+- A race's real iRating comes from your next session of the same discipline only (each has its own iRating; a change
+  over 300 is another one's), never from a session of another one (`applyRealIR`, which finds your last race of that
+  discipline even with races of others after it). iRacing says "Road" for sports and formula cars alike, so the car
+  tells which (`discipline` in journal.go). A race left on the estimate takes the real change from your next race of
+  the same discipline (`chainRealIR`); races spoiled by another category go back to the estimate (`repairRealIR`).
+- In a race the relative marks the cars a lap or more up or down on you: a red "+1L" pill (they lap you) or a blue
+  "−1L" (you lap them), in the overlays, the app and Pitlane HQ Desktop. The Community car list shows no counts.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own

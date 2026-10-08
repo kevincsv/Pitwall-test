@@ -19,8 +19,9 @@ on:
       - "desktop/**"
       - "CHANGELOG.md" # the notes on pitlanehq.app come from here
 
+# one build per branch at a time: a check on another branch never cancels master's (which publishes)
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

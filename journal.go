@@ -120,6 +120,9 @@ func loadJournal() {
 			fixed = true
 		}
 	}
+	if chainRealIR(r) {
+		fixed = true
+	}
 	journalMu.Lock()
 	book, races, notes = b, r, n
 	if fixed {
@@ -159,6 +162,74 @@ func repairRealIR(r *raceReport) bool {
 		}
 	}
 	return true
+}
+
+// discipline: iRacing's licence category of a race (oval, sports_car, formula_car, dirt_oval, dirt_road). The
+// session says Oval, Dirt Oval or Dirt Road for sure, but "Road" for a sports car and for a formula car alike
+// (each with its own iRating), so then the car tells which. "" when unknown, "road" when the car is unknown.
+func discipline(cat, car string) string {
+	switch strings.ToLower(strings.NewReplacer(" ", "", "_", "", "-", "").Replace(cat)) {
+	case "oval":
+		return "oval"
+	case "dirtoval":
+		return "dirt_oval"
+	case "dirtroad":
+		return "dirt_road"
+	case "formulacar":
+		return "formula_car"
+	case "sportscar":
+		return "sports_car"
+	case "road", "":
+		switch {
+		case car == "" && cat == "":
+			return ""
+		case car == "":
+			return "road"
+		case sportsProtoRe.MatchString(car):
+			return "sports_car"
+		case formulaCarRe.MatchString(car):
+			return "formula_car"
+		}
+		return "sports_car"
+	}
+	return strings.ToLower(cat)
+}
+
+var (
+	sportsProtoRe = regexp.MustCompile(`(?i)p217|lmp|\bgtp\b|\bdpi?\b|prototype|hypercar`)
+	formulaCarRe  = regexp.MustCompile(`(?i)formula|\bf[1-4]\b|super ?formula|dallara|indy|\bir-?\d+|skip barber|ff1600|pro mazda|\busf\b|lotus (18|49|79)|williams fw|mercedes-amg w1|tatuus|\bvee\b|\bfr ?[23]\.`)
+)
+
+// chainRealIR: a race whose real iRating never came (a session of another discipline came first) takes it from
+// your next race of the same discipline: the iRating you started that one with is what this one left you
+func chainRealIR(rs []*raceReport) bool {
+	byTime := append([]*raceReport(nil), rs...)
+	sort.SliceStable(byTime, func(i, j int) bool { return byTime[i].When < byTime[j].When })
+	changed := false
+	for i, a := range byTime {
+		if a.IRReal || a.IR <= 0 || (a.Game != "" && a.Game != "iracing") {
+			continue
+		}
+		da := discipline(a.Cat, a.Car)
+		if da == "" || da == "road" {
+			continue
+		}
+		for _, b := range byTime[i+1:] {
+			if (b.Game != "" && b.Game != "iracing") || discipline(b.Cat, b.Car) != da {
+				continue
+			}
+			if b.IR > 0 && b.Subsession != a.Subsession && abs(b.IR-a.IR) <= maxRealIRStep {
+				a.IRChange, a.IRReal, changed = b.IR-a.IR, true, true
+				for k := range a.Results {
+					if a.Results[k].Me {
+						a.Results[k].IRChange = a.IRChange
+					}
+				}
+			}
+			break
+		}
+	}
+	return changed
 }
 
 func abs(n int) int {
@@ -425,7 +496,7 @@ func raceWatcher() {
 		if id != irSeen {
 			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); myIR > 0 {
 				irSeen = id
-				applyRealIR(myIR, meta.Subsession, meta.Cat)
+				applyRealIR(myIR, meta.Subsession, meta.Cat, meta.Car)
 			}
 		}
 		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account
@@ -706,6 +777,7 @@ func saveRace(r *raceReport) {
 		}
 	}
 	races = append(races, r)
+	chainRealIR(races) // your last race of this discipline now knows what it really gave
 	if len(races) > 1000 {
 		races = races[len(races)-1000:]
 	}
@@ -809,18 +881,27 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 // applyRealIR: iRacing shows your new iRating when you join the next session; its difference with
 // the iRating you had in your last race is what that race really gave or cost (the report keeps the
 // estimate until then).
-func applyRealIR(ir, subsession int, cat string) {
+func applyRealIR(ir, subsession int, cat, car string) {
 	journalMu.Lock()
 	defer journalMu.Unlock()
 	if len(races) == 0 || ir <= 0 {
 		return
 	}
-	r := races[len(races)-1]
-	if (r.Game != "" && r.Game != "iracing") || r.IRReal || r.IR <= 0 || r.Subsession == subsession || ir == r.IR {
-		return
+	// the race it speaks of: your last race of the same discipline (each has its own iRating), even with races
+	// of another one after it (a Formula Car race, then a Sports Car one, then a Formula Car session)
+	want := discipline(cat, car)
+	var r *raceReport
+	for k := len(races) - 1; k >= 0; k-- {
+		x := races[k]
+		if x.Game != "" && x.Game != "iracing" {
+			continue
+		}
+		if want == "" || want == "road" || discipline(x.Cat, x.Car) == want {
+			r = x
+			break
+		}
 	}
-	// only a session of the same category says what the race gave: each category has its own iRating
-	if (r.Cat != "" && cat != "" && !strings.EqualFold(r.Cat, cat)) || abs(ir-r.IR) > maxRealIRStep {
+	if r == nil || r.IRReal || r.IR <= 0 || r.Subsession == subsession || ir == r.IR || abs(ir-r.IR) > maxRealIRStep {
 		return
 	}
 	r.IRChange, r.IRReal = ir-r.IR, true

@@ -6,6 +6,7 @@ package main
 
 import (
 	"math"
+	"strings"
 	"time"
 )
 
@@ -117,4 +118,16 @@ func (st *ovState) driverAt(idx int) *ovDriver {
 		return nil
 	}
 	return st.ses.Drivers[idx]
+}
+
+// inRace: the current session is a race (lap counts against you only mean something there)
+func (st *ovState) inRace() bool {
+	if st.ses == nil {
+		return false
+	}
+	sn, ok := st.num("SessionNum")
+	if !ok {
+		return false
+	}
+	return strings.EqualFold(st.ses.Sessions[int(sn)].Type, "Race")
 }

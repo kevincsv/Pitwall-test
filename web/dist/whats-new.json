@@ -2,8 +2,8 @@
   "versions": [
     {
       "v": "0.8.42",
-      "en": ["The game is found at once; your overlays open the moment you get in the car and close a second after the game closes."],
-      "es": ["El juego se detecta al momento; tus overlays se abren nada más subir al coche y se cierran un segundo después de cerrar el juego."]
+      "en": ["The game is found at once; your overlays open the moment you get in the car and close a second after the game closes.", "In a race the relative shows +1L / −1L for the cars a lap up or down on you.", "A Formula race gets its real iRating even with a Sports Car race after it."],
+      "es": ["El juego se detecta al momento; tus overlays se abren nada más subir al coche y se cierran un segundo después de cerrar el juego.", "En carrera el relative muestra +1L / −1L en los coches con una vuelta de más o de menos que tú.", "Una carrera de Fórmula recibe su iRating real aunque después corras una de Sports Car."]
     },
     {
       "v": "0.8.41",

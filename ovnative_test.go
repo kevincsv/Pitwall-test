@@ -465,3 +465,32 @@ func TestNativeTablesShowDriverTags(t *testing.T) {
 		t.Fatalf("tag by key: %q", st.rowTag(1))
 	}
 }
+
+// in a race the relative marks the cars a lap (or more) up or down on you: +1L / −1L
+func TestRelativeLapsUpDown(t *testing.T) {
+	st := ovTestState(t, nil)
+	b, _ := json.Marshal(0)
+	st.frame["SessionNum"] = b
+	if !st.inRace() {
+		t.Fatal("the test session is a race")
+	}
+	found := false
+	for _, r := range st.tableRows(true, nil, 0) {
+		if r.idx == 2 {
+			found = true
+			if r.laps != -1 {
+				t.Fatalf("car 2 is a lap down: %d", r.laps)
+			}
+		}
+		if r.idx == 1 && r.laps != 0 {
+			t.Fatalf("car 1 is on your lap: %d", r.laps)
+		}
+	}
+	if !found {
+		t.Fatal("car 2 not in the relative")
+	}
+	c := newCanvas(600, 900)
+	st.ext.notesAt = time.Now()
+	h := ovDraw("relative", c, st, time.Now())
+	ovSavePNG(t, c, h, "relative-laps")
+}

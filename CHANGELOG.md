@@ -10,6 +10,14 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - The game is found as soon as it starts (it is looked for twice a second, not every two seconds).
 - Your Auto overlays open the moment you get in the car, all together, and close a second after the game closes
   (it was eight); the overlays change height at once when what they show changes.
+- In a race the relative marks the cars a lap or more up or down on you: a red "+1L" when they lap you, a blue
+  "−1L" when you lap them (overlays, the app and Pitlane HQ Desktop).
+- Community: the car list no longer shows a number after each car.
+
+**Fixed**
+- A Formula Car race kept its estimated iRating when a Sports Car race came after it: iRacing calls both "Road", so
+  the car now tells the discipline, the next session of that discipline gives the real change, and a race left on
+  the estimate takes it from your next race of the same discipline.
 
 ## 0.8.41 beta
 

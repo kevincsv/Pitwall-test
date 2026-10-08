@@ -1087,6 +1087,7 @@ type ovRow struct {
 	blank, sep bool
 	gap, iv    string // the gap (to you, or to the leader) and the interval to the car ahead
 	nameCol    uint32
+	laps       int // in a race, the relative: laps this car is ahead of you (+) or behind you (−)
 }
 
 // drawTableOv: the relative (cars around you) or the standings (race order), like the app's widget table
@@ -1243,8 +1244,27 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 					nx += tagW + 4*z
 					room -= tagW + 4*z
 				}
+				lapTxt := ""
+				if r.laps != 0 && !mine {
+					lapTxt = fmt.Sprintf("%+dL", r.laps)
+					if r.laps < 0 {
+						lapTxt = "−" + lapTxt[1:]
+					}
+					room -= textWT(pf, lapTxt, 0.5*z) + 18*z
+				}
 				n := ellipsis(f, v, room)
 				c.text(f, n, nx, cy, col, a, 0)
+				if lapTxt != "" { // laps up (red: they lap you) or down (blue: you lap them), in a pill like the PIT one
+					lc := uint32(colAhead)
+					if r.laps < 0 {
+						lc = colBehind
+					}
+					lw := textWT(pf, lapTxt, 0.5*z) + 12*z
+					lx := nx + textW(f, n) + 6*z
+					c.roundRect(lx, cy-8*z, lw, 16*z, 8*z, mix(lc, 0x0b0d10, 0.75), a, lc, a, 1)
+					c.textT(pf, lapTxt, lx+lw/2, cy, lc, a, 2, 0.5*z)
+					nx = lx + lw - textW(f, n)
+				}
 				if onPit { // the app's pill
 					px := nx + textW(f, n) + 6*z
 					c.roundRect(px, cy-8*z, pitW, 16*z, 8*z, colPanel, 0, colLine, 1, 1)
@@ -1484,6 +1504,7 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 				behind = append(behind, cr)
 			}
 		}
+		race := st.inRace()
 		sort.Slice(ahead, func(a, b int) bool { return ahead[a].g < ahead[b].g })
 		sort.Slice(behind, func(a, b int) bool { return behind[a].g > behind[b].g })
 		na, nb := int(uiNum(cfg, "ahead", 3)), int(uiNum(cfg, "behind", 3))
@@ -1504,6 +1525,9 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 				r.nameCol = colAhead
 			} else if cr.lapDif < -0.5 {
 				r.nameCol = colBehind
+			}
+			if race {
+				r.laps = int(math.Round(cr.lapDif))
 			}
 			return r
 		}

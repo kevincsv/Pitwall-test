@@ -70,6 +70,7 @@ type deskRow struct {
 	Pos, Num, Name, Lic, IR, Gap, Last string
 	LicColor, NameColor                string
 	Tag, Note                          string // your note on the driver (drivers.go): danger, careful, clean, friend
+	Laps                               int    // in a race: laps this car is ahead of you (+) or behind you (−)
 	Me, Pit, Blank                     bool
 }
 
@@ -185,7 +186,7 @@ func registerDeskRoutes(mux *http.ServeMux) {
 				nameCol = colText
 			}
 			row := deskRow{Pos: cell("pos"), Num: cell("num"), Name: cell("name"), Lic: lic, IR: cell("ir"), Gap: cell("gap"), Last: cell("last"),
-				LicColor: hexCol(licColor(lic)), NameColor: hexCol(nameCol), Me: rr.idx == me, Pit: rr.idx < len(pit) && pit[rr.idx] != 0}
+				LicColor: hexCol(licColor(lic)), NameColor: hexCol(nameCol), Me: rr.idx == me, Pit: rr.idx < len(pit) && pit[rr.idx] != 0, Laps: rr.laps}
 			if d := st.driverAt(rr.idx); d != nil && !row.Me {
 				if n := noteOf(driverKey(d.UID), d.Name); n != nil {
 					row.Tag, row.Note = n.Tag, n.Note
