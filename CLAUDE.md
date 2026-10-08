@@ -174,7 +174,7 @@
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,
   standings 4/s, radar 30/s). The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
-  panel. Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
+  panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside
   the preview, tagged "Sample data" (`previewDemoTick`), and switches to the real data once the game sends it.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
@@ -190,6 +190,8 @@
   else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
 - Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
   installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
+- Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app
+  schedules no browser notifications): what it has to say shows inside the app.
 - PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
   itself when no sim is running (unless switched off in Settings → About).
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).

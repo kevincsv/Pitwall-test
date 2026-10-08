@@ -1,6 +1,19 @@
 {
   "versions": [
     {
+      "v": "0.9.1",
+      "en": [
+        "Licence summary with Community's symbols and colours.",
+        "Overlay settings show the live preview next to the settings.",
+        "No more Windows notifications: everything shows inside the app."
+      ],
+      "es": [
+        "Resumen de licencias con los símbolos y colores de Comunidad.",
+        "Los ajustes de los overlays muestran la vista previa al lado de los ajustes.",
+        "Sin notificaciones de Windows: todo se ve dentro de la app."
+      ]
+    },
+    {
       "v": "0.9.0",
       "en": [
         "The overlays on top of the game are open to everyone.",

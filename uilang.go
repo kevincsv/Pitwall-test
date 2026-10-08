@@ -6,7 +6,7 @@ import (
 )
 
 // uiLang is the language the app window uses, for messages Pitlane HQ shows on its own
-// (Windows notifications). The page sends it when it starts and when it changes.
+// (the overlays and the log). The page sends it when it starts and when it changes.
 var uiLang, uiLangPick atomic.Value
 
 // uiLangChoice: the language exactly as chosen in the app (en, es, de, pt or both), for the overlay windows

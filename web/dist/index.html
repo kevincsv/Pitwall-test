@@ -269,6 +269,12 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 .drawer.float .drawer-panel>.vhead{cursor:move;user-select:none;-webkit-user-select:none;position:sticky;top:-14px;z-index:2;background:var(--bg);margin:-14px -16px 10px!important;padding:12px 16px;border-bottom:1px solid var(--line);border-radius:14px 14px 0 0}
 .drawer.float #dTitle{font-size:18px!important}
 .drawer.float .drawer-panel{width:min(640px,94vw)!important}
+/* a widget's settings: its live preview (sample data until the game sends real data) always in view on the left, the settings on the right */
+.drawer.float .drawer-panel:has(.cfgsplit){width:min(1120px,96vw)!important}
+.cfgsplit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-top:12px}
+.cfgpv{position:sticky;top:50px;z-index:1}
+.cfgsplit .pvbox{max-height:calc(min(80vh,820px) - 150px)}
+@media (max-width:760px){.cfgsplit{grid-template-columns:1fr}.cfgpv{background:var(--bg);padding-bottom:8px}.cfgsplit .pvbox{max-height:34vh}}
 .drawer.float #dBody .grid>.s4{grid-column:1/-1}
 .drawer.float #dBody h2{font-size:14px;letter-spacing:.06em;margin:0 0 8px}
 .drawer.float .cfglist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
@@ -2003,7 +2009,7 @@ function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=tru
   const g=$("#set-general")&&$("#set-general").nextElementSibling;if(g)[...g.children].forEach((p,i)=>p.hidden=i>0&&p.id!=="notifPanel");const u=$("#updPanel");if(u)u.hidden=true}
 /* race reminders and the account, also reachable from Settings (the phone has no Account tab) */
 function renderNotifPanel(){const box=$("#notifPanel");if(!box)return;
-  const perm=!NATIVE&&"Notification" in window?Notification.permission:"";
+  const perm=!NATIVE&&!PCAPP&&"Notification" in window?Notification.permission:"";
   // race reminders belong to the planner: in development like it, only the admins can use them
   if(!wipOk()){box.innerHTML=`<div class="label">${esc(Tx("Race reminders","Avisos de carrera","Rennerinnerungen","Lembretes de corrida"))}${wipPill()}</div><p class="note" style="margin-top:6px">${esc(Tx("They come back with the planner, when iRacing switches its data API on again.","Vuelven con el planner, cuando iRacing vuelva a activar su API de datos.","Sie kommen mit dem Planer zurück, wenn iRacing seine Daten-API wieder einschaltet.","Voltam com o planner, quando o iRacing reativar sua API de dados."))}</p>${PHONE?`<div class="label" style="margin-top:16px">${esc(Tx("Account","Cuenta","Konto","Conta"))}</div><div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="nMe">${esc(Tx("My account","Mi cuenta","Mein Konto","Minha conta"))}</button></div>`:""}`;const me0=$("#nMe");if(me0)me0.onclick=()=>show("me");return}
   box.innerHTML=`<div class="label">${esc(Tx("Race reminders","Avisos de carrera","Rennerinnerungen","Lembretes de corrida"))}${wipPill()}</div>
@@ -2071,7 +2077,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.0",APP_STAGE="beta";
+const WEB_VERSION="0.9.1",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -3763,12 +3769,12 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
       ${num("traceSecs","traceSecs",3,60)}${num("traceH","traceH",50,400)}</div>`}
   else if(k==="delta")body=`<div class="panel"><div class="label">${esc(Tx("Compare against","Comparar con"))}</div><div class="frow" style="margin:6px 0 12px">${Object.entries(DELTA_SRC).map(([key,v])=>`<button type="button" class="chip" data-dsrc="${key}" aria-pressed="${c.src===key}">${esc(Tx(v[1],v[2]))}</button>`).join("")}</div>
     <div class="label">${esc(Tx("Bar range","Rango de la barra"))}</div><div class="frow" style="margin-top:6px">${[.5,1,2,5].map(r=>`<button type="button" class="chip" data-drng="${r}" aria-pressed="${c.range===r}">± ${r} s</button>`).join("")}</div>
-    <p class="note">${Lp("iRacing calculates the first four itself. Pitlane HQ's own delta uses the best lap recorded on this screen and works in any session.","iRacing calcula los cuatro primeros. El delta propio de Pitlane HQ usa la mejor vuelta grabada en esta pantalla y funciona en cualquier sesión.")}</p></div>`;
+</div>`;
   else if(k==="pit")body=`<div class="panel">${num("loss","pitLoss",5,180)}<p class="note">${Lp("Time lost driving through the pit lane and stopping, compared with staying out. Depends on the track: about 20–35 s on most road courses.","Tiempo que pierdes al pasar por boxes y parar, frente a seguir en pista. Depende del circuito: unos 20–35 s en la mayoría de circuitos.")}</p></div>`;
   else if(k==="gaps")body=`<div class="panel">${num("mins","gapMins",1,30)}${num("cars","gapCars",1,5)}</div>`;
   const keepPv=$("#cfgPreview")&&$("#cfgPreview").dataset.w===w&&!$("#drawer").hidden;
   if(keepPv)$("#cfgForm").innerHTML=body;
-  else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="label" style="margin:12px 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div><div id="cfgForm" style="margin-top:10px">${body}</div>`;startPreview(w)}
+  else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="cfgsplit"><div class="cfgpv"><div class="label" style="margin:0 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div></div><div id="cfgForm">${body}</div></div>`;startPreview(w)}
   $("#cfgBack").onclick=()=>{const b=CFG_BACK;CFG_BACK=null;(b||openLayout)()};
   const upd=patch=>{setUI(k,patch);openWidgetCfg(w)};
   document.querySelectorAll("#dBody [data-add]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.add.split(":");upd({[f]:[...ui(k)[f],x]})});
@@ -4797,7 +4803,7 @@ function renderCalSide(){const now=Date.now(),next=calItems(now-3*36e5,now+60*DA
     <div class="panel"><h2>${esc(Tx("Next up","Próximas"))}</h2>${next.map((i,k)=>`<div class="nextrace click" data-nx="${k}"><span class="cd">${esc(cd(i.t))}</span><b>${esc(i.title)}</b><span class="muted" style="font-size:13px">${esc(dayName(i.t))} · ${esc(hm(i.t))}${i.sub?" · "+esc(i.sub):""}</span></div>`).join("")||`<p class="note">${Lp("Nothing planned yet. Press “+ Add race”.","Nada planificado todavía. Pulsa «+ Añadir carrera».")}</p>`}</div>
     <div class="panel"><h2>${esc(Tx("Reminders","Avisos"))}</h2><div class="frow">${[5,15,30,60].map(m=>`<button type="button" class="chip" data-rem="${m}" aria-pressed="${REMIND.includes(m)}">${m} min</button>`).join("")}</div>
       <p class="note">${NATIVE?Lp("Your phone reminds you before each race, even with the app closed.","Tu móvil te avisa antes de cada carrera, aunque la app esté cerrada."):Lp("This screen shows a notification while it is open.","Esta pantalla muestra un aviso mientras está abierta. Las apps de iPhone y Android avisan aunque estén cerradas y muestran tus próximas carreras en su widget.")}</p>
-      ${!NATIVE&&"Notification" in window&&Notification.permission!=="granted"?`<button type="button" class="btn small" id="calNotif">${esc(Tx("Allow notifications","Permitir avisos"))}</button>`:""}</div>
+      ${!NATIVE&&!PCAPP&&"Notification" in window&&Notification.permission!=="granted"?`<button type="button" class="btn small" id="calNotif">${esc(Tx("Allow notifications","Permitir avisos"))}</button>`:""}</div>
     <div class="panel"><h2>${esc(Tx("More","Más"))}</h2><div class="frow">${chk("calGhost",CAL.ghosts,Lp("Suggest sessions of my favourites","Sugerir sesiones de mis favoritas",true))}</div>
       <div class="frow" style="margin-top:8px"><button type="button" class="btn small" id="calDisc">💬 ${esc(Tx("Share on Discord","Compartir en Discord"))}</button><button type="button" class="btn small" id="calIcs">${esc(Tx("Export to my calendar (.ics)","Exportar a mi calendario (.ics)"))}</button></div></div>`;
   $("#calPick").onclick=()=>openRacePicker();
@@ -4882,7 +4888,7 @@ function exportICS(){const all=[...PLAN.map(p=>({id:p.sid+"-"+p.t,t:p.t,mins:p.m
   const ev=all.map(p=>["BEGIN:VEVENT",`UID:${p.id}@pitlanehq`,`DTSTAMP:${z(Date.now())}`,`DTSTART:${z(p.t)}`,`DTEND:${z(p.t+p.mins*6e4)}`,`SUMMARY:${c(p.title)}`,`LOCATION:${c(p.loc)}`,...REMIND.flatMap(m=>["BEGIN:VALARM",`TRIGGER:-PT${m}M`,"ACTION:DISPLAY","DESCRIPTION:iRacing","END:VALARM"]),"END:VEVENT"].join("\r\n"));
   const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Pitlane HQ//EN",...ev,"END:VCALENDAR"].join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));a.download="pitlanehq-races.ics";document.body.appendChild(a);a.click();a.remove()}
 /* notifications in the browser while this screen is open */
-let WEBREM=[];function scheduleWebReminders(){WEBREM.forEach(clearTimeout);WEBREM=[];if((typeof wipOk==="function"&&!wipOk())||NATIVE||!("Notification" in window)||Notification.permission!=="granted"||OV.on)return;const now=Date.now();
+let WEBREM=[];function scheduleWebReminders(){WEBREM.forEach(clearTimeout);WEBREM=[];if((typeof wipOk==="function"&&!wipOk())||NATIVE||PCAPP||!("Notification" in window)||Notification.permission!=="granted"||OV.on)return;const now=Date.now();
   calItems(now,now+DAYMS).filter(i=>i.k!=="busy").forEach(i=>REMIND.forEach(m=>{const at=i.t-m*6e4-now;if(at>0&&at<DAYMS)WEBREM.push(setTimeout(()=>{try{new Notification(i.title,{body:Tx(`Starts in ${m} min`,`Empieza en ${m} min`,`Beginnt in ${m} min`,`Começa em ${m} min`)+(i.sub?" · "+i.sub:"")})}catch(e){}},at))}))}
 /* the phone apps get every race (for reminders and the home-screen widget) */
 function syncNativePlan(){scheduleWebReminders();const now=Date.now(),items=calItems(now-36e5,now+60*DAYMS).filter(i=>i.k!=="busy").map(i=>({t:i.t,mins:i.mins,title:i.title,body:(i.sub||"")+" · "+hm(i.t),kind:i.k}));

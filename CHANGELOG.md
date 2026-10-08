@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.9.1 beta
+
+**Changed**
+- The licence summary on Home uses the same symbols and colours as Community, with one short line on when it updates.
+- A widget's or overlay's settings show its live preview (with sample data until the game sends real data) next to
+  the settings, so you always see what each change does.
+- The delta bar settings no longer carry the long note under them.
+- Pitlane HQ no longer sends Windows notifications: updates and race summaries show inside the app.
+
+**Fixed**
+- www.pitlanehq.app opens the site.
+
 ## 0.9.0 beta
 
 **Added**
