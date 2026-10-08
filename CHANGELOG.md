@@ -4,6 +4,16 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.34 beta
+
+**Changed**
+- Every text that sent you to "Live" says Telemetry now (radio, braking markers, lap comparison, watching another
+  driver…), and the first page of Telemetry is called Telemetry too, in every app.
+- Phone & sharing is up to date: your phone or tablet follows the PC through your account (open pitlanehq.app or
+  the app, sign in, Telemetry → Connect and accept it on the PC), with a QR to open the web app and the Android
+  download; and sharing your telemetry with a code is on this page. The old Wi-Fi addresses, the phone PIN and the
+  local links are gone.
+
 ## 0.8.33 beta
 
 **Changed**

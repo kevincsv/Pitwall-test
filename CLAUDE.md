@@ -46,7 +46,10 @@
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin
   profile (a manual one stays); a supporter can hide their own. Badges show wherever your name does.
   A main tab always opens on its first sub-tab. The main menu: Home, Analysis, Community, Telemetry (was Live; the
-  same name in the phone apps), Overlays (its own tab, only on the PC) and Account.
+  same name in the phone apps), Overlays (its own tab, only on the PC) and Account. No text calls the section
+  "Live" any more ("Telemetry → …"). Telemetry → Phone & sharing on the PC: your phone or tablet (pitlanehq.app or
+  the app, same account, Telemetry → Connect, accept on the PC; a QR to the web app and the Android download) and
+  sharing with a code; no Wi-Fi addresses, PIN or local links (`renderPhoneHow`).
 - Live in the web and phone apps: Connect/Disconnect for your own PC (presence only until Connect),
   and watching someone else with a share code made on the PC (Settings → Phone) or from the phone.
   The room is one hash of the code and the key a PBKDF2 of it, so the server never reads the

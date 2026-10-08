@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.34",
+      "en": ["Phone & sharing explains how to follow your PC from the phone with your account, and has the share code."],
+      "es": ["Móvil y compartir explica cómo seguir tu PC desde el móvil con tu cuenta, y tiene el código para compartir."]
+    },
+    {
       "v": "0.8.33",
       "en": ["Live is called Telemetry, and Overlays has its own tab on the PC."],
       "es": ["En vivo se llama Telemetría, y Overlays tiene su propia pestaña en el PC."]
