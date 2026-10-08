@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.38 beta
+
+**Fixed**
+- The native overlays look like the rest of the app: the same fonts (IBM Plex Sans for names, JetBrains Mono for
+  numbers and labels), colours, licence badges, PIT pill and rows, with smooth text at any size. While you move them,
+  the frame follows their rounded corners. An iRating under 1000 shows as the number (not "0.0k").
+
 ## 0.8.37 beta
 
 **Changed**

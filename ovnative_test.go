@@ -104,7 +104,7 @@ func ovSavePNG(t *testing.T, c *ovCanvas, h int, name string) {
 			p := c.px[y*c.w+x]
 			a := float64(p>>24) / 255
 			// over a light grey "game", to see what is see-through
-			bg := 150.0
+			bg := 60.0
 			mix := func(v uint32) uint8 { return uint8(float64(v&0xff) + bg*(1-a)) }
 			img.Set(x, y, color.RGBA{mix(p >> 16), mix(p >> 8), mix(p), 255})
 		}
@@ -152,6 +152,17 @@ func TestNativeOverlaysDraw(t *testing.T) {
 		}
 		ovSavePNG(t, c, h, tc.name+"-"+itoa(tc.w))
 	}
+}
+
+func TestNativeOverlayEditFrame(t *testing.T) {
+	st := ovTestState(t, nil)
+	st.edit = true
+	c := newCanvas(600, 400)
+	h := ovDraw("relative", c, st, time.Now())
+	if p := c.px[(h-3)*c.w+c.w/2]; p>>24 == 0 {
+		t.Fatal("no frame at the bottom of the content while moving the overlays")
+	}
+	ovSavePNG(t, c, h, "relative-edit")
 }
 
 func TestNativeRelativeKeepsRows(t *testing.T) {

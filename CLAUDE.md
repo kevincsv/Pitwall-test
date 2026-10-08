@@ -108,7 +108,8 @@
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
   dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
   radar's window hides itself when nobody is near. The radar, the delta bar, the relative and the standings are not
-  WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the Go fonts, the
+  WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the app's own fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow
+  Condensed, OFL) and its colours, licence badges and pills, the
   data from the live stream, the same settings as the web widgets; `ovnative_windows.go`: a layered window with alpha
   per pixel and the overlays' opacity). Only the panel and its content show, the rest is see-through, every click goes
   to the game, and while moving the overlays they are dragged and resized from the corner. They scale with the

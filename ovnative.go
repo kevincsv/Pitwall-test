@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -22,8 +23,6 @@ import (
 	"time"
 
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gomedium"
-	"golang.org/x/image/font/gofont/gomonobold"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 )
@@ -109,32 +108,57 @@ func (c *ovCanvas) rect(x, y, w, h float64, col uint32, a float64) {
 	}
 }
 
-// ---------- text (the Go fonts, drawn smooth) ----------
+// ---------- text: the app's own fonts, embedded (IBM Plex Sans, JetBrains Mono, Barlow Condensed; OFL) ----------
 
-var (
-	ovFontsOnce    sync.Once
-	ovSans, ovMono *opentype.Font
-	ovFaces        = map[string]font.Face{}
-	ovFacesMu      sync.Mutex
+//go:embed ovfonts/IBMPlexSans-Medium.ttf
+var fontBody []byte
+
+//go:embed ovfonts/IBMPlexSans-SemiBold.ttf
+var fontBodyB []byte
+
+//go:embed ovfonts/JetBrainsMono-SemiBold.ttf
+var fontData []byte
+
+//go:embed ovfonts/JetBrainsMono-Bold.ttf
+var fontDataB []byte
+
+//go:embed ovfonts/BarlowCondensed-SemiBold.ttf
+var fontDisplay []byte
+
+// the app's type: body (names), data (numbers and labels, like --f-data), display (titles, like --f-display)
+const (
+	fkBody = iota
+	fkBodyB
+	fkData
+	fkDataB
+	fkDisplay
 )
 
-func ovFace(mono bool, px float64) font.Face {
+var (
+	ovFontsOnce sync.Once
+	ovFonts     [5]*opentype.Font
+	ovFaces     = map[string]font.Face{}
+	ovFacesMu   sync.Mutex
+)
+
+func ovFace(kind int, px float64) font.Face {
 	ovFontsOnce.Do(func() {
-		ovSans, _ = opentype.Parse(gomedium.TTF)
-		ovMono, _ = opentype.Parse(gomonobold.TTF)
+		for k, b := range [][]byte{fontBody, fontBodyB, fontData, fontDataB, fontDisplay} {
+			ovFonts[k], _ = opentype.Parse(b)
+		}
 	})
-	px = math.Max(6, math.Round(px*2)/2)
-	key := fmt.Sprint(mono, px)
+	px = math.Max(6, math.Round(px*4)/4)
+	key := fmt.Sprint(kind, px)
 	ovFacesMu.Lock()
 	defer ovFacesMu.Unlock()
 	if f, ok := ovFaces[key]; ok {
 		return f
 	}
-	fo := ovSans
-	if mono {
-		fo = ovMono
+	if kind < 0 || kind >= len(ovFonts) || ovFonts[kind] == nil {
+		return nil
 	}
-	f, err := opentype.NewFace(fo, &opentype.FaceOptions{Size: px, DPI: 72, Hinting: font.HintingFull})
+	// no hinting: the shapes stay as the browser draws them (smooth, the same weight at every size)
+	f, err := opentype.NewFace(ovFonts[kind], &opentype.FaceOptions{Size: px, DPI: 72, Hinting: font.HintingNone})
 	if err != nil {
 		return nil
 	}
@@ -142,19 +166,28 @@ func ovFace(mono bool, px float64) font.Face {
 	return f
 }
 
-func textW(f font.Face, s string) float64 {
-	if f == nil {
+func textW(f font.Face, s string) float64 { return textWT(f, s, 0) }
+
+// textWT: the width of s with extra spacing between letters (CSS letter-spacing)
+func textWT(f font.Face, s string, track float64) float64 {
+	if f == nil || s == "" {
 		return 0
 	}
-	return float64(font.MeasureString(f, s)) / 64
+	n := len([]rune(s))
+	return float64(font.MeasureString(f, s))/64 + track*float64(n-1)
 }
 
 // text draws s with its left edge at x and its vertical middle at cy; align: 0 left, 1 right (x is the right edge), 2 centre
 func (c *ovCanvas) text(f font.Face, s string, x, cy float64, col uint32, a float64, align int) {
+	c.textT(f, s, x, cy, col, a, align, 0)
+}
+
+// textT is text with letter spacing (the uppercase labels)
+func (c *ovCanvas) textT(f font.Face, s string, x, cy float64, col uint32, a float64, align int, track float64) {
 	if f == nil || s == "" {
 		return
 	}
-	w := textW(f, s)
+	w := textWT(f, s, track)
 	switch align {
 	case 1:
 		x -= w
@@ -163,16 +196,31 @@ func (c *ovCanvas) text(f font.Face, s string, x, cy float64, col uint32, a floa
 	}
 	m := f.Metrics()
 	asc, desc := float64(m.Ascent)/64, float64(m.Descent)/64
-	base := cy + (asc-desc)/2
-	mask := image.NewAlpha(image.Rect(0, 0, int(w)+4, int(asc+desc)+4))
-	d := font.Drawer{Dst: mask, Src: image.Opaque, Face: f, Dot: fixed.P(1, int(asc)+1)}
-	d.DrawString(s)
-	ox, oy := int(math.Round(x))-1, int(math.Round(base-asc))-1
+	// the middle of the capitals sits on cy (like the browser's vertical centring of a line)
+	capH := float64(m.CapHeight) / 64
+	if capH <= 0 {
+		capH = asc * 0.7
+	}
+	base := cy + capH/2
+	mask := image.NewAlpha(image.Rect(0, 0, int(w)+6, int(asc+desc)+6))
+	// the fraction of a pixel is kept, so the letters land where they should (smooth at any size)
+	fx, fy := x-math.Floor(x), base-math.Floor(base)
+	d := font.Drawer{Dst: mask, Src: image.Opaque, Face: f, Dot: fixed.Point26_6{X: fixed.Int26_6((2 + fx) * 64), Y: fixed.Int26_6((math.Ceil(asc) + 2 + fy) * 64)}}
+	if track == 0 {
+		d.DrawString(s)
+	} else {
+		for _, r := range s {
+			d.DrawString(string(r))
+			d.Dot.X += fixed.Int26_6(track * 64)
+		}
+	}
+	ox, oy := int(math.Floor(x))-2, int(math.Floor(base))-int(math.Ceil(asc))-2
 	b := mask.Bounds()
 	for yy := 0; yy < b.Dy(); yy++ {
 		for xx := 0; xx < b.Dx(); xx++ {
 			if v := mask.Pix[yy*mask.Stride+xx]; v > 0 {
-				c.blend(ox+xx, oy+yy, col, a*float64(v)/255)
+				// a touch more coverage, as Windows draws light text on dark
+				c.blend(ox+xx, oy+yy, col, a*math.Pow(float64(v)/255, 0.85))
 			}
 		}
 	}
@@ -196,14 +244,15 @@ func ellipsis(f font.Face, s string, w float64) string {
 // ---------- colours ----------
 
 const (
-	colPanel  = 0x0f1318
-	colText   = 0xe7ebf1
-	colMuted  = 0x8a96a5
+	colPanel  = 0x19202a // the app's --surface
+	colLine   = 0x2b3542 // --line
+	colText   = 0xe7ebf1 // --fg
+	colMuted  = 0x8a97a9 // --muted
 	colGood   = 0x38c97c
-	colBad    = 0xff5d5d
-	colAmber  = 0xffb02e
-	colAhead  = 0xff7b7b // a lap ahead
-	colBehind = 0x6aa8ff // a lap behind
+	colBad    = 0xff6363
+	colAmber  = 0xffb02e // --accent
+	colAhead  = 0xff6363 // a lap ahead (--bad)
+	colBehind = 0x5c9dff // a lap behind (--blue)
 	colPB     = 0xb98cff // personal / session best
 )
 
@@ -858,52 +907,53 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 	case "standings":
 		h = drawTableOv(c, st, z, false)
 	}
-	if st.edit { // while you move the overlays: a frame and the resize corner
-		for x := 0; x < c.w; x++ {
-			for k := 0; k < 2; k++ {
-				c.blend(x, k, colAmber, 1)
-				c.blend(x, c.h-1-k, colAmber, 1)
-			}
+	if st.edit { // while you move the overlays: a rounded amber frame and the resize corner
+		fh := float64(c.h)
+		if h > 0 && h < c.h {
+			fh = float64(h)
 		}
-		for y := 0; y < c.h; y++ {
-			for k := 0; k < 2; k++ {
-				c.blend(k, y, colAmber, 1)
-				c.blend(c.w-1-k, y, colAmber, 1)
-			}
-		}
-		for k := 0; k < 14; k++ {
+		c.roundRect(1, 1, float64(c.w)-2, fh-2, 10*z, 0, 0, colAmber, 1, 2)
+		for k := 0; k < 12; k++ {
 			for j := 0; j <= k; j++ {
-				c.blend(c.w-3-j, c.h-17+k, colAmber, 1)
+				c.blend(c.w-5-j, int(fh)-17+k, colAmber, 1)
 			}
 		}
 	}
 	return h
 }
 
-// a panel: the dark rounded card the overlays sit on
-func panel(c *ovCanvas, h float64, z float64) {
-	c.roundRect(0.5, 0.5, float64(c.w)-1, h-1, 10*z, colPanel, 0.9, 0xffffff, 0.08, 1)
+// mix: colour a with t of it over b (CSS color-mix)
+func mix(a, b uint32, t float64) uint32 {
+	ch := func(s uint) uint32 { return uint32(float64((a>>s)&0xff)*t + float64((b>>s)&0xff)*(1-t) + 0.5) }
+	return ch(16)<<16 | ch(8)<<8 | ch(0)
 }
 
-// strip draws a row of header/footer items; returns its height
+// a panel: the app's card (--surface, a --line border, rounded corners)
+func panel(c *ovCanvas, h float64, z float64) {
+	c.roundRect(0.5, 0.5, float64(c.w)-1, h-1, 10*z, colPanel, 0.94, colLine, 1, 1)
+}
+
+// strip draws a row of header/footer items like the app's .hstrip (a small uppercase label, then the value); returns its height
 func strip(c *ovCanvas, st *ovState, keys []string, x, y, maxW, z float64) float64 {
 	if len(keys) == 0 {
 		return 0
 	}
-	lf, vf := ovFace(false, 9*z), ovFace(true, 12*z)
-	h := 20 * z
+	lf, vf := ovFace(fkData, 10*z), ovFace(fkData, 14*z)
+	tr := 0.8 * z
+	h := 22 * z
 	for _, k := range keys {
 		l, v, col := st.item(k)
 		if l == "" {
 			continue
 		}
 		l = strings.ToUpper(l)
-		w := textW(lf, l) + 5*z + textW(vf, v)
+		lw := textWT(lf, l, tr)
+		w := lw + 6*z + textW(vf, v)
 		if x+w > maxW {
 			break
 		}
-		c.text(lf, l, x, y+h/2, colMuted, 1, 0)
-		c.text(vf, v, x+textW(lf, l)+5*z, y+h/2, col, 1, 0)
+		c.textT(lf, l, x, y+h/2, colMuted, 1, 0, tr)
+		c.text(vf, v, x+lw+6*z, y+h/2, col, 1, 0)
 		x += w + 16*z
 	}
 	return h
@@ -914,29 +964,22 @@ func drawDeltaOv(c *ovCanvas, st *ovState, z float64) int {
 	panel(c, H, z)
 	pad := 10 * z
 	tx, ty, tw, th := pad, (H-34*z)/2, float64(c.w)-2*pad, 34*z
-	c.roundRect(tx, ty, tw, th, th/2, 0xffffff, 0.05, 0xffffff, 0.09, 1)
+	c.roundRect(tx, ty, tw, th, th/2, 0x1e2631, 1, colLine, 1, 1)
 	d, ok := st.delta()
 	rng := uiNum(st.uiMap("delta"), "range", 1)
 	if rng <= 0 {
 		rng = 1
 	}
 	if ok {
-		f := math.Min(math.Abs(d), rng) / rng * (tw/2 - 2)
+		f := math.Min(math.Abs(d), rng) / rng * (tw/2 - th/2)
 		col := uint32(colBad)
 		x0 := tx + tw/2
 		if d < 0 {
 			col, x0 = colGood, tx+tw/2-f
 		}
-		for x := int(x0); x < int(x0+f); x++ { // brighter towards the end
-			k := (float64(x) - (tx + tw/2)) / (tw / 2)
-			a := 0.35 + 0.65*math.Abs(k)
-			for y := int(ty + 3); y < int(ty+th-3); y++ {
-				c.blend(x, y, col, a)
-			}
-		}
+		c.roundRect(x0, ty+4*z, f, th-8*z, (th-8*z)/2, col, 0.85, 0, 0, 0)
 	}
-	c.rect(tx+tw/2-1, ty+5*z, 2, th-10*z, 0xffffff, 0.55)
-	vf := ovFace(true, 17*z)
+	vf := ovFace(fkDataB, 17*z)
 	s, col := "–", uint32(colText)
 	if ok {
 		s = signed(d, 2)
@@ -945,8 +988,8 @@ func drawDeltaOv(c *ovCanvas, st *ovState, z float64) int {
 			col = colGood
 		}
 	}
-	pw := textW(vf, s) + 22*z
-	c.roundRect(tx+tw/2-pw/2, ty+th/2-12*z, pw, 24*z, 12*z, 0x090c11, 0.9, 0xffffff, 0.1, 1)
+	pw := textW(vf, s) + 24*z
+	c.roundRect(tx+tw/2-pw/2, ty+th/2-13*z, pw, 26*z, 13*z, 0x090c11, 0.92, colLine, 1, 1)
 	c.text(vf, s, tx+tw/2, ty+th/2, col, 1, 2)
 	return int(math.Ceil(H))
 }
@@ -958,7 +1001,7 @@ type ovRow struct {
 	nameCol    uint32
 }
 
-// drawTableOv: the relative (cars around you) or the standings (race order)
+// drawTableOv: the relative (cars around you) or the standings (race order), like the app's widget table
 func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	key := "std"
 	defCols, defHead, defFoot := []string{"pos", "num", "name", "lic", "ir", "irc", "laps", "last", "best", "gap", "int", "pit", "pgain"}, []string{"session", "lapsleft", "sof"}, []string{"pos", "irc", "inc"}
@@ -973,33 +1016,37 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		me = int(v)
 	}
 	rows := st.tableRows(rel, cfg, me)
-	pad := 10 * z
-	rowH, headH := 24*z, 18*z
+	pad, gapX := 12*z, 12*z
+	rowH, headH := 27*z, 22*z
 	W := float64(c.w)
-	H := pad + 0.0
+	H := pad
 	if len(head) > 0 {
-		H += 20*z + 4*z
+		H += 22*z + 4*z
 	}
 	H += headH + float64(len(rows))*rowH
 	if len(rows) == 0 {
-		H += 30 * z
+		H += 32 * z
 	}
 	if len(foot) > 0 {
-		H += 4*z + 20*z
+		H += 6*z + 22*z
 	}
-	H += pad
+	H += pad - 2*z
 	need := H
 	if int(H) > c.h { // the window grows to it on the next frame; draw what fits now
 		H = float64(c.h)
 	}
 	panel(c, H, z)
-	y := pad
+	y := pad - 2*z
 	if len(head) > 0 {
 		y += strip(c, st, head, pad, y, W-pad, z) + 4*z
 	}
 	irc := st.irEstimates()
+	tf, nf, mf := ovFace(fkData, 10.5*z), ovFace(fkBody, 14*z), ovFace(fkData, 13*z)
+	lf, pf := ovFace(fkDataB, 10.5*z), ovFace(fkData, 9.5*z)
+	ttr := 0.6 * z
+	pitW := textWT(pf, "PIT", 0.5*z) + 12*z
+	licW := func(v string) float64 { return math.Max(textW(lf, v)+10*z, 19*z) }
 	// each column's width: the widest of its title and its values
-	tf, nf, mf := ovFace(false, 9*z), ovFace(false, 12.5*z), ovFace(true, 12*z)
 	type colInfo struct {
 		key, title string
 		right      bool
@@ -1012,7 +1059,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		if t == "" && k != "name" {
 			continue
 		}
-		ci := colInfo{key: k, title: strings.ToUpper(t), right: right, w: textW(tf, strings.ToUpper(t))}
+		ci := colInfo{key: k, title: strings.ToUpper(t), right: right, w: textWT(tf, strings.ToUpper(t), ttr)}
 		for _, r := range rows {
 			if r.blank || r.sep {
 				continue
@@ -1023,44 +1070,45 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 				f = mf
 			}
 			w := textW(f, v)
-			if k == "lic" {
-				w += 10 * z
+			if k == "lic" && v != "–" {
+				w = licW(v)
 			}
 			ci.w = math.Max(ci.w, w)
 		}
 		if k == "name" {
 			nameIdx = len(info)
 		} else {
-			fixedW += ci.w + 12*z
+			fixedW += ci.w + gapX
 		}
 		info = append(info, ci)
 	}
 	if nameIdx >= 0 {
-		info[nameIdx].w = math.Max(60*z, W-2*pad-fixedW-12*z)
+		info[nameIdx].w = math.Max(60*z, W-2*pad-fixedW)
 	}
 	// titles
 	x := pad
 	for _, ci := range info {
 		if ci.right {
-			c.text(tf, ci.title, x+ci.w, y+headH/2, colMuted, 1, 1)
+			c.textT(tf, ci.title, x+ci.w, y+headH/2, colMuted, 1, 1, ttr)
 		} else {
-			c.text(tf, ci.title, x, y+headH/2, colMuted, 1, 0)
+			c.textT(tf, ci.title, x, y+headH/2, colMuted, 1, 0, ttr)
 		}
-		x += ci.w + 12*z
+		x += ci.w + gapX
 	}
 	y += headH
-	c.rect(pad, y-1, W-2*pad, 1, 0xffffff, 0.08)
+	c.rect(pad-4*z, y-1, W-2*pad+8*z, 1, colLine, 1)
 	if len(rows) == 0 {
-		c.text(nf, st.T("Waiting for cars on track", "Esperando coches en pista"), W/2, y+15*z, colMuted, 1, 2)
-		y += 30 * z
+		c.text(nf, st.T("Waiting for cars on track", "Esperando coches en pista"), W/2, y+16*z, colMuted, 1, 2)
+		y += 32 * z
 	}
 	pit := st.arr("CarIdxOnPitRoad")
 	for k, r := range rows {
 		if y+rowH > float64(c.h) {
 			break
 		}
+		rx, rw := pad-4*z, W-2*pad+8*z
 		if k%2 == 1 {
-			c.rect(pad, y, W-2*pad, rowH, 0xffffff, 0.025)
+			c.rect(rx, y, rw, rowH, colText, 0.04)
 		}
 		if r.sep {
 			c.text(mf, "⋯", W/2, y+rowH/2, colMuted, 1, 2)
@@ -1072,13 +1120,14 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			continue
 		}
 		mine := r.idx == me
+		onPit := r.idx < len(pit) && pit[r.idx] != 0
 		a := 1.0
-		if r.idx < len(pit) && pit[r.idx] != 0 && !mine {
+		if onPit && !mine {
 			a = 0.55
 		}
 		if mine {
-			c.roundRect(pad, y+1, W-2*pad, rowH-2, 4*z, colAmber, 0.18, 0, 0, 0)
-			c.rect(pad, y+2, 3*z, rowH-4, colAmber, 1)
+			c.roundRect(rx, y+1, rw, rowH-2, 5*z, colAmber, 0.22, 0, 0, 0)
+			c.roundRect(rx, y+3*z, 3*z, rowH-6*z, 1.5*z, colAmber, 1, 0, 0, 0)
 		}
 		x := pad
 		for _, ci := range info {
@@ -1087,38 +1136,38 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			if mono {
 				f = mf
 			}
+			cy := y + rowH/2
 			switch {
 			case ci.key == "lic" && v != "–":
+				// the app's licence badge: the class colour darkened, its border in the colour, white text
 				lc := licColor(v)
-				bw := textW(mf, v) + 10*z
-				c.roundRect(x, y+rowH/2-8*z, bw, 16*z, 3*z, lc, 0.85*a, 0, 0, 0)
-				c.text(mf, v, x+bw/2, y+rowH/2, 0x0d1117, a, 2)
+				bw, bh := licW(v), 19*z
+				c.roundRect(x, cy-bh/2, bw, bh, 4*z, mix(lc, 0x0b0d10, 0.62), a, lc, a, 1.5*z)
+				c.text(lf, v, x+bw/2, cy, 0xffffff, a, 2)
 			case ci.key == "name":
-				n := ellipsis(f, v, ci.w-(func() float64 {
-					if r.idx < len(pit) && pit[r.idx] != 0 {
-						return 34 * z
-					}
-					return 0
-				})())
-				c.text(f, n, x, y+rowH/2, col, a, 0)
-				if r.idx < len(pit) && pit[r.idx] != 0 {
-					pf := ovFace(true, 8.5*z)
+				room := ci.w
+				if onPit {
+					room -= pitW + 6*z
+				}
+				n := ellipsis(f, v, room)
+				c.text(f, n, x, cy, col, a, 0)
+				if onPit { // the app's pill
 					px := x + textW(f, n) + 6*z
-					c.roundRect(px, y+rowH/2-7*z, 26*z, 14*z, 7*z, 0xffffff, 0, colMuted, 0.6*a, 1)
-					c.text(pf, "PIT", px+13*z, y+rowH/2, colMuted, a, 2)
+					c.roundRect(px, cy-8*z, pitW, 16*z, 8*z, colPanel, 0, colLine, 1, 1)
+					c.textT(pf, "PIT", px+pitW/2, cy, colMuted, a, 2, 0.5*z)
 				}
 			case ci.right:
-				c.text(f, v, x+ci.w, y+rowH/2, col, a, 1)
+				c.text(f, v, x+ci.w, cy, col, a, 1)
 			default:
-				c.text(f, v, x, y+rowH/2, col, a, 0)
+				c.text(f, v, x, cy, col, a, 0)
 			}
-			x += ci.w + 12*z
+			x += ci.w + gapX
 		}
 		y += rowH
 	}
 	if len(foot) > 0 {
-		y += 4 * z
-		c.rect(pad, y-2*z, W-2*pad, 1, 0xffffff, 0.08)
+		c.rect(pad-4*z, y+2*z, W-2*pad+8*z, 1, colLine, 1)
+		y += 6 * z
 		strip(c, st, foot, pad, y, W-pad, z)
 	}
 	return int(math.Ceil(need))
@@ -1202,8 +1251,11 @@ func (st *ovState) cell(k string, r ovRow, irc map[int]int) (string, uint32, boo
 	case "lic":
 		return firstNonEmpty(d.Lic, "–"), colText, true
 	case "ir":
-		if d.IR > 0 {
+		if d.IR >= 1000 {
 			return fmt.Sprintf("%.1fk", float64(d.IR)/1000), colText, true
+		}
+		if d.IR > 0 {
+			return strconv.Itoa(d.IR), colText, true
 		}
 		return "–", colMuted, true
 	case "irc":
@@ -1584,7 +1636,7 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 		if math.Abs(best.dm) < 10 {
 			col = colAmber
 		}
-		f := ovFace(true, math.Max(11, ppm*1.5))
+		f := ovFace(fkDataB, math.Max(11, ppm*1.5))
 		y := cy - best.dm*ppm
 		if best.dm > 0 {
 			y -= H/2 + 10

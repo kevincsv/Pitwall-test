@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.38",
+      "en": ["The overlays use the app's fonts and look."],
+      "es": ["Los overlays usan las fuentes y el estilo de la app."]
+    },
+    {
       "v": "0.8.37",
       "en": ["Native overlays: radar, delta bar, relative and standings, sharp and see-through.", "Braking beeps from the model, with your speed and traffic, and an off switch in Settings → Engineer."],
       "es": ["Overlays nativos: radar, delta bar, relative y standings, nítidos y transparentes.", "Pitidos de frenada según el modelo, tu velocidad y el tráfico, y se apagan en Ajustes → Ingeniero."]
