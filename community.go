@@ -398,6 +398,38 @@ func shareFieldTop(r *raceReport) {
 	}
 }
 
+// linkOwnDriver: the driver at the wheel of this PC is the account's own: the server puts under the account
+// the laps other PCs shared of them as a race rival (and the ones still to come). One iRacing driver per
+// account; asked once per driver while Pitlane HQ runs, again after a failure a few minutes later.
+var (
+	linkMu   sync.Mutex
+	linkDone = map[string]time.Time{}
+)
+
+func linkOwnDriver(userID string) {
+	k := driverKey(userID)
+	if k == "" || tel.isDemo() {
+		return
+	}
+	linkMu.Lock()
+	if t, ok := linkDone[k]; ok && (t.IsZero() || time.Since(t) < 5*time.Minute) {
+		linkMu.Unlock()
+		return
+	}
+	linkDone[k] = time.Now()
+	linkMu.Unlock()
+	go func() {
+		if !accountSignedIn() {
+			return
+		}
+		if _, err := commCall("POST", "/link-driver", map[string]any{"key": k}, true); err == nil {
+			linkMu.Lock()
+			linkDone[k] = time.Time{}
+			linkMu.Unlock()
+		}
+	}()
+}
+
 // accountSignedIn: this PC is signed in to a Pitlane HQ account.
 func accountSignedIn() bool {
 	loadPL()

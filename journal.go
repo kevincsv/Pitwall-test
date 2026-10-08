@@ -426,6 +426,10 @@ func raceWatcher() {
 				applyRealIR(myIR, meta.Subsession, meta.Cat)
 			}
 		}
+		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account
+		if onTrack && gameTag(currentGame()) == "iracing" {
+			linkOwnDriver(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "UserID"))
+		}
 		if !strings.EqualFold(kind, "Race") {
 			end(cur != nil && cur.state < 5)
 			cur = nil
@@ -740,10 +744,29 @@ func licClass(s string) string {
 	return ""
 }
 
+// shortName: how a race rival shows on the leaderboards, their first name and the initial of their last
+// name ("Juan Pablo Montoya" → "Juan M."), never the whole name; "" when there is none
+func shortName(full string) string {
+	w := strings.Fields(full)
+	if len(w) == 0 {
+		return ""
+	}
+	first := []rune(w[0])
+	if len(first) > 20 {
+		first = first[:20]
+	}
+	if len(w) == 1 {
+		return string(first)
+	}
+	last := []rune(w[len(w)-1])
+	return string(first) + " " + strings.ToUpper(string(last[0])) + "."
+}
+
 // fieldTopLaps: the best lap of every other driver of your class (your own laps go the usual way), as
 // the community takes them: time, sectors, car and track, the speed trace their position gave when
-// the PC saw the lap whole, and an opaque key per driver. No names. Only the faster rivals with a
-// trace show on the leaderboard; the rest feed the model unseen.
+// the PC saw the lap whole, an opaque key per driver and their short name (first name and the initial
+// of the last one). Only the faster rivals with a trace show on the leaderboard; the rest feed the
+// model unseen.
 func fieldTopLaps(r *raceReport) []map[string]any {
 	var out []map[string]any
 	if r == nil || r.TrackID == 0 {
@@ -754,6 +777,9 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 			continue
 		}
 		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
+		if n := shortName(x.Name); n != "" {
+			b["short"] = n
+		}
 		if x.Lic != "" {
 			b["lic"] = x.Lic
 		}

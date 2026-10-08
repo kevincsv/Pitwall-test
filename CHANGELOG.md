@@ -17,6 +17,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - DRINKS mode: renaming and removing drivers works from the web connected to your PC and from the phone apps too.
 
 **Changed**
+- Race rivals on the leaderboards show their first name and the initial of their last name ("Juan M.") instead of
+  "Anonymous". When one of them signs up and drives with Pitlane HQ, their laps shared as a rival go to their
+  account by themselves (and the ones others share of them later too). Admins can undo a link.
 - The main menu is Home, Analysis, Telemetry, Overlays, Community and Account: Community sits just before Account,
   on the PC, the web, Pitlane HQ Desktop and the phone apps.
 

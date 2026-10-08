@@ -2,8 +2,8 @@
   "versions": [
     {
       "v": "0.8.41",
-      "en": ["Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.", "The real iRating of a race only comes from a session of the same category.", "Community sits just before Account in the menu."],
-      "es": ["Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.", "El iRating real de una carrera solo sale de una sesión de la misma categoría.", "Comunidad va justo antes de Cuenta en el menú."]
+      "en": ["Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.", "The real iRating of a race only comes from a session of the same category.", "Community sits just before Account in the menu.", "Race rivals show their first name and initial, and their laps go to their account when they sign up."],
+      "es": ["Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.", "El iRating real de una carrera solo sale de una sesión de la misma categoría.", "Comunidad va justo antes de Cuenta en el menú.", "Los rivales de carrera se ven con su nombre e inicial, y sus vueltas pasan a su cuenta cuando se registran."]
     },
     {
       "v": "0.8.40",

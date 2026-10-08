@@ -57,6 +57,22 @@ import { catMap, catOf, licOf, CATS } from "./categories.js";
 export const isTestDrive = (kind) => /test/i.test(String(kind || ""));
 const officialOf = (v) => (typeof v === "boolean" ? (v ? 1 : 0) : v === 1 || v === 0 ? v : null);
 
+// the community's id of a race rival: from the opaque key their PC-side id gives (never the iRacing id)
+async function otherId(env, key) {
+  return "o:" + (await sha256("other|" + (env.DATA_KEY || "") + "|" + String(key).toLowerCase())).slice(0, 24);
+}
+// how a race rival shows: their first name and the initial of their last name ("Juan M."), whatever the PC
+// sent; "" when there is no name
+export function shortDriverName(v) {
+  const w = String(v || "").normalize("NFC").split(/\s+/).map((x) => x.replace(/[^\p{L}\p{N}'.-]/gu, "")).filter(Boolean);
+  if (!w.length) return "";
+  const first = [...w[0]].slice(0, 20).join("").replace(/\.$/, "");
+  if (!first || /^anonym/i.test(first)) return "";
+  if (w.length === 1) return first;
+  const ini = [...w[w.length - 1]].find((c) => /[\p{L}\p{N}]/u.test(c));
+  return ini ? first + " " + ini.toUpperCase() + "." : first;
+}
+
 async function keepBestLap(env, uid, x) {
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
@@ -286,7 +302,8 @@ export async function community(req, env, url) {
         (SELECT MAX(started) FROM sessions s WHERE s.uploader='acct:'||a.id) AS lastSession,
         (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=a.id) AS laps,
         (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests,
-        (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues
+        (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues,
+        EXISTS (SELECT 1 FROM driver_links d WHERE d.account_id=a.id) AS driverLinked
         FROM accounts a ${q ? "WHERE a.display LIKE ?1 OR a.id LIKE ?1" : ""} ORDER BY a.created DESC LIMIT 500`).bind(...(q ? ["%" + q.replace(/[%_]/g, "") + "%"] : [])).all();
       return json({ users: (r.results || []).map((x) => ({ ...x, admin: isAdmin(env, x.id) })) });
     }
@@ -364,8 +381,8 @@ export async function community(req, env, url) {
     return json({ ok: true, cleared: (r.meta && r.meta.changes) || 0 });
   }
   // help with an account (support and moderation): confirm its email, turn off its two-step sign-in (a lost
-  // phone), sign it out everywhere, or give it another public name (an offensive one)
-  const ua = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})\/(verify|2fa-off|signout|rename)$/);
+  // phone), sign it out everywhere, give it another public name (an offensive one) or undo its iRacing driver link
+  const ua = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})\/(verify|2fa-off|signout|rename|unlink-driver)$/);
   if (ua && m === "POST") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
@@ -374,6 +391,8 @@ export async function community(req, env, url) {
     if (ua[2] === "verify") await env.DB.prepare("UPDATE accounts SET verified=1 WHERE id=?1").bind(id).run();
     if (ua[2] === "2fa-off") await env.DB.batch([env.DB.prepare("UPDATE accounts SET totp=NULL, totp_on=0, totp_pending=NULL WHERE id=?1").bind(id), env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id)]);
     if (ua[2] === "signout") await env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id).run();
+    // a wrong link to an iRacing driver: their laps still to come go back to the rival of a race
+    if (ua[2] === "unlink-driver") await env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id).run();
     if (ua[2] === "rename") {
       const display = cleanName(body.name);
       if (!display) return err("choose a public name", 400);
@@ -657,6 +676,40 @@ export async function community(req, env, url) {
     for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
     return json({ adopted: laps.length });
   }
+  // the PC saw this account's own driver at the wheel: what other PCs shared of them as a race rival goes
+  // under the account (per car and track the faster lap stays), and their laps still to come too. One iRacing
+  // driver per account and one account per driver: the first account linked keeps it
+  if (p === "/link-driver" && m === "POST") {
+    if (!u.account) return err("sign in with your Pitlane HQ account", 401);
+    if (typeof body.key !== "string" || !/^[0-9a-f]{16,64}$/i.test(body.key)) return err("missing key", 400);
+    const oid = await otherId(env, body.key);
+    const had = await env.DB.prepare("SELECT oid, account_id FROM driver_links WHERE oid=?1 OR account_id=?2").bind(oid, u.id).all();
+    for (const x of had.results || []) {
+      if (x.oid === oid && x.account_id === u.id) return json({ linked: true, moved: 0 });
+      if (x.oid === oid) return err("this driver is already linked to another account", 409);
+      return err("this account is already linked to another driver", 409);
+    }
+    const acc = await env.DB.prepare("SELECT anon, name_kind FROM accounts WHERE id=?1").bind(u.id).first();
+    if (!acc) return err("sign in with your Pitlane HQ account", 401);
+    await env.DB.prepare("INSERT INTO driver_links (oid, account_id, created) VALUES (?1,?2,?3)").bind(oid, u.id, Date.now()).run();
+    const shown = acc.name_kind === "iracing" ? "iracing" : "nick";
+    const laps = (await env.DB.prepare("SELECT id, car_id, track_id, time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1").bind(oid).all()).results || [];
+    const q = [], combos = new Set();
+    for (const l of laps) {
+      const mine = await env.DB.prepare("SELECT id, time, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, l.car_id, l.track_id).first();
+      combos.add(l.game + "|" + l.track_id + "|" + l.car_id);
+      const take = env.DB.prepare("UPDATE community_laps SET user_id=?2, anon=?3, shown=?4 WHERE id=?1").bind(l.id, u.id, acc.anon ? 1 : 0, shown);
+      if (!mine) { q.push(take); continue; }
+      const better = mine.time > l.time || (!mine.traced && !!l.traced); // the same rule as keepBestLap
+      if (better) q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(mine.id), take);
+      else q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(l.id));
+    }
+    q.push(env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(oid));
+    await env.DB.batch(q);
+    await moveDriver(env, "acct:" + oid, "acct:" + u.id);
+    for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
+    return json({ linked: true, moved: laps.length });
+  }
   if (p === "/lics" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     const row = await env.DB.prepare("SELECT lics FROM community_users WHERE id=?1").bind(u.id).first();
@@ -713,13 +766,25 @@ export async function community(req, env, url) {
     // anonymous driver per real driver, so their faster lap of a later race replaces this one
     if (typeof body.other === "string" && /^[0-9a-f]{16,64}$/i.test(body.other)) {
       if (!u.account) return err("sign in with your Pitlane HQ account to share other drivers' times", 401);
-      const oid = "o:" + (await sha256("other|" + (env.DATA_KEY || "") + "|" + body.other.toLowerCase())).slice(0, 24);
-      await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,'Anonymous',?3,?4) ON CONFLICT(id) DO NOTHING").bind(oid, "other:" + oid, Date.now(), u.id).run();
+      const oid = await otherId(env, body.other);
       // the speed trace their position gave (pedals estimated): the model, the leaderboard and comparisons use it
       const plain = body.trace && Array.isArray(body.trace.d) && body.trace.d.length >= 60 ? JSON.stringify({ ...body.trace, src: "field" }) : null;
       if (plain && plain.length > 900000) return err("lap trace too large", 400);
+      // a rival who has an account (their PC saw them at the wheel): the lap goes to their account, under
+      // its public name or as Anonymous, as the account chose
+      const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1").bind(oid).first();
+      if (link) {
+        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
+        if (r.limit) return err("too many uploads today", 429);
+        return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
+      }
+      // everyone else: their first name and the initial of their last name, never the whole name
+      const short = shortDriverName(body.short);
+      await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?5,?3,?4) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias WHERE excluded.alias<>'Anonymous'")
+        .bind(oid, "other:" + oid, Date.now(), u.id, short || "Anonymous").run();
+      if (short) await env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1 AND anon=1").bind(oid).run();
       // on the leaderboard only when the PC says so (faster than you, with their trace); the rest teach the model unseen
-      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: true, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
       if (r.limit) return err("too many uploads today", 429);
       return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
     }

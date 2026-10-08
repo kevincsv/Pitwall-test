@@ -50,6 +50,11 @@
   default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
   "+ Session" lap B is only the laps of the other session (and the references). The window's title
   and its × stay at the top while it scrolls. "MY BEST" goes after the time.
+- Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
+  first name and the initial of their last name ("Juan M.", `shortName` in journal.go, `shortDriverName` on the server),
+  never the whole name; the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
+  in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,
+  `driver_links`: one iRacing driver per account and one account per driver; admins can undo it).
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin
