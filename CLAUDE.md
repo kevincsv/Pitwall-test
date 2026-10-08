@@ -15,11 +15,16 @@
   Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
-- One model per car and track (`cloud/src/model.js`, shown by `web/dist/pitwall-model.js`): it
-  learns from every real lap it knows (the accounts' laps, shared or not; shared laps; the laps
-  of the rivals of your races) and its references are real laps, never composites: the record
-  (the fastest lap really driven) and, for your pace, the lap of the driver just ahead. Analysis,
-  the coach and the lap list use this one model; no second "ideal" or theoretical lap anywhere.
+- One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
+  `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared
+  or not; shared laps; the laps of the rivals of your races) and its references are real laps,
+  never composites: the record (the fastest lap really driven) and, for your pace, the lap of the
+  driver just ahead. It has no panel of its own: the coach shows the record, the next level and
+  your pace among the drivers known there, and both views offer its references as lap B; the lap
+  list is coloured by it. No second "ideal" or theoretical lap anywhere.
+- The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
+  the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
+  key facts, the charts, the map, the sectors, the lap list and the braking points.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
   NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.

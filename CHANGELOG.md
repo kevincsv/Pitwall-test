@@ -4,7 +4,23 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
-## 0.8.8 beta
+## 0.8.9 beta
+
+**Changed**
+- **A shorter coach.** The coach is now the gap to the reference, what to work on first, the plan
+  for the next session, the map, the sectors and the three corners that cost the most (a button
+  shows them all). The phase bars, the "over the session" panel and the long notes are gone; the
+  plan already says what they said.
+- **The model has no panel of its own.** The "The model" block under the coach and the analyzer
+  is gone. What it said that matters is in the coach now: the record, the next level (the driver
+  just ahead) and your pace among the drivers known for that car and track, learnt from everyone's
+  real laps. The record and the next level are offered directly as lap B in the coach and in the
+  analyzer, and the next level is the coach's default reference whenever someone is ahead.
+- **A shorter lap analyzer.** The summary is the gap and three facts (the corner that costs the
+  most, where lap A falls furthest behind, where it gains most); the corner cards moved to the
+  coach, where a new "Plan in the Coach" button opens the same two laps.
+
+
 
 **Fixed**
 - **Coach, as it is shown.** The sector table fits on a phone screen (columns B and Diff. were off
