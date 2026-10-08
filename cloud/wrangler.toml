@@ -1,6 +1,8 @@
 name = "pitlanehq"
 main = "src/worker.js"
 compatibility_date = "2026-09-01"
+# the old pitlanehq.<account>.workers.dev address keeps answering (PCs set up with it before the domain)
+workers_dev = true
 
 # the downloads (PitlaneHQ-Setup.exe, the APK…) and the release notes, uploaded by the build workflows
 [[r2_buckets]]
