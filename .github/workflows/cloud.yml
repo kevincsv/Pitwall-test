@@ -76,8 +76,9 @@ jobs:
           npx wrangler r2 bucket create pitlanehq-downloads 2>/dev/null || true
           if [ -n "$SEASON_UPLOADERS" ]; then sed -i "s/^SEASON_UPLOADERS = \".*\"/SEASON_UPLOADERS = \"$SEASON_UPLOADERS\"/" wrangler.toml; fi
           if [ -n "$ADMINS" ]; then sed -i "s/^ADMINS = \".*\"/ADMINS = \"$ADMINS\"/" wrangler.toml; fi
-          # your own domain (for example pitlanehq.com), once it is in your Cloudflare account
-          if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
+          # your own domain (for example pitlanehq.com), once it is in your Cloudflare account, and its www.
+          # address (Cloudflare makes its DNS record; the Worker sends www visitors to the domain itself)
+          if [ -n "$CUSTOM_DOMAIN" ]; then printf '\nroutes = [{ pattern = "%s", custom_domain = true }, { pattern = "www.%s", custom_domain = true }]\n' "$CUSTOM_DOMAIN" "$CUSTOM_DOMAIN" > routes.toml; awk 'NR==FNR{r=r $0 "\n";next} /^\[\[d1_databases\]\]/{printf "%s\n", r} {print}' routes.toml wrangler.toml > w.toml && mv w.toml wrangler.toml; fi
           npx wrangler deploy | tee deploy.log
           if [ -n "$PITLANE_KEY" ]; then echo "$PITLANE_KEY" | npx wrangler secret put PITLANE_KEY; fi
           # emails (confirm the address, reset the password) through Resend

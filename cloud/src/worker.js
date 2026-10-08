@@ -297,6 +297,11 @@ export default {
 
 async function handle(req, env, ctx) {
     const url = new URL(req.url);
+    // www.pitlanehq.app is the same site: one address for people and search engines (301 to pitlanehq.app)
+    if (url.hostname.startsWith("www.")) {
+      url.hostname = url.hostname.slice(4);
+      return Response.redirect(url.toString(), 301);
+    }
     if (url.pathname === "/news") return news(req, env, ctx);
     // the public pages for search engines: what Pitlane HQ does, the records of every car and track, the sitemap
     { const sp = await seoPage(req, env, url).catch(() => null); if (sp) return sp; }

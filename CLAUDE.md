@@ -71,7 +71,8 @@
   JSON-LD; robots.txt is in web/dist. Descriptions are short and plain, never hype. The public pages
   (`cloud/src/seo.js`, plain HTML, English and Spanish with hreflang): /iracing-telemetry and
   /es/telemetria-iracing, /records and /es/records, one page per car and track (one canonical address,
-  301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day.
+  301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day. www.pitlanehq.app is a custom domain of the Worker
+  (made by the deploy) that answers 301 to pitlanehq.app.
   They never show iRacing names: nicknames, or Anonymous.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).

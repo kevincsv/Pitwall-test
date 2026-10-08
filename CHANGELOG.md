@@ -19,6 +19,7 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - My account on the PC has a "Sign out on this PC" button.
 - Profiles are gone from the PC (the button, the Settings section and the window); Settings → Connections
   and Full telemetry are hidden for everyone for now.
+- www.pitlanehq.app works and sends you to pitlanehq.app.
 
 ## 0.8.23 beta
 
