@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.42",
+      "en": ["The game is found at once; your overlays open the moment you get in the car and close a second after the game closes."],
+      "es": ["El juego se detecta al momento; tus overlays se abren nada más subir al coche y se cierran un segundo después de cerrar el juego."]
+    },
+    {
       "v": "0.8.41",
       "en": ["Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.", "The real iRating of a race only comes from a session of the same category.", "Community sits just before Account in the menu.", "Race rivals show their first name and initial, and their laps go to their account when they sign up.", "Driver notes: mark drivers as dangerous, careful, clean or friend; their icon shows in the relative and the engineer warns you."],
       "es": ["Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.", "El iRating real de una carrera solo sale de una sesión de la misma categoría.", "Comunidad va justo antes de Cuenta en el menú.", "Los rivales de carrera se ven con su nombre e inicial, y sus vueltas pasan a su cuenta cuando se registran.", "Notas de pilotos: marca pilotos como peligroso, cuidado, limpio o amigo; su icono sale en el relative y el ingeniero te avisa."]

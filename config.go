@@ -136,12 +136,13 @@ func registerConfigRoutes(mux *http.ServeMux) {
 }
 
 // autoOverlays opens the chosen overlays when you get in the car and closes
-// them when iRacing closes.
+// them when iRacing closes, both at once: it looks several times a second and
+// opens every overlay together.
 func autoOverlays() {
 	opened := false
 	var lostAt time.Time
 	epoch := profileEpoch.Load()
-	for range time.Tick(time.Second) {
+	for range time.Tick(150 * time.Millisecond) {
 		if e := profileEpoch.Load(); e != epoch { // another profile: open its overlays
 			epoch, opened = e, false
 		}
@@ -156,8 +157,7 @@ func autoOverlays() {
 			}
 			for _, wdg := range c.AutoWidgets {
 				if !open[wdg] && widgetRe.MatchString(wdg) && wdg != "*" {
-					openNamedOverlay(wdg)
-					time.Sleep(300 * time.Millisecond)
+					go openNamedOverlay(wdg)
 				}
 			}
 			opened = true
@@ -168,7 +168,7 @@ func autoOverlays() {
 		} else if opened {
 			if lostAt.IsZero() {
 				lostAt = time.Now()
-			} else if time.Since(lostAt) > 8*time.Second {
+			} else if time.Since(lostAt) > time.Second { // a second: not a blink between two sessions
 				if c.CloseOnExit {
 					closeOverlays("*")
 					log.Println("iRacing closed: overlays closed")

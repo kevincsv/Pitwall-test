@@ -223,7 +223,7 @@ func ovPaint(hwnd uintptr) {
 		case need < h: // less: it shrinks after a moment (no jumping when a row comes and goes)
 			if nat.shrinkAt.IsZero() {
 				nat.shrinkAt = now
-			} else if now.Sub(nat.shrinkAt) > 1500*time.Millisecond {
+			} else if now.Sub(nat.shrinkAt) > 400*time.Millisecond {
 				nat.shrinkAt = time.Time{}
 				h = need
 			}

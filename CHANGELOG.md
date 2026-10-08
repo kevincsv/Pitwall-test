@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.42 beta
+
+**Changed**
+- The game is found as soon as it starts (it is looked for twice a second, not every two seconds).
+- Your Auto overlays open the moment you get in the car, all together, and close a second after the game closes
+  (it was eight); the overlays change height at once when what they show changes.
+
 ## 0.8.41 beta
 
 **Added**

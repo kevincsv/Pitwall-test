@@ -606,7 +606,7 @@ func ovFeed(rawURL string, vars func() []string, st *ovState) {
 		if resp != nil {
 			resp.Body.Close()
 		}
-		time.Sleep(time.Second)
+		time.Sleep(250 * time.Millisecond) // back on the stream at once (the PC restarting it, new values asked)
 	}
 }
 

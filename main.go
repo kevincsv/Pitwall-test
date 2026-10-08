@@ -24,7 +24,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.8.41"
+const appVersion = "0.8.42"
 
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
@@ -123,7 +123,8 @@ func reader(forceDemo bool) {
 				src = openGame(gamePref())
 			}
 			if src == nil {
-				time.Sleep(2 * time.Second)
+				// the game is looked for twice a second: it is found as soon as it starts
+				time.Sleep(500 * time.Millisecond)
 				continue
 			}
 			log.Printf("Connected to %s telemetry", src.Name())
@@ -134,7 +135,7 @@ func reader(forceDemo bool) {
 		h, err := readHeader(mem)
 		if err != nil {
 			closeSrc("Telemetry header unreadable, retrying")
-			time.Sleep(time.Second)
+			time.Sleep(300 * time.Millisecond)
 			continue
 		}
 		connected := h.Status&irsdkStatusConnected != 0
