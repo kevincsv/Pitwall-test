@@ -4,6 +4,20 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.36 beta
+
+**Fixed**
+- The radar overlay is truly see-through: it is drawn by Pitlane HQ itself on a transparent window (WebView2 always
+  painted a black square behind it). Only your car's outline, the cars coming (grey, amber, red), the red bar on the
+  side where someone is next to you and the nearest distance show over the game; every click goes through. While
+  you move the overlays it shows a frame, and you drag it or resize it from its corner.
+- Overlays speak your language: every overlay window uses the app's language (before, they started in English).
+- Overlays fit their height again when the window was left too tall, and any space left matches the panel instead of
+  showing a dark band.
+- The Overlays screen shows only the overlays that are open or start by themselves (Auto), and none can be dragged off
+  the screen; the cards say "On Telemetry".
+- In a narrow PC window the main tabs show only their icons (the name on hover), so they no longer cover the buttons.
+
 ## 0.8.35 beta
 
 **Changed**

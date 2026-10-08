@@ -40,8 +40,6 @@ var (
 	procGetWindowRect  = user32.NewProc("GetWindowRect")
 	procGetConsoleWin  = syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
 	procDwmSetAttr     = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmSetWindowAttribute")
-	procDwmBlurBehind  = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmEnableBlurBehindWindow")
-	procCreateRectRgn  = syscall.NewLazyDLL("gdi32.dll").NewProc("CreateRectRgn")
 	procCallWindowProc = user32.NewProc("CallWindowProcW")
 	procDefWindowProc  = user32.NewProc("DefWindowProcW")
 	procFreeConsole    = syscall.NewLazyDLL("kernel32.dll").NewProc("FreeConsole")
@@ -59,11 +57,11 @@ func windowRect(h uintptr) (x, y, w, hh int) {
 // could not start, so PitWall falls back to an Edge window.
 func runOverlayWindow(name, url string, x, y, w, h int) {
 	procFreeConsole.Call() // the child does not need a console window
-	bg := "FF11151B"
-	if seeThrough(name) {
-		bg = "00000000" // WebView2 draws nothing where the page draws nothing
+	if seeThrough(name) {  // the radar is drawn natively: WebView2 cannot be see-through
+		runNativeRadar(url, x, y, w, h)
+		return
 	}
-	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", bg)
+	os.Setenv("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "FF11151B")
 	// its own browser data, apart from the main window's
 	data := filepath.Join(os.Getenv("LOCALAPPDATA"), "PitlaneHQ", "WebView2-overlays")
 	// a window that never shows the page (blank and impossible to close) gives up after
@@ -87,9 +85,6 @@ func runOverlayWindow(name, url string, x, y, w, h int) {
 	// taskbar button (like RaceLab), so it can also be closed from the taskbar
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlStyle), wsPopup|wsVisible)
 	procSetWindowLongPtrW.Call(hwnd, uintptr(gwlExStyle), wsExAppWindow|wsExNoActivate|wsExTopmost)
-	if seeThrough(name) {
-		seeThroughWindow(hwnd)
-	}
 	procSetWindowPos.Call(hwnd, uintptr(hwndTopmost), uintptr(x), uintptr(y), uintptr(w), uintptr(h), swpFrameChanged|swpShowWindow|swpNoActivate)
 	noWinBorder(hwnd, seeThrough(name))
 	keepOnScreen(hwnd)
@@ -155,23 +150,6 @@ func noWinBorder(hwnd uintptr, clear bool) {
 	}
 	procDwmSetAttr.Call(hwnd, 34, uintptr(unsafe.Pointer(&border)), 4) // DWMWA_BORDER_COLOR
 	procDwmSetAttr.Call(hwnd, 33, uintptr(unsafe.Pointer(&corner)), 4) // DWMWA_WINDOW_CORNER_PREFERENCE
-}
-
-// seeThroughWindow: Windows composes the window with the alpha of what is drawn in it, so where the page
-// (and WebView2, with a transparent background) draws nothing the game shows through. Blur-behind with an
-// empty region turns that on without any blur (the way transparent WebView2 windows are made).
-func seeThroughWindow(hwnd uintptr) {
-	if procDwmBlurBehind.Find() != nil || procCreateRectRgn.Find() != nil {
-		return
-	}
-	rgn, _, _ := procCreateRectRgn.Call(0, 0, ^uintptr(0), ^uintptr(0)) // (0,0,-1,-1): an empty region
-	bb := struct {
-		Flags      uint32
-		Enable     int32
-		Region     uintptr
-		Transition int32
-	}{Flags: 0x1 | 0x2, Enable: 1, Region: rgn} // DWM_BB_ENABLE | DWM_BB_BLURREGION
-	procDwmBlurBehind.Call(hwnd, uintptr(unsafe.Pointer(&bb)))
 }
 
 // the desktop the overlays live in: every screen together (an overlay can still go from one screen to another)

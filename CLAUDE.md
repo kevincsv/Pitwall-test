@@ -103,9 +103,12 @@
   window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
   dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
-  radar's window hides itself when nobody is near. The radar overlay is see-through (`seeThroughWindow`: a
-  transparent WebView2 on a DWM blur-behind window; `radarClean`): your car's outline and the cars coming, nothing
-  else, no title. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
+  radar's window hides itself when nobody is near. The radar overlay is not WebView2 (its content is always opaque):
+  it is drawn natively in Go on a layered window with alpha per pixel (`radar_windows.go`, `runNativeRadar`), fed by
+  the same live stream: your car's outline, the cars coming, the red side bar and the nearest distance, nothing
+  else; fully see-through and click-through, draggable and resizable from its corner while moving the overlays.
+  Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the
+  overlays that are open or Auto, always inside the screen. In a narrow PC window the main tabs show only icons. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,
   standings 4/s, radar 30/s). The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
