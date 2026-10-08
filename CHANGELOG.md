@@ -4,6 +4,15 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.39 beta
+
+**Changed**
+- Ten more overlays are native, drawn by Pitlane HQ like the relative and the radar: the flag, the dash (gear,
+  speed, pedals, shift lights and the car's controls), timing, fuel (with what to add at the stop), engine, tyres,
+  inputs (wheel, pedals and their trace), DRS & push-to-pass, telemetry and the g-force circle. They look like the
+  app, see-through around their panel, and follow your language and units at once (they change when you change them
+  in the app).
+
 ## 0.8.38 beta
 
 **Fixed**

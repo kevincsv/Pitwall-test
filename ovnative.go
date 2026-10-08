@@ -33,11 +33,12 @@ func nativeOverlay(name string) bool {
 	case "radar", "deltabar", "relative", "standings":
 		return true
 	}
-	return false
+	return gaugeOverlay(name)
 }
 
 // the width each overlay is designed for: the window's width scales everything from it
-var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600, "standings": 720}
+var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600, "standings": 720,
+	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280}
 
 // ---------- the picture ----------
 
@@ -125,6 +126,9 @@ var fontDataB []byte
 //go:embed ovfonts/BarlowCondensed-SemiBold.ttf
 var fontDisplay []byte
 
+//go:embed ovfonts/BarlowCondensed-Bold.ttf
+var fontDisplayB []byte
+
 // the app's type: body (names), data (numbers and labels, like --f-data), display (titles, like --f-display)
 const (
 	fkBody = iota
@@ -132,18 +136,19 @@ const (
 	fkData
 	fkDataB
 	fkDisplay
+	fkDisplayB
 )
 
 var (
 	ovFontsOnce sync.Once
-	ovFonts     [5]*opentype.Font
+	ovFonts     [6]*opentype.Font
 	ovFaces     = map[string]font.Face{}
 	ovFacesMu   sync.Mutex
 )
 
 func ovFace(kind int, px float64) font.Face {
 	ovFontsOnce.Do(func() {
-		for k, b := range [][]byte{fontBody, fontBodyB, fontData, fontDataB, fontDisplay} {
+		for k, b := range [][]byte{fontBody, fontBodyB, fontData, fontDataB, fontDisplay, fontDisplayB} {
 			ovFonts[k], _ = opentype.Parse(b)
 		}
 	})
@@ -289,7 +294,9 @@ type ovSession struct {
 	IncLimit int
 	Drivers  map[int]*ovDriver
 	Sessions map[int]ovSess
-	Grid     map[int][2]int // car → qualifying place, class place (1 = first)
+	Grid     map[int][2]int     // car → qualifying place, class place (1 = first)
+	Car      map[string]float64 // your car: DriverCarSLShiftRPM, DriverCarRedLine, DriverCarFuelMaxLtr…
+	Track    string
 }
 
 type ovSess struct {
@@ -309,7 +316,20 @@ type ovState struct {
 	onPit   map[int]bool // was on pit road at the last frame
 	sesNum  int
 	lang    string
+	units   string    // "metric" or "imperial", as the app
 	clearAt time.Time // radar: since when nobody has been near
+	unitOf  map[string]string
+	live    ovLive // what the gauges remember between frames (ovnative2.go)
+	varsKey string // the variables the stream was asked for (a change reconnects)
+	varsFn  func() []string
+}
+
+// unitsFromURL: the app's units ("imperial", else metric), given to the overlay window in its address
+func unitsFromURL(raw string) string {
+	if u, err := url.Parse(raw); err == nil {
+		return u.Query().Get("units")
+	}
+	return ""
 }
 
 // langFromURL: the app's language, given to the overlay window in its address
@@ -321,7 +341,7 @@ func langFromURL(raw string) string {
 }
 
 func newOvState(lang string) *ovState {
-	return &ovState{frame: map[string]json.RawMessage{}, alpha: 255, ui: map[string]any{}, pits: map[int]int{}, onPit: map[int]bool{}, sesNum: -1, lang: lang}
+	return &ovState{frame: map[string]json.RawMessage{}, alpha: 255, ui: map[string]any{}, pits: map[int]int{}, onPit: map[int]bool{}, sesNum: -1, lang: lang, unitOf: map[string]string{}}
 }
 
 // T picks the language of the app (Spanish, or English for the rest)
@@ -413,7 +433,8 @@ func uiList(m map[string]any, k string, def []string) []string {
 
 // parseOvSession reads what the overlays need from iRacing's session YAML
 func parseOvSession(y string) *ovSession {
-	s := &ovSession{Drivers: map[int]*ovDriver{}, Sessions: map[int]ovSess{}, Grid: map[int][2]int{}}
+	s := &ovSession{Drivers: map[int]*ovDriver{}, Sessions: map[int]ovSess{}, Grid: map[int][2]int{}, Car: map[string]float64{}}
+	s.Track = yamlField(y, "TrackDisplayName")
 	s.TrackLen = trackLength(y)
 	s.IncLimit = atoi(strings.TrimPrefix(yamlField(y, "IncidentLimit"), "unlimited"))
 	section := ""
@@ -457,6 +478,11 @@ func parseOvSession(y string) *ovSession {
 				continue
 			}
 			if drv == nil {
+				if strings.HasPrefix(k, "DriverCar") {
+					if f, err := strconv.ParseFloat(strings.Fields(v + " x")[0], 64); err == nil {
+						s.Car[k] = f
+					}
+				}
 				continue
 			}
 			switch k {
@@ -537,7 +563,7 @@ func parseOvSession(y string) *ovSession {
 }
 
 // ovFeed reads the PC's live stream into st, reconnecting when it drops
-func ovFeed(rawURL string, vars []string, st *ovState) {
+func ovFeed(rawURL string, vars func() []string, st *ovState) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return
@@ -546,7 +572,11 @@ func ovFeed(rawURL string, vars []string, st *ovState) {
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
 	for {
-		q := base + "/api/stream?vars=" + strings.Join(vars, ",") + "&hz=30"
+		want := strings.Join(vars(), ",")
+		st.mu.Lock()
+		st.varsKey = want
+		st.mu.Unlock()
+		q := base + "/api/stream?vars=" + want + "&hz=30"
 		if lt != "" { // the one-use ticket of this window; it leaves a cookie for the reconnections
 			q += "&lt=" + url.QueryEscape(lt)
 			lt = ""
@@ -577,6 +607,9 @@ func ovRead(resp *http.Response, st *ovState) {
 		case line == "":
 			st.event(ev, data, &fields)
 			ev, data = "", ""
+			if st.wantsOther() { // the overlay now shows other values: ask again
+				return
+			}
 		}
 	}
 }
@@ -599,6 +632,7 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		}
 		st.at = time.Now()
 		st.countPits()
+		st.collect()
 	case "session":
 		var y string
 		if json.Unmarshal([]byte(data), &y) != nil {
@@ -608,6 +642,16 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		st.mu.Lock()
 		st.ses = ses
 		st.mu.Unlock()
+	case "schema":
+		var vars []struct{ Name, Unit string }
+		if json.Unmarshal([]byte(data), &vars) != nil {
+			return
+		}
+		st.mu.Lock()
+		for _, v := range vars {
+			st.unitOf[v.Name] = v.Unit
+		}
+		st.mu.Unlock()
 	case "config":
 		var c struct {
 			Config struct {
@@ -615,17 +659,35 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 				Alpha int
 				UI    map[string]any `json:"ui"`
 			}
+			Lang, Units string
 		}
 		if json.Unmarshal([]byte(data), &c) != nil {
 			return
 		}
 		st.mu.Lock()
 		st.edit, st.alpha = c.Config.Edit, c.Config.Alpha
+		if c.Lang != "" {
+			st.lang = c.Lang
+		}
+		if c.Units != "" {
+			st.units = c.Units
+		}
 		if c.Config.UI != nil {
 			st.ui = c.Config.UI
 		}
 		st.mu.Unlock()
 	}
+}
+
+// wantsOther: the variables the overlay shows changed since the stream was asked (the telemetry overlay's list)
+func (st *ovState) wantsOther() bool {
+	if st.varsFn == nil {
+		return false
+	}
+	want := strings.Join(st.varsFn(), ",")
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.varsKey != "" && want != st.varsKey
 }
 
 // countPits counts each car's stops (a new session starts again from zero); st.mu is held
@@ -906,6 +968,8 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 		h = drawTableOv(c, st, z, true)
 	case "standings":
 		h = drawTableOv(c, st, z, false)
+	default:
+		h = drawGauge(name, c, st, z, now)
 	}
 	if st.edit { // while you move the overlays: a rounded amber frame and the resize corner
 		fh := float64(c.h)
@@ -1652,8 +1716,11 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 }
 
 // ovVars: what each native overlay asks the PC for
-func ovVars(name string) []string {
+func ovVars(name string, st *ovState) []string {
 	base := []string{"PlayerCarIdx", "SessionNum"}
+	if gaugeOverlay(name) {
+		return append(base, gaugeVars(name, st)...)
+	}
 	switch name {
 	case "radar":
 		return append(base, "CarIdxLapDistPct", "CarIdxTrackSurface", "CarLeftRight")

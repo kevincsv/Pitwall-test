@@ -10,6 +10,19 @@ import (
 var uiLang, uiLangPick atomic.Value
 
 // uiLangChoice: the language exactly as chosen in the app (en, es, de, pt or both), for the overlay windows
+// the app's units ("metric" or "imperial"), told by the app like the language, for the native overlays
+var uiUnitsPick atomic.Value
+
+// uiPrefsVer changes whenever the language or the units do, so the overlays hear of it at once
+var uiPrefsVer atomic.Int64
+
+func uiUnits() string {
+	if v, ok := uiUnitsPick.Load().(string); ok && v != "" {
+		return v
+	}
+	return "metric"
+}
+
 func uiLangChoice() string {
 	if v, ok := uiLangPick.Load().(string); ok && v != "" {
 		return v
@@ -30,8 +43,18 @@ func registerLangRoute(mux *http.ServeMux) {
 			http.Error(w, "forbidden", 403)
 			return
 		}
+		switch u := r.URL.Query().Get("u"); u {
+		case "metric", "imperial":
+			if uiUnits() != u {
+				uiUnitsPick.Store(u)
+				uiPrefsVer.Add(1)
+			}
+		}
 		switch l := r.URL.Query().Get("l"); l {
 		case "en", "es", "de", "pt", "both":
+			if uiLangChoice() != l {
+				uiPrefsVer.Add(1)
+			}
 			uiLangPick.Store(l)
 			if l == "both" {
 				l = "es"

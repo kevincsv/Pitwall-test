@@ -24,7 +24,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.8.38"
+const appVersion = "0.8.39"
 
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
@@ -259,6 +259,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, "retry: 2000\n\n")
 	schemaVer, sessionVer, configVer := -1, -1, -1
+	prefsVer := int64(-1)
 	_, radioSeen := radioSince(-1) // only questions asked after this screen connected
 	_, noticeSeen := noticesSince(-1)
 	var lastTick int32 = -1
@@ -304,9 +305,9 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 			}
 			noticeSeen = seq
 		}
-		if c, v := settingsSnapshot(); v != configVer {
-			configVer = v
-			if !send("config", map[string]any{"config": c, "version": v, "profile": activeID(), "profileName": activeName()}) {
+		if c, v := settingsSnapshot(); v != configVer || uiPrefsVer.Load() != prefsVer {
+			configVer, prefsVer = v, uiPrefsVer.Load()
+			if !send("config", map[string]any{"config": c, "version": v, "profile": activeID(), "profileName": activeName(), "lang": uiLangChoice(), "units": uiUnits()}) {
 				return
 			}
 		}

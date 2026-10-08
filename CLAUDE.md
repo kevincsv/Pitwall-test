@@ -107,14 +107,18 @@
   window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
   dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
-  radar's window hides itself when nobody is near. The radar, the delta bar, the relative and the standings are not
-  WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the app's own fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow
+  radar's window hides itself when nobody is near. The radar, the delta bar, the relative, the standings, the flag, the
+  dash, timing, fuel, engine, tyres, inputs, DRS & push-to-pass, telemetry and the g-force circle are not WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the app's own fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow
   Condensed, OFL) and its colours, licence badges and pills, the
   data from the live stream, the same settings as the web widgets; `ovnative_windows.go`: a layered window with alpha
   per pixel and the overlays' opacity). Only the panel and its content show, the rest is see-through, every click goes
   to the game, and while moving the overlays they are dragged and resized from the corner. They scale with the
   window's width and fit their height to what they show. The radar is only your car's outline, the cars coming, the
-  red side bar and the nearest distance. Any other overlay is still a WebView2 window.
+  red side bar and the nearest distance. The rest of the overlays (pit, sectors, gaps, incidents, stats, map, compare, braking markers, coach, radio) are
+  still WebView2 windows until they are ported the same way; then the main window moves to C#/WPF
+  (`desktop/PitlaneHQ.Desktop`) screen by screen (the owner's choice: overlays first, the main window in WPF). The
+  app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get both in the stream's
+  config event, so they change at once.
   Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the
   overlays that are open or Auto, always inside the screen. In a narrow PC window the main tabs show only icons. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,

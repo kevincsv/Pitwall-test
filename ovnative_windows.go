@@ -57,7 +57,9 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	}
 	nat.name = name
 	nat.st = newOvState(langFromURL(rawURL))
-	go ovFeed(rawURL, ovVars(name), nat.st)
+	nat.st.units = unitsFromURL(rawURL)
+	nat.st.varsFn = func() []string { return ovVars(name, nat.st) }
+	go ovFeed(rawURL, nat.st.varsFn, nat.st)
 	cls, _ := syscall.UTF16PtrFromString("PitlaneHQOverlay")
 	title, _ := syscall.UTF16PtrFromString(overlayTitlePrefix + name)
 	cursor, _, _ := ovLoadCursor.Call(0, 32512) // IDC_ARROW

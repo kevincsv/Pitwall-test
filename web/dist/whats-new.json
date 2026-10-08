@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.39",
+      "en": ["Ten more overlays are native: flag, dash, timing, fuel, engine, tyres, inputs, DRS, telemetry and g-force."],
+      "es": ["Diez overlays más son nativos: bandera, dash, tiempos, gasolina, motor, neumáticos, pedales, DRS, telemetría y fuerzas g."]
+    },
+    {
       "v": "0.8.38",
       "en": ["The overlays use the app's fonts and look."],
       "es": ["Los overlays usan las fuentes y el estilo de la app."]

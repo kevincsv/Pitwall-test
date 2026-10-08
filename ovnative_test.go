@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -193,5 +194,60 @@ func TestNativeOverlayLanguageAndSession(t *testing.T) {
 	ir := st.irEstimates()
 	if len(ir) != 3 || ir[1] <= ir[2] {
 		t.Fatalf("iRating estimates: %v", ir)
+	}
+}
+
+func TestNativeGaugesDraw(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	for k, v := range map[string]any{"SessionFlags": 0x8, "Gear": 4, "Speed": 52.3, "RPM": 7350, "Throttle": 0.86, "Brake": 0.0, "Clutch": 1.0, "dcBrakeBias": 54.5,
+		"dcTractionControl": 3, "dcTractionControlMax": 12, "dcABS": 2, "dcABSMax": 9, "LapCurrentLapTime": 43.2, "LapBestLapTime": 90.512, "LapLastLapTime": 91.004, "LapDistPct": 0.46,
+		"FuelLevel": 31.7, "FuelLevelPct": 0.6, "LapCompleted": 2, "WaterTemp": 88.4, "OilTemp": 101.2, "OilPress": 4.52, "Voltage": 13.8, "AirTemp": 21, "TrackTempCrew": 33,
+		"SteeringWheelAngle": -0.6, "BrakeABSactive": true, "DRS_Status": 2, "P2P_Count": 120, "P2P_Status": false, "LatAccel": 12.1, "LongAccel": -6.3, "YawRate": 0.31,
+		"FuelUsePerHour": 52.1, "LFtempCL": 82, "LFtempCM": 86, "LFtempCR": 90, "RFtempCL": 96, "RFtempCM": 101, "RFtempCR": 99, "LRtempCM": 70, "RRtempCM": 79,
+		"LFwearM": 0.97, "RFwearM": 0.94, "LRwearM": 0.99, "RRwearM": 0.98} {
+		set(k, v)
+	}
+	st.ses.Car["DriverCarSLFirstRPM"], st.ses.Car["DriverCarSLShiftRPM"], st.ses.Car["DriverCarFuelMaxLtr"] = 5800, 7600, 52
+	st.live.fuelUses = []float64{2.41, 2.38}
+	for i := 0; i < 200; i++ { // a little history for the traces
+		set("Throttle", 0.5+0.5*math.Sin(float64(i)/12))
+		set("Brake", math.Max(0, -math.Sin(float64(i)/12)))
+		set("LatAccel", 12*math.Sin(float64(i)/9))
+		set("LongAccel", 8*math.Cos(float64(i)/9))
+		st.collect()
+	}
+	for name, w := range ovDesign {
+		if !gaugeOverlay(name) {
+			continue
+		}
+		c := newCanvas(int(w), 900)
+		h := ovDraw(name, c, st, time.Now())
+		painted := 0
+		for _, p := range c.px {
+			if p>>24 > 0 {
+				painted++
+			}
+		}
+		if painted == 0 || h < 40 || h > 700 {
+			t.Fatalf("%s: height %d, %d pixels drawn", name, h, painted)
+		}
+		for y := h + 1; y < c.h; y++ {
+			for x := 0; x < c.w; x++ {
+				if c.px[y*c.w+x]>>24 > 0 {
+					t.Fatalf("%s draws below its height %d (row %d)", name, h, y)
+				}
+			}
+		}
+		ovSavePNG(t, c, h, "g-"+name)
+	}
+	if len(gaugeVars("tyres", st)) != 36 || gaugeVars("telemetry", st)[0] != "LatAccel" {
+		t.Fatal("gauge variables")
+	}
+	if st.units = "imperial"; st.spdU() != "mph" || math.Abs(st.tmp(100)-212) > 1e-9 {
+		t.Fatal("imperial units")
 	}
 }

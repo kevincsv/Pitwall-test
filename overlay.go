@@ -42,7 +42,7 @@ func overlayHost(name string) string {
 
 func overlayURL(name string) string {
 	// in the app's language: an overlay window has its own browser storage
-	return withTicket(fmt.Sprintf("http://%s:%d/?overlay=%s&win=1&lang=%s", overlayHost(name), listenPort, url.QueryEscape(name), uiLangChoice()))
+	return withTicket(fmt.Sprintf("http://%s:%d/?overlay=%s&win=1&lang=%s&units=%s", overlayHost(name), listenPort, url.QueryEscape(name), uiLangChoice(), uiUnits()))
 }
 
 // openNamedOverlay opens a widget at its saved position, or a default one.
