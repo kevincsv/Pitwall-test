@@ -68,7 +68,7 @@
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
   and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
-  matched by car, track and best lap; only Anonymous rivals this account shared).
+  matched by car, track and best lap; Anonymous or "Juan M." rivals this account shared take their whole name).
 - Wherever other drivers show (the relative and the standings in the overlays, the app and Pitlane HQ Desktop; the race
   summary on the PC, web and phones), the cars a lap or more up or down on you carry a red "+1L" pill (they lap you,
   or finished laps ahead) or a blue "−1L". The Community car list shows no counts.
@@ -92,8 +92,8 @@
   apps tap the driver and write the account's bundle); Analysis → My races lists them; the engineer warns you when a driver
   you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
 - Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
-  first name and the initial of their last name ("Juan M.", `shortName` in journal.go, `shortDriverName` on the server),
-  never the whole name; the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
+  whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
+  history, `rivalnames.v2`); the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
   in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,
   `driver_links`: one iRacing driver per account and one account per driver; admins can undo it).
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
@@ -114,6 +114,10 @@
   retries for two minutes, but pressing Connect again always asks the PC again (`again` in the hello). No Wi-Fi pairing panel and no
   encryption wording on the Live card. The Live page is: your PC, watch another driver (the code gets
   its dashes as you type), then the download, with the same gap between the boxes.
+- What is encrypted how (say it exactly so, never more): the account (settings, race summaries, notes, ratings) is
+  end-to-end encrypted with the password's key, the server cannot read it; the laps' telemetry is stored sealed on the
+  server (DATA_KEY), which opens it to teach the model and share the fastest laps; live telemetry with a code is
+  end-to-end. The analysis of your laps runs on your device.
 - No text about encryption or about everything sync does in the account, sync, Live or community
   screens (only notes the driver needs, like "your data does not need to be uploaded again"); the
   "How your data is protected" list in About is the one place that explains it.
@@ -170,7 +174,8 @@
   see-through, every click goes to the game (the radio's buttons take clicks without taking the focus), and while
   moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
-  the cars coming, the red side bar and the nearest distance. The windows that need laps record the ones they see.
+  the cars coming, the red side bar and the nearest distance; it reads and draws every sample the game gives (60 a
+  second), each car where its lap distance puts it, and a car beside you keeps its side and slides there smoothly. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
   (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, `/api/desk/coach`), Telemetry,
   Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,

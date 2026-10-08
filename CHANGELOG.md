@@ -26,8 +26,9 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 **Changed**
 - The game is found as soon as it starts, and Auto overlays open the moment you get in the car.
 - Started with Windows, Pitlane HQ opens minimized; it sends no Windows notifications.
-- Race rivals on the leaderboards show their first name and initial ("Juan M."); when they join Pitlane HQ their
-  laps go to their account.
+- Race rivals on the leaderboards show their whole name, as the game shows it; when they join Pitlane HQ their laps
+  go to their account.
+- The radar shows the cars around you at 60 frames a second, and a car beside you keeps its side.
 - Analysis has "My sessions" and "My races" (your race summaries); "See all" on Home opens My races.
 - The main menu is Home, Analysis, Telemetry, Overlays, Community and Account.
 

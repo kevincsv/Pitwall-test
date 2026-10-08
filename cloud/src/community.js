@@ -61,8 +61,14 @@ const officialOf = (v) => (typeof v === "boolean" ? (v ? 1 : 0) : v === 1 || v =
 async function otherId(env, key) {
   return "o:" + (await sha256("other|" + (env.DATA_KEY || "") + "|" + String(key).toLowerCase())).slice(0, 24);
 }
-// how a race rival shows: their first name and the initial of their last name ("Juan M."), whatever the PC
-// sent; "" when there is no name
+// how a race rival shows on the leaderboards: their whole name as the game shows it ("Juan Pablo Montoya"), cleaned
+// of anything that is not a letter, a number or ' . -; "" when there is no name
+export function driverName(v) {
+  const w = String(v || "").normalize("NFC").split(/\s+/).map((x) => x.replace(/[^\p{L}\p{N}'.-]/gu, "")).filter(Boolean);
+  if (!w.length || /^anonym/i.test(w[0])) return "";
+  return [...w.join(" ")].slice(0, 48).join("");
+}
+// the short form older PCs sent ("Juan M."): rivals named so before take their whole name when it comes
 export function shortDriverName(v) {
   const w = String(v || "").normalize("NFC").split(/\s+/).map((x) => x.replace(/[^\p{L}\p{N}'.-]/gu, "")).filter(Boolean);
   if (!w.length) return "";
@@ -705,22 +711,23 @@ export async function community(req, env, url) {
   }
   // the names of the race rivals this account's PC shared before their names went up (they stayed "Anonymous"): the
   // PC's race history knows each rival's name, car, track and best lap, and the rival whose lap is that one takes
-  // their short name (first name and the initial of the last one). Only rivals this account shared, only unnamed ones
+  // their whole name (rivals named "Juan M." before take it too). Only rivals this account shared
   if (p === "/rival-names" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     const items = (Array.isArray(body.items) ? body.items : []).slice(0, 600);
     let named = 0;
     for (const x of items) {
-      const carId = int(x && x.carId), trackId = int(x && x.trackId), time = num(x && x.time), short = shortDriverName(x && x.short);
-      if (!carId || !trackId || !(time > 10) || !short) continue;
+      const carId = int(x && x.carId), trackId = int(x && x.trackId), time = num(x && x.time), full = driverName(x && (x.name || x.short));
+      if (!carId || !trackId || !(time > 10) || !full) continue;
+      const short = shortDriverName(full);
       const hit = await env.DB.prepare(
         `SELECT DISTINCT u.id FROM community_laps l JOIN community_users u ON u.id=l.user_id
-         WHERE l.car_id=?1 AND l.track_id=?2 AND abs(l.time-?3)<0.0006 AND u.id LIKE 'o:%' AND u.alias='Anonymous' AND u.owner=?4`
-      ).bind(carId, trackId, time, u.id).all();
+         WHERE l.car_id=?1 AND l.track_id=?2 AND abs(l.time-?3)<0.0006 AND u.id LIKE 'o:%' AND (u.alias='Anonymous' OR u.alias=?5) AND u.owner=?4`
+      ).bind(carId, trackId, time, u.id, short).all();
       const ids = (hit.results || []).map((r) => r.id);
       if (ids.length !== 1) continue; // two unnamed rivals with the very same lap: no guessing
       await env.DB.batch([
-        env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1 AND alias='Anonymous'").bind(ids[0], short),
+        env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1 AND (alias='Anonymous' OR alias=?3)").bind(ids[0], full, short),
         env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1").bind(ids[0]),
       ]);
       named++;
@@ -829,8 +836,8 @@ export async function community(req, env, url) {
         if (r.limit) return err("too many uploads today", 429);
         return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
       }
-      // everyone else: their first name and the initial of their last name, never the whole name
-      const short = shortDriverName(body.short);
+      // everyone else: their whole name as the game shows it
+      const short = driverName(body.name || body.short);
       await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?5,?3,?4) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias WHERE excluded.alias<>'Anonymous'")
         .bind(oid, "other:" + oid, Date.now(), u.id, short || "Anonymous").run();
       if (short) await env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1 AND anon=1").bind(oid).run();

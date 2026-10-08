@@ -59,6 +59,9 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	nat.name = name
 	nat.st = newOvState(langFromURL(rawURL))
 	nat.st.units = unitsFromURL(rawURL)
+	if name == "radar" {
+		nat.st.hz = 60 // every sample the game gives
+	}
 	nat.st.varsFn = func() []string { return ovVars(name, nat.st) }
 	go ovFeed(rawURL, nat.st.varsFn, nat.st)
 	cls, _ := syscall.UTF16PtrFromString("PitlaneHQOverlay")
@@ -87,8 +90,11 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	noWinBorder(hwnd, true)
 	ovPaint(hwnd)
 	ms := uintptr(33)
-	if name == "standings" {
+	switch name {
+	case "standings":
 		ms = 100
+	case "radar": // every frame the game gives (60 a second): the cars around you where they are now
+		ms = 16
 	}
 	ovSetTimer.Call(hwnd, 1, ms, 0)
 	var msg [48]byte

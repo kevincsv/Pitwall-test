@@ -114,18 +114,13 @@ func TestRaceReport(t *testing.T) {
 		t.Fatalf("top 3 laps: %v", top)
 	}
 	for _, b := range top {
-		if _, ok := b["name"]; ok || len(b["other"].(string)) != 32 || b["other"].(string) == driverKey("100001") {
-			t.Fatalf("a name or the wrong key went with a top-3 lap: %v", b)
+		if len(b["other"].(string)) != 32 || b["other"].(string) == driverKey("100001") {
+			t.Fatalf("the wrong key went with a top-3 lap: %v", b)
 		}
 	}
-	// their short name only: the first name and the initial of the last one
-	if top[0]["short"] != "Fast O." {
-		t.Fatalf("short name of a rival: %v", top[0]["short"])
-	}
-	for in, want := range map[string]string{"Juan Pablo Montoya": "Juan M.", "Ana  ruiz": "Ana R.", "Max": "Max", "  ": "", "Ñoño Ávila2": "Ñoño Á."} {
-		if got := shortName(in); got != want {
-			t.Fatalf("shortName(%q) = %q, want %q", in, got, want)
-		}
+	// their whole name, as the game shows it
+	if top[0]["name"] == nil || top[0]["name"] == "" {
+		t.Fatalf("name of a rival: %v", top[0])
 	}
 	if driverKey("") != "" || driverKey("-1") != "" || driverKey("100002") != top[0]["other"] {
 		t.Fatalf("driver keys: %q %q", driverKey(""), driverKey("100002"))

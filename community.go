@@ -434,7 +434,7 @@ func linkOwnDriver(userID string) {
 // each one's name, car, track and best lap, so the server can name them (first name and initial only). Once per
 // profile; true when done (or nothing to do).
 func nameOldRivals() bool {
-	mark := journalFile("rivalnames.v1")
+	mark := journalFile("rivalnames.v2") // v2: their whole names (v1 sent "Juan M.")
 	if _, err := os.Stat(mark); err == nil {
 		return true
 	}
@@ -446,7 +446,7 @@ func nameOldRivals() bool {
 			continue
 		}
 		for _, x := range r.Results {
-			n := shortName(x.Name)
+			n := strings.TrimSpace(x.Name)
 			if x.Me || x.Best <= 10 || x.CarID == 0 || n == "" {
 				continue
 			}
@@ -455,7 +455,7 @@ func nameOldRivals() bool {
 				continue
 			}
 			seen[k] = true
-			items = append(items, map[string]any{"carId": x.CarID, "trackId": r.TrackID, "time": x.Best, "short": n})
+			items = append(items, map[string]any{"carId": x.CarID, "trackId": r.TrackID, "time": x.Best, "name": n})
 		}
 	}
 	journalMu.Unlock()
