@@ -12,6 +12,7 @@ import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
 import { live } from "./live.js";
+import { seoPage, indexNow } from "./seo.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -288,7 +289,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },
@@ -297,6 +298,8 @@ export default {
 async function handle(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === "/news") return news(req, env, ctx);
+    // the public pages for search engines: what Pitlane HQ does, the records of every car and track, the sitemap
+    { const sp = await seoPage(req, env, url).catch(() => null); if (sp) return sp; }
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     if (url.pathname.startsWith("/community/")) {
       try {
@@ -320,7 +323,7 @@ async function handle(req, env, ctx) {
       to.searchParams.delete("companion");
       return Response.redirect(to.href, 301);
     }
-    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|og\.png|robots\.txt|sitemap\.xml)$/.test(url.pathname);
+    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|og\.png|robots\.txt)$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       const r = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin), req));

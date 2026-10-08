@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.21",
+      "en": ["Public pages with the iRacing records of every car and track, in English and Spanish."],
+      "es": ["Páginas públicas con los récords de iRacing de cada coche y circuito, en inglés y español."]
+    },
+    {
       "v": "0.8.20",
       "en": ["A new logo, on every app and in the emails.", "Pitlane HQ's emails look like the app."],
       "es": ["Logo nuevo, en todas las apps y en los emails.", "Los emails de Pitlane HQ se ven como la app."]

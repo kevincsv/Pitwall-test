@@ -66,7 +66,11 @@
 - Emails look like the app (`mailHTML` in email.js: the logo from pitlanehq.app/icon-192.png, the dark
   card, the amber button), tables and inline styles only.
 - SEO: index.html has the title, a short plain description, Open Graph/Twitter cards (`og.png`) and
-  JSON-LD; robots.txt and sitemap.xml are in web/dist. Descriptions are short and plain, never hype.
+  JSON-LD; robots.txt is in web/dist. Descriptions are short and plain, never hype. The public pages
+  (`cloud/src/seo.js`, plain HTML, English and Spanish with hreflang): /iracing-telemetry and
+  /es/telemetria-iracing, /records and /es/records, one page per car and track (one canonical address,
+  301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day.
+  They never show iRacing names: nicknames, or Anonymous.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
 - Leagues (in development, admins only until LEAGUES_OPEN=1): drivers post their league with a

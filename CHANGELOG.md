@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.21 beta
+
+**New**
+- **Public pages for search engines**, plain HTML in English and Spanish: what Pitlane HQ does
+  (`/iracing-telemetry`, `/es/telemetria-iracing`, with questions and answers), the iRacing records by
+  car and track (`/records`, `/es/records`, by discipline) and one page per car and track with its 50
+  fastest drivers (nicknames only; anonymous laps and race rivals as Anonymous).
+- The sitemap is made by the server with every one of those pages, and new records are sent to Bing and
+  the others through IndexNow once a day. Wrong addresses of a record page go to the right one (301);
+  addresses that do not exist answer 404.
+- The sign-in page links to "How it works" and to the records.
+
 ## 0.8.20 beta
 
 **New**
