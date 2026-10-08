@@ -676,6 +676,30 @@ export async function community(req, env, url) {
     for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
     return json({ adopted: laps.length });
   }
+  // the names of the race rivals this account's PC shared before their names went up (they stayed "Anonymous"): the
+  // PC's race history knows each rival's name, car, track and best lap, and the rival whose lap is that one takes
+  // their short name (first name and the initial of the last one). Only rivals this account shared, only unnamed ones
+  if (p === "/rival-names" && m === "POST") {
+    if (!u.account) return err("sign in with your Pitlane HQ account", 401);
+    const items = (Array.isArray(body.items) ? body.items : []).slice(0, 600);
+    let named = 0;
+    for (const x of items) {
+      const carId = int(x && x.carId), trackId = int(x && x.trackId), time = num(x && x.time), short = shortDriverName(x && x.short);
+      if (!carId || !trackId || !(time > 10) || !short) continue;
+      const hit = await env.DB.prepare(
+        `SELECT DISTINCT u.id FROM community_laps l JOIN community_users u ON u.id=l.user_id
+         WHERE l.car_id=?1 AND l.track_id=?2 AND abs(l.time-?3)<0.0006 AND u.id LIKE 'o:%' AND u.alias='Anonymous' AND u.owner=?4`
+      ).bind(carId, trackId, time, u.id).all();
+      const ids = (hit.results || []).map((r) => r.id);
+      if (ids.length !== 1) continue; // two unnamed rivals with the very same lap: no guessing
+      await env.DB.batch([
+        env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1 AND alias='Anonymous'").bind(ids[0], short),
+        env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1").bind(ids[0]),
+      ]);
+      named++;
+    }
+    return json({ named });
+  }
   // the PC saw this account's own driver at the wheel: what other PCs shared of them as a race rival goes
   // under the account (per car and track the faster lap stays), and their laps still to come too. One iRacing
   // driver per account and one account per driver: the first account linked keeps it

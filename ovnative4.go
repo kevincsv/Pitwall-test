@@ -49,6 +49,7 @@ type ovLap struct {
 	bins   []*lapPt
 	maxBin int
 	name   string
+	x, y   []float64 // the path the car drove, every 5 m, when the lap carries it (racingline.go)
 }
 
 type ovRec struct {
@@ -1019,6 +1020,7 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		return 0, false
 	}
 	r := func(v float64) int { return int(math.Round(v)) }
+	lat := lineOffsets(A.x, A.y, R.x, R.y) // the line, when both laps carry their path
 	var out []coachTip
 	for k, z := range zb {
 		// the same corner: the nearest braking point within 100 m
@@ -1117,6 +1119,20 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 				en, es = "Do not wait between the brake and the throttle", "No esperes entre el freno y el acelerador"
 			default:
 				en, es = "Full throttle sooner on exit", "Acelerador a fondo antes a la salida"
+			}
+		}
+		// the line: where the car was across the track. A lap that brakes at the reference's point but on the wrong
+		// part of the track hears that first; otherwise it follows the tip of the phase
+		if lat != nil {
+			if le, la, lx, okL := cornerLine(lat, R.x, R.y, z.i, z.imin); okL {
+				generic := en == "Brake a little later and harder" || en == "Carry more speed into the turn" || en == "A rounder, faster line through the apex" || en == "Full throttle sooner on exit"
+				if ln, ls := lineTip(le, la, lx, hasM && math.Abs(dd) <= 6); ln != "" {
+					if generic || (ph[0].k == "brake" && hasM && math.Abs(dd) <= 6) {
+						en, es = ln, ls
+					} else {
+						en, es = en+". "+ln, es+". "+ls
+					}
+				}
 			}
 		}
 		out = append(out, coachTip{n: k + 1, lost: lost, en: en, es: es})

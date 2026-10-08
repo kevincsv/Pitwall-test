@@ -430,6 +430,46 @@ func linkOwnDriver(userID string) {
 	}()
 }
 
+// nameOldRivals: the rivals this PC shared before their names went up stayed "Anonymous"; the race history knows
+// each one's name, car, track and best lap, so the server can name them (first name and initial only). Once per
+// profile; true when done (or nothing to do).
+func nameOldRivals() bool {
+	mark := journalFile("rivalnames.v1")
+	if _, err := os.Stat(mark); err == nil {
+		return true
+	}
+	journalMu.Lock()
+	seen := map[string]bool{}
+	var items []map[string]any
+	for _, r := range races {
+		if r == nil || (r.Game != "" && r.Game != "iracing") || r.TrackID == 0 {
+			continue
+		}
+		for _, x := range r.Results {
+			n := shortName(x.Name)
+			if x.Me || x.Best <= 10 || x.CarID == 0 || n == "" {
+				continue
+			}
+			k := fmt.Sprintf("%d|%d|%.3f", x.CarID, r.TrackID, x.Best)
+			if seen[k] {
+				continue
+			}
+			seen[k] = true
+			items = append(items, map[string]any{"carId": x.CarID, "trackId": r.TrackID, "time": x.Best, "short": n})
+		}
+	}
+	journalMu.Unlock()
+	for len(items) > 0 {
+		part := items[:min(len(items), 500)]
+		items = items[len(part):]
+		if _, err := commCall("POST", "/rival-names", map[string]any{"items": part}, true); err != nil {
+			return false
+		}
+	}
+	os.WriteFile(mark, []byte("1"), 0o600)
+	return true
+}
+
 // accountSignedIn: this PC is signed in to a Pitlane HQ account.
 func accountSignedIn() bool {
 	loadPL()

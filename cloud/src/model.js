@@ -11,7 +11,7 @@
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 4; // 4: real laps only — the record and the driver just ahead, no composites
+export const MODEL_VERSION = 5; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line
 export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -115,6 +115,19 @@ async function learnNewLaps(env, game, trackId, carId) {
   return { added, more: false };
 }
 
+// the path a lap's car drove (Trace.x/y), found by its time among the shared laps and the accounts' laps
+async function lapPath(env, game, trackId, carId, time) {
+  const ok = (tr) => tr && Array.isArray(tr.x) && Array.isArray(tr.y) && tr.x.length > 10 && tr.x.length === tr.y.length;
+  const open = async (row) => { if (!row || !row.trace) return null; try { const tr = JSON.parse(await openData(env, row.trace)); return ok(tr) ? { x: tr.x, y: tr.y } : null; } catch (e) { return null; } };
+  const c = await env.DB.prepare("SELECT trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND abs(time-?4)<0.0006 AND trace IS NOT NULL LIMIT 3").bind(trackId, carId, game, time).all();
+  for (const row of c.results || []) { const p = await open(row); if (p) return p; }
+  const a = await env.DB.prepare(
+    `SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
+     WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND abs(a.time-?4)<0.0006 AND a.trace IS NOT NULL LIMIT 3`).bind(trackId, carId, game, time).all();
+  for (const row of a.results || []) { const p = await open(row); if (p) return p; }
+  return null;
+}
+
 // what the model learns from: its memory, the best few laps of every driver
 async function candidates(env, game, trackId, carId) {
   await adoptOldSessions(env, game, trackId, carId);
@@ -201,10 +214,22 @@ export async function buildModel(env, game, trackId, carId) {
     if (ladder.length && ladder[ladder.length - 1].lap === pick) { ladder[ladder.length - 1].upTo = t; continue; }
     ladder.push({ lap: pick, upTo: t, time: r(pick.time, 1000), n: 1, seg: pick.seg.map((x) => r(x, 1000)), bins: compact(pick) });
   }
+  // the line of each reference: the path its car drove, from the lap's own trace, so the coach can tell where on
+  // the track you were against it (the record whole, the next levels one point in two like their bins)
+  const paths = new Map();
+  const pathFor = async (l) => { if (!paths.has(l)) paths.set(l, await lapPath(env, game, trackId, carId, l.time).catch(() => null)); return paths.get(l); };
+  const fp = await pathFor(fastest);
+  const out = [];
+  for (const { lap, ...x } of ladder) {
+    const p = await pathFor(lap), e = { ...x, upTo: r(x.upTo, 1000) };
+    if (p && p.x.length >= n) { e.x = []; e.y = []; for (let i = 0; i < n; i += LEVEL_BIN) { e.x.push(r(p.x[i], 10)); e.y.push(r(p.y[i], 10)); } }
+    out.push(e);
+  }
   return {
     ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times,
     ideal: record,
-    ladder: ladder.map(({ lap, ...x }) => ({ ...x, upTo: r(x.upTo, 1000) })),
+    idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)) } : null,
+    ladder: out,
   };
 }
 

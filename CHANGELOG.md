@@ -13,6 +13,15 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - In a race the relative marks the cars a lap or more up or down on you: a red "+1L" when they lap you, a blue
   "−1L" when you lap them (overlays, the app and Pitlane HQ Desktop).
 - Community: the car list no longer shows a number after each car.
+- The coach reads your racing line: where your car was across the track against lap B, metre by metre (from the
+  path every lap records). It tells you when you brake where the reference does but on the wrong part of the track,
+  turn in from the inside, miss the apex or do not use the whole track on exit, in metres. The record and the next
+  level of the model carry their line too.
+- The coach map has depth: the track is drawn as a road with its shadow and rim, with lap B's line along the middle
+  and yours beside it (the difference drawn bigger so it shows), in the analyzer, the coach, the race summary and the
+  phone apps.
+- Race rivals shared before their names went up stop being "Anonymous": your PC names them from its race history
+  (first name and initial).
 
 **Fixed**
 - A Formula Car race kept its estimated iRating when a Sports Car race came after it: iRacing calls both "Road", so

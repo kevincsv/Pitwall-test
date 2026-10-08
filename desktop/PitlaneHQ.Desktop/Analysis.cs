@@ -13,7 +13,8 @@ namespace PitlaneHQ.Desktop;
 /// </summary>
 public partial class MainWindow
 {
-    private sealed record AnaLap(string Label, double Time, double[][] Bins, bool Valid, int N, int Inc, double[]? Sectors, string Kind)
+    // X/Y: the path the car drove every 5 m (the lap's trace), for the coach's racing line
+    private sealed record AnaLap(string Label, double Time, double[][] Bins, bool Valid, int N, int Inc, double[]? Sectors, string Kind, double[]? X = null, double[]? Y = null)
     {
         public override string ToString() => Label;
     }
@@ -97,7 +98,8 @@ public partial class MainWindow
             double[]? sec = l["sectors"] is JsonArray sa ? sa.Select(D).ToArray() : null;
             var valid = Bo(l["valid"]);
             int n = (int)D(l["n"]);
-            _anaLaps.Add(new AnaLap($"{T("L", "V")}{n} · {LapTime(D(l["time"]))}{(valid ? "" : " ✕")}", D(l["time"]), bins, valid, n, (int)D(l["inc"]), sec, "own"));
+            double[]? px = l["trace"]?["x"] is JsonArray xa ? xa.Select(D).ToArray() : null, py = l["trace"]?["y"] is JsonArray ya ? ya.Select(D).ToArray() : null;
+            _anaLaps.Add(new AnaLap($"{T("L", "V")}{n} · {LapTime(D(l["time"]))}{(valid ? "" : " ✕")}", D(l["time"]), bins, valid, n, (int)D(l["inc"]), sec, "own", px, py));
         }
         if (_anaLaps.Count == 0)
         {
@@ -120,7 +122,8 @@ public partial class MainWindow
         var ideal = _model["ideal"]?.AsArray();
         var it = D(_model["idealTime"]);
         if (ideal != null && ideal.Count > 10 && it > 0 && Math.Abs(it - a.Time) >= 0.002)
-            yield return new AnaLap("★ " + T("Record", "Récord") + " · " + LapTime(it), it, ideal.Select(r => r is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray(), true, 0, 0, null, "record");
+            yield return new AnaLap("★ " + T("Record", "Récord") + " · " + LapTime(it), it, ideal.Select(r => r is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray(), true, 0, 0, null, "record",
+                _model["idealXY"]?["x"]?.AsArray().Select(D).ToArray(), _model["idealXY"]?["y"]?.AsArray().Select(D).ToArray());
         var ladder = _model["ladder"]?.AsArray();
         if (ladder == null || ladder.Count == 0) yield break;
         int nb = (int)D(_model["nb"]);
@@ -143,7 +146,15 @@ public partial class MainWindow
             up.Add(new[] { (b[0] + nx[0]) / 2, (b[1] + nx[1]) / 2, b[2], b[3], b[4] });
         }
         if (nb > 0 && up.Count > nb) up = up.Take(nb).ToList();
-        yield return new AnaLap("▲ " + T("Next level", "Siguiente nivel") + " · " + LapTime(t), t, up.ToArray(), true, 0, 0, null, "level");
+        // its line, kept one point in two too
+        double[]? Up(JsonArray? v)
+        {
+            if (v == null || v.Count < 6) return null;
+            var o = new List<double>();
+            for (int k = 0; k < v.Count; k++) { double c = D(v[k]), nx = D(v[Math.Min(v.Count - 1, k + 1)]); o.Add(c); o.Add((c + nx) / 2); }
+            return (nb > 0 && o.Count > nb ? o.Take(nb) : o).ToArray();
+        }
+        yield return new AnaLap("▲ " + T("Next level", "Siguiente nivel") + " · " + LapTime(t), t, up.ToArray(), true, 0, 0, null, "level", Up(lv?["x"]?.AsArray()), Up(lv?["y"]?.AsArray()));
     }
 
     private void FillLaps()
@@ -240,7 +251,7 @@ public partial class MainWindow
         if (key == _coachKey) return;
         _coachKey = key;
         AnaTips.Children.Clear();
-        var (res, err) = await _engine.SendAsync("/api/desk/coach", new { a = a.Bins, b = b.Bins });
+        var (res, err) = await _engine.SendAsync("/api/desk/coach", new { a = a.Bins, b = b.Bins, ax = a.X, ay = a.Y, bx = b.X, by = b.Y });
         if (err != null) { AnaTips.Children.Add(new TextBlock { Text = err, Style = (Style)FindResource("Note") }); return; }
         var tips = res?["tips"]?.AsArray();
         if (tips == null || tips.Count == 0)

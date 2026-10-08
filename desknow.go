@@ -101,7 +101,8 @@ func registerDeskRoutes(mux *http.ServeMux) {
 			return
 		}
 		var in struct {
-			A, B [][]float64
+			A, B           [][]float64
+			Ax, Ay, Bx, By []float64 // each lap's path (Trace.X/Y), for the line
 		}
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<20)).Decode(&in) != nil || len(in.A) < 10 || len(in.B) < 10 {
 			http.Error(w, "two laps", 400)
@@ -109,7 +110,9 @@ func registerDeskRoutes(mux *http.ServeMux) {
 		}
 		st := newOvState(uiLangChoice())
 		st.units = uiUnits()
-		tips := st.compareLaps(deskLap(in.A), deskLap(in.B), 8)
+		la, lb := deskLap(in.A), deskLap(in.B)
+		la.x, la.y, lb.x, lb.y = in.Ax, in.Ay, in.Bx, in.By
+		tips := st.compareLaps(la, lb, 8)
 		out := []map[string]any{}
 		for _, t := range tips {
 			out = append(out, map[string]any{"n": t.n, "lost": t.lost, "tip": st.T(t.en, t.es)})

@@ -640,7 +640,11 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .updbanner[hidden]{display:none}.updwait{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);display:grid;place-items:center;text-align:center;color:#fff}
 .discpre{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;font:13px/1.5 var(--f-data)}
 .genprof{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}.csel{width:18px;height:18px;vertical-align:middle;accent-color:var(--accent)}
-.rbmap{width:100%;max-width:640px;height:auto;display:block;margin:0 auto}.rbmap .trk{fill:none;stroke:var(--line);stroke-width:9;stroke-linejoin:round}.rbmap .mine{fill:var(--accent);stroke:var(--bg);stroke-width:2}.rbmap .oth{fill:var(--blue);stroke:var(--bg);stroke-width:2}.rbmap .lbl{fill:var(--fg);font:700 12px var(--f-data)}
+.rbmap{width:100%;max-width:640px;height:auto;display:block;margin:0 auto}.rbmap .trk{fill:none;stroke:var(--line);stroke-width:9;stroke-linejoin:round}
+/* the track as a road with some depth: its shadow, the kerb-coloured rim and the darker asphalt inside */
+.rbmap .trkS{fill:none;stroke:#000;stroke-opacity:.38;stroke-width:24;stroke-linejoin:round;transform:translate(2px,3.5px)}.rbmap .trkS+.trk{stroke-width:22;stroke:color-mix(in srgb,var(--line) 80%,#fff 20%)}.rbmap .trkI{fill:none;stroke:color-mix(in srgb,var(--surface2) 70%,#000 30%);stroke-width:17;stroke-linejoin:round}
+.rbmap .trkI~.seg{stroke-width:15}.rbmap .lnB{fill:none;stroke:#cfe3ff;stroke-opacity:.85;stroke-width:1.6;stroke-dasharray:5 4;stroke-linejoin:round}.rbmap .lnA{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.chip i.lnA,.chip i.lnB{display:inline-block;width:14px;height:0;border-top:3px solid var(--accent);vertical-align:middle;margin:0 2px}.chip i.lnB{border-top:2px dashed #cfe3ff}.rbmap .mine{fill:var(--accent);stroke:var(--bg);stroke-width:2}.rbmap .oth{fill:var(--blue);stroke:var(--bg);stroke-width:2}.rbmap .lbl{fill:var(--fg);font:700 12px var(--f-data)}
 .lgd{display:inline-flex;align-items:center;gap:5px;font-size:13px;margin-right:10px}.dotm,.doto{width:10px;height:10px;border-radius:50%;display:inline-block}.dotm{background:var(--accent)}.dotc{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid var(--pb)}.incx{color:var(--bad);font-weight:700}
 .rbmap .seg{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.rbmap .secdot{fill:var(--muted)}svg.rchart{touch-action:pan-y;cursor:crosshair}svg.rchart .hovl{stroke:var(--fg);stroke-width:1.2;stroke-dasharray:3 3;opacity:.6}svg.rchart circle.on{r:5;stroke:var(--fg);stroke-width:1.5}.rc-tip{position:fixed!important;z-index:60;pointer-events:none}.rbmap .secbar{stroke:var(--fg);stroke-width:2.5;stroke-linecap:round;opacity:.8}.rbmap .sfbar{stroke:var(--fg);stroke-width:4;stroke-dasharray:3 3;stroke-linecap:butt}.rbmap .sec{fill:var(--accent);font:800 11px var(--f-data);letter-spacing:.04em;opacity:.9}.rbmap .hdot{fill:var(--fg);stroke:var(--bg);stroke-width:2}
 .rbmap .coachring{fill:color-mix(in srgb,var(--pb) 18%,transparent);stroke:var(--pb);stroke-width:2.5}.rbmap .incl{fill:var(--bad);font:800 10px var(--f-data);paint-order:stroke;stroke:var(--bg);stroke-width:3px}.rbmap .incmk path{stroke:var(--bad);stroke-width:3;stroke-linecap:round}.rbmap .incmk text{fill:var(--bad);font:700 11px var(--f-data)}
@@ -2560,7 +2564,29 @@ async function lapTrackId(A,B){let id=A.trackId||B.trackId;if(id)return id;const
   return hit?hit.trackId:null}
 /* the shape of a lap Pitlane HQ recorded with the car's position: a track map without anyone else's help */
 const lapShape=l=>l&&l.xy&&l.xy.x.length>10?{x:l.xy.x,y:l.xy.y,N:l.xy.x.length,lap:true}:null;
-const LAPV=Object.assign({inc:true,brk:true,coach:true,delta:true},store.get("pw.lapv",{}));
+/* the racing line (racingline.go does the same): where lap A's car was across the track against lap B's, every 5 m.
+   Both paths share their orientation (the game's heading), so at the same lap distance A's point along B's normal
+   is how far A was to one side of B; the slow drift of the dead reckoning goes with a ±400 m moving average. Null
+   when either lap has no path or the two paths are not the same track; NaN where they do not line up. */
+function lineOffsets(A,B){const a=lapShape(A),b=lapShape(B);if(!a||!b)return null;const n=Math.min(a.N,b.N);if(n<60)return null;
+  const lat=new Array(n),lon=new Array(n);
+  for(let i=0;i<n;i++){const i0=Math.max(0,i-2),i1=Math.min(n-1,i+2);let tx=b.x[i1]-b.x[i0],ty=b.y[i1]-b.y[i0];const tm=Math.hypot(tx,ty)||1;tx/=tm;ty/=tm;const dx=a.x[i]-b.x[i],dy=a.y[i]-b.y[i];lat[i]=-ty*dx+tx*dy;lon[i]=tx*dx+ty*dy}
+  const W=80,sm=v=>{const pre=[0];v.forEach((x,i)=>pre.push(pre[i]+x));return v.map((x,i)=>{const lo=Math.max(0,i-W),hi=Math.min(n-1,i+W);return x-(pre[hi+1]-pre[lo])/(hi-lo+1)})};
+  const lc=sm(lat),oc=sm(lon),ab=oc.map(Math.abs).sort((p,q)=>p-q);if(ab[n>>1]>6)return null;
+  return lc.map((v,i)=>Math.abs(oc[i])>20||Math.abs(v)>25?NaN:v)}
+/* how far A was to the inside of B (m, + inside) at B's turn-in (its braking point), apex and exit; null on a straight */
+function cornerLine(lat,B,brake,apex){const b=lapShape(B);if(!lat||!b)return null;const n=Math.min(lat.length,b.N);if(apex<=0||apex>=n-1)return null;
+  const tan=i=>{const i0=Math.max(0,i-2),i1=Math.min(n-1,i+2),tx=b.x[i1]-b.x[i0],ty=b.y[i1]-b.y[i0],m=Math.hypot(tx,ty)||1;return[tx/m,ty/m]};
+  const t1=tan(Math.max(0,apex-8)),t2=tan(Math.min(n-1,apex+8)),cr=t1[0]*t2[1]-t1[1]*t2[0];if(Math.abs(cr)<.05)return null;const sg=cr<0?-1:1;
+  const at=i=>{let s=0,c=0;for(let k=Math.max(0,i-2);k<=Math.min(n-1,i+2);k++)if(!isNaN(lat[k])){s+=lat[k];c++}return c?s/c*sg:NaN};
+  const r={entry:at(brake),apex:at(apex),exit:at(Math.min(n-1,apex+16))};return isNaN(r.entry)||isNaN(r.apex)||isNaN(r.exit)?null:r}
+/* the advice of the line in one corner, [en, es], or null when it is like the reference's */
+function lineTip(c,sameBrake){if(!c)return null;const f=v=>Math.abs(v).toFixed(1),o=[];
+  if(c.entry>=1.5)o.push([c.entry,sameBrake?`You brake where the reference does but ${f(c.entry)} m more to the inside: turn in from the outside`:`You turn in ${f(c.entry)} m more to the inside: start the corner from the outside`,sameBrake?`Frenas donde la referencia pero ${f(c.entry)} m más por dentro: entra a la curva desde fuera`:`Entras ${f(c.entry)} m más por dentro: empieza la curva desde fuera`]);
+  if(c.apex<=-1.5)o.push([-c.apex,`You pass ${f(c.apex)} m away from the apex: get closer to the inside`,`Pasas a ${f(c.apex)} m del vértice: acércate más por dentro`]);
+  if(c.exit>=1.5)o.push([c.exit,`You use ${f(c.exit)} m less track on exit: let the car run out to the outside`,`Usas ${f(c.exit)} m menos de pista a la salida: deja correr el coche hacia fuera`]);
+  if(!o.length)return null;o.sort((p,q)=>q[0]-p[0]);return[o[0][1],o[0][2]]}
+const LAPV=Object.assign({inc:true,brk:true,coach:true,delta:true,line:true},store.get("pw.lapv",{}));
 /* the incidents of a lap as [{d,pts,k}] from the trace's [d,pts,d,pts…] */
 /* every incident of lap A's session, like the race summary's map: from the laps when they carry them, else from the
    race summary of that session; each one knows its lap */
@@ -2574,6 +2600,7 @@ async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAP
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
   if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("This track is not scanned yet: a lap recorded with Pitlane HQ (0.5 or later) at this track draws its map by itself.","Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ (0.5 o posterior) en él dibuja el mapa sola.","Noch keine Karte dieser Strecke: Runden, die mit Pitlane HQ 0.5 oder neuer aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o Pitlane HQ 0.5 ou posterior desenham-no sozinhas."))}</p>`;return}
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end);if(n<8){box.innerHTML="";return}
+  const lat=lineOffsets(A,B);
   const L=n*BIN,N=map.x.length,xs=map.x,ys=map.y,minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),W=600,H=360,pad=26,k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1)),f=q=>q.map(z=>z.toFixed(1)).join(",");
   const P=i=>{i=((i%N)+N)%N;return[pad+(xs[i]-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(ys[i]-miny)*k-(H-2*pad-(maxy-miny)*k)/2]},at=d=>P(Math.round(d/L*N));
   // where A gains or loses time against B, in 48 stretches
@@ -2587,10 +2614,15 @@ async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAP
   const incSum=incs.length?`<p class="rb-sum"><b class="bad">${incs.length} ${esc(Tx(incs.length>1?"incidents":"incident",incs.length>1?"incidentes":"incidente",incs.length>1?"Zwischenfälle":"Zwischenfall",incs.length>1?"incidentes":"incidente"))} (${pts}x)</b>: ${["off","loss","contact"].filter(q=>byK[q]).map(q=>`<span class="ik ${q}">${esc(incN(q,byK[q]))}</span>`).join(" · ")}${worst&&worst[1]>1?` · ${esc(Tx("most in","la mayoría en","die meisten in","a maioria em"))} <b>T${worst[0]}</b> (${worst[1]})`:""}</p>`:"";
   const X=(x,y,cls,title)=>`<g class="incmk ${cls}"><path d="M${(x-5).toFixed(1)} ${(y-5).toFixed(1)}L${(x+5).toFixed(1)} ${(y+5).toFixed(1)}M${(x+5).toFixed(1)} ${(y-5).toFixed(1)}L${(x-5).toFixed(1)} ${(y+5).toFixed(1)}"/><title>${title}</title></g>`;
   box.innerHTML=`<div class="rb-bar"><span class="lgd"><i class="dotm"></i>${esc(Tx("A brakes","A frena","A bremst","A freia"))}</span><span class="lgd"><i class="doto"></i>${esc(Tx("B brakes","B frena","B bremst","B freia"))}</span>
-      <button type="button" class="chip" data-lv="brk" aria-pressed="${LAPV.brk}">${esc(Tx("Braking","Frenadas","Bremsen","Freadas"))}</button>${incs.length?`<button type="button" class="chip" data-lv="inc" aria-pressed="${LAPV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${co.length?`<button type="button" class="chip" data-lv="coach" aria-pressed="${LAPV.coach}"><i class="dotc"></i> Coach</button>`:""}<button type="button" class="chip" data-lv="delta" aria-pressed="${LAPV.delta}"><span class="good">■</span><span class="bad">■</span> ${esc(Tx("A vs B time","Tiempo A vs B","Zeit A vs B","Tempo A vs B"))}</button></div>
-    <svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map: corners, braking points, incidents, coach, and where lap A gains or loses time against lap B","Mapa del circuito: curvas, frenadas, incidentes, coach y dónde la vuelta A gana o pierde tiempo frente a la B"))}"><polyline class="trk" points="${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}"/>
+      <button type="button" class="chip" data-lv="brk" aria-pressed="${LAPV.brk}">${esc(Tx("Braking","Frenadas","Bremsen","Freadas"))}</button>${incs.length?`<button type="button" class="chip" data-lv="inc" aria-pressed="${LAPV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${co.length?`<button type="button" class="chip" data-lv="coach" aria-pressed="${LAPV.coach}"><i class="dotc"></i> Coach</button>`:""}${lat?`<button type="button" class="chip" data-lv="line" aria-pressed="${LAPV.line}" title="${esc(Tx("Where each car was across the track (the difference drawn bigger so it shows)","Por dónde iba cada coche en la pista (la diferencia dibujada más grande para que se vea)","Wo jedes Auto auf der Strecke war (größer gezeichnet)","Por onde cada carro passou na pista (diferença ampliada)"))}"><i class="lnA"></i> ${esc(Tx("Line A","Trazada A","Linie A","Trajetória A"))} <i class="lnB"></i> B</button>`:""}<button type="button" class="chip" data-lv="delta" aria-pressed="${LAPV.delta}"><span class="good">■</span><span class="bad">■</span> ${esc(Tx("A vs B time","Tiempo A vs B","Zeit A vs B","Tempo A vs B"))}</button></div>
+    <svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map: corners, braking points, incidents, coach, and where lap A gains or loses time against lap B","Mapa del circuito: curvas, frenadas, incidentes, coach y dónde la vuelta A gana o pierde tiempo frente a la B"))}">${(()=>{const pl=`${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}`;return `<polyline class="trkS" points="${pl}"/><polyline class="trk" points="${pl}"/><polyline class="trkI" points="${pl}"/>`})()}
     ${LAPV.delta?segs.map(g=>{const m0=Math.round(g.i0*BIN/L*N),m1=Math.round(g.i1*BIN/L*N),pts2=[];for(let m=m0;m<=m1;m++)pts2.push(f(P(m)));const op=g.v>0?.3+.7*Math.min(1,g.v/mx):.3+.7*Math.min(1,-g.v/mx);return Math.abs(g.v)<.003?"":`<polyline class="seg" points="${pts2.join(" ")}" style="stroke:var(${g.v>0?"--bad":"--good"});opacity:${op.toFixed(2)}"/>`}).join(""):""}
-    ${cs.map(c=>{const q=f(out(at(c.d),16)).split(",");return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
+    ${lat&&LAPV.line?(()=>{/* the two lines on the track: B along the middle, A beside it by how far it was from B (2.2 px a metre) */
+      const EX=2.2,nb=lat.length,dir=m=>{const i0=((m-2)%N+N)%N,i1=(m+2)%N;let tx=xs[i1]-xs[i0],ty=ys[i1]-ys[i0];const tm=Math.hypot(tx,ty)||1;return[-ty/tm,tx/tm]};
+      const runs=[];let cur=[];for(let m=0;m<=N;m++){const i=Math.round((m%N)/N*L/BIN),v=i<nb?lat[i]:NaN;if(isNaN(v)){if(cur.length>1)runs.push(cur);cur=[];continue}
+        const q=P(m),d=dir(m%N),o=Math.max(-5,Math.min(5,v))*EX;cur.push(f([q[0]+d[0]*o,q[1]-d[1]*o]))}if(cur.length>1)runs.push(cur);
+      return runs.map(r=>`<polyline class="lnA" points="${r.join(" ")}"/>`).join("")+`<polyline class="lnB" points="${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}"/>`})():""}
+    ${cs.map(c=>{const q=f(out(at(c.d),22)).split(",");return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
     ${secMarks(cnt,L,at,cx,cy)}
     ${LAPV.coach?co.map(c=>{const q=at(c.d);return `<circle class="coachring" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="13"><title>T${c.n} · +${c.lost.toFixed(2)} s: ${esc(Tx(c.tip[0],c.tip[1]))}</title></circle>`}).join(""):""}
     ${LAPV.brk?brB.map(b=>{const q=at(b.d);return `<circle class="oth" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="4.5"><title>B · ${Math.round(b.d)} m · ${Math.round(b.v)}→${Math.round(b.vmin)} ${esc(spdU())}</title></circle>`}).join("")+brA.map(b=>{const q=at(b.d);return `<circle class="mine" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="5.5"><title>A · ${Math.round(b.d)} m · ${Math.round(b.v)}→${Math.round(b.vmin)} ${esc(spdU())}</title></circle>`}).join(""):""}
@@ -5195,7 +5227,7 @@ function brakeZones(s){const out=[];for(let i=1;i<s.length;i++){const a=s[i],b=s
    (when the throttle comes back). The tip is about the phase where the time goes. */
 const PHASES=[["brake","Braking","Frenada","Bremsen","Frenagem"],["entry","Entry","Entrada","Einlenken","Entrada"],["apex","Apex","Vértice","Scheitel","Ápice"],["exit","Exit","Salida","Ausgang","Saída"]];
 const phaseName=k=>{const p=PHASES.find(x=>x[0]===k);return p?Tx(p[1],p[2],p[3],p[4]):""};
-function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length);
+function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length),lat=lineOffsets(A,B);
   const T=(s,i)=>s[i]&&s[i][1],seg=(x,y)=>x<y&&sa[x]&&sa[y]&&sb[x]&&sb[y]?(T(sa,y)-T(sa,x))-(T(sb,y)-T(sb,x)):0;
   const peak=(s,x,y)=>{let p=0,ip=x;for(let k=x;k<=y&&k<s.length;k++)if(s[k]&&s[k][3]>p){p=s[k][3];ip=k}return[p,ip]};
   const release=(s,from,to)=>{for(let k=from;k<=to&&k<s.length;k++)if(s[k]&&s[k][3]<.05)return k;return to};
@@ -5223,7 +5255,12 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
         else{en="Carry more speed into the turn";es="Entra con más velocidad en la curva"}}
       else if(phase==="apex"){if(dmin!=null&&dmin<-2){en=`Carry ${r(-dmin)} ${spdU()} more through the apex`;es=`Pasa ${r(-dmin)} ${spdU()} más rápido por el vértice`}else{en="A rounder, faster line through the apex";es="Una trazada más redonda y rápida por el vértice"}}
       else{if(late!=null&&late>=8){en=`Get on the throttle ${r(late)} m earlier`;es=`Acelera ${r(late)} m antes`}else if(coastA-coastB>=10){en="Do not wait between the brake and the throttle";es="No esperes entre el freno y el acelerador"}else{en="Full throttle sooner on exit";es="Acelerador a fondo antes a la salida"}}}
-    return{n:k+1,d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,tip:[en,es]}}).filter(Boolean)}
+    // the line: where the car was across the track. Braking at the reference's point but on the wrong part of the
+    // track is said first; a generic tip gives way to it; otherwise it goes after the tip of the phase
+    const line=cornerLine(lat,B,z.i,z.imin),lt=lost>.03?lineTip(line,m&&dd!=null&&Math.abs(dd)<=6):null;
+    if(lt){const generic=["Brake a little later and harder","Carry more speed into the turn","A rounder, faster line through the apex","Full throttle sooner on exit"].includes(en);
+      if(generic||(phase==="brake"&&m&&Math.abs(dd)<=6)){en=lt[0];es=lt[1]}else{en+=". "+lt[0];es+=". "+lt[1]}}
+    return{n:k+1,d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es]}}).filter(Boolean)}
 /* where the lap loses time, phase by phase, how much it coasts, and the least steady corners */
 function coachPhasesHTML(cs,A,R,LP){const tot={brake:0,entry:0,apex:0,exit:0};cs.forEach(c=>Object.keys(tot).forEach(k=>{tot[k]+=Math.max(0,c.ph[k]||0)}));
   const worst=Object.entries(tot).sort((a,b)=>b[1]-a[1])[0],cA=cs.reduce((a,c)=>a+c.coastA,0),cB=cs.reduce((a,c)=>a+c.coastB,0);
@@ -5856,8 +5893,8 @@ async function renderRaceBrakes(r){const box=$("#rbBox");if(!box)return;const bs
     let svg="";if(map&&map.x&&map.x.length>10){const N=map.x.length,xs=map.x,ys=map.y,minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),W=600,H=360,pad=26,k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1));
       const P=i=>{i=((i%N)+N)%N;return[pad+(xs[i]-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(ys[i]-miny)*k-(H-2*pad-(maxy-miny)*k)/2]},at=d=>P(Math.round(d/L*N)),f=q=>q.map(z=>z.toFixed(1));RB_AT=at;
       // corner numbers sit outside the track, away from its centre
-      const cx=W/2,cy=H/2,lab=d=>{const q=at(d),dx=q[0]-cx,dy=q[1]-cy,m=Math.hypot(dx,dy)||1;return[q[0]+dx/m*16,q[1]+dy/m*16+4]};
-      svg=`<svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map with corners, braking points, incidents and coach tips","Mapa con curvas, frenadas, incidentes y consejos del coach"))}"><polyline class="trk" points="${xs.map((_,i)=>f(P(i)).join(",")).join(" ")} ${f(P(0)).join(",")}"/>
+      const cx=W/2,cy=H/2,lab=d=>{const q=at(d),dx=q[0]-cx,dy=q[1]-cy,m=Math.hypot(dx,dy)||1;return[q[0]+dx/m*22,q[1]+dy/m*22+4]};
+      svg=`<svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map with corners, braking points, incidents and coach tips","Mapa con curvas, frenadas, incidentes y consejos del coach"))}">${(()=>{const pl=`${xs.map((_,i)=>f(P(i)).join(",")).join(" ")} ${f(P(0)).join(",")}`;return `<polyline class="trkS" points="${pl}"/><polyline class="trk" points="${pl}"/><polyline class="trkI" points="${pl}"/>`})()}
         ${cs.map(c=>{const q=f(lab(c.d));return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
         ${secMarks(Math.max(3,...(r.laps||[]).map(l=>(l.s||[]).length)),L,at,cx,cy)}
         ${RBV.coach?tips.map(x=>{const q=f(at(x.d));return `<circle class="coachring" cx="${q[0]}" cy="${q[1]}" r="13"><title>T${x.c.n}: ${esc(x.tip)}</title></circle>`}).join(""):""}

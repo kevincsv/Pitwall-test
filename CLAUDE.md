@@ -40,6 +40,15 @@
   discipline even with races of others after it). iRacing says "Road" for sports and formula cars alike, so the car
   tells which (`discipline` in journal.go). A race left on the estimate takes the real change from your next race of
   the same discipline (`chainRealIR`); races spoiled by another category go back to the estimate (`repairRealIR`).
+- The racing line (`racingline.go`, `lineOffsets`/`cornerLine`/`lineTip` in index.html and the phones' LapMath): both laps'
+  paths (Trace.x/y, dead reckoning, same orientation) give how far A was to one side of B at every 5 m (drift out with a
+  ±400 m moving average); the coach turns it into inside/outside at B's turn-in, apex and exit (1.5 m or more) and says
+  it first when you brake at the reference's point on the wrong part of the track. The model's record and next levels
+  carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,
+  phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
+  and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch.
+- Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
+  matched by car, track and best lap; only Anonymous rivals this account shared).
 - In a race the relative marks the cars a lap or more up or down on you: a red "+1L" pill (they lap you) or a blue
   "−1L" (you lap them), in the overlays, the app and Pitlane HQ Desktop. The Community car list shows no counts.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
