@@ -17,6 +17,7 @@ on:
       - ".github/scripts/**"
       - ".github/release-notes.md"
       - "desktop/**"
+      - "CHANGELOG.md" # the notes on pitlanehq.app come from here
 
 concurrency:
   group: ${{ github.workflow }}
