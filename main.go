@@ -571,6 +571,7 @@ func main() {
 	registerAssetRoutes(mux)
 	registerMapRoutes(mux)
 	registerOverlayRoutes(mux)
+	registerDeskRoutes(mux)
 	registerLangRoute(mux)
 	registerConfigRoutes(mux)
 	registerG61Routes(mux)

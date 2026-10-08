@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -7,32 +8,57 @@ using Microsoft.Web.WebView2.Core;
 
 namespace PitlaneHQ.Desktop;
 
+/// <summary>
+/// The native window over the Go engine. Home, Telemetry and Overlays are native screens (WPF); the screens not
+/// moved yet (Analysis, Community, Account, Settings) are the app inside a WebView until each one is moved over.
+/// Everything is in the app's language (the engine says which) and its colours and fonts.
+/// </summary>
 public partial class MainWindow : Window
 {
     private readonly Engine _engine = new();
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromSeconds(2) };
+    private readonly DispatcherTimer _fast = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly CancellationTokenSource _cts = new();
-    private bool _webReady;
+    private bool _webReady, _webStarted, _busyFast, _busyPoll;
     private string _view = "home";
+    private string _lang = "";
+    private bool Es => _lang == "es" || _lang == "both";
+    private string T(string en, string es) => Es ? es : en;
+    private readonly Border[] _rpm = new Border[16];
+
+    // the native screens; every other view is the WebView
+    private static readonly HashSet<string> Native = new() { "home", "live", "overlays" };
 
     public MainWindow()
     {
         InitializeComponent();
-        // the menu in the language of Windows (Spanish or English, like the rest of the app)
-        if (System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es")
+        for (int i = 0; i < 16; i++)
         {
-            NavHome.Content = "Inicio"; NavAnalysis.Content = "Análisis"; NavCommunity.Content = "Comunidad";
-            NavLive.Content = "En vivo"; NavAccount.Content = "Cuenta"; NavSettings.Content = "Ajustes";
+            _rpm[i] = new Border { CornerRadius = new CornerRadius(2), Margin = new Thickness(i == 0 ? 0 : 2, 0, 0, 0), BorderThickness = new Thickness(1) };
+            RpmLights.Children.Add(_rpm[i]);
         }
         _poll.Tick += async (_, _) => await RefreshAsync();
+        _fast.Tick += async (_, _) => await FastAsync();
+        ApplyLanguage(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en");
     }
+
+    private Brush B(string key) => (Brush)FindResource(key);
+    private static Brush Hex(string? h)
+    {
+        try { return (Brush)new BrushConverter().ConvertFromString(string.IsNullOrEmpty(h) ? "#E7EBF1" : h)!; }
+        catch { return Brushes.White; }
+    }
+    private static string S(JsonNode? n, string def = "") => n?.ToString() ?? def;
+    private static double D(JsonNode? n) { try { return n?.GetValue<double>() ?? 0; } catch { return double.TryParse(n?.ToString(), out var v) ? v : 0; } }
+    private static bool Bo(JsonNode? n) { try { return n?.GetValue<bool>() ?? false; } catch { return false; } }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        Starting.Visibility = Visibility.Visible;
         var exe = Engine.FindExe(Environment.GetCommandLineArgs().Skip(1).ToArray());
         if (exe == null)
         {
-            StartError.Text = "PitlaneHQ.exe was not found. Put PitlaneHQ.Desktop.exe in the same folder as PitlaneHQ.exe, or start it with the path of PitlaneHQ.exe as its first argument.";
+            StartError.Text = T("PitlaneHQ.exe was not found. Put PitlaneHQ.Desktop.exe in the same folder as PitlaneHQ.exe.", "No se encontró PitlaneHQ.exe. Pon PitlaneHQ.Desktop.exe en la misma carpeta que PitlaneHQ.exe.");
             EngineText.Text = "Engine: not found";
             return;
         }
@@ -40,20 +66,34 @@ public partial class MainWindow : Window
         {
             await _engine.StartAsync(exe, _cts.Token);
             EngineText.Text = "Engine: " + _engine.Base;
-            await Web.EnsureCoreWebView2Async();
-            Web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-            Web.CoreWebView2.Settings.IsStatusBarEnabled = false;
-            Web.CoreWebView2.NewWindowRequested += OnNewWindow;
-            Web.CoreWebView2.NavigationCompleted += (_, _) => { _webReady = true; Starting.Visibility = Visibility.Collapsed; ShowView(_view); };
-            Web.Source = new Uri(_engine.Url + "#" + _view);
+            Starting.Visibility = Visibility.Collapsed;
             _poll.Start();
+            _fast.Start();
             await RefreshAsync();
+            ShowView(_view);
         }
         catch (Exception ex)
         {
             StartError.Text = ex.Message;
             EngineText.Text = "Engine: failed";
         }
+    }
+
+    // the WebView starts the first time a screen that is not native yet is opened
+    private async Task EnsureWebAsync()
+    {
+        if (_webStarted) return;
+        _webStarted = true;
+        try
+        {
+            await Web.EnsureCoreWebView2Async();
+            Web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+            Web.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            Web.CoreWebView2.NewWindowRequested += OnNewWindow;
+            Web.CoreWebView2.NavigationCompleted += (_, _) => { _webReady = true; ShowView(_view); };
+            Web.Source = new Uri(_engine.Url + "#" + _view);
+        }
+        catch (Exception ex) { StartError.Text = ex.Message; }
     }
 
     // links to other sites open in the normal browser, never inside the app
@@ -64,41 +104,394 @@ public partial class MainWindow : Window
             Process.Start(new ProcessStartInfo(e.Uri) { UseShellExecute = true });
     }
 
+    private void ApplyLanguage(string lang)
+    {
+        if (lang == _lang) return;
+        _lang = lang;
+        NavHome.Content = T("Home", "Inicio"); NavAnalysis.Content = T("Analysis", "Análisis"); NavCommunity.Content = T("Community", "Comunidad");
+        NavLive.Content = T("Telemetry", "Telemetría"); NavOverlays.Content = "Overlays"; NavAccount.Content = T("Account", "Cuenta"); NavSettings.Content = T("Settings", "Ajustes");
+        HomeTitle.Text = T("Home", "Inicio"); GameLabel.Text = T("GAME", "JUEGO"); TrackLabel.Text = T("TRACK", "CIRCUITO"); CarLabel.Text = T("CAR", "COCHE");
+        RacesTitle.Text = T("RECENT RACES", "CARRERAS RECIENTES"); RacesEmpty.Text = T("Your races appear here after you finish one.", "Tus carreras aparecen aquí cuando terminas una.");
+        LiveTitle.Text = T("Telemetry", "Telemetría"); GearLabel.Text = T("GEAR", "MARCHA"); SpeedLabel.Text = T("SPEED", "VELOCIDAD");
+        CurLabel.Text = T("CURRENT LAP", "VUELTA ACTUAL"); DeltaLabel.Text = T("DELTA TO BEST", "DELTA VS MEJOR"); BestLabel.Text = T("BEST LAP", "MEJOR VUELTA"); LastLabel.Text = T("LAST LAP", "ÚLTIMA VUELTA");
+        FuelTitle.Text = T("FUEL", "COMBUSTIBLE"); FuelTankL.Text = T("in tank", "en el depósito"); FuelLapsL.Text = T("laps of fuel", "vueltas posibles"); FuelPerL.Text = T("per lap", "por vuelta");
+        RelTitle.Text = "RELATIVE"; RelEmpty.Text = T("Waiting for cars on track", "Esperando coches en pista");
+        OvTitle.Text = "Overlays"; OvSub.Text = T("Windows on top of the game, drawn by Pitlane HQ. Open them here; Auto opens them when you get in the car.", "Ventanas sobre el juego, dibujadas por Pitlane HQ. Ábrelas aquí; Auto las abre al subirte al coche.");
+        OvWipText.Text = T("In development: the overlays are for admins for now.", "En desarrollo: los overlays son solo para admins por ahora.");
+        OvReset.Content = T("Reset positions", "Restablecer posiciones"); OvCloseAll.Content = T("Close all", "Cerrar todos"); OvAlphaL.Text = T("OPACITY", "OPACIDAD");
+        OvPresetsL.Text = T("PRESETS", "PERFILES"); OvPresetSave.Content = T("+ Save current", "+ Guardar el actual"); DemoText.Text = T("DEMO DATA", "DATOS DE PRUEBA");
+        StartingText.Text = T("Starting the Pitlane HQ engine…", "Arrancando el motor de Pitlane HQ…");
+        _ovKey = "";
+    }
+
+    // ---------- the slow refresh: status, Home ----------
+
     private async Task RefreshAsync()
     {
-        if (!_engine.Running)
-        {
-            EngineText.Text = "Engine: stopped";
-            ConnDot.Fill = (Brush)FindResource("Bad");
-            return;
-        }
+        if (_busyPoll) return;
+        _busyPoll = true;
         try
         {
+            if (!_engine.Running)
+            {
+                EngineText.Text = "Engine: stopped";
+                ConnDot.Fill = B("Bad");
+                return;
+            }
             var st = Status.From(await _engine.GetAsync("/api/info"), await _engine.GetAsync("/api/now"));
-            ConnDot.Fill = (Brush)FindResource(st.Connected ? "Good" : "Bad");
-            ConnText.Text = st.Connected ? st.Game + " connected" : "Waiting for " + st.Game;
+            ConnDot.Fill = B(st.Connected ? "Good" : "Bad");
+            ConnText.Text = st.Connected ? st.Game + T(" connected", " conectado") : T("Waiting for ", "Esperando a ") + st.Game;
             TrackText.Text = st.Track == "" ? "–" : st.Track;
             CarText.Text = st.Car == "" ? "–" : st.Car;
-            VersionText.Text = st.Version == "" ? "desktop preview" : $"v{st.Version} {st.Stage} · desktop preview";
-            AccountText.Text = st.Account == "" ? "iRacing: not signed in" : "iRacing: " + st.Account;
+            VersionText.Text = st.Version == "" ? "desktop" : $"v{st.Version} {st.Stage}";
+            AccountText.Text = st.Account == "" ? T("iRacing: not signed in", "iRacing: sin sesión") : "iRacing: " + st.Account;
             DemoPill.Visibility = st.Demo ? Visibility.Visible : Visibility.Collapsed;
+            if (_view == "home") await HomeRacesAsync();
+            if (_view == "overlays") await OverlaysAsync();
         }
-        catch (Exception ex)
+        catch (Exception ex) { EngineText.Text = "Engine: " + ex.Message; }
+        finally { _busyPoll = false; }
+    }
+
+    private string _racesKey = "";
+    private async Task HomeRacesAsync()
+    {
+        var r = await _engine.GetAsync("/api/races");
+        var list = r?["races"]?.AsArray();
+        var key = (list?.Count ?? 0) + ":" + S(list?.FirstOrDefault()?["id"]) + _lang;
+        if (key == _racesKey) return;
+        _racesKey = key;
+        RacesList.Children.Clear();
+        RacesEmpty.Visibility = list == null || list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (list == null) return;
+        foreach (var race in list.Take(8))
         {
-            EngineText.Text = "Engine: " + ex.Message;
+            if (race == null) continue;
+            var when = DateTimeOffset.FromUnixTimeMilliseconds((long)D(race["when"])).LocalDateTime;
+            var start = (int)D(race["start"]); var fin = (int)D(race["finish"]); var irc = (int)D(race["irChange"]); var inc = (int)D(race["inc"]);
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var left = new StackPanel();
+            left.Children.Add(new TextBlock { Text = S(race["track"]), Foreground = B("Fg"), FontSize = 15, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
+            left.Children.Add(new TextBlock { Text = S(race["car"]) + " · " + when.ToString("g"), Foreground = B("Muted"), FontSize = 12 });
+            g.Children.Add(left);
+            var right = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            right.Children.Add(Chip(fin > 0 ? $"P{start} → P{fin}" : "–", B("Fg")));
+            right.Children.Add(Chip(inc + "x", inc > 4 ? B("Bad") : B("Muted")));
+            right.Children.Add(Chip((irc >= 0 ? "+" : "−") + Math.Abs(irc) + " iR", irc >= 0 ? B("Good") : B("Bad")));
+            Grid.SetColumn(right, 1);
+            g.Children.Add(right);
+            RacesList.Children.Add(new Border { Style = (Style)FindResource("Card"), Margin = new Thickness(0, 0, 12, 8), Child = g });
         }
     }
+
+    private Border Chip(string text, Brush fg) => new()
+    {
+        Background = B("Surface2"), BorderBrush = B("Line"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 3, 10, 3), Margin = new Thickness(6, 0, 0, 0),
+        Child = new TextBlock { Text = text, Foreground = fg, FontFamily = (FontFamily)FindResource("FData"), FontSize = 12, FontWeight = FontWeights.SemiBold }
+    };
+
+    // ---------- the fast refresh: Telemetry (10 times a second) and the live strip on Home ----------
+
+    private async Task FastAsync()
+    {
+        if (_busyFast || !_engine.Running || (_view != "live" && _view != "home")) return;
+        _busyFast = true;
+        try
+        {
+            var d = await _engine.GetAsync("/api/desk");
+            if (d == null) return;
+            ApplyLanguage(S(d["lang"], "en"));
+            FillItems(_view == "home" ? HomeItems : LiveItems, d["items"]?.AsArray());
+            if (_view == "live") Live(d);
+        }
+        catch { }
+        finally { _busyFast = false; }
+    }
+
+    private void FillItems(WrapPanel box, JsonArray? items)
+    {
+        box.Children.Clear();
+        if (items == null) return;
+        foreach (var it in items)
+        {
+            if (it == null) continue;
+            var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 6) };
+            sp.Children.Add(new TextBlock { Text = S(it["label"]).ToUpperInvariant(), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 10, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            sp.Children.Add(new TextBlock { Text = S(it["value"]), Foreground = Hex(S(it["color"])), FontFamily = (FontFamily)FindResource("FData"), FontSize = 14, FontWeight = FontWeights.SemiBold });
+            box.Children.Add(sp);
+        }
+    }
+
+    private void Live(JsonNode d)
+    {
+        LiveTrack.Text = S(d["track"]);
+        GearText.Text = S(d["gear"], "–");
+        SpeedText.Text = S(d["speed"], "0");
+        SpeedUnit.Text = S(d["speedUnit"], "km/h");
+        CluBar.Height = 70 * Math.Clamp(D(d["clutch"]), 0, 1);
+        BrkBar.Height = 70 * Math.Clamp(D(d["brake"]), 0, 1);
+        ThrBar.Height = 70 * Math.Clamp(D(d["throttle"]), 0, 1);
+        double rpm = D(d["rpm"]), first = D(d["rpmFirst"]), shift = D(d["rpmShift"]), blink = D(d["rpmBlink"]);
+        int on = shift > first ? (int)Math.Round(Math.Clamp((rpm - first) / (shift - first) * 16, 0, 16)) : 0;
+        bool lit = !(rpm >= blink && DateTime.Now.Millisecond / 80 % 2 == 0);
+        for (int i = 0; i < 16; i++)
+        {
+            bool l = i < on && lit;
+            _rpm[i].Background = !l ? B("Surface2") : rpm >= shift ? B("Pb") : i >= 13 ? B("Bad") : i >= 10 ? B("Warn") : B("Good");
+            _rpm[i].BorderBrush = l ? Brushes.Transparent : B("Line");
+        }
+        RpmText.Text = "RPM " + (int)rpm;
+        ShiftText.Text = shift > 0 ? T("SHIFT ", "CAMBIO ") + (int)shift : "";
+        CurText.Text = S(d["cur"], "–");
+        DeltaText.Text = S(d["delta"], "–");
+        DeltaText.Foreground = d["deltaGood"] == null ? B("Fg") : Bo(d["deltaGood"]) ? B("Good") : B("Bad");
+        BestText.Text = S(d["best"], "–");
+        LastText.Text = S(d["last"], "–");
+        LapProgress.Value = Math.Clamp(D(d["lapPct"]), 0, 1);
+        var f = d["fuel"];
+        FuelTank.Text = S(f?["tank"], "–") + " " + S(f?["unit"]);
+        FuelLaps.Text = S(f?["laps"], "–");
+        FuelPer.Text = S(f?["per"], "–");
+        // the relative
+        RelRows.Children.Clear();
+        var rows = d["relative"]?.AsArray();
+        RelEmpty.Visibility = rows == null || rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (rows == null) return;
+        int k = 0;
+        foreach (var r in rows)
+        {
+            if (r == null) continue;
+            var row = new Grid { Height = 28 };
+            foreach (var w in new[] { 44.0, 36, 0, 70, 50, 56 })
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = w == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(w) });
+            var border = new Border { Child = row, CornerRadius = new CornerRadius(5), Padding = new Thickness(6, 0, 6, 0) };
+            if (Bo(r["Me"])) border.Background = B("AccentSoft");
+            else if (k % 2 == 1) border.Background = new SolidColorBrush(Color.FromArgb(10, 255, 255, 255));
+            k++;
+            if (Bo(r["Blank"])) { RelRows.Children.Add(border); continue; }
+            double a = Bo(r["Pit"]) && !Bo(r["Me"]) ? 0.55 : 1;
+            void Cell(int col, string text, Brush fg, bool mono, HorizontalAlignment al = HorizontalAlignment.Left)
+            {
+                var tb = new TextBlock { Text = text, Foreground = fg, Opacity = a, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = al, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = mono ? 12.5 : 13.5 };
+                if (mono) tb.FontFamily = (FontFamily)FindResource("FData");
+                Grid.SetColumn(tb, col);
+                row.Children.Add(tb);
+            }
+            Cell(0, S(r["Pos"]), B("Fg"), true);
+            Cell(1, S(r["Num"]), B("Muted"), true);
+            Cell(2, S(r["Name"]) + (Bo(r["Pit"]) ? "  PIT" : ""), Hex(S(r["NameColor"])), false);
+            var lic = S(r["Lic"]);
+            if (lic != "" && lic != "–")
+            {
+                var lc = (SolidColorBrush)Hex(S(r["LicColor"]));
+                var badge = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb((byte)(lc.Color.R * .62 + 11 * .38), (byte)(lc.Color.G * .62 + 13 * .38), (byte)(lc.Color.B * .62 + 16 * .38))),
+                    BorderBrush = lc, BorderThickness = new Thickness(1.5), CornerRadius = new CornerRadius(4), Padding = new Thickness(5, 1, 5, 1), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left, Opacity = a,
+                    Child = new TextBlock { Text = lic, Foreground = Brushes.White, FontFamily = (FontFamily)FindResource("FData"), FontSize = 10.5, FontWeight = FontWeights.Bold }
+                };
+                Grid.SetColumn(badge, 3);
+                row.Children.Add(badge);
+            }
+            Cell(4, S(r["IR"]), B("Fg"), true, HorizontalAlignment.Right);
+            Cell(5, S(r["Gap"]), B("Fg"), true, HorizontalAlignment.Right);
+            RelRows.Children.Add(border);
+        }
+    }
+
+    // ---------- Overlays (native) ----------
+
+    private static readonly (string Id, string En, string Es)[] Overlays =
+    {
+        ("relative","Relative","Relative"),("standings","Standings","Posiciones"),("radar","Radar","Radar"),("deltabar","Delta bar","Barra de delta"),
+        ("flag","Flags","Banderas"),("dash","Gear, speed & RPM","Marcha, velocidad y RPM"),("timing","Lap timing","Tiempos de vuelta"),("map","Track map","Mapa del circuito"),
+        ("compare","Lap comparison","Comparación de vueltas"),("boost","DRS & push-to-pass","DRS y push-to-pass"),("inputs","Inputs","Pedales"),("fuel","Fuel","Combustible"),
+        ("engine","Engine & track","Motor y pista"),("tyres","Tyres","Neumáticos"),("telemetry","Telemetry","Telemetría"),("gg","G-force circle","Círculo de fuerzas g"),
+        ("stats","Driving stats","Estadísticas de conducción"),("pit","Pit stop calculator","Calculadora de parada"),("sectors","Mini-sectors","Mini-sectores"),("gaps","Gap graph","Gráfica de gaps"),
+        ("incidents","Incident log","Registro de incidentes"),("coach","Braking coach","Coach de frenada"),("brakes","Braking markers","Marcas de frenada"),("radio","Radio","Radio"),
+    };
+    private static readonly (string Id, string En, string Es, string[] W)[] BuiltIn =
+    {
+        ("race","Race","Carrera",new[]{"radar","deltabar","relative","standings"}),
+        ("qualifying","Qualifying","Clasificación",new[]{"deltabar","compare","inputs","map"}),
+        ("endurance","Endurance","Resistencia",new[]{"relative","fuel","tyres","deltabar","standings"}),
+        ("engineer","Engineer","Ingeniero",new[]{"map","relative","radar","inputs","fuel","tyres","telemetry"}),
+    };
+    private JsonObject? _cfg;
+    private string _ovKey = "";
+    private bool _wip;
+
+    private async Task OverlaysAsync()
+    {
+        var list = await _engine.GetAsync("/api/overlay/list");
+        var conf = await _engine.GetAsync("/api/config");
+        var desk = await _engine.GetAsync("/api/desk");
+        _wip = Bo(desk?["wip"]);
+        ApplyLanguage(S(desk?["lang"], "en"));
+        _cfg = conf?["config"]?.AsObject();
+        if (_cfg == null) return;
+        var open = new HashSet<string>(list?["open"]?.AsArray().Select(x => S(x)) ?? Enumerable.Empty<string>());
+        var auto = new HashSet<string>(_cfg["autoWidgets"]?.AsArray().Select(x => S(x)) ?? Enumerable.Empty<string>());
+        bool edit = Bo(_cfg["edit"]);
+        var mine = _cfg["ui"]?["ovpresets"]?["list"]?.AsObject();
+        var key = string.Join(",", open) + "|" + string.Join(",", auto) + "|" + edit + "|" + _wip + "|" + _lang + "|" + mine?.ToJsonString() + "|" + S(_cfg["alpha"]);
+        if (key == _ovKey) return;
+        _ovKey = key;
+        OvWip.Visibility = _wip ? Visibility.Collapsed : Visibility.Visible;
+        OvLock.Content = edit ? T("Lock overlays", "Bloquear overlays") : T("Move overlays", "Mover overlays");
+        OvLock.IsEnabled = OvReset.IsEnabled = OvCloseAll.IsEnabled = OvPresetSave.IsEnabled = _wip;
+        if (!OvAlpha.IsMouseCaptureWithin) OvAlpha.Value = Math.Clamp(D(_cfg["alpha"]), 40, 255);
+        // presets: the four built in and yours (with their ×)
+        OvPresets.Children.Clear();
+        foreach (var p in BuiltIn)
+        {
+            var b = new Button { Style = (Style)FindResource("Btn"), Content = T(p.En, p.Es), IsEnabled = _wip };
+            var ws = p.W;
+            b.Click += async (_, _) => await ApplyPresetAsync(ws);
+            OvPresets.Children.Add(b);
+        }
+        if (mine != null)
+            foreach (var kv in mine)
+            {
+                var name = kv.Key;
+                var ws = kv.Value?.AsArray().Select(x => S(x)).ToArray() ?? Array.Empty<string>();
+                var b = new Button { Style = (Style)FindResource("Btn"), Content = name, IsEnabled = _wip };
+                b.Click += async (_, _) => await ApplyPresetAsync(ws);
+                var del = new Button { Style = (Style)FindResource("Btn"), Content = "×", ToolTip = T("Delete", "Eliminar"), Margin = new Thickness(-4, 0, 10, 6), IsEnabled = _wip };
+                del.Click += async (_, _) => await DeletePresetAsync(name);
+                OvPresets.Children.Add(b);
+                OvPresets.Children.Add(del);
+            }
+        // one card per overlay: open/close and Auto
+        OvCards.Children.Clear();
+        foreach (var o in Overlays)
+        {
+            var id = o.Id;
+            bool isOpen = open.Contains(id), isAuto = auto.Contains(id);
+            var sp = new StackPanel();
+            sp.Children.Add(new TextBlock { Text = T(o.En, o.Es), Foreground = B("Fg"), FontSize = 15, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) });
+            sp.Children.Add(new TextBlock { Text = isOpen ? T("Open", "Abierto") : T("Closed", "Cerrado"), Foreground = isOpen ? B("Good") : B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 11, Margin = new Thickness(0, 0, 0, 10) });
+            var bar = new WrapPanel();
+            var ob = new Button { Style = (Style)FindResource(isOpen ? "Btn" : "BtnPrimary"), Content = isOpen ? T("Close", "Cerrar") : T("Open", "Abrir"), IsEnabled = _wip };
+            ob.Click += async (_, _) => { await Post((isOpen ? "/api/overlay/close?w=" : "/api/overlay/open?w=") + id); _ovKey = ""; await OverlaysAsync(); };
+            bar.Children.Add(ob);
+            var cb = new CheckBox { Content = "Auto", IsChecked = isAuto, Foreground = B("Fg"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 6), IsEnabled = _wip };
+            cb.Click += async (_, _) => await SetAutoAsync(id, cb.IsChecked == true);
+            bar.Children.Add(cb);
+            sp.Children.Add(bar);
+            OvCards.Children.Add(new Border { Style = (Style)FindResource("Card"), Width = 250, Child = sp, BorderBrush = isOpen ? B("Accent") : B("Line") });
+        }
+    }
+
+    private async Task Post(string path, object? body = null)
+    {
+        try { await _engine.PostAsync(path, body); }
+        catch (Exception ex) { EngineText.Text = "Engine: " + ex.Message; }
+    }
+
+    // the settings go back whole, as the app sends them (the engine keeps the window positions)
+    private async Task SaveConfigAsync()
+    {
+        if (_cfg == null) return;
+        _cfg.Remove("positions");
+        await Post("/api/config", _cfg);
+        _ovKey = "";
+        await OverlaysAsync();
+    }
+
+    private async Task SetAutoAsync(string id, bool on)
+    {
+        if (_cfg == null) return;
+        var auto = _cfg["autoWidgets"]?.AsArray().Select(x => S(x)).Where(x => x != id).ToList() ?? new List<string>();
+        if (on) auto.Add(id);
+        _cfg["autoWidgets"] = new JsonArray(auto.Select(x => (JsonNode?)JsonValue.Create(x)).ToArray());
+        await SaveConfigAsync();
+    }
+
+    private async Task ApplyPresetAsync(string[] ws)
+    {
+        if (_cfg == null) return;
+        var ids = Overlays.Select(o => o.Id).ToHashSet();
+        _cfg["autoWidgets"] = new JsonArray(ws.Where(ids.Contains).Select(x => (JsonNode?)JsonValue.Create(x)).ToArray());
+        _cfg["autoStart"] = true;
+        _cfg["closeOnExit"] = true;
+        await SaveConfigAsync();
+    }
+
+    private JsonObject MyPresets()
+    {
+        var ui = _cfg!["ui"] as JsonObject;
+        if (ui == null) { ui = new JsonObject(); _cfg["ui"] = ui; }
+        var op = ui["ovpresets"] as JsonObject;
+        if (op == null) { op = new JsonObject(); ui["ovpresets"] = op; }
+        var list = op["list"] as JsonObject;
+        if (list == null) { list = new JsonObject(); op["list"] = list; }
+        return list;
+    }
+
+    private async Task DeletePresetAsync(string name)
+    {
+        if (_cfg == null) return;
+        if (MessageBox.Show(this, T($"Delete the preset “{name}”?", $"¿Eliminar el perfil «{name}»?"), "Pitlane HQ", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        MyPresets().Remove(name);
+        await SaveConfigAsync();
+    }
+
+    private async void OnOvPresetSave(object sender, RoutedEventArgs e)
+    {
+        if (_cfg == null) return;
+        var name = (OvPresetName.Text ?? "").Trim();
+        if (name.Length > 32) name = name[..32];
+        var ws = _cfg["autoWidgets"]?.AsArray().Select(x => S(x)).ToArray() ?? Array.Empty<string>();
+        if (name == "") { OvPresetName.Focus(); return; }
+        if (ws.Length == 0) { MessageBox.Show(this, T("Turn on Auto for the overlays you want first.", "Activa primero Auto en los overlays que quieras."), "Pitlane HQ"); return; }
+        var list = MyPresets();
+        if (list.ContainsKey(name) && MessageBox.Show(this, T($"Replace the preset “{name}”?", $"¿Reemplazar el perfil «{name}»?"), "Pitlane HQ", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        list[name] = new JsonArray(ws.Select(x => (JsonNode?)JsonValue.Create(x)).ToArray());
+        OvPresetName.Text = "";
+        await SaveConfigAsync();
+    }
+
+    private async void OnOvLock(object sender, RoutedEventArgs e)
+    {
+        if (_cfg == null) return;
+        _cfg["edit"] = !Bo(_cfg["edit"]);
+        await SaveConfigAsync();
+    }
+
+    private async void OnOvAlpha(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_cfg == null) return;
+        _cfg["alpha"] = (int)Math.Round(OvAlpha.Value);
+        await SaveConfigAsync();
+    }
+
+    private async void OnOvReset(object sender, RoutedEventArgs e) { await Post("/api/overlay/reset"); _ovKey = ""; await OverlaysAsync(); }
+    private async void OnOvCloseAll(object sender, RoutedEventArgs e) { await Post("/api/overlay/close?w=*"); _ovKey = ""; await OverlaysAsync(); }
+
+    // ---------- navigation ----------
 
     private void OnNav(object sender, RoutedEventArgs e)
     {
         if (sender is RadioButton { Tag: string v }) { _view = v; ShowView(v); }
     }
 
-    // native parts show on Home; every screen also tells the web app which view to open
-    private void ShowView(string v)
+    private async void ShowView(string v)
     {
-        if (HomeCard != null) HomeCard.Visibility = v == "home" ? Visibility.Visible : Visibility.Collapsed;
-        if (_webReady && Web?.CoreWebView2 != null)
+        if (HomeView == null) return;
+        bool native = Native.Contains(v);
+        HomeView.Visibility = v == "home" ? Visibility.Visible : Visibility.Collapsed;
+        LiveView.Visibility = v == "live" ? Visibility.Visible : Visibility.Collapsed;
+        OverlaysView.Visibility = v == "overlays" ? Visibility.Visible : Visibility.Collapsed;
+        Web.Visibility = native ? Visibility.Collapsed : Visibility.Visible;
+        if (!_engine.Running) return;
+        if (v == "overlays") { _ovKey = ""; await OverlaysAsync(); }
+        if (v == "home") { _racesKey = ""; await HomeRacesAsync(); }
+        if (native) return;
+        await EnsureWebAsync();
+        if (_webReady && Web.CoreWebView2 != null)
             _ = Web.CoreWebView2.ExecuteScriptAsync($"try{{show({System.Text.Json.JsonSerializer.Serialize(v)})}}catch(e){{location.hash='#{v}'}}");
     }
 
@@ -109,6 +502,7 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _poll.Stop();
+        _fast.Stop();
         _cts.Cancel();
         _engine.Dispose(); // closing the window stops the engine, like the Go window does
     }

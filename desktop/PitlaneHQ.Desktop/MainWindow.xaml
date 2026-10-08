@@ -4,6 +4,7 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="Pitlane HQ" Width="1360" Height="860" MinWidth="900" MinHeight="600"
         Background="{StaticResource Bg}" WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource FBody}"
         Loaded="OnLoaded" Closing="OnClosing">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
@@ -19,12 +20,12 @@
         <!-- title bar: the app's own -->
         <Grid Grid.Row="0" Background="{StaticResource Surface}">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
-                <TextBlock Text="PITLANE HQ" Foreground="{StaticResource Fg}" FontWeight="Black" FontSize="15" VerticalAlignment="Center"/>
+                <TextBlock Text="PITLANE HQ" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FDisplay}" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/>
                 <Border Background="{StaticResource Surface2}" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                    <TextBlock x:Name="VersionText" Text="desktop preview" Foreground="{StaticResource Muted}" FontSize="10" FontFamily="Consolas"/>
+                    <TextBlock x:Name="VersionText" Text="desktop" Foreground="{StaticResource Muted}" FontSize="10" FontFamily="{StaticResource FData}"/>
                 </Border>
                 <Border x:Name="DemoPill" Visibility="Collapsed" Background="{StaticResource Accent}" CornerRadius="10" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="DEMO DATA" Foreground="{StaticResource Bg}" FontSize="10" FontWeight="Black"/>
+                    <TextBlock x:Name="DemoText" Text="DEMO DATA" Foreground="{StaticResource Bg}" FontSize="10" FontWeight="Bold" FontFamily="{StaticResource FData}"/>
                 </Border>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" WindowChrome.IsHitTestVisibleInChrome="True">
@@ -40,56 +41,203 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- navigation -->
+            <!-- the same menu as everywhere: Home, Analysis, Community, Telemetry, Overlays (only on the PC), Account; Settings last -->
             <Border Grid.Column="0" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
                 <StackPanel Margin="0,10">
-                    <!-- the same menu as everywhere (PC, web, phones): Home, Analysis, Community, Live, Account; Settings last -->
                     <RadioButton x:Name="NavHome" Style="{StaticResource NavButton}" Content="Home" Tag="home" IsChecked="True" Checked="OnNav"/>
                     <RadioButton x:Name="NavAnalysis" Style="{StaticResource NavButton}" Content="Analysis" Tag="laps" Checked="OnNav"/>
                     <RadioButton x:Name="NavCommunity" Style="{StaticResource NavButton}" Content="Community" Tag="community" Checked="OnNav"/>
-                    <RadioButton x:Name="NavLive" Style="{StaticResource NavButton}" Content="Live" Tag="live" Checked="OnNav"/>
+                    <RadioButton x:Name="NavLive" Style="{StaticResource NavButton}" Content="Telemetry" Tag="live" Checked="OnNav"/>
+                    <RadioButton x:Name="NavOverlays" Style="{StaticResource NavButton}" Content="Overlays" Tag="overlays" Checked="OnNav"/>
                     <RadioButton x:Name="NavAccount" Style="{StaticResource NavButton}" Content="Account" Tag="me" Checked="OnNav"/>
                     <RadioButton x:Name="NavSettings" Style="{StaticResource NavButton}" Content="Settings" Tag="settings" Checked="OnNav"/>
                 </StackPanel>
             </Border>
 
-            <!-- content: the native Home card above the web app; other screens are the web app for now -->
             <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border x:Name="HomeCard" Grid.Row="0" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Margin="16,16,16,0" Padding="18,12,18,16">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource Label}" Text="GAME"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse x:Name="ConnDot" Width="10" Height="10" Fill="{StaticResource Bad}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="ConnText" Style="{StaticResource Value}" Text="Waiting for iRacing"/>
-                            </StackPanel>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource Label}" Text="TRACK"/>
-                            <TextBlock x:Name="TrackText" Style="{StaticResource Value}" Text="–"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Style="{StaticResource Label}" Text="CAR"/>
-                            <TextBlock x:Name="CarText" Style="{StaticResource Value}" Text="–"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-                <Grid Grid.Row="1" Margin="0,8,0,0">
-                    <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="#11151B"/>
-                    <StackPanel x:Name="Starting" VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="Starting the Pitlane HQ engine…" Foreground="{StaticResource Muted}" FontSize="14"/>
-                        <TextBlock x:Name="StartError" Foreground="{StaticResource Bad}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="520"/>
+                <!-- the screens not native yet: the app inside a WebView -->
+                <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="#11151B" Visibility="Collapsed"/>
+
+                <!-- HOME (native) -->
+                <ScrollViewer x:Name="HomeView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16">
+                    <StackPanel>
+                        <TextBlock x:Name="HomeTitle" Style="{StaticResource H1}" Text="Home"/>
+                        <Border Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock x:Name="GameLabel" Style="{StaticResource Label}" Text="GAME"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="ConnDot" Width="10" Height="10" Fill="{StaticResource Bad}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="ConnText" Style="{StaticResource Value}" Text="Waiting for iRacing"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock x:Name="TrackLabel" Style="{StaticResource Label}" Text="TRACK"/>
+                                    <TextBlock x:Name="TrackText" Style="{StaticResource Value}" Text="–"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock x:Name="CarLabel" Style="{StaticResource Label}" Text="CAR"/>
+                                    <TextBlock x:Name="CarText" Style="{StaticResource Value}" Text="–"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <WrapPanel x:Name="HomeItems" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="RacesTitle" Style="{StaticResource CardTitle}" Text="RECENT RACES" Margin="0,8,0,8"/>
+                        <StackPanel x:Name="RacesList"/>
+                        <TextBlock x:Name="RacesEmpty" Style="{StaticResource Note}" Text="Your races appear here after you finish one." Visibility="Collapsed"/>
                     </StackPanel>
-                </Grid>
+                </ScrollViewer>
+
+                <!-- TELEMETRY (native) -->
+                <ScrollViewer x:Name="LiveView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="LiveTitle" Style="{StaticResource H1}" Text="Telemetry"/>
+                            <TextBlock x:Name="LiveTrack" Style="{StaticResource Note}" VerticalAlignment="Bottom" Margin="14,0,0,8"/>
+                        </StackPanel>
+                        <WrapPanel x:Name="LiveItems" Margin="0,0,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="7*"/>
+                                <ColumnDefinition Width="5*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <!-- gear, speed, pedals, shift lights -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,28,0">
+                                                <TextBlock x:Name="GearLabel" Style="{StaticResource Label}" Margin="0" Text="GEAR"/>
+                                                <TextBlock x:Name="GearText" Text="N" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FDisplay}" FontWeight="Bold" FontSize="72" LineHeight="70" LineStackingStrategy="BlockLineHeight"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock x:Name="SpeedLabel" Style="{StaticResource Label}" Margin="0" Text="SPEED"/>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock x:Name="SpeedText" Text="0" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FDisplay}" FontWeight="Bold" FontSize="52"/>
+                                                    <TextBlock x:Name="SpeedUnit" Text="km/h" Foreground="{StaticResource Muted}" FontFamily="{StaticResource FDisplay}" FontSize="16" VerticalAlignment="Bottom" Margin="6,0,0,12"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                                <Border Width="16" Height="72" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                                                    <Border x:Name="CluBar" VerticalAlignment="Bottom" Height="0" Background="{StaticResource Blue}" CornerRadius="2"/>
+                                                </Border>
+                                                <Border Width="16" Height="72" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3" Margin="0,0,8,0">
+                                                    <Border x:Name="BrkBar" VerticalAlignment="Bottom" Height="0" Background="{StaticResource Bad}" CornerRadius="2"/>
+                                                </Border>
+                                                <Border Width="16" Height="72" Background="{StaticResource Surface2}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="3">
+                                                    <Border x:Name="ThrBar" VerticalAlignment="Bottom" Height="0" Background="{StaticResource Good}" CornerRadius="2"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                        <UniformGrid x:Name="RpmLights" Rows="1" Columns="16" Height="16" Margin="0,12,0,6"/>
+                                        <Grid>
+                                            <TextBlock x:Name="RpmText" Style="{StaticResource Label}" Margin="0" Text="RPM 0"/>
+                                            <TextBlock x:Name="ShiftText" Style="{StaticResource Label}" Margin="0" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- lap timing -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <UniformGrid Columns="2">
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock x:Name="CurLabel" Style="{StaticResource Label}" Margin="0" Text="CURRENT LAP"/>
+                                                <TextBlock x:Name="CurText" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock x:Name="DeltaLabel" Style="{StaticResource Label}" Margin="0" Text="DELTA TO BEST"/>
+                                                <TextBlock x:Name="DeltaText" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock x:Name="BestLabel" Style="{StaticResource Label}" Margin="0" Text="BEST LAP"/>
+                                                <TextBlock x:Name="BestText" Text="–" Foreground="{StaticResource Pb}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock x:Name="LastLabel" Style="{StaticResource Label}" Margin="0" Text="LAST LAP"/>
+                                                <TextBlock x:Name="LastText" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <ProgressBar x:Name="LapProgress" Height="8" Margin="0,12,0,0" Minimum="0" Maximum="1" Background="{StaticResource Surface2}" Foreground="{StaticResource Accent}" BorderBrush="{StaticResource Line}"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- fuel -->
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="FuelTitle" Style="{StaticResource CardTitle}" Text="FUEL"/>
+                                        <UniformGrid Columns="3">
+                                            <StackPanel>
+                                                <TextBlock x:Name="FuelTank" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                                <TextBlock x:Name="FuelTankL" Style="{StaticResource Note}" Text="in tank"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock x:Name="FuelLaps" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                                <TextBlock x:Name="FuelLapsL" Style="{StaticResource Note}" Text="laps of fuel"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock x:Name="FuelPer" Text="–" Foreground="{StaticResource Fg}" FontFamily="{StaticResource FData}" FontSize="24"/>
+                                                <TextBlock x:Name="FuelPerL" Style="{StaticResource Note}" Text="per lap"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <!-- the relative -->
+                            <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock x:Name="RelTitle" Style="{StaticResource CardTitle}" Text="RELATIVE"/>
+                                    <StackPanel x:Name="RelRows"/>
+                                    <TextBlock x:Name="RelEmpty" Style="{StaticResource Note}" Text="Waiting for cars on track" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- OVERLAYS (native) -->
+                <ScrollViewer x:Name="OverlaysView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="OvTitle" Style="{StaticResource H1}" Text="Overlays"/>
+                        <TextBlock x:Name="OvSub" Style="{StaticResource Note}" Margin="0,0,0,12" Text="Windows on top of the game. Open them here; Auto opens them when you get in the car."/>
+                        <Border x:Name="OvWip" Style="{StaticResource Card}" Visibility="Collapsed" BorderBrush="{StaticResource Accent}">
+                            <TextBlock x:Name="OvWipText" Style="{StaticResource Note}" Text="In development: overlays are for admins for now."/>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <WrapPanel>
+                                    <Button x:Name="OvLock" Style="{StaticResource BtnPrimary}" Content="Move overlays" Click="OnOvLock"/>
+                                    <Button x:Name="OvReset" Style="{StaticResource Btn}" Content="Reset positions" Click="OnOvReset"/>
+                                    <Button x:Name="OvCloseAll" Style="{StaticResource Btn}" Content="Close all" Click="OnOvCloseAll"/>
+                                    <StackPanel Orientation="Horizontal" Margin="12,0,0,6" VerticalAlignment="Center">
+                                        <TextBlock x:Name="OvAlphaL" Style="{StaticResource Label}" Margin="0,0,8,0" VerticalAlignment="Center" Text="OPACITY"/>
+                                        <Slider x:Name="OvAlpha" Width="160" Minimum="40" Maximum="255" VerticalAlignment="Center" PreviewMouseUp="OnOvAlpha"/>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <TextBlock x:Name="OvPresetsL" Style="{StaticResource Label}" Text="PRESETS"/>
+                                <WrapPanel x:Name="OvPresets"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBox x:Name="OvPresetName" Width="200" Padding="6,4" Margin="0,0,6,6" Background="{StaticResource Surface2}" Foreground="{StaticResource Fg}" BorderBrush="{StaticResource Line}" CaretBrush="{StaticResource Fg}"/>
+                                    <Button x:Name="OvPresetSave" Style="{StaticResource Btn}" Content="+ Save current" Click="OnOvPresetSave"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <WrapPanel x:Name="OvCards"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel x:Name="Starting" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock x:Name="StartingText" Text="Starting the Pitlane HQ engine…" Foreground="{StaticResource Muted}" FontSize="14"/>
+                    <TextBlock x:Name="StartError" Foreground="{StaticResource Bad}" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="520"/>
+                </StackPanel>
             </Grid>
         </Grid>
 

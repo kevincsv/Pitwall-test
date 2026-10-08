@@ -6,6 +6,8 @@ import (
 	"image/color"
 	"image/png"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -404,6 +406,22 @@ func TestEveryOverlayIsNative(t *testing.T) {
 	for _, n := range overlayOrder {
 		if !nativeOverlay(n) || ovDesign[n] <= 0 {
 			t.Errorf("overlay %s is not native", n)
+		}
+	}
+}
+
+func TestDeskEndpoint(t *testing.T) {
+	mux := http.NewServeMux()
+	registerDeskRoutes(mux)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest("GET", "/api/desk", nil))
+	var out map[string]any
+	if rec.Code != 200 || json.Unmarshal(rec.Body.Bytes(), &out) != nil {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	for _, k := range []string{"gear", "speed", "items", "fuel", "relative", "lang", "wip"} {
+		if _, ok := out[k]; !ok {
+			t.Fatalf("no %s in %s", k, rec.Body.String())
 		}
 	}
 }

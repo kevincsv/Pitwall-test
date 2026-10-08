@@ -69,6 +69,8 @@ jobs:
         with:
           node-version: 22
       - name: Publish on pitlanehq.app (R2)
+        # only builds of master go out; a build started on another branch is only a check
+        if: github.ref == 'refs/heads/master'
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -88,6 +90,7 @@ jobs:
           # version.json goes last: the app only sees a new version once its files are there
           put version.json version.json application/json
       - name: Publish on the GitHub release (record)
+        if: github.ref == 'refs/heads/master'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

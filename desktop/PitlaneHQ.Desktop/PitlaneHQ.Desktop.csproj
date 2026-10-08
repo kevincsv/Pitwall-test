@@ -15,6 +15,11 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <!-- the app's fonts, the same files the native overlays draw with -->
+  <ItemGroup>
+    <Resource Include="..\..\ovfonts\*.ttf" Link="fonts\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
   </ItemGroup>
