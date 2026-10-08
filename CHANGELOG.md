@@ -4,6 +4,29 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.15 beta
+
+**New**
+- **One choice of laps for the lap analyzer and the coach.** Laps A and B picked in one are picked
+  in the other, and both start the same way (your last valid lap against the next level, or your best
+  lap); the model's references (next level, record) are lap B in both.
+- **The car and the track are two filters** in "Choose a session" (and in the phone apps): with many
+  cars and tracks the list of every pair was hard to read.
+- **Admin:** an Admin / Normal user switch at the top of the admin panel and in Settings → About; an
+  Activity tab (the latest sessions uploaded); for each account: confirm its email, turn off its
+  two-step sign-in (a lost phone), sign it out everywhere, rename it (an offensive name), unblock it;
+  the blocked sign-ins listed one by one, with unblock one, unblock an email, or everything.
+
+**Changed**
+- "MY BEST" goes after the time in the lap lists (A and B), like the rest of the lap.
+- Deleting your account says that the data on your PC stays until you uninstall Pitlane HQ, and
+  uninstalling removes all of it from the PC (the account, the leaderboards and the coach model on the
+  server are not touched).
+
+**Fixed**
+- Admin → Shared: the filter works as you type (and by kind), names show their accents, and Delete no
+  longer covers the text; the same in the tools.
+
 ## 0.8.14 beta
 
 **New**

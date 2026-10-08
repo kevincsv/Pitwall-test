@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.8.15",
+      "en": [
+        "The lap analyzer and the coach share laps A and B: what you pick in one is there in the other.",
+        "\"Choose a session\" filters the car and the track apart.",
+        "\"MY BEST\" goes after the lap time.",
+        "Uninstalling Pitlane HQ removes all its data from the PC."
+      ],
+      "es": [
+        "El analizador de vueltas y el coach comparten las vueltas A y B: lo que eliges en uno está en el otro.",
+        "\"Elegir sesión\" filtra el coche y el circuito por separado.",
+        "\"MI MEJOR\" va después del tiempo de la vuelta.",
+        "Al desinstalar Pitlane HQ se borran todos sus datos del PC."
+      ]
+    },
+    {
       "v": "0.8.14",
       "en": [
         "Analysis: \"Choose a session\" opens a window with the discipline, the kind of session, the car and track and the days you drove; it opens by itself when you enter Analysis.",

@@ -85,7 +85,9 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM PitlaneHQ.exe"; Flags: ru
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM TrackIQ.exe"; Flags: runhidden; RunOnceId: "CloseOldTrackIQ"
 
 [UninstallDelete]
-; everything Pitlane HQ created: the app folder, settings, profiles, sign-ins, logs and its browser data
+; everything Pitlane HQ created on this PC: the app folder (and the updater's leftovers), settings, profiles,
+; sign-ins, race history, track notes, logs, the live link and its browser data. Nothing on the server is
+; touched: the account, the leaderboards and the coach model stay.
 Type: filesandordirs; Name: "{app}"
 Type: filesandordirs; Name: "{userappdata}\PitlaneHQ"
 Type: filesandordirs; Name: "{userappdata}\PitWall"

@@ -2,7 +2,7 @@
 // want the whole lap trace) and race analyses. Reading is public; writing
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
-import { sessionAccount, isAdmin, nameTaken, purgeAccount } from "./accounts.js";
+import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
 import { mailReady } from "./email.js";
 import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
@@ -310,12 +310,69 @@ export async function community(req, env, url) {
     const r = await env.DB.prepare("UPDATE model_cache SET dirty=1").run();
     return json({ ok: true, models: (r.meta && r.meta.changes) || 0 });
   }
-  // the sign-ins blocked after wrong passwords open again (someone locked out by mistake)
+  // what is blocked now after wrong passwords or too many tries (15 minutes): one row per account, email or
+  // network, with who it is when it is an account; a network only by a short mark of its hash
+  if (p === "/admin/blocked" && m === "GET") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const since = Date.now() - 15 * 60e3;
+    const rows = (await env.DB.prepare("SELECT k, COUNT(*) AS n, MAX(t) AS last FROM auth_fails WHERE t>=?1 GROUP BY k ORDER BY last DESC LIMIT 200").bind(since).all()).results || [];
+    const hashes = rows.map((x) => /^(login|mail):([0-9a-f]{64})$/.exec(x.k)).filter(Boolean).map((x) => x[2]), ids = rows.map((x) => /^2fa:(.+)$/.exec(x.k)).filter(Boolean).map((x) => x[1]);
+    const who = {};
+    for (const h of hashes) { const a = await env.DB.prepare("SELECT id, display FROM accounts WHERE email_hash=?1").bind(h).first(); if (a) who[h] = a; }
+    for (const id of ids) { const a = await env.DB.prepare("SELECT id, display FROM accounts WHERE id=?1").bind(id).first(); if (a) who[id] = a; }
+    // networks are kept as a hash of their address (never the address): a short mark tells them apart
+    const mask = (v) => /^ip:[0-9a-f]{6}/.test(v) ? "#" + v.slice(3, 9) : "#" + String(v).slice(0, 6);
+    const limit = { login: 5, "2fa": 5, mail: 3, reset: 10, reg: 5, ip: 30 };
+    return json({ blocked: rows.map((x) => {
+      const m2 = /^(login|mail|2fa|reset|reg):(.+)$/.exec(x.k), kind = m2 ? m2[1] : "ip", v = m2 ? m2[2] : x.k, a = who[v];
+      const net = kind === "ip" || ((kind === "mail" || kind === "reset" || kind === "reg") && !/^[0-9a-f]{64}$/.test(v));
+      return { k: x.k, kind, n: x.n, last: x.last, account: a ? { id: a.id, display: a.display } : null, net: net ? mask(v) : null, blocked: x.n >= (net && kind === "mail" ? 10 : limit[kind] || 5) };
+    }) });
+  }
+  // the blocked sign-ins open again: one entry ({k}), one email ({email}: its sign-ins, codes and emails) or all of them
   if (p === "/admin/unlock" && m === "POST") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
-    const r = await env.DB.prepare("DELETE FROM auth_fails").run();
+    let r;
+    if (typeof body.k === "string" && body.k) r = await env.DB.prepare("DELETE FROM auth_fails WHERE k=?1").bind(body.k.slice(0, 200)).run();
+    else if (typeof body.account === "string" && /^[A-Za-z0-9]{8,40}$/.test(body.account)) {
+      const a = await env.DB.prepare("SELECT id, email_hash FROM accounts WHERE id=?1").bind(body.account).first();
+      if (!a) return err("account not found", 404);
+      r = await env.DB.prepare("DELETE FROM auth_fails WHERE k IN (?1, ?2, ?3)").bind("login:" + a.email_hash, "mail:" + a.email_hash, "2fa:" + a.id).run();
+    } else if (typeof body.email === "string" && body.email.includes("@")) {
+      const eh = await emailHash(env, body.email), a = await env.DB.prepare("SELECT id FROM accounts WHERE email_hash=?1").bind(eh).first();
+      r = await env.DB.prepare("DELETE FROM auth_fails WHERE k IN (?1, ?2, ?3)").bind("login:" + eh, "mail:" + eh, "2fa:" + (a ? a.id : "-")).run();
+    } else if (body.all === true) r = await env.DB.prepare("DELETE FROM auth_fails").run();
+    else return err("say what to unblock", 400);
     return json({ ok: true, cleared: (r.meta && r.meta.changes) || 0 });
+  }
+  // help with an account (support and moderation): confirm its email, turn off its two-step sign-in (a lost
+  // phone), sign it out everywhere, or give it another public name (an offensive one)
+  const ua = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})\/(verify|2fa-off|signout|rename)$/);
+  if (ua && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const id = ua[1], a = await env.DB.prepare("SELECT id FROM accounts WHERE id=?1").bind(id).first();
+    if (!a) return err("account not found", 404);
+    if (ua[2] === "verify") await env.DB.prepare("UPDATE accounts SET verified=1 WHERE id=?1").bind(id).run();
+    if (ua[2] === "2fa-off") await env.DB.batch([env.DB.prepare("UPDATE accounts SET totp=NULL, totp_on=0, totp_pending=NULL WHERE id=?1").bind(id), env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id)]);
+    if (ua[2] === "signout") await env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id).run();
+    if (ua[2] === "rename") {
+      const display = cleanName(body.name);
+      if (!display) return err("choose a public name", 400);
+      if (await nameTaken(env, display, id)) return err("this nickname is already taken", 409);
+      await env.DB.batch([env.DB.prepare("UPDATE accounts SET display=?2, name_kind='nick' WHERE id=?1").bind(id, display), env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(id, display)]);
+    }
+    return json({ ok: true });
+  }
+  // the latest sessions uploaded to the server (every account): what is coming in
+  if (p === "/admin/sessions" && m === "GET") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare(`SELECT s.id, s.started, s.track, s.track_config AS trackConfig, s.car, s.kind, s.laps, s.game, s.official, s.cat, a.display AS who, a.id AS accountId
+      FROM sessions s LEFT JOIN accounts a ON 'acct:'||a.id=s.uploader ORDER BY s.started DESC LIMIT 100`).all();
+    return json({ sessions: r.results || [] });
   }
   // a supporter hides (or shows again) their own badge
   if (p === "/profile/badge" && m === "POST") {

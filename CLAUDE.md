@@ -30,8 +30,10 @@
   (`DISC_IC`), never copied; the same discipline cards are in Community and in "Choose a session".
 - Analysis (lap analyzer and coach): "Choose a session" is a window (discipline, kind of session, car
   and track, a day you drove on the calendar, then the session) that opens by itself when you enter
-  Analysis from another tab; the bars only show what is chosen. The phone apps filter their session
-  list the same way.
+  Analysis from another tab; the bars only show what is chosen; the car and the track are two
+  filters. The phone apps filter their session list the same way. Laps A and B are one choice for the
+  lap analyzer and the coach (`ANASEL`, a lap known by itself, not by its place in a list), with the same
+  default and the model's references as B in both; "MY BEST" goes after the time.
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin
@@ -48,7 +50,9 @@
   Discord invite, its schedule, cars and language.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
-  the leagues, the server's emails and the tools (rebuild the coach models, unblock sign-ins). An admin
+  the leagues, the latest sessions, the server's emails and the tools (rebuild the coach models; the
+  blocked sign-ins one by one, by email or all; per account: confirm its email, turn off its two-step
+  sign-in, sign it out everywhere, rename it). Networks are only ever a hash of their address. An admin
   can see the app as a normal user on one device (the shield in the header, the admin panel, or
   Settings on the phones): everything for admins and in development hides until the admin view is back.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
@@ -66,6 +70,8 @@
 - Deleting your own account never deletes what the leaderboard shows or what the model learns from:
   those laps stay as an anonymous driver (`deleteAccount` in `cloud/src/accounts.js`); everything
   else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
+- Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
+  installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
 - PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
   itself when no sim is running (unless switched off in Settings → About).
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).

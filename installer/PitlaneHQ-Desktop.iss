@@ -1,4 +1,4 @@
-; Pitlane HQ Desktop installer (Inno Setup 6): the native Windows window (preview) with its own copy
+﻿; Pitlane HQ Desktop installer (Inno Setup 6): the native Windows window (preview) with its own copy
 ; of the engine (PitlaneHQ.exe). Built by CI: iscc /DAppVersion=x.y.z installer\PitlaneHQ-Desktop.iss
 ; Installs for the current user only (no administrator needed). The .NET runtime is inside, so
 ; nothing else has to be installed; WebView2 is part of Windows 10/11.
@@ -55,3 +55,7 @@ Name: "{userdesktop}\Pitlane HQ Desktop"; Filename: "{app}\PitlaneHQ.Desktop.exe
 
 [Run]
 Filename: "{app}\PitlaneHQ.Desktop.exe"; Description: "{cm:LaunchProgram,Pitlane HQ Desktop}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; its own folder (with its browser data); the data of Pitlane HQ is the engine's and goes with Pitlane HQ
+Type: filesandordirs; Name: "{app}"
