@@ -95,7 +95,8 @@
   on the PC (admins too) until the owner says otherwise: profiles (no button, no Settings section, the PC keeps its
   one profile), Settings → Connections (`CONN_ON` in index.html) and Full telemetry. Per-car settings never
   apply (`carProfilesOn` in carprofiles.go), and a sync reload never closes or reopens the overlays. An overlay
-  window is the widget itself: no gap, rounded corners or border (`ovwin`, `noWinBorder`).
+  window is the widget itself: no gap, rounded corners or border (`ovwin`, `noWinBorder`); it fits its content's
+  height, except the standings and incidents (`OVFIT_FREE`), which keep the height you give them.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and

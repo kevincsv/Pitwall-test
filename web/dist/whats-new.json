@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.28",
+      "en": ["The standings overlay keeps its size instead of growing and shrinking."],
+      "es": ["El overlay de la clasificación mantiene su tamaño en vez de crecer y encoger."]
+    },
+    {
       "v": "0.8.27",
       "en": ["Moving an overlay looks cleaner: a frame, corner marks to resize and a small label."],
       "es": ["Mover un overlay se ve más limpio: un marco, marcas en las esquinas para el tamaño y una etiqueta pequeña."]

@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.28 beta
+
+**Fixed**
+- The standings overlay no longer grows and shrinks (looking like it closes and opens) every time the list
+  changes: it keeps the height you give it and the rows that do not fit are cut. The incidents overlay works
+  the same way.
+
 ## 0.8.27 beta
 
 **Changed**
