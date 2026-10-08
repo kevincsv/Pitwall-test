@@ -52,7 +52,13 @@
   telemetry; code viewers only watch (no DRINKS, no race summaries). Connect asks the PC first: a
   window there accepts or declines the device (by its name) and nothing is sent to it before you
   accept; an accepted device is remembered while Pitlane HQ runs. No Wi-Fi pairing panel and no
-  encryption wording on the Live card.
+  encryption wording on the Live card. The Live page is: your PC, watch another driver (the code gets
+  its dashes as you type), then the download, with the same gap between the boxes.
+- No text about encryption or about everything sync does in the account, sync, Live or community
+  screens (only notes the driver needs, like "your data does not need to be uploaded again"); the
+  "How your data is protected" list in About is the one place that explains it.
+- Signing in with an email that has no account says so and offers to create it (`no_account`).
+- The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
 - Leagues (in development, admins only until LEAGUES_OPEN=1): drivers post their league with a
   Discord invite, its schedule, cars and language.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every

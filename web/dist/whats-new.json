@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.8.17",
+      "en": [
+        "Signing in with an email that has no account says so and offers to create it.",
+        "Live: watch another driver first, the download below; the code gets its dashes by itself.",
+        "My account is centred and simpler; \"Compare with the community\" is always in the lap analyzer.",
+        "Phone apps: compact Analysis filters, and each track only once."
+      ],
+      "es": [
+        "Si inicias sesión con un email sin cuenta, te lo dice y te ofrece crearla.",
+        "En vivo: primero ver a otro piloto y la descarga debajo; el código pone sus guiones solo.",
+        "Mi cuenta está centrada y es más simple; \"Comparar con la comunidad\" siempre está en el analizador.",
+        "Apps del móvil: filtros de Análisis compactos y cada circuito una sola vez."
+      ]
+    },
+    {
       "v": "0.8.16",
       "en": [
         "The car card: what your car does on other tracks (hardest braking, shift speeds, top speed) against your lap, when nobody known is ahead of you here.",

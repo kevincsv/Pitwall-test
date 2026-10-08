@@ -4,6 +4,30 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.17 beta
+
+**New**
+- Signing in with an email that has no account says so ("There is no account with this email") and
+  offers to create it with the same email (web, PC and phone apps).
+- Admin → Server: the last emails sent and what happened to each one (delivered, bounced, marked as
+  spam, delayed), as Resend reports it, to find out why an email does not reach an inbox.
+
+**Fixed**
+- A new account's welcome window (with the downloads) no longer disappears right after signing in:
+  it opens a moment later, a tap outside does not close it, and it only counts as seen once you close it.
+
+**Changed**
+- Live: "Watch another driver" comes before "Download Pitlane HQ", with the same space between every
+  box; the share code gets its dashes by itself as you type.
+- My account is centred on wide screens, and says nothing about what syncs or how it is encrypted
+  (only what you need, like "your data does not need to be uploaded again").
+- "Compare with the community" is always in the lap analyzer, like in the coach.
+- Community: just "the fastest lap of every driver…", without "every lap saved in an account counts".
+- Leagues (in development): no "Read the news" button.
+- Phone apps: the Analysis filters are four small menus (discipline, kind of session, car, track) and
+  the days you drove open from a button, instead of long rows of chips; a track or car whose name
+  came with broken accents ("AutÃ³dromo") is shown right and only once.
+
 ## 0.8.16 beta
 
 **New**

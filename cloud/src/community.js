@@ -3,7 +3,7 @@
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
-import { mailReady } from "./email.js";
+import { mailReady, mailLog } from "./email.js";
 import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, getCarCard, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
@@ -268,6 +268,12 @@ export async function community(req, env, url) {
       counts,
       config: { patreon: !!env.PATREON_WEBHOOK_SECRET, leaguesOpen: env.LEAGUES_OPEN === "1", community: env.COMMUNITY !== "0", dataKey: !!env.DATA_KEY, pepper: !!env.EMAIL_PEPPER, admins: String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").filter(Boolean).length },
     });
+  }
+  // the last emails and whether they really arrived (Resend's answer for each one)
+  if (m === "GET" && p === "/admin/mail") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    return json({ items: await mailLog(env) });
   }
   if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
     const acc = await sessionAccount(req, env);

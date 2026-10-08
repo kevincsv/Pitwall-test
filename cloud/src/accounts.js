@@ -244,7 +244,12 @@ export async function accounts(req, env, url) {
     const eh = await emailHash(env, body.email), keys = ["login:" + eh, ip];
     if (await tooMany(env, keys, [5, 30])) return err("too many wrong passwords: wait 15 minutes", 429);
     const a = await env.DB.prepare("SELECT * FROM accounts WHERE email_hash=?1").bind(eh).first();
-    if (!a || !same(await authHash(a.auth_salt, body.auth), a.auth_hash)) {
+    // no account with this email: say so, so the driver creates one (the network's tries still count)
+    if (!a) {
+      await fail(env, [ip]);
+      return json({ error: "there is no account with this email: create one", code: "no_account" }, 404);
+    }
+    if (!same(await authHash(a.auth_salt, body.auth), a.auth_hash)) {
       await fail(env, keys);
       return err("wrong email or password", 401);
     }

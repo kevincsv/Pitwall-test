@@ -33,6 +33,32 @@ async function note(env, ok) {
   await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES (?1,?2,?3) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at")
     .bind(ok ? "mail_ok" : "mail_error", ok ? "" : JSON.stringify(lastError), Date.now()).run().catch(() => {});
 }
+// the last emails that went out (to whom, masked; Resend's id), so the admins can ask Resend whether they
+// arrived: "sent" by the server does not mean "in the inbox"
+const mask = (e) => { const [u, d] = String(e).split("@"); return (u || "").slice(0, 2) + "•••@" + (d || ""); };
+async function logSent(env, to, subject, via, id) {
+  const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='mail_log'").first().catch(() => null);
+  let l = [];
+  try { l = JSON.parse((row && row.v) || "[]"); } catch (e) {}
+  l.unshift({ at: Date.now(), to: mask(to), subject, via, id: id || "" });
+  await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('mail_log',?1,?2) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at")
+    .bind(JSON.stringify(l.slice(0, 10)), Date.now()).run().catch(() => {});
+}
+/** For the admins: the last emails and, for Resend's, what happened to them (delivered, bounced, complained…). */
+export async function mailLog(env) {
+  const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='mail_log'").first().catch(() => null);
+  let l = [];
+  try { l = JSON.parse((row && row.v) || "[]"); } catch (e) {}
+  for (const x of l.slice(0, 6)) {
+    if (x.via !== "resend" || !x.id || !env.RESEND_API_KEY) continue;
+    try {
+      const r = await fetch("https://api.resend.com/emails/" + encodeURIComponent(x.id), { headers: { authorization: "Bearer " + env.RESEND_API_KEY } });
+      const j = await r.json().catch(() => ({}));
+      x.state = r.ok ? j.last_event || "sent" : "unknown (" + r.status + ")";
+    } catch (e) { x.state = "unknown"; }
+  }
+  return l;
+}
 async function send(env, to, subject, text, link, button, l) {
   if (!mailReady(env)) { lastError = { at: Date.now(), message: "emails are not set up: EMAIL_FROM and SMTP_TOKEN (or RESEND_API_KEY) are missing" }; await note(env, false); return false; }
   try { return await send1(env, to, subject, text, link, button, l); }
@@ -50,7 +76,7 @@ async function send1(env, to, subject, text, link, button, l) {
     if (!r.ok) {
       lastError = { at: Date.now(), via: "smtp", ...r.error, from: env.EMAIL_FROM };
       console.error("email not sent", lastError);
-    } else lastError = null;
+    } else { lastError = null; await logSent(env, to, subject, "smtp", ""); }
     await note(env, r.ok);
     return r.ok;
   }
@@ -63,7 +89,7 @@ async function send1(env, to, subject, text, link, button, l) {
     // Resend said no (domain not verified, sender not allowed, bad key…): keep the reason for the admins' test
     lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
     console.error("email not sent", lastError);
-  } else lastError = null;
+  } else { lastError = null; const j = await r.json().catch(() => ({})); await logSent(env, to, subject, "resend", j.id); }
   await note(env, r.ok);
   return r.ok;
 }
