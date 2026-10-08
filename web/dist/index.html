@@ -1085,7 +1085,7 @@ html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwal
 @keyframes spmove{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 @media (prefers-reduced-motion:reduce){#splash .sp-bar i{animation:none;width:100%}}
 /* one menu everywhere (PC, web, phones): Home, Analysis, Community, Live, Account; the Planner (in development) only for admins, last */
-nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{order:2!important}nav.tabs button[data-g=community]{order:3!important}nav.tabs button[data-g=race]{order:4!important}nav.tabs button[data-g=account]{order:5!important}nav.tabs button[data-g=season]{order:6!important}nav.tabs button[data-g=more]{order:7!important}
+nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{order:2!important}nav.tabs button[data-g=community]{order:3!important}nav.tabs button[data-g=race]{order:4!important}nav.tabs button[data-g=overlays]{order:5!important}nav.tabs button[data-g=account]{order:6!important}nav.tabs button[data-g=season]{order:7!important}nav.tabs button[data-g=overlays]{display:none!important}html.pcapp nav.tabs button[data-g=overlays]{display:inline-flex!important}nav.tabs button[data-g=more]{order:7!important}
 </style>
 
 <noscript><p><a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/es/telemetria-iracing">Telemetría iRacing</a> · <a href="/records">iRacing records</a> · <a href="/downloads">Download</a></p></noscript>
@@ -1098,6 +1098,7 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
   <button class="conn" id="conn" type="button">…</button><span class="version-badge" id="appVersion" aria-label="Pitlane HQ version">v—</span>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-g="race" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></svg><span data-i18n="g.race"></span></button>
+    <button role="tab" data-g="overlays" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 4.5-9 4.5-9-4.5z" /><path d="m3 12 9 4.5 9-4.5" /><path d="m3 16.5 9 4.5 9-4.5" /></svg><span data-i18n="g.overlays"></span></button>
     <button role="tab" data-g="analysis" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="m19 9-5 5-4-4-3 3" /></svg><span data-i18n="g.analysis"></span></button>
     <button role="tab" data-g="community" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><path d="M16 3.128a4 4 0 0 1 0 7.744" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><circle cx="9" cy="7" r="4" /></svg><span data-i18n="g.community"></span></button>
     <button role="tab" data-g="season" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M8 13h.01" /><path d="M12 13h.01" /><path d="M16 13h.01" /><path d="M8 17h.01" /><path d="M12 17h.01" /><path d="M16 17h.01" /></svg><span data-i18n="g.season"></span></button>
@@ -2066,7 +2067,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.32",APP_STAGE="beta";
+const WEB_VERSION="0.8.33",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -4384,7 +4385,7 @@ document.addEventListener("visibilitychange",keepAwake);
 /* ===================== navigation ===================== */
 let CUR_VIEW="live";
 const tabs=[...document.querySelectorAll("nav.tabs button")];
-const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres","overlays"],analysis:["laps","coach","cloudlaps","data","fulltelemetry"],season:["calendar","series","news","goals"],rig:[],community:["community","leagues"],account:["me","account","plan"],settings:["settings"]};
+const GROUPS={home:["home"],race:["live","field","engineer","strategy","tyres"],overlays:["overlays"],analysis:["laps","coach","cloudlaps","data","fulltelemetry"],season:["calendar","series","news","goals"],rig:[],community:["community","leagues"],account:["me","account","plan"],settings:["settings"]};
 // Data and Full telemetry: hidden from everyone for now (admins included); ADMIN_ANALYSIS would add a view back for admins
 const ADMIN_ANALYSIS=[];GROUPS.analysis=GROUPS.analysis.filter(v=>v!=="fulltelemetry");GROUPS.analysis=GROUPS.analysis.filter(v=>v!=="data"&&!ADMIN_ANALYSIS.includes(v));
 if(!FEATURES.goals)GROUPS.season=GROUPS.season.filter(v=>v!=="goals");
@@ -4400,10 +4401,10 @@ if(PHONE){GROUPS.account=GROUPS.account.filter(v=>!["haptics","rig","cars"].incl
 GROUPS.account=GROUPS.account.filter(v=>v!=="haptics");
 (()=>{const v=document.getElementById("v-haptics"),w=document.getElementById("hapWrap");if(v&&w){while(v.firstChild)w.appendChild(v.firstChild);const h=w.querySelector("h1");if(h){const h2=document.createElement("h2");h2.setAttribute("data-i18n","tab.haptics");h2.style.margin="0";h.replaceWith(h2)}}})();
 // the phone is a companion: plan races, see tracks and race analyses, the community; live telemetry comes from the PC
-if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Analysis","Análisis","Analyse","Análise"];I18N["g.race"]=["Live","En vivo"];if(typeof applyI18n==="function")applyI18n()},0)}
+if(PHONE){GROUPS.analysis=["laps","coach","cloudlaps"];document.documentElement.classList.add("phone");setTimeout(()=>{I18N["g.analysis"]=["Analysis","Análisis","Analyse","Análise"];I18N["g.race"]=["Telemetry","Telemetría","Telemetrie","Telemetria"];if(typeof applyI18n==="function")applyI18n()},0)}
 // the PC app collects telemetry and analyses it; planning races and the iRacing profile live on the phone and the web
 const PCAPP=!COMPANION&&!PHONE,PC_OFF=["calendar","series","news","goals","account"];
-if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}
+if(PCAPP){delete GROUPS.season;document.documentElement.classList.add("pcapp")}else delete GROUPS.overlays; // overlays sit on top of the game: only on the PC
 if(!FEATURES.voice)GROUPS.race=GROUPS.race.filter(v=>v!=="engineer");if(!FEATURES.subscription)GROUPS.account=GROUPS.account.filter(v=>v!=="plan");
 // Connections (iRacing, Garage 61, own site, Discord) and the iRacing page: only for admins of the Pitlane HQ server
 /* an admin can see Pitlane HQ as everyone else does (to test it), on this device: everything for admins and
@@ -4641,7 +4642,7 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
     <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
 /* ===================== race scheduler (calendar) ===================== */
-Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
  "tab.calendar":["Calendar","Calendario"],"tab.rigGear":["Programs & gear","Programas y equipo"],"tab.haptics":["Haptics","Hápticos"]});
 const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
 /* one reminder before each race: 5, 15, 30 or 60 minutes (choosing the one already on switches it off) */
@@ -6410,7 +6411,7 @@ function openMore(){let m=$("#moreSheet");if(!m){m=document.createElement("div")
   const f=m.querySelector("button");if(f)f.focus()}
 
 /* ===================== my account: Pitlane HQ sign-in, encrypted sync, public name ===================== */
-Object.assign(I18N,{"tab.cloudlaps":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Live","En vivo","Live","Ao vivo"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
+Object.assign(I18N,{"tab.cloudlaps":["My races","Mis carreras","Meine Rennen","Minhas corridas"],"cloudlapsSub":["Every session your PC uploads to your account: open one in the lap analyzer or the braking coach","Cada sesión que tu PC sube a tu cuenta: ábrela en el analizador de vueltas o en el coach de frenada","Jede Sitzung, die dein PC in dein Konto lädt: öffne sie in der Rundenanalyse oder im Brems-Coach","Cada sessão que seu PC envia para sua conta: abra no analisador de voltas ou no coach de frenagem"],"shareSub":["Connect your phone to your live telemetry, or share it with someone else","Conecta tu móvil a tu telemetría en vivo, o compártela con otra persona"],"tab.share":["Phone & sharing","Móvil y compartir"],"irWait":["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Esperando a que iRacing active el OAuth oficial para apps. Cuando esté listo, conectar tu cuenta de iRacing será un solo clic aquí."],"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.season":["Planner","Planner"],"g.rig":["Programs","Programas"],"g.account":["Account","Cuenta"],
  "tab.me":["My account","Mi cuenta"],"tab.account":["iRacing","iRacing"],"tab.haptics":["Shakers & haptics","Shakers y hápticos"],"tab.cars":["Per-car settings","Ajustes por coche"],"tab.setups":["Setups","Setups"]});
 let ME=null,SETUP_TAB="mine";
 /* how others see you: your iRacing name (the registered session's), a nickname, or "Anonymous" (nothing of yours carries a name) */

@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.33 beta
+
+**Changed**
+- Live is called Telemetry now, on the PC, the web and the phone apps.
+- Overlays has its own tab in the main menu, next to Telemetry (on the PC, where overlays work), instead of being
+  inside Live.
+
 ## 0.8.32 beta
 
 **Fixed**
