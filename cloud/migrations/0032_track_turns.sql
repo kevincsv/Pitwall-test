@@ -23,3 +23,7 @@ CREATE TABLE IF NOT EXISTS track_pits (
 -- 100R 4-5, Hairpin 6-7, 8, 300R 9, Dunlop 10-11, 12, 13, Netz 14-15, Panasonic 16); admins can move them on the map
 INSERT OR IGNORE INTO track_turns (game, track_id, turns, updated) VALUES ('iracing', 444,
   '[0.1717,0.203,0.2922,0.3323,0.397,0.4461,0.4706,0.5085,0.5776,0.6278,0.6412,0.668,0.688,0.7271,0.755,0.8063]', 1791504000000);
+
+-- every model and car card relearns with 0.9.0's rules: the fastest line known for the coach (lineXY)
+UPDATE model_cache SET dirty = 1;
+UPDATE car_cards SET dirty = 1;

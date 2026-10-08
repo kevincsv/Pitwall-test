@@ -15,7 +15,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   tells you when you brake at the same point but on the wrong part of the track, turn in too far inside, miss the
   apex or do not use the whole track on exit, in metres. Against a rival's lap it uses the fastest line known.
 - **Track maps like iRacing's**: a road with depth, both laps' lines, the official turn numbers (T1 … T16 at Fuji)
-  and the pit lane with its entry and exit, on the PC, the web, the phones and the map overlay.
+  and the direction of the lap, on the PC, the web, the phones and the map overlay.
 - **Licence summary on Home**: the iRating and licence of each category on its own, with what your last races in
   it gave. It updates when you join a session with iRacing and Pitlane HQ open.
 - **Driver notes**: mark any driver as dangerous, careful, clean or a friend, with a note only you see; their

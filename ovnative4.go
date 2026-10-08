@@ -71,8 +71,6 @@ type ovExtra struct {
 	mapKey   string
 	mapX     []float64
 	mapY     []float64
-	pitN     int // the pit lane: points of a lap there and [point, metres to the left] (pitlane.go)
-	pitPts   [][2]float64
 	modelKey string
 	modelRef *ovLap
 	modelAt  time.Time
@@ -252,17 +250,9 @@ func (st *ovState) loadMap() {
 				d.X, d.Y, ok = c.X, c.Y, true
 			}
 		}
-		var pl struct {
-			N   int          `json:"n"`
-			Pts [][2]float64 `json:"pts"`
-		}
-		havePit := tid > 0 && st.fetchJSON("/api/pitlane?trackId="+strconv.Itoa(tid), &pl) && pl.N > 0 && len(pl.Pts) >= 10
 		if ok {
 			st.mu.Lock()
 			st.ext.mapX, st.ext.mapY = d.X, d.Y
-			if havePit {
-				st.ext.pitN, st.ext.pitPts = pl.N, pl.Pts
-			}
 			st.mu.Unlock()
 		}
 	}()
@@ -403,43 +393,29 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 	}
 	// the pit lane beside the track, dashed, like iRacing's map; the cars on the pit road are drawn on it
-	// a pit lane 15 m off the track would sit under the drawn road: the lane moves out, same shape, like iRacing's maps
-	pitGain := 1.0
-	if far := func() float64 {
-		m := 0.0
-		for _, q := range st.ext.pitPts {
-			m = math.Max(m, math.Abs(q[1]))
-		}
-		return m
-	}(); far > 0 && 13*z/sc > far {
-		pitGain = 13 * z / sc / far
-	}
-	pitAt := func(k int) (float64, float64) {
-		q := st.ext.pitPts[k]
-		q[1] *= pitGain
-		j := int(math.Round(q[0]*float64(N)/float64(st.ext.pitN))) % N
-		w := func(i int) int { return ((i % N) + N) % N }
-		tx, ty := X[w(j+2)]-X[w(j-2)], Y[w(j+2)]-Y[w(j-2)]
-		tm := math.Max(math.Hypot(tx, ty), 1e-6)
-		return P(X[w(j)]-ty/tm*q[1], Y[w(j)]+tx/tm*q[1])
-	}
-	pits := len(st.ext.pitPts) >= 10 && st.ext.pitN > 0
-	if pits {
-		for k := 1; k < len(st.ext.pitPts); k++ {
-			if st.ext.pitPts[k][0]-st.ext.pitPts[k-1][0] > 4 || k%3 == 0 {
-				continue
-			}
-			x0, y0 := pitAt(k - 1)
-			x1, y1 := pitAt(k)
-			c.line(x0, y0, x1, y1, 3*z, colMuted, 0.9)
-		}
-	}
 	// the start line
 	if N > 4 {
 		sx, sy := P(X[0], Y[0])
 		tx, ty := P(X[3], Y[3])
 		a := math.Atan2(ty-sy, tx-sx) + math.Pi/2
 		c.line(sx+math.Cos(a)*9*z, sy+math.Sin(a)*9*z, sx-math.Cos(a)*9*z, sy-math.Sin(a)*9*z, 3*z, colText, 1)
+		// the way the cars go, like iRacing's maps: an arrow beside the line, on the outside of the track
+		if N > 20 {
+			qx, qy := P(X[max(2, N/60)], Y[max(2, N/60)])
+			ux, uy := qx-sx, qy-sy
+			m := math.Max(math.Hypot(ux, uy), 1e-6)
+			ux, uy = ux/m, uy/m
+			nx, ny := -uy, ux
+			if (sx-W/2)*nx+(sy-H/2)*ny < 0 {
+				nx, ny = -nx, -ny
+			}
+			bx, by := sx+nx*15*z, sy+ny*15*z
+			tx, ty := bx+ux*20*z, by+uy*20*z
+			h := 7 * z
+			c.line(bx, by, tx-ux*h, ty-uy*h, 2.6*z, colBad, 1)
+			c.line(tx, ty, tx-ux*h+nx*h*.6, ty-uy*h+ny*h*.6, 2.6*z, colBad, 1)
+			c.line(tx, ty, tx-ux*h-nx*h*.6, ty-uy*h-ny*h*.6, 2.6*z, colBad, 1)
+		}
 	}
 	// the cars: you in amber, a lap ahead red, a lap behind blue, the rest light; their place inside
 	pct, pos, pit, laps := st.arr("CarIdxLapDistPct"), st.arr("CarIdxPosition"), st.arr("CarIdxOnPitRoad"), st.arr("CarIdxLap")
@@ -470,19 +446,6 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	numF := ovFace(fkDataB, 9.5*z)
 	for _, i := range idx {
 		x, y := at(pct[i])
-		if pits && i < len(pit) && pit[i] != 0 { // on the pit road: on the pit lane, at its point nearest the car's
-			b, bd := -1, math.Inf(1)
-			for k, q := range st.ext.pitPts {
-				d := math.Abs(q[0]/float64(st.ext.pitN) - pct[i])
-				d = math.Min(d, 1-d)
-				if d < bd {
-					b, bd = k, d
-				}
-			}
-			if b >= 0 && bd < 0.01 {
-				x, y = pitAt(b)
-			}
-		}
 		col := uint32(colText)
 		lapDiff := 0.0
 		if me >= 0 && me < len(pct) && i < len(laps) && me < len(laps) {
