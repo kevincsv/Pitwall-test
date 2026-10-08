@@ -319,3 +319,29 @@ func TestParseNews(t *testing.T) {
 		t.Fatalf("news: %+v %v", n, err)
 	}
 }
+func TestFixRaceIncidents(t *testing.T) {
+	r := &raceReport{Inc: 0, Laps: []raceLap{{N: 1}, {N: 2}, {N: 3, Inc: 1}}}
+	ch := fixRaceIncidents(r, []lapInc{{N: 2, I: 4}, {N: 3, I: 2}}, []incEvent{{Lap: 2, D: 300, Pts: 4, Kind: "contact"}, {Lap: 3, D: 10, Pts: 1, Kind: "weird"}}, 6)
+	if !ch || r.Laps[1].Inc != 4 || r.Laps[2].Inc != 1 || len(r.Incidents) != 2 || r.Incidents[1].Kind != "off" || r.Inc != 6 {
+		t.Fatalf("incidents not filled in: %+v", r)
+	}
+	if fixRaceIncidents(r, []lapInc{{N: 2, I: 4}}, nil, 3) {
+		t.Fatal("a second repair with nothing new changes nothing")
+	}
+}
+
+func TestLicClassAndTestDrive(t *testing.T) {
+	for in, want := range map[string]string{"B 3.21": "B", "a 4.99": "A", "WC 4.99": "P", "Pro 3.0": "P", "R 2.50": "R", "": "", "X 1.0": ""} {
+		if got := licClass(in); got != want {
+			t.Fatalf("licClass(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if !isTestDrive("Offline Testing") || isTestDrive("Practice") || isTestDrive("Race") || isTestDrive("Lone Qualify") {
+		t.Fatal("only a test drive is a test drive")
+	}
+	r := &raceReport{TrackID: 166, Track: "Okayama", Best: 99, Cat: "Road", Official: true, Results: []raceResult{{Name: "x", Laps: 5, Best: 98.5, CarID: 67, key: "k1", Lic: "A"}}}
+	top := fieldTopLaps(r)
+	if len(top) != 1 || top[0]["lic"] != "A" || top[0]["cat"] != "Road" || top[0]["official"] != true || top[0]["kind"] != "Race" {
+		t.Fatalf("a rival's lap carries their class, the discipline and the official flag: %v", top)
+	}
+}

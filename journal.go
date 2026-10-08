@@ -53,12 +53,13 @@ type carTrack struct {
 	Subsession             int
 	Official               bool
 	CarClassID, NumClasses int
+	Cat                    string // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
 }
 
 func currentCarTrack(y string) carTrack {
 	c := carTrack{TrackID: atoi(yamlField(y, "TrackID")), Track: yamlField(y, "TrackDisplayName"), SeriesID: atoi(yamlField(y, "SeriesID")),
 		SeasonID: atoi(yamlField(y, "SeasonID")), Subsession: atoi(yamlField(y, "SubSessionID")), Official: yamlField(y, "Official") == "1",
-		NumClasses: atoi(yamlField(y, "NumCarClasses"))}
+		NumClasses: atoi(yamlField(y, "NumCarClasses")), Cat: yamlField(y, "Category")}
 	if cfg := yamlField(y, "TrackConfigName"); cfg != "" {
 		c.Track += " · " + cfg
 	}
@@ -197,6 +198,7 @@ type raceResult struct {
 	Out      string    `json:"out,omitempty"`
 	Me       bool      `json:"me,omitempty"`
 	IRChange int       `json:"irChange,omitempty"`
+	Lic      string    `json:"lic,omitempty"` // the license class (R, D, C, B, A, P) of the driver in this discipline
 	carIdx   int
 	key      string // an opaque key of the driver (never their id or name): the same driver gets the same key
 }
@@ -224,6 +226,7 @@ type raceReport struct {
 	SeasonID    int          `json:"seasonId,omitempty"`
 	Subsession  int          `json:"subsession,omitempty"`
 	Official    bool         `json:"official,omitempty"`
+	Cat         string       `json:"cat,omitempty"` // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
 	Start       int          `json:"start"`
 	Finish      int          `json:"finish"`
 	Field       int          `json:"field"`
@@ -247,6 +250,60 @@ type raceReport struct {
 	Incidents   []incEvent   `json:"incidents,omitempty"` // where on the lap each incident happened  // braking points of you and the drivers around you
 	TrackLen    float64      `json:"trackLen,omitempty"`
 	Posted      bool         `json:"posted,omitempty"`
+}
+
+// lapInc: the incidents of one lap of a race
+type lapInc struct {
+	N int `json:"n"`
+	I int `json:"i"`
+}
+
+// fixRaceIncidents fills in the incidents of a race summarised before they were recorded like the
+// laps' (older versions): per lap where the summary has none, where on the lap when it has no list,
+// and the total when it is higher. It only adds, never removes. true when the summary changed.
+func fixRaceIncidents(x *raceReport, laps []lapInc, evs []incEvent, inc int) bool {
+	changed := false
+	per := map[int]int{}
+	for _, l := range laps {
+		if l.N > 0 && l.I > 0 && l.I < 1000 {
+			per[l.N] = l.I
+		}
+	}
+	for k := range x.Laps {
+		if x.Laps[k].Inc == 0 && per[x.Laps[k].N] > 0 {
+			x.Laps[k].Inc = per[x.Laps[k].N]
+			changed = true
+		}
+	}
+	if len(x.Incidents) == 0 && len(evs) > 0 {
+		for _, e := range evs {
+			if e.Lap <= 0 || e.Pts <= 0 || e.Pts > 100 || e.D < 0 || e.D > 50000 || len(x.Incidents) >= 500 {
+				continue
+			}
+			switch e.Kind {
+			case "off", "loss", "light", "contact":
+			default:
+				e.Kind = "off"
+			}
+			x.Incidents = append(x.Incidents, e)
+			changed = true
+		}
+	}
+	total := 0
+	for _, l := range x.Laps {
+		total += l.Inc
+	}
+	ev := 0
+	for _, e := range x.Incidents {
+		ev += e.Pts
+	}
+	for _, v := range []int{total, ev, inc} {
+		if v > x.Inc && v < 10000 {
+			x.Inc = v
+			changed = true
+		}
+	}
+	return changed
 }
 
 type incEvent struct {
@@ -422,6 +479,7 @@ func sessionResults(y string, sn int) []raceResult {
 			r.Name, r.Car, r.Class = yamlField(d, "UserName"), yamlField(d, "CarScreenName"), yamlField(d, "CarClassShortName")
 			r.IR, r.ClassID, r.CarID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID")), atoi(yamlField(d, "CarID"))
 			r.key = driverKey(yamlField(d, "UserID"))
+			r.Lic = licClass(yamlField(d, "LicString"))
 			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
 			// up to date are the ones per driver (the team's in a team race, else the driver's own)
 			if r.Inc == 0 {
@@ -485,7 +543,7 @@ func strengthOfField(irs []int) int {
 func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	m := t.meta
 	r := &raceReport{Game: gameTag(currentGame()), ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
-		Subsession: m.Subsession, Official: m.Official, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1, App: appVersion}
+		Subsession: m.Subsession, Official: m.Official, Cat: m.Cat, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1, App: appVersion}
 	// the incidents the lap recorder saw (what the analysis and the coach show): one story everywhere
 	if evs, per := recorderIncidents(sessionNumOf(t.id), t.laps); per != nil {
 		r.Incidents = evs
@@ -620,6 +678,20 @@ func sessionNumOf(id string) int {
 	return -1
 }
 
+// licClass: the class letter of an iRacing license ("B 3.21" → "B", "WC 4.99" or "Pro" → "P"), "" when unknown
+func licClass(s string) string {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	switch {
+	case s == "":
+		return ""
+	case strings.HasPrefix(s, "WC"), strings.HasPrefix(s, "PRO"):
+		return "P"
+	case strings.ContainsRune("RDCBAP", rune(s[0])):
+		return s[:1]
+	}
+	return ""
+}
+
 // fieldTopLaps: the best lap of every other driver of your class (your own laps go the usual way), as
 // the community takes them: time, sectors, car and track, the speed trace their position gave when
 // the PC saw the lap whole, and an opaque key per driver. No names. Only the faster rivals with a
@@ -633,7 +705,13 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if x.Me || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
 			continue
 		}
-		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key}
+		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
+		if x.Lic != "" {
+			b["lic"] = x.Lic
+		}
+		if r.Cat != "" {
+			b["cat"] = r.Cat
+		}
 		if len(x.Sectors) == 3 {
 			b["sectors"] = x.Sectors
 		}
@@ -748,8 +826,13 @@ func registerJournalRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("/api/races", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			var in struct{ Action, ID string }
-			json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in)
+			var in struct {
+				Action, ID string
+				Laps       []lapInc   `json:"laps"`      // "incidents": the incidents of each lap, from the account's laps of the race
+				Incidents  []incEvent `json:"incidents"` // and where on the lap they happened
+				Inc        int        `json:"inc"`
+			}
+			json.NewDecoder(io.LimitReader(r.Body, 1<<17)).Decode(&in)
 			journalMu.Lock()
 			var found *raceReport
 			for i, x := range races {
@@ -765,6 +848,9 @@ func registerJournalRoutes(mux *http.ServeMux) {
 								x.Laps[k].Cut = false
 							}
 						}
+						writeJSONFile(journalFile("races.json"), races)
+					}
+					if in.Action == "incidents" && fixRaceIncidents(x, in.Laps, in.Incidents, in.Inc) {
 						writeJSONFile(journalFile("races.json"), races)
 					}
 					break

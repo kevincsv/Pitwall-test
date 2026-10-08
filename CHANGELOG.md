@@ -4,6 +4,45 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.11 beta
+
+**New**
+- **Leaderboards by discipline and license.** Community opens on the five iRacing disciplines (Oval,
+  Sports Car, Formula Car, Dirt Oval, Dirt Road) with how many cars, tracks and laps each has. Each
+  leaderboard is by lap time, shows every driver's license class with the colours of the sim and
+  can be filtered by class (R, D, C, B, A, Pro); a driver keeps their place in the whole board.
+- **Your fastest lap is shared by itself.** As soon as a lap is saved in your account, the fastest
+  of each car and track goes to the leaderboard, with its telemetry, under your public name (or as
+  Anonymous if you chose so). "Share from your account" is gone. The laps already in the accounts
+  were added when the server updated.
+- **Driver profiles.** Tap a driver on a leaderboard: their nickname (never the iRacing name), their
+  license class in each discipline, their recent races (position, places gained, incidents, iRating,
+  best lap) and their laps on the leaderboards. Yours is in Community → My profile (and in the
+  phone apps' Account). Anonymous laps open no profile and never show on one; only the admins see
+  them.
+- **Supporter badge.** People who donate get a ♥ Supporter badge next to their name, given and taken
+  away by hand from the admin profile; a supporter hides or shows it with one click on their profile.
+- **Leagues** (in development): a new Community tab. Admins see what is coming; everyone else reads
+  that we are working on it.
+- **The coach and the lap analyzer filter your sessions**: first the license (discipline), then the
+  car and track, then the session; a line under the controls says which car, track, discipline and
+  license class you are looking at.
+
+**Fixed**
+- **The coach says when you are the fastest.** With your best lap being the record of the car and
+  track, the record and the next level stayed empty; now the coach says you are the fastest among
+  the drivers it knows (on the phones, the leaderboard says it).
+- **Incidents in race summaries made before 0.8.7.** Races summarised by an older PC showed no
+  incidents while the analyzer had them: the summaries are completed from the account's laps of
+  that race (per lap and where on the lap) and saved in the race history, so every device shows them.
+- **Test drives never teach the model nor go to the leaderboard**: anything can happen in one. Only
+  practice, qualifying and race laps count, and for the model only sessions of official series
+  (hosted, league and AI sessions still show on the leaderboard). What the model learnt from test
+  drives before is forgotten.
+- **A main tab always opens on its first sub-tab** (Home, Analysis, Community…): where you were last
+  time is no longer kept.
+- The discipline of road "Cup" cars (MX-5 Cup, Porsche Cup) was taken as oval.
+
 ## 0.8.10 beta
 
 **Fixed**

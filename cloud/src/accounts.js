@@ -102,6 +102,7 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM email_tokens WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM login_pending WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM profile_races WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
 ];
 

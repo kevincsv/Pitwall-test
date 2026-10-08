@@ -22,12 +22,20 @@
   driver just ahead. It has no panel of its own: the coach shows the record, the next level and
   your pace among the drivers known there, and both views offer its references as lap B; the lap
   list is coloured by it. No second "ideal" or theoretical lap anywhere.
+  Test drives never teach the model nor go to the leaderboards; the model learns only from practice,
+  qualifying and race laps of official series (hosted, league and AI laps still show on the boards).
+- Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road)
+  with each driver's license class. The fastest lap of each car and track in an account is shared by
+  itself (no "share" button), under the public name or as Anonymous.
+- Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
+  never show on one (admins see them). The supporter badge is given by hand by the owner (admin
+  profile) and a supporter can hide their own. A main tab always opens on its first sub-tab.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts, the charts, the map, the sectors, the lap list and the braking points.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
-  NASCAR 26, team mode, the overlays on top of the game, and the Data and Full telemetry views.
+  NASCAR 26, team mode, leagues, the overlays on top of the game, and the Data and Full telemetry views.
   Switched off for now: setups, per-car settings, the Data view and sharing race analyses.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,

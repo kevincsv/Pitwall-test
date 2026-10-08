@@ -45,6 +45,9 @@ type cloudSession struct {
 	Game        string  `json:"game,omitempty"`
 	TrackID     int     `json:"trackId,omitempty"` // to share a lap from the account to the community
 	CarID       int     `json:"carId,omitempty"`
+	Lic         string  `json:"lic,omitempty"`      // your license in this session (iRacing's LicString, e.g. "B 3.21"): the leaderboard's class
+	Cat         string  `json:"cat,omitempty"`      // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
+	Official    *bool   `json:"official,omitempty"` // a session of an official series: only those teach the model
 }
 
 type cloudLap struct {
@@ -287,6 +290,14 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 		s.Car = yamlField(d, "CarScreenName")
 		s.CarID = atoi(yamlField(d, "CarID"))
 		s.Driver = yamlField(d, "UserName")
+		s.Lic = yamlField(d, "LicString")
+	}
+	if s.Game == "" || s.Game == "iracing" {
+		s.Cat = yamlField(y, "Category")
+		if o := yamlField(y, "Official"); o == "0" || o == "1" {
+			off := o == "1"
+			s.Official = &off
+		}
 	}
 	if si := listItem(y, "SessionNum", fmt.Sprint(sessionNum)); si != "" {
 		s.Kind = yamlField(si, "SessionType")
@@ -598,7 +609,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	}
 	recordBookLap(l.Time, l.Fuel, best)
 	if best {
-		shareLap(l)
+		shareLap(l, s)
 	}
 	if best && l.Trace.X != nil {
 		shareLayout(l, s)

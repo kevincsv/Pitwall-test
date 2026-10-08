@@ -2,6 +2,8 @@
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { downloads } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
+import { autoShare } from "./community.js";
+import { catMap, catOf, licOf } from "./categories.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -50,10 +52,11 @@ const posInt = (v) => (Number.isInteger(v) && v > 0 && v < 1e9 ? v : null);
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(
-    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game, track_id, car_id)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
-     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp, track_id=COALESCE(excluded.track_id, track_id), car_id=COALESCE(excluded.car_id, car_id)`
-  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId)).run();
+    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game, track_id, car_id, official, lic, cat)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)
+     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp, track_id=COALESCE(excluded.track_id, track_id), car_id=COALESCE(excluded.car_id, car_id), official=COALESCE(excluded.official, official),
+       lic=COALESCE(excluded.lic, lic), cat=COALESCE(excluded.cat, cat)`
+  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId), typeof s.official === "boolean" ? (s.official ? 1 : 0) : null, licOf(s.lic), str(s.cat, 20)).run();
   return null;
 }
 
@@ -103,7 +106,10 @@ async function api(req, env, url) {
     }
     // a valid lap with telemetry: the community model learns it (works with only the PC open)
     if ((body.laps || []).some((l) => l.valid !== false && l.trace)) await markModel(env, gameOf(body.session.game), posInt(body.session.trackId), posInt(body.session.carId));
-    return json({ ok: true });
+    // the fastest lap of each car and track goes to the leaderboard by itself once it is in the account
+    let shared = null;
+    if (role === "account") shared = await autoShare(env, me.name.slice(5), body.session.id, body.laps, { trackId: body.session.trackId, carId: body.session.carId, lic: body.session.lic, cat: body.session.cat }).catch(() => null);
+    return json({ ok: true, shared: !!(shared && shared.shared) });
   }
 
   if (p === "/api/sessions" && m === "GET") {
@@ -117,7 +123,18 @@ async function api(req, env, url) {
     if (own || q.get("who")) { args.push(own || q.get("who")); sql += `${args.length > 1 ? " AND" : " WHERE"} uploader=?${args.length}`; }
     sql += ` ORDER BY started DESC LIMIT ${lim}`;
     const { results } = await env.DB.prepare(sql).bind(...args).all();
-    return json(results);
+    // each session in its discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road) with your license class in it:
+    // the one of the session, else your current one in that discipline
+    const cm = await catMap(env).catch(() => ({ tc: {}, c: {} }));
+    let lics = {};
+    if (own && own.startsWith("acct:")) {
+      const u = await env.DB.prepare("SELECT lics FROM community_users WHERE id=?1").bind(own.slice(5)).first().catch(() => null);
+      try { lics = JSON.parse((u && u.lics) || "{}") || {}; } catch (e) {}
+    }
+    return json((results || []).map(({ cat, lic, ...x }) => {
+      const c = (x.game || "iracing") === "iracing" ? catOf(cm, x.track_id, x.car_id, cat, x.track + (x.track_config ? " · " + x.track_config : ""), x.car) : null;
+      return { ...x, cat: c, lic: lic || (c && lics[c]) || null };
+    }));
   }
 
   if (p === "/api/bests" && m === "GET") {

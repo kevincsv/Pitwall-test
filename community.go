@@ -260,7 +260,14 @@ func fridayDriver() string {
 	return cleanText(name, 32)
 }
 
-func shareLap(l cloudLap) {
+// isTestDrive: a test drive (iRacing's "Offline Testing"): anything can happen in one, so its laps
+// never go to the leaderboard nor teach the model.
+func isTestDrive(kind string) bool { return strings.Contains(strings.ToLower(kind), "test") }
+
+func shareLap(l cloudLap, s cloudSession) {
+	if isTestDrive(s.Kind) {
+		return
+	}
 	commMu.Lock()
 	on, traces, anon := commCfg.ShareTimes, commCfg.ShareTraces, commCfg.Anonymous
 	commMu.Unlock()
@@ -295,7 +302,16 @@ func shareLap(l cloudLap) {
 			commNote(err)
 			return
 		}
-		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon, "game": game}
+		body := map[string]any{"carId": c.CarID, "car": c.Car, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "sectors": l.Sectors, "anon": anon, "game": game, "kind": s.Kind}
+		if guest == "" && s.Lic != "" { // a friend's lap in DRINKS mode is not of your license
+			body["lic"] = s.Lic
+		}
+		if s.Cat != "" {
+			body["cat"] = s.Cat
+		}
+		if s.Official != nil {
+			body["official"] = *s.Official
+		}
 		if guest != "" {
 			body["guest"] = guest
 		}

@@ -1,6 +1,25 @@
 {
   "versions": [
     {
+      "v": "0.8.11",
+      "en": [
+        "Leaderboards by discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road) and license class, by lap time.",
+        "Your fastest lap of each car and track goes to the leaderboard by itself once it is in your account.",
+        "Driver profiles: tap a driver on a leaderboard to see their license classes, recent races and laps. Yours is in Community → My profile.",
+        "Supporter badge for the people who donate, and a Leagues tab (in development).",
+        "The coach says when you are the fastest, and filters your sessions by license, then car and track.",
+        "Older race summaries get the incidents the analyzer already had; test drives no longer count for the model or the leaderboards."
+      ],
+      "es": [
+        "Leaderboards por disciplina (Óvalo, Sports Car, Fórmula, Óvalo de tierra, Tierra) y clase de licencia, por tiempo de vuelta.",
+        "Tu vuelta más rápida de cada coche y circuito va sola a la leaderboard en cuanto está en tu cuenta.",
+        "Perfiles de piloto: toca un piloto en una leaderboard para ver sus licencias, carreras recientes y vueltas. El tuyo está en Comunidad → Mi perfil.",
+        "Badge de supporter para quienes donan, y una pestaña de Ligas (en desarrollo).",
+        "El coach te dice cuando eres el más rápido, y filtra tus sesiones por licencia y luego por coche y circuito.",
+        "Los resúmenes de carreras antiguos reciben los incidentes que ya tenía el análisis; los test drives ya no cuentan para el modelo ni las leaderboards."
+      ]
+    },
+    {
       "v": "0.8.10",
       "en": [
         "Your account syncs by itself on the PC, the web and the phone apps: when they open, when they come back to the screen and a few seconds after every change. A name changed on the phone shows everywhere.",
