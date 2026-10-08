@@ -1951,7 +1951,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.12",APP_STAGE="beta";
+const WEB_VERSION="0.8.13",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -4284,6 +4284,9 @@ store.set=(k,v)=>{rawSet(k,v);if(MODE==="bridge"&&!REMOTE&&!OV.on&&PROFILE.id&&s
 function pushProfile(){const body=PROF_PUSH;PROF_PUSH={};if(!Object.keys(body).length)return;
   fetch("/api/profile/local",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).catch(()=>{})}
 function localKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++)out.push(localStorage.key(i))}catch(e){}return out}
+/* a start that pulls the profile reloads once to show it, never twice in a row: a setting this page rewrites
+   while it starts would otherwise reload it for ever */
+function profReloadOk(){try{const t=+sessionStorage.getItem("pw.profReload")||0;if(Date.now()-t<20000)return false;sessionStorage.setItem("pw.profReload",String(Date.now()))}catch(e){return false}return true}
 /* returns true when this screen must reload to show another profile's settings */
 async function pullProfile(){if(MODE!=="bridge"||REMOTE)return false;let j;try{j=await (await fetch("/api/profile/local")).json()}catch(e){return false}
   PROFILE.id=j.profile;PROFILE.name=(INFO&&INFO.profileName)||"";const loc=j.local||{},keys=Object.keys(loc).filter(syncable),prev=store.get("pw.profileId",null);
@@ -4443,7 +4446,7 @@ Object.assign(I18N,{"g.race":["Race","Carrera"],"g.overlays":["Overlays","Overla
 const EVKIND=[["race","League / special race","Liga / carrera especial"],["practice","Practice","Práctica"],["busy","Not available","No disponible"]];
 /* one reminder before each race: 5, 15, 30 or 60 minutes (choosing the one already on switches it off) */
 const pickRemind=m=>REMIND.length===1&&REMIND[0]===m?[]:[m];
-let EVENTS=store.get("pw.events",[]),REMIND=(()=>{let r=store.get("pw.remind",[5]);if(!store.get("pw.remind5",false)){store.set("pw.remind5",true);if(JSON.stringify(r)==="[15]"){r=[5];store.set("pw.remind",r)}}if(Array.isArray(r)&&r.length>1){r=[Math.min(...r)];store.set("pw.remind",r)}return Array.isArray(r)?r:[5]})(),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
+let EVENTS=store.get("pw.events",[]),REMIND=(()=>{let r=store.get("pw.remind",[5]);if(!store.get("pw.remind5",false)){store.set("pw.remind5",true);if(JSON.stringify(r)==="[15]"){r=[5];store.set("pw.remind",r)}}if(!Array.isArray(r))return[5];r=r.map(Number).filter(m=>m>0);return r.length>1?[Math.min(...r)]:r})(),CAL={mode:store.get("pw.calmode","week"),day:Date.now(),pick:null,q:"",ghosts:store.get("pw.calsugg",false),src:store.get("pw.calsrc",store.get("pw.fav",[]).length?"fav":"elig")};
 const DAYMS=864e5,startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime()},weekMon=t=>{const d=new Date(startOfDay(t));const k=(d.getDay()+6)%7;return d.getTime()-k*DAYMS};
 const addDays=(t,n)=>{const d=new Date(t);d.setDate(d.getDate()+n);return d.getTime()};
 function calItems(from,to){const out=[];
@@ -5244,7 +5247,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
 /* ===================== boot ===================== */
 (async function boot(){
   applyTheme();
-  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";setTimeout(()=>{applyI18n.sent=null;try{if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}},0);REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()){location.reload();return}}
+  try{const ctl=new AbortController();setTimeout(()=>ctl.abort(),2500);const r=await fetch("/api/info",{signal:ctl.signal});const j=await r.json();if(j.app!=="PitWall")throw 0;INFO=j;MODE="bridge";setTimeout(()=>{applyI18n.sent=null;try{if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}},0);REMOTE=!!j.remote||new URLSearchParams(location.search).get("view")==="engineer";if(REMOTE)document.documentElement.classList.add("remote");try{const c=await (await fetch("/api/config")).json();applyServerCfg(c.config)}catch(e){}ACC=j.account||{loggedIn:false};STATUS=j.status||STATUS;if(await pullProfile()&&profReloadOk()){location.reload();return}}
   catch(e){MODE="local";CFG=Object.assign(CFG,store.get("pw.cfg",{}))}
   if(OV.on&&typeof window.pwReady==="function")window.pwReady(); // the frameless overlay window: the page loaded
   if(!OV.on&&typeof window.pwWin==="function")ownFrame();

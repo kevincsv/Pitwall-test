@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "v": "0.8.13",
+      "en": [
+        "Pitlane HQ no longer stays on the loading screen if you had chosen several race reminders before (the earliest one is used until you pick one)."
+      ],
+      "es": [
+        "Pitlane HQ ya no se queda en la pantalla de carga si antes habías elegido varios avisos de carrera (se usa el más temprano hasta que elijas uno)."
+      ]
+    },
+    {
       "v": "0.8.12",
       "en": [
         "Watch another driver's live telemetry with a code: get yours on the PC (Settings → Phone) or from your phone, and type someone's in Live → Watch another driver.",
