@@ -64,6 +64,7 @@ type plAccount struct {
 	Supporter bool      `json:"supporter,omitempty"` // has the supporter badge (donates)
 	SupHidden bool      `json:"supHidden,omitempty"` // and chose to hide it
 	SyncAuto2 bool      `json:"syncAuto2,omitempty"` // moved to the automatic sync of 0.8.10 (once)
+	Ended     bool      `json:"ended,omitempty"`     // signed out by the server (see plSessionEnded); the email stays
 }
 
 var (
@@ -180,7 +181,31 @@ func plCall(method, path string, body any) ([]byte, error) {
 	plMu.Lock()
 	tok := plAcc.Token
 	plMu.Unlock()
-	return commRequest(method, "/account"+path, body, tok)
+	b, err := commRequest(method, "/account"+path, body, tok)
+	plSessionEnded(tok, err)
+	return b, err
+}
+
+// plSessionEnded: the server no longer knows this PC's sign-in (signed out everywhere, the password or
+// the two-step sign-in changed on another device, the account deleted, the server's data made again).
+// This PC then shows the sign-in screen with the email filled in, instead of staying half signed in
+// with every sync failing; its data stays and joins the account again on the next sign-in.
+func plSessionEnded(tok string, err error) {
+	var he httpErr
+	if tok == "" || !errors.As(err, &he) || he.code != 401 || !strings.HasPrefix(he.msg, "signed out") {
+		return
+	}
+	plMu.Lock()
+	ended := plAcc.Token == tok
+	if ended {
+		plAcc = plAccount{Email: plAcc.Email, Ended: true}
+		savePLLocked()
+	}
+	plMu.Unlock()
+	if ended {
+		clearSyncBase()
+		log.Println("Account: the server signed this PC out; sign in again")
+	}
 }
 
 // ---------- the synced data: the active profile's files ----------
@@ -674,7 +699,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr}
+		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr, "ended": a.Ended}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -1037,6 +1062,7 @@ func plRefreshMe() {
 	}
 	b, err := commRequest("GET", "/account/me", nil, tok)
 	if err != nil {
+		plSessionEnded(tok, err)
 		return
 	}
 	var me struct {

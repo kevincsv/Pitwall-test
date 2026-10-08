@@ -51,7 +51,8 @@
   The room is one hash of the code and the key a PBKDF2 of it, so the server never reads the
   telemetry; code viewers only watch (no DRINKS, no race summaries). Connect asks the PC first: a
   window there accepts or declines the device (by its name) and nothing is sent to it before you
-  accept; an accepted device is remembered while Pitlane HQ runs. No Wi-Fi pairing panel and no
+  accept; an accepted device is remembered while Pitlane HQ runs. A declined device is not asked again by its automatic
+  retries for two minutes, but pressing Connect again always asks the PC again (`again` in the hello). No Wi-Fi pairing panel and no
   encryption wording on the Live card. The Live page is: your PC, watch another driver (the code gets
   its dashes as you type), then the download, with the same gap between the boxes.
 - No text about encryption or about everything sync does in the account, sync, Live or community
@@ -89,11 +90,16 @@
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
   NASCAR 26, team mode, leagues, the overlays on top of the game, and the Data and Full telemetry views.
-  Switched off for now: setups, per-car settings, the Data view and sharing race analyses.
+  Switched off for now: setups, per-car settings, the Data view and sharing race analyses. Hidden from everyone
+  on the PC (admins too) until the owner says otherwise: profiles (no button, no Settings section, the PC keeps its
+  one profile), Settings → Connections (`CONN_ON` in index.html) and Full telemetry.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
-  changes from several devices are merged (`syncmerge.go`), never a "which copy" question. One
+  changes from several devices are merged (`syncmerge.go`), never a "which copy" question. When the server
+  answers "signed out" to the PC's token (`plSessionEnded`), the PC signs out by itself keeping the email and
+  shows the sign-in screen with a note; a wrong password never signs it out. My account has "Sign out on this
+  PC" and says when the PC could not sync. One
   public name per account: changing it anywhere changes it everywhere, shared laps included.
 - Deleting your own account never deletes what the leaderboard shows or what the model learns from:
   those laps stay as an anonymous driver (`deleteAccount` in `cloud/src/accounts.js`); everything

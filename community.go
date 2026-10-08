@@ -151,7 +151,7 @@ func commRequest(method, path string, body any, tok string) ([]byte, error) {
 		if e.Error == "" {
 			e.Error = fmt.Sprintf("the server answered HTTP %d", resp.StatusCode)
 		}
-		return nil, errors.New(e.Error)
+		return nil, httpErr{resp.StatusCode, e.Error}
 	}
 	return b, nil
 }

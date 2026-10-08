@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCompanionStoreTrims(t *testing.T) {
@@ -40,5 +41,29 @@ func TestTrimAssets(t *testing.T) {
 	json.Unmarshal(b, &m)
 	if m["1"]["gallery_images"] != nil || m["1"]["folder"] != "/img/tracks/spa" || m["1"]["detail_copy"] != "Spa & Eau Rouge" {
 		t.Fatal("assets", string(b))
+	}
+}
+
+// Connect pressed by hand after a decline asks the PC again; the hellos every 20 s do not.
+func TestLiveAskAgainAfterDecline(t *testing.T) {
+	id := "dev-again-test"
+	liveAskHello(id, "Phone", false)
+	if !liveAnswer(id, false) {
+		t.Fatal("the first hello did not open a window")
+	}
+	liveAskTake()
+	liveAskHello(id, "Phone", false)
+	if r := liveAskTake(); len(r) != 1 || r[0].OK {
+		t.Fatalf("a plain hello after a decline should be declined at once: %+v", r)
+	}
+	liveAsks.Lock()
+	liveAsks.no[id] = time.Now().Add(-10 * time.Second)
+	liveAsks.Unlock()
+	liveAskHello(id, "Phone", true)
+	if r := liveAskTake(); len(r) != 0 {
+		t.Fatalf("Connect again should ask, not answer: %+v", r)
+	}
+	if !liveAnswer(id, true) {
+		t.Fatal("Connect again did not open a new window")
 	}
 }

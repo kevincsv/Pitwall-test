@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -97,5 +99,50 @@ func TestWriteSecretReplacesWhole(t *testing.T) {
 	}
 	if _, err := os.Stat(p + ".tmp"); !os.IsNotExist(err) {
 		t.Fatal("the temp file must not stay")
+	}
+}
+
+// the server no longer knows this PC's sign-in: the PC signs out by itself (keeping the email) instead of
+// staying half signed in; a wrong password (also a 401) never signs it out
+func TestAccountSessionEndedByServer(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("APPDATA", dir)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(401)
+		if r.URL.Path == "/account/password" {
+			w.Write([]byte(`{"error":"the current password is wrong"}`))
+			return
+		}
+		w.Write([]byte(`{"error":"signed out: sign in again"}`))
+	}))
+	defer srv.Close()
+	commMu.Lock()
+	old := commCfg
+	commCfg = commConfig{URL: srv.URL}
+	commMu.Unlock()
+	defer func() { commMu.Lock(); commCfg = old; commMu.Unlock() }()
+	loadPL()
+	plMu.Lock()
+	plAcc = plAccount{Email: "driver@example.com", ID: "a1", Token: "tok-0123456789abcdefghij0123456789abcdefghij"}
+	plMu.Unlock()
+	if _, err := plCall("POST", "/password", map[string]string{}); err == nil {
+		t.Fatal("the wrong password must fail")
+	}
+	plMu.Lock()
+	still := plAcc.Token != ""
+	plMu.Unlock()
+	if !still {
+		t.Fatal("a wrong password must not sign the PC out")
+	}
+	if _, err := plCall("GET", "/sync/meta", nil); err == nil {
+		t.Fatal("the call must fail")
+	}
+	plMu.Lock()
+	a := plAcc
+	plMu.Unlock()
+	if a.Token != "" || !a.Ended || a.Email != "driver@example.com" || a.ID != "" {
+		t.Fatalf("the PC must be signed out with its email kept: %+v", a)
 	}
 }

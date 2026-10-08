@@ -420,8 +420,10 @@ var liveAsks = struct {
 	lastHello time.Time
 }{ok: map[string]bool{}, no: map[string]time.Time{}, pending: map[string]liveAsk{}, seen: map[string]time.Time{}}
 
-// liveAskHello: a device says it wants to watch (again every 20 s while it is connected).
-func liveAskHello(id, name string) {
+// liveAskHello: a device says it wants to watch (again every 20 s while it is connected). again: Connect
+// was pressed by hand, so a decline from before is forgotten and the window asks once more (the hellos
+// every 20 s never bring it back by themselves).
+func liveAskHello(id, name string, again bool) {
 	if id == "" || len(id) > 64 {
 		return
 	}
@@ -438,6 +440,9 @@ func liveAskHello(id, name string) {
 	if liveAsks.ok[id] {
 		liveAsks.replies = append(liveAsks.replies, liveReply{id, true})
 		return
+	}
+	if t, ok := liveAsks.no[id]; ok && again && now.Sub(t) > 3*time.Second {
+		delete(liveAsks.no, id)
 	}
 	if t, ok := liveAsks.no[id]; ok && now.Sub(t) < 2*time.Minute {
 		liveAsks.replies = append(liveAsks.replies, liveReply{id, false})
@@ -594,11 +599,12 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 			}
 			if ev == "hello" { // Connect in the web or phone app: this PC asks you first
 				var d struct {
-					ID   string `json:"id"`
-					Name string `json:"name"`
+					ID    string `json:"id"`
+					Name  string `json:"name"`
+					Again bool   `json:"again"`
 				}
 				if json.Unmarshal(data, &d) == nil {
-					liveAskHello(d.ID, d.Name)
+					liveAskHello(d.ID, d.Name, d.Again)
 				}
 				continue
 			}
@@ -606,7 +612,7 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 				continue
 			}
 			if share == nil && liveAskLegacy() {
-				liveAskHello(liveLegacy, "")
+				liveAskHello(liveLegacy, "", false)
 			}
 			var w wantMsg
 			if json.Unmarshal(data, &w) == nil {

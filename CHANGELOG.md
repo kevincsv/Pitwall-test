@@ -4,6 +4,22 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.24 beta
+
+**Fixed**
+- When the server ends this PC's sign-in (signed out from another device, a new password or two-step
+  sign-in, or the server's data made again), the PC shows the sign-in screen with your email filled in
+  instead of staying half signed in with nothing syncing; signing in again is enough, no reinstall. My
+  account also says when this PC could not sync.
+- Live: after the PC declined a device, pressing Connect again asks the PC again (the automatic retries
+  still respect the decline for two minutes).
+- The welcome window puts each step for the phone on its own line.
+
+**Changed**
+- My account on the PC has a "Sign out on this PC" button.
+- Profiles are gone from the PC (the button, the Settings section and the window); Settings → Connections
+  and Full telemetry are hidden for everyone for now.
+
 ## 0.8.23 beta
 
 **Fixed**
