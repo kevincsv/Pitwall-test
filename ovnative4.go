@@ -403,8 +403,20 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 	}
 	// the pit lane beside the track, dashed, like iRacing's map; the cars on the pit road are drawn on it
+	// a pit lane 15 m off the track would sit under the drawn road: the lane moves out, same shape, like iRacing's maps
+	pitGain := 1.0
+	if far := func() float64 {
+		m := 0.0
+		for _, q := range st.ext.pitPts {
+			m = math.Max(m, math.Abs(q[1]))
+		}
+		return m
+	}(); far > 0 && 13*z/sc > far {
+		pitGain = 13 * z / sc / far
+	}
 	pitAt := func(k int) (float64, float64) {
 		q := st.ext.pitPts[k]
+		q[1] *= pitGain
 		j := int(math.Round(q[0]*float64(N)/float64(st.ext.pitN))) % N
 		w := func(i int) int { return ((i % N) + N) % N }
 		tx, ty := X[w(j+2)]-X[w(j-2)], Y[w(j+2)]-Y[w(j-2)]

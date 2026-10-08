@@ -2629,7 +2629,7 @@ async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAP
   box.innerHTML=`<div class="rb-bar"><span class="lgd"><i class="dotm"></i>${esc(Tx("A brakes","A frena","A bremst","A freia"))}</span><span class="lgd"><i class="doto"></i>${esc(Tx("B brakes","B frena","B bremst","B freia"))}</span>
       <button type="button" class="chip" data-lv="brk" aria-pressed="${LAPV.brk}">${esc(Tx("Braking","Frenadas","Bremsen","Freadas"))}</button>${incs.length?`<button type="button" class="chip" data-lv="inc" aria-pressed="${LAPV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${co.length?`<button type="button" class="chip" data-lv="coach" aria-pressed="${LAPV.coach}"><i class="dotc"></i> Coach</button>`:""}${lat?`<button type="button" class="chip" data-lv="line" aria-pressed="${LAPV.line}" title="${esc(Tx("Where each car was across the track (the difference drawn bigger so it shows)","Por dónde iba cada coche en la pista (la diferencia dibujada más grande para que se vea)","Wo jedes Auto auf der Strecke war (größer gezeichnet)","Por onde cada carro passou na pista (diferença ampliada)"))}"><i class="lnA"></i> ${esc(Tx("Line A","Trazada A","Linie A","Trajetória A"))} <i class="lnB"></i> B</button>`:""}<button type="button" class="chip" data-lv="delta" aria-pressed="${LAPV.delta}"><span class="good">■</span><span class="bad">■</span> ${esc(Tx("A vs B time","Tiempo A vs B","Zeit A vs B","Tempo A vs B"))}</button></div>
     <svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map: corners, braking points, incidents, coach, and where lap A gains or loses time against lap B","Mapa del circuito: curvas, frenadas, incidentes, coach y dónde la vuelta A gana o pierde tiempo frente a la B"))}">${(()=>{const pl=`${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}`;return `<polyline class="trkS" points="${pl}"/><polyline class="trk" points="${pl}"/><polyline class="trkI" points="${pl}"/>`})()}
-    ${pitSvg(pitPaths(xs,ys,pitsFor(TURN_TID,A.game||B.game)),(x,y)=>[pad+(x-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(y-miny)*k-(H-2*pad-(maxy-miny)*k)/2])}
+    ${pitSvg(pitPaths(xs,ys,pitsFor(TURN_TID,A.game||B.game),13/k),(x,y)=>[pad+(x-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(y-miny)*k-(H-2*pad-(maxy-miny)*k)/2])}
     ${LAPV.delta?segs.map(g=>{const m0=Math.round(g.i0*BIN/L*N),m1=Math.round(g.i1*BIN/L*N),pts2=[];for(let m=m0;m<=m1;m++)pts2.push(f(P(m)));const op=g.v>0?.3+.7*Math.min(1,g.v/mx):.3+.7*Math.min(1,-g.v/mx);return Math.abs(g.v)<.003?"":`<polyline class="seg" points="${pts2.join(" ")}" style="stroke:var(${g.v>0?"--bad":"--good"});opacity:${op.toFixed(2)}"/>`}).join(""):""}
     ${lat&&LAPV.line?(()=>{/* the two lines on the track: B along the middle, A beside it by how far it was from B (2.2 px a metre) */
       const EX=2.2,nb=lat.length,dir=m=>{const i0=((m-2)%N+N)%N,i1=(m+2)%N;let tx=xs[i1]-xs[i0],ty=ys[i1]-ys[i0];const tm=Math.hypot(tx,ty)||1;return[-ty/tm,tx/tm]};
@@ -5265,8 +5265,11 @@ function pitsFor(id,game){if(!id)return null;const k=(game||aGame()||"iracing")+
     const ch=JSON.stringify(v)!==JSON.stringify(PITLANE[k]||null);PITLANE[k]=v;if(ch&&v)turnsChanged()}).catch(()=>{});return PITLANE[k]||null}
 /* the pit lane beside a drawn track (xs, ys: its points): its stretches of [x, y] in the track's own metres, with where
    each starts and ends on the lap (an entry or an exit, unless it is the start/finish line) */
-function pitPaths(xs,ys,pl){if(!pl||!pl.pts||pl.pts.length<10||!pl.n||!xs||xs.length<20)return[];const N=xs.length,W=i=>((i%N)+N)%N,out=[];let cur=null,last=-9;
-  pl.pts.forEach(([i,lat])=>{const j=Math.round(i*N/pl.n);let tx=xs[W(j+2)]-xs[W(j-2)],ty=ys[W(j+2)]-ys[W(j-2)];const m=Math.hypot(tx,ty)||1;tx/=m;ty/=m;
+function pitPaths(xs,ys,pl,minM){if(!pl||!pl.pts||pl.pts.length<10||!pl.n||!xs||xs.length<20)return[];const N=xs.length,W=i=>((i%N)+N)%N,out=[];let cur=null,last=-9;
+  // a pit lane 15 m off the track is under the drawn road at the map's scale: the whole lane moves out (same shape)
+  // until it is at least minM metres away, like iRacing's maps draw it beside the track
+  const far=Math.max(0,...pl.pts.map(q=>Math.abs(q[1]))),f=far>0&&minM>far?minM/far:1;
+  pl.pts.forEach(([i,lat0])=>{const lat=lat0*f;const j=Math.round(i*N/pl.n);let tx=xs[W(j+2)]-xs[W(j-2)],ty=ys[W(j+2)]-ys[W(j-2)];const m=Math.hypot(tx,ty)||1;tx/=m;ty/=m;
     if(i-last>4){cur={pts:[],i0:i,i1:i};out.push(cur)}cur.pts.push([xs[W(j)]-ty*lat,ys[W(j)]+tx*lat]);cur.i1=i;last=i});
   return out.filter(s=>s.pts.length>3).map(s=>({pts:s.pts,entry:s.i0>3,exit:s.i1<pl.n-4}))}
 /* the pit lane drawn on an svg map: TX turns the track's metres into the map's pixels */
@@ -5946,7 +5949,7 @@ async function renderRaceBrakes(r){const box=$("#rbBox");if(!box)return;const bs
       // corner numbers sit outside the track, away from its centre
       const cx=W/2,cy=H/2,lab=d=>{const q=at(d),dx=q[0]-cx,dy=q[1]-cy,m=Math.hypot(dx,dy)||1;return[q[0]+dx/m*22,q[1]+dy/m*22+4]};
       svg=`<svg class="rbmap" viewBox="0 0 600 360" role="img" aria-label="${esc(Tx("Track map with corners, braking points, incidents and coach tips","Mapa con curvas, frenadas, incidentes y consejos del coach"))}">${(()=>{const pl=`${xs.map((_,i)=>f(P(i)).join(",")).join(" ")} ${f(P(0)).join(",")}`;return `<polyline class="trkS" points="${pl}"/><polyline class="trk" points="${pl}"/><polyline class="trkI" points="${pl}"/>`})()}
-        ${pitSvg(pitPaths(xs,ys,pitsFor(r.trackId,r.game)),(x,y)=>[pad+(x-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(y-miny)*k-(H-2*pad-(maxy-miny)*k)/2])}
+        ${pitSvg(pitPaths(xs,ys,pitsFor(r.trackId,r.game),13/k),(x,y)=>[pad+(x-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(y-miny)*k-(H-2*pad-(maxy-miny)*k)/2])}
         ${cs.map(c=>{const q=f(lab(c.d));return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
         ${secMarks(Math.max(3,...(r.laps||[]).map(l=>(l.s||[]).length)),L,at,cx,cy)}
         ${RBV.coach?tips.map(x=>{const q=f(at(x.d));return `<circle class="coachring" cx="${q[0]}" cy="${q[1]}" r="13"><title>T${x.c.n}: ${esc(x.tip)}</title></circle>`}).join(""):""}
