@@ -1508,6 +1508,7 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
     <div><h1 data-i18n="lapsTitle"></h1><div class="sub" data-i18n="lapsSub"></div></div>
     <div class="controls lapcontrols"><div class="lapfilt" id="lapFilt" hidden></div><span class="label">A</span><select id="lapSess" aria-label="Race / session A"></select><select id="lapA" aria-label="Lap A - comparing"></select><span class="muted">vs</span><label class="lapadd"><input type="checkbox" id="lapAddSess"><span>＋</span><span>Session</span></label><span class="label lapblabel">B</span><select id="lapSessB" aria-label="Race / session B"></select><select id="lapB" aria-label="Lap B - reference"></select><button type="button" class="btn small" id="lapComm"></button><button type="button" class="btn small" id="lapToCoach" hidden></button></div>
   </div>
+  <div class="lapctx" id="lapCtx" hidden></div>
   <div id="lapsEmpty" class="panel empty" data-i18n="lapsEmpty"></div>
   <div id="lapCompareHeads" class="lapcmpheads"></div>
   <div id="lapAnalyzer" class="panel lap-analyzer" hidden></div>
@@ -1517,7 +1518,6 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
       <div id="cmpTip" class="cmp-tip" hidden></div>
       <div class="vhead ch-head" style="margin:0 0 6px"><div class="label" data-i18n="speedByDist"></div><span class="ch-read mono" data-read="speed"></span>
       <div class="legend"><span><i style="background:var(--accent)"></i><span id="legA">A</span></span><span><i style="background:var(--pb)"></i><span id="legB">B</span></span></div></div>
-  <div class="lapctx" id="lapCtx" hidden></div>
       <div class="cmpwrap"><canvas id="cmp" height="220"></canvas></div>
     </div>
     <div class="panel s12 ch-delta"><div class="ch-head"><div class="label" data-i18n="deltaCum"></div><span class="ch-read mono" data-read="delta"></span></div>
@@ -1920,6 +1920,8 @@ async function cpRoute(url,method,raw){await cpReady;const u=new URL(url,"https:
   if(p==="/api/community"){if(method==="POST")return no(cpNeedPC());const a=CP.acc,pf=F()["prefs.json"]||{};return ok({ready:!!CP.server,account:!!a,alias:a?a.display:"",nameKind:a?a.nameKind:"nick",anonymous:!!(a&&a.anon),shareTimes:!!pf.shareTimes,shareTraces:!!pf.shareTraces,shareReports:!!pf.shareReports,shareMaps:pf.shareMaps!==false,shareField:pf.shareField!==false,liveWeb:pf.liveWeb!==false,deleteAfter:pf.deleteAfter||"",asked:!!pf.asked,registered:!!a,shared:0,companion:true})}
   if(p==="/api/community/setups"){if(method==="POST")return no(cpNeedPC());const mine=q.get("mine")==="1";q.delete("mine");return ok(await cpCall("GET","/community/setups"+(mine?"/mine":"")+(q.toString()?"?"+q:""),null,mine))}
   if(p==="/api/trackmap"&&method==="GET")return ok(await cpCall("GET","/community/trackmaps?trackId="+encodeURIComponent(q.get("trackId")||"")+"&game="+encodeURIComponent(q.get("game")||"iracing"),null,false));
+  if(p==="/api/turns"&&method==="GET")return ok(await cpCall("GET","/community/turns?trackId="+encodeURIComponent(q.get("trackId")||"")+"&game="+encodeURIComponent(q.get("game")||"iracing"),null,false));
+  if(p==="/api/turns"&&method==="POST")return ok(await cpCall("POST","/community/turns",B()));
   if(p==="/api/community/admin"&&method==="POST"){const b=B();if(b.action==="uncut")return ok(await cpCall("POST","/community/admin/reports/"+encodeURIComponent(b.id)+"/uncut",{}));return ok(await cpCall("DELETE","/community/admin/"+encodeURIComponent(b.kind)+"/"+encodeURIComponent(b.id)+"?game="+encodeURIComponent(b.game||"")))}
   if(p==="/api/news")return ok(await cpCall("GET","/news"+(q.get("refresh")==="1"?"?refresh=1":""),null,false));
   if(p==="/api/community/season")return ok(await cpCall("GET","/community/season",null,false));
@@ -2604,6 +2606,7 @@ function sessionIncs(A){try{const LP=(typeof analysisLaps==="function"?analysisL
     return out}catch(e){return lapIncs(A)}}
 const lapIncs=l=>{const a=(l&&l.incAt)||[],ks=(l&&l.incK)||[],o=[];for(let i=0;i+1<a.length;i+=2)o.push({d:a[i],pts:a[i+1],k:incKind({pts:a[i+1],kind:ks[i/2]})});return o};
 async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=lapShape(A)||lapShape(B);
+  lapTrackId(A,B).then(t=>{if(!t||t===TURN_TID)return;TURN_TID=t;const k=turnsFor(t,A.game||B.game);if(k&&k.length)turnsChanged()}).catch(()=>{});
   if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
   if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("This track is not scanned yet: a lap recorded with Pitlane HQ (0.5 or later) at this track draws its map by itself.","Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ (0.5 o posterior) en él dibuja el mapa sola.","Noch keine Karte dieser Strecke: Runden, die mit Pitlane HQ 0.5 oder neuer aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o Pitlane HQ 0.5 ou posterior desenham-no sozinhas."))}</p>`;return}
@@ -5240,6 +5243,18 @@ function brakeZones(s){const out=[];for(let i=1;i<s.length;i++){const a=s[i],b=s
    (when the throttle comes back). The tip is about the phase where the time goes. */
 const PHASES=[["brake","Braking","Frenada","Bremsen","Frenagem"],["entry","Entry","Entrada","Einlenken","Entrada"],["apex","Apex","Vértice","Scheitel","Ápice"],["exit","Exit","Salida","Ausgang","Saída"]];
 const phaseName=k=>{const p=PHASES.find(x=>x[0]===k);return p?Tx(p[1],p[2],p[3],p[4]):""};
+/* the official turn numbers of a track (T1 … Tn as the circuit names them), placed by an admin on its map and kept
+   on the server (/api/turns, fractions of the lap from the line): every corner found in a lap takes the number of the
+   official turn its apex is nearest to. A track nobody has numbered keeps the corners counted from the laps. */
+var TURNS={},TURNS_T={};
+function turnsFor(id,game){if(!id)return null;const k=(game||aGame()||"iracing")+":"+id;if(Date.now()-(TURNS_T[k]||0)<300000)return TURNS[k]||null;TURNS_T[k]=Date.now();
+  jget("/api/turns?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||aGame()||"iracing")).then(j=>{const t=j&&Array.isArray(j.turns)?j.turns.filter(x=>x>=0&&x<1):[];
+    const ch=JSON.stringify(t)!==JSON.stringify(TURNS[k]||[]);TURNS[k]=t;if(ch)turnsChanged()}).catch(()=>{});return TURNS[k]||null}
+function turnsChanged(){try{if(CUR_VIEW==="coach")renderCoach();else if(CUR_VIEW==="laps")renderLaps();if(RB_OPEN&&typeof RB_OPEN==="function")RB_OPEN()}catch(e){}}
+var TURN_TID=null; // the track of the laps on screen (the analyzer's and the coach's)
+var RB_OPEN=null; // redraws the race summary that is open (its corners take the official numbers once they arrive)
+function turnNo(id,d,L,fb){const t=id?turnsFor(id):null;if(!t||!t.length||!(L>0))return fb;const f=(((d/L)%1)+1)%1;let bi=0,bd=2;
+  t.forEach((x,i)=>{let dd=Math.abs(x-f);dd=Math.min(dd,1-dd);if(dd<bd){bd=dd;bi=i}});return bi+1}
 function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length),lat=lineOffsets(A,B);
   const T=(s,i)=>s[i]&&s[i][1],seg=(x,y)=>x<y&&sa[x]&&sa[y]&&sb[x]&&sb[y]?(T(sa,y)-T(sa,x))-(T(sb,y)-T(sb,x)):0;
   const peak=(s,x,y)=>{let p=0,ip=x;for(let k=x;k<=y&&k<s.length;k++)if(s[k]&&s[k][3]>p){p=s[k][3];ip=k}return[p,ip]};
@@ -5273,7 +5288,7 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
     const line=cornerLine(lat,B,z.i,z.imin),lt=lost>.03?lineTip(line,m&&dd!=null&&Math.abs(dd)<=6):null;
     if(lt){const generic=["Brake a little later and harder","Carry more speed into the turn","A rounder, faster line through the apex","Full throttle sooner on exit"].includes(en);
       if(generic||(phase==="brake"&&m&&Math.abs(dd)<=6)){en=lt[0];es=lt[1]}else{en+=". "+lt[0];es+=". "+lt[1]}}
-    return{n:k+1,d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es]}}).filter(Boolean)}
+    return{n:turnNo(A.trackId||B.trackId||TURN_TID,z.imin*BIN,n*BIN,k+1),d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es]}}).filter(Boolean)}
 /* where the lap loses time, phase by phase, how much it coasts, and the least steady corners */
 function coachPhasesHTML(cs,A,R,LP){const tot={brake:0,entry:0,apex:0,exit:0};cs.forEach(c=>Object.keys(tot).forEach(k=>{tot[k]+=Math.max(0,c.ph[k]||0)}));
   const worst=Object.entries(tot).sort((a,b)=>b[1]-a[1])[0],cA=cs.reduce((a,c)=>a+c.coastA,0),cB=cs.reduce((a,c)=>a+c.coastB,0);
@@ -5897,8 +5912,11 @@ async function renderRaceBrakes(r){const box=$("#rbBox");if(!box)return;const bs
   if((!me||!me.d.length)&&!incs.length&&!map){box.innerHTML=`<p class="note">${Lp("Braking points and incidents are saved for races Pitlane HQ records on this PC.","Los puntos de frenada y los incidentes se guardan en las carreras que Pitlane HQ graba en este PC.")}</p>`;return}
   const others=bs.filter(b=>!b.me).sort((a,b)=>(a.pos||99)-(b.pos||99)||(a.best||1e9)-(b.best||1e9));let cmp=others.slice().sort((a,b)=>(a.best||1e9)-(b.best||1e9))[0]||null;
   // corners from the map; without a map, one per braking zone as before
-  let cs=map?trackCorners(map,L):[];if(cs.length<3&&me)cs=me.d.map((d,i)=>({n:i+1,d:d+60,dir:1,brk:true}));if(r.trackId)RB_CORNERS[r.trackId]=cs;
-  const draw=()=>{const near=(arr,d)=>{let bi=-1,bd=1e9;(arr||[]).forEach((x,i)=>{const dd=Math.abs(x-d);if(dd<bd&&dd<80){bd=dd;bi=i}});return bi},who=cmp?cmp.name:"";
+  let cs=map?trackCorners(map,L):[];if(cs.length<3&&me)cs=me.d.map((d,i)=>({n:i+1,d:d+60,dir:1,brk:true}));// the official turn numbers when an admin has placed them on this track's map: they replace the corners found
+  const offCs=t=>t.map((f,i)=>({n:i+1,i:map?Math.round(f*map.x.length):0,d:f*L,dir:1})),ot=r.trackId?turnsFor(r.trackId,r.game):null;if(ot&&ot.length&&map)cs=offCs(ot);
+  if(r.trackId)RB_CORNERS[r.trackId]=cs;RB_OPEN=()=>{if($("#rbBox")===box)renderRaceBrakes(r)};
+  let TE=null;const csBase=cs; // an admin placing the official turns: their spots, in the order clicked
+  const draw=()=>{cs=TE?offCs(TE):csBase;const near=(arr,d)=>{let bi=-1,bd=1e9;(arr||[]).forEach((x,i)=>{const dd=Math.abs(x-d);if(dd<bd&&dd<80){bd=dd;bi=i}});return bi},who=cmp?cmp.name:"";
     // each corner: your braking into it, the other driver's, the incidents there and the coach's reading
     const rows=cs.map(c=>({c,inc:[]}));const rowOf=c=>c?rows.find(x=>x.c===c):null;
     if(me)me.d.forEach((d,i)=>{const x=rowOf(cornerAfter(cs,d,L))||rowOf(cornerAt(cs,d,L));if(!x||x.d!=null)return;const j=cmp?near(cmp.d,d):-1;x.d=d;x.v=me.vmin[i];x.od=j>=0?cmp.d[j]:null;x.ov=j>=0?cmp.vmin[j]:null;x.tip=cornerCoach(d,me.vmin[i],x.od,x.ov,who)});
@@ -5922,7 +5940,8 @@ async function renderRaceBrakes(r){const box=$("#rbBox");if(!box)return;const bs
     const lapsTxt=list=>list.map(e=>`${Tx("L","V","R","V")}${e.lap}`).join(", ");
     box.innerHTML=`<div class="rb-bar">${me?`<span class="lgd"><i class="dotm"></i>${esc(Tx("You brake","Tú frenas","Du bremst","Você freia"))}</span>`:""}${cmp?`<span class="lgd"><i class="doto"></i>${esc(cmpName(cmp,1))}</span>`:""}
         ${incs.length?`<button type="button" class="chip" id="rbInc" aria-pressed="${RBV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${me&&cmp?`<button type="button" class="chip" id="rbCoach" aria-pressed="${RBV.coach}"><i class="dotc"></i> Coach</button>`:""}
-        ${others.length?`<label class="rb-cmp"><span class="muted">${esc(Tx("Compare with","Comparar con","Vergleichen mit","Comparar com"))}</span><select id="rbCmp">${others.map((o,i)=>`<option value="${i}"${o===cmp?" selected":""}>${esc(cmpName(o,1))}</option>`).join("")}</select></label>`:""}</div>${svg}${incSum}
+        ${others.length?`<label class="rb-cmp"><span class="muted">${esc(Tx("Compare with","Comparar con","Vergleichen mit","Comparar com"))}</span><select id="rbCmp">${others.map((o,i)=>`<option value="${i}"${o===cmp?" selected":""}>${esc(cmpName(o,1))}</option>`).join("")}</select></label>`:""}
+        ${isAdmin()&&map&&r.trackId?(TE?`<span class="rb-te">${esc(Tx(`Click each official turn on the map, in order · next: T${TE.length+1}`,`Pulsa cada curva oficial en el mapa, en orden · siguiente: T${TE.length+1}`))}</span><button type="button" class="chip" id="rbTeU" aria-label="${esc(Tx("Undo","Deshacer"))}">↶</button><button type="button" class="chip" id="rbTeC">${esc(Tx("Clear","Borrar"))}</button><button type="button" class="btn small primary" id="rbTeS">${esc(Tx("Save for everyone","Guardar para todos"))}</button><button type="button" class="chip" id="rbTeX">${esc(Tx("Cancel","Cancelar"))}</button>`:`<button type="button" class="chip" id="rbTe">${esc(Tx("Official turns","Curvas oficiales"))} · Admin</button>`):""}</div>${svg}${incSum}
       ${shown.length?`<div class="rb-cards">${shown.map(x=>`<div class="rb-c${RBV.coach&&x.tip?" tip":""}"><div class="rb-h"><b>T${x.c.n}</b>${x.inc.length?`<span class="bad mono">✕ ${x.inc.reduce((s,e)=>s+e.pts,0)}x</span>`:""}</div>
         ${x.d!=null?`<div class="rb-k"><span>${esc(Tx("Braking","Frenada","Bremsen","Frenagem"))}</span><b class="mono">${Math.round(x.d)} m</b>${x.od!=null?`<small class="muted mono">${esc(cmpName(cmp))} ${Math.round(x.od)} m</small>`:""}</div><div class="rb-k"><span>${esc(Tx("Slowest","Más lento","Langsamster","Mais lento"))}</span><b class="mono">${Math.round(spd(x.v))} ${spdU()}</b>${x.ov!=null?`<small class="muted mono">${esc(cmpName(cmp))} ${Math.round(spd(x.ov))}</small>`:""}</div>`:""}
         ${x.inc.length?`<div class="rb-inc">${esc(incGroup(x.inc))} · ${esc(lapsTxt(x.inc))}</div>`:""}
@@ -5942,7 +5961,15 @@ async function renderRaceBrakes(r){const box=$("#rbBox");if(!box)return;const bs
         if(innerWidth>820){const tw=tip.offsetWidth||220,th=tip.offsetHeight||60;tip.style.left=Math.max(8,Math.min(e.clientX+14,innerWidth-tw-8))+"px";tip.style.top=(e.clientY+16+th>innerHeight?e.clientY-th-10:e.clientY+16)+"px"}};
       svg.addEventListener("pointermove",move);svg.addEventListener("pointerdown",move);svg.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")leave()})}
     const sel=$("#rbCmp");if(sel)sel.onchange=()=>{cmp=others[+sel.value];draw()};
-    const bi=$("#rbInc");if(bi)bi.onclick=()=>{RBV.inc=!RBV.inc;draw()};const bc=$("#rbCoach");if(bc)bc.onclick=()=>{RBV.coach=!RBV.coach;draw()}};
+    const bi=$("#rbInc");if(bi)bi.onclick=()=>{RBV.inc=!RBV.inc;draw()};const bc=$("#rbCoach");if(bc)bc.onclick=()=>{RBV.coach=!RBV.coach;draw()}
+    // admins: place the official turns by clicking the map; saved on the server, every app numbers its corners with them
+    const te=$("#rbTe");if(te)te.onclick=()=>{TE=(turnsFor(r.trackId,r.game)||[]).slice();draw()};
+    if(TE){const sv=box.querySelector("svg.rbmap");if(sv&&map&&map.x){const N=map.x.length,pts=[];for(let i=0;i<N;i++)pts.push(RB_AT(i/N*L));sv.style.cursor="crosshair";
+        sv.addEventListener("click",e=>{const pt=sv.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;let q;try{q=pt.matrixTransform(sv.getScreenCTM().inverse())}catch(err){return}
+          let bi=0,bd=1e9;for(let i=0;i<N;i++){const dx=pts[i][0]-q.x,dy=pts[i][1]-q.y,d2=dx*dx+dy*dy;if(d2<bd){bd=d2;bi=i}}if(bd>60*60)return;TE.push(Math.round(bi/N*1e5)/1e5);draw()})}
+      $("#rbTeU").onclick=()=>{TE.pop();draw()};$("#rbTeC").onclick=()=>{TE=[];draw()};$("#rbTeX").onclick=()=>{TE=null;draw()};
+      $("#rbTeS").onclick=async()=>{try{await jpost("/api/turns",{trackId:r.trackId,game:r.game||"iracing",turns:TE});const k=(r.game||"iracing")+":"+r.trackId;TURNS[k]=TE.slice();TURNS_T[k]=Date.now();
+        toast(Tx(`${TE.length} official turns saved for everyone`,`${TE.length} curvas oficiales guardadas para todos`));TE=null;renderRaceBrakes(r)}catch(e){toast(e.message||String(e))}}}};
   draw()}
 /* ===================== race analysis: everything iRacing lets us measure ===================== */
 const mean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null,sdev=a=>{const m=mean(a);return a.length>1?Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/a.length):null};

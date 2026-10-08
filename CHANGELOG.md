@@ -15,6 +15,9 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - On the PC, a finished race no longer pops up a notice: it just appears in Analysis → My races (the phones still tell
   you).
 - Analysis: "My races" are your race summaries and "My sessions" every session you drove.
+- Corners carry the track's official turn numbers (T1 … T16 at Fuji) in the coach, the lap analyzer and the race
+  summary, on the PC, the web and the phones, wherever they have been set for the track.
+- The lap analyzer shows which car, track and category you are looking at, like the coach.
 
 **Fixed**
 - www.pitlanehq.app opens the site.

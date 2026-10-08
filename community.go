@@ -752,6 +752,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("/api/community/setups", handleCommSetups)
 	mux.HandleFunc("/api/trackmap", handleTrackMap)
+	mux.HandleFunc("/api/turns", handleTurns)
 	mux.HandleFunc("/api/community/season", proxy("/season"))
 	mux.HandleFunc("/api/community/combos", proxy("/combos"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))
@@ -1126,4 +1127,50 @@ func trackLengthM(y string) float64 {
 		v *= 1000
 	}
 	return v
+}
+
+// handleTurns: a track's official turn numbers (where T1 … Tn are on the lap), read by anyone; an admin signed in on
+// this PC places them on the map and saves them for everyone
+func handleTurns(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		q := r.URL.Query()
+		t, _ := strconv.Atoi(q.Get("trackId"))
+		if t <= 0 {
+			http.Error(w, "trackId", 400)
+			return
+		}
+		b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), "iracing")), nil, false)
+		if err != nil {
+			writeJSON(w, map[string]any{"trackId": t, "turns": []float64{}})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+		return
+	}
+	if !isLoopback(r) || isRemote(r) {
+		http.Error(w, "only from this PC", 403)
+		return
+	}
+	var in map[string]any
+	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&in); err != nil {
+		http.Error(w, "bad turns", 400)
+		return
+	}
+	plMu.Lock()
+	tok := plAcc.Token
+	plMu.Unlock()
+	if tok == "" {
+		w.WriteHeader(http.StatusForbidden)
+		writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
+		return
+	}
+	b, err := commRequest("POST", "/community/turns", in, tok)
+	if err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		writeJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
 }

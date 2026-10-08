@@ -48,6 +48,10 @@
   carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,
   phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
   and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch.
+- Official turn numbers (`track_turns` on the server, `/community/turns`, `/api/turns`): an admin places T1 … Tn on a
+  track's map in the race summary ("Official turns · Admin", clicks in order, saved for everyone, as fractions of the lap).
+  The coach, the lap analyzer and the race summary (PC, web, phones: `turnNo`) give every corner the number of the
+  official turn nearest its apex; a track without them keeps the corners counted from the laps.
 - Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`): the game
   only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
   recorded races, ir + irChange); Home's "Licence summary" (PC, web, Pitlane HQ Desktop; the phones' Licence summary)

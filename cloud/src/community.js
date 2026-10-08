@@ -239,6 +239,25 @@ export async function community(req, env, url) {
     const pts = JSON.parse(r.pts);
     return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
   }
+  // the official turn numbers of a track (placed by an admin on its map): anyone reads them, only admins change them
+  if (p === "/turns" && m === "GET") {
+    const t = +url.searchParams.get("trackId");
+    if (!t) return err("trackId", 400);
+    const r = await env.DB.prepare("SELECT turns, updated FROM track_turns WHERE game=?1 AND track_id=?2").bind(game, t).first();
+    return new Response(JSON.stringify({ trackId: t, game, turns: r ? JSON.parse(r.turns) : [], updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
+  }
+  if (p === "/turns" && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const b = body;
+    const t = +b.trackId, g = String(b.game || "iracing").slice(0, 20);
+    const turns = Array.isArray(b.turns) ? b.turns.map(Number).filter(x => isFinite(x) && x >= 0 && x < 1).slice(0, 60) : null; // in the order T1 … Tn
+    if (!t || !turns) return err("trackId and turns", 400);
+    if (!turns.length) await env.DB.prepare("DELETE FROM track_turns WHERE game=?1 AND track_id=?2").bind(g, t).run();
+    else await env.DB.prepare("INSERT INTO track_turns (game, track_id, turns, updated) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(game, track_id) DO UPDATE SET turns=excluded.turns, updated=excluded.updated")
+      .bind(g, t, JSON.stringify(turns.map(x => Math.round(x * 1e5) / 1e5)), Date.now()).run();
+    return json({ ok: true, trackId: t, game: g, turns });
+  }
   // the admins of this server (ADMINS) can remove anything shared in the community
   // admins: every lap of a shared race analysis counts as valid again (a wrong cut check)
   const um = p.match(/^\/admin\/reports\/([A-Za-z0-9_.:-]{1,64})\/uncut$/);
