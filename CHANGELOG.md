@@ -10,6 +10,8 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 - The standings overlay no longer grows and shrinks (looking like it closes and opens) every time the list
   changes: it keeps the height you give it and the rows that do not fit are cut. The incidents overlay works
   the same way.
+- The server's emails go only through Resend: an email Resend refuses is no longer sent again from the Proton
+  mailbox, which Gmail and others bounced ("the sender is unauthenticated").
 
 ## 0.8.27 beta
 

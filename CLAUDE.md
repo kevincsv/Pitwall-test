@@ -58,8 +58,9 @@
 - No text about encryption or about everything sync does in the account, sync, Live or community
   screens (only notes the driver needs, like "your data does not need to be uploaded again"); the
   "How your data is protected" list in About is the one place that explains it.
-- Emails go through Resend first (domain pitlanehq.app, secret RESEND_API_KEY) and Proton Mail's SMTP
-  (`smtp.js`, bodies in base64) when Resend is not set up or refuses one; Admin → Server shows the last
+- Emails go through Resend (domain pitlanehq.app, secret RESEND_API_KEY); Proton Mail's SMTP (`smtp.js`,
+  bodies in base64) only when Resend is not set up, never after Resend refuses one (Proton's mail as pitlanehq.app
+  fails SPF and DKIM, so Gmail bounces it); Admin → Server shows the last
   emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX, DMARC and BIMI
   (`web/dist/bimi.svg`, the logo in SVG Tiny PS, needs DMARC at quarantine).
 - The logo is the rev gauge with a kerb in the rev limit (`assets/logo.svg`, the master; `web/dist/logo.svg`).

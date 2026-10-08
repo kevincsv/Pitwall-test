@@ -151,10 +151,12 @@ async function send1(env, to, subject, text, link, button, l) {
       await note(env, true);
       return true;
     }
-    // Resend said no (domain not verified yet, bad key…): keep the reason, and try the mailbox if there is one
+    // Resend said no: keep the reason. The mailbox is not tried then: the domain's own records are Resend's,
+    // so Gmail and others bounce what Proton sends as pitlanehq.app (SPF and DKIM do not pass)
     lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
     console.error("email not sent by Resend", lastError);
-    if (!smtpReady(env)) { await note(env, false); return false; }
+    await note(env, false);
+    return false;
   }
   if (smtpReady(env)) {
     const r = await smtpSend(env, { to, subject, text: plain, html, replyTo });
