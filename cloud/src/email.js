@@ -1,4 +1,5 @@
-// Emails (verify the address, reset the password), two ways:
+// Emails (verify the address, reset the password), two ways (Resend first when it has its key; the
+// mailbox over SMTP when Resend is not set up or says no):
 //  - your own mailbox over SMTP (Proton Mail's SMTP submission): secret SMTP_TOKEN + EMAIL_FROM (smtp.js)
 //  - or Resend (resend.com): secret RESEND_API_KEY + EMAIL_FROM, with the domain verified there
 // EMAIL_FROM looks like "Pitlane HQ <support@pitlanehq.app>".
@@ -57,9 +58,10 @@ async function dns(name, type) {
 export async function mailDomain(env) {
   const from = (/<([^>]+)>/.exec(env.EMAIL_FROM || "") || [null, env.EMAIL_FROM || ""])[1].trim(), dom = from.split("@")[1] || "";
   if (!dom) return { domain: "", checks: [] };
-  const proton = smtpReady(env) && !env.SMTP_HOST;
-  const [txt, mx, dmarc, k1, k2, k3] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
-    dns("protonmail._domainkey." + dom, "CNAME"), dns("protonmail2._domainkey." + dom, "CNAME"), dns("protonmail3._domainkey." + dom, "CNAME")]);
+  const proton = smtpReady(env) && !env.SMTP_HOST, resend = !!env.RESEND_API_KEY;
+  const [txt, mx, dmarc, k1, k2, k3, rk, smx, stxt] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
+    dns("protonmail._domainkey." + dom, "CNAME"), dns("protonmail2._domainkey." + dom, "CNAME"), dns("protonmail3._domainkey." + dom, "CNAME"),
+    dns("resend._domainkey." + dom, "TXT"), dns("send." + dom, "MX"), dns("send." + dom, "TXT")]);
   const spf = (txt || []).filter((x) => /^v=spf1/i.test(x)), checks = [];
   checks.push({ k: "spf", ok: spf.length === 1 && (!proton || /_spf\.protonmail\.ch/.test(spf[0])), got: spf.join(" | ") || "—",
     want: spf.length > 1 ? "one SPF record only (there are " + spf.length + ": join them)" : proton ? "v=spf1 include:_spf.protonmail.ch ~all" : "an SPF record that includes your sender" });
@@ -70,8 +72,13 @@ export async function mailDomain(env) {
     checks.push({ k: "mx", ok: (mx || []).some((x) => /protonmail\.ch/.test(x)) && !(mx || []).some((x) => /mx\.cloudflare\.net/.test(x)), got: (mx || []).join(" | ") || "—",
       want: (mx || []).some((x) => /mx\.cloudflare\.net/.test(x)) ? "Proton's MX (mail.protonmail.ch, mailsec.protonmail.ch) instead of Cloudflare Email Routing" : "10 mail.protonmail.ch and 20 mailsec.protonmail.ch" });
   }
+  if (resend) {
+    checks.push({ k: "resend-dkim", ok: (rk || []).some((x) => /^p=/.test(x)), got: (rk || []).join(" | ").slice(0, 60) || "—", want: "TXT resend._domainkey: the p=… value from Resend → Domains" });
+    checks.push({ k: "resend-spf", ok: (smx || []).some((x) => /amazonses\.com/.test(x)) && (stxt || []).some((x) => /include:amazonses\.com/.test(x)), got: [...(smx || []), ...(stxt || [])].join(" | ") || "—",
+      want: "on send: MX 10 feedback-smtp.us-east-1.amazonses.com and TXT v=spf1 include:amazonses.com ~all" });
+  }
   checks.push({ k: "dmarc", ok: (dmarc || []).some((x) => /^v=DMARC1/i.test(x)), got: (dmarc || []).join(" | ") || "—", want: "_dmarc: v=DMARC1; p=quarantine" });
-  return { domain: dom, via: proton ? "proton" : smtpReady(env) ? "smtp" : "resend", checks, dnsOk: txt !== null };
+  return { domain: dom, via: resend ? (proton ? "resend+proton" : "resend") : proton ? "proton" : "smtp", checks, dnsOk: txt !== null };
 }
 /** For the admins: the last emails and, for Resend's, what happened to them (delivered, bounced, complained…). */
 export async function mailLog(env) {
@@ -100,6 +107,24 @@ async function send1(env, to, subject, text, link, button, l) {
 <p style="color:#5b677a;font-size:13px">${esc(link)}</p>
 <p style="color:#5b677a;font-size:12px;margin-top:24px">${esc(lang(l) === "es" ? "¿Dudas? Escríbenos a" : lang(l) === "de" ? "Fragen? Schreib uns an" : lang(l) === "pt" ? "Dúvidas? Escreva para" : "Questions? Write to")} <a href="mailto:${SUPPORT}" style="color:#5b677a">${SUPPORT}</a></p></div>`;
   const plain = text + "\n\n" + link + "\n\n" + SUPPORT, replyTo = env.EMAIL_REPLY_TO || SUPPORT;
+  if (env.RESEND_API_KEY) {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
+      body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: replyTo, to: [to], subject, text: plain, html }),
+    });
+    if (r.ok) {
+      lastError = null;
+      const j = await r.json().catch(() => ({}));
+      await logSent(env, to, subject, "resend", j.id);
+      await note(env, true);
+      return true;
+    }
+    // Resend said no (domain not verified yet, bad key…): keep the reason, and try the mailbox if there is one
+    lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
+    console.error("email not sent by Resend", lastError);
+    if (!smtpReady(env)) { await note(env, false); return false; }
+  }
   if (smtpReady(env)) {
     const r = await smtpSend(env, { to, subject, text: plain, html, replyTo });
     if (!r.ok) {
@@ -109,25 +134,15 @@ async function send1(env, to, subject, text, link, button, l) {
     await note(env, r.ok);
     return r.ok;
   }
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { authorization: "Bearer " + env.RESEND_API_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.EMAIL_FROM, reply_to: replyTo, to: [to], subject, text: plain, html }),
-  });
-  if (!r.ok) {
-    // Resend said no (domain not verified, sender not allowed, bad key…): keep the reason for the admins' test
-    lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
-    console.error("email not sent", lastError);
-  } else { lastError = null; const j = await r.json().catch(() => ({})); await logSent(env, to, subject, "resend", j.id); }
-  await note(env, r.ok);
-  return r.ok;
+  await note(env, false);
+  return false;
 }
 let lastError = null;
 export const mailLastError = () => lastError;
 /** For the admins: sends a test email and answers with Resend's status and reason. */
 export async function sendTest(env, to, l) {
   const ok = await send(env, to, "Pitlane HQ: " + (lang(l) === "es" ? "email de prueba" : "test email"), lang(l) === "es" ? "Si lees esto, los emails del servidor funcionan." : "If you read this, the server's emails work.", "https://pitlanehq.app/", "Pitlane HQ", l);
-  return { ok, via: smtpReady(env) ? "smtp" : "resend", from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
+  return { ok, via: env.RESEND_API_KEY ? "resend" : "smtp", from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
 }
 
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);

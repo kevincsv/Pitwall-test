@@ -57,7 +57,8 @@
 - No text about encryption or about everything sync does in the account, sync, Live or community
   screens (only notes the driver needs, like "your data does not need to be uploaded again"); the
   "How your data is protected" list in About is the one place that explains it.
-- Emails go through Proton Mail's SMTP (`smtp.js`, bodies in base64) or Resend; Admin → Server shows the last
+- Emails go through Resend first (domain pitlanehq.app, secret RESEND_API_KEY) and Proton Mail's SMTP
+  (`smtp.js`, bodies in base64) when Resend is not set up or refuses one; Admin → Server shows the last
   emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX and DMARC.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).

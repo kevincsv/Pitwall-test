@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.19 beta
+
+**Changed**
+- Emails go through Resend first (the domain pitlanehq.app, with its own DKIM and SPF on `send`) and
+  through the Proton mailbox only when Resend is not set up or refuses one; Admin → Server checks
+  Resend's records too and shows which way each email went.
+
 ## 0.8.18 beta
 
 **New**
