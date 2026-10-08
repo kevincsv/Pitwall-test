@@ -146,6 +146,8 @@ func (st *ovState) collect() {
 			L.telHist[n] = h
 		}
 	}
+	st.collectSession()
+	st.collectLaps()
 	if on := f("P2P_Status") != 0; on != L.p2pOn {
 		L.p2pOn = on
 		if on {
@@ -265,6 +267,21 @@ func hsl(h, s, l float64) uint32 {
 // the app's labels: small, uppercase, spaced (.label)
 func (c *ovCanvas) label(z float64, s string, x, cy float64, align int) {
 	c.textT(ovFace(fkData, 11*z), strings.ToUpper(s), x, cy, colMuted, 1, align, 1.1*z)
+}
+
+// labelFit is a label cut with "…" to fit maxW
+func (c *ovCanvas) labelFit(z float64, s string, x, cy, maxW float64) {
+	f, tr := ovFace(fkData, 11*z), 1.1*z
+	s = strings.ToUpper(s)
+	r := []rune(s)
+	for len(r) > 1 && textWT(f, string(r), tr) > maxW {
+		r = r[:len(r)-1]
+		s = string(r) + "…"
+		if textWT(f, s, tr) <= maxW {
+			break
+		}
+	}
+	c.textT(f, s, x, cy, colMuted, 1, 0, tr)
 }
 
 // a value with its unit after it (.mid + .unit); returns its width
@@ -586,7 +603,7 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64) int {
 	colW := (W - 2*pad) / 2
 	cell := func(i, j int, l, v string, col uint32) {
 		x, y := pad+float64(j)*colW, pad+float64(i)*cellH
-		c.label(z, l, x, y+8*z, 0)
+		c.labelFit(z, l, x, y+8*z, colW-8*z)
 		c.text(vf, v, x, y+32*z, col, 1, 0)
 	}
 	cur, _ := st.num("LapCurrentLapTime")

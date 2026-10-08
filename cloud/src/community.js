@@ -553,7 +553,9 @@ export async function community(req, env, url) {
   if (m === "POST" && (p === "/laps" || p === "/reports") && typeof body.guest === "string" && body.guest.trim()) {
     if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can share laps for other drivers", 403);
     const name = cleanAlias(body.guest);
-    const gid = "guest-" + (await sha256(u.id + ":" + name.toLowerCase())).slice(0, 20);
+    // a driver renamed before keeps their id (and their laps): found by name among this admin's drivers first
+    const had = await env.DB.prepare("SELECT id FROM community_users WHERE owner=?1 AND id LIKE 'guest-%' AND lower(alias)=lower(?2)").bind(u.id, name).first();
+    const gid = had ? had.id : "guest-" + (await sha256(u.id + ":" + name.toLowerCase())).slice(0, 20);
     // your own Drinks drivers never clash with each other or with you, only with the rest of the platform
     if (await nameTaken(env, name, u.id)) return json({ error: `"${name}" is already used by another driver on Pitlane HQ, choose another name`, code: "name_taken" }, 409);
     await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias, owner=excluded.owner")
@@ -569,6 +571,20 @@ export async function community(req, env, url) {
   const shownAs = body.as === "iracing" ? "iracing" : "nick";
   if (shownAs === "iracing" && typeof body.iracingName === "string" && body.iracingName.trim())
     await env.DB.prepare("UPDATE community_users SET iracing=?2 WHERE id=?1").bind(u.id, cleanAlias(body.iracingName)).run();
+  // rename one of your Drinks drivers: the same driver (and laps, on every leaderboard) under the new name
+  if (p === "/guest-rename" && m === "POST") {
+    if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);
+    const from = cleanAlias(body.from || ""), to = cleanAlias(body.to || "");
+    if (!from || !to) return err("both names are needed", 400);
+    if (await nameTaken(env, to, u.id)) return json({ error: `"${to}" is already used by another driver on Pitlane HQ, choose another name`, code: "name_taken" }, 409);
+    const row = await env.DB.prepare("SELECT id FROM community_users WHERE owner=?1 AND id LIKE 'guest-%' AND lower(alias)=lower(?2)").bind(u.id, from).first();
+    if (from.toLowerCase() !== to.toLowerCase()) {
+      const clash = await env.DB.prepare("SELECT id FROM community_users WHERE owner=?1 AND id LIKE 'guest-%' AND lower(alias)=lower(?2)").bind(u.id, to).first();
+      if (clash) return json({ error: `You already have a driver called "${to}"`, code: "name_taken" }, 409);
+    }
+    if (row) await env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(row.id, to).run();
+    return json({ ok: true, renamed: !!row, name: to });
+  }
   // is this name free? (Drinks drivers of an admin only clash with other people on the platform)
   if (p === "/name-check" && m === "POST") {
     if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);

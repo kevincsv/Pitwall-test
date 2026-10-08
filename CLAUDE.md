@@ -14,7 +14,9 @@
   test). Raise it slowly: PATCH for fixes, MINOR for a set of features, never on every build.
   Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps.
-- DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app.
+- DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
+  list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
+  taken off the list (×: what they shared stays).
 - One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
   `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared
   or not; shared laps; the laps of the rivals of your races) and its references are real laps,
@@ -107,18 +109,23 @@
   window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
   dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
-  radar's window hides itself when nobody is near. The radar, the delta bar, the relative, the standings, the flag, the
-  dash, timing, fuel, engine, tyres, inputs, DRS & push-to-pass, telemetry and the g-force circle are not WebView2 (its content is always opaque): they are native UI drawn in Go (`ovnative.go`: shapes, the app's own fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow
-  Condensed, OFL) and its colours, licence badges and pills, the
-  data from the live stream, the same settings as the web widgets; `ovnative_windows.go`: a layered window with alpha
-  per pixel and the overlays' opacity). Only the panel and its content show, the rest is see-through, every click goes
-  to the game, and while moving the overlays they are dragged and resized from the corner. They scale with the
-  window's width and fit their height to what they show. The radar is only your car's outline, the cars coming, the
-  red side bar and the nearest distance. The rest of the overlays (pit, sectors, gaps, incidents, stats, map, compare, braking markers, coach, radio) are
-  still WebView2 windows until they are ported the same way; then the main window moves to C#/WPF
-  (`desktop/PitlaneHQ.Desktop`) screen by screen (the owner's choice: overlays first, the main window in WPF). The
-  app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get both in the stream's
-  config event, so they change at once.
+  radar's window hides itself when nobody is near. Every overlay is native UI drawn in Go, never WebView2 (its
+  content is always opaque; a test checks every overlay in `overlayOrder`): `ovnative.go` (shapes, the app's own
+  fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow Condensed, OFL), its colours, licence badges
+  and pills; the live stream; radar, delta bar, relative, standings), `ovnative2.go` (flag, dash, timing, fuel,
+  engine, tyres, inputs, DRS & push-to-pass, telemetry, g-force), `ovnative3.go` (stats, pit stop, mini-sectors,
+  gaps, incidents), `ovnative4.go` (track map from `/api/map` or the community's layout, live compare, braking
+  markers with the model's next level from `/api/community/model`, coach, radio) and `ovnative_windows.go` (a
+  layered window with alpha per pixel and the overlays' opacity). Only the panel and its content show, the rest is
+  see-through, every click goes to the game (the radio's buttons take clicks without taking the focus), and while
+  moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
+  their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
+  the cars coming, the red side bar and the nearest distance. The windows that need laps record the ones they see.
+  WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
+  (the owner's choice). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
+  both in the stream's config event, so they change at once.
+  Overlay presets: the four built in and your own (saved in the overlay settings, `CFG.ui.ovpresets`, so they go
+  with the account), applied with one click and deleted with their ×; names asked in the app's own dialog.
   Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the
   overlays that are open or Auto, always inside the screen. In a narrow PC window the main tabs show only icons. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,

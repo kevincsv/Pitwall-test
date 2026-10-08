@@ -33,12 +33,14 @@ func nativeOverlay(name string) bool {
 	case "radar", "deltabar", "relative", "standings":
 		return true
 	}
-	return gaugeOverlay(name)
+	return gaugeOverlay(name) || sessionOverlay(name) || lapOverlay(name)
 }
 
 // the width each overlay is designed for: the window's width scales everything from it
 var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600, "standings": 720,
-	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280}
+	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280,
+	"stats": 420, "pit": 440, "sectors": 560, "gaps": 560, "incidents": 380,
+	"map": 440, "compare": 680, "brakes": 480, "coach": 520, "radio": 420}
 
 // ---------- the picture ----------
 
@@ -285,7 +287,7 @@ func licColor(s string) uint32 {
 type ovDriver struct {
 	Idx                    int
 	Name, Num, Lic, CarSht string
-	IR, Class, Inc         int
+	IR, Class, Inc, CarID  int
 	Skip                   bool // pace car, spectators
 }
 
@@ -297,6 +299,8 @@ type ovSession struct {
 	Grid     map[int][2]int     // car → qualifying place, class place (1 = first)
 	Car      map[string]float64 // your car: DriverCarSLShiftRPM, DriverCarRedLine, DriverCarFuelMaxLtr…
 	Track    string
+	TrackID  int
+	MyIdx    int
 }
 
 type ovSess struct {
@@ -319,9 +323,13 @@ type ovState struct {
 	units   string    // "metric" or "imperial", as the app
 	clearAt time.Time // radar: since when nobody has been near
 	unitOf  map[string]string
-	live    ovLive // what the gauges remember between frames (ovnative2.go)
-	varsKey string // the variables the stream was asked for (a change reconnects)
+	live    ovLive        // what the gauges remember between frames (ovnative2.go)
+	sm      *ovSessionMem // what the session overlays remember (ovnative3.go)
+	varsKey string        // the variables the stream was asked for (a change reconnects)
 	varsFn  func() []string
+	client  *http.Client // the PC's API, with this window's cookie (the native overlays that fetch: map, brakes)
+	base    string
+	ext     ovExtra // the map, the recorded laps, the model's reference, the radio's buttons (ovnative4.go)
 }
 
 // unitsFromURL: the app's units ("imperial", else metric), given to the overlay window in its address
@@ -435,6 +443,8 @@ func uiList(m map[string]any, k string, def []string) []string {
 func parseOvSession(y string) *ovSession {
 	s := &ovSession{Drivers: map[int]*ovDriver{}, Sessions: map[int]ovSess{}, Grid: map[int][2]int{}, Car: map[string]float64{}}
 	s.Track = yamlField(y, "TrackDisplayName")
+	s.TrackID = atoi(yamlField(y, "TrackID"))
+	s.MyIdx = atoi(yamlField(y, "DriverCarIdx"))
 	s.TrackLen = trackLength(y)
 	s.IncLimit = atoi(strings.TrimPrefix(yamlField(y, "IncidentLimit"), "unlimited"))
 	section := ""
@@ -496,6 +506,8 @@ func parseOvSession(y string) *ovSession {
 				drv.IR = atoi(v)
 			case "CarClassID":
 				drv.Class = atoi(v)
+			case "CarID":
+				drv.CarID = atoi(v)
 			case "CarScreenNameShort":
 				drv.CarSht = v
 			case "CurDriverIncidentCount":
@@ -571,6 +583,9 @@ func ovFeed(rawURL string, vars func() []string, st *ovState) {
 	base, lt := u.Scheme+"://"+u.Host, u.Query().Get("lt")
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
+	st.mu.Lock()
+	st.client, st.base = client, base
+	st.mu.Unlock()
 	for {
 		want := strings.Join(vars(), ",")
 		st.mu.Lock()
@@ -969,7 +984,13 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 	case "standings":
 		h = drawTableOv(c, st, z, false)
 	default:
-		h = drawGauge(name, c, st, z, now)
+		if sessionOverlay(name) {
+			h = drawSessionOv(name, c, st, z)
+		} else if lapOverlay(name) {
+			h = drawLapOv(name, c, st, z, now)
+		} else {
+			h = drawGauge(name, c, st, z, now)
+		}
 	}
 	if st.edit { // while you move the overlays: a rounded amber frame and the resize corner
 		fh := float64(c.h)
@@ -1720,6 +1741,12 @@ func ovVars(name string, st *ovState) []string {
 	base := []string{"PlayerCarIdx", "SessionNum"}
 	if gaugeOverlay(name) {
 		return append(base, gaugeVars(name, st)...)
+	}
+	if sessionOverlay(name) {
+		return append(base, sessionVars(name)...)
+	}
+	if lapOverlay(name) {
+		return append(base, lapOvVars(name)...)
 	}
 	switch name {
 	case "radar":

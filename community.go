@@ -222,6 +222,62 @@ func setDrinks(on bool, guest string, auto bool) error {
 	return nil
 }
 
+// renameGuest gives a DRINKS driver another name: on the server (the same driver and laps under the new name)
+// and in this PC's list. Admins only.
+func renameGuest(from, to string) error {
+	loadPL()
+	plMu.Lock()
+	admin := plAcc.Admin
+	plMu.Unlock()
+	if !admin {
+		return errors.New("only the admins of the server can use DRINKS mode")
+	}
+	from, to = cleanText(from, 32), cleanText(to, 32)
+	if from == "" || to == "" {
+		return errors.New("a name is needed")
+	}
+	if _, err := commCall("POST", "/guest-rename", map[string]string{"from": from, "to": to}, true); err != nil && err.Error() != "not registered" {
+		return err
+	}
+	commMu.Lock()
+	defer commMu.Unlock()
+	for i, x := range commCfg.Guests {
+		if strings.EqualFold(x, from) {
+			commCfg.Guests[i] = to
+		}
+	}
+	if strings.EqualFold(commCfg.Guest, from) {
+		commCfg.Guest = to
+	}
+	saveCommLocked()
+	return nil
+}
+
+// forgetGuest takes a DRINKS driver off this PC's list; what they shared stays on the server.
+func forgetGuest(name string) error {
+	loadPL()
+	plMu.Lock()
+	admin := plAcc.Admin
+	plMu.Unlock()
+	if !admin {
+		return errors.New("only the admins of the server can use DRINKS mode")
+	}
+	commMu.Lock()
+	defer commMu.Unlock()
+	list := commCfg.Guests[:0]
+	for _, x := range commCfg.Guests {
+		if !strings.EqualFold(x, name) {
+			list = append(list, x)
+		}
+	}
+	commCfg.Guests = list
+	if strings.EqualFold(commCfg.Guest, name) {
+		commCfg.Guest = ""
+	}
+	saveCommLocked()
+	return nil
+}
+
 // drinksState is what the phone shows of DRINKS mode.
 func drinksState() map[string]any {
 	loadPL()
@@ -468,7 +524,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				ShareTimes, ShareTraces, ShareReports, Anonymous bool
 				ShareMaps, LiveWeb, ShareField                   *bool
 				Friday, GuestAuto                                bool
-				Guest                                            string
+				Guest, To                                        string
 				SessionID, LapID                                 string
 				Anon                                             bool
 				As, IracingName                                  string
@@ -564,6 +620,16 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				}
 			case "friday":
 				if err := setDrinks(in.Friday, in.Guest, in.GuestAuto); err != nil {
+					fail(err)
+					return
+				}
+			case "guestRename": // a DRINKS driver gets another name (their laps on the server follow)
+				if err := renameGuest(in.Guest, in.To); err != nil {
+					fail(err)
+					return
+				}
+			case "guestForget": // off the list of DRINKS drivers (their laps stay on the leaderboards)
+				if err := forgetGuest(in.Guest); err != nil {
 					fail(err)
 					return
 				}

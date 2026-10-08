@@ -4,6 +4,23 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.40 beta
+
+**Changed**
+- Every overlay is native now: the last ten (lap stats, pit stop, mini-sectors, gaps, incidents, track map, live
+  compare, braking markers, coach and radio) are drawn by Pitlane HQ like the rest, so no overlay is a web page any
+  more. The braking markers take their points from the model (the driver just ahead of your pace), the map uses the
+  track's outline, and the radio's buttons ask the engineer without taking the focus from the game.
+
+**Fixed**
+- Overlay presets: saving one asks for its name in the app's own window (not the browser's) and the preset shows
+  up next to the others; your presets go with your account and can be deleted with their ×. The preset names are
+  translated.
+
+**Added**
+- DRINKS mode: a driver already on the list can be renamed (their shared laps take the new name) or taken off the
+  list.
+
 ## 0.8.39 beta
 
 **Changed**

@@ -251,3 +251,159 @@ func TestNativeGaugesDraw(t *testing.T) {
 		t.Fatal("imperial units")
 	}
 }
+
+func TestNativeSessionOverlaysDraw(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	set("IsOnTrack", true)
+	set("FuelLevel", 18.0)
+	set("PlayerCarPosition", 2)
+	st.ses.Car["DriverCarEstLapTime"], st.ses.Car["DriverCarFuelMaxLtr"] = 90, 52
+	st.live.fuelUses = []float64{2.4}
+	set("SessionLapsRemainEx", 20)
+	inc := 0
+	// three laps: 90 s each, 30 frames a second
+	for f := 0; f < 3*90*30; f++ {
+		tt := float64(f) / 30
+		lap := int(tt / 90)
+		p := math.Mod(tt, 90) / 90
+		set("SessionTime", tt)
+		set("LapDistPct", p)
+		set("LapCompleted", lap)
+		set("Lap", lap+1)
+		set("Throttle", math.Max(0, math.Sin(tt)))
+		set("Brake", math.Max(0, -math.Sin(tt)))
+		set("Gear", 3+int(tt/7)%3)
+		set("Speed", 50+10*math.Sin(tt/5))
+		set("VelocityX", 50.0)
+		set("VelocityY", 2*math.Sin(tt))
+		set("CarIdxLapDistPct", []float64{p, math.Mod(p+0.004, 1), math.Mod(p-0.003+1, 1), -1})
+		set("CarIdxLap", []float64{float64(lap), float64(lap), float64(lap), 0})
+		if f%900 == 450 {
+			inc += 2
+		}
+		set("PlayerCarMyIncidentCount", inc)
+		st.collect()
+	}
+	m := st.mem()
+	if m.stLast == nil || m.msLast == nil || m.msBestLap == nil || len(m.incLog) != 9 || len(m.gapH[1]) < 100 {
+		t.Fatalf("memory: last lap %v, sectors %v/%v, incidents %d, gaps %d", m.stLast != nil, m.msLast != nil, m.msBestLap != nil, len(m.incLog), len(m.gapH[1]))
+	}
+	for _, name := range []string{"stats", "pit", "sectors", "gaps", "incidents"} {
+		c := newCanvas(int(ovDesign[name]), 900)
+		h := ovDraw(name, c, st, time.Now())
+		if h < 60 || h > 700 {
+			t.Fatalf("%s: height %d", name, h)
+		}
+		for y := h + 1; y < c.h; y++ {
+			for x := 0; x < c.w; x++ {
+				if c.px[y*c.w+x]>>24 > 0 {
+					t.Fatalf("%s draws below its height %d", name, h)
+				}
+			}
+		}
+		ovSavePNG(t, c, h, "s-"+name)
+	}
+}
+
+func TestNativeLapOverlaysDraw(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	set("IsOnTrack", true)
+	L := 4000.0
+	// three laps around a track with two corners; the third one is slower through the first corner
+	speed := func(d float64, lap int) (v, thr, brk float64) {
+		v, thr = 70, 1
+		for _, at := range []float64{1200, 2900} {
+			low := 30.0
+			if lap == 2 && at == 1200 {
+				low = 22
+			}
+			if d > at-150 && d < at {
+				f := (d - (at - 150)) / 150
+				v, thr, brk = 70-(70-low)*f, 0, 0.9
+			} else if d >= at && d < at+200 {
+				v, thr = low+(70-low)*(d-at)/200, 0.8
+			}
+		}
+		return
+	}
+	tt := 0.0
+	for lap := 0; lap < 3; lap++ {
+		for d := 0.0; d < L; d += 2 {
+			v, thr, brk := speed(d, lap)
+			tt += 2 / v
+			set("LapDist", d)
+			set("LapDistPct", d/L)
+			set("LapCompleted", lap)
+			set("Lap", lap+1)
+			set("LapCurrentLapTime", tt-float64(lap)*70)
+			set("Speed", v)
+			set("Throttle", thr)
+			set("Brake", brk)
+			set("Gear", 4)
+			set("RPM", 7000)
+			set("SteeringWheelAngle", 0.1)
+			st.collect()
+		}
+		set("LapLastLapTime", 70.0+float64(lap)*0.3)
+		st.ext.pendAt = time.Now().Add(-time.Second)
+	}
+	set("LapCompleted", 3)
+	set("LapDist", 1000.0)
+	set("LapDistPct", 0.25)
+	set("Speed", 72.0)
+	st.collect()
+	st.ext.pendAt = time.Now().Add(-time.Second)
+	st.collect()
+	if len(st.ext.laps) != 3 {
+		t.Fatalf("recorded %d laps, want 3", len(st.ext.laps))
+	}
+	if z := st.bmZones(); len(z) != 2 {
+		t.Fatalf("braking zones: %d", len(z))
+	}
+	if tips := st.coachTips(); len(tips) == 0 {
+		t.Fatal("the coach finds nothing in the lap that braked late")
+	}
+	for i := 0; i < 200; i++ { // an oval for the map
+		a := float64(i) / 200 * 2 * math.Pi
+		st.ext.mapX = append(st.ext.mapX, 600*math.Cos(a))
+		st.ext.mapY = append(st.ext.mapY, 300*math.Sin(a))
+	}
+	st.ext.mapKey = "t0"
+	for _, name := range []string{"map", "compare", "brakes", "coach", "radio"} {
+		h0 := 900
+		if name == "map" {
+			h0 = 480
+		}
+		c := newCanvas(int(ovDesign[name]), h0)
+		h := ovDraw(name, c, st, time.Now())
+		if name == "map" {
+			h = h0
+		}
+		if h < 60 || h > 900 {
+			t.Fatalf("%s: height %d", name, h)
+		}
+		ovSavePNG(t, c, h, "l-"+name)
+	}
+	b := st.ext.buttons[3]
+	ovClick("radio", st, b.x+5, b.y+5)
+	if st.ext.pressed != "position" {
+		t.Fatalf("radio click pressed %q", st.ext.pressed)
+	}
+}
+
+// every overlay is drawn natively (no WebView2 window over the game) and has its design width
+func TestEveryOverlayIsNative(t *testing.T) {
+	for _, n := range overlayOrder {
+		if !nativeOverlay(n) || ovDesign[n] <= 0 {
+			t.Errorf("overlay %s is not native", n)
+		}
+	}
+}
