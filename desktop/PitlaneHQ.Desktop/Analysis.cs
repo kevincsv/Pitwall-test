@@ -123,7 +123,7 @@ public partial class MainWindow
         var it = D(_model["idealTime"]);
         if (ideal != null && ideal.Count > 10 && it > 0 && Math.Abs(it - a.Time) >= 0.002)
             yield return new AnaLap("★ " + T("Record", "Récord") + " · " + LapTime(it), it, ideal.Select(r => r is JsonArray q ? q.Select(D).ToArray() : Array.Empty<double>()).ToArray(), true, 0, 0, null, "record",
-                _model["idealXY"]?["x"]?.AsArray().Select(D).ToArray(), _model["idealXY"]?["y"]?.AsArray().Select(D).ToArray());
+                (_model["idealXY"] ?? _model["lineXY"])?["x"]?.AsArray().Select(D).ToArray(), (_model["idealXY"] ?? _model["lineXY"])?["y"]?.AsArray().Select(D).ToArray());
         var ladder = _model["ladder"]?.AsArray();
         if (ladder == null || ladder.Count == 0) yield break;
         int nb = (int)D(_model["nb"]);
@@ -154,7 +154,7 @@ public partial class MainWindow
             for (int k = 0; k < v.Count; k++) { double c = D(v[k]), nx = D(v[Math.Min(v.Count - 1, k + 1)]); o.Add(c); o.Add((c + nx) / 2); }
             return (nb > 0 && o.Count > nb ? o.Take(nb) : o).ToArray();
         }
-        yield return new AnaLap("▲ " + T("Next level", "Siguiente nivel") + " · " + LapTime(t), t, up.ToArray(), true, 0, 0, null, "level", Up(lv?["x"]?.AsArray()), Up(lv?["y"]?.AsArray()));
+        yield return new AnaLap("▲ " + T("Next level", "Siguiente nivel") + " · " + LapTime(t), t, up.ToArray(), true, 0, 0, null, "level", Up(lv?["x"]?.AsArray()) ?? _model?["lineXY"]?["x"]?.AsArray().Select(D).ToArray(), Up(lv?["y"]?.AsArray()) ?? _model?["lineXY"]?["y"]?.AsArray().Select(D).ToArray());
     }
 
     private void FillLaps()

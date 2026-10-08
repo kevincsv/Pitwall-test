@@ -11,9 +11,10 @@
   PitlaneHQ.exe is for development only and has no button in the app.
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
-  test). Raise it slowly: PATCH for fixes, MINOR for a set of features, never on every build.
-  Every version gets an entry in CHANGELOG.md (newest first) and a GitHub release. Changelogs (CHANGELOG.md, the
-  phones' and whats-new.json) only say what users notice; internal or server changes go as "Fixes and improvements".
+  test). Raise it rarely: a MINOR version for a big set of features; fixes and small changes go into the current
+  version (or a PATCH only when a fix must reach PCs that already have it), never one version per build.
+  CHANGELOG.md (newest first), the phones' and whats-new.json list only the big versions and only what users notice;
+  internal, server and small fixes are one "Fixes and improvements" line. A version gets a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps.
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or

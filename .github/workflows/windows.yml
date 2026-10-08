@@ -103,12 +103,13 @@ jobs:
           bash .github/scripts/publish.sh PitlaneHQ-windows.zip
           bash .github/scripts/publish.sh dist-installer/PitlaneHQ-Setup.exe
           bash .github/scripts/publish.sh version.json
-          # one release per version with its part of CHANGELOG.md (made once; later builds of the
-          # same version only refresh its files)
+          # one release per version with its part of CHANGELOG.md (later builds of the same version
+          # refresh its files and its notes)
           tag="v$ver-beta"
           awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
           printf '\n---\nDownloads: https://pitlanehq.app/downloads · Full history: https://pitlanehq.app/changelog\n' >> notes.md
           gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$GITHUB_SHA" --title "Pitlane HQ $ver beta" --notes-file notes.md --prerelease --latest=false || true
+          gh release edit "$tag" --notes-file notes.md >/dev/null 2>&1 || true # the notes follow CHANGELOG.md
           gh release upload "$tag" PitlaneHQ-windows.zip dist-installer/PitlaneHQ-Setup.exe --clobber || true
 
   # the native Windows window (desktop/, C# / WPF) over the same engine: a preview next to the

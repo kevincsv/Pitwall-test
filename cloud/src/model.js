@@ -11,7 +11,7 @@
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 5; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line
+export const MODEL_VERSION = 6; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known
 export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -225,8 +225,17 @@ export async function buildModel(env, game, trackId, carId) {
     if (p && p.x.length >= n) { e.x = []; e.y = []; for (let i = 0; i < n; i += LEVEL_BIN) { e.x.push(r(p.x[i], 10)); e.y.push(r(p.y[i], 10)); } }
     out.push(e);
   }
+  // the references are often rivals' laps (from their place on track: no path): the coach then measures your line
+  // against the fastest lap of this car and track whose path is known (yours, or another Pitlane HQ driver's)
+  let lineXY = null;
+  if (!(fp && fp.x.length >= n)) {
+    for (const l of sorted.slice(0, 40)) {
+      const p = await pathFor(l);
+      if (p && p.x.length >= n) { lineXY = { time: r(l.time, 1000), x: p.x.slice(0, n).map((v) => r(v, 10)), y: p.y.slice(0, n).map((v) => r(v, 10)) }; break; }
+    }
+  }
   return {
-    ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times,
+    ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times, lineXY,
     ideal: record,
     idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)) } : null,
     ladder: out,

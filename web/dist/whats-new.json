@@ -1,603 +1,74 @@
 {
   "versions": [
     {
-      "v": "0.9.1",
-      "en": [
-        "Licence summary with Community's symbols and colours.",
-        "Overlay settings show the live preview next to the settings.",
-        "No more Windows notifications: everything shows inside the app.",
-        "\"See all\" on Home opens Analysis → My races; no race notice on the PC.",
-        "Official turn numbers (T1 … T16 at Fuji) in the coach, the analyzer and the race summary.",
-        "The pit lane on every track map, with its entry and exit."
-      ],
-      "es": [
-        "Resumen de licencias con los símbolos y colores de Comunidad.",
-        "Los ajustes de los overlays muestran la vista previa al lado de los ajustes.",
-        "Sin notificaciones de Windows: todo se ve dentro de la app.",
-        "\"Ver todas\" en Inicio abre Análisis → Mis carreras; sin aviso de carrera en el PC.",
-        "Números oficiales de las curvas (T1 … T16 en Fuji) en el coach, el analizador y el resumen de carrera.",
-        "El pit lane en todos los mapas, con su entrada y su salida."
-      ]
-    },
-    {
       "v": "0.9.0",
       "en": [
-        "The overlays on top of the game are open to everyone.",
-        "The coach reads your racing line: where you were on the track, not only where you braked.",
-        "The track map is a road with depth, with both lines.",
-        "Licence summary on Home: each category's own iRating and licence, never one number for all.",
-        "+1L / −1L in the relative, the standings and the race summary.",
-        "The game is found at once and the overlays open and close at once; started with Windows, Pitlane HQ opens minimized."
+        "Overlays for everyone, drawn by Pitlane HQ itself, with the live preview next to their settings.",
+        "The coach reads your racing line, not only where you brake.",
+        "Track maps like iRacing's: both lines, the official turns and the pit lane.",
+        "Licence summary on Home: each category's iRating on its own.",
+        "Driver notes, and +1L / −1L wherever other drivers show.",
+        "Started with Windows it opens minimized, and no Windows notifications."
       ],
       "es": [
-        "Los overlays sobre el juego, abiertos para todos.",
-        "El coach lee tu trazada: por dónde ibas en la pista, no solo dónde frenaste.",
-        "El mapa del circuito es una pista con relieve, con las dos líneas.",
-        "Resumen de licencias en Inicio: el iRating y la licencia de cada categoría por separado, nunca un número para todas.",
-        "+1L / −1L en el relative, la clasificación y el resumen de carrera.",
-        "El juego se detecta al momento y los overlays se abren y cierran al instante; al iniciar con Windows, Pitlane HQ arranca minimizado."
-      ]
-    },
-    {
-      "v": "0.8.41",
-      "en": [
-        "Pitlane HQ Desktop: Home, Analysis, Community, Telemetry, Overlays, Account and Settings are native.",
-        "The real iRating of a race only comes from a session of the same category.",
-        "Community sits just before Account in the menu.",
-        "Race rivals show their first name and initial, and their laps go to their account when they sign up.",
-        "Driver notes: mark drivers as dangerous, careful, clean or friend; their icon shows in the relative and the engineer warns you."
-      ],
-      "es": [
-        "Pitlane HQ Desktop: Inicio, Análisis, Comunidad, Telemetría, Overlays, Cuenta y Ajustes son nativos.",
-        "El iRating real de una carrera solo sale de una sesión de la misma categoría.",
-        "Comunidad va justo antes de Cuenta en el menú.",
-        "Los rivales de carrera se ven con su nombre e inicial, y sus vueltas pasan a su cuenta cuando se registran.",
-        "Notas de pilotos: marca pilotos como peligroso, cuidado, limpio o amigo; su icono sale en el relative y el ingeniero te avisa."
-      ]
-    },
-    {
-      "v": "0.8.40",
-      "en": [
-        "Every overlay is native now.",
-        "Overlay presets are saved, go with your account and can be deleted.",
-        "DRINKS: rename a driver on the list."
-      ],
-      "es": [
-        "Todos los overlays son nativos.",
-        "Los perfiles de overlays se guardan, van con tu cuenta y se pueden borrar.",
-        "DRINKS: cambia el nombre de un piloto de la lista."
-      ]
-    },
-    {
-      "v": "0.8.39",
-      "en": [
-        "Ten more overlays are native: flag, dash, timing, fuel, engine, tyres, inputs, DRS, telemetry and g-force."
-      ],
-      "es": [
-        "Diez overlays más son nativos: bandera, dash, tiempos, gasolina, motor, neumáticos, pedales, DRS, telemetría y fuerzas g."
-      ]
-    },
-    {
-      "v": "0.8.38",
-      "en": [
-        "The overlays use the app's fonts and look."
-      ],
-      "es": [
-        "Los overlays usan las fuentes y el estilo de la app."
-      ]
-    },
-    {
-      "v": "0.8.37",
-      "en": [
-        "Native overlays: radar, delta bar, relative and standings, sharp and see-through.",
-        "Braking beeps from the model, with your speed and traffic, and an off switch in Settings → Engineer."
-      ],
-      "es": [
-        "Overlays nativos: radar, delta bar, relative y standings, nítidos y transparentes.",
-        "Pitidos de frenada según el modelo, tu velocidad y el tráfico, y se apagan en Ajustes → Ingeniero."
-      ]
-    },
-    {
-      "v": "0.8.36",
-      "en": [
-        "A truly see-through radar: only the cars over the game.",
-        "Overlays in your language."
-      ],
-      "es": [
-        "Un radar realmente transparente: solo los coches sobre el juego.",
-        "Los overlays en tu idioma."
-      ]
-    },
-    {
-      "v": "0.8.35",
-      "en": [
-        "Overlay settings show a live preview with sample data when the game is not running."
-      ],
-      "es": [
-        "Los ajustes de los overlays muestran una vista previa en vivo con datos de ejemplo cuando el juego no está abierto."
-      ]
-    },
-    {
-      "v": "0.8.34",
-      "en": [
-        "Phone & sharing explains how to follow your PC from the phone with your account, and has the share code."
-      ],
-      "es": [
-        "Móvil y compartir explica cómo seguir tu PC desde el móvil con tu cuenta, y tiene el código para compartir."
-      ]
-    },
-    {
-      "v": "0.8.33",
-      "en": [
-        "Live is called Telemetry, and Overlays has its own tab on the PC."
-      ],
-      "es": [
-        "En vivo se llama Telemetría, y Overlays tiene su propia pestaña en el PC."
-      ]
-    },
-    {
-      "v": "0.8.32",
-      "en": [
-        "The estimated iRating change is right from the start of the race."
-      ],
-      "es": [
-        "El cambio de iRating estimado es correcto desde la salida de la carrera."
-      ]
-    },
-    {
-      "v": "0.8.31",
-      "en": [
-        "Smoother overlays.",
-        "Overlay settings in a floating window you can move."
-      ],
-      "es": [
-        "Overlays más fluidos.",
-        "Los ajustes de cada overlay en una ventana flotante que puedes mover."
-      ]
-    },
-    {
-      "v": "0.8.30",
-      "en": [
-        "A see-through radar and a cleaner delta bar.",
-        "Overlays with rounded corners that fit what they show and stay on the screen."
-      ],
-      "es": [
-        "Un radar transparente y una barra de delta más limpia.",
-        "Overlays con esquinas redondeadas que se ajustan a lo que muestran y no salen de la pantalla."
-      ]
-    },
-    {
-      "v": "0.8.29",
-      "en": [
-        "The standings overlay no longer disappears when cars come near.",
-        "A see-through radar that shows only the cars coming."
-      ],
-      "es": [
-        "El overlay de la clasificación ya no desaparece cuando se acercan coches.",
-        "Un radar transparente que solo muestra los coches que vienen."
-      ]
-    },
-    {
-      "v": "0.8.28",
-      "en": [
-        "The standings overlay keeps its size instead of growing and shrinking."
-      ],
-      "es": [
-        "El overlay de la clasificación mantiene su tamaño en vez de crecer y encoger."
-      ]
-    },
-    {
-      "v": "0.8.27",
-      "en": [
-        "Moving an overlay looks cleaner: a frame, corner marks to resize and a small label."
-      ],
-      "es": [
-        "Mover un overlay se ve más limpio: un marco, marcas en las esquinas para el tamaño y una etiqueta pequeña."
-      ]
-    },
-    {
-      "v": "0.8.26",
-      "en": [
-        "Overlays stay open and steady, without a dark border."
-      ],
-      "es": [
-        "Los overlays se quedan abiertos y estables, sin borde oscuro."
-      ]
-    },
-    {
-      "v": "0.8.25",
-      "en": [
-        "On the PC, the lap analyzer and the coach load your sessions right away.",
-        "\"Sign out on this PC\" is also in Settings."
-      ],
-      "es": [
-        "En el PC, el analizador y el coach cargan tus sesiones enseguida.",
-        "\"Cerrar sesión en este PC\" también está en Ajustes."
-      ]
-    },
-    {
-      "v": "0.8.24",
-      "en": [
-        "\"Sign out on this PC\" in My account.",
-        "If your session on the PC ends, it asks you to sign in again with your email filled in: no reinstall.",
-        "Connect asks your PC again after it declined."
-      ],
-      "es": [
-        "\"Cerrar sesión en este PC\" en Mi cuenta.",
-        "Si tu sesión en el PC termina, te pide volver a entrar con tu email ya puesto: sin reinstalar.",
-        "Conectar vuelve a preguntar a tu PC después de que lo rechazara."
-      ]
-    },
-    {
-      "v": "0.8.22",
-      "en": [
-        "Pitlane HQ's emails can show its logo in your inbox."
-      ],
-      "es": [
-        "Los emails de Pitlane HQ pueden mostrar su logo en tu bandeja de entrada."
-      ]
-    },
-    {
-      "v": "0.8.21",
-      "en": [
-        "Public pages with the iRacing records of every car and track, in English and Spanish."
-      ],
-      "es": [
-        "Páginas públicas con los récords de iRacing de cada coche y circuito, en inglés y español."
-      ]
-    },
-    {
-      "v": "0.8.20",
-      "en": [
-        "A new logo, on every app and in the emails.",
-        "Pitlane HQ's emails look like the app."
-      ],
-      "es": [
-        "Logo nuevo, en todas las apps y en los emails.",
-        "Los emails de Pitlane HQ se ven como la app."
-      ]
-    },
-    {
-      "v": "0.8.19",
-      "en": [
-        "Pitlane HQ's emails (confirm your email, reset your password) are sent a more reliable way."
-      ],
-      "es": [
-        "Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían de una forma más fiable."
-      ]
-    },
-    {
-      "v": "0.8.18",
-      "en": [
-        "Emails from Pitlane HQ (confirm your email, reset your password) are sent in a safer format."
-      ],
-      "es": [
-        "Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían en un formato más seguro."
-      ]
-    },
-    {
-      "v": "0.8.17",
-      "en": [
-        "Signing in with an email that has no account says so and offers to create it.",
-        "Live: watch another driver first, the download below; the code gets its dashes by itself.",
-        "My account is centred and simpler; \"Compare with the community\" is always in the lap analyzer.",
-        "Phone apps: compact Analysis filters, and each track only once."
-      ],
-      "es": [
-        "Si inicias sesión con un email sin cuenta, te lo dice y te ofrece crearla.",
-        "En vivo: primero ver a otro piloto y la descarga debajo; el código pone sus guiones solo.",
-        "Mi cuenta está centrada y es más simple; \"Comparar con la comunidad\" siempre está en el analizador.",
-        "Apps del móvil: filtros de Análisis compactos y cada circuito una sola vez."
-      ]
-    },
-    {
-      "v": "0.8.16",
-      "en": [
-        "The car card: what your car does on other tracks (hardest braking, shift speeds, top speed) against your lap, when nobody known is ahead of you here.",
-        "With \"+ Session\" on, lap B shows only the laps of the other session.",
-        "The next level and the record show once each in lap B.",
-        "\"Choose a session\" keeps its title and × at the top while you scroll."
-      ],
-      "es": [
-        "La ficha del coche: lo que tu coche hace en otros circuitos (frenada máxima, cambios de marcha, velocidad punta) frente a tu vuelta, cuando nadie conocido va por delante aquí.",
-        "Con \"+ Sesión\" activado, la vuelta B muestra solo las vueltas de la otra sesión.",
-        "El siguiente nivel y el récord salen una sola vez en la vuelta B.",
-        "\"Elegir sesión\" mantiene su título y la × arriba al bajar."
-      ]
-    },
-    {
-      "v": "0.8.15",
-      "en": [
-        "The lap analyzer and the coach share laps A and B: what you pick in one is there in the other.",
-        "\"Choose a session\" filters the car and the track apart.",
-        "\"MY BEST\" goes after the lap time.",
-        "Uninstalling Pitlane HQ removes all its data from the PC."
-      ],
-      "es": [
-        "El analizador de vueltas y el coach comparten las vueltas A y B: lo que eliges en uno está en el otro.",
-        "\"Elegir sesión\" filtra el coche y el circuito por separado.",
-        "\"MI MEJOR\" va después del tiempo de la vuelta.",
-        "Al desinstalar Pitlane HQ se borran todos sus datos del PC."
-      ]
-    },
-    {
-      "v": "0.8.14",
-      "en": [
-        "Analysis: \"Choose a session\" opens a window with the discipline, the kind of session, the car and track and the days you drove; it opens by itself when you enter Analysis.",
-        "Your PC accepts or declines when your phone or a browser presses Connect: nothing is sent before you accept.",
-        "Live is simpler: no Wi-Fi panel, just whether your PC is online and Connect.",
-        "A PC that stopped while saving can no longer come back signed out."
-      ],
-      "es": [
-        "Análisis: \"Elegir sesión\" abre una ventana con la disciplina, el tipo de sesión, el coche y circuito y los días que corriste; se abre sola al entrar en Análisis.",
-        "Tu PC acepta o rechaza cuando tu móvil o un navegador pulsa Conectar: no se envía nada antes de que aceptes.",
-        "En vivo es más simple: sin el panel de WiFi, solo si tu PC está online y Conectar.",
-        "Un PC que se apaga mientras guarda ya no vuelve con la sesión cerrada."
-      ]
-    },
-    {
-      "v": "0.8.13",
-      "en": [
-        "Pitlane HQ no longer stays on the loading screen if you had chosen several race reminders before (the earliest one is used until you pick one)."
-      ],
-      "es": [
-        "Pitlane HQ ya no se queda en la pantalla de carga si antes habías elegido varios avisos de carrera (se usa el más temprano hasta que elijas uno)."
-      ]
-    },
-    {
-      "v": "0.8.12",
-      "en": [
-        "Watch another driver's live telemetry with a code: get yours on the PC (Settings → Phone) or from your phone, and type someone's in Live → Watch another driver.",
-        "Live connects when you press Connect and stops with Disconnect; the PC app download is right under it.",
-        "Profiles: each lap opens its leaderboard with the driver's place, and the days they drove.",
-        "The supporter badge comes by itself with Patreon (same email) and shows next to your name everywhere.",
-        "Leaderboards are just the fastest drivers of each car and track (no license classes); the lap analyzer and the coach use the same discipline selector.",
-        "A tidier account tab with your email and id hidden until you show them, one race reminder at a time, and What's new works again."
-      ],
-      "es": [
-        "Ve la telemetría en vivo de otro piloto con un código: crea el tuyo en el PC (Ajustes → Móvil) o desde el móvil, y escribe el de otro en En vivo → Ver a otro piloto.",
-        "En vivo se conecta al pulsar Conectar y para con Desconectar; la descarga de la app del PC está justo debajo.",
-        "Perfiles: cada vuelta abre su leaderboard con la posición del piloto, y los días que ha corrido.",
-        "El badge de supporter llega solo con Patreon (mismo email) y sale junto a tu nombre en todas partes.",
-        "Las leaderboards son solo los más rápidos de cada coche y circuito (sin clases de licencia); el analizador y el coach usan el mismo selector de disciplina.",
-        "La pestaña de cuenta más ordenada, con tu email e ID ocultos hasta que los muestres, un solo aviso por carrera, y Novedades vuelve a funcionar."
-      ]
-    },
-    {
-      "v": "0.8.11",
-      "en": [
-        "Leaderboards by discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road) and license class, by lap time.",
-        "Your fastest lap of each car and track goes to the leaderboard by itself once it is in your account.",
-        "Driver profiles: tap a driver on a leaderboard to see their license classes, recent races and laps. Yours is in Community → My profile.",
-        "Supporter badge for the people who donate, and a Leagues tab (in development).",
-        "The coach says when you are the fastest, and filters your sessions by license, then car and track.",
-        "Older race summaries get the incidents the analyzer already had; test drives no longer count for the model or the leaderboards."
-      ],
-      "es": [
-        "Leaderboards por disciplina (Óvalo, Sports Car, Fórmula, Óvalo de tierra, Tierra) y clase de licencia, por tiempo de vuelta.",
-        "Tu vuelta más rápida de cada coche y circuito va sola a la leaderboard en cuanto está en tu cuenta.",
-        "Perfiles de piloto: toca un piloto en una leaderboard para ver sus licencias, carreras recientes y vueltas. El tuyo está en Comunidad → Mi perfil.",
-        "Badge de supporter para quienes donan, y una pestaña de Ligas (en desarrollo).",
-        "El coach te dice cuando eres el más rápido, y filtra tus sesiones por licencia y luego por coche y circuito.",
-        "Los resúmenes de carreras antiguos reciben los incidentes que ya tenía el análisis; los test drives ya no cuentan para el modelo ni las leaderboards."
-      ]
-    },
-    {
-      "v": "0.8.10",
-      "en": [
-        "Your account syncs by itself on the PC, the web and the phone apps: when they open, when they come back to the screen and a few seconds after every change. A name changed on the phone shows everywhere.",
-        "Changes made on two devices at once are merged; the question of which copy to keep is gone.",
-        "PitlaneHQ.exe checks for new versions every 30 minutes, tells you with a notification and installs them by itself when no sim is running (Settings → About).",
-        "Deleting your account keeps your leaderboard laps and what the coach model learnt, as an anonymous driver."
-      ],
-      "es": [
-        "Tu cuenta se sincroniza sola en el PC, la web y las apps del móvil: al abrirlas, al volver a la pantalla y unos segundos después de cada cambio. Un nombre cambiado en el móvil se ve en todas partes.",
-        "Si cambias algo en dos dispositivos a la vez, se juntan los dos cambios; ya no se pregunta qué copia conservar.",
-        "PitlaneHQ.exe busca versiones nuevas cada 30 minutos, te avisa con una notificación y se instala sola cuando no hay un simulador abierto (Ajustes → Acerca de).",
-        "Si borras tu cuenta, tus vueltas de la leaderboard y lo que aprendió el modelo del coach se quedan, como un piloto anónimo."
-      ]
-    },
-    {
-      "v": "0.8.9",
-      "en": [
-        "A shorter coach: the gap, what to work on first, the plan, the map, the sectors and the corners that cost the most.",
-        "The coach shows the record, the next level and your pace among the drivers of that car and track."
-      ],
-      "es": [
-        "Un coach más corto: la diferencia, qué trabajar primero, el plan, el mapa, los sectores y las curvas que más cuestan.",
-        "El coach muestra el récord, el siguiente nivel y tu ritmo entre los pilotos de ese coche y circuito."
-      ]
-    },
-    {
-      "v": "0.8.8",
-      "en": [
-        "The coach's sector table fits on phones, and the coach and the analyzer use the same sector times."
-      ],
-      "es": [
-        "La tabla de sectores del coach cabe en el móvil, y el coach y el analizador usan los mismos tiempos por sector."
-      ]
-    },
-    {
-      "v": "0.8.7",
-      "en": [
-        "The model learns from everyone you race against.",
-        "Races without a report are rebuilt from the saved laps; the real iRating change replaces the estimate."
-      ],
-      "es": [
-        "El modelo aprende de todos contra los que corres.",
-        "Las carreras sin resumen se reconstruyen con las vueltas guardadas; el cambio real de iRating sustituye a la estimación."
-      ]
-    },
-    {
-      "v": "0.8.6",
-      "en": [
-        "The race summary's table shows each driver's sectors."
-      ],
-      "es": [
-        "La tabla del resumen de carrera muestra los sectores de cada piloto."
-      ]
-    },
-    {
-      "v": "0.8.5",
-      "en": [
-        "The estimated iRating change is right way round now.",
-        "Your own laps are marked as yours in the community lists, anonymous ones too."
-      ],
-      "es": [
-        "La estimación del cambio de iRating ya va en el sentido correcto.",
-        "Tus propias vueltas aparecen marcadas como tuyas en las listas de la comunidad, también las anónimas."
-      ]
-    },
-    {
-      "v": "0.8.4",
-      "en": [
-        "A bigger top menu on the PC and the web.",
-        "The lap list and DRINKS mode look right on ultra-wide screens.",
-        "Sharing a lap works even on a track and car Pitlane HQ did not know yet."
-      ],
-      "es": [
-        "Menú superior más grande en el PC y la web.",
-        "La lista de vueltas y el modo DRINKS se ven bien en pantallas ultra anchas.",
-        "Compartir una vuelta funciona aunque Pitlane HQ aún no conociera ese circuito y coche."
-      ]
-    },
-    {
-      "v": "0.8.3",
-      "en": [
-        "Live telemetry on the web and the phones works again.",
-        "The coach model's map now has everything the analyzer's map has."
-      ],
-      "es": [
-        "La telemetría en vivo en la web y los móviles vuelve a funcionar.",
-        "El mapa del modelo del coach ahora tiene todo lo del mapa del analizador."
-      ]
-    },
-    {
-      "v": "0.8.2",
-      "en": [
-        "The coach's ideal lap is realistic again: laps that do not add up are left out.",
-        "Analysis takes less room, and the sector times are right.",
-        "Diagnostics closes again, and Settings shows your account clearly."
-      ],
-      "es": [
-        "La vuelta ideal del coach vuelve a ser realista: se descartan las vueltas que no cuadran.",
-        "Análisis ocupa menos y los tiempos por sector son correctos.",
-        "El diagnóstico se vuelve a cerrar y Ajustes muestra tu cuenta con claridad."
-      ]
-    },
-    {
-      "v": "0.8.1",
-      "en": [
-        "Pitlane HQ Desktop (preview) now has its own installer.",
-        "If a screen fails to load, it now tells you why."
-      ],
-      "es": [
-        "Pitlane HQ Desktop (preview) ahora tiene su propio instalador.",
-        "Si una pantalla no carga, ahora te dice por qué."
+        "Overlays para todos, dibujados por Pitlane HQ, con la vista previa al lado de sus ajustes.",
+        "El coach lee tu trazada, no solo dónde frenas.",
+        "Mapas como los de iRacing: las dos trazadas, las curvas oficiales y el pit lane.",
+        "Resumen de licencias en Inicio: el iRating de cada categoría por separado.",
+        "Notas de pilotos, y +1L / −1L donde salen los demás pilotos.",
+        "Al iniciar con Windows arranca minimizado, y sin notificaciones de Windows."
       ]
     },
     {
       "v": "0.8.0",
       "en": [
-        "New accounts confirm their email before signing in.",
-        "A welcome that tells you what to install on the device you are using.",
-        "Sign out is now in Settings, and every popup has an X.",
-        "The light theme is purple."
+        "Community by discipline, with your fastest laps shared by themselves and driver profiles.",
+        "A coach model that learns from every real lap, with real reference laps.",
+        "Choose a session: discipline, kind, car, track and day in one window.",
+        "Your account syncs by itself everywhere; updates install by themselves.",
+        "Watch another driver's telemetry with a code; connect your phone to your PC.",
+        "Pitlane HQ Desktop (preview), a new logo and two-step sign-in."
       ],
       "es": [
-        "Las cuentas nuevas confirman su email antes de entrar.",
-        "Una bienvenida que te dice qué instalar en el dispositivo que usas.",
-        "Cerrar sesión ahora está en Ajustes, y cada popup tiene una X.",
-        "El tema claro es morado."
-      ]
-    },
-    {
-      "v": "0.7.2",
-      "en": [
-        "Your older laps now teach the coach too, and it never forgets what it learnt."
-      ],
-      "es": [
-        "Tus vueltas antiguas ahora también enseñan al coach, y nunca olvida lo que aprendió."
-      ]
-    },
-    {
-      "v": "0.7.1",
-      "en": [
-        "The coach learns from every valid lap as soon as it is driven, so its tips keep getting better.",
-        "Laps you don't share only teach the coach: nobody sees them."
-      ],
-      "es": [
-        "El coach aprende de cada vuelta válida en cuanto la conduces, así sus consejos mejoran sin parar.",
-        "Las vueltas que no compartes solo enseñan al coach: nadie las ve."
+        "Comunidad por disciplina, con tus vueltas más rápidas compartidas solas y perfiles de pilotos.",
+        "Un modelo del coach que aprende de cada vuelta real, con vueltas de referencia reales.",
+        "Elegir sesión: disciplina, tipo, coche, circuito y día en una ventana.",
+        "Tu cuenta se sincroniza sola en todas partes; las actualizaciones se instalan solas.",
+        "Mira la telemetría de otro piloto con un código; conecta el móvil a tu PC.",
+        "Pitlane HQ Desktop (vista previa), un logo nuevo y verificación en dos pasos."
       ]
     },
     {
       "v": "0.7.0",
       "en": [
-        "Nicknames are unique now: if one is taken, we tell you.",
-        "Before you share a lap or a race, choose how it shows: anonymous, your nickname or your iRacing name.",
-        "Anonymous stays anonymous for good. Your nickname and iRacing name follow your changes."
+        "Unique nicknames and your choice of name for what you share.",
+        "The coach model learns on the server from every valid lap."
       ],
       "es": [
-        "Los nicknames ahora son únicos: si uno ya está en uso, te avisamos.",
-        "Antes de compartir una vuelta o una carrera, eliges cómo aparece: anónimo, tu nickname o tu nombre de iRacing.",
-        "Lo anónimo sigue anónimo para siempre. Tu nickname y tu nombre de iRacing siguen tus cambios."
-      ]
-    },
-    {
-      "v": "0.6.2",
-      "en": [
-        "We're Pitlane HQ again, now at pitlanehq.app.",
-        "New sign-in screen, and a quick welcome that tells you what to install on your PC and phone.",
-        "The ⓘ button at the top has the news, updates, Patreon and a way to write to us.",
-        "Track maps show the three sectors.",
-        "Downloads now come straight from pitlanehq.app. The PC version installs and updates itself."
-      ],
-      "es": [
-        "Volvemos a ser Pitlane HQ, ahora en pitlanehq.app.",
-        "Nueva pantalla para entrar y una bienvenida rápida que te dice qué instalar en el PC y en el móvil.",
-        "El botón ⓘ de arriba tiene las novedades, las actualizaciones, Patreon y cómo escribirnos.",
-        "Los mapas del circuito muestran los tres sectores.",
-        "Las descargas salen directamente de pitlanehq.app. La versión de PC se instala y se actualiza sola."
-      ]
-    },
-    {
-      "v": "0.6.1",
-      "en": [
-        "Two-step sign-in with an authenticator app. Optional, but we recommend it.",
-        "Your laps and race analyses are now stored encrypted on our server.",
-        "The app tells you when there's a new version, with a link to what changed."
-      ],
-      "es": [
-        "Inicio de sesión en dos pasos con una app de autenticación. Es opcional, pero te lo recomendamos.",
-        "Tus vueltas y análisis de carrera se guardan cifrados en nuestro servidor.",
-        "La app te avisa cuando hay una versión nueva, con un enlace a lo que ha cambiado."
+        "Apodos únicos y tu elección de nombre para lo que compartes.",
+        "El modelo del coach aprende en el servidor de cada vuelta válida."
       ]
     },
     {
       "v": "0.6.0",
       "en": [
-        "Home shows the days you drove, like a calendar. Tap a day to see those races.",
-        "Filters in My races: track, session type and your fastest ever.",
-        "Your best-ever lap is marked in the analyzer and the Coach."
+        "Days you drove on Home and filters in My races.",
+        "Pitlane HQ lives at pitlanehq.app."
       ],
       "es": [
-        "Inicio muestra los días que has corrido, como un calendario. Toca un día para ver esas carreras.",
-        "Filtros en Mis carreras: circuito, tipo de sesión y tu vuelta más rápida de siempre.",
-        "Tu mejor vuelta de siempre aparece marcada en el analizador y en el Coach."
+        "Días que has corrido en Inicio y filtros en Mis carreras.",
+        "Pitlane HQ vive en pitlanehq.app."
       ]
     },
     {
-      "v": "0.5",
+      "v": "0.5.0",
       "en": [
-        "Incidents on the lap list and the map, the same way iRacing names them.",
-        "One track map for the analyzer, the Coach and the race summary, with hover and touch.",
-        "Invalid laps show greyed out and crossed."
+        "Track maps draw themselves from your laps.",
+        "Incidents on every lap, named as the game does."
       ],
       "es": [
-        "Incidentes en la lista de vueltas y en el mapa, igual que los llama iRacing.",
-        "Un solo mapa para el analizador, el Coach y el resumen de carrera, con hover y toque.",
-        "Las vueltas inválidas salen en gris y tachadas."
+        "Los mapas se dibujan solos con tus vueltas.",
+        "Incidentes en cada vuelta, con el nombre que les da el juego."
       ]
     }
   ]

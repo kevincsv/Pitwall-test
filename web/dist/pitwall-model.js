@@ -44,7 +44,7 @@ function buildModel(c){
       const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
       if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
       MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
-        times:r.times||[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y}))}}
+        times:r.times||[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y}))}}
     catch(e){MODEL.err=e.message}
     MODEL.busy=false;return MODEL.data})();
   return MODEL.p}
@@ -58,7 +58,7 @@ async function modelFor(lap){const c=await comboOf(lap);if(!c)return null;return
 
 /* the record lap (the fastest lap really driven) as a lap you can compare with */
 function idealLap(m){if(!m||!m.ideal||!m.ideal.length)return null;
-  return{n:"★ "+TX("Record","Récord","Rekord","Recorde"),alias:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),name:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),time:m.idealTime,bins:m.ideal,maxBin:m.ideal.length-1,xy:m.idealXY,comm:true,model:"ideal"}}
+  return{n:"★ "+TX("Record","Récord","Rekord","Recorde"),alias:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),name:TX("Record (real lap)","Récord (vuelta real)","Rekord (echte Runde)","Recorde (volta real)"),time:m.idealTime,bins:m.ideal,maxBin:m.ideal.length-1,xy:m.idealXY||m.lineXY,comm:true,model:"ideal"}}
 /* where a lap time stands among the drivers the model knows: 1 = the fastest */
 function rankOf(m,t){const T=(m&&m.times)||[];if(!T.length||!(t>0))return null;return{pos:T.filter(x=>x<t).length+1,of:T.length+(T.some(x=>Math.abs(x-t)<0.002)?0:1)}}
 /* the next level for a lap time: the real lap of the driver just ahead (0.3–3 % faster) */
@@ -66,7 +66,7 @@ function refFor(m,t){const L=(m&&m.ladder)||[];if(!L.length)return null;let i=L.
   while(i>0&&!(L[i].time<t*0.997))i--; // the driver just ahead is really ahead (not this very lap)
   const x=L[i];if(!x.bins){x.bins=up(x.raw).slice(0,m.nb);x.xy=upXY(x.rx,x.ry,m.nb)}return x}
 function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
-  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,xy:x.xy||null,comm:true,model:"level"}}
+  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,xy:x.xy||m.lineXY||null,comm:true,model:"level"}}
 /* the references of a lap: the record (unless this lap is it) and the next level (when someone is ahead) */
 function refsFor(m,A){if(!m||!A)return{rec:null,level:null};const rec=idealLap(m),lv=levelLap(m,A.time);
   return{rec:rec&&Math.abs(rec.time-A.time)>=0.002?rec:null,level:lv&&lv.time<A.time-0.001?lv:null}}
