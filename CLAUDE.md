@@ -59,7 +59,8 @@
   "How your data is protected" list in About is the one place that explains it.
 - Emails go through Resend first (domain pitlanehq.app, secret RESEND_API_KEY) and Proton Mail's SMTP
   (`smtp.js`, bodies in base64) when Resend is not set up or refuses one; Admin → Server shows the last
-  emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX and DMARC.
+  emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX, DMARC and BIMI
+  (`web/dist/bimi.svg`, the logo in SVG Tiny PS, needs DMARC at quarantine).
 - The logo is the rev gauge with a kerb in the rev limit (`assets/logo.svg`, the master; `web/dist/logo.svg`).
   Its PNGs and ICOs (web/dist icons, assets/pitlanehq.ico and -1024.png, the phone apps' launcher icons)
   are rendered from it; the phone icons are the full square (no transparent corners).

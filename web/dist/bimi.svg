@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+<title>Pitlane HQ</title>
+<rect width="512" height="512" fill="#11151b"/>
+<path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="460 1000"/>
+<path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#f2f4f7" stroke-width="48" stroke-dasharray="0 460 247 1000"/>
+<path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="0 460 31 31 31 31 31 31 31 31 1000"/>
+<path d="M188.1 343.9A96 96 0 1 1 323.9 343.9" fill="none" stroke="#2f3a48" stroke-width="10" stroke-linecap="round"/>
+<path d="M256 276L330 188" stroke="#f2f4f7" stroke-width="20" stroke-linecap="round"/>
+<circle cx="256" cy="276" r="30" fill="#f2f4f7"/>
+<circle cx="256" cy="276" r="12" fill="#ffb02e"/>
+</svg>

@@ -90,6 +90,7 @@ export async function mailDomain(env) {
   const [txt, mx, dmarc, k1, k2, k3, rk, smx, stxt] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
     dns("protonmail._domainkey." + dom, "CNAME"), dns("protonmail2._domainkey." + dom, "CNAME"), dns("protonmail3._domainkey." + dom, "CNAME"),
     dns("resend._domainkey." + dom, "TXT"), dns("send." + dom, "MX"), dns("send." + dom, "TXT")]);
+  const bimi = await dns("default._bimi." + dom, "TXT");
   const spf = (txt || []).filter((x) => /^v=spf1/i.test(x)), checks = [];
   checks.push({ k: "spf", ok: spf.length === 1 && (!proton || /_spf\.protonmail\.ch/.test(spf[0])), got: spf.join(" | ") || "—",
     want: spf.length > 1 ? "one SPF record only (there are " + spf.length + ": join them)" : proton ? "v=spf1 include:_spf.protonmail.ch ~all" : "an SPF record that includes your sender" });
@@ -106,6 +107,10 @@ export async function mailDomain(env) {
       want: "on send: MX 10 feedback-smtp.us-east-1.amazonses.com and TXT v=spf1 include:amazonses.com ~all" });
   }
   checks.push({ k: "dmarc", ok: (dmarc || []).some((x) => /^v=DMARC1/i.test(x)), got: (dmarc || []).join(" | ") || "—", want: "_dmarc: v=DMARC1; p=quarantine" });
+  // BIMI: the logo next to the sender in the inbox (instead of a letter); it needs DMARC at quarantine or reject
+  const strict = (dmarc || []).some((x) => /p=(quarantine|reject)/i.test(x) && !/pct=(?!100)\d+/i.test(x));
+  checks.push({ k: "bimi", ok: strict && (bimi || []).some((x) => /^v=BIMI1/i.test(x) && /l=https:\/\//i.test(x)), got: (bimi || []).join(" | ") || "—",
+    want: (strict ? "" : "DMARC at p=quarantine (now: " + ((dmarc || [])[0] || "none") + "), and ") + "TXT default._bimi: v=BIMI1; l=" + "https://" + dom + "/bimi.svg;" });
   return { domain: dom, via: resend ? (proton ? "resend+proton" : "resend") : proton ? "proton" : "smtp", checks, dnsOk: txt !== null };
 }
 /** For the admins: the last emails and, for Resend's, what happened to them (delivered, bounced, complained…). */

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.22",
+      "en": ["Pitlane HQ's emails can show its logo in your inbox."],
+      "es": ["Los emails de Pitlane HQ pueden mostrar su logo en tu bandeja de entrada."]
+    },
+    {
       "v": "0.8.21",
       "en": ["Public pages with the iRacing records of every car and track, in English and Spanish."],
       "es": ["Páginas públicas con los récords de iRacing de cada coche y circuito, en inglés y español."]

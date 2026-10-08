@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.22 beta
+
+**New**
+- The logo for the inbox (BIMI): `bimi.svg` (SVG Tiny PS, square, solid background) served at
+  pitlanehq.app/bimi.svg, so mail apps can show the Pitlane HQ logo next to its emails instead of a letter
+  once the domain has its BIMI record and DMARC at quarantine. Admin → Server checks both.
+
 ## 0.8.21 beta
 
 **New**
