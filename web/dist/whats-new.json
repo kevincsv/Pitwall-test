@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.35",
+      "en": ["Overlay settings show a live preview with sample data when the game is not running."],
+      "es": ["Los ajustes de los overlays muestran una vista previa en vivo con datos de ejemplo cuando el juego no está abierto."]
+    },
+    {
       "v": "0.8.34",
       "en": ["Phone & sharing explains how to follow your PC from the phone with your account, and has the share code."],
       "es": ["Móvil y compartir explica cómo seguir tu PC desde el móvil con tu cuenta, y tiene el código para compartir."]

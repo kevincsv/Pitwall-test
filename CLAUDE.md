@@ -110,6 +110,8 @@
   standings 4/s, radar 30/s). The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel. Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
+  Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside
+  the preview, tagged "Sample data" (`previewDemoTick`), and switches to the real data once the game sends it.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and

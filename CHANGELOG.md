@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.35 beta
+
+**Changed**
+- The live preview in an overlay's settings works without the game: it shows the overlay with a simulated race
+  (tagged "Sample data"), so you see your columns, header and footer at once. It is only in the preview, nothing is
+  uploaded, and it switches to your real data as soon as iRacing sends it. On the web too.
+
 ## 0.8.34 beta
 
 **Changed**

@@ -333,6 +333,8 @@ html.sorting,html.sorting *{user-select:none!important;-webkit-user-select:none!
 .tile.dragging{position:fixed!important;z-index:60;pointer-events:none;opacity:.92;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .vn{font-size:14px}
 html.ov .grip{display:none}
+html.pvdemo body::before{content:"SAMPLE DATA";position:fixed;top:4px;right:6px;z-index:40;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--accent) 85%,transparent);color:#11151b;font:800 9px/1.4 var(--f-data);letter-spacing:.08em;pointer-events:none}
+html.pvdemo[lang=es] body::before{content:"DATOS DE EJEMPLO"}
 /* overlays tab */
 .ovcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px;margin-top:10px}
 .ovcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:10px;min-width:0}
@@ -2055,7 +2057,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.34",APP_STAGE="beta";
+const WEB_VERSION="0.8.35",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2115,7 +2117,7 @@ let SESSION_RAW="";
 /* one handler for the events of the PC's stream, local (/api/stream) or through your account (cloud relay) */
 let STREAM_FIELDS=[];
 function onStream(ev,d){
-  if(ev==="status"){STATUS=d;renderConn()}
+  if(ev==="status"){if(typeof PVDEMO!=="undefined"&&PVDEMO&&!d.connected)return;STATUS=d;renderConn()}
   else if(ev==="schema"){SCHEMA=d||[];schemaChanged()}
   else if(ev==="fields")STREAM_FIELDS=d||[];
   else if(ev==="session")onSession(d);
@@ -3417,7 +3419,7 @@ function radarClean(x,o){const{cx,cy,ppm,R,near,lr,bad,warn}=o,CL=4.6,CW=1.9,LW=
   const n=near.filter(c=>!c.lat&&Math.abs(c.dm)<=R).sort((a,b)=>Math.abs(a.dm)-Math.abs(b.dm))[0];
   if(n){const t=Math.abs(n.dm).toFixed(1)+" m",y=cy-n.dm*ppm+(n.dm>0?-1:1)*(CL*ppm/2+12);x.font="700 "+Math.max(12,Math.round(ppm*1.6))+"px "+f;x.textAlign="center";x.textBaseline="middle";
     x.lineWidth=4;x.strokeStyle="rgba(0,0,0,.85)";x.strokeText(t,cx,y);x.fillStyle=Math.abs(n.dm)<10?warn:"#e8edf3";x.fillText(t,cx,y)}}
-function radarVisible(on){if(!OV.on||OV.list.length!==1||OV.list[0]!=="radar"||RADAR.native===on)return;RADAR.native=on;nativeVisible("radar",on)}
+function radarVisible(on){if(!OV.on||OV.preview||OV.list.length!==1||OV.list[0]!=="radar"||RADAR.native===on)return;RADAR.native=on;nativeVisible("radar",on)}
 function nativeVisible(w,on){if(typeof window.pwVisible==="function")window.pwVisible(on);else if(MODE==="bridge"&&OV.win)fetch(`/api/overlay/visible?w=${w}&on=${on?1:0}`,{method:"POST"}).catch(()=>{});else document.body.style.visibility=on?"":"hidden"}
 
 /* car inputs */
@@ -3435,7 +3437,7 @@ function renderInputs(){if(!$("#inGear"))return;applyInputsCfg();const c=ui("inp
   const a=T.SteeringWheelAngle;if(a!=null){$("#wheel").style.transform=`rotate(${(-a*180/Math.PI).toFixed(1)}deg)`;$("#inSteer").textContent=Math.round(-a*180/Math.PI)+"°"}if(c.abs)$("#absPill").hidden=!T.BrakeABSactive}
 
 /* DRS / push-to-pass / hybrid */
-let BOOSTV=null;function boostVisible(on){if(!OV.on||!OV.list.includes("boost")||OV.list.length>1)return;if(CFG.edit||!ui("boost").autohide)on=true;if(BOOSTV===on)return;BOOSTV=on;nativeVisible("boost",on)}
+let BOOSTV=null;function boostVisible(on){if(!OV.on||OV.preview||!OV.list.includes("boost")||OV.list.length>1)return;if(CFG.edit||!ui("boost").autohide)on=true;if(BOOSTV===on)return;BOOSTV=on;nativeVisible("boost",on)}
 
 /* any telemetry value */
 const TELH={};
@@ -4164,7 +4166,7 @@ function markOvOpen(){document.querySelectorAll("#ovCards [data-open]").forEach(
 /* ---------- live preview while configuring ---------- */
 let PREVIEW_TIMER=0;
 function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;
-  if(MODE==="bridge"&&!REMOTE){if(!pv.querySelector("iframe")){const sz=OVSZ[w]||[460,260];pv.innerHTML=`<iframe title="preview" src="/?overlay=${w}&preview=1" style="height:${Math.min(sz[1],420)}px"></iframe>`}return}
+  if(!REMOTE){if(!pv.querySelector("iframe")){const sz=OVSZ[w]||[460,260];pv.innerHTML=`<iframe title="preview" src="${MODE==="bridge"?"/":""}?overlay=${w}&preview=1" style="height:${Math.min(sz[1],420)}px"></iframe>`}return}
   const draw=()=>{if(w==="relative")renderRelative(pv);else if(w==="standings")renderStandingsWidget(pv);else pv.innerHTML=`<p class="note">${Lp("The preview appears here when the app runs from PitlaneHQ.exe; the block in Telemetry already shows your changes.","La vista previa aparece aquí con PitlaneHQ.exe; el bloque en Telemetría ya muestra tus cambios.")}</p>`};draw();PREVIEW_TIMER=setInterval(draw,500)}
 
 /* ---------- new widgets: delta bar, G-G circle, driving stats ---------- */
@@ -5193,6 +5195,16 @@ function demoLiveTick(){const want=demoOn()&&!!(window.PITLANE_DEMO&&window.PITL
     DEMOLIVE=setInterval(()=>{try{onFrame(window.PITLANE_DEMO.liveFrame((performance.now()-t0)/1000+40))}catch(e){}},1000/30);if(CUR_VIEW==="live")show("live")}
   else if(!want&&DEMOLIVE){clearInterval(DEMOLIVE);DEMOLIVE=null;if(STATUS&&STATUS.demoWeb){STATUS={connected:false,companion:COMPANION};renderConn()}}}
 setInterval(demoLiveTick,1500);
+/* the settings window's preview (an overlay page with preview=1): with no real telemetry it runs the invented race
+   of the demo data, only inside that preview (nothing else sees it, nothing is uploaded), with a "Sample data" tag;
+   as soon as the game sends data the preview shows the real thing */
+var PVDEMO=null;
+function previewDemoTick(){const D=window.PITLANE_DEMO;if(!(OV.on&&OV.preview)||!D||!D.liveFrame)return;
+  if(PVDEMO||(STATUS&&STATUS.connected&&!STATUS.demoWeb))return;const t0=performance.now();STATUS={connected:true,source:"demo",demo:true,demoWeb:true};
+  try{const sh=D.liveShape&&D.liveShape();if(sh){const k="demo_"+sh.trackId;store.set("pw.map."+k,{key:k,name:sh.name,N:sh.x.length,src:"dr",geo:null,len:sh.len,laps:1,x:sh.x,y:sh.y});MAP.key=null}}catch(e){}
+  try{onSession(D.liveSession())}catch(e){}document.documentElement.classList.add("pvdemo");
+  PVDEMO=setInterval(()=>{if(STATUS&&STATUS.connected&&!STATUS.demoWeb){clearInterval(PVDEMO);PVDEMO=null;document.documentElement.classList.remove("pvdemo");return}try{onFrame(D.liveFrame((performance.now()-t0)/1000+420))}catch(e){}},1000/30)}
+if(OV.on&&OV.preview){setTimeout(previewDemoTick,1200);setInterval(previewDemoTick,2000)}
 function demoBanner(){let b=document.getElementById("demoBanner");const on=demoOn();if(!on){if(b)b.remove();return}
   if(!b){b=document.createElement("div");b.id="demoBanner";b.style.cssText="position:sticky;top:0;z-index:60;background:var(--acc,#ffb02e);color:#11151b;font:800 14px/1.4 ui-monospace,monospace;letter-spacing:.04em;padding:10px 16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.35)";document.body.prepend(b)}
   const [k,rest]=[Tx("DEMO DATA","DATOS DE PRUEBA","DEMODATEN","DADOS DE DEMONSTRAÇÃO"),Tx(" · turn off in Settings → About"," · se apagan en Ajustes → Acerca de"," · in Einstellungen → Über ausschalten"," · desligue em Configurações → Sobre")];b.innerHTML=`⚠ ${esc(k)}<span class="db-more">${esc(rest)}</span>`}
