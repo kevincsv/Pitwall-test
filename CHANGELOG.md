@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.23 beta
+
+**Fixed**
+- Admin → Server → Emails: an email sent by Resend reads "sent by Resend" instead of "unknown (401)" (the
+  server's key can send but not read deliveries), and with Resend sending, Proton's records show as a
+  warning about receiving at support@ instead of an error.
+
 ## 0.8.22 beta
 
 **New**

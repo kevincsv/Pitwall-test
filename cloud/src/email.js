@@ -101,6 +101,7 @@ export async function mailDomain(env) {
     checks.push({ k: "mx", ok: (mx || []).some((x) => /protonmail\.ch/.test(x)) && !(mx || []).some((x) => /mx\.cloudflare\.net/.test(x)), got: (mx || []).join(" | ") || "—",
       want: (mx || []).some((x) => /mx\.cloudflare\.net/.test(x)) ? "Proton's MX (mail.protonmail.ch, mailsec.protonmail.ch) instead of Cloudflare Email Routing" : "10 mail.protonmail.ch and 20 mailsec.protonmail.ch" });
   }
+  if (resend) for (let i = 0; i < checks.length; i++) checks[i].opt = true; // Proton: receiving and the fallback
   if (resend) {
     checks.push({ k: "resend-dkim", ok: (rk || []).some((x) => /^p=/.test(x)), got: (rk || []).join(" | ").slice(0, 60) || "—", want: "TXT resend._domainkey: the p=… value from Resend → Domains" });
     checks.push({ k: "resend-spf", ok: (smx || []).some((x) => /amazonses\.com/.test(x)) && (stxt || []).some((x) => /include:amazonses\.com/.test(x)), got: [...(smx || []), ...(stxt || [])].join(" | ") || "—",
@@ -123,7 +124,8 @@ export async function mailLog(env) {
     try {
       const r = await fetch("https://api.resend.com/emails/" + encodeURIComponent(x.id), { headers: { authorization: "Bearer " + env.RESEND_API_KEY } });
       const j = await r.json().catch(() => ({}));
-      x.state = r.ok ? j.last_event || "sent" : "unknown (" + r.status + ")";
+      // a key with sending access only cannot read what happened to an email: it went out through Resend
+      x.state = r.ok ? j.last_event || "sent" : r.status === 401 || r.status === 403 ? "resend-sent" : "unknown (" + r.status + ")";
     } catch (e) { x.state = "unknown"; }
   }
   return l;
