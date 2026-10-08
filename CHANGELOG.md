@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.18 beta
+
+**New**
+- Admin → Server → Emails checks the sender's domain for Proton Mail: one SPF record that includes
+  Proton, Proton's verification record, the three DKIM keys, the MX records (and whether Cloudflare
+  Email Routing is in the way) and DMARC, each with what it has now and what it needs.
+
+**Fixed**
+- Emails sent over SMTP (Proton) carry their text in base64, so no line is ever too long for a mail
+  server on the way.
+
 ## 0.8.17 beta
 
 **New**

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.18",
+      "en": ["Emails from Pitlane HQ (confirm your email, reset your password) are sent in a safer format."],
+      "es": ["Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían en un formato más seguro."]
+    },
+    {
       "v": "0.8.17",
       "en": [
         "Signing in with an email that has no account says so and offers to create it.",

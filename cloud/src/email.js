@@ -44,6 +44,35 @@ async function logSent(env, to, subject, via, id) {
   await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('mail_log',?1,?2) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at")
     .bind(JSON.stringify(l.slice(0, 10)), Date.now()).run().catch(() => {});
 }
+// ---------- the sender's domain: are its mail records right? ----------
+// Proton (and any mailbox) only reaches inboxes when the domain says it may send: one SPF record that
+// includes the sender, the DKIM keys, a DMARC policy. Read here from Cloudflare's DNS, for the admins.
+async function dns(name, type) {
+  try {
+    const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, { headers: { accept: "application/dns-json" } });
+    const j = await r.json();
+    return (j.Answer || []).map((a) => String(a.data || "").replace(/^"|"$/g, "").replace(/" "/g, ""));
+  } catch (e) { return null; }
+}
+export async function mailDomain(env) {
+  const from = (/<([^>]+)>/.exec(env.EMAIL_FROM || "") || [null, env.EMAIL_FROM || ""])[1].trim(), dom = from.split("@")[1] || "";
+  if (!dom) return { domain: "", checks: [] };
+  const proton = smtpReady(env) && !env.SMTP_HOST;
+  const [txt, mx, dmarc, k1, k2, k3] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
+    dns("protonmail._domainkey." + dom, "CNAME"), dns("protonmail2._domainkey." + dom, "CNAME"), dns("protonmail3._domainkey." + dom, "CNAME")]);
+  const spf = (txt || []).filter((x) => /^v=spf1/i.test(x)), checks = [];
+  checks.push({ k: "spf", ok: spf.length === 1 && (!proton || /_spf\.protonmail\.ch/.test(spf[0])), got: spf.join(" | ") || "—",
+    want: spf.length > 1 ? "one SPF record only (there are " + spf.length + ": join them)" : proton ? "v=spf1 include:_spf.protonmail.ch ~all" : "an SPF record that includes your sender" });
+  if (proton) {
+    checks.push({ k: "verify", ok: (txt || []).some((x) => /^protonmail-verification=/.test(x)), got: (txt || []).find((x) => /protonmail-verification/.test(x)) || "—", want: "the protonmail-verification=… record from Proton → Domain names" });
+    const keys = [k1, k2, k3].map((x) => (x && x[0]) || "");
+    checks.push({ k: "dkim", ok: keys.every((x) => /protonmail/.test(x)), got: keys.map((x, i) => `protonmail${i ? i + 1 : ""}: ${x || "—"}`).join(" | "), want: "the three CNAME records protonmail._domainkey, protonmail2._domainkey, protonmail3._domainkey from Proton" });
+    checks.push({ k: "mx", ok: (mx || []).some((x) => /protonmail\.ch/.test(x)) && !(mx || []).some((x) => /mx\.cloudflare\.net/.test(x)), got: (mx || []).join(" | ") || "—",
+      want: (mx || []).some((x) => /mx\.cloudflare\.net/.test(x)) ? "Proton's MX (mail.protonmail.ch, mailsec.protonmail.ch) instead of Cloudflare Email Routing" : "10 mail.protonmail.ch and 20 mailsec.protonmail.ch" });
+  }
+  checks.push({ k: "dmarc", ok: (dmarc || []).some((x) => /^v=DMARC1/i.test(x)), got: (dmarc || []).join(" | ") || "—", want: "_dmarc: v=DMARC1; p=quarantine" });
+  return { domain: dom, via: proton ? "proton" : smtpReady(env) ? "smtp" : "resend", checks, dnsOk: txt !== null };
+}
 /** For the admins: the last emails and, for Resend's, what happened to them (delivered, bounced, complained…). */
 export async function mailLog(env) {
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='mail_log'").first().catch(() => null);

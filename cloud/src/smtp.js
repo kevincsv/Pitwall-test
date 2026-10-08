@@ -39,12 +39,14 @@ export async function smtpSend(env, { to, subject, text, html, replyTo }) {
   const host = env.SMTP_HOST || "smtp.protonmail.ch", port = +(env.SMTP_PORT || 587);
   const dot = (s) => s.replace(/\r?\n/g, "\r\n").replace(/^\./gm, "..");
   const b64 = (s) => btoa(unescape(encodeURIComponent(s)));
+  // the parts in base64, 76 characters a line: no line is ever too long for a mail server
+  const body = (s) => b64(s.replace(/\r?\n/g, "\r\n")).replace(/.{1,76}/g, "$&\r\n");
   const boundary = "pl" + Math.random().toString(36).slice(2);
   const msg =
     `From: ${env.EMAIL_FROM}\r\nTo: ${to}\r\nReply-To: ${replyTo || from}\r\nSubject: =?UTF-8?B?${b64(subject)}?=\r\nDate: ${new Date().toUTCString()}\r\n` +
     `Message-ID: <${crypto.randomUUID()}@${from.split("@")[1] || "pitlanehq.app"}>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary="${boundary}"\r\n\r\n` +
-    `--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${dot(text)}\r\n\r\n` +
-    `--${boundary}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n${dot(html)}\r\n\r\n--${boundary}--\r\n`;
+    `--${boundary}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${body(text)}\r\n` +
+    `--${boundary}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${body(html)}\r\n--${boundary}--\r\n`;
 
   let sock = connect({ hostname: host, port }, { secureTransport: port === 465 ? "on" : "starttls", allowHalfOpen: false });
   let writer = sock.writable.getWriter(), reader = sock.readable.getReader();

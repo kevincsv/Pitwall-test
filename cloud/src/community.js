@@ -3,7 +3,7 @@
 // needs the device token given at registration. Turn it on for the central
 // server with the variable COMMUNITY = "1".
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
-import { mailReady, mailLog } from "./email.js";
+import { mailReady, mailLog, mailDomain } from "./email.js";
 import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, getCarCard, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
@@ -273,7 +273,8 @@ export async function community(req, env, url) {
   if (m === "GET" && p === "/admin/mail") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
-    return json({ items: await mailLog(env) });
+    const [items, domain] = await Promise.all([mailLog(env), mailDomain(env).catch(() => null)]);
+    return json({ items, domain });
   }
   if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
     const acc = await sessionAccount(req, env);
