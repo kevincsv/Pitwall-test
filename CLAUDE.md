@@ -102,6 +102,10 @@
   radar's window hides itself when nobody is near. The radar overlay is see-through (`seeThroughWindow`: a
   transparent WebView2 on a DWM blur-behind window; `radarClean`): your car's outline and the cars coming, nothing
   else, no title. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
+  An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,
+  standings 4/s, radar 30/s). The relative always has the rows you chose ahead and behind (empty when no car).
+  A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
+  panel. Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and

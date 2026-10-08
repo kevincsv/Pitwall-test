@@ -9,7 +9,7 @@
     <AssemblyName>PitlaneHQ.Desktop</AssemblyName>
     <RootNamespace>PitlaneHQ.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.8.30</Version>
+    <Version>0.8.31</Version>
     <Company>Pitlane HQ</Company>
     <Product>Pitlane HQ Desktop</Product>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

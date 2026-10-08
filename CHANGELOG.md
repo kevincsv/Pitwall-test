@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.31 beta
+
+**Fixed**
+- Overlays run smoothly: each one asks the PC only for the values it shows, 60 times a second (before, every
+  value of iRacing 30 times a second), and the relative, the standings and the radar redraw more often.
+- The relative keeps the rows you chose ahead and behind: with fewer cars on track they stay as empty rows
+  instead of the overlay shrinking.
+- On the PC, changing tab closes the side panel and any open window, as on the web.
+
+**Changed**
+- The settings of a widget or an overlay open in a floating window you can drag anywhere by its title, so the
+  app and your overlays stay usable behind it.
+
 ## 0.8.30 beta
 
 **Fixed**

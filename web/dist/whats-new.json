@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.31",
+      "en": ["Smoother overlays.", "Overlay settings in a floating window you can move."],
+      "es": ["Overlays más fluidos.", "Los ajustes de cada overlay en una ventana flotante que puedes mover."]
+    },
+    {
       "v": "0.8.30",
       "en": ["A see-through radar and a cleaner delta bar.", "Overlays with rounded corners that fit what they show and stay on the screen."],
       "es": ["Un radar transparente y una barra de delta más limpia.", "Overlays con esquinas redondeadas que se ajustan a lo que muestran y no salen de la pantalla."]
