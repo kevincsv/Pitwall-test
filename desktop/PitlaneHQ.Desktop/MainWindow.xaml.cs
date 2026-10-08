@@ -312,7 +312,21 @@ public partial class MainWindow : Window
             }
             Cell(0, S(r["Pos"]), B("Fg"), true);
             Cell(1, S(r["Num"]), B("Muted"), true);
-            Cell(2, S(r["Name"]) + (Bo(r["Pit"]) ? "  PIT" : ""), Hex(S(r["NameColor"])), false);
+            var rowTag = S(r["Tag"]);
+            if (rowTag != "")
+            {
+                // your note on this driver: its tag's icon before the name, the note on hover
+                var nameBox = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Opacity = a };
+                var tagIc = TagIcon(rowTag, 15);
+                tagIc.Margin = new Thickness(0, 0, 6, 0);
+                nameBox.Children.Add(tagIc);
+                nameBox.Children.Add(new TextBlock { Text = S(r["Name"]) + (Bo(r["Pit"]) ? "  PIT" : ""), Foreground = Hex(S(r["NameColor"])), FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                var tagNote = S(r["Note"]);
+                nameBox.ToolTip = TagLabel(rowTag) + (tagNote != "" ? " · " + tagNote : "");
+                Grid.SetColumn(nameBox, 2);
+                row.Children.Add(nameBox);
+            }
+            else Cell(2, S(r["Name"]) + (Bo(r["Pit"]) ? "  PIT" : ""), Hex(S(r["NameColor"])), false);
             var lic = S(r["Lic"]);
             if (lic != "" && lic != "–")
             {

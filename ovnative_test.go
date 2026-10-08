@@ -425,3 +425,43 @@ func TestDeskEndpoint(t *testing.T) {
 		}
 	}
 }
+
+// your driver notes show as an icon before the name in the relative and the standings
+func TestNativeTablesShowDriverTags(t *testing.T) {
+	for _, name := range []string{"relative", "standings"} {
+		st := ovTestState(t, nil)
+		st.mu.Lock()
+		st.ext.notesAt = time.Now() // no fetch from a PC in the test
+		st.ext.notes = map[string]*driverNote{nameKey("Fast Rival"): {Tag: "danger"}, nameKey("Somebody Slower With A Very Long Name"): {Tag: "clean"}}
+		st.mu.Unlock()
+		if st.rowTag(1) != "danger" || st.rowTag(2) != "clean" || st.rowTag(0) != "" {
+			t.Fatalf("tags by name: %q %q %q", st.rowTag(1), st.rowTag(2), st.rowTag(0))
+		}
+		plain := newCanvas(600, 900)
+		st2 := ovTestState(t, nil)
+		st2.ext.notesAt = time.Now()
+		ovDraw(name, plain, st2, time.Now())
+		c := newCanvas(600, 900)
+		h := ovDraw(name, c, st, time.Now())
+		// the red of the danger triangle is drawn somewhere
+		red := 0
+		for _, p := range c.px {
+			r, g, b := p>>16&0xff, p>>8&0xff, p&0xff
+			if p>>24 > 200 && r > 200 && g < 120 && b < 120 {
+				red++
+			}
+		}
+		if red < 20 {
+			t.Fatalf("%s: no danger icon (%d red pixels)", name, red)
+		}
+		ovSavePNG(t, c, h, name+"-tags")
+	}
+	// the key of a driver wins over their name
+	st := ovTestState(t, nil)
+	st.ses.Drivers[1].UID = "4242"
+	st.ext.notesAt = time.Now()
+	st.ext.notes = map[string]*driverNote{driverKey("4242"): {Tag: "friend"}, nameKey("Fast Rival"): {Tag: "danger"}}
+	if st.rowTag(1) != "friend" {
+		t.Fatalf("tag by key: %q", st.rowTag(1))
+	}
+}

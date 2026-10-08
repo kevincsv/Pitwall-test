@@ -50,6 +50,13 @@
   default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
   "+ Session" lap B is only the laps of the other session (and the references). The window's title
   and its × stay at the top while it scrolls. "MY BEST" goes after the time.
+- Driver notes (like RaceLab's): your own marks on other drivers, one tag (dangerous, careful, clean, friend, our own
+  icons: a red triangle, an amber circle, a green tick, a blue star) and a note only you see (`drivers.json` in the
+  account, `drivers.go`, `/api/drivers`). A driver is known by the community's opaque key (`driverKey`, the races keep
+  it as `k`; never their iRacing id) or by name for older races. The icon shows before the name in the relative and the
+  standings (native overlays, the app, Pitlane HQ Desktop) and in the race summary, where you mark them (✎; the phone
+  apps tap the driver and write the account's bundle); Analysis → Races lists them; the engineer warns you when a driver
+  you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
 - Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
   first name and the initial of their last name ("Juan M.", `shortName` in journal.go, `shortDriverName` on the server),
   never the whole name; the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel

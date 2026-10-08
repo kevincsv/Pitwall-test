@@ -210,7 +210,7 @@ func plSessionEnded(tok string, err error) {
 
 // ---------- the synced data: the active profile's files ----------
 
-var syncFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "trackbook.json", "races.json", "notes.json", "companion.json"}
+var syncFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "trackbook.json", "races.json", "notes.json", "drivers.json", "companion.json"}
 
 // prefs.json is not a file on this PC: it carries what you chose to share (the community settings without
 // this PC's own token), so every PC of the account shares the same way

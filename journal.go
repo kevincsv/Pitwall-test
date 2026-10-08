@@ -126,6 +126,7 @@ func loadJournal() {
 		writeJSONFile(journalFile("races.json"), races)
 	}
 	journalMu.Unlock()
+	loadDrivers()
 }
 
 // maxRealIRStep: more than this between one race and the next session is not that race's result but the
@@ -247,6 +248,7 @@ type raceResult struct {
 	Me       bool      `json:"me,omitempty"`
 	IRChange int       `json:"irChange,omitempty"`
 	Lic      string    `json:"lic,omitempty"` // the license class (R, D, C, B, A, P) of the driver in this discipline
+	K        string    `json:"k,omitempty"`   // the driver's opaque key (driverKey): your notes on them find them by it
 	carIdx   int
 	key      string // an opaque key of the driver (never their id or name): the same driver gets the same key
 }
@@ -531,6 +533,7 @@ func sessionResults(y string, sn int) []raceResult {
 			r.Name, r.Car, r.Class = yamlField(d, "UserName"), yamlField(d, "CarScreenName"), yamlField(d, "CarClassShortName")
 			r.IR, r.ClassID, r.CarID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID")), atoi(yamlField(d, "CarID"))
 			r.key = driverKey(yamlField(d, "UserID"))
+			r.K = r.key
 			r.Lic = licClass(yamlField(d, "LicString"))
 			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
 			// up to date are the ones per driver (the team's in a team race, else the driver's own)

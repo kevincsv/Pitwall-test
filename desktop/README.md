@@ -37,7 +37,8 @@ Needs the .NET 8 SDK and the WebView2 runtime (part of Windows 11 and of Edge). 
 - Home: the game, track and car, the live header items (session, position, lap, laps or time left, SOF,
   estimated iRating, incidents, fuel) and the recent races (from `/api/races`).
 - Telemetry: gear, speed, pedals, the shift lights, lap timing with the delta, fuel and the relative, ten times a
-  second from `/api/desk` (the engine works them out with the native overlays' own code).
+  second from `/api/desk` (the engine works them out with the native overlays' own code); your driver notes' icons
+  before the names, the note on hover (`DriverTags.cs`).
 - Overlays: every overlay with Open/Close and Auto, Move/Lock, opacity, reset positions, close all, the built-in
   presets and your own (save, apply, delete). The overlays themselves are drawn natively by the engine.
 

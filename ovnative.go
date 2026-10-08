@@ -287,6 +287,7 @@ func licColor(s string) uint32 {
 type ovDriver struct {
 	Idx                    int
 	Name, Num, Lic, CarSht string
+	UID                    string // the iRacing id: stays in this process, only its key is looked up in your notes
 	IR, Class, Inc, CarID  int
 	Skip                   bool // pace car, spectators
 }
@@ -498,6 +499,8 @@ func parseOvSession(y string) *ovSession {
 			switch k {
 			case "UserName":
 				drv.Name = v
+			case "UserID":
+				drv.UID = v
 			case "CarNumber":
 				drv.Num = v
 			case "LicString":
@@ -1130,6 +1133,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	lf, pf := ovFace(fkDataB, 10.5*z), ovFace(fkData, 9.5*z)
 	ttr := 0.6 * z
 	pitW := textWT(pf, "PIT", 0.5*z) + 12*z
+	tagW := tagSize * z
 	licW := func(v string) float64 { return math.Max(textW(lf, v)+10*z, 19*z) }
 	// each column's width: the widest of its title and its values
 	type colInfo struct {
@@ -1230,14 +1234,19 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 				c.roundRect(x, cy-bh/2, bw, bh, 4*z, mix(lc, 0x0b0d10, 0.62), a, lc, a, 1.5*z)
 				c.text(lf, v, x+bw/2, cy, 0xffffff, a, 2)
 			case ci.key == "name":
-				room := ci.w
+				room, nx := ci.w, x
 				if onPit {
 					room -= pitW + 6*z
 				}
+				if tag := st.rowTag(r.idx); tag != "" && !mine {
+					drawDriverTag(c, tag, x+7*z, cy, z, a)
+					nx += tagW + 4*z
+					room -= tagW + 4*z
+				}
 				n := ellipsis(f, v, room)
-				c.text(f, n, x, cy, col, a, 0)
+				c.text(f, n, nx, cy, col, a, 0)
 				if onPit { // the app's pill
-					px := x + textW(f, n) + 6*z
+					px := nx + textW(f, n) + 6*z
 					c.roundRect(px, cy-8*z, pitW, 16*z, 8*z, colPanel, 0, colLine, 1, 1)
 					c.textT(pf, "PIT", px+pitW/2, cy, colMuted, a, 2, 0.5*z)
 				}

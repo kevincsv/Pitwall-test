@@ -69,6 +69,7 @@ func deskState() *ovState {
 type deskRow struct {
 	Pos, Num, Name, Lic, IR, Gap, Last string
 	LicColor, NameColor                string
+	Tag, Note                          string // your note on the driver (drivers.go): danger, careful, clean, friend
 	Me, Pit, Blank                     bool
 }
 
@@ -183,8 +184,14 @@ func registerDeskRoutes(mux *http.ServeMux) {
 			if nameCol == 0 {
 				nameCol = colText
 			}
-			rows = append(rows, deskRow{Pos: cell("pos"), Num: cell("num"), Name: cell("name"), Lic: lic, IR: cell("ir"), Gap: cell("gap"), Last: cell("last"),
-				LicColor: hexCol(licColor(lic)), NameColor: hexCol(nameCol), Me: rr.idx == me, Pit: rr.idx < len(pit) && pit[rr.idx] != 0})
+			row := deskRow{Pos: cell("pos"), Num: cell("num"), Name: cell("name"), Lic: lic, IR: cell("ir"), Gap: cell("gap"), Last: cell("last"),
+				LicColor: hexCol(licColor(lic)), NameColor: hexCol(nameCol), Me: rr.idx == me, Pit: rr.idx < len(pit) && pit[rr.idx] != 0}
+			if d := st.driverAt(rr.idx); d != nil && !row.Me {
+				if n := noteOf(driverKey(d.UID), d.Name); n != nil {
+					row.Tag, row.Note = n.Tag, n.Note
+				}
+			}
+			rows = append(rows, row)
 		}
 		out["relative"] = rows
 		writeJSON(w, out)

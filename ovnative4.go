@@ -61,6 +61,8 @@ type ovRec struct {
 }
 
 type ovExtra struct {
+	notes   map[string]*driverNote // your notes on drivers (drivers.json), from the PC every 15 s
+	notesAt time.Time
 	rec      ovRec
 	laps     []*ovLap
 	pending  *ovLap // a lap just finished: its time comes with the next frames (LapLastLapTime)

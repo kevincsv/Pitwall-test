@@ -235,7 +235,7 @@ func uniqueNameLocked(n string) string {
 }
 
 // profile files that can be copied or exported (never the sign-ins)
-var shareableFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "radio.json", "trackbook.json", "races.json", "notes.json"}
+var shareableFiles = []string{"settings.json", "local.json", "apps.json", "haptics.json", "setups.json", "carprofiles.json", "radio.json", "trackbook.json", "races.json", "notes.json", "drivers.json"}
 
 func createProfile(name, copyFrom string) (profileMeta, error) {
 	profMu.Lock()

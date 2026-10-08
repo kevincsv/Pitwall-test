@@ -16,6 +16,12 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
   open in it.
 - DRINKS mode: renaming and removing drivers works from the web connected to your PC and from the phone apps too.
 
+- Driver notes: mark any driver of your races as dangerous, careful, clean or a friend, with a note only you see.
+  Their icon shows next to their name in the relative and the standings (overlays, the app and Pitlane HQ Desktop)
+  and in the race summary, where you mark them (✎, or tap them on the phone); Analysis → Races lists them all; and
+  the engineer warns you when one you marked dangerous or careful is right behind or ahead. They go with your
+  account to every device.
+
 **Changed**
 - Race rivals on the leaderboards show their first name and the initial of their last name ("Juan M.") instead of
   "Anonymous". When one of them signs up and drives with Pitlane HQ, their laps shared as a rival go to their
