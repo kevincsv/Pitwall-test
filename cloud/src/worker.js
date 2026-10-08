@@ -320,7 +320,7 @@ async function handle(req, env, ctx) {
       to.searchParams.delete("companion");
       return Response.redirect(to.href, 301);
     }
-    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png)$/.test(url.pathname);
+    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|og\.png|robots\.txt|sitemap\.xml)$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       const r = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin), req));

@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "v": "0.8.20",
+      "en": ["A new logo, on every app and in the emails.", "Pitlane HQ's emails look like the app."],
+      "es": ["Logo nuevo, en todas las apps y en los emails.", "Los emails de Pitlane HQ se ven como la app."]
+    },
+    {
       "v": "0.8.19",
       "en": ["Pitlane HQ's emails (confirm your email, reset your password) are sent a more reliable way."],
       "es": ["Los emails de Pitlane HQ (confirmar el email, restablecer la contraseña) se envían de una forma más fiable."]

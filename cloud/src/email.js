@@ -26,6 +26,34 @@ const T = {
   },
   resetButton: { en: "Choose a new password", es: "Elegir una contraseña nueva", de: "Neues Passwort wählen", pt: "Escolher uma nova senha" },
 };
+// The email looks like the app: the dark page, a card with a thin border, the logo and the name on top, the
+// amber button, the link written out for clients that block buttons, and who to write to. Tables and inline
+// styles only, so Gmail, Outlook and Apple Mail show it the same way.
+const SITE = "https://pitlanehq.app";
+const F = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+function mailHTML(subject, text, link, button, l) {
+  const L = lang(l), ask = { en: "Questions? Write to", es: "¿Dudas? Escríbenos a", de: "Fragen? Schreib uns an", pt: "Dúvidas? Escreva para" }[L];
+  const alt = { en: "If the button does not work, open this link:", es: "Si el botón no funciona, abre este enlace:", de: "Wenn der Button nicht geht, öffne diesen Link:", pt: "Se o botão não funcionar, abra este link:" }[L];
+  const why = { en: "You get this email because someone used this address on Pitlane HQ.", es: "Recibes este email porque alguien usó esta dirección en Pitlane HQ.", de: "Du bekommst diese E-Mail, weil diese Adresse bei Pitlane HQ verwendet wurde.", pt: "Você recebe este email porque alguém usou este endereço no Pitlane HQ." }[L];
+  return `<!doctype html><html lang="${L}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#11151b">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(text.slice(0, 110))}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#11151b" style="background:#11151b"><tr><td align="center" style="padding:32px 14px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px">
+<tr><td style="padding:0 4px 18px"><a href="${SITE}" style="text-decoration:none"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td style="padding-right:12px"><img src="${SITE}/icon-192.png" width="40" height="40" alt="" style="display:block;border:0;width:40px;height:40px"></td>
+<td style="font:800 20px ${F};letter-spacing:.06em;text-transform:uppercase;color:#e7ebf1">PITLANE HQ</td></tr></table></a></td></tr>
+<tr><td bgcolor="#1a2029" style="background:#1a2029;border:1px solid #2b3542;border-radius:14px;padding:28px 26px">
+<div style="font:800 13px ${F};letter-spacing:.1em;text-transform:uppercase;color:#ffb02e;margin:0 0 10px">${esc(subject.replace(/^Pitlane HQ:\s*/, ""))}</div>
+<p style="font:16px/1.55 ${F};color:#e7ebf1;margin:0 0 22px">${esc(text)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#ffb02e" style="background:#ffb02e;border-radius:8px">
+<a href="${esc(link)}" style="display:inline-block;padding:13px 22px;font:800 14px ${F};letter-spacing:.06em;text-transform:uppercase;color:#11151b;text-decoration:none">${esc(button)}</a></td></tr></table>
+<p style="font:13px/1.5 ${F};color:#8a96a8;margin:22px 0 0">${esc(alt)}<br><a href="${esc(link)}" style="color:#aab4c3;word-break:break-all">${esc(link)}</a></p>
+</td></tr>
+<tr><td style="padding:18px 6px 0;font:12px/1.6 ${F};color:#6c7789">${esc(ask)} <a href="mailto:${SUPPORT}" style="color:#aab4c3">${SUPPORT}</a><br>${esc(why)}<br><a href="${SITE}" style="color:#6c7789">pitlanehq.app</a></td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 export const lang = (l) => (["en", "es", "de", "pt"].includes(l) ? l : "en");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -101,11 +129,7 @@ async function send(env, to, subject, text, link, button, l) {
   catch (e) { lastError = { at: Date.now(), message: String((e && e.message) || e) }; await note(env, false); return false; }
 }
 async function send1(env, to, subject, text, link, button, l) {
-  const html = `<div style="font:15px/1.5 system-ui,sans-serif;color:#141a22;max-width:520px">
-<p style="font:700 20px system-ui;letter-spacing:.04em;text-transform:uppercase">Pitlane HQ</p>
-<p>${esc(text)}</p><p><a href="${esc(link)}" style="display:inline-block;background:#ffb02e;color:#11151b;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">${esc(button)}</a></p>
-<p style="color:#5b677a;font-size:13px">${esc(link)}</p>
-<p style="color:#5b677a;font-size:12px;margin-top:24px">${esc(lang(l) === "es" ? "¿Dudas? Escríbenos a" : lang(l) === "de" ? "Fragen? Schreib uns an" : lang(l) === "pt" ? "Dúvidas? Escreva para" : "Questions? Write to")} <a href="mailto:${SUPPORT}" style="color:#5b677a">${SUPPORT}</a></p></div>`;
+  const html = mailHTML(subject, text, link, button, l);
   const plain = text + "\n\n" + link + "\n\n" + SUPPORT, replyTo = env.EMAIL_REPLY_TO || SUPPORT;
   if (env.RESEND_API_KEY) {
     const r = await fetch("https://api.resend.com/emails", {
@@ -146,4 +170,5 @@ export async function sendTest(env, to, l) {
 }
 
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);
+export const previewHTML = (kind, l) => kind === "reset" ? mailHTML(T.resetSubject[lang(l)], T.resetText[lang(l)], SITE + "/reset?t=example", T.resetButton[lang(l)], l) : mailHTML(T.verifySubject[lang(l)], T.verifyText[lang(l)], SITE + "/verify?t=example", T.verifyButton[lang(l)], l);
 export const sendReset = (env, to, link, l) => send(env, to, T.resetSubject[lang(l)], T.resetText[lang(l)], link, T.resetButton[lang(l)], l);

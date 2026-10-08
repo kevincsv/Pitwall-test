@@ -1,13 +1,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pitlane HQ - Telemetry &amp; Coach</title>
+<title>Pitlane HQ · iRacing telemetry and lap coach</title>
+<meta name="description" content="Free iRacing telemetry: record your laps, see where you lose time and compare with faster drivers in the same car.">
+<link rel="canonical" href="https://pitlanehq.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pitlane HQ">
+<meta property="og:title" content="Pitlane HQ · iRacing telemetry and lap coach">
+<meta property="og:description" content="Free iRacing telemetry: record your laps, see where you lose time and compare with faster drivers in the same car.">
+<meta property="og:url" content="https://pitlanehq.app/">
+<meta property="og:image" content="https://pitlanehq.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pitlane HQ · iRacing telemetry and lap coach">
+<meta name="twitter:description" content="Free iRacing telemetry: record your laps, see where you lose time and compare with faster drivers in the same car.">
+<meta name="twitter:image" content="https://pitlanehq.app/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Pitlane HQ","url":"https://pitlanehq.app/","applicationCategory":"SportsApplication","operatingSystem":"Windows, Android, iOS, Web","description":"Free iRacing telemetry: record your laps, see where you lose time and compare with faster drivers in the same car.","image":"https://pitlanehq.app/og.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <meta name="theme-color" content="#11151b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Pitlane HQ">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,7 +61,7 @@ body{color:var(--fg);font:15px/1.5 var(--f-body);padding-inline:16px;padding-blo
 @media (min-width:1300px){body{padding-inline:clamp(16px,2.2vw,44px)}}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;gap:12px;padding-block:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .brand{font:700 24px/1 var(--f-display);letter-spacing:.03em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
-.brand i{display:inline-block;width:14px;height:14px;background:repeating-conic-gradient(var(--fg) 0 25%,transparent 0 50%) 0 0/7px 7px;border:1px solid var(--fg)}
+.brand i{display:inline-block;width:26px;height:26px;background:url(logo.svg) center/contain no-repeat;flex:none}
 .conn{font:600 11px/1 var(--f-data);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted);display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none}
 .conn::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
 .conn.live{color:var(--good);border-color:var(--good)}.conn.live::before{background:var(--good)}
@@ -1008,7 +1024,7 @@ section.view{min-width:0}
   header.top{gap:6px}
   header.top .version-badge{font-size:9px;padding:2px 5px;flex:none}
   header.top .brand{font-size:19px;gap:7px;flex:0 1 auto;min-width:0}
-  header.top .brand i{width:12px;height:12px;background-size:6px 6px;flex:none}
+  header.top .brand i{width:22px;height:22px;flex:none}
   header.top .conn{white-space:nowrap;font-size:10px;padding:4px 7px;flex:0 1 auto;min-width:0;max-width:52vw;overflow:hidden;text-overflow:ellipsis;display:block}
   header.top .conn::before{display:inline-block;margin-right:6px;vertical-align:1px}
   header.top .iconbtn{width:36px;height:36px}
@@ -1029,7 +1045,7 @@ html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwal
 #splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .25s}
 #splash.out{opacity:0;pointer-events:none}
 #splash .sp-logo{font:900 30px/1 system-ui,sans-serif;letter-spacing:.02em;color:var(--fg,#e7ebf1);display:flex;align-items:center;gap:12px}
-#splash .sp-flag{width:26px;height:26px;background:conic-gradient(var(--fg,#e7ebf1) 25%,transparent 0 50%,var(--fg,#e7ebf1) 0 75%,transparent 0) 0 0/13px 13px}
+#splash .sp-flag{width:44px;height:44px;background:url(logo.svg) center/contain no-repeat}
 #splash .sp-bar{width:140px;height:3px;border-radius:2px;background:var(--line,#2b3542);overflow:hidden}
 #splash .sp-bar i{display:block;width:40%;height:100%;background:var(--acc,#ffb02e);animation:spmove 1s ease-in-out infinite}
 @keyframes spmove{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
@@ -2018,7 +2034,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.8.19",APP_STAGE="beta";
+const WEB_VERSION="0.8.20",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG){applyI18n.sent=LANG;fetch("/api/lang?l="+LANG,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -6480,7 +6496,7 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
       <div><span class="label">${esc(Tx("Name others see","Nombre que ven los demás"))}</span>${nameChoice("mr","nick","")}</div>
       <button class="btn primary" type="submit">${esc(Tx("Create account","Crear cuenta"))}</button><p class="note err" id="mrErr" style="margin:0"></p></form>
       <div class="me-switch"><span>${esc(Tx("Already have an account?","¿Ya tienes cuenta?","Schon ein Konto?","Já tem conta?"))}</span><button type="button" class="btn" id="meToLog">${esc(Tx("Sign in","Entrar","Anmelden","Entrar"))}</button></div></div>`;
-    box.innerHTML=`${a.demo?`<div class="callout">${esc(Tx("Demo: nothing is sent.","Demo: no se envía nada."))}</div>`:""}<div class="me-welcome"><div class="me-brand">PITLANE HQ</div><p class="me-slogan">${esc(Tx("Sim racing telemetry like never before.","Telemetría de sim racing como nunca antes.","Sim-Racing-Telemetrie wie nie zuvor.","Telemetria de sim racing como nunca antes."))}</p><p class="note" style="margin:0">${esc(Tx("Every lap recorded on your PC. Analyse it, compare it with the community and get tips from the coach. See your races and laps on the web and your phone.","Cada vuelta grabada en tu PC. Analízala, compárala con la comunidad y recibe consejos del coach. Mira tus carreras y vueltas en la web y el móvil.","Jede Runde auf deinem PC aufgezeichnet. Analysiere sie, vergleiche sie mit der Community und hol dir Tipps vom Coach. Deine Rennen und Runden im Web und auf dem Handy.","Cada volta gravada no seu PC. Analise, compare com a comunidade e receba dicas do coach. Veja suas corridas e voltas na web e no celular."))}</p></div>${reg?register:login}${WEBAPP?`<details class="me-dl"><summary>${esc(Tx("Download the apps","Descargar las apps","Apps herunterladen","Baixar os apps"))}</summary>${dlHTML()}</details>`:""}`;
+    box.innerHTML=`${a.demo?`<div class="callout">${esc(Tx("Demo: nothing is sent.","Demo: no se envía nada."))}</div>`:""}<div class="me-welcome"><div class="me-brand">PITLANE HQ</div><p class="me-slogan">${esc(Tx("iRacing telemetry and a lap coach.","Telemetría y coach de vueltas para iRacing.","iRacing-Telemetrie und Runden-Coach.","Telemetria e coach de voltas para iRacing."))}</p><p class="note" style="margin:0">${esc(Tx("The PC app records every lap you drive. Here you see where you lose time and how you compare with faster drivers in the same car.","La app del PC graba cada vuelta que das. Aquí ves dónde pierdes tiempo y cómo vas frente a pilotos más rápidos con el mismo coche.","Die PC-App zeichnet jede Runde auf. Hier siehst du, wo du Zeit verlierst und wie du gegen schnellere Fahrer im selben Auto liegst.","O app do PC grava cada volta. Aqui você vê onde perde tempo e como está contra pilotos mais rápidos no mesmo carro."))}</p></div>${reg?register:login}${WEBAPP?`<details class="me-dl"><summary>${esc(Tx("Download the apps","Descargar las apps","Apps herunterladen","Baixar os apps"))}</summary>${dlHTML()}</details>`:""}`;
     const sw=(t)=>e=>{e.preventDefault();ME_TAB=t;renderMe()};{const x=$("#meToReg");if(x)x.onclick=sw("register");const y=$("#meToLog");if(y)y.onclick=sw("login")}}
   const f2=$("#meSrv2");if(f2)f2.onsubmit=e=>{e.preventDefault();const u=$("#meSrvU2").value.trim().replace(/\/+$/,"");if(u&&!/^https:\/\//.test(u)){toast(Tx("Use an https:// address","Usa una dirección https://"));return}try{u?localStorage.setItem("pw.server",u):localStorage.removeItem("pw.server")}catch(x){}location.reload()};
   if(!a.signedIn){const busy=(f,on)=>f.querySelectorAll("button,input").forEach(x=>x.disabled=on);

@@ -4,6 +4,20 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. PATCH for fixes, MINOR for a set of new features, and 1.0.0 when the
 beta ends. Every version is listed here, newest first, and gets a release on GitHub.
 
+## 0.8.20 beta
+
+**New**
+- **A new logo:** a rev gauge whose last part is a kerb, with the needle in the rev limit. It is the
+  icon of PitlaneHQ.exe and its installer, the web (favicon, home screen), the Android and iOS apps,
+  the header and the loading screen.
+- **Emails that look like Pitlane HQ:** the logo and name on top, the dark card, the amber button, the
+  link written out below it and who to write to (confirm your email, reset your password, test).
+- **Search engines and shared links:** a title and a short description, the picture shown when a link
+  to pitlanehq.app is shared, robots.txt, a sitemap and the app described for Google.
+
+**Changed**
+- The sign-in page says plainly what Pitlane HQ does.
+
 ## 0.8.19 beta
 
 **Changed**

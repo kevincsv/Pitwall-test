@@ -60,6 +60,13 @@
 - Emails go through Resend first (domain pitlanehq.app, secret RESEND_API_KEY) and Proton Mail's SMTP
   (`smtp.js`, bodies in base64) when Resend is not set up or refuses one; Admin → Server shows the last
   emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX and DMARC.
+- The logo is the rev gauge with a kerb in the rev limit (`assets/logo.svg`, the master; `web/dist/logo.svg`).
+  Its PNGs and ICOs (web/dist icons, assets/pitlanehq.ico and -1024.png, the phone apps' launcher icons)
+  are rendered from it; the phone icons are the full square (no transparent corners).
+- Emails look like the app (`mailHTML` in email.js: the logo from pitlanehq.app/icon-192.png, the dark
+  card, the amber button), tables and inline styles only.
+- SEO: index.html has the title, a short plain description, Open Graph/Twitter cards (`og.png`) and
+  JSON-LD; robots.txt and sitemap.xml are in web/dist. Descriptions are short and plain, never hype.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
 - Leagues (in development, admins only until LEAGUES_OPEN=1): drivers post their league with a

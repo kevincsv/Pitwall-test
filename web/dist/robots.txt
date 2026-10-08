@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /live
+Disallow: /dl/
+Disallow: /account/
+
+Sitemap: https://pitlanehq.app/sitemap.xml
