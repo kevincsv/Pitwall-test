@@ -114,9 +114,57 @@ func loadJournal() {
 	readJSON(journalFile("trackbook.json"), &b)
 	readJSON(journalFile("races.json"), &r)
 	readJSON(journalFile("notes.json"), &n)
+	fixed := false
+	for _, x := range r {
+		if repairRealIR(x) {
+			fixed = true
+		}
+	}
 	journalMu.Lock()
 	book, races, notes = b, r, n
+	if fixed {
+		writeJSONFile(journalFile("races.json"), races)
+	}
 	journalMu.Unlock()
+}
+
+// maxRealIRStep: more than this between one race and the next session is not that race's result but the
+// iRating of another category (a Sports Car session after a Formula Car race: each category has its own)
+const maxRealIRStep = 300
+
+// repairRealIR undoes a "real" iRating taken from a session of another category (older versions did): the
+// race goes back to the estimate from its field, until the right one comes
+func repairRealIR(r *raceReport) bool {
+	if r == nil || !r.IRReal || abs(r.IRChange) <= maxRealIRStep {
+		return false
+	}
+	r.IRReal = false
+	r.IRChange = 0
+	cls := append([]raceResult(nil), r.Results...)
+	sort.Slice(cls, func(i, j int) bool { return cls[i].Pos < cls[j].Pos })
+	irs, ps, st := make([]int, len(cls)), make([]int, len(cls)), make([]bool, len(cls))
+	for i, x := range cls {
+		irs[i], ps[i], st[i] = x.IR, i+1, x.Laps > 0
+	}
+	ch := irChanges(irs, ps, st)
+	for i := range cls {
+		if cls[i].Me {
+			r.IRChange = ch[i]
+		}
+	}
+	for i := range r.Results {
+		if r.Results[i].Me {
+			r.Results[i].IRChange = r.IRChange
+		}
+	}
+	return true
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 func readJSON(p string, v any) {
@@ -375,7 +423,7 @@ func raceWatcher() {
 		if id != irSeen {
 			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); myIR > 0 {
 				irSeen = id
-				applyRealIR(myIR, meta.Subsession)
+				applyRealIR(myIR, meta.Subsession, meta.Cat)
 			}
 		}
 		if !strings.EqualFold(kind, "Race") {
@@ -732,7 +780,7 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 // applyRealIR: iRacing shows your new iRating when you join the next session; its difference with
 // the iRating you had in your last race is what that race really gave or cost (the report keeps the
 // estimate until then).
-func applyRealIR(ir, subsession int) {
+func applyRealIR(ir, subsession int, cat string) {
 	journalMu.Lock()
 	defer journalMu.Unlock()
 	if len(races) == 0 || ir <= 0 {
@@ -740,6 +788,10 @@ func applyRealIR(ir, subsession int) {
 	}
 	r := races[len(races)-1]
 	if (r.Game != "" && r.Game != "iracing") || r.IRReal || r.IR <= 0 || r.Subsession == subsession || ir == r.IR {
+		return
+	}
+	// only a session of the same category says what the race gave: each category has its own iRating
+	if (r.Cat != "" && cat != "" && !strings.EqualFold(r.Cat, cat)) || abs(ir-r.IR) > maxRealIRStep {
 		return
 	}
 	r.IRChange, r.IRReal = ir-r.IR, true

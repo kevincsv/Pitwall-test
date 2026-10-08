@@ -963,6 +963,11 @@ func (st *ovState) coachTips() []coachTip {
 	if R == nil || R == A {
 		return nil
 	}
+	return st.compareLaps(A, R, 3)
+}
+
+// compareLaps: lap A corner by corner against the reference R, the corners that lose the most first (max of them)
+func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 	sa, sb := A.series(), R.series()
 	zb, za := brakeZones(sb), brakeZones(sa)
 	n := len(sa)
@@ -1115,8 +1120,8 @@ func (st *ovState) coachTips() []coachTip {
 		out = append(out, coachTip{n: k + 1, lost: lost, en: en, es: es})
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].lost > out[b].lost })
-	if len(out) > 3 {
-		out = out[:3]
+	if len(out) > max {
+		out = out[:max]
 	}
 	return out
 }

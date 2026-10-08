@@ -74,7 +74,50 @@ type deskRow struct {
 
 func hexCol(c uint32) string { return "#" + strconv.FormatUint(uint64(0xff000000|c), 16)[2:] }
 
+// deskLap turns a lap's points as the app keeps them ([speed, time, throttle, brake, gear, steering] every 5 m) into
+// the native code's lap
+func deskLap(bins [][]float64) *ovLap {
+	l := &ovLap{}
+	for _, b := range bins {
+		if len(b) < 4 {
+			l.bins = append(l.bins, nil)
+			continue
+		}
+		var p lapPt
+		copy(p[:], b)
+		l.bins = append(l.bins, &p)
+	}
+	l.maxBin = len(l.bins) - 1
+	return l
+}
+
 func registerDeskRoutes(mux *http.ServeMux) {
+	// the coach for the native window's Analysis: lap A against lap B, corner by corner (the same code as the coach overlay)
+	mux.HandleFunc("/api/desk/coach", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", 405)
+			return
+		}
+		var in struct {
+			A, B [][]float64
+		}
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<20)).Decode(&in) != nil || len(in.A) < 10 || len(in.B) < 10 {
+			http.Error(w, "two laps", 400)
+			return
+		}
+		st := newOvState(uiLangChoice())
+		st.units = uiUnits()
+		tips := st.compareLaps(deskLap(in.A), deskLap(in.B), 8)
+		out := []map[string]any{}
+		for _, t := range tips {
+			out = append(out, map[string]any{"n": t.n, "lost": t.lost, "tip": st.T(t.en, t.es)})
+		}
+		zones := []map[string]any{}
+		for k, z := range brakeZones(deskLap(in.A).series()) {
+			zones = append(zones, map[string]any{"n": k + 1, "d": float64(z.i) * ovLapBin, "v": st.spd(z.v), "vmin": st.spd(z.vmin)})
+		}
+		writeJSON(w, map[string]any{"tips": out, "brakes": zones, "speedUnit": st.spdU()})
+	})
 	mux.HandleFunc("/api/desk", func(w http.ResponseWriter, r *http.Request) {
 		st := deskState()
 		cs := currentStatus()

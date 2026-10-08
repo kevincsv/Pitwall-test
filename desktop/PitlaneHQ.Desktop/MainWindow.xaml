@@ -234,6 +234,66 @@
                     </StackPanel>
                 </ScrollViewer>
 
+                <!-- ANALYSIS (native): the lap analyzer and the coach -->
+                <ScrollViewer x:Name="AnalysisView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed" Background="{StaticResource Bg}">
+                    <StackPanel>
+                        <TextBlock x:Name="AnaTitle" Style="{StaticResource H1}" Text="Analysis"/>
+                        <WrapPanel Margin="0,0,0,8">
+                            <StackPanel Margin="0,0,10,6">
+                                <TextBlock x:Name="AnaSessL" Style="{StaticResource Label}" Margin="0,0,0,2" Text="SESSION"/>
+                                <ComboBox x:Name="AnaSess" Width="420" SelectionChanged="OnAnaSess"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,6">
+                                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,2" Text="A"/>
+                                <ComboBox x:Name="AnaA" Width="200" SelectionChanged="OnAnaLap"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,6">
+                                <TextBlock Style="{StaticResource Label}" Margin="0,0,0,2" Text="B"/>
+                                <ComboBox x:Name="AnaB" Width="240" SelectionChanged="OnAnaLap"/>
+                            </StackPanel>
+                        </WrapPanel>
+                        <TextBlock x:Name="AnaMsg" Style="{StaticResource Note}" Margin="0,0,0,8" Visibility="Collapsed"/>
+                        <StackPanel x:Name="AnaBody" Visibility="Collapsed">
+                            <!-- the gap and its key facts -->
+                            <Border Style="{StaticResource Card}">
+                                <WrapPanel x:Name="AnaFacts"/>
+                            </Border>
+                            <!-- the charts along the lap -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="AnaSpeedT" Style="{StaticResource CardTitle}" Text="SPEED"/>
+                                    <Canvas x:Name="AnaSpeed" Height="170" ClipToBounds="True" SizeChanged="OnAnaResize"/>
+                                    <TextBlock x:Name="AnaPedT" Style="{StaticResource CardTitle}" Margin="0,12,0,8" Text="THROTTLE AND BRAKE"/>
+                                    <Canvas x:Name="AnaPedals" Height="110" ClipToBounds="True"/>
+                                    <TextBlock x:Name="AnaDeltaT" Style="{StaticResource CardTitle}" Margin="0,12,0,8" Text="TIME DELTA (A − B)"/>
+                                    <Canvas x:Name="AnaDelta" Height="110" ClipToBounds="True"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <Border Width="14" Height="4" Background="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="AnaLegA" Style="{StaticResource Note}" Margin="0,0,16,0" Text="A"/>
+                                        <Border Width="14" Height="4" Background="{StaticResource Blue}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="AnaLegB" Style="{StaticResource Note}" Text="B"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <!-- the corners that cost the most -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="AnaCoachT" Style="{StaticResource CardTitle}" Text="WHERE A LOSES TIME"/>
+                                    <StackPanel x:Name="AnaTips"/>
+                                </StackPanel>
+                            </Border>
+                            <!-- every lap of the session -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="AnaLapsT" Style="{StaticResource CardTitle}" Text="LAPS"/>
+                                    <StackPanel x:Name="AnaLaps"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <Button x:Name="AnaMore" Style="{StaticResource Btn}" HorizontalAlignment="Left" Content="Map, sectors and more in the full analyzer" Click="OnAnaMore"/>
+                    </StackPanel>
+                </ScrollViewer>
+
                 <!-- COMMUNITY (native): the leaderboards -->
                 <ScrollViewer x:Name="CommunityView" VerticalScrollBarVisibility="Auto" Padding="20,16,8,16" Visibility="Collapsed" Background="{StaticResource Bg}">
                     <StackPanel>

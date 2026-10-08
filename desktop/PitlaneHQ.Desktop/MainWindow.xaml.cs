@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     private readonly Border[] _rpm = new Border[16];
 
     // the native screens; every other view is the WebView
-    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings", "community" };
+    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings", "community", "laps" };
 
     public MainWindow()
     {
@@ -150,6 +150,7 @@ public partial class MainWindow : Window
         ComSub.Text = T("Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself.", "Leaderboards por tiempo de vuelta: la vuelta más rápida de cada coche y circuito de cada cuenta, compartida sola.");
         ComMore.Content = T("Profiles, race summaries and leagues", "Perfiles, resúmenes de carrera y ligas");
         _comKey = "";
+        ApplyAnaLanguage();
         _ovKey = "";
     }
 
@@ -728,7 +729,7 @@ public partial class MainWindow : Window
 
     private async void OpenInApp(string view)
     {
-        foreach (var v in new[] { HomeView, LiveView, OverlaysView, AccountView, SettingsView, CommunityView }) v.Visibility = Visibility.Collapsed;
+        foreach (var v in new[] { HomeView, LiveView, OverlaysView, AccountView, SettingsView, CommunityView, AnalysisView }) v.Visibility = Visibility.Collapsed;
         Web.Visibility = Visibility.Visible;
         await EnsureWebAsync();
         if (_webReady && Web.CoreWebView2 != null)
@@ -809,12 +810,14 @@ public partial class MainWindow : Window
         OverlaysView.Visibility = v == "overlays" ? Visibility.Visible : Visibility.Collapsed;
         AccountView.Visibility = v == "me" ? Visibility.Visible : Visibility.Collapsed;
         CommunityView.Visibility = v == "community" ? Visibility.Visible : Visibility.Collapsed;
+        AnalysisView.Visibility = v == "laps" ? Visibility.Visible : Visibility.Collapsed;
         SettingsView.Visibility = v == "settings" ? Visibility.Visible : Visibility.Collapsed;
         // hidden, not closed: the app keeps running behind the native screens
         Web.Visibility = native ? Visibility.Hidden : Visibility.Visible;
         if (!_engine.Running) return;
         if (v == "me") await AccountAsync();
         if (v == "community") await CommunityAsync();
+        if (v == "laps") await AnalysisAsync();
         if (v == "settings") await SettingsAsync();
         if (v == "overlays") { _ovKey = ""; await OverlaysAsync(); }
         if (v == "home") { _racesKey = ""; await HomeRacesAsync(); }
