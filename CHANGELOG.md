@@ -22,6 +22,8 @@ beta ends. Every version is listed here, newest first, and gets a release on Git
 
 
 
+## 0.8.8 beta
+
 **Fixed**
 - **Coach, as it is shown.** The sector table fits on a phone screen (columns B and Diff. were off
   the edge). The coach and the lap analyzer use the same sector times: the game's when both laps
