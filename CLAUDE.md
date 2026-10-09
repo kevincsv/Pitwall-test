@@ -1,6 +1,8 @@
 # Pitlane HQ: rules for working on this project
 
 - Reply to the owner in Spanish.
+- The apps' languages are English, Spanish and Portuguese (Brazil) only (`LANGS` in index.html, `uiLang` in Go, `lang` in
+  email.js): no German and no bilingual "EN + ES"; a German or bilingual choice from before reads English or Spanish.
 - Push only when the owner says so ("súbelo", "sube todo"…). Never create pull requests unless asked.
 - Anything sensitive that goes to GitHub is encrypted or kept in GitHub secrets; never paste
   Cloudflare tokens or keys anywhere.
@@ -147,8 +149,11 @@
   card, the amber button), tables and inline styles only.
 - SEO: index.html has the title, a short plain description, Open Graph/Twitter cards (`og.png`) and
   JSON-LD; robots.txt is in web/dist. Descriptions are short and plain, never hype. The public pages
-  (`cloud/src/seo.js`, plain HTML, English and Spanish with hreflang): /iracing-telemetry and
-  /es/telemetria-iracing, /records and /es/records, one page per car and track (one canonical address,
+  (`cloud/src/seo.js`, plain HTML, English, Spanish and Portuguese, each naming the other two with hreflang and
+  x-default): /iracing-telemetry, /es/telemetria-iracing and /pt/telemetria-iracing, /records, /es/records and
+  /pt/records, one page per car and track (BreadcrumbList; the records index an ItemList; the landings WebSite,
+  Organization, SoftwareApplication and FAQPage); the sitemap carries every language (xhtml:link) and lastmod; IndexNow
+  sends every page again when SEO_VER changes; the app's "/" has the hreflang links and a <noscript> with crawlable links (one canonical address,
   301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day. www.pitlanehq.app is a custom domain of the Worker
   (made by the deploy) that answers 301 to pitlanehq.app.
   They show the accounts' nicknames (never their iRacing names), race rivals by their whole name as the game shows it,

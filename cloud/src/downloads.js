@@ -39,7 +39,7 @@ ${row(t("Native window (preview)", "Ventana nativa (preview)"), t("The new windo
 <h2>${t("Phones", "Móviles")} ${ph.version ? `<small>v${esc(ph.version)} beta</small>` : ""}</h2><div class="g">
 ${ph.apk ? row("Android", t("App (APK); Google Play soon", "App (APK); pronto en Google Play"), ph.apk) : ""}<div class="c" style="opacity:.7"><b>iPhone</b><span>${t("Coming to the App Store", "Pronto en la App Store")}</span></div></div>
 <p class="n"><a href="/changelog">${t("What changed in each version", "Qué cambió en cada versión")}</a> · <a href="/">${t("Open the web app", "Abrir la app web")}</a></p>`;
-    return new Response(page(body), { headers: H });
+    return new Response(page(body, { lang: es ? "es" : "en" }), { headers: H });
   }
   if (p === "/changelog" || p === "/changelog/phones") {
     // the short notes for people (web/dist/whats-new.json), the same ones the apps show
@@ -47,7 +47,8 @@ ${ph.apk ? row("Android", t("App (APK); Google Play soon", "App (APK); pronto en
     try { vs = (await (await env.ASSETS.fetch(new Request(new URL("/whats-new.json", url.origin)))).json()).versions || []; } catch (e) { /* none yet */ }
     const l = es ? "es" : "en";
     const body = `<h1>${es ? "Novedades" : "What's new"}</h1>` + vs.map((x) => `<h2 id="${esc(String(x.v).replace(/\./g, ""))}-beta">${esc(x.v)} <small>${esc(x.date || "")}</small></h2><ul>${(x[l] || x.en || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`).join("");
-    return new Response(page(body + `<p class="n"><a href="/downloads">${es ? "Descargas" : "Downloads"}</a> · <a href="/">${es ? "Abrir la app" : "Open the app"}</a></p>`), { headers: H });
+    return new Response(page(body + `<p class="n"><a href="/downloads">${es ? "Descargas" : "Downloads"}</a> · <a href="/">${es ? "Abrir la app" : "Open the app"}</a></p>`,
+      { lang: es ? "es" : "en", path: p, title: "What's new in Pitlane HQ · Changelog", desc: "What changed in each version of Pitlane HQ: the iRacing telemetry app for Windows, the web and Android." }), { headers: H });
   }
   return new Response("not found", { status: 404 });
 }
@@ -70,7 +71,8 @@ function renderMd(md) {
   return out;
 }
 
-const page = (body) => `<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download Pitlane HQ · iRacing telemetry for Windows and Android</title><meta name="description" content="Download Pitlane HQ for Windows (it records your iRacing laps) and the Android app. Free."><link rel="canonical" href="https://pitlanehq.app/downloads"><meta property="og:image" content="https://pitlanehq.app/og.png"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/logo.svg" type="image/svg+xml">
+// each page names itself (its own canonical address), never another one
+const page = (body, o = {}) => `<!doctype html><html lang="${o.lang || "en"}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${o.title || "Download Pitlane HQ · iRacing telemetry for Windows and Android"}</title><meta name="description" content="${o.desc || "Download Pitlane HQ Agent for Windows (it records your iRacing laps) and the Android app. Free."}"><link rel="canonical" href="https://pitlanehq.app${o.path || "/downloads"}"><meta property="og:image" content="https://pitlanehq.app/og.png"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/logo.svg" type="image/svg+xml">
 <style>body{margin:0;background:#11151b;color:#e7ebf1;font:16px/1.55 system-ui,sans-serif}main{max-width:760px;margin:0 auto;padding:28px 16px 48px}h1{font-size:26px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px}h2{font-size:18px;margin:26px 0 10px;letter-spacing:.03em}h2 small{color:#8a97a9;font-weight:600;font-size:12px;margin-left:8px}
 h3{font-size:14px;color:#ffb02e;margin:18px 0 4px}p{color:#a9b4c3;margin:6px 0}ul{padding-left:20px;color:#c9d2de}li{margin:4px 0}code{background:#19202a;padding:1px 5px;border-radius:4px;font-size:13px}a{color:#ffb02e}
 .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.c{display:grid;gap:3px;padding:14px;border:1px solid #2b3542;border-radius:12px;background:#19202a;text-decoration:none;color:#e7ebf1}.c:hover{border-color:#ffb02e}.c span{color:#8a97a9;font-size:13px}.n{margin-top:26px;font-size:14px}

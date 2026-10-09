@@ -9,7 +9,7 @@ import (
 // (the overlays and the log). The page sends it when it starts and when it changes.
 var uiLang, uiLangPick atomic.Value
 
-// uiLangChoice: the language exactly as chosen in the app (en, es, de, pt or both), for the overlay windows
+// uiLangChoice: the language as chosen in the app (en, es or pt), for the overlay windows
 // the app's units ("metric" or "imperial"), told by the app like the language, for the native overlays
 var uiUnitsPick atomic.Value
 
@@ -51,14 +51,17 @@ func registerLangRoute(mux *http.ServeMux) {
 			}
 		}
 		switch l := r.URL.Query().Get("l"); l {
-		case "en", "es", "de", "pt", "both":
+		case "en", "es", "pt", "de", "both":
+			// English, Spanish and Portuguese only: German (older apps) reads English, bilingual Spanish
+			if l == "de" {
+				l = "en"
+			} else if l == "both" {
+				l = "es"
+			}
 			if uiLangChoice() != l {
 				uiPrefsVer.Add(1)
 			}
 			uiLangPick.Store(l)
-			if l == "both" {
-				l = "es"
-			}
 			uiLang.Store(l)
 		}
 		w.WriteHeader(204)

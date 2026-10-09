@@ -54,7 +54,7 @@ function mailHTML(subject, text, link, button, l) {
 </table></td></tr></table></body></html>`;
 }
 
-export const lang = (l) => (["en", "es", "de", "pt"].includes(l) ? l : "en");
+export const lang = (l) => (["en", "es", "pt"].includes(l) ? l : "en"); // English, Spanish and Portuguese only
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // the last result is kept in the database too, so the admin profile shows why emails do not go out

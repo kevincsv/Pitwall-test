@@ -1,9 +1,19 @@
-<meta charset="utf-8">
+
+<noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
+<h1>Pitlane HQ · iRacing telemetry and a coach for your laps</h1>
+<p>Free iRacing telemetry: Pitlane HQ Agent records every lap you drive on your Windows PC, and the coach shows where you lose time against your best lap, the record and the driver just ahead of you in the same car. On Windows, Android and the web.</p>
+<p><a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/records">iRacing records by car and track</a> · <a href="/downloads">Download</a> · <a href="/es/telemetria-iracing">Telemetría para iRacing (Español)</a> · <a href="/pt/telemetria-iracing">Telemetria para iRacing (Português)</a></p>
+<p>The app needs JavaScript.</p></main></noscript><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pitlane HQ · iRacing telemetry and lap coach</title>
 <meta name="description" content="Free iRacing telemetry: record your laps, see where you lose time and compare with faster drivers in the same car.">
 <link rel="canonical" href="https://pitlanehq.app/">
+<link rel="alternate" hreflang="en" href="https://pitlanehq.app/">
 <link rel="alternate" hreflang="es" href="https://pitlanehq.app/es/telemetria-iracing">
+<link rel="alternate" hreflang="pt" href="https://pitlanehq.app/pt/telemetria-iracing">
+<link rel="alternate" hreflang="x-default" href="https://pitlanehq.app/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:locale" content="en_US">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pitlane HQ">
 <meta property="og:title" content="Pitlane HQ · iRacing telemetry and lap coach">
@@ -1629,7 +1639,7 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
   <div class="grid">
     <div class="panel s6">
       <div class="label" data-i18n="language"></div>
-      <select id="langSeg" class="lang-select" style="margin-top:8px" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="both">EN + ES</option></select>
+      <select id="langSeg" class="lang-select" style="margin-top:8px" aria-label="Language"><option value="en">English</option><option value="es">Español</option><option value="pt">Português</option></select>
       <p class="note" data-i18n="langNote"></p>
       <div class="label" style="margin-top:16px" data-i18n="units"></div>
       <div class="seg" id="unitSeg" style="margin-top:8px"><button type="button" data-u="metric" data-i18n="metric"></button><button type="button" data-u="imperial" data-i18n="imperial"></button></div>
@@ -1724,7 +1734,9 @@ const I18N={
 };
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 // an overlay window takes the language of the app window (it has its own browser storage, which would start in English)
-let LANG=(()=>{const q=new URLSearchParams(location.search),l=q.get("lang");if(q.get("overlay")&&/^(en|es|de|pt|both)$/.test(l||"")){try{localStorage.setItem("pw.lang",JSON.stringify(l));localStorage.setItem("pw.langPicked","1")}catch(e){}return l}return store.get("pw.lang","en")})(),UNITS=store.get("pw.units","metric");
+let LANG=(()=>{const q=new URLSearchParams(location.search),l=q.get("lang");if(q.get("overlay")&&/^(en|es|pt)$/.test(l||"")){try{localStorage.setItem("pw.lang",JSON.stringify(l));localStorage.setItem("pw.langPicked","1")}catch(e){}return l}
+  // English, Spanish and Portuguese only: a German or bilingual choice from before reads English or Spanish
+  const v=store.get("pw.lang","en");return v==="both"?"es":["en","es","pt"].includes(v)?v:"en"})(),UNITS=store.get("pw.units","metric");
 /* ===================== companion: the phone app without the PC =====================
    The iPhone and Android apps open this page from their own bundle. Your Pitlane HQ
    account brings your planner, races, track notes and iRacing data (end-to-end
@@ -2083,8 +2095,8 @@ function renderPC(){const box=$("#pcBody");if(!box)return;
   const si=$("#pcSignIn");if(si)si.onclick=()=>show("me");}
 
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-/* languages: English, Spanish, German, Portuguese (Brazil); "both" shows English and Spanish together */
-const LANGS=[["en","English","English"],["es","Español","Spanish"],["de","Deutsch","German"],["pt","Português","Portuguese (Brazil)"],["both","EN + ES","Bilingual"]];
+/* languages: English, Spanish and Portuguese (Brazil) */
+const LANGS=[["en","English","English"],["es","Español","Spanish"],["pt","Português","Portuguese (Brazil)"]];
 function trX(en,es,de,pt){const i=LANG==="de"?0:1,inl=LANG==="de"?de:pt;if(inl!=null&&inl!==0)return inl;const d=I18N_X.get(en+"\u0001"+es)||I18N_X.get(en);return d?d[i]:en}
 [["My laps","Meine Runden","Minhas voltas"],["Every lap your PC uploads to your account: sessions, records and lap comparison","Jede Runde, die dein PC in dein Konto hochlädt: Sitzungen, Rekorde und Rundenvergleich","Cada volta que seu PC envia para sua conta: sessões, recordes e comparação de voltas"],["Connect your phone to your live telemetry, or share it with someone else","Verbinde dein Handy mit deiner Live-Telemetrie oder teile sie mit jemand anderem","Conecte seu celular à sua telemetria ao vivo ou compartilhe com outra pessoa"],["Phone & sharing","Handy & Teilen","Celular e compartilhar"],["Waiting for iRacing to turn on the official OAuth sign-in for apps. When it is ready, connecting your iRacing account will be a single click here.","Wir warten darauf, dass iRacing die offizielle OAuth-Anmeldung für Apps freischaltet. Sobald sie bereit ist, verbindest du dein iRacing-Konto hier mit einem Klick.","Aguardando o iRacing ativar o login OAuth oficial para apps. Quando estiver pronto, conectar sua conta do iRacing será um clique aqui."],["Phone & sharing telemetry","Handy & Telemetrie teilen","Celular e compartilhar telemetria"],["Connect your phone or tablet to your live telemetry","Verbinde Handy oder Tablet mit deiner Live-Telemetrie","Conecte seu celular ou tablet à sua telemetria ao vivo"],["Share your live telemetry with someone (engineer view)","Teile deine Live-Telemetrie mit jemandem (Ingenieursansicht)","Compartilhe sua telemetria ao vivo com outra pessoa (visão de engenheiro)"]].forEach(([en,de,pt])=>I18N_X.set(en,[de,pt]));
 function pair(en,es,inline,de,pt){if(LANG==="es")return esc(es);if(LANG==="de"||LANG==="pt")return esc(trX(en,es,de,pt));if(LANG==="en"||en===es)return esc(en);return `<span class="${inline?"inl":""}">${esc(en)}<span class="t2">${esc(es)}</span></span>`}
@@ -7082,7 +7094,7 @@ function openSetupShare(key){const f=((SETUPS_DATA||{}).cars||[]).flatMap(c=>c.f
 /* ===================== language picker: shown the first time the app opens ===================== */
 function chooseLanguage(first){let m=$("#langPick");if(!m){m=document.createElement("div");m.id="langPick";m.className="langpick";document.body.appendChild(m)}
   m.innerHTML=`<div class="lp-card" role="dialog" aria-modal="true" aria-labelledby="lpT"><div class="lp-brand"><i aria-hidden="true"></i>Pitlane HQ</div>
-    <h2 id="lpT">Choose your language · Elige tu idioma · Sprache wählen · Escolha seu idioma</h2>
+    <h2 id="lpT">Choose your language · Elige tu idioma · Escolha seu idioma</h2>
     <div class="lp-list">${LANGS.map(([k,n,sub])=>`<button type="button" data-lp="${k}" aria-pressed="${k===LANG&&!first}"><b>${n}</b><small>${sub}</small></button>`).join("")}</div>
     <p>${first?"You can change it later in Settings.":""}</p></div>`;
   m.hidden=false;m.querySelectorAll("[data-lp]").forEach(b=>b.onclick=()=>{LANG=b.dataset.lp;store.set("pw.lang",LANG);m.hidden=true;applyI18n();
