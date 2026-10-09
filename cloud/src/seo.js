@@ -1,7 +1,8 @@
 // Public pages for search engines and for people who arrive from them, rendered here as plain HTML
 // (no app, no sign-in): what Pitlane HQ does, in English and Spanish, and the leaderboards of every car
 // and track. The app stays at "/"; these pages link to it, to each other and to the downloads.
-// Leaderboards show nicknames only (never iRacing names); anonymous laps and race rivals are "Anonymous".
+// Leaderboards show the accounts' nicknames (never their iRacing names) and race rivals by their whole name as the game
+// shows it; anonymous laps are "Anonymous".
 import { catMap, catOf } from "./categories.js";
 
 const SITE = "https://pitlanehq.app";
@@ -151,7 +152,7 @@ async function recordsCombo(env, l, t, c, asked) {
   const canon = recPath(l, { t, c, track: nm.track, car: nm.car });
   if (asked !== canon) return Response.redirect(SITE + canon, 301);
   const r = await env.DB.prepare(
-    `SELECT l.user_id AS uid, CASE WHEN l.anon=1 OR l.user_id LIKE 'o:%' OR COALESCE(ac.anon,0)=1 THEN '' ELSE u.alias END AS alias, l.time, l.created, l.track, l.car, l.cat
+    `SELECT l.user_id AS uid, CASE WHEN l.anon=1 OR COALESCE(ac.anon,0)=1 OR u.alias='Anonymous' THEN '' ELSE u.alias END AS alias, l.time, l.created, l.track, l.car, l.cat
        FROM community_laps l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
       WHERE l.track_id=?1 AND l.car_id=?2 AND l.game='iracing' AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 300`
   ).bind(t, c).all().catch(() => ({ results: [] }));

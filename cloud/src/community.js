@@ -53,6 +53,8 @@ import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
 // replaces a faster one only when it brings the telemetry the faster one lacks
+// leagues a driver may post: supporters (Patreon or by hand) more
+const LEAGUES_FREE = 3, LEAGUES_SUPPORTER = 10;
 // a test drive: anything can happen in one, so its laps never go to the leaderboard nor teach the model
 export const isTestDrive = (kind) => /test/i.test(String(kind || ""));
 const officialOf = (v) => (typeof v === "boolean" ? (v ? 1 : 0) : v === 1 || v === 0 ? v : null);
@@ -485,9 +487,16 @@ export async function community(req, env, url) {
       if (o.mine || admin) { o.views = x.views || 0; o.clicks = x.clicks || 0; }
       return o;
     };
+    // how many leagues a driver may post: 3, or 10 for a supporter (Patreon or by hand, shown or hidden)
+    const leagueLimit = async () => {
+      if (!who) return LEAGUES_FREE;
+      const a = await env.DB.prepare("SELECT supporter FROM accounts WHERE id=?1").bind(who.id).first().catch(() => null);
+      return a && a.supporter ? LEAGUES_SUPPORTER : LEAGUES_FREE;
+    };
     if (m === "GET" && !lid) {
       const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner ORDER BY l.updated DESC LIMIT 300").all();
-      return json({ leagues: (r.results || []).map(row), admin, open: env.LEAGUES_OPEN === "1" });
+      const limit = await leagueLimit();
+      return json({ leagues: (r.results || []).map(row), admin, open: env.LEAGUES_OPEN === "1", limit, supporter: limit === LEAGUES_SUPPORTER, limits: { free: LEAGUES_FREE, supporter: LEAGUES_SUPPORTER } });
     }
     const cur = lid ? await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.id=?1").bind(lid).first() : null;
     if (lid && !cur) return err("league not found", 404);
@@ -554,7 +563,8 @@ export async function community(req, env, url) {
       return json({ ok: true, id: lid });
     }
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first();
-    if (n && n.n >= 5 && !admin) return err("you can post up to 5 leagues", 429);
+    const limit = await leagueLimit();
+    if (n && n.n >= limit && !admin) return err(limit === LEAGUES_SUPPORTER ? `you can post up to ${limit} leagues` : `you can post up to ${limit} leagues (${LEAGUES_SUPPORTER} as a supporter)`, 429);
     const id = rid();
     await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, cats, days, time, tz, open, discord, web, schedule, cars, lang, created, updated) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?16)")
       .bind(id, who.id, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();

@@ -101,7 +101,7 @@
   you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
 - Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
   whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
-  history, `rivalnames.v2`), with no "rival" tag beside them; the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
+  history, `rivalnames.v2`), with no "rival" tag beside them, on the public pages too. When a driver's own signed-in PC sees them at the wheel
   in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,
   `driver_links`: one iRacing driver per account and one account per driver; admins can undo it).
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
@@ -145,7 +145,8 @@
   /es/telemetria-iracing, /records and /es/records, one page per car and track (one canonical address,
   301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day. www.pitlanehq.app is a custom domain of the Worker
   (made by the deploy) that answers 301 to pitlanehq.app.
-  They never show iRacing names: nicknames, or Anonymous.
+  They show the accounts' nicknames (never their iRacing names), race rivals by their whole name as the game shows it,
+  or Anonymous.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
 - Leagues are a hub of posts (Community → Leagues on the web, the PC and the phones; `LEAG`/`leagCard`/`leagOpen` in
@@ -160,7 +161,9 @@
   admins) see the counts and the last 14 days (`league_days`). A post has a link (pitlanehq.app/app?league=id,
   opened on arrival) and, on the web, an .ics of its weekly race. In development: the server opens the hub to
   everyone with LEAGUES_OPEN=1; until then it answers "in development" and every app shows the card for it (admins
-  see the hub). Up to 5 leagues per driver.
+  see the hub). Up to 3 leagues per driver, 10 for a supporter (Patreon or by hand; `LEAGUES_FREE`/`LEAGUES_SUPPORTER`,
+  `limit` in the list): under "Post the league" the form says how many you have posted and, to the rest, that supporters
+  post up to 10, with a small "♥ Support on Patreon" link.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
   the leagues, the latest sessions, the server's emails and the tools (rebuild the coach models; the
