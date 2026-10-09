@@ -4,6 +4,16 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.5 beta
+
+- **The same information on every device**: the licence summary on the phones and on Pitlane HQ Desktop shows, like
+  the web, every discipline's card with your iRating, what your last races of it gave and your licence; the phones'
+  lap analysis has the corners strip; a corner is "T3" everywhere, and the braking markers name theirs by the
+  official turns too.
+- On a phone-sized screen the game selector, the overlay cards, the sub-tabs, the session chooser and the telemetry
+  tables fit without cutting words.
+- Fixes and improvements.
+
 ## 0.9.4 beta
 
 - **The important overlays are open to everyone** without the experimental switch: flags, dash, lap timing, track

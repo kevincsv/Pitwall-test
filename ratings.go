@@ -17,6 +17,10 @@ type discRating struct {
 	Lic string `json:"lic,omitempty"` // "B 3.21", or the class letter alone from a race
 	At  int64  `json:"at"`            // when it was seen (ms)
 	Src string `json:"src,omitempty"` // "session" (seen in the game) or "race" (from a recorded race)
+	// what your last five recorded races of the discipline gave (the sum of their iRating changes, and how many),
+	// shown next to the iRating like the web's licence cards; only in the API's answer, never in ratings.json
+	Chg int `json:"chg,omitempty"`
+	N   int `json:"n,omitempty"`
 }
 
 var (
@@ -95,14 +99,40 @@ func sessionRating(y string) {
 	}
 }
 
+// ratingsCopy: each discipline's rating, with what your last races of it gave (Chg, N) on the copies
 func ratingsCopy() map[string]*discRating {
+	chg, n := ratingChanges()
 	ratingsMu.Lock()
 	defer ratingsMu.Unlock()
 	out := make(map[string]*discRating, len(ratings))
 	for k, v := range ratings {
-		out[k] = v
+		c := *v
+		c.Chg, c.N = chg[k], n[k]
+		out[k] = &c
 	}
 	return out
+}
+
+// ratingChanges: the iRating change of the last five recorded races of each discipline (iRacing's races; the
+// estimate until the real change comes), the same sum the web shows next to the iRating on Home
+func ratingChanges() (chg, n map[string]int) {
+	journalMu.Lock()
+	rs := append([]*raceReport(nil), races...)
+	journalMu.Unlock()
+	sort.SliceStable(rs, func(i, j int) bool { return rs[i].When > rs[j].When })
+	chg, n = map[string]int{}, map[string]int{}
+	for _, r := range rs {
+		if r == nil || (r.Game != "" && r.Game != "iracing") {
+			continue
+		}
+		d := discipline(r.Cat, r.Car)
+		if !ratingDiscs[d] || n[d] >= 5 {
+			continue
+		}
+		n[d]++
+		chg[d] += r.IRChange
+	}
+	return chg, n
 }
 
 func registerRatingRoutes(mux *http.ServeMux) {

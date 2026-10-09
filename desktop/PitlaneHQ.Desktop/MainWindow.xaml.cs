@@ -194,7 +194,20 @@ public partial class MainWindow : Window
         _racesKey = key;
         RacesList.Children.Clear();
         RacesEmpty.Visibility = list == null || list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        StatsList.Children.Clear();
+        StatsList.Visibility = list == null || list.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         if (list == null) return;
+        // the same four numbers as the web's licence summary: races, wins, top 5 and the incidents a race of the last ten
+        var all = list.Where(x => x != null).ToList();
+        var rec = all.Take(10).ToList();
+        foreach (var (l, v) in new[]
+                 {
+                     (T("Races", "Carreras"), all.Count.ToString()),
+                     (T("Wins", "Victorias"), all.Count(x => (int)D(x!["finish"]) == 1).ToString()),
+                     ("Top 5", all.Count(x => (int)D(x!["finish"]) is >= 1 and <= 5).ToString()),
+                     (T("Avg. incidents", "Incidentes medios"), rec.Count == 0 ? "–" : (rec.Sum(x => D(x!["inc"])) / rec.Count).ToString("0.0")),
+                 })
+            StatsList.Children.Add(StatCard(l, v));
         foreach (var race in list.Take(8))
         {
             if (race == null) continue;
@@ -237,7 +250,17 @@ public partial class MainWindow : Window
             row.Children.Add(DiscIcon(id, 30));
             var sp = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             sp.Children.Add(new TextBlock { Text = T(en, es), Foreground = B("Muted"), FontSize = 12, FontWeight = FontWeights.SemiBold });
-            sp.Children.Add(new TextBlock { Text = ir > 0 ? ir.ToString() : "–", Foreground = ir > 0 ? col : B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.Bold });
+            // the iRating and, like the web, what your last races of the discipline gave it
+            var chg = (int)D(d?["chg"]); var nr = (int)D(d?["n"]);
+            var irRow = new StackPanel { Orientation = Orientation.Horizontal };
+            irRow.Children.Add(new TextBlock { Text = ir > 0 ? ir.ToString() : "–", Foreground = ir > 0 ? col : B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.Bold });
+            if (ir > 0 && nr > 0 && chg != 0)
+                irRow.Children.Add(new TextBlock
+                {
+                    Text = (chg > 0 ? "+" : "−") + Math.Abs(chg), Foreground = chg > 0 ? B("Good") : B("Bad"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 11, FontWeight = FontWeights.SemiBold,
+                    Margin = new Thickness(6, 0, 0, 3), VerticalAlignment = VerticalAlignment.Bottom, ToolTip = T($"Your last {nr} races of this discipline", $"Tus últimas {nr} carreras de esta disciplina"),
+                });
+            sp.Children.Add(irRow);
             if (ir > 0 && LicBadge(S(d?["lic"])) is { } lb) sp.Children.Add(lb);
             row.Children.Add(sp);
             var c = DiscColor(id);
@@ -272,6 +295,21 @@ public partial class MainWindow : Window
             Child = new TextBlock { Text = (L == "P" ? "Pro" : L) + (m.Success ? " " + m.Value : ""), Foreground = Brushes.White, FontFamily = (FontFamily)FindResource("FData"), FontSize = 10.5, FontWeight = FontWeights.Bold },
         };
     }
+
+    // one of Home's small numbers (races, wins…), like the web's metric boxes
+    private Border StatCard(string label, string value) => new()
+    {
+        Background = B("Surface"), BorderBrush = B("Line"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(12, 8, 12, 8), Margin = new Thickness(0, 0, 8, 8), MinWidth = 120,
+        Child = new StackPanel
+        {
+            Children =
+            {
+                new TextBlock { Text = label.ToUpperInvariant(), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 10, FontWeight = FontWeights.Bold },
+                new TextBlock { Text = value, Foreground = B("Fg"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.Bold },
+            },
+        },
+    };
 
     private Border Chip(string text, Brush fg) => new()
     {

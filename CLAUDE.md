@@ -15,7 +15,9 @@
   version (or a PATCH only when a fix must reach PCs that already have it), never one version per build.
   CHANGELOG.md (newest first), the phones' and whats-new.json list only the big versions and only what users notice;
   internal, server and small fixes are one "Fixes and improvements" line. A version gets a GitHub release.
-- Every feature goes to the PC app, the web and the phone apps.
+- Every feature goes to the PC app, the web and the phone apps. Equivalent screens show the same information under the
+  same names on every device (the phones' sub-tabs and labels are the PC's, never shortened versions; the web's
+  phone-width layout is checked with the Playwright sweep in the scratchpad: no element wider than the screen).
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
   taken off the list (×: what they shared stays).
@@ -25,7 +27,8 @@
   never composites: the record (the fastest lap really driven) and, for your pace, the lap of the
   driver just ahead. It has no panel of its own: the coach shows the record, the next level and
   your pace among the drivers known there, and both views offer its references as lap B; the lap
-  list is coloured by it. No second "ideal" or theoretical lap anywhere.
+  list is coloured by it. No second "ideal" or theoretical lap anywhere (the Mini-sectors widget and overlay show the
+  current lap against your best only, never a lap made of the best pieces).
   Test drives never teach the model nor go to the leaderboards; the model learns only from practice,
   qualifying and race laps of official series (hosted, league and AI laps still show on the boards).
   The car card (`car_cards`, one per car, `buildCarCard` in model.js, `/community/car`): what a car
@@ -36,7 +39,8 @@
 - Braking beeps (Settings → Engineer → Beeps: Off, 1 or 3 beeps, earlier with traffic, volume; and the Braking
   markers widget): the braking points come from the model (the next level for your best lap of the session; your
   own best lap while the model has none or you are its fastest), and each beep moves with your speed against that
-  lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside.
+  lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside. The widget and the
+  overlay name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".
 - A race's real iRating comes from your next session of the same discipline only (each has its own iRating; a change
   over 300 is another one's), never from a session of another one (`applyRealIR`, which finds your last race of that
   discipline even with races of others after it). iRacing says "Road" for sports and formula cars alike, so the car
@@ -66,7 +70,8 @@
   centred in their cards, the licence as a pill in its colour ("B 3.21" as the game shows it in a session, or the class
   alone from a race; `licPill`, `LicBadge`),
   the change of the last races of each and one short line ("Updated when you join a session with iRacing and Pitlane HQ open"). Never one "current iRating" mixed
-  from every discipline.
+  from every discipline. The phones show the same five cards (`Licences`/`LicCard`, the symbols as path data in
+  `DISC_PATHS`), and `/api/ratings` carries the change of the last five races of each (`chg`, `n`) for the Desktop.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
   and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
@@ -154,7 +159,7 @@
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts (plus the corners against the straights), every corner as a small bar you can press to pin the charts
-  and the map at it (`la-corners`), the charts with the reference's corners as bands labelled by the official turns
+  and the map at it (`la-corners`; `CornerStrip` on the phones, where a corner is "T3" too), the charts with the reference's corners as bands labelled by the official turns
   (`cmpCornerBands`), the "Line" chart (how far A was to one side of B, + left, `LAPCH.line`), the map, the sectors,
   the lap list and the braking points.
   The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):

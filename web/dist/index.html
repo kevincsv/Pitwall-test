@@ -347,7 +347,7 @@ html.pvdemo[lang=es] body::before{content:"DATOS DE EJEMPLO"}
 .ovcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px;margin-top:10px}
 .ovcard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:10px;min-width:0}
 .ovcard.on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
-.ovcard .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.ovcard .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.ovcard .top .chip{flex:none;white-space:nowrap}
 .ovcard .nm{font:700 18px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
 .ovcard .obs{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
 .btn[disabled],.pin[disabled]{opacity:.45;cursor:default}
@@ -857,7 +857,7 @@ nav.tabs button[data-g=rig]{display:none!important}
   nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{order:2!important}nav.tabs button[data-g=race]{order:3!important}nav.tabs button[data-g=community]{order:4!important}nav.tabs button[data-g=account]{order:5!important}
   nav.tabs button{transition:background .15s,color .15s}
   nav.subtabs{gap:6px;border-bottom:0;padding:2px 0 4px;margin:0 0 12px}
-  nav.subtabs button{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);border-radius:999px;padding:8px 8px;font-size:12px;background:var(--surface);transition:background .15s,color .15s}
+  nav.subtabs button{flex:1 0 auto;min-width:0;border:1px solid var(--line);border-radius:999px;padding:8px 10px;font-size:12px;background:var(--surface);transition:background .15s,color .15s}
   nav.subtabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink,#11151b);border-color:var(--accent)}
 }
 html.pcapp nav.tabs button[data-g=season]{display:none!important}
@@ -922,7 +922,11 @@ html.maxed .winedge{display:none}
 .wpanel:has(.wtable),.panel:has(>table){overflow-x:auto}.wtable{max-width:none}
 html,body{overflow-x:clip}
 html.phone nav.tabs button{letter-spacing:0;font-size:10.5px}html.phone nav.tabs button span{text-overflow:clip}
-@media (max-width:520px){.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;max-width:100%}.seg button{min-width:0;font-size:11.5px;letter-spacing:.03em;padding:8px 6px;white-space:normal;line-height:1.15}}
+@media (max-width:520px){.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;max-width:100%}.seg button{min-width:0;font-size:11.5px;letter-spacing:.03em;padding:8px 6px;white-space:normal;line-height:1.15}
+  #gameSeg{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border:0;overflow:visible}#gameSeg button{border:1px solid var(--line);border-radius:5px}#gameSeg .pill{display:block;width:max-content;max-width:100%;margin:4px auto 0;white-space:normal}
+  .lb-cats.mini{grid-template-columns:repeat(2,minmax(0,1fr))}.lb-cats.mini .lb-t b{overflow-wrap:normal}
+  .wtable .col-irc,.wtable .col-car,.wtable .col-tyre,.wtable .col-int,.wtable .col-last{display:none}
+  #liveGrid>.wpanel:has(.wtable){grid-column:1/-1!important}}
 html.phone nav.tabs button{font-size:9.5px}html.phone header.top #lockBtn,html.phone header.top #fsBtn{display:none!important}
 .hm{padding-top:14px}
 @media (min-width:900px){.drawer-panel{width:min(1100px,94vw)}}
@@ -969,6 +973,7 @@ html.ownframe ::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;bor
 .hm-d.l1{background:color-mix(in srgb,var(--accent) 35%,var(--surface2,#1e2631))}.hm-d.l2{background:color-mix(in srgb,var(--accent) 60%,var(--surface2,#1e2631))}.hm-d.l3{background:color-mix(in srgb,var(--accent) 80%,var(--surface2,#1e2631))}.hm-d.l4{background:var(--accent)}
 .hm-leg{display:flex;gap:4px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:11px;color:var(--muted)}.hm-leg .hm-d{width:11px;height:11px}
 @media (max-width:820px){.hm-d{width:11px;height:11px}.hm-grid,.hm-wk{gap:2px}}
+@media (max-width:420px){.hm-d{width:10px;height:10px}}
 .mr-filt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.mr-filt input{flex:1 1 200px;min-width:0}.mr-filt select{flex:0 1 auto;min-width:0;max-width:100%}@media (max-width:820px){.mr-filt select{flex:1 1 45%}}.agame .label{margin-right:4px}
 .dcrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.dcrow span{display:inline-flex;align-items:baseline;gap:4px;padding:3px 8px;border:1px solid var(--line);border-radius:8px;font-family:var(--f-data)}.dcrow small{color:var(--muted);font-size:10px;letter-spacing:.05em}.dcrow b{font-size:15px}.dcrow i{font-style:normal;color:var(--muted);font-size:11px}.dcrow .lo{border-color:var(--bad);color:var(--bad)}
 .rsum{margin-bottom:14px}.rs-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.rs-pos b{font:700 40px/1 var(--f-data)}.rs-pos small{display:block;color:var(--muted)}
@@ -2099,7 +2104,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.4",APP_STAGE="beta";
+const WEB_VERSION="0.9.5",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2530,7 +2535,7 @@ function lapCloudBar(px="lap"){cloudDemoSync();let sel=$("#"+px+"Sess"),selB=$("
     let vb=$("#lapValidate");if(!vb){vb=document.createElement("button");vb.type="button";vb.id="lapValidate";vb.className="btn small";vb.style.marginTop="6px";nt.after(vb)}
     const A=lapOf($("#lapA")&&$("#lapA").value),sid=A&&A.sessionId;vb.hidden=!(cloud&&!demoOn()&&commAdmin()&&sid&&LP.some(l=>l.valid===false&&l.sessionId===sid));vb.textContent=Tx("Admin: mark the laps without incidents valid","Admin: marcar como válidas las vueltas sin incidentes","Admin: Runden ohne Zwischenfälle als gültig markieren","Admin: marcar como válidas as voltas sem incidentes");
     vb.onclick=async()=>{if(!await uiConfirm(Tx("Mark the laps of this session without incidents as valid? Laps with incidents stay as they are.","¿Marcar como válidas las vueltas sin incidentes de esta sesión? Las que tienen incidentes se quedan como están.","Runden dieser Sitzung ohne Zwischenfälle als gültig markieren? Runden mit Zwischenfällen bleiben wie sie sind.","Marcar como válidas as voltas sem incidentes desta sessão? As com incidentes ficam como estão.")))return;vb.disabled=true;try{await cloudPost("/api/sessions/"+encodeURIComponent(sid).replace(/%3A/gi,":")+"/validate");CLOUD_CACHE.delete(sid);await cloudLoadSession(sid);toast(Tx("Laps marked valid","Vueltas marcadas como válidas","Runden als gültig markiert","Voltas marcadas como válidas"))}catch(e){toast(e.message)}vb.disabled=false}}}
-  const best=markAnalysisBest(LP),adm=cloud&&!demoOn()&&commAdmin()&&LP.some(l=>l.cloud);$("#lapTable tbody").innerHTML=LP.slice().reverse().map(l=>`<tr><td class="mono">${l.n}</td><td class="r mono ${l===best?"pb":""}">${fmtT(l.time)}</td><td class="r mono">${l.fuel!=null?vol(l.fuel).toFixed(2)+" "+volU():"–"}</td><td class="r mono">${Math.round(spd(l.vmax||0))} ${spdU()}</td><td class="r ${l.inc?"bad":"muted"}" style="white-space:nowrap">${incText(l)}</td>${adm?`<td class="r adm-c">${l.cloud?`<button type="button" class="chip" data-lv="${esc(l.cloud)}" data-v="${l.valid===false?1:0}" aria-pressed="${l.valid!==false}" title="${esc(Tx("Admin: valid or not valid by hand","Admin: válida o no válida a mano"))}">${l.valid===false?"✂ "+esc(Tx("not valid","no válida","ungültig","inválida")):"✓ "+esc(Tx("valid","válida","gültig","válida"))}</button>`:""}</td>`:""}</tr>`).join("");
+  const best=markAnalysisBest(LP),adm=cloud&&!demoOn()&&commAdmin()&&LP.some(l=>l.cloud);$("#lapTable tbody").innerHTML=LP.slice().reverse().map(l=>`<tr><td class="mono">${l.n}</td><td class="r mono ${l===best?"pb":""}">${fmtT(l.time)}</td><td class="r mono">${l.fuel!=null?vol(l.fuel).toFixed(2)+" "+volU():"–"}</td><td class="r mono">${l.vmax>0?Math.round(spd(l.vmax))+" "+spdU():"–"}</td><td class="r ${l.inc?"bad":"muted"}" style="white-space:nowrap">${incText(l)}</td>${adm?`<td class="r adm-c">${l.cloud?`<button type="button" class="chip" data-lv="${esc(l.cloud)}" data-v="${l.valid===false?1:0}" aria-pressed="${l.valid!==false}" title="${esc(Tx("Admin: valid or not valid by hand","Admin: válida o no válida a mano"))}">${l.valid===false?"✂ "+esc(Tx("not valid","no válida","ungültig","inválida")):"✓ "+esc(Tx("valid","válida","gültig","válida"))}</button>`:""}</td>`:""}</tr>`).join("");
   {const th=$("#lapTable .adm-h");if(th)th.hidden=!adm;$("#lapTable tbody").querySelectorAll("[data-lv]").forEach(b=>b.onclick=async()=>{b.disabled=true;const l=LP.find(x=>x.cloud===b.dataset.lv);try{await cloudPost("/api/laps/"+encodeURIComponent(b.dataset.lv).replace(/%3A/gi,":")+"/valid",{valid:b.dataset.v==="1"});if(l){l.valid=b.dataset.v==="1";CLOUD_CACHE.delete(l.sessionId)}renderLaps()}catch(e){toast(e.message);b.disabled=false}})}
   if(!has)return;
   const A=$("#lapA"),B=$("#lapB"),pa0=A.value;
@@ -3456,7 +3461,7 @@ Object.entries(COLS).forEach(([k,v])=>I18N["col."+k]=v.n);
 function colHead(k){const h=COLS[k].h;return Array.isArray(h)?esc(Tx(h[0],h[1]).split(" / ")[0]):esc(h)}
 function rowCtx(i,extra){const d=driverBy(i)||{};const pos=T.CarIdxPosition||[],cpos=T.CarIdxClassPosition||[],last=T.CarIdxLastLapTime||[],best=T.CarIdxBestLapTime||[],laps=T.CarIdxLapCompleted||[],pit=T.CarIdxOnPitRoad||[],tyre=T.CarIdxTireCompound||[];
   const g=gridPos(i);return Object.assign({i,d,pos:pos[i],cpos:cpos[i],last:last[i],best:best[i],laps:laps[i],pit:pit[i],pits:PITS[i]||0,tyre:tyre[i],irc:irChanges().get(i),pgain:g&&pos[i]>0?g-pos[i]:null,lastBest:last[i]>0&&last[i]===best[i]},extra||{})}
-function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>{const nd=colLacks(k);return `<th class="${COLS[k].c.includes("r")?"r":""}${nd?" nd":""}"${nd?` title="${esc(nd)}"`:""}>${colHead(k)}</th>`}).join("")}</tr></thead><tbody>${rows.map(r=>r.blank?`<tr class="blank"><td colspan="${cols.length}">&nbsp;</td></tr>`:r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
+function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>{const nd=colLacks(k);return `<th class="col-${k} ${COLS[k].c.includes("r")?"r":""}${nd?" nd":""}"${nd?` title="${esc(nd)}"`:""}>${colHead(k)}</th>`}).join("")}</tr></thead><tbody>${rows.map(r=>r.blank?`<tr class="blank"><td colspan="${cols.length}">&nbsp;</td></tr>`:r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="col-${k} ${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 
 /* relative */
 function renderRelative(target){const box=target||$("#relBox");if(!box)return;const cfg=ui("rel"),all=relList(),me=T.PlayerCarIdx;
@@ -4582,7 +4587,7 @@ function applyAdmin(){demoBanner();renderViewToggle();{const a=GROUPS.analysis,w
 const groupOf=v=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(v))||"race";
 const VIEW_LABEL={leagues:"tab.leagues",fulltelemetry:"tab.fulltelemetry",cloudlaps:"tab.cloudlaps",share:"tab.share",me:"tab.me",home:"tab.home",live:"tab.live",community:"tab.community",plan:"tab.plan",news:"tab.news",races:"tab.races",tracks:"tab.tracks",engineer:"tab.engineer",field:"tab.field",laps:"tab.analyzer",tyres:"tab.tyres",data:"tab.data",calendar:"tab.calendar",series:"tab.series",rig:"tab.rigGear",haptics:"tab.haptics",coach:"tab.coach",strategy:"tab.strategy",goals:"tab.goals",cars:"tab.cars",setups:"tab.setups",account:"tab.account",settings:"settings",overlays:"tab.overlays"};
 function renderSubtabs(v){const g=groupOf(v),box=$("#subtabs"),list=GROUPS[g];box.hidden=list.length<2||OV.on;
-  const short=matchMedia("(max-width:820px)").matches,SH={laps:["Laps","Vueltas","Runden","Voltas"],coach:["Coach","Coach","Coach","Coach"],cloudlaps:["My sessions","Mis sesiones","Meine Sitzungen","Minhas sessões"],field:["Field","Pista","Feld","Pista"],tyres:["Tyres","Neumáticos","Reifen","Pneus"]};
+  const short=matchMedia("(max-width:820px)").matches,SH={laps:["Laps","Vueltas","Runden","Voltas"],coach:["Coach","Coach","Coach","Coach"],cloudlaps:["My sessions","Mis sesiones","Meine Sitzungen","Minhas sessões"],tyres:["Tyres","Neumáticos","Reifen","Pneus"]}; /* the phone's sub-tabs keep the PC's names (Standings, never "Field") */
   box.innerHTML=list.map(x=>`<button type="button" role="tab" data-v="${x}" aria-selected="${x===v}">${short&&SH[x]?esc(Tx(...SH[x])):L(VIEW_LABEL[x],true)}</button>`).join("");
   box.querySelectorAll("button").forEach(b=>b.onclick=()=>show(b.dataset.v))}
 var VIEW_HIST=[];
@@ -4646,7 +4651,7 @@ function rerenderAll(){renderConn();$("#spdU").textContent=spdU();if(CUR_VIEW===
 /* ===================== profiles ===================== */
 Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  "w.pit":["Pit stop calculator","Calculadora de parada"],"d.pit":["Pit window, fuel to add and where you rejoin","Ventana de parada, gasolina a añadir y dónde sales"],
- "w.sectors":["Mini-sectors","Mini-sectores"],"d.sectors":["24 coloured mini-sectors and your ideal lap","24 mini-sectores de colores y tu vuelta ideal"],
+ "w.sectors":["Mini-sectors","Mini-sectores"],"d.sectors":["24 coloured mini-sectors against your best lap","24 mini-sectores de colores contra tu mejor vuelta"],
  "w.gaps":["Gap graph","Gráfica de gaps"],"d.gaps":["How the gap to nearby cars changes","Cómo cambia el gap con los coches cercanos"],
  "w.incidents":["Incident log","Registro de incidentes"],"d.incidents":["Every incident with lap and place on track","Cada incidente con vuelta y punto de la pista"],
  "w.weather":["Weather","Tiempo"],"d.weather":["Track and air temperature, the wind against your car, rain and how wet the track is","Temperatura de pista y aire, el viento respecto a tu coche, la lluvia y la humedad de la pista"],
@@ -4700,7 +4705,7 @@ let RIG_TIMER=0,RIG_APPS=null;
 const WHEN=[["pitwall","With Pitlane HQ","Con Pitlane HQ"],["sim","When iRacing starts","Al abrir iRacing"],["","Only by hand","Solo a mano"]];
 async function renderRig(){clearTimeout(RIG_TIMER);const box=$("#appsPanel");if(!box)return;const ok=(MODE==="bridge"&&!REMOTE)||MODE==="local";
   if(!ok||COMPANION){box.hidden=true;return}box.hidden=false;
-  const apps=await rigGet("/api/apps");if(apps)renderApps(apps);
+  const apps=await rigGet("/api/apps");if(apps)renderApps(apps);else box.hidden=true;
   RIG_TIMER=setTimeout(pollRig,3000)}
 async function pollRig(){if(CUR_VIEW!=="settings")return;const a=await rigGet("/api/apps");if(a&&JSON.stringify(a)!==JSON.stringify(RIG_APPS))renderApps(a);RIG_TIMER=setTimeout(pollRig,3000)}
 function renderApps(d){RIG_APPS=d;const box=$("#appsPanel"),list=d.apps||[];
@@ -4774,8 +4779,7 @@ function trackSectors(){const p=T.LapDistPct,t=T.SessionTime;if(p==null||t==null
   MS.t0=forward?tb:null} // the first segment after joining is partial, so timing starts at the next boundary
 function renderSectors(){const box=$("#secBox");if(!box)return;const cells=(a,now)=>`<div class="msec">${Array.from({length:MS.n},(_,i)=>`<i class="${a[i]?a[i].c:""}${now&&i===MS.idx?" now":""}"></i>`).join("")}</div>`;
   const done=MS.cur.filter(Boolean),dsum=done.reduce((s,x)=>s+x.dt,0),ref=MS.bestLap?MS.cur.reduce((s,x,i)=>x?s+MS.bestLap[i]:s,0):null;
-  const ideal=MS.best.filter(x=>x!=null).length===MS.n?MS.best.reduce((s,x)=>s+x,0):null;
-  box.innerHTML=`<div class="hstrip"><div><span class="k">${L("curLap",true)}</span><span class="v mono ${ref!=null?(dsum-ref<=0?"good":"bad"):""}">${ref!=null&&done.length?sgn(dsum-ref):"–"}</span></div><div><span class="k">${Lp("Ideal lap","Vuelta ideal",true)}</span><span class="v mono pb">${fmtT(ideal)}</span></div><div><span class="k">${L("best",true)}</span><span class="v mono">${fmtT(MS.bestLapT)}</span></div></div>
+  box.innerHTML=`<div class="hstrip"><div><span class="k">${L("curLap",true)}</span><span class="v mono ${ref!=null?(dsum-ref<=0?"good":"bad"):""}">${ref!=null&&done.length?sgn(dsum-ref):"–"}</span></div><div><span class="k">${L("best",true)}</span><span class="v mono">${fmtT(MS.bestLapT)}</span></div></div>
     ${cells(MS.cur,true)}${MS.last.length?`<div class="label" style="margin-top:2px">${L("last",true)}</div>${cells(MS.last)}`:""}
     <div class="legend"><span><i style="background:var(--pb)"></i>${Lp("best of session","mejor de la sesión",true)}</span><span><i style="background:var(--good)"></i>${Lp("faster than best lap","más rápido que tu mejor vuelta",true)}</span><span><i style="background:var(--warn)"></i>${Lp("slower","más lento",true)}</span></div>`}
 
@@ -5817,10 +5821,13 @@ function bmModelRef(){const PM=window.PW_MODEL,tid=S.WeekendInfo&&S.WeekendInfo.
   if((BMREF.key!==key||!BMREF.lap&&Date.now()-BMREF.at>300000)&&!BMREF.busy){BMREF.busy=true;const done=lap=>{BMREF.key=key;BMREF.lap=lap;BMREF.busy=false;BMREF.at=Date.now()};
     PM.buildModel({trackId:tid,carId:cid}).then(m=>{const lv=m?PM.levelLap(m,t):null;done(lv&&(!isFinite(t)||lv.time<t-.001)?lv:null)}).catch(()=>done(null))}
   return BMREF.key===key?BMREF.lap:null}
-function bmZones(){const mr=bmModelRef(),ref=mr||coachRef(null);if(!ref){BM.src="";return[]}BM.src=mr?"model":"best";const key=BM.src+"|"+(ref.time||0)+"|"+(ref.n||0)+"|"+(ref.bins?ref.bins.length:0);
+function bmZones(){const mr=bmModelRef(),ref=mr||coachRef(null);if(!ref){BM.src="";return[]}BM.src=mr?"model":"best";
+  /* each zone is named by the official turn nearest its slowest point, like the coach and the analyzer (counted from the lap without them) */
+  const tid=(S.WeekendInfo&&S.WeekendInfo.TrackID)||null,L=trackLenM(),tn=tid?(turnsFor(tid)||[]).length:0;
+  const key=BM.src+"|"+(ref.time||0)+"|"+(ref.n||0)+"|"+(ref.bins?ref.bins.length:0)+"|"+tn+"|"+L;
   if(key!==BM.key){BM.key=key;BM.zones=brakeZones(serOf(ref)).map((z,i)=>{const d=z.i*BIN,dmin=Math.max(d+5,(z.imin||z.i)*BIN);
     /* the reference's own deceleration in this zone (m/s²), to turn more speed into more braking distance */
-    const dec=Math.max(4,Math.min(40,(z.v*z.v-z.vmin*z.vmin)/(2*(dmin-d))));return{n:i+1,d,v:z.v,vmin:z.vmin,dec}})}return BM.zones}
+    const dec=Math.max(4,Math.min(40,(z.v*z.v-z.vmin*z.vmin)/(2*(dmin-d))));return{n:turnNo(tid,dmin,L,i+1),d,v:z.v,vmin:z.vmin,dec}})}return BM.zones}
 /* the nearest car physically ahead on track (not in the pits) */
 function carAhead(){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,surf=T.CarIdxTrackSurface||[],pit=T.CarIdxOnPitRoad||[],L=trackLenM(),v=Math.max(T.Speed||0,1),my=pct[me];if(my==null||my<0)return null;let best=null;
   for(let i=0;i<pct.length;i++){if(i===me||pct[i]==null||pct[i]<0||pit[i]||surf[i]===1||surf[i]===2||surf[i]===-1)continue;const dm=(((pct[i]-my)%1+1.5)%1-.5)*L;if(dm>6&&dm<150&&(!best||dm<best.dm))best={i,dm}} /* closer than 6 m is alongside, not ahead */
@@ -5851,11 +5858,11 @@ function renderBrakes(){const box=$("#bmBox");if(!box)return;const c=ui("brakes"
   if(!c.on){box.innerHTML=`<p class="note">${esc(Tx("Off","Apagado"))}</p>`;return}
   if(!z.length){box.innerHTML=`<p class="note">${Lp("Drive one clean lap: your braking points appear here, with beeps.","Da una vuelta limpia: aquí aparecen tus puntos de frenada, con pitidos.")}</p>`;return}
   const fb=BM.fb&&Date.now()-BM.fb.at<6000?BM.fb:null;
-  const fbTxt=fb?(fb.dd==null?Tx(`C${fb.n}: no braking`,`C${fb.n}: sin frenar`,`K${fb.n}: kein Bremsen`,`C${fb.n}: sem frear`):Math.abs(fb.dd)<=3?Tx(`C${fb.n}: on the mark`,`C${fb.n}: en el punto`,`K${fb.n}: genau richtig`,`C${fb.n}: no ponto`):fb.dd>0?Tx(`C${fb.n}: ${fb.dd} m late`,`C${fb.n}: ${fb.dd} m tarde`,`K${fb.n}: ${fb.dd} m zu spät`,`C${fb.n}: ${fb.dd} m tarde`):Tx(`C${fb.n}: ${-fb.dd} m early`,`C${fb.n}: ${-fb.dd} m antes`,`K${fb.n}: ${-fb.dd} m zu früh`,`C${fb.n}: ${-fb.dd} m antes`))+(fb.traffic?Tx(" · traffic"," · tráfico"):""):"";
+  const fbTxt=fb?(fb.dd==null?Tx(`T${fb.n}: no braking`,`T${fb.n}: sin frenar`,`T${fb.n}: kein Bremsen`,`T${fb.n}: sem frear`):Math.abs(fb.dd)<=3?Tx(`T${fb.n}: on the mark`,`T${fb.n}: en el punto`,`T${fb.n}: genau richtig`,`T${fb.n}: no ponto`):fb.dd>0?Tx(`T${fb.n}: ${fb.dd} m late`,`T${fb.n}: ${fb.dd} m tarde`,`T${fb.n}: ${fb.dd} m zu spät`,`T${fb.n}: ${fb.dd} m tarde`):Tx(`T${fb.n}: ${-fb.dd} m early`,`T${fb.n}: ${-fb.dd} m antes`,`T${fb.n}: ${-fb.dd} m zu früh`,`T${fb.n}: ${-fb.dd} m antes`))+(fb.traffic?Tx(" · traffic"," · tráfico"):""):"";
   const fbCls=!fb?"":fb.traffic?"muted":fb.dd==null?"bad":Math.abs(fb.dd)<=3?"good":fb.dd>0?"bad":"warn";
   if(!cur){box.innerHTML=`<div class="bm"><div class="bmfb ${fbCls}">${esc(fbTxt)}</div></div>`;return}
   const now=cur.tTo<=0&&cur.tTo>-.6,pct=Math.max(0,Math.min(1,1-cur.mark/200));
-  box.innerHTML=`<div class="bm${now?" now":""}${BM.traffic?" traffic":""}"><div class="bmtop"><span class="bmn">C${cur.n}</span><span class="bmd mono">${now?esc(Tx("BRAKE","FRENA")):cur.mark>999?"–":Math.max(0,Math.round(cur.mark))+" m"}</span><span class="bmv muted">${Math.round(spd(cur.vref))} → ${Math.round(spd(cur.vmin))} ${spdU()}</span></div>
+  box.innerHTML=`<div class="bm${now?" now":""}${BM.traffic?" traffic":""}"><div class="bmtop"><span class="bmn">T${cur.n}</span><span class="bmd mono">${now?esc(Tx("BRAKE","FRENA")):cur.mark>999?"–":Math.max(0,Math.round(cur.mark))+" m"}</span><span class="bmv muted">${Math.round(spd(cur.vref))} → ${Math.round(spd(cur.vmin))} ${spdU()}</span></div>
     <div class="bmbar"><b style="width:${(pct*100).toFixed(1)}%"></b></div>
     <div class="bmrow">${BM.traffic?`<span class="warn">${esc(Tx(`Car ahead ${BM.traffic.dt.toFixed(1)} s · brake ${Math.round(cur.early)} m earlier`,`Coche delante a ${BM.traffic.dt.toFixed(1)} s · frena ${Math.round(cur.early)} m antes`,`Auto vor dir ${BM.traffic.dt.toFixed(1)} s · ${Math.round(cur.early)} m früher bremsen`,`Carro à frente a ${BM.traffic.dt.toFixed(1)} s · freie ${Math.round(cur.early)} m antes`))}</span>`:cur.side&&cur.early>0?`<span class="warn">${esc(Tx(`Car alongside · brake ${Math.round(cur.early)} m earlier`,`Coche al lado · frena ${Math.round(cur.early)} m antes`))}</span>`:Math.abs(cur.fast)>=5?`<span class="muted">${esc(cur.fast>0?Tx(`Faster than the reference · ${Math.round(cur.fast)} m earlier`,`Más rápido que la referencia · ${Math.round(cur.fast)} m antes`):Tx(`Slower than the reference · ${Math.round(-cur.fast)} m later`,`Más lento que la referencia · ${Math.round(-cur.fast)} m después`))}</span>`:`<span class="muted">${esc(BM.src==="model"?Tx("From the model: the driver just ahead","Del modelo: el piloto justo por delante"):Tx("From your best lap","De tu mejor vuelta"))}</span>`}<span class="bmfb ${fbCls}">${esc(fbTxt)}</span></div></div>`}
 

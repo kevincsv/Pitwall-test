@@ -27,6 +27,10 @@ func TestRatingsPerDiscipline(t *testing.T) {
 	if r["formula_car"] == nil || r["formula_car"].IR != 1858 || r["formula_car"].Lic != "A" || r["sports_car"].IR != 995 || r["oval"].IR != 1520 {
 		t.Fatalf("from the races: %+v %+v %+v", r["formula_car"], r["sports_car"], r["oval"])
 	}
+	// what the last races of each discipline gave, for the licence cards (the copies only: ratings.json keeps none of it)
+	if r["oval"].Chg != 20 || r["oval"].N != 1 || r["formula_car"].Chg != -42 || r["sports_car"].N != 1 || ratings["oval"].N != 0 {
+		t.Fatalf("changes: %+v %+v", r["oval"], r["formula_car"])
+	}
 	sessionRating("WeekendInfo:\n Category: Road\nDriverInfo:\n DriverCarIdx: 0\n Drivers:\n - CarIdx: 0\n   UserName: Me\n   CarScreenName: Dallara F3\n   IRating: 1870\n   LicString: A 2.10\n")
 	r = ratingsCopy()
 	if r["formula_car"].IR != 1870 || r["formula_car"].Lic != "A 2.10" || r["formula_car"].Src != "session" || r["sports_car"].IR != 995 {

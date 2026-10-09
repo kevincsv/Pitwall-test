@@ -610,7 +610,7 @@ func drawSectorsOv(c *ovCanvas, st *ovState, z float64) int {
 	panel(c, H, z)
 	c.label(z, st.T("Mini-sectors", "Minisectores"), pad, pad+6*z, 0)
 	y := pad + 18*z
-	// now against your best lap, the ideal lap (best of each piece), your best
+	// now against your best lap, and your best (no "ideal" lap made of the best pieces: only real laps anywhere)
 	dsum, ref, done := 0.0, 0.0, 0
 	for i, x := range m.msCur {
 		if x != nil {
@@ -620,14 +620,6 @@ func drawSectorsOv(c *ovCanvas, st *ovState, z float64) int {
 				ref += m.msBestLap[i]
 			}
 		}
-	}
-	ideal := 0.0
-	for _, b := range m.msBest {
-		if b < 0 {
-			ideal = 0
-			break
-		}
-		ideal += b
 	}
 	lf, vf := ovFace(fkData, 10*z), ovFace(fkData, 14*z)
 	x := pad
@@ -647,7 +639,6 @@ func drawSectorsOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 	}
 	item(st.T("Current lap", "Vuelta actual"), cv, ccol)
-	item(st.T("Ideal lap", "Vuelta ideal"), fmtLap(ideal), colPB)
 	item(st.T("Best", "Mejor"), fmtLap(m.msBestLapT), colText)
 	y += 22*z + 6*z
 	cells := func(a []*msCell, now bool) {
