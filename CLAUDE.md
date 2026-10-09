@@ -17,7 +17,8 @@
   internal, server and small fixes are one "Fixes and improvements" line. A version gets a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps. Equivalent screens show the same information under the
   same names on every device (the phones' sub-tabs and labels are the PC's, never shortened versions; the web's
-  phone-width layout is checked with the Playwright sweep in the scratchpad: no element wider than the screen).
+  phone-width layout is checked with `tools/ui-sweep.js`, a Playwright sweep of every view at 1300 and 390 px: no page
+  error and no element wider than the screen, tables only inside a scrolling container).
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
   taken off the list (×: what they shared stays).
