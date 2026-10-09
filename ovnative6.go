@@ -23,6 +23,32 @@ type ovMem6 struct {
 	secHasLp                             bool
 	secCur, secLast, secBest, secBestLap []float64
 	secBestLapT                          float64
+	// the timing: the lap just finished flashes for a few seconds
+	lastLap, lastPrev float64
+	lastLapAt         time.Time
+}
+
+// gapTrend: how the gap to a car moved over the last ten seconds (from the gap history kept for the gaps overlay);
+// false while there is not enough history or the gap is steady
+func (st *ovState) gapTrend(i int) (float64, bool) {
+	if st.sm == nil {
+		return 0, false
+	}
+	h := st.sm.gapH[i]
+	if len(h) < 2 {
+		return 0, false
+	}
+	last := h[len(h)-1]
+	for k := len(h) - 1; k >= 0; k-- {
+		if last[0]-h[k][0] >= 9 {
+			tr := last[1] - h[k][1]
+			if math.Abs(tr) < 0.15 {
+				return 0, false
+			}
+			return tr, true
+		}
+	}
+	return 0, false
 }
 
 type dSample struct {

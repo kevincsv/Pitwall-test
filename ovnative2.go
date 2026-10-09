@@ -326,7 +326,7 @@ func drawGauge(name string, c *ovCanvas, st *ovState, z float64, now time.Time) 
 	case "dash":
 		return drawDashOv(c, st, z, now)
 	case "timing":
-		return drawTimingOv(c, st, z)
+		return drawTimingOv(c, st, z, now)
 	case "fuel":
 		return drawFuelOv(c, st, z)
 	case "engine":
@@ -652,7 +652,7 @@ func meter(c *ovCanvas, x, y, w, z, v float64, col uint32) {
 	}
 }
 
-func drawTimingOv(c *ovCanvas, st *ovState, z float64) int {
+func drawTimingOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	W := float64(c.w)
 	pad := 14 * z
 	vf := ovFace(fkData, 24*z)
@@ -673,7 +673,25 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64) int {
 	cur, _ := st.num("LapCurrentLapTime")
 	best, _ := st.num("LapBestLapTime")
 	last, _ := st.num("LapLastLapTime")
-	cell(0, 0, st.T("Current lap", "Vuelta actual"), fmtCur(cur), colText)
+	// a lap just finished: its time flashes where the current lap goes, purple when it is your best, green when
+	// better than the one before
+	m := &st.x6
+	if last > 0 && last != m.lastLap {
+		m.lastPrev, m.lastLap, m.lastLapAt = m.lastLap, last, now
+	}
+	if last > 0 && !m.lastLapAt.IsZero() && now.Sub(m.lastLapAt) < 4*time.Second {
+		col := uint32(colText)
+		switch {
+		case best > 0 && last <= best+0.001:
+			col = colPB
+		case m.lastPrev > 0 && last < m.lastPrev:
+			col = colGood
+		}
+		c.labelFit(z, st.T("Last lap", "Última vuelta"), pad, pad+8*z, colW-8*z)
+		c.text(ovFace(fkDisplayB, 26*z), fmtLap(last), pad, pad+32*z, col, 1, 0)
+	} else {
+		cell(0, 0, st.T("Current lap", "Vuelta actual"), fmtCur(cur), colText)
+	}
 	if d, ok := st.delta(); ok {
 		col := uint32(colBad)
 		if d <= 0 {

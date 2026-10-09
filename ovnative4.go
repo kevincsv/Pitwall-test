@@ -466,6 +466,20 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 			c.line(tx, ty, tx-ux*h-nx*h*.6, ty-uy*h-ny*h*.6, 2.6*z, colBad, 1)
 		}
 	}
+	// the sectors: a short bar across the track where each one starts (the first is the line)
+	if len(st.ses.Sectors) >= 2 {
+		sf := ovFace(fkData, 9*z)
+		for k, f := range st.ses.Sectors[1:] {
+			i := int(math.Floor(f*float64(N))) % N
+			i0, i1 := (i-2+N)%N, (i+2)%N
+			x0, y0 := P(X[i0], Y[i0])
+			x1, y1 := P(X[i1], Y[i1])
+			a := math.Atan2(y1-y0, x1-x0) + math.Pi/2
+			px, py := P(X[i], Y[i])
+			c.line(px+math.Cos(a)*8*z, py+math.Sin(a)*8*z, px-math.Cos(a)*8*z, py-math.Sin(a)*8*z, 2*z, colMuted, 0.9)
+			c.text(sf, "S"+strconv.Itoa(k+2), px-math.Cos(a)*14*z, py-math.Sin(a)*14*z, colMuted, 0.9, 2)
+		}
+	}
 	// the official turns, numbered on the outside of the track
 	st.loadTurns()
 	if len(st.ext.turns) > 0 {

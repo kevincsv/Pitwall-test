@@ -4,6 +4,20 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.4 beta
+
+- **The important overlays are open to everyone** without the experimental switch: flags, dash, lap timing, track
+  map, fuel, tyres, inputs, pit stop, braking markers, coach, incidents, engine, weather, car controls and the track
+  position bar, besides the radar, the delta bar, the relative and the standings.
+- **The lap analyzer**: every corner as a small bar under the key facts (press one to read it on the charts and the
+  map), the corners against the straights, the corners marked on the charts with their official numbers, and a new
+  "Line" chart: how far lap A was to one side of lap B, metre by metre.
+- **Overlays**: the relative says whether each gap is closing or opening (green when you catch the car ahead, red
+  when the one behind catches you); the timing flashes the lap you just finished (purple when it is your best); the
+  delta bar shows the lap this pace gives; the weather says whether the track is warming up or cooling down; the
+  map and the track bar mark the sectors.
+- Fixes and improvements.
+
 ## 0.9.3 beta
 
 - **The coach says more**: the gear to take a corner in, a throttle that lifts after the apex, corrections of the wheel

@@ -1115,6 +1115,11 @@ func drawDeltaOv(c *ovCanvas, st *ovState, z float64) int {
 	pw := textW(vf, s) + 24*z
 	c.roundRect(tx+tw/2-pw/2, ty+th/2-13*z, pw, 26*z, 13*z, 0x090c11, 0.92, colLine, 1, 1)
 	c.text(vf, s, tx+tw/2, ty+th/2, col, 1, 2)
+	// the lap this pace gives: your best plus the delta, small at the right end (off in the settings)
+	if best, _ := st.num("LapBestLapTime"); ok && best > 0 && float64(c.w)/z >= 360 && uiBool(st.uiMap("delta"), "predict", true) {
+		pf := ovFace(fkData, 11*z)
+		c.text(pf, fmtLap(best+d), tx+tw-12*z, ty+th/2, colMuted, 1, 1)
+	}
 	// the trend: where the delta is going this last second (gaining ▼ in green, losing ▲ in red), beside the pill
 	if tr, has := st.deltaTrend(d, ok); has {
 		tf := ovFace(fkDataB, 12*z)
@@ -1133,7 +1138,9 @@ type ovRow struct {
 	blank, sep bool
 	gap, iv    string // the gap (to you, or to the leader) and the interval to the car ahead
 	nameCol    uint32
-	laps       int // in a race, the relative: laps this car is ahead of you (+) or behind you (−)
+	laps       int    // in a race, the relative: laps this car is ahead of you (+) or behind you (−)
+	trend      string // the relative: ▲ the gap grows, ▼ it shrinks, over the last ten seconds
+	trendCol   uint32 // green when that is good for you, red when the car behind is catching you
 }
 
 // drawTableOv: the relative (cars around you) or the standings (race order), like the app's widget table
@@ -1210,6 +1217,9 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			if k == "lic" && v != "–" {
 				w = licW(v)
 			}
+			if k == "gap" && r.trend != "" {
+				w += textW(pf, r.trend) + 3*z
+			}
 			ci.w = math.Max(ci.w, w)
 		}
 		if k == "name" {
@@ -1275,6 +1285,11 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			}
 			cy := y + rowH/2
 			switch {
+			case ci.key == "gap" && r.trend != "":
+				// the gap with its trend beside it
+				aw := textW(pf, r.trend)
+				c.text(pf, r.trend, x+ci.w-aw, cy, r.trendCol, a, 0)
+				c.text(f, v, x+ci.w-aw-3*z, cy, col, a, 1)
 			case ci.key == "num" && multi:
 				// several classes: the car's number in its class's colour, so you see who races you
 				nc := col
@@ -1591,6 +1606,19 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 				r.gap = "−" + strconv.FormatFloat(cr.g, 'f', 1, 64)
 			} else {
 				r.gap = "+" + strconv.FormatFloat(-cr.g, 'f', 1, 64)
+			}
+			// is the gap closing or opening: a car ahead you are catching (green), a car behind catching you (red)
+			if tr, ok := st.gapTrend(cr.i); ok {
+				closing := (cr.g > 0 && tr < 0) || (cr.g < 0 && tr > 0)
+				r.trend, r.trendCol = "▲", colMuted
+				if closing {
+					r.trend = "▼"
+					if cr.g > 0 {
+						r.trendCol = colGood
+					} else {
+						r.trend, r.trendCol = "▲", colBad
+					}
+				}
 			}
 			if cr.lapDif > 0.5 {
 				r.nameCol = colAhead
@@ -1995,7 +2023,7 @@ func ovVars(name string, st *ovState) []string {
 	case "radar":
 		return append(base, "CarIdxLapDistPct", "CarIdxTrackSurface", "CarLeftRight")
 	case "deltabar":
-		return append(base, "LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK", "LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK")
+		return append(base, "LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK", "LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK", "LapBestLapTime")
 	}
 	return append(base, "CarIdxLapDistPct", "CarIdxEstTime", "CarIdxLap", "CarIdxLapCompleted", "CarIdxPosition", "CarIdxClassPosition", "CarIdxF2Time",
 		"CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxOnPitRoad", "CarIdxTireCompound", "SessionTimeRemain", "SessionLapsRemainEx", "Lap",

@@ -732,3 +732,71 @@ func TestDeltaTrendAndPace(t *testing.T) {
 		t.Fatalf("relative with the pace column: %d", h)
 	}
 }
+
+func TestOverlaysRoundTwo(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	now := time.Now()
+	st.at = now.Add(time.Minute)
+	// the relative: the car ahead (idx 1) you are catching, the car behind (idx 2) catching you
+	set("SessionTime", 100.0)
+	m := st.mem()
+	m.gapH[1] = [][2]float64{{88, 1.4}, {100, 0.6}}
+	m.gapH[2] = [][2]float64{{88, -2.0}, {100, -1.1}}
+	rows := st.tableRows(true, map[string]any{}, 0)
+	got := map[int]ovRow{}
+	for _, r := range rows {
+		if !r.blank && !r.sep {
+			got[r.idx] = r
+		}
+	}
+	if got[1].trend != "▼" || got[1].trendCol != colGood {
+		t.Fatalf("the car ahead you are catching: %q %x", got[1].trend, got[1].trendCol)
+	}
+	if got[2].trend != "▲" || got[2].trendCol != colBad {
+		t.Fatalf("the car behind catching you: %q %x", got[2].trend, got[2].trendCol)
+	}
+	if h := ovDraw("relative", newCanvas(600, 600), st, now); h < 100 {
+		t.Fatalf("relative with trends: %d", h)
+	}
+	// the timing: a lap just finished flashes
+	set("LapLastLapTime", 90.5)
+	ovDraw("timing", newCanvas(440, 400), st, now)
+	set("LapLastLapTime", 89.9)
+	ovDraw("timing", newCanvas(440, 400), st, now.Add(time.Second))
+	if st.x6.lastLap != 89.9 || st.x6.lastPrev != 90.5 || st.x6.lastLapAt.IsZero() {
+		t.Fatalf("last lap flash: %v %v", st.x6.lastLap, st.x6.lastPrev)
+	}
+	// the weather: the track warming up over ten minutes
+	st.x5.trk = []dSample{{now.Add(-9 * time.Minute), 30}}
+	if d, ok := st.trackTrend(31.2, now); !ok || math.Abs(d-1.2) > 1e-9 {
+		t.Fatalf("track trend: %v %v", d, ok)
+	}
+	if _, ok := st.trackTrend(31.2, now.Add(-8*time.Minute)); ok {
+		t.Fatal("a trend from a minute of samples")
+	}
+	// the map and the track bar with sectors
+	st.ses.Sectors = []float64{0, 0.4, 0.7}
+	for i := 0; i < 200; i++ {
+		a := float64(i) / 200 * 2 * math.Pi
+		st.ext.mapX = append(st.ext.mapX, 600*math.Cos(a))
+		st.ext.mapY = append(st.ext.mapY, 300*math.Sin(a))
+	}
+	st.ext.mapKey = "t0"
+	for _, n := range []string{"map", "trackbar", "deltabar", "weather"} {
+		c := newCanvas(int(ovDesign[n]), 480)
+		ovDraw(n, c, st, now)
+		painted := 0
+		for _, p := range c.px {
+			if p>>24 > 0 {
+				painted++
+			}
+		}
+		if painted == 0 {
+			t.Fatalf("%s drew nothing", n)
+		}
+	}
+}

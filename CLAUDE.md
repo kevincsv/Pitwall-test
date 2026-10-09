@@ -153,7 +153,10 @@
   Settings on the phones): everything for admins and in development hides until the admin view is back.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
-  key facts, the charts, the map, the sectors, the lap list and the braking points.
+  key facts (plus the corners against the straights), every corner as a small bar you can press to pin the charts
+  and the map at it (`la-corners`), the charts with the reference's corners as bands labelled by the official turns
+  (`cmpCornerBands`), the "Line" chart (how far A was to one side of B, + left, `LAPCH.line`), the map, the sectors,
+  the lap list and the braking points.
   The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):
   the phase that loses the most says the tip; a generic one gives way to what the data shows plainly, in this order:
   the line (inside/outside), the gear at the apex against the reference's, throttle lifts after the apex (exit),
@@ -222,7 +225,14 @@
   the pit limiter, the rev limiter and a stalled engine); the tyres show the three zones (inside, middle, outside)
   and the pressure; the pit stop overlay turns into the pit lane on the pit road (your speed against
   TrackPitSpeedLimit, red when over, the stop's repairs and fuel); the map numbers the official turns and colours the
-  classes; the braking markers and the coach name corners by the official turns (`turnName`).
+  classes; the braking markers and the coach name corners by the official turns (`turnName`). The relative marks
+  each gap's trend over ten seconds (`gapTrend`: ▼ green catching the car ahead, ▲ red the car behind catching you);
+  the timing flashes the lap just finished for 4 s (purple a best, green better than the one before); the delta bar
+  shows the lap this pace gives (best + delta, `predict` in its settings); the weather says where the track's
+  temperature goes over ten minutes (`trackTrend`); the map and the track bar mark the sectors.
+  The basic overlays, shown without the experimental switch (`OV_BASIC`): radar, delta bar, relative, standings,
+  flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, controls, track bar.
+  Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, radio, system.
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
   changes from several devices are merged (`syncmerge.go`), never a "which copy" question. When the server

@@ -50,6 +50,31 @@ type ovMem5 struct {
 	ctlAt map[string]time.Time // and when it changed (its row lights up for a moment)
 	fps   []float64            // performance: one frame rate a second, the last minute
 	fpsAt time.Time
+	trk   []dSample // weather: the track's temperature every half minute, the last twenty minutes
+}
+
+// trackTrend: how the track's temperature moved over the last ten minutes; false until it is known
+func (st *ovState) trackTrend(v float64, now time.Time) (float64, bool) {
+	m := &st.x5
+	if len(m.trk) == 0 || now.Sub(m.trk[len(m.trk)-1].at) >= 30*time.Second {
+		m.trk = append(m.trk, dSample{now, v})
+	}
+	for len(m.trk) > 0 && now.Sub(m.trk[0].at) > 20*time.Minute {
+		m.trk = m.trk[1:]
+	}
+	for _, s := range m.trk {
+		if now.Sub(s.at) <= 10*time.Minute {
+			if now.Sub(s.at) < 4*time.Minute {
+				return 0, false
+			}
+			d := v - s.v
+			if math.Abs(d) < 0.5 {
+				return 0, false
+			}
+			return d, true
+		}
+	}
+	return 0, false
 }
 
 // the in-car adjustments the game can give (each car has its own few): shown only when the car has them
@@ -90,7 +115,7 @@ var controlRows = []controlRow{
 func drawExtraOv(name string, c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	switch name {
 	case "weather":
-		return drawWeatherOv(c, st, z)
+		return drawWeatherOv(c, st, z, now)
 	case "controls":
 		return drawControlsOv(c, st, z, now)
 	case "trackbar":
@@ -113,7 +138,7 @@ func compassFrom(rad float64) string {
 	return pts[k]
 }
 
-func drawWeatherOv(c *ovCanvas, st *ovState, z float64) int {
+func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	W := float64(c.w)
 	pad := 14 * z
 	H := pad + 18*z + 48*z + 58*z + 24*z + 26*z + pad - 6*z
@@ -148,6 +173,16 @@ func drawWeatherOv(c *ovCanvas, st *ovState, z float64) int {
 		c.valueUnit(font_{ovFace(fkDisplayB, 26*z), 26 * z}, z, s, st.tmpU(), x, y+32*z, col)
 	}
 	temp("TrackTempCrew", "TrackTemp", "Track", "Pista", pad)
+	// where the track's temperature is going (the tyres' pressures follow it)
+	if v, ok := st.num("TrackTempCrew"); ok {
+		if d, has := st.trackTrend(v, now); has {
+			s, col := "▲ +"+strconv.FormatFloat(st.tmp(v)-st.tmp(v-d), 'f', 1, 64)+"°", uint32(colAmber)
+			if d < 0 {
+				s, col = "▼ −"+strconv.FormatFloat(st.tmp(v-d)-st.tmp(v), 'f', 1, 64)+"°", colBlue
+			}
+			c.text(ovFace(fkDataB, 11*z), s, pad+(W-2*pad)/2-10*z, y+32*z, col, 1, 1)
+		}
+	}
 	temp("AirTemp", "", "Air", "Aire", pad+(W-2*pad)/2)
 	y += 48 * z
 	// the wind against your car: a ring with your nose at the top, the arrow blows across it
@@ -369,6 +404,15 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 	me := int(mev)
 	if st.ses == nil || len(pct) == 0 {
 		return int(H)
+	}
+	// the sectors, as ticks on the bar
+	if len(st.ses.Sectors) >= 2 {
+		sf := ovFace(fkData, 9*z)
+		for k, f := range st.ses.Sectors[1:] {
+			x := x0 + f*(x1-x0)
+			c.rect(x-0.75*z, by-7*z, 1.5*z, 14*z, colMuted, 0.8)
+			c.text(sf, "S"+strconv.Itoa(k+2), x, by-14*z, colMuted, 0.9, 2)
+		}
 	}
 	at := func(a []float64, i int) float64 {
 		if i >= 0 && i < len(a) {
