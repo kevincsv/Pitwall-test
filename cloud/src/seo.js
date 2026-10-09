@@ -311,6 +311,9 @@ export async function indexNow(env) {
   if (urls.length) {
     const r = await fetch("https://api.indexnow.org/indexnow", { method: "POST", headers: { "content-type": "application/json; charset=utf-8" },
       body: JSON.stringify({ host: "pitlanehq.app", key: INDEXNOW_KEY, keyLocation: `${SITE}/${INDEXNOW_KEY}.txt`, urlList: urls.slice(0, 10000).map((u) => SITE + u) }) }).catch(() => null);
+    // what the search engines answered, for the admins (200/202 accepted; 403 the key file was not reachable; 422 wrong host)
+    const said = r ? r.status + " " + (await r.text().catch(() => "")).slice(0, 200) : "no answer";
+    await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('indexnow_last', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at").bind(JSON.stringify({ said, urls: urls.length }), Date.now()).run().catch(() => {});
     if (!r || r.status >= 300) return; // try again on the next run
   }
   await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('indexnow_at', ?1, ?1) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at").bind(String(Date.now())).run().catch(() => {});
