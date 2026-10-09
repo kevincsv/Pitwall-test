@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.1 beta
+
+- The licence summary shows your licence and safety rating in each category, in the licence's colour, once you
+  join a session of it with iRacing open.
+- Race charts: bigger points, and a lap that does not count (off track) is an empty ring.
+- Fixes and improvements.
+
 ## 0.9.0 beta
 
 **Added**
