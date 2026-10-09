@@ -301,6 +301,12 @@ export async function indexNow(env) {
   const full = !ver || ver.v !== SEO_VER;
   let last = full ? 0 : +((row && row.v) || 0);
   if (!full && Date.now() - last < 20 * 3600e3) return; // once a day
+  // after a refusal (429: too many requests) wait 6 hours before trying again, never every 10 minutes
+  const tried = await env.DB.prepare("SELECT at FROM app_state WHERE k='indexnow_last'").first().catch(() => null);
+  if (tried && Date.now() - tried.at < 6 * 3600e3 && !(last > tried.at)) {
+    const okBefore = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_last'").first().catch(() => null);
+    if (!okBefore || !/^"?\{?.*"said":"2\d\d/.test(okBefore.v || "")) return;
+  }
   const fresh = await env.DB.prepare(
     "SELECT track_id AS t, MAX(track) AS track, car_id AS c, MAX(car) AS car FROM community_laps WHERE game='iracing' AND track_id>0 AND car_id>0 AND created>?1 GROUP BY track_id, car_id LIMIT 4000"
   ).bind(last).all().catch(() => ({ results: [] }));
