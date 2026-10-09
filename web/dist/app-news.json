@@ -1,17 +1,68 @@
 {
   "items": [
     {
+      "id": "2026-10-ai-races",
+      "date": "2026-10-09",
+      "title": {
+        "en": "Races against the AI now teach the coach",
+        "es": "Las carreras contra la IA ya enseñan al coach"
+      },
+      "text": {
+        "en": "Your laps in sessions against iRacing's AI help the coach learn each car and track, because the drivers are real. The bots' laps never go to the leaderboards.",
+        "es": "Tus vueltas en sesiones contra la IA de iRacing ayudan al coach a aprender cada coche y circuito, porque los pilotos son reales. Las vueltas de los bots nunca van a los leaderboards."
+      },
+      "view": "coach"
+    },
+    {
+      "id": "2026-10-rival-names",
+      "date": "2026-10-09",
+      "title": {
+        "en": "Your rivals by their whole name",
+        "es": "Tus rivales con su nombre completo"
+      },
+      "text": {
+        "en": "The drivers of your races show on the leaderboards and the public records with their whole name, as the game shows it.",
+        "es": "Los pilotos de tus carreras salen en los leaderboards y en los récords públicos con su nombre completo, como lo muestra el juego."
+      },
+      "view": "community"
+    },
+    {
+      "id": "2026-10-agent",
+      "date": "2026-10-09",
+      "title": {
+        "en": "Pitlane HQ Agent, on the PC where you race",
+        "es": "Pitlane HQ Agent, en el PC donde corres"
+      },
+      "text": {
+        "en": "The PC app is now called Pitlane HQ Agent. On the web, Pitlane HQ tells you when it does not see the agent on your PC and offers the download.",
+        "es": "La app del PC ahora se llama Pitlane HQ Agent. En la web, Pitlane HQ te avisa cuando no ve el agente en tu PC y te ofrece descargarlo."
+      },
+      "url": "https://pitlanehq.app/downloads"
+    },
+    {
       "id": "2026-10-desktop-preview",
       "date": "2026-10-07",
-      "title": {"en": "A native Windows window is on its way", "es": "Llega una ventana nativa para Windows"},
-      "text": {"en": "Pitlane HQ Desktop (preview) is the new native window over the same engine, built screen by screen. Try it from the downloads page.", "es": "Pitlane HQ Desktop (preview) es la nueva ventana nativa sobre el mismo motor, hecha pantalla a pantalla. Pruébala desde la página de descargas."},
+      "title": {
+        "en": "A native Windows window is on its way",
+        "es": "Llega una ventana nativa para Windows"
+      },
+      "text": {
+        "en": "Pitlane HQ Desktop (preview) is the new native window over the same engine, built screen by screen. Try it from the downloads page.",
+        "es": "Pitlane HQ Desktop (preview) es la nueva ventana nativa sobre el mismo motor, hecha pantalla a pantalla. Pruébala desde la página de descargas."
+      },
       "url": "https://pitlanehq.app/downloads"
     },
     {
       "id": "2026-10-two-step",
       "date": "2026-10-07",
-      "title": {"en": "Protect your account with two-step sign-in", "es": "Protege tu cuenta con el inicio de sesión en dos pasos"},
-      "text": {"en": "Optional and recommended: an authenticator app on your phone. Turn it on in Account.", "es": "Opcional y recomendado: una app de autenticación en el móvil. Actívalo en Cuenta."},
+      "title": {
+        "en": "Protect your account with two-step sign-in",
+        "es": "Protege tu cuenta con el inicio de sesión en dos pasos"
+      },
+      "text": {
+        "en": "Optional and recommended: an authenticator app on your phone. Turn it on in Account.",
+        "es": "Opcional y recomendado: una app de autenticación en el móvil. Actívalo en Cuenta."
+      },
       "view": "me"
     }
   ]
