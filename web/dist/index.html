@@ -6652,10 +6652,12 @@ function loadRatingsSoon(){if(Date.now()-RATINGS_AT<30000)return;RATINGS_AT=Date
 function raceDisc(cat,car){const c=String(cat||"").toLowerCase().replace(/[ _-]/g,"");const m={oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",sportscar:"sports_car"}[c];if(m)return m;
   if(c&&c!=="road")return c;car=String(car||"");if(!car)return"";if(/p217|lmp|\bgtp\b|\bdpi?\b|prototype|hypercar/i.test(car))return"sports_car";
   return /formula|\bf[1-4]\b|super ?formula|dallara|indy|\bir-?\d+|skip barber|ff1600|pro mazda|\busf\b|lotus (18|49|79)|williams fw|mercedes-amg w1|tatuus|\bvee\b|\bfr ?[23]\./i.test(car)?"formula_car":"sports_car"}
-/* each discipline's iRating and licence: the newest of what the PC saw in a session (ratings.json) and what your last race of it left you */
-function discRatings(){const out={};Object.entries(RATINGS||{}).forEach(([k,r])=>{if(r&&r.ir>0)out[k]={ir:r.ir,lic:r.lic||"",at:r.at||0}});
-  (RACES||[]).forEach(r=>{if(!r||(r.game&&r.game!=="iracing")||!(r.ir>0))return;const k=raceDisc(r.cat,r.car);if(!k)return;const ir=r.ir+(r.irChange||0),me=(r.results||[]).find(x=>x.me),at=r.when||0;
-    const cur=out[k];if(!cur||cur.at<at)out[k]={ir,lic:(cur&&cur.lic&&(!me||!me.lic||cur.lic.startsWith(me.lic))?cur.lic:(me&&me.lic)||""),at}});return out}
+/* each discipline's iRating: the newest of what the PC saw in a session (ratings.json) and what your last race of it left you;
+   the licence is only the one the game showed in a session ("B 3.21"): a race gives none, and a class letter alone is none */
+const licFull=v=>{const t=String(v||"").trim();return t.includes(" ")?t:""};
+function discRatings(){const out={};Object.entries(RATINGS||{}).forEach(([k,r])=>{if(r&&r.ir>0)out[k]={ir:r.ir,lic:licFull(r.lic),at:r.at||0}});
+  (RACES||[]).forEach(r=>{if(!r||(r.game&&r.game!=="iracing")||!(r.ir>0))return;const k=raceDisc(r.cat,r.car);if(!k)return;const ir=r.ir+(r.irChange||0),at=r.when||0;
+    const cur=out[k];if(!cur||cur.at<at)out[k]={ir,lic:cur?cur.lic:"",at}});return out}
 /* Home's licence summary: one card per discipline (its own iRating, never mixed with another's), the change its last
    races gave and how many; then the races' counts. iRacing's data API is off, so it comes from the PC (see the note) */
 /* the licence as the game shows it ("B 3.21"), or its class alone from a race; nothing until a session says it */
