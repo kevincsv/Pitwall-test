@@ -321,9 +321,20 @@ export async function indexNow(env) {
 }
 
 /** The public pages, or null when the address is not one of them. */
+// the search engines' robots that reached the server (Googlebot, Bingbot…): the last visit of each, for the admins, so
+// it is clear whether they get in at all (a robot blocked before the server never shows here)
+const BOT = /(Googlebot|Google-InspectionTool|bingbot|YandexBot|DuckDuckBot|Applebot)/i;
+async function noteBot(req, env, p) {
+  const m = BOT.exec(req.headers.get("user-agent") || "");
+  if (!m || !env.DB) return;
+  await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES (?1, ?2, ?3) ON CONFLICT(k) DO UPDATE SET v=excluded.v, at=excluded.at")
+    .bind("bot_" + m[1].toLowerCase(), JSON.stringify({ path: p.slice(0, 200) }), Date.now()).run().catch(() => {});
+}
+
 export async function seoPage(req, env, url) {
   if (req.method !== "GET" && req.method !== "HEAD") return null;
   const p = url.pathname.replace(/\/+$/, "") || "/";
+  await noteBot(req, env, p);
   if (p === "/sitemap.xml") return sitemap(env);
   if (p === "/" + INDEXNOW_KEY + ".txt") return new Response(INDEXNOW_KEY, { headers: { "content-type": "text/plain; charset=utf-8" } });
   if (p === "/iracing-telemetry" || p === "/telemetry") return landing(env, "en");
