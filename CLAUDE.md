@@ -171,15 +171,21 @@
   and pills; the live stream; radar, delta bar, relative, standings), `ovnative2.go` (flag, dash, timing, fuel,
   engine, tyres, inputs, DRS & push-to-pass, telemetry, g-force), `ovnative3.go` (stats, pit stop, mini-sectors,
   gaps, incidents), `ovnative4.go` (track map from `/api/map` or the community's layout, live compare, braking
-  markers with the model's next level from `/api/community/model`, coach, radio) and `ovnative_windows.go` (a
+  markers with the model's next level from `/api/community/model`, coach, radio), `ovnative5.go` (weather: the track's and
+  the air's temperature, the wind against your car with the game's clock, rain and how wet the track is; the car's
+  controls: every in-car adjustment this car has, `controlRows`, lit up for a moment when it changes; the track position
+  bar: every car along the lap on one line, class colours, you marked, the two nearest numbers each way; performance:
+  frames a second with the last minute, GPU and CPU, the connection's latency and quality) and `ovnative_windows.go` (a
   layered window with alpha per pixel and the overlays' opacity). Only the panel and its content show, the rest is
   see-through, every click goes to the game (the radio's buttons take clicks without taking the focus), and while
   moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
   the cars coming, the red side bar and the nearest distance; it reads and draws every sample the game gives (60 a
-  second), each car where its lap distance puts it (an alpha-beta filter glides it at its own closing speed between
-  samples), a car beside you keeps its side and slides there smoothly, three wide puts the second car beyond the first,
-  and a car that stops overlapping eases back into line over the next 7 m. The windows that need laps record the ones they see.
+  second), each car where its lap distance puts it (an alpha-beta filter predicts every draw and corrects on each new
+  sample, plus the sample's age, so it glides at its own closing speed and sits where it is now), a car beside you keeps
+  its side (even while the game's flag lags) and slides there smoothly, three wide puts the second car beyond the first,
+  a car that stops overlapping eases back into line over the next 7 m, a car closing fast turns red before it is beside
+  you and trails a fading line, a car off the track beside you still shows as an outline, a car on the pit road dimmed. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
   (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, `/api/desk/coach`), Telemetry,
   Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,

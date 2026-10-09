@@ -33,14 +33,15 @@ func nativeOverlay(name string) bool {
 	case "radar", "deltabar", "relative", "standings":
 		return true
 	}
-	return gaugeOverlay(name) || sessionOverlay(name) || lapOverlay(name)
+	return gaugeOverlay(name) || sessionOverlay(name) || lapOverlay(name) || extraOverlay(name)
 }
 
 // the width each overlay is designed for: the window's width scales everything from it
 var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600, "standings": 720,
 	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280,
 	"stats": 420, "pit": 440, "sectors": 560, "gaps": 560, "incidents": 380,
-	"map": 440, "compare": 680, "brakes": 480, "coach": 520, "radio": 420}
+	"map": 440, "compare": 680, "brakes": 480, "coach": 520, "radio": 420,
+	"weather": 360, "controls": 340, "trackbar": 700, "system": 320}
 
 // ---------- the picture ----------
 
@@ -289,7 +290,8 @@ type ovDriver struct {
 	Name, Num, Lic, CarSht string
 	UID                    string // the iRacing id: stays in this process, only its key is looked up in your notes
 	IR, Class, Inc, CarID  int
-	Skip                   bool // pace car, spectators
+	ClassCol               uint32 // the class's colour the game gives (CarClassColor)
+	Skip                   bool   // pace car, spectators
 }
 
 type ovSession struct {
@@ -328,6 +330,8 @@ type ovState struct {
 	radSide map[int]float64    // radar: the side each car was last seen on
 	radDm   map[int][2]float64 // radar: each car's distance ahead (m) and how fast it changes (m/s), filtered
 	radAt   time.Time          // radar: when that was
+	radSeen time.Time          // radar: the game's sample the filter last took (a draw without a new one only predicts)
+	x5      ovMem5             // what the weather, controls, track bar and performance overlays remember (ovnative5.go)
 	unitOf  map[string]string
 	live    ovLive        // what the gauges remember between frames (ovnative2.go)
 	sm      *ovSessionMem // what the session overlays remember (ovnative3.go)
@@ -514,6 +518,10 @@ func parseOvSession(y string) *ovSession {
 				drv.IR = atoi(v)
 			case "CarClassID":
 				drv.Class = atoi(v)
+			case "CarClassColor":
+				if n, err := strconv.ParseUint(strings.TrimPrefix(strings.TrimSpace(v), "0x"), 16, 32); err == nil {
+					drv.ClassCol = uint32(n)
+				}
 			case "CarID":
 				drv.CarID = atoi(v)
 			case "CarScreenNameShort":
@@ -1000,6 +1008,8 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 			h = drawSessionOv(name, c, st, z)
 		} else if lapOverlay(name) {
 			h = drawLapOv(name, c, st, z, now)
+		} else if extraOverlay(name) {
+			h = drawExtraOv(name, c, st, z, now)
 		} else {
 			h = drawGauge(name, c, st, z, now)
 		}
@@ -1649,6 +1659,8 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 type radarCar struct {
 	idx     int
 	dm, lat float64
+	v       float64 // how fast its distance ahead changes (m/s): closing on you when it brings the car to you
+	surf    int     // the game's surface: 3 on the track, 0 off it (still a car next to you), 2 on the pit road
 }
 
 func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
@@ -1671,7 +1683,12 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 	var near []radarCar
 	if me >= 0 && me < len(pct) && pct[me] >= 0 && L > 0 {
 		for i, p := range pct {
-			if i == me || p < 0 || (st.ses.Drivers[i] != nil && st.ses.Drivers[i].Skip) || (i < len(surf) && surf[i] != 3) {
+			// a car in its pit stall or out of the world is no car near you; one off the track beside you still is
+			sf := 3
+			if i < len(surf) {
+				sf = int(surf[i])
+			}
+			if i == me || p < 0 || (st.ses.Drivers[i] != nil && st.ses.Drivers[i].Skip) || sf < 0 || sf == 1 {
 				continue
 			}
 			d := p - pct[me]
@@ -1681,17 +1698,25 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 				d++
 			}
 			if dm := d * L; math.Abs(dm) < rng+6 {
-				near = append(near, radarCar{idx: i, dm: dm})
+				near = append(near, radarCar{idx: i, dm: dm, surf: sf})
 			}
 		}
 	}
 	// the distances come in steps (the game's samples, other cars' network updates): an alpha-beta filter keeps each
-	// car moving at its own closing speed between them, so it glides instead of jumping or shaking
+	// car moving at its own closing speed between them, so it glides instead of jumping or shaking. Every draw
+	// predicts where the car is now; a new sample from the game corrects it, and the sample's age (the stream's
+	// delay) is added so the car is drawn where it is at this moment, not where it was when the game said so
 	if st.radDm == nil {
 		st.radDm = map[int][2]float64{}
 	}
 	dt := now.Sub(st.radAt).Seconds()
 	st.radAt = now
+	sample := !st.at.Equal(st.radSeen)
+	st.radSeen = st.at
+	age := now.Sub(st.at).Seconds()
+	if age < 0 || age > 0.12 {
+		age = 0
+	}
 	seen := map[int]bool{}
 	for k := range near {
 		i, z := near[k].idx, near[k].dm
@@ -1701,16 +1726,17 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 			st.radDm[i] = [2]float64{z, 0}
 			continue
 		}
-		pred := f[0] + f[1]*dt
-		r := z - pred
-		if math.Abs(r) > 15 { // a jump (a reset, a tow): start again from where it is
-			st.radDm[i] = [2]float64{z, 0}
-			continue
+		x, v := f[0]+f[1]*dt, f[1]
+		if sample {
+			r := z - x
+			if math.Abs(r) > 15 { // a jump (a reset, a tow): start again from where it is
+				st.radDm[i] = [2]float64{z, 0}
+				continue
+			}
+			x, v = x+0.5*r, math.Max(-60, math.Min(60, v+0.12*r/dt))
 		}
-		x, v := pred+0.5*r, f[1]+0.12*r/dt
-		v = math.Max(-60, math.Min(60, v))
 		st.radDm[i] = [2]float64{x, v}
-		near[k].dm = x
+		near[k].dm, near[k].v = x+v*age, v
 	}
 	for i := range st.radDm {
 		if !seen[i] {
@@ -1738,7 +1764,7 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 	}
 	side := []int{}
 	for k, n := range near {
-		if math.Abs(n.dm) < 5.5 {
+		if math.Abs(n.dm) < 5.5 && n.surf != 2 { // a car on the pit road is not the one beside you on the track
 			side = append(side, k)
 		}
 	}
@@ -1786,7 +1812,10 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 		t, d := want[i], math.Abs(near[k].dm)
 		if t != 0 {
 			st.radSide[i] = t
-		} else if sd := st.radSide[i]; sd != 0 && d > 4.6 {
+		} else if sd := st.radSide[i]; sd != 0 && d <= 4.6 {
+			// still overlapping you while the game's flag lags: it stays on its side, never drawn over your car
+			t = sd
+		} else if sd != 0 {
 			// a car that was beside you and has just passed you (or dropped back) moves back into line little by
 			// little, as cars do, instead of jumping to the middle the moment it stops overlapping
 			t = sd * math.Max(0, 1-(d-4.6)/7)
@@ -1828,9 +1857,16 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 		if d > rng+3 {
 			continue
 		}
+		// closing speed: how fast the car comes to you (a faster class from behind, a car you are catching)
+		closing := -n.v
+		if n.dm < 0 {
+			closing = n.v
+		}
 		col := uint32(0xc9d1da)
 		switch {
 		case math.Abs(n.lat) >= 0.5 || d < CL*1.2:
+			col = 0xff4d4f
+		case closing > 3 && d/closing < 1.2: // on you within a second: red before it is beside you
 			col = 0xff4d4f
 		case d < 10:
 			col = colAmber
@@ -1839,9 +1875,26 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 		if math.Abs(n.lat) < 0.5 {
 			a = math.Max(0.35, 1-d/(rng+3)*0.65)
 		}
+		if n.surf == 2 { // on the pit road: there, but not in your way
+			col, a = colMuted, a*0.45
+		}
 		X, Y := cx+n.lat*LW*ppm, cy-n.dm*ppm
+		if closing > 2 { // a trail behind a car coming at you, as long as it is fast
+			tl := math.Min(2*H, closing*0.35*ppm)
+			for q := 0.0; q < tl; q += 1 {
+				yy := Y + H/2 + q // behind you: the trail goes further behind
+				if n.dm > 0 {
+					yy = Y - H/2 - q // ahead of you and dropping back: the trail goes further ahead
+				}
+				c.rect(X-W*0.25, yy, W*0.5, 1, col, 0.45*a*(1-q/tl))
+			}
+		}
 		c.roundRect(X-W/2-1.5, Y-H/2, W+3, H+3, math.Min(W, H)*0.4, 0x000000, 0.35*a, 0, 0, 0)
-		c.roundRect(X-W/2, Y-H/2, W, H, math.Min(W, H)*0.35, col, a, 0x000000, 0.55*a, 1.2)
+		if n.surf == 0 { // off the track (grass, gravel): an outline, so you see it is not on the road
+			c.roundRect(X-W/2, Y-H/2, W, H, math.Min(W, H)*0.35, col, 0.3*a, col, a, 1.6)
+		} else {
+			c.roundRect(X-W/2, Y-H/2, W, H, math.Min(W, H)*0.35, col, a, 0x000000, 0.55*a, 1.2)
+		}
 	}
 	c.roundRect(cx-W/2, cy-H/2, W, H, math.Min(W, H)*0.35, 0xffffff, 0.12, 0xffffff, 0.9, 2)
 	var best *radarCar
@@ -1882,6 +1935,9 @@ func ovVars(name string, st *ovState) []string {
 	}
 	if lapOverlay(name) {
 		return append(base, lapOvVars(name)...)
+	}
+	if extraOverlay(name) {
+		return append(base, extraVars(name)...)
 	}
 	switch name {
 	case "radar":

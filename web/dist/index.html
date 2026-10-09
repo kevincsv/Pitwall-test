@@ -655,6 +655,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .lgd{display:inline-flex;align-items:center;gap:5px;font-size:13px;margin-right:10px}.dotm,.doto{width:10px;height:10px;border-radius:50%;display:inline-block}.dotm{background:var(--accent)}.dotc{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid var(--pb)}.incx{color:var(--bad);font-weight:700}
 .rbmap .seg{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.rbmap .secdot{fill:var(--muted)}svg.rchart{touch-action:pan-y;cursor:crosshair}svg.rchart .hovl{stroke:var(--fg);stroke-width:1.2;stroke-dasharray:3 3;opacity:.6}svg.rchart circle.on{r:7;stroke:var(--fg);stroke-width:1.5}.rc-tip{position:fixed!important;z-index:60;pointer-events:none}.rbmap .secbar{stroke:var(--fg);stroke-width:2.5;stroke-linecap:round;opacity:.8}.rbmap .sfbar{stroke:var(--fg);stroke-width:4;stroke-dasharray:3 3;stroke-linecap:butt}.rbmap .sec{fill:var(--accent);font:800 11px var(--f-data);letter-spacing:.04em;opacity:.9}.rbmap .hdot{fill:var(--fg);stroke:var(--bg);stroke-width:2}
 .rbmap .coachring{fill:color-mix(in srgb,var(--pb) 18%,transparent);stroke:var(--pb);stroke-width:2.5}.rbmap .incl{fill:var(--bad);font:800 10px var(--f-data);paint-order:stroke;stroke:var(--bg);stroke-width:3px}.rbmap .incmk path{stroke:var(--bad);stroke-width:3;stroke-linecap:round}.rbmap .incmk text{fill:var(--bad);font:700 11px var(--f-data)}
+.ctlrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 4px;border-top:1px solid var(--line);font-size:13px}.ctlrow:first-child{border-top:0}.ctlrow b{font-weight:700}.ctlrow.hot{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:5px}.ctlrow.hot b,.ctlrow.on b{color:var(--accent)}.ctlrow.off b{color:var(--muted)}.wxwind{display:flex;gap:10px;align-items:center;margin-top:8px}.wxwind svg{flex:none}
 .inclist{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.rb-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.rb-cmp{display:flex;gap:6px;align-items:center;margin-left:auto;font-size:12px}.rb-cmp select{width:auto;min-width:120px;padding:4px 8px}.rbmap .cn{fill:var(--muted);font:700 10px var(--f-data)}.rbmap .incmk.loss path{stroke:var(--warn,#ffb02e)}.rbmap .incmk.light path{stroke:var(--blue,#5aa9ff)}.rbmap .incmk.contact path{stroke:var(--pb)}.rb-sum{margin:8px 0 0;font-size:13px}.rb-tip{position:fixed;z-index:50;pointer-events:none;min-width:180px;max-width:300px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.35);font:12px/1.45 var(--f-data);color:var(--fg)}.rb-tip .coachtip{margin-top:3px}.rbmap .hovpt{fill:none;stroke:var(--fg);stroke-width:2}.rbmap{touch-action:pan-y}@media (max-width:820px){.rb-tip{position:static;margin-top:6px;max-width:none;box-shadow:none;min-height:40px}}.rb-sum .ik.off{color:var(--bad)}.rb-sum .ik.loss{color:var(--warn,#ffb02e)}.rb-sum .ik.light{color:var(--blue,#5aa9ff)}.rb-sum .ik.contact{color:var(--pb)}.rtable tr.cutrow td{color:var(--muted);opacity:.5;text-decoration:line-through}.rtable tr.cutrow td:last-child{opacity:1;text-decoration:none}.rtable tr.cutrow td.mono:nth-child(2){text-decoration:line-through}.rchart .cut{fill:var(--surface);stroke:var(--fg);stroke-width:2.2;vector-effect:non-scaling-stroke}.dot.cut{background:transparent;box-shadow:inset 0 0 0 2px var(--fg)}
 .co-hero .co-top{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}.co-focus{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:200px}.co-focus b{display:block;font:800 20px var(--f-display);margin:2px 0}.co-focus small{display:block}
 .cmlic{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:12px}.cmlic .lic-chip{padding:3px 6px}.cmlic .lic-chip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
@@ -1288,6 +1289,22 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
     <div class="panel s4 wpanel" data-w="radio">
       <div class="label" data-i18n="w.radio"></div>
       <div id="radioW"></div>
+    </div>
+    <div class="panel s4 wpanel" data-w="weather">
+      <div class="label" data-i18n="w.weather"></div>
+      <div id="wxBox"></div>
+    </div>
+    <div class="panel s4 wpanel" data-w="controls">
+      <div class="label" data-i18n="w.controls"></div>
+      <div id="ctlBox"></div>
+    </div>
+    <div class="panel s12 wpanel" data-w="trackbar">
+      <div class="label" data-i18n="w.trackbar"></div>
+      <canvas id="tbC" height="56" style="width:100%;height:56px;display:block"></canvas>
+    </div>
+    <div class="panel s4 wpanel" data-w="system">
+      <div class="label" data-i18n="w.system"></div>
+      <div id="sysBox"></div>
     </div>
     <div class="panel s12 empty" id="liveEmpty" hidden></div>
   </div>
@@ -2080,7 +2097,7 @@ const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/T
 const Tx=(en,es,de,pt)=>{const r=TxRaw(en,es,de,pt);return WEBAPP&&typeof r==="string"?DEV_WORDS.reduce((t,[a,b])=>t.replace(a,b),r):r};
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as PitlaneHQ.exe (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.1",APP_STAGE="beta";
+const WEB_VERSION="0.9.2",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2129,7 +2146,7 @@ function wipView(v,key){const sec=$("#v-"+v);if(!sec)return;const old=sec.queryS
 const plannerWip=v=>wipView(v,"planner");
 const phoneCharts=()=>matchMedia("(max-width:820px)").matches;
 const FEATURES={spotter:false,voice:false,subscription:false,goals:false,strategy:false,planner:false};
-const LIVE_VARS="dcTractionControl2,GapAhead,GapBehind,LapValid,FuelUsePerLap,dcTractionControl,dcTractionControlMax,dcABS,dcABSMax,dcEngineMap,dcEngineMapMax,dcBrakeBias,VirtualEnergyPct,SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,Precipitation,WeatherDeclaredWet,PlayerTireCompound,PlayerCarSLShiftRPM,LongAccel,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct";
+const LIVE_VARS="dcTractionControl2,GapAhead,GapBehind,LapValid,FuelUsePerLap,dcTractionControl,dcTractionControlMax,dcABS,dcABSMax,dcEngineMap,dcEngineMapMax,dcBrakeBias,VirtualEnergyPct,SessionTime,SessionFlags,SessionState,SessionNum,SessionLapsRemainEx,SessionLapsTotal,SessionTimeRemain,PlayerCarIdx,PlayerCarPosition,PlayerCarClassPosition,IsOnTrack,OnPitRoad,Speed,RPM,Gear,Throttle,Brake,Clutch,Lap,LapCompleted,LapDist,LapDistPct,LapCurrentLapTime,LapLastLapTime,LapBestLapTime,LapDeltaToBestLap,LapDeltaToBestLap_OK,LapDeltaToSessionBestLap,LapDeltaToSessionBestLap_OK,LapDeltaToOptimalLap,LapDeltaToOptimalLap_OK,LapDeltaToSessionOptimalLap,LapDeltaToSessionOptimalLap_OK,FuelLevel,FuelLevelPct,FuelUsePerHour,WaterTemp,OilTemp,OilPress,Voltage,AirTemp,TrackTempCrew,LFtempCM,RFtempCM,LRtempCM,RRtempCM,LFwearM,RFwearM,LRwearM,RRwearM,CarIdxLap,CarIdxLapCompleted,CarIdxLapDistPct,CarIdxPosition,CarIdxClassPosition,CarIdxEstTime,CarIdxF2Time,CarIdxLastLapTime,CarIdxBestLapTime,CarIdxOnPitRoad,CarIdxTrackSurface,Yaw,YawNorth,VelocityX,VelocityY,Lat,Lon,CarLeftRight,DRS_Status,P2P_Status,P2P_Count,PlayerCarMyIncidentCount,PlayerCarDriverIncidentCount,PlayerTrackSurface,EngineWarnings,Precipitation,WeatherDeclaredWet,PlayerTireCompound,PlayerCarSLShiftRPM,LongAccel,SessionTimeOfDay,TrackWetness,BrakeABSactive,CarIdxTireCompound,SteeringWheelAngle,EnergyERSBatteryPct,EnergyMGU_KLapDeployPct,WindVel,WindDir,Skies,RelativeHumidity,SolarAltitude,FrameRate,GpuUsage,CpuUsageFG,ChanLatency,ChanQuality,dcPeakBrakeBias,dcTractionControlToggle,dcAntiRollFront,dcAntiRollRear,dcDiffEntry,dcDiffMiddle,dcDiffExit,dcDiffPreload,dcFuelMixture,dcThrottleShape,dcEngineBraking,dcMGUKDeployMode,dcMGUKDeployFixed,dcMGUKRegenGain,dcWingFront,dcWingRear,dcWeightJackerRight,dcPowerSteering,dcPitSpeedLimiterToggle,dcToggleWindshieldWipers";
 let T={},S={},SCHEMA=[],STATUS={connected:false,source:"",demo:false},MODE="probe",INFO=null;
 let wantAll=true,es=null;
 
@@ -2191,13 +2208,13 @@ function frameTick(){
   if(now-lastRadar>(OV.on?33:66)){lastRadar=now;if(lv("radar"))drawRadar();if(lv("inputs")&&(OV.on||view!=="live"))drawTrace()}
   if(now-lastSlow>200){lastSlow=now;if(lv("boost"))renderBoost();if(lv("telemetry"))renderTelemetry()}
   if(now-lastStd>(OV.on?250:500)){lastStd=now;if(lv("standings"))renderStandingsWidget()}
-  if(now-lastCmp>100){lastCmp=now;if(lv("compare"))drawCompare()}
+  if(now-lastCmp>100){lastCmp=now;if(lv("compare"))drawCompare();if(lv("trackbar"))drawTrackbar()}
   trackStats();if(lv("deltabar"))renderDeltaBar();
   if(now-lastGG>66){lastGG=now;if(lv("gg"))drawGG()}
   if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
   trackSectors();trackIncidents();sampleGaps();voiceTick();shiftTick();estTick();brakeTick();
   if(lv("brakes")&&now-(window._bmT||0)>66){window._bmT=now;renderBrakes()}
-  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
+  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(lv("weather"))renderWeather();if(lv("controls"))renderControls();if(lv("system"))renderSystem();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -3506,7 +3523,7 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","radio","engine","tyres","standings","telemetry"];
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","radio","engine","tyres","standings","telemetry","weather","controls","trackbar","system"];
 if(!FEATURES.voice)WIDGETS.splice(WIDGETS.indexOf("radio"),1);
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps"};
 let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
@@ -4224,7 +4241,7 @@ function renderLock(){const b=$("#lockBtn");if(!b)return;const show=(MODE==="bri
 $("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.edit?Tx("Overlays unlocked: drag them on your screen.","Overlays desbloqueados: arrástralos por la pantalla."):Tx("Overlays locked.","Overlays bloqueados."))};
 
 /* ---------- screen editor: move overlay windows from the app or a phone ---------- */
-const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200]};
+const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200],weather:[360,250],controls:[340,300],trackbar:[700,70],system:[320,230]};
 let SCREEN=null,SCREEN_DRAG=false;
 async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
 async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
@@ -4595,6 +4612,10 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  "w.sectors":["Mini-sectors","Mini-sectores"],"d.sectors":["24 coloured mini-sectors and your ideal lap","24 mini-sectores de colores y tu vuelta ideal"],
  "w.gaps":["Gap graph","Gráfica de gaps"],"d.gaps":["How the gap to nearby cars changes","Cómo cambia el gap con los coches cercanos"],
  "w.incidents":["Incident log","Registro de incidentes"],"d.incidents":["Every incident with lap and place on track","Cada incidente con vuelta y punto de la pista"],
+ "w.weather":["Weather","Tiempo"],"d.weather":["Track and air temperature, the wind against your car, rain and how wet the track is","Temperatura de pista y aire, el viento respecto a tu coche, la lluvia y la humedad de la pista"],
+ "w.controls":["Car controls","Ajustes del coche"],"d.controls":["Brake bias, TC, ABS, anti-roll bars, diff and maps, lit up as you change them","Reparto de frenada, TC, ABS, barras, diferencial y mapas, iluminados al cambiarlos"],
+ "w.trackbar":["Track position bar","Barra de posición"],"d.trackbar":["Every car along the lap on one line, yours marked","Cada coche a lo largo de la vuelta en una línea, con el tuyo marcado"],
+ "w.system":["Performance","Rendimiento"],"d.system":["Frames a second, GPU and CPU use, latency and connection quality","Fotogramas por segundo, uso de GPU y CPU, latencia y calidad de la conexión"],
  
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],traceSecs:["Trace length (s)","Duración de la gráfica (s)"],traceH:["Trace height (px)","Altura de la gráfica (px)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
@@ -4628,7 +4649,7 @@ const CONN_ON=false;
 // profiles are switched off for now: no button, no panel, no window (the PC keeps working with its one profile)
 function renderProfBtn(){const b=$("#profBtn");if(b)b.hidden=true;const r=$("#rigProfiles");if(r)r.hidden=true}
 /* new widgets start hidden once, so an update does not crowd your Live screen */
-(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","coach","radio"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
+(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","coach","radio","weather","controls","trackbar","system"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
 
 /* ===================== programs that start with Pitlane HQ or iRacing (Settings) ===================== */
 const askOK=async m=>MODE==="local"||await uiConfirm(m);
@@ -4740,6 +4761,62 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
   box.innerHTML=`<div class="row" style="margin-top:4px"><div><div class="big mono ${lim&&n>=lim*.75?"bad":""}">${n}x</div><div class="sub">${lim?Lp(`of ${lim}x limit`,`de ${lim}x de límite`,0,`von ${lim}x Limit`,`de ${lim}x de limite`):Lp("no limit","sin límite")}</div></div></div>
     ${lim?`<div class="meter"><b style="width:${Math.min(100,n/lim*100)}%;background:${n>=lim*.75?"var(--bad)":"var(--accent)"}"></b></div>`:""}
     <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
+
+/* ---------- weather, the car's controls, the track position bar and the PC's performance (the same as the native overlays) ---------- */
+const COMPASS=["N","NE","E","SE","S","SW","W","NW"];
+function renderWeather(){const box=$("#wxBox");if(!box)return;const t=v=>v==null?"–":tmp(v).toFixed(1)+tmpU(),trk=T.TrackTempCrew??T.TrackTemp,tod=T.SessionTimeOfDay;
+  const clock=tod>=0?`${String(Math.floor(tod/3600)%24).padStart(2,"0")}:${String(Math.floor(tod/60)%60).padStart(2,"0")}`:"";
+  // the wind comes from WindDir; against the car's heading (YawNorth, the same sense), where it comes from relative to the nose
+  const rel=T.WindVel!=null&&T.WindDir!=null?T.WindDir-(T.YawNorth||0):null;let wind=`${Tx("Wind","Viento")} –`,kind="";
+  if(rel!=null){const a=Math.abs((((rel+3*Math.PI)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)-Math.PI);
+    wind=`${Tx("Wind","Viento")} ${Math.round(spd(T.WindVel))} ${spdU()} · ${Tx("from","del")} ${COMPASS[((Math.round(T.WindDir/(Math.PI/4))%8)+8)%8]}`;
+    kind=a<Math.PI/4?Tx("Headwind","Viento de cara"):a>3*Math.PI/4?Tx("Tailwind","Viento de cola"):Tx("Crosswind","Viento cruzado")}
+  const wc=T.WindVel*3.6>25?"var(--accent)":"var(--blue)";
+  const sky=T.Skies!=null?[Tx("Clear","Despejado"),Tx("Partly cloudy","Parcialmente nublado"),Tx("Mostly cloudy","Muy nublado"),Tx("Overcast","Cubierto")][T.Skies]||"–":"–";
+  const hum=T.RelativeHumidity!=null?` · ${Tx("humidity","humedad")} ${Math.round(T.RelativeHumidity<=1?T.RelativeHumidity*100:T.RelativeHumidity)}%`:"";
+  const p=precipPct(),wetN=["","dry","mostly dry","very lightly wet","lightly wet","moderately wet","very wet","extremely wet"],wetS=["","seca","casi seca","muy ligeramente mojada","ligeramente mojada","moderadamente mojada","muy mojada","extremadamente mojada"];
+  const wet=T.TrackWetness>0&&wetN[T.TrackWetness]?` · ${Tx("track","pista")} ${Tx(wetN[T.TrackWetness],wetS[T.TrackWetness])}`:"";
+  box.innerHTML=`<div class="row" style="justify-content:space-between;margin-top:4px"><div><small class="muted">${esc(Tx("Track","Pista"))}</small><div class="big mono">${t(trk)}</div></div><div><small class="muted">${esc(Tx("Air","Aire"))}</small><div class="big mono">${t(T.AirTemp)}</div></div>${clock?`<div class="mono muted">${T.SolarAltitude>0?"☀":"☾"} ${clock}</div>`:""}</div>
+    <div class="wxwind"><svg width="48" height="48" viewBox="-24 -24 48 48"><circle r="21" fill="none" stroke="var(--line)" stroke-width="1.5"/><path d="M0,-23 L-4,-16 L4,-16 Z" fill="var(--muted)"/>${rel!=null?`<g transform="rotate(${(rel*180/Math.PI).toFixed(1)})"><line x1="0" y1="-16" x2="0" y2="16" stroke="${wc}" stroke-width="2.2"/><path d="M0,19 L-5,11 L5,11 Z" fill="${wc}"/></g>`:""}</svg><div><b>${esc(wind)}</b><div class="sub">${esc(kind)}</div></div></div>
+    <p class="note" style="margin:8px 0 0">${esc(Tx("Sky","Cielo"))}: ${esc(sky)}${esc(hum)}<br>${esc(Tx("Rain","Lluvia"))} ${p==null?"–":p+"%"}${esc(wet)}${T.WeatherDeclaredWet?` <span class="pill bad">${esc(Tx("Declared wet","En mojado"))}</span>`:""}</p>`}
+/* the in-car adjustments this car has (the game only gives the ones it has); a changed one lights up for a moment */
+const CTL_ROWS=[["dcBrakeBias","Brake bias","Reparto de frenada",0,"p"],["dcPeakBrakeBias","Peak brake bias","Reparto de frenada pico",0,"p"],["dcTractionControl","Traction control","Control de tracción",1,"i"],["dcTractionControl2","Traction control 2","Control de tracción 2",1,"i"],["dcTractionControlToggle","TC","TC",0,"b"],["dcABS","ABS","ABS",1,"i"],
+  ["dcAntiRollFront","Anti-roll bar front","Barra delantera",0,"i"],["dcAntiRollRear","Anti-roll bar rear","Barra trasera",0,"i"],["dcDiffEntry","Diff entry","Diferencial entrada",0,"i"],["dcDiffMiddle","Diff middle","Diferencial medio",0,"i"],["dcDiffExit","Diff exit","Diferencial salida",0,"i"],["dcDiffPreload","Diff preload","Precarga del diferencial",0,"i"],
+  ["dcEngineMap","Engine map","Mapa de motor",1,"i"],["dcFuelMixture","Fuel mixture","Mezcla",0,"i"],["dcThrottleShape","Throttle map","Mapa de acelerador",0,"i"],["dcEngineBraking","Engine braking","Freno motor",0,"i"],["dcMGUKDeployMode","Hybrid deploy","Despliegue híbrido",0,"i"],["dcMGUKDeployFixed","Hybrid fixed deploy","Despliegue híbrido fijo",0,"i"],["dcMGUKRegenGain","Hybrid regen","Regeneración híbrida",0,"i"],
+  ["dcWingFront","Front wing","Alerón delantero",0,"f"],["dcWingRear","Rear wing","Alerón trasero",0,"f"],["dcWeightJackerRight","Weight jacker","Weight jacker",0,"f"],["dcPowerSteering","Power steering","Dirección asistida",0,"i"],["dcPitSpeedLimiterToggle","Pit limiter","Limitador de boxes",0,"b"],["dcToggleWindshieldWipers","Wipers","Limpiaparabrisas",0,"b"]];
+const CTL={last:{},at:{}};
+function renderControls(){const box=$("#ctlBox");if(!box)return;const now=Date.now(),rows=[];
+  CTL_ROWS.forEach(([k,en,es,mx,kind])=>{const v=T[k];if(v==null)return;if(CTL.last[k]===undefined)CTL.last[k]=v;else if(CTL.last[k]!==v){CTL.last[k]=v;CTL.at[k]=now}
+    const hot=now-(CTL.at[k]||0)<2500,m=mx&&T[k+"Max"]>0?` / ${Math.round(T[k+"Max"])}`:"";
+    const val=kind==="p"?v.toFixed(1)+" %":kind==="f"?v.toFixed(1):kind==="b"?(v?Tx("On","Sí"):Tx("Off","No")):Math.round(v)+m;
+    rows.push(`<div class="ctlrow${hot?" hot":""}${kind==="b"?(v?" on":" off"):""}"><span>${esc(Tx(en,es))}</span><b class="mono">${esc(val)}</b></div>`)});
+  box.innerHTML=rows.join("")||`<p class="note">${esc(Tx("Nothing adjustable in this car yet","Nada ajustable en este coche aún"))}</p>`}
+function tbRound(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+/* every car along the lap on one line: class colours, the leader ringed, cars in the pits dimmed, you in amber with the two nearest numbers each way */
+function drawTrackbar(){const cv=$("#tbC");if(!cv||!cv.clientWidth)return;const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=56;if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=h*dpr}
+  const g=cv.getContext("2d"),cs=getComputedStyle(document.documentElement),col=n=>cs.getPropertyValue(n).trim()||"#888";g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const pad=12,x0=pad+6,x1=w-pad-6,by=h/2+3;g.fillStyle=col("--surface2");g.strokeStyle=col("--line");g.lineWidth=1;tbRound(g,x0,by-4,x1-x0,8,4);g.fill();g.stroke();
+  for(let k=0;k<4;k++){g.fillStyle=k%2?"#000":col("--fg");g.fillRect(x0-1.5,by-6+k*3,3,3)}
+  const pct=T.CarIdxLapDistPct||[],pit=T.CarIdxOnPitRoad||[],surf=T.CarIdxTrackSurface||[],pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,drv=((S.DriverInfo||{}).Drivers||[]),byIdx={};
+  drv.forEach(d=>byIdx[d.CarIdx]=d);const real=drv.filter(d=>!+d.CarIsPaceCar&&!+d.IsSpectator),classes=[...new Set(real.map(d=>+d.CarClassID))].sort((a,b)=>a-b),pal=["#5c9dff","#ffb02e","#38c97c","#ff6fb5","#b98cff","#5ad1c8"];
+  const ccol=d=>{if(classes.length<=1)return "#c9d1da";const cc=+d.CarClassColor;return cc&&cc!==0xffffff?"#"+cc.toString(16).padStart(6,"0"):pal[classes.indexOf(+d.CarClassID)%pal.length]};
+  const xOf=p=>x0+p*(x1-x0),nears=[];
+  pct.forEach((p,i)=>{const d=byIdx[i];if(i===me||p<0||!d||+d.CarIsPaceCar||+d.IsSpectator||surf[i]<0||surf[i]===1)return;g.globalAlpha=pit[i]?.4:1;g.fillStyle=ccol(d);g.beginPath();g.arc(xOf(p),by,4.2,0,7);g.fill();
+    if(pos[i]===1){g.strokeStyle=col("--fg");g.lineWidth=1.2;g.beginPath();g.arc(xOf(p),by,5.6,0,7);g.stroke()}g.globalAlpha=1;
+    if(pct[me]>=0){let dd=p-pct[me];if(dd>.5)dd--;else if(dd<-.5)dd++;nears.push([i,dd])}});
+  if(!(pct[me]>=0))return;nears.sort((a,b)=>Math.abs(a[1])-Math.abs(b[1]));let ah=0,bh=0;g.font="10.5px "+col("--f-data");g.textAlign="center";g.fillStyle=col("--muted");
+  nears.forEach(([i,dd])=>{if(dd>0&&ah<2||dd<0&&bh<2){if(dd>0)ah++;else bh++;const d=byIdx[i];if(d&&d.CarNumber)g.fillText("#"+d.CarNumber,xOf(pct[i]),by+18)}});
+  const x=xOf(pct[me]);g.strokeStyle=col("--fg");g.lineWidth=2;g.beginPath();g.arc(x,by,7.5,0,7);g.stroke();g.fillStyle=col("--accent");g.beginPath();g.arc(x,by,5.5,0,7);g.fill();
+  if(T.PlayerCarPosition>0){g.fillStyle=col("--accent");g.font="700 11px "+col("--f-data");g.fillText("P"+T.PlayerCarPosition,x,by-10)}}
+/* frames a second with the last minute, GPU and CPU, the connection's latency and quality */
+const SYS={fps:[],at:0};
+function renderSystem(){const box=$("#sysBox");if(!box)return;const now=Date.now(),f=T.FrameRate;if(f!=null&&now-SYS.at>=1000){SYS.at=now;SYS.fps.push(f);if(SYS.fps.length>60)SYS.fps.shift()}
+  const pc=v=>v==null?null:Math.round(v<=1?v*100:v),gpu=pc(T.GpuUsage),cpu=pc(T.CpuUsageFG),q=pc(T.ChanQuality);let lat=T.ChanLatency;if(lat!=null&&lat<5)lat*=1000;
+  const bar=(l,v)=>`<div class="row" style="align-items:center;gap:8px;margin-top:6px"><span class="muted" style="min-width:36px">${l}</span><div class="meter" style="flex:1;margin:0"><b style="width:${v||0}%;background:${v>90?"var(--bad)":v>75?"var(--accent)":"var(--blue)"}"></b></div><b class="mono" style="min-width:40px;text-align:right">${v==null?"–":v+"%"}</b></div>`;
+  const top=Math.max(60,...SYS.fps),pts=SYS.fps.map((v,i)=>`${(i/59*120).toFixed(1)},${(40-36*Math.min(1,v/top)).toFixed(1)}`).join(" ");
+  const fc=f==null?"var(--muted)":f<30?"var(--bad)":f<55?"var(--warn,#ffb02e)":"var(--fg)",cc=lat>300||q<60?"var(--bad)":lat>150||q<80?"var(--warn,#ffb02e)":"var(--fg)";
+  box.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:4px"><div class="big mono" style="color:${fc}">${f==null?"–":Math.round(f)} <small>fps</small></div>${SYS.fps.length>1?`<svg width="120" height="42" viewBox="0 0 120 42"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg>`:""}</div>
+    ${bar("GPU",gpu)}${bar("CPU",cpu)}<div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted">${esc(Tx("Connection","Conexión"))}</span><b class="mono" style="color:${cc}">${lat==null?"–":Math.round(lat)+" ms"}${q!=null?` · ${q}%`:""}</b></div>`}
 
 /* ===================== race scheduler (calendar) ===================== */
 Object.assign(I18N,{"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],

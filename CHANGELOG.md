@@ -4,13 +4,21 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.2 beta
+
+- **Four new overlays**: Weather (track and air temperature, the wind against your car, rain and how wet the track
+  is), Car controls (brake bias, TC, ABS, anti-roll bars, diff and maps, lit up as you change them), Track position
+  bar (every car along the lap on one line) and Performance (frames a second, GPU, CPU and the connection).
+- The radar moves the cars around you smoothly and shows three wide as it is; a car coming at you fast turns red
+  before it is beside you, a car that passes you moves back into line little by little, and a car off the track next
+  to you still shows.
+- Fixes and improvements.
+
 ## 0.9.1 beta
 
 - **Your licence in the licence summary**: the class and safety rating of each category, in the licence's colour,
   once you join a session of it with iRacing open.
 - Race charts with bigger points; a lap that does not count (off track) is an empty ring.
-- The radar moves the cars around you smoothly, shows three wide as it is, and a car that passes you moves back
-  into line little by little.
 - Fixes and improvements.
 
 ## 0.9.0 beta

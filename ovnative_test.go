@@ -517,6 +517,7 @@ func TestRadarThreeWideAndMerge(t *testing.T) {
 	now := time.Now()
 	for k := 0; k < 30; k++ {
 		now = now.Add(16 * time.Millisecond)
+		st.at = now // a new sample of the game each time
 		drawRadarOv(newCanvas(260, 300), st, now)
 	}
 	a, b := st.radLat[1], st.radLat[2]
@@ -534,9 +535,79 @@ func TestRadarThreeWideAndMerge(t *testing.T) {
 	set("CarLeftRight", 1)
 	for k := 0; k < 30; k++ {
 		now = now.Add(16 * time.Millisecond)
+		st.at = now // a new sample of the game each time
 		drawRadarOv(newCanvas(260, 300), st, now)
 	}
 	if l := st.radLat[near]; l > -0.2 || l < -0.9 {
 		t.Fatalf("a car that just passed should be easing back into line, got %.2f", l)
+	}
+}
+
+func TestExtraOverlaysDraw(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	set("AirTemp", 21.5)
+	set("TrackTempCrew", 31.2)
+	set("WindVel", 4.2)
+	set("WindDir", 0.8)
+	set("YawNorth", 2.1)
+	set("Skies", 1)
+	set("RelativeHumidity", 0.62)
+	set("Precipitation", 0.2)
+	set("TrackWetness", 4)
+	set("WeatherDeclaredWet", 1)
+	set("SessionTimeOfDay", 52345)
+	set("SolarAltitude", 0.6)
+	set("dcBrakeBias", 54.5)
+	set("dcTractionControl", 3)
+	set("dcTractionControlMax", 12)
+	set("dcPitSpeedLimiterToggle", 1)
+	set("CarIdxOnPitRoad", []float64{0, 0, 1, 0})
+	set("FrameRate", 118)
+	set("GpuUsage", 0.71)
+	set("CpuUsageFG", 0.34)
+	set("ChanLatency", 0.041)
+	set("ChanQuality", 0.98)
+	now := time.Now()
+	for k, tc := range []struct {
+		name string
+		w    int
+	}{{"weather", 360}, {"controls", 340}, {"trackbar", 700}, {"system", 320}} {
+		for pass := 0; pass < 2; pass++ { // twice: the second draw has memory (a changed control, a frame rate kept)
+			if pass == 1 {
+				set("dcTractionControl", 10+k) // another value than any draw before saw
+				now = now.Add(1100 * time.Millisecond)
+			}
+			st.at = now // the game keeps sending
+			c := newCanvas(tc.w, 600)
+			h := ovDraw(tc.name, c, st, now)
+			painted := 0
+			for _, p := range c.px {
+				if p>>24 > 0 {
+					painted++
+				}
+			}
+			if painted == 0 || h < 30 || h > 600 {
+				t.Fatalf("%s: painted %d, height %d", tc.name, painted, h)
+			}
+			ovSavePNG(t, c, h, tc.name)
+		}
+	}
+	// a control that changed lights up; the frame rate history grows
+	if at := st.x5.ctlAt["dcTractionControl"]; at.IsZero() {
+		t.Fatal("the changed control was not noticed")
+	}
+	if len(st.x5.fps) < 2 {
+		t.Fatalf("frame rate history: %d", len(st.x5.fps))
+	}
+	// an empty frame (the game closed) still draws every one
+	st.frame = map[string]json.RawMessage{}
+	for _, n := range []string{"weather", "controls", "trackbar", "system"} {
+		if h := ovDraw(n, newCanvas(400, 600), st, now); h < 30 {
+			t.Fatalf("%s with no data: height %d", n, h)
+		}
 	}
 }
