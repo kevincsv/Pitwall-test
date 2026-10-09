@@ -321,11 +321,13 @@ type ovState struct {
 	onPit   map[int]bool // was on pit road at the last frame
 	sesNum  int
 	lang    string
-	units   string          // "metric" or "imperial", as the app
-	clearAt time.Time       // radar: since when nobody has been near
-	hz      int             // the stream's samples a second (30, the radar 60)
-	radLat  map[int]float64 // radar: each car's place across (−1 left … 1 right), eased from frame to frame
-	radSide map[int]float64 // radar: the side each car was last seen on
+	units   string             // "metric" or "imperial", as the app
+	clearAt time.Time          // radar: since when nobody has been near
+	hz      int                // the stream's samples a second (30, the radar 60)
+	radLat  map[int]float64    // radar: each car's place across (−1 left … 1 right), eased from frame to frame
+	radSide map[int]float64    // radar: the side each car was last seen on
+	radDm   map[int][2]float64 // radar: each car's distance ahead (m) and how fast it changes (m/s), filtered
+	radAt   time.Time          // radar: when that was
 	unitOf  map[string]string
 	live    ovLive        // what the gauges remember between frames (ovnative2.go)
 	sm      *ovSessionMem // what the session overlays remember (ovnative3.go)
@@ -1683,6 +1685,38 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 			}
 		}
 	}
+	// the distances come in steps (the game's samples, other cars' network updates): an alpha-beta filter keeps each
+	// car moving at its own closing speed between them, so it glides instead of jumping or shaking
+	if st.radDm == nil {
+		st.radDm = map[int][2]float64{}
+	}
+	dt := now.Sub(st.radAt).Seconds()
+	st.radAt = now
+	seen := map[int]bool{}
+	for k := range near {
+		i, z := near[k].idx, near[k].dm
+		seen[i] = true
+		f, ok := st.radDm[i]
+		if !ok || dt <= 0 || dt > 0.25 {
+			st.radDm[i] = [2]float64{z, 0}
+			continue
+		}
+		pred := f[0] + f[1]*dt
+		r := z - pred
+		if math.Abs(r) > 15 { // a jump (a reset, a tow): start again from where it is
+			st.radDm[i] = [2]float64{z, 0}
+			continue
+		}
+		x, v := pred+0.5*r, f[1]+0.12*r/dt
+		v = math.Max(-60, math.Min(60, v))
+		st.radDm[i] = [2]float64{x, v}
+		near[k].dm = x
+	}
+	for i := range st.radDm {
+		if !seen[i] {
+			delete(st.radDm, i)
+		}
+	}
 	busy := lr >= 2
 	for _, n := range near {
 		if math.Abs(n.dm) < rng {
@@ -1740,19 +1774,24 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 	case 4:
 		pick(-1, taken)
 		pick(1, taken)
-	case 5:
+	case 5: // three wide, you on the right: one car beside you, the other one beyond it
 		pick(-1, taken)
-		pick(-1, taken)
+		pick(-2, taken)
 	case 6:
 		pick(1, taken)
-		pick(1, taken)
+		pick(2, taken)
 	}
 	for k := range near {
 		i := near[k].idx
-		t := want[i]
+		t, d := want[i], math.Abs(near[k].dm)
 		if t != 0 {
 			st.radSide[i] = t
-		} else if math.Abs(near[k].dm) > 8 {
+		} else if sd := st.radSide[i]; sd != 0 && d > 4.6 {
+			// a car that was beside you and has just passed you (or dropped back) moves back into line little by
+			// little, as cars do, instead of jumping to the middle the moment it stops overlapping
+			t = sd * math.Max(0, 1-(d-4.6)/7)
+		}
+		if d > 12 {
 			delete(st.radSide, i)
 		}
 		cur := st.radLat[i]
@@ -1791,13 +1830,13 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 		}
 		col := uint32(0xc9d1da)
 		switch {
-		case n.lat != 0 || d < CL*1.2:
+		case math.Abs(n.lat) >= 0.5 || d < CL*1.2:
 			col = 0xff4d4f
 		case d < 10:
 			col = colAmber
 		}
 		a := 1.0
-		if n.lat == 0 {
+		if math.Abs(n.lat) < 0.5 {
 			a = math.Max(0.35, 1-d/(rng+3)*0.65)
 		}
 		X, Y := cx+n.lat*LW*ppm, cy-n.dm*ppm
@@ -1808,7 +1847,7 @@ func drawRadarOv(c *ovCanvas, st *ovState, now time.Time) {
 	var best *radarCar
 	for k := range near {
 		n := &near[k]
-		if n.lat == 0 && math.Abs(n.dm) <= rng && (best == nil || math.Abs(n.dm) < math.Abs(best.dm)) {
+		if math.Abs(n.lat) < 0.5 && math.Abs(n.dm) <= rng && (best == nil || math.Abs(n.dm) < math.Abs(best.dm)) {
 			best = n
 		}
 	}

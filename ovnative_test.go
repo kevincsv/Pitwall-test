@@ -494,3 +494,49 @@ func TestRelativeLapsUpDown(t *testing.T) {
 	h := ovDraw("relative", c, st, time.Now())
 	ovSavePNG(t, c, h, "relative-laps")
 }
+
+func TestRadarThreeWideAndMerge(t *testing.T) {
+	st := ovTestState(t, nil)
+	L := st.ses.TrackLen
+	if L <= 0 {
+		t.Skip("no track length")
+	}
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	at := func(m ...float64) []float64 {
+		out := []float64{0.5}
+		for _, x := range m {
+			out = append(out, 0.5+x/L)
+		}
+		return out
+	}
+	set("CarIdxLapDistPct", append(at(1, -1), -1))
+	set("CarLeftRight", 5) // two cars on your left
+	now := time.Now()
+	for k := 0; k < 30; k++ {
+		now = now.Add(16 * time.Millisecond)
+		drawRadarOv(newCanvas(260, 300), st, now)
+	}
+	a, b := st.radLat[1], st.radLat[2]
+	if math.Min(a, b) > -1.8 || math.Max(a, b) > -0.8 || math.Max(a, b) < -1.2 {
+		t.Fatalf("three wide: the cars should be one beside you and one beyond it, got %.2f and %.2f", a, b)
+	}
+	// the car beside you pulls 9 m ahead: it moves back into line little by little, not at once
+	near := 1
+	if b > a {
+		near = 2
+	}
+	pos := []float64{1, -1}
+	pos[near-1] = 9
+	set("CarIdxLapDistPct", append(at(pos...), -1))
+	set("CarLeftRight", 1)
+	for k := 0; k < 30; k++ {
+		now = now.Add(16 * time.Millisecond)
+		drawRadarOv(newCanvas(260, 300), st, now)
+	}
+	if l := st.radLat[near]; l > -0.2 || l < -0.9 {
+		t.Fatalf("a car that just passed should be easing back into line, got %.2f", l)
+	}
+}

@@ -9,6 +9,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - **Your licence in the licence summary**: the class and safety rating of each category, in the licence's colour,
   once you join a session of it with iRacing open.
 - Race charts with bigger points; a lap that does not count (off track) is an empty ring.
+- The radar moves the cars around you smoothly, shows three wide as it is, and a car that passes you moves back
+  into line little by little.
 - Fixes and improvements.
 
 ## 0.9.0 beta

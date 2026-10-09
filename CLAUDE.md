@@ -95,7 +95,7 @@
   you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
 - Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
   whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
-  history, `rivalnames.v2`); the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
+  history, `rivalnames.v2`), with no "rival" tag beside them; the public pages keep them Anonymous. When a driver's own signed-in PC sees them at the wheel
   in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,
   `driver_links`: one iRacing driver per account and one account per driver; admins can undo it).
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
@@ -177,7 +177,9 @@
   moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
   the cars coming, the red side bar and the nearest distance; it reads and draws every sample the game gives (60 a
-  second), each car where its lap distance puts it, and a car beside you keeps its side and slides there smoothly. The windows that need laps record the ones they see.
+  second), each car where its lap distance puts it (an alpha-beta filter glides it at its own closing speed between
+  samples), a car beside you keeps its side and slides there smoothly, three wide puts the second car beyond the first,
+  and a car that stops overlapping eases back into line over the next 7 m. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
   (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, `/api/desk/coach`), Telemetry,
   Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,
