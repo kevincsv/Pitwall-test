@@ -369,6 +369,9 @@ func shareLap(l cloudLap, s cloudSession) {
 		if s.Official != nil {
 			body["official"] = *s.Official
 		}
+		if s.AI {
+			body["ai"] = true
+		}
 		if guest != "" {
 			body["guest"] = guest
 		}

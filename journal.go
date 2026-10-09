@@ -300,6 +300,7 @@ type raceLap struct {
 	Pit  bool    `json:"pit,omitempty"`
 	Cut  bool    `json:"cut,omitempty"` // left the track (cutting a corner): not a valid lap
 	Fuel float64 `json:"f,omitempty"`
+	Drv  string  `json:"drv,omitempty"` // DRINKS mode: the friend at the wheel when the lap ended ("" you)
 	*lapStat
 }
 
@@ -373,6 +374,10 @@ type raceReport struct {
 	Incidents   []incEvent   `json:"incidents,omitempty"` // where on the lap each incident happened  // braking points of you and the drivers around you
 	TrackLen    float64      `json:"trackLen,omitempty"`
 	Posted      bool         `json:"posted,omitempty"`
+	// DRINKS mode: who drove it, when a friend drove any lap of it (you by your public name, in the order they
+	// first drove); one name is that friend's race, several are "Multiple"
+	Drinks []string `json:"drinks,omitempty"`
+	AI     bool     `json:"ai,omitempty"` // a race with iRacing's AI drivers
 }
 
 // lapInc: the incidents of one lap of a race
@@ -562,6 +567,7 @@ func raceWatcher() {
 			if s, ok := myLapStat(cur.pending); ok {
 				rl.lapStat = &s
 			}
+			rl.Drv = fridayDriver()
 			cur.laps = append(cur.laps, rl)
 			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit = cur.pending, 0, inc, fuel, onPit
 		}
@@ -684,6 +690,8 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	if r.Multiclass {
 		r.Start, r.Finish = t.startClass, t.lastClass
 	}
+	r.Drinks = drinksDrivers(r.Laps, ownName())
+	r.AI = hasAI(y)
 	if t.fuel0 > 0 && t.lastFuel >= 0 {
 		r.FuelUsed = round(math.Max(0, t.fuel0-t.lastFuel), 1)
 	}
@@ -838,6 +846,9 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 			continue // bots never go to the community: only real drivers' laps
 		}
 		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
+		if r.AI {
+			b["ai"] = true
+		}
 		if n := strings.TrimSpace(x.Name); n != "" {
 			b["name"] = n // their whole name, as the game shows it
 		}
@@ -1072,3 +1083,47 @@ func notifyRaceSummary(r *raceReport) {
 	}
 	notify("Race summary · "+res, r.Track+" · Open Pitlane HQ → Analysis → Races to see what went well and where you lost time.")
 }
+
+// drinksDrivers: who drove a race when a friend drove any lap of it in DRINKS mode (you by your public name), in the
+// order they first drove; nil when it was all yours
+func drinksDrivers(laps []raceLap, own string) []string {
+	friend := false
+	for _, l := range laps {
+		if l.Drv != "" {
+			friend = true
+			break
+		}
+	}
+	if !friend {
+		return nil
+	}
+	if own == "" {
+		own = "Me"
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, l := range laps {
+		n := l.Drv
+		if n == "" {
+			n = own
+		}
+		if k := strings.ToLower(n); !seen[k] {
+			seen[k] = true
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// ownName: this PC's account's public name ("" when signed out)
+func ownName() string {
+	loadPL()
+	plMu.Lock()
+	defer plMu.Unlock()
+	return plAcc.Display
+}
+
+var aiDriver = regexp.MustCompile(`\n\s*CarIsAI: 1\s`)
+
+// hasAI: the session has iRacing's AI drivers (an AI race, or bots in a hosted one)
+func hasAI(y string) bool { return aiDriver.MatchString(y) }

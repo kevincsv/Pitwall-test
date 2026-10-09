@@ -47,7 +47,8 @@ type cloudSession struct {
 	CarID       int     `json:"carId,omitempty"`
 	Lic         string  `json:"lic,omitempty"`      // your license in this session (iRacing's LicString, e.g. "B 3.21"): the leaderboard's class
 	Cat         string  `json:"cat,omitempty"`      // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
-	Official    *bool   `json:"official,omitempty"` // a session of an official series: only those teach the model
+	Official    *bool   `json:"official,omitempty"` // a session of an official series: those teach the model
+	AI          bool    `json:"ai,omitempty"`       // a session with iRacing's AI drivers: its people's laps teach the model too
 }
 
 type cloudLap struct {
@@ -298,6 +299,7 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 			off := o == "1"
 			s.Official = &off
 		}
+		s.AI = hasAI(y)
 	}
 	if si := listItem(y, "SessionNum", fmt.Sprint(sessionNum)); si != "" {
 		s.Kind = yamlField(si, "SessionType")

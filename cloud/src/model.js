@@ -87,16 +87,17 @@ async function learnNewLaps(env, game, trackId, carId) {
   const a = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
      WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
-       AND LOWER(COALESCE(s.kind,'')) NOT LIKE '%test%' AND COALESCE(s.official,1)<>0
+       AND LOWER(COALESCE(s.kind,'')) NOT LIKE '%test%' AND (COALESCE(s.official,1)<>0 OR s.ai=1)
      ORDER BY a.time LIMIT 3000`).bind(trackId, carId, game).all();
   const c = await env.DB.prepare(
-    `SELECT 'acct:'||user_id AS up, time, trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL AND COALESCE(official,1)<>0 ORDER BY time LIMIT 800`
+    `SELECT 'acct:'||user_id AS up, time, trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL AND (COALESCE(official,1)<>0 OR ai=1) ORDER BY time LIMIT 800`
   ).bind(trackId, carId, game).all();
-  // what it learnt before from a test drive or a session outside the official series leaves its memory
+  // what it learnt before from a test drive or a session outside the official series (other than one against the AI,
+  // whose people are real drivers) leaves its memory
   const out = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time FROM laps a JOIN sessions s ON s.id=a.session_id
      WHERE s.track_id=?1 AND s.car_id=?2 AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
-       AND (LOWER(COALESCE(s.kind,'')) LIKE '%test%' OR s.official=0) LIMIT 3000`).bind(trackId, carId, game).all();
+       AND (LOWER(COALESCE(s.kind,'')) LIKE '%test%' OR (s.official=0 AND COALESCE(s.ai,0)=0)) LIMIT 3000`).bind(trackId, carId, game).all();
   for (const x of out.results || []) {
     const k = await sha(x.up + ":" + x.time.toFixed(3));
     if (!known.has(k)) continue;
@@ -197,7 +198,7 @@ export async function buildModel(env, game, trackId, carId) {
   }
   // the pace of every driver the model knows, with or without telemetry (the rivals of your races
   // whose lap the PC did not see whole still bring their time): where your pace stands among them
-  const timed = await env.DB.prepare("SELECT user_id, MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND time>10 AND COALESCE(official,1)<>0 GROUP BY user_id").bind(trackId, carId, game).all();
+  const timed = await env.DB.prepare("SELECT user_id, MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND time>10 AND (COALESCE(official,1)<>0 OR ai=1) GROUP BY user_id").bind(trackId, carId, game).all();
   const byDrv = new Map();
   for (const l of laps) if (!byDrv.has(l.up) || l.time < byDrv.get(l.up)) byDrv.set(l.up, l.time);
   for (const x of timed.results || []) { const k = await sha("drv:acct:" + x.user_id); if (!byDrv.has(k) || x.t < byDrv.get(k)) byDrv.set(k, x.t); }

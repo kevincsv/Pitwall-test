@@ -21,7 +21,10 @@
   error and no element wider than the screen, tables only inside a scrolling container).
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
-  taken off the list (×: what they shared stays).
+  taken off the list (×: what they shared stays). Every race lap keeps who drove it (`drv`), and a race a friend drove
+  any lap of carries them (`drinks`, you by your public name): My races, Home, the race summary and the phones show a
+  "DRINKS · Ana" badge, or "DRINKS · Multiple" (the names on hover / under it) when several drove; such a race never
+  goes to your public profile.
 - One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
   `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared
   or not; shared laps; the laps of the rivals of your races) and its references are real laps,
@@ -31,7 +34,9 @@
   list is coloured by it. No second "ideal" or theoretical lap anywhere (the Mini-sectors widget and overlay show the
   current lap against your best only, never a lap made of the best pieces).
   Test drives never teach the model nor go to the leaderboards; the model learns only from practice,
-  qualifying and race laps of official series (hosted, league and AI laps still show on the boards).
+  qualifying and race laps of official series and of sessions against iRacing's AI, whose people are real drivers
+  (`ai` on the session and the lap, `hasAI` in journal.go, migration 0035; the bots' laps never go up); hosted and
+  league laps still show on the boards.
   The car card (`car_cards`, one per car, `buildCarCard` in model.js, `/community/car`): what a car
   does on every track it was driven on (hardest braking, the speeds the fast drivers shift up at, top
   speed and where), from the model's memory. The coach shows it against lap A only when nobody known

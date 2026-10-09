@@ -86,10 +86,10 @@ async function keepBestLap(env, uid, x) {
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
   await env.DB.prepare(
-    `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown, lic, cat, official) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
+    `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown, lic, cat, official, ai) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)
      ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown,
-       lic=COALESCE(excluded.lic, community_laps.lic), cat=COALESCE(excluded.cat, community_laps.cat), official=excluded.official`
-  ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick", licOf(x.lic), str(x.cat, 20), officialOf(x.official)).run();
+       lic=COALESCE(excluded.lic, community_laps.lic), cat=COALESCE(excluded.cat, community_laps.cat), official=excluded.official, ai=excluded.ai`
+  ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick", licOf(x.lic), str(x.cat, 20), officialOf(x.official), x.ai ? 1 : null).run();
   await markModel(env, x.game, x.trackId, x.carId);
   return { shared: true, traced: !!x.trace };
 }
@@ -141,7 +141,7 @@ export async function autoShare(env, accountId, sessionId, laps, hint) {
   const { trackId, carId } = await comboIds(env, s, name, g, accountId, hint);
   // the license class of this discipline is the account's current one (kept per discipline)
   if (g === "iracing" && licOf(hint && hint.lic)) await rememberLic(env, accountId, catOf(await catMap(env), trackId, carId, hint && hint.cat, name, s.car), hint.lic).catch(() => {});
-  return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official });
+  return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1 });
 }
 
 // an account's license class in one discipline (the others stay as they were)
@@ -896,7 +896,7 @@ export async function community(req, env, url) {
       // its public name or as Anonymous, as the account chose
       const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1").bind(oid).first();
       if (link) {
-        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
+        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
         if (r.limit) return err("too many uploads today", 429);
         return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
       }
@@ -906,7 +906,7 @@ export async function community(req, env, url) {
         .bind(oid, "other:" + oid, Date.now(), u.id, short || "Anonymous").run();
       if (short) await env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1 AND anon=1").bind(oid).run();
       // on the leaderboard only when the PC says so (faster than you, with their trace); the rest teach the model unseen
-      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
       if (r.limit) return err("too many uploads today", 429);
       return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
     }
@@ -914,7 +914,7 @@ export async function community(req, env, url) {
     if (plainTrace && plainTrace.length > 900000) return err("lap trace too large", 400);
     const trace = await sealData(env, plainTrace);
     // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
-    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, count: () => countUpload(env, u) });
+    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
     if (r.limit) return err("too many uploads today", 429);
     return json(r.kept ? { kept: "your faster lap is already shared" } : { shared: true });
   }

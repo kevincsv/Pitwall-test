@@ -370,3 +370,26 @@ func TestFieldSkipsAI(t *testing.T) {
 		t.Fatalf("only the real rival goes: %v", top)
 	}
 }
+
+// DRINKS mode: a race says who drove it when a friend drove any lap (you by your public name), in order
+func TestDrinksDrivers(t *testing.T) {
+	if d := drinksDrivers([]raceLap{{N: 1}, {N: 2}}, "Kev"); d != nil {
+		t.Fatalf("all mine: %v", d)
+	}
+	if d := drinksDrivers([]raceLap{{N: 1, Drv: "Ana"}, {N: 2, Drv: "ana"}}, "Kev"); len(d) != 1 || d[0] != "Ana" {
+		t.Fatalf("one friend: %v", d)
+	}
+	if d := drinksDrivers([]raceLap{{N: 1}, {N: 2, Drv: "Ana"}, {N: 3, Drv: "Bob"}, {N: 4}}, ""); len(d) != 3 || d[0] != "Me" || d[1] != "Ana" || d[2] != "Bob" {
+		t.Fatalf("several: %v", d)
+	}
+}
+
+// a session with iRacing's AI drivers: its people's laps teach the model, the bots' never go up
+func TestHasAI(t *testing.T) {
+	if hasAI(testRaceYAML) {
+		t.Fatal("no bots in the test race")
+	}
+	if !hasAI(strings.Replace(testRaceYAML, "   UserName: Slow One\n", "   UserName: Slow One\n   CarIsAI: 1\n", 1)) {
+		t.Fatal("a bot in the race")
+	}
+}
