@@ -347,7 +347,9 @@ export async function community(req, env, url) {
     const [l, r] = await Promise.all([q("laps", "x.time,"), q("reports", "x.best AS time,")]);
     const items = [...(l.results || []), ...(r.results || [])].sort((a, b) => b.created - a.created).map((x) => ({
       ...x, shownAs: x.anon ? "Anonymous" : x.shown === "iracing" && x.iracing ? x.iracing : x.alias,
-      realUploader: x.owner ? `${x.alias} (Drinks · ${x.ownerName || x.owner})` : x.account || x.alias,
+      // a rival of a race ("o:…", shared by the PC that raced them) is not a Drinks driver ("guest-…", who drove that PC)
+      via: !x.owner ? "account" : String(x.userId).startsWith("o:") ? "rival" : "drinks",
+      realUploader: !x.owner ? x.account || x.alias : String(x.userId).startsWith("o:") ? `${x.alias} (race rival · shared by ${x.ownerName || x.owner})` : `${x.alias} (Drinks · ${x.ownerName || x.owner})`,
     }));
     return json({ items });
   }
