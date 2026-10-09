@@ -47,20 +47,20 @@ public sealed class Engine : IDisposable
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(exe) ?? AppContext.BaseDirectory,
         };
-        _proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not start PitlaneHQ.exe");
+        _proc = Process.Start(psi) ?? throw new InvalidOperationException("Could not start Pitlane HQ Agent");
         _proc.ErrorDataReceived += (_, _) => { };
         _proc.BeginErrorReadLine();
         var deadline = DateTime.UtcNow.AddSeconds(20);
         while (DateTime.UtcNow < deadline && (Url == "" || Token == ""))
         {
             ct.ThrowIfCancellationRequested();
-            if (_proc.HasExited) throw new InvalidOperationException("PitlaneHQ.exe stopped while starting");
+            if (_proc.HasExited) throw new InvalidOperationException("Pitlane HQ Agent stopped while starting");
             var line = await _proc.StandardOutput.ReadLineAsync(ct);
             if (line == null) break;
             if (line.StartsWith("PITLANEHQ_URL=")) Url = line["PITLANEHQ_URL=".Length..].Trim();
             if (line.StartsWith("PITLANEHQ_TOKEN=")) Token = line["PITLANEHQ_TOKEN=".Length..].Trim();
         }
-        if (Url == "" || Token == "") throw new InvalidOperationException("PitlaneHQ.exe did not give its address (is it 0.6.2 or newer?)");
+        if (Url == "" || Token == "") throw new InvalidOperationException("Pitlane HQ Agent did not answer (update it from pitlanehq.app)");
         Base = Url[..Url.IndexOf('/', "http://".Length)];
         _http.DefaultRequestHeaders.Add("Cookie", "pw_lt=" + Token);
         // the rest of stdout is the engine's log: keep reading so it never blocks

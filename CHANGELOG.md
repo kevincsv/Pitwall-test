@@ -1,6 +1,6 @@
 # Changelog
 
-Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share one version
+Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the phone apps share one version
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
@@ -152,7 +152,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - Race charts you can hover or touch.
 
 **Changed**
-- Pitlane HQ lives at https://pitlanehq.app and installs with PitlaneHQ-Setup.exe.
+- Pitlane HQ lives at https://pitlanehq.app and installs with one installer.
 - Laps that do not count are grey and crossed out.
 - Fixes and improvements.
 

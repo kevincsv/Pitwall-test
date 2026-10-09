@@ -58,7 +58,7 @@ public partial class MainWindow : Window
         var exe = Engine.FindExe(Environment.GetCommandLineArgs().Skip(1).ToArray());
         if (exe == null)
         {
-            StartError.Text = T("PitlaneHQ.exe was not found. Put PitlaneHQ.Desktop.exe in the same folder as PitlaneHQ.exe.", "No se encontró PitlaneHQ.exe. Pon PitlaneHQ.Desktop.exe en la misma carpeta que PitlaneHQ.exe.");
+            StartError.Text = T("Pitlane HQ Agent was not found on this PC. Install it from pitlanehq.app, then open Pitlane HQ again.", "No se encontró Pitlane HQ Agent en este PC. Instálalo desde pitlanehq.app y vuelve a abrir Pitlane HQ.");
             EngineText.Text = "Engine: not found";
             return;
         }

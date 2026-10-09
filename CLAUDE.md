@@ -278,6 +278,12 @@
   schedules no browser notifications): what it has to say shows inside the app.
 - PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
   itself when no sim is running (unless switched off in Settings → About).
+- People see the PC program as "Pitlane HQ Agent" (or "the agent"), never "PitlaneHQ.exe" (the file keeps its name):
+  on the web, the PC app, Pitlane HQ Desktop, the phones, the downloads page and the changelog. Away from the PC (the web,
+  the phones) a text never says "this PC": it is "your PC" (`PC_WORDS`/`devWords` in index.html turn every "this PC",
+  "este PC", "diesem PC", "neste PC" into the driver's). The web in a computer's browser, signed in, says when the
+  agent is not detected (no presence from your PC on the account) with "Download for Windows" and a ×, closed for that
+  tab (`agentBar`); never on the PC app nor the phones.
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
   The Android and iOS apps live in their own repository.
 - One app everywhere: `web/dist` is the PC app and the web app at `/app` (computers and phones).
