@@ -1,6 +1,19 @@
 {
   "versions": [
     {
+      "v": "0.9.6",
+      "en": [
+        "The league hub: every league is a post with the days it races, the usual start in its time zone and in yours, its next race, its disciplines, its Discord or website and whether it is looking for drivers.",
+        "Post your league and see how many times it was opened and its links pressed, day by day.",
+        "Your licence on Home is only what the game shows in a session."
+      ],
+      "es": [
+        "El hub de ligas: cada liga es un post con los días que corre, la hora habitual en su zona horaria y en la tuya, su próxima carrera, sus disciplinas, su Discord o su web y si busca pilotos.",
+        "Publica tu liga y ve cuántas veces se abrió y se pulsaron sus enlaces, día a día.",
+        "Tu licencia en Inicio es solo la que el juego muestra en una sesión."
+      ]
+    },
+    {
       "v": "0.9.0",
       "en": [
         "Overlays for everyone, drawn by Pitlane HQ itself, with the live preview next to their settings.",

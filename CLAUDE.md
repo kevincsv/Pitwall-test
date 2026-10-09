@@ -148,8 +148,19 @@
   They never show iRacing names: nicknames, or Anonymous.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
-- Leagues (in development, admins only until LEAGUES_OPEN=1): drivers post their league with a
-  Discord invite, its schedule, cars and language.
+- Leagues are a hub of posts (Community → Leagues on the web, the PC and the phones; `LEAG`/`leagCard`/`leagOpen` in
+  index.html, `LeagueHub` on the phones, `/community/leagues` in community.js, migration 0033): a league post has the
+  days it races (`days`, 0 Monday … 6 Sunday), the usual start (`time`) in its own time zone (`tz`, the browser's or
+  phone's when posted), one or several disciplines (`cats`; several = "Mixed"), an optional Discord invite and website
+  (one of the two at least), the cars, the language, "looking for drivers" (`open`) and what the creator writes.
+  Every card shows a week strip, the start in the league's zone and in the viewer's, the next race (`leagNext`,
+  `leagueNext`: the first of its days at its time, a race under way counts) and sorts by it; filters by discipline,
+  day, open and search. A post opened counts a view and its Discord or website a click, once per viewer and day
+  (`league_hits`, the account or a hash of network and browser), never the creator's own; only the creator (and the
+  admins) see the counts and the last 14 days (`league_days`). A post has a link (pitlanehq.app/app?league=id,
+  opened on arrival) and, on the web, an .ics of its weekly race. In development: the server opens the hub to
+  everyone with LEAGUES_OPEN=1; until then it answers "in development" and every app shows the card for it (admins
+  see the hub). Up to 5 leagues per driver.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
   the leagues, the latest sessions, the server's emails and the tools (rebuild the coach models; the

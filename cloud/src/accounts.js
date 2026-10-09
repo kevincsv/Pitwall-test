@@ -104,6 +104,8 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM login_pending WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM profile_races WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM league_hits WHERE league_id IN (SELECT id FROM leagues WHERE owner=?1)").bind(id),
+  env.DB.prepare("DELETE FROM league_days WHERE league_id IN (SELECT id FROM leagues WHERE owner=?1)").bind(id),
   env.DB.prepare("DELETE FROM leagues WHERE owner=?1").bind(id),
   env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
 ];

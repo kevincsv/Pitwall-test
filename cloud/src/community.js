@@ -467,45 +467,97 @@ export async function community(req, env, url) {
     ]);
     return json({ ok: true, races: list.length });
   }
-  // leagues: drivers post their league with a direct link to its Discord. In development: only the admins see
-  // and post them until LEAGUES_OPEN is "1"; the owner of a league (or an admin) edits or removes it
+  // the league hub: a league is a post (the days it races, the usual start in its time zone, one or several
+  // disciplines, an optional Discord invite and website, whether it is looking for drivers), everyone browses the
+  // posts, and each creator sees the views and clicks theirs get: one view per viewer and day when the post is
+  // opened, one click per viewer, day and link, never the creator's own. In development: only the admins until
+  // LEAGUES_OPEN is "1"; the owner of a league (or an admin) edits or removes it
   if (p === "/leagues" || p.startsWith("/leagues/")) {
     const who = await sessionAccount(req, env).catch(() => null), admin = !!who && isAdmin(env, who.id);
     if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
-    const lid = p.startsWith("/leagues/") ? p.slice(9) : "";
-    const row = (x) => ({ id: x.id, name: x.name, about: x.about || "", cat: x.cat || null, discord: x.discord, web: x.web || "", schedule: x.schedule || "", cars: x.cars || "", lang: x.lang || "",
-      created: x.created, updated: x.updated, mine: !!who && x.owner === who.id, by: x.alias || "Driver" });
+    const parts = p.slice(9).split("/").filter(Boolean), lid = parts[0] || "", sub = parts[1] || "";
+    const lst = (v) => { try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+    const row = (x) => {
+      const cats = lst(x.cats).filter((c) => CATS.includes(c));
+      const o = { id: x.id, name: x.name, about: x.about || "", cat: cats.length === 1 ? cats[0] : null, cats, days: lst(x.days).map(Number).filter((d) => d >= 0 && d <= 6),
+        time: x.time || "", tz: x.tz || "", open: !!x.open, discord: x.discord || "", web: x.web || "", schedule: x.schedule || "", cars: x.cars || "", lang: x.lang || "",
+        created: x.created, updated: x.updated, mine: !!who && x.owner === who.id, by: x.alias || "Driver" };
+      if (o.mine || admin) { o.views = x.views || 0; o.clicks = x.clicks || 0; }
+      return o;
+    };
     if (m === "GET" && !lid) {
       const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner ORDER BY l.updated DESC LIMIT 300").all();
-      return json({ leagues: (r.results || []).map(row), admin });
+      return json({ leagues: (r.results || []).map(row), admin, open: env.LEAGUES_OPEN === "1" });
+    }
+    const cur = lid ? await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.id=?1").bind(lid).first() : null;
+    if (lid && !cur) return err("league not found", 404);
+    if (m === "GET") {
+      // one post, with its last 14 days of views and clicks for its creator (and the admins)
+      const o = row(cur);
+      let days = [];
+      if (o.views !== undefined) {
+        const since = new Date(Date.now() - 13 * 864e5).toISOString().slice(0, 10);
+        const r = await env.DB.prepare("SELECT day, views, clicks FROM league_days WHERE league_id=?1 AND day>=?2 ORDER BY day").bind(lid, since).all();
+        days = (r.results || []).map((d) => ({ day: d.day, views: d.views || 0, clicks: d.clicks || 0 }));
+      }
+      return json({ league: o, days });
     }
     if (m !== "POST") return err("not found", 404);
+    if (lid && sub === "hit") {
+      // a view (the post opened) or a click (its Discord or website): once per viewer and day, never the creator's
+      const kind = ["view", "discord", "web"].includes(body.kind) ? body.kind : "";
+      if (!kind) return err("what was it", 400);
+      if (who && who.id === cur.owner) return json({ ok: true, counted: false });
+      const viewer = who ? "a:" + who.id : "n:" + (await sha256("league-viewer|" + (env.DATA_KEY || "") + "|" + (req.headers.get("cf-connecting-ip") || "") + "|" + (req.headers.get("user-agent") || ""))).slice(0, 24);
+      const day = new Date().toISOString().slice(0, 10);
+      const ins = await env.DB.prepare("INSERT OR IGNORE INTO league_hits (league_id, viewer, day, kind) VALUES (?1,?2,?3,?4)").bind(lid, viewer, day, kind).run();
+      if (!(ins.meta && ins.meta.changes)) return json({ ok: true, counted: false });
+      const col = kind === "view" ? "views" : "clicks";
+      const q = [
+        env.DB.prepare(`UPDATE leagues SET ${col}=${col}+1 WHERE id=?1`).bind(lid),
+        env.DB.prepare(`INSERT INTO league_days (league_id, day, ${col}) VALUES (?1,?2,1) ON CONFLICT(league_id, day) DO UPDATE SET ${col}=${col}+1`).bind(lid, day),
+      ];
+      if (Math.random() < 0.02) q.push(env.DB.prepare("DELETE FROM league_hits WHERE day < ?1").bind(new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10)));
+      await env.DB.batch(q);
+      return json({ ok: true, counted: true });
+    }
     if (!who) return err("sign in with your Pitlane HQ account", 401);
-    const cur = lid ? await env.DB.prepare("SELECT * FROM leagues WHERE id=?1").bind(lid).first() : null;
-    if (lid && (!cur || (cur.owner !== who.id && !admin))) return err("league not found", 404);
+    if (lid && cur.owner !== who.id && !admin) return err("league not found", 404);
     if (lid && body.delete) {
-      await env.DB.prepare("DELETE FROM leagues WHERE id=?1").bind(lid).run();
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM league_hits WHERE league_id=?1").bind(lid),
+        env.DB.prepare("DELETE FROM league_days WHERE league_id=?1").bind(lid),
+        env.DB.prepare("DELETE FROM leagues WHERE id=?1").bind(lid),
+      ]);
       return json({ ok: true, deleted: true });
     }
     const txt = (v, n) => (typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, n) : "");
     const link = (v, re) => { const t = txt(v, 200); return re.test(t) ? t : ""; };
     const discord = link(body.discord, /^https:\/\/(discord\.gg|(www\.)?discord\.com\/invite)\/[A-Za-z0-9-]{2,40}\/?$/);
+    const web = link(body.web, /^https:\/\/[^\s"'<>]{4,190}$/);
     const name = txt(body.name, 60);
     if (name.length < 3) return err("the league needs a name", 400);
-    if (!discord) return err("the Discord link must be an invite: https://discord.gg/… or https://discord.com/invite/…", 400);
-    const x = { name, about: txt(body.about, 600), cat: CATS.includes(body.cat) ? body.cat : null, discord, web: link(body.web, /^https:\/\/[^\s"'<>]{4,190}$/),
-      schedule: txt(body.schedule, 80), cars: txt(body.cars, 120), lang: txt(body.lang, 30) };
+    if (txt(body.discord, 200) && !discord) return err("the Discord link must be an invite: https://discord.gg/… or https://discord.com/invite/…", 400);
+    if (txt(body.web, 200) && !web) return err("the website must be an https:// address", 400);
+    if (!discord && !web) return err("give drivers a way in: a Discord invite or a website", 400);
+    const cats = Array.isArray(body.cats) ? [...new Set(body.cats.filter((c) => CATS.includes(c)))] : CATS.includes(body.cat) ? [body.cat] : [];
+    const days = Array.isArray(body.days) ? [...new Set(body.days.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b) : [];
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(body.time || "")) ? String(body.time) : "";
+    let tz = txt(body.tz, 60);
+    try { if (tz) new Intl.DateTimeFormat("en", { timeZone: tz }); } catch (e) { tz = ""; }
+    const x = { name, about: txt(body.about, 600), cat: cats.length === 1 ? cats[0] : null, cats: JSON.stringify(cats), days: JSON.stringify(days), time, tz: time ? tz : "",
+      open: body.open === undefined ? 1 : body.open ? 1 : 0, discord, web, schedule: txt(body.schedule, 80), cars: txt(body.cars, 120), lang: txt(body.lang, 30) };
     const now = Date.now();
     if (cur) {
-      await env.DB.prepare("UPDATE leagues SET name=?2, about=?3, cat=?4, discord=?5, web=?6, schedule=?7, cars=?8, lang=?9, updated=?10 WHERE id=?1")
-        .bind(lid, x.name, x.about, x.cat, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
+      await env.DB.prepare("UPDATE leagues SET name=?2, about=?3, cat=?4, cats=?5, days=?6, time=?7, tz=?8, open=?9, discord=?10, web=?11, schedule=?12, cars=?13, lang=?14, updated=?15 WHERE id=?1")
+        .bind(lid, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
       return json({ ok: true, id: lid });
     }
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first();
     if (n && n.n >= 5 && !admin) return err("you can post up to 5 leagues", 429);
     const id = rid();
-    await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, discord, web, schedule, cars, lang, created, updated) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
-      .bind(id, who.id, x.name, x.about, x.cat, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
+    await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, cats, days, time, tz, open, discord, web, schedule, cars, lang, created, updated) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?16)")
+      .bind(id, who.id, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
     return json({ ok: true, id });
   }
   // a driver's profile, opened from one of their laps on a leaderboard (or yours, ?me=1): their nickname (never

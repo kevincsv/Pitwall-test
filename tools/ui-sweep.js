@@ -3,7 +3,7 @@
 // full-page screenshot of each view in <outdir>/ui/. Serve web/dist first (python3 -m http.server 8799 from
 // web/dist); needs Playwright (npm i playwright, and its Chromium). Run: node tools/ui-sweep.js <outdir>
 const { chromium } = require('playwright');
-const views=["home","laps","coach","cloudlaps","races","live","overlays","community","me","settings"];
+const views=["home","laps","coach","cloudlaps","races","live","overlays","community","leagues","me","settings"];
 (async () => {
   const b = await chromium.launch();
   for (const width of [1300, 390]) {
