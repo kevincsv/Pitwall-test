@@ -349,3 +349,24 @@ func TestLicClassAndTestDrive(t *testing.T) {
 		t.Fatalf("a rival's lap carries their class, the discipline and the official flag: %v", top)
 	}
 }
+
+// AI drivers (an AI race, or bots filling a hosted one) and the pace car never go to the community
+func TestFieldSkipsAI(t *testing.T) {
+	y := strings.Replace(testRaceYAML, "   UserName: Fast One\n", "   UserName: Fast One\n   CarIsAI: 1\n", 1)
+	if y == testRaceYAML {
+		t.Fatal("the test race has no Fast One to turn into a bot")
+	}
+	res := sessionResults(y, 2)
+	if len(res) != 3 || !res[0].ai || res[2].ai {
+		t.Fatalf("AI flag: %+v", res)
+	}
+	r := &raceReport{TrackID: 515, Track: "Navarra", Best: 99, Results: res}
+	for _, b := range fieldTopLaps(r) {
+		if b["name"] == "Fast One" {
+			t.Fatalf("a bot's lap would go to the community: %v", b)
+		}
+	}
+	if top := fieldTopLaps(r); len(top) != 1 || top[0]["name"] != "Slow One" {
+		t.Fatalf("only the real rival goes: %v", top)
+	}
+}

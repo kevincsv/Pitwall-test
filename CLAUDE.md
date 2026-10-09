@@ -99,7 +99,8 @@
   standings (native overlays, the app, Pitlane HQ Desktop) and in the race summary, where you mark them (✎; the phone
   apps tap the driver and write the account's bundle); Analysis → My races lists them; the engineer warns you when a driver
   you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
-- Race rivals (the other drivers of your races, whose best laps your PC shares) show on the leaderboards with their
+- Race rivals (the other real drivers of your races, whose best laps your PC shares; AI drivers and the pace car never,
+  `CarIsAI`/`CarIsPaceCar`, `ai` in journal.go) show on the leaderboards with their
   whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
   history, `rivalnames.v2`), with no "rival" tag beside them, on the public pages too. When a driver's own signed-in PC sees them at the wheel
   in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,

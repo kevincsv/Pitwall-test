@@ -323,6 +323,7 @@ type raceResult struct {
 	K        string    `json:"k,omitempty"`   // the driver's opaque key (driverKey): your notes on them find them by it
 	carIdx   int
 	key      string // an opaque key of the driver (never their id or name): the same driver gets the same key
+	ai       bool   // an AI driver (or the pace car): never shared, never on a leaderboard nor in the model
 }
 
 // driverKey: the key of an iRacing driver for the community's anonymous laps, from their customer
@@ -606,6 +607,7 @@ func sessionResults(y string, sn int) []raceResult {
 			r.Name, r.Car, r.Class = yamlField(d, "UserName"), yamlField(d, "CarScreenName"), yamlField(d, "CarClassShortName")
 			r.IR, r.ClassID, r.CarID = atoi(yamlField(d, "IRating")), atoi(yamlField(d, "CarClassID")), atoi(yamlField(d, "CarID"))
 			r.key = driverKey(yamlField(d, "UserID"))
+			r.ai = yamlField(d, "CarIsAI") == "1" || yamlField(d, "CarIsPaceCar") == "1"
 			r.K = r.key
 			r.Lic = licClass(yamlField(d, "LicString"))
 			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
@@ -821,7 +823,8 @@ func licClass(s string) string {
 	return ""
 }
 
-// fieldTopLaps: the best lap of every other driver of your class (your own laps go the usual way), as
+// fieldTopLaps: the best lap of every other real driver of your class (your own laps go the usual way; AI drivers
+// never), as
 // the community takes them: time, sectors, car and track, the speed trace their position gave when
 // the PC saw the lap whole, an opaque key per driver and their whole name as the game shows it. Only the faster rivals with a trace show on the leaderboard; the rest feed the
 // model unseen.
@@ -831,8 +834,8 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		return nil
 	}
 	for _, x := range r.Results {
-		if x.Me || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
-			continue
+		if x.Me || x.ai || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
+			continue // bots never go to the community: only real drivers' laps
 		}
 		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
 		if n := strings.TrimSpace(x.Name); n != "" {
