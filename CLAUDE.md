@@ -154,6 +154,14 @@
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts, the charts, the map, the sectors, the lap list and the braking points.
+  The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):
+  the phase that loses the most says the tip; a generic one gives way to what the data shows plainly, in this order:
+  the line (inside/outside), the gear at the apex against the reference's, throttle lifts after the apex (exit),
+  steering corrections in the corner (PC and web only: the phones' traces carry no steering). The PC's coach overlay
+  measures the last lap against the model's next level when it is faster than the session's best, else the best.
+- The model (`cloud/src/model.js`, MODEL_VERSION 7) learns clean traces only (a speed jump over 10 m/s between two
+  points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
+  lap with real pedals, and `idealField` says when the record is a rival's.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
   NASCAR 26, team mode, leagues and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
@@ -204,6 +212,17 @@
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside
   the preview, tagged "Sample data" (`previewDemoTick`), and switches to the real data once the game sends it.
   (`wipOk()`/`wipView()` in index.html, `wipAllowed()` in Go).
+  What the overlays show beyond the basics (`ovnative6.go` keeps the memory): the flags show the start lights (ready,
+  set, go), a green for 4 s only, debris, 10 and 5 to go, one lap to green, disqualified; the delta bar a ▲/▼ for the
+  last second's trend; the relative and the standings colour the car number by class when several race and offer a
+  "pace" column (their last lap against yours); the dash lights the brake bar with the ABS and carries a strip with
+  the lap, the place, the delta and the incidents; the timing times the official sectors (SplitTimeInfo) of the lap,
+  purple for the session's best, green when better than your best lap's; the fuel says the last lap's use and what
+  you may use per lap to finish without a stop; the engine shows the game's EngineWarnings (rows in red, badges for
+  the pit limiter, the rev limiter and a stalled engine); the tyres show the three zones (inside, middle, outside)
+  and the pressure; the pit stop overlay turns into the pit lane on the pit road (your speed against
+  TrackPitSpeedLimit, red when over, the stop's repairs and fuel); the map numbers the official turns and colours the
+  classes; the braking markers and the coach name corners by the official turns (`turnName`).
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
   changes from several devices are merged (`syncmerge.go`), never a "which copy" question. When the server

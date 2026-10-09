@@ -11,7 +11,7 @@
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 6; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known
+export const MODEL_VERSION = 7; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals
 export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -36,16 +36,20 @@ function segTimes(l, M, n) {
 // a lap is only used when its telemetry is whole and believable
 function goodLap(time, tr) {
   if (!tr || !Array.isArray(tr.d) || tr.d.length < 60) return null;
-  const bins = tr.d.map((x) => [+x[0], +x[5], +x[1], +x[2], +x[3], +x[4]]);
-  let back = 0, prev = -1;
+  const bins = tr.d.map((x) => [+x[0], +x[5], Math.min(1, Math.max(0, +x[1] || 0)), Math.min(1, Math.max(0, +x[2] || 0)), +x[3], +x[4]]);
+  let back = 0, jumps = 0, prev = -1, prevV = null;
   for (const b of bins) {
     if (!(b[0] >= 0 && b[0] < 130) || !isFinite(b[1])) return null; // speed in m/s, a time on every bin
     if (b[1] < prev - 0.05) back++;
     prev = b[1];
+    // a speed that jumps more than 10 m/s between two points 5 m apart is a glitch of the recording, not driving:
+    // one such lap would give the coach a corner that is not there
+    if (prevV != null && Math.abs(b[0] - prevV) > 10) jumps++;
+    prevV = b[0];
   }
-  if (back > 2) return null;                                   // lap time going backwards: broken recording
+  if (back > 2 || jumps > 2) return null;                      // lap time going backwards, or a broken recording
   if (bins[bins.length - 1][1] > time + 2) return null;        // the trace does not match the lap time
-  return { time, bins };
+  return { time, bins, field: tr.src === "field" };
 }
 
 const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("").slice(0, 24);
@@ -109,7 +113,7 @@ async function learnNewLaps(env, game, trackId, carId) {
     try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
     if (!goodLap(x.time, tr)) continue;
     await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT DO NOTHING")
-      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.d)), Date.now()).run();
+      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" ? { d: tr.d, src: "field" } : tr.d)), Date.now()).run();
     added++;
   }
   return { added, more: false };
@@ -127,6 +131,9 @@ async function lapPath(env, game, trackId, carId, time) {
   for (const row of a.results || []) { const p = await open(row); if (p) return p; }
   return null;
 }
+
+// a lap as the memory keeps it: the points alone, or with "field" for a rival's lap (its pedals estimated from its speed)
+const memTrace = (v) => (Array.isArray(v) ? { d: v } : { d: v.d, src: v.src });
 
 // what the model learns from: its memory, the best few laps of every driver
 async function candidates(env, game, trackId, carId) {
@@ -151,7 +158,7 @@ async function candidates(env, game, trackId, carId) {
   for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS) pick.push(x);
   const laps = [];
   for (const x of pick) {
-    try { const g = goodLap(x.time, { d: JSON.parse(await gunz(x.data)) }); if (g) { g.up = x.drv; laps.push(g); } } catch (e) {}
+    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) { g.up = x.drv; laps.push(g); } } catch (e) {}
   }
   return { laps, drivers, more: learnt.more, added: learnt.added };
 }
@@ -210,9 +217,12 @@ export async function buildModel(env, game, trackId, carId) {
     const t = fastest.time * (1 + j * LADDER_STEP);
     let g = sorted.filter((l) => l.time < t * 0.997 && l.time > t * 0.97);
     if (!g.length) g = sorted.filter((l) => l.time < t * 0.997); // nobody that close ahead: the nearest faster lap
-    const pick = g.length ? g[g.length - 1] : fastest;
+    // among them, the driver just ahead whose pedals are real (a rival's lap only has them estimated from its
+    // speed): the coach's braking and throttle tips mean more; without one, the nearest lap ahead as before
+    const real = g.filter((l) => !l.field);
+    const pick = real.length ? real[real.length - 1] : g.length ? g[g.length - 1] : fastest;
     if (ladder.length && ladder[ladder.length - 1].lap === pick) { ladder[ladder.length - 1].upTo = t; continue; }
-    ladder.push({ lap: pick, upTo: t, time: r(pick.time, 1000), n: 1, seg: pick.seg.map((x) => r(x, 1000)), bins: compact(pick) });
+    ladder.push({ lap: pick, upTo: t, time: r(pick.time, 1000), n: 1, field: !!pick.field, seg: pick.seg.map((x) => r(x, 1000)), bins: compact(pick) });
   }
   // the line of each reference: the path its car drove, from the lap's own trace, so the coach can tell where on
   // the track you were against it (the record whole, the next levels one point in two like their bins)
@@ -236,7 +246,7 @@ export async function buildModel(env, game, trackId, carId) {
   }
   return {
     ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times, lineXY,
-    ideal: record,
+    ideal: record, idealField: !!fastest.field,
     idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)) } : null,
     ladder: out,
   };
@@ -301,7 +311,7 @@ export async function buildCarCard(env, game, carId) {
   }
   const laps = [];
   for (const x of pick) {
-    try { const g = goodLap(x.time, { d: JSON.parse(await gunz(x.data)) }); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins }); } catch (e) {}
+    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins }); } catch (e) {}
   }
   const card = { v: CARD_VERSION, game, carId, built: Date.now(), ...cardOf(laps) };
   if (card.vmaxAt) {

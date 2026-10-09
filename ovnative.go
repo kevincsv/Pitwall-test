@@ -297,6 +297,8 @@ type ovDriver struct {
 type ovSession struct {
 	TrackLen float64
 	IncLimit int
+	Sectors  []float64 // the official sectors (SplitTimeInfo), as fractions of the lap where each starts
+	PitLimit float64   // the pit lane's speed limit (m/s), 0 when unknown
 	Drivers  map[int]*ovDriver
 	Sessions map[int]ovSess
 	Grid     map[int][2]int     // car → qualifying place, class place (1 = first)
@@ -332,6 +334,7 @@ type ovState struct {
 	radAt   time.Time          // radar: when that was
 	radSeen time.Time          // radar: the game's sample the filter last took (a draw without a new one only predicts)
 	x5      ovMem5             // what the weather, controls, track bar and performance overlays remember (ovnative5.go)
+	x6      ovMem6             // the delta's trend, the flags' timing, the official sectors (ovnative6.go)
 	unitOf  map[string]string
 	live    ovLive        // what the gauges remember between frames (ovnative2.go)
 	sm      *ovSessionMem // what the session overlays remember (ovnative3.go)
@@ -457,6 +460,14 @@ func parseOvSession(y string) *ovSession {
 	s.MyIdx = atoi(yamlField(y, "DriverCarIdx"))
 	s.TrackLen = trackLength(y)
 	s.IncLimit = atoi(strings.TrimPrefix(yamlField(y, "IncidentLimit"), "unlimited"))
+	if f := strings.Fields(yamlField(y, "TrackPitSpeedLimit")); len(f) >= 1 { // "60.00 kph"
+		if v, err := strconv.ParseFloat(f[0], 64); err == nil && v > 0 {
+			s.PitLimit = v / 3.6
+			if len(f) > 1 && strings.HasPrefix(strings.ToLower(f[1]), "mph") {
+				s.PitLimit = v * 0.44704
+			}
+		}
+	}
 	section := ""
 	var drv *ovDriver
 	sesNum := -1
@@ -491,6 +502,12 @@ func parseOvSession(y string) *ovSession {
 		}
 		v = strings.Trim(strings.TrimSpace(v), `"`)
 		switch section {
+		case "SplitTimeInfo":
+			if k == "SectorStartPct" {
+				if f, err := strconv.ParseFloat(v, 64); err == nil && f >= 0 && f < 1 {
+					s.Sectors = append(s.Sectors, f)
+				}
+			}
 		case "DriverInfo":
 			if item && k == "CarIdx" {
 				drv = &ovDriver{Idx: atoi(v)}
@@ -1098,6 +1115,16 @@ func drawDeltaOv(c *ovCanvas, st *ovState, z float64) int {
 	pw := textW(vf, s) + 24*z
 	c.roundRect(tx+tw/2-pw/2, ty+th/2-13*z, pw, 26*z, 13*z, 0x090c11, 0.92, colLine, 1, 1)
 	c.text(vf, s, tx+tw/2, ty+th/2, col, 1, 2)
+	// the trend: where the delta is going this last second (gaining ▼ in green, losing ▲ in red), beside the pill
+	if tr, has := st.deltaTrend(d, ok); has {
+		tf := ovFace(fkDataB, 12*z)
+		x := tx + tw/2 + pw/2 + 8*z
+		if tr > 0 {
+			c.text(tf, "▲", x, ty+th/2, colBad, 0.95, 0)
+		} else {
+			c.text(tf, "▼", x, ty+th/2, colGood, 0.95, 0)
+		}
+	}
 	return int(math.Ceil(H))
 }
 
@@ -1149,6 +1176,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		y += strip(c, st, head, pad, y, W-pad, z) + 4*z
 	}
 	irc := st.irEstimates()
+	multi := st.multiClass()
 	tf, nf, mf := ovFace(fkData, 10.5*z), ovFace(fkBody, 14*z), ovFace(fkData, 13*z)
 	lf, pf := ovFace(fkDataB, 10.5*z), ovFace(fkData, 9.5*z)
 	ttr := 0.6 * z
@@ -1247,6 +1275,13 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			}
 			cy := y + rowH/2
 			switch {
+			case ci.key == "num" && multi:
+				// several classes: the car's number in its class's colour, so you see who races you
+				nc := col
+				if d := st.ses.Drivers[r.idx]; d != nil && d.ClassCol != 0 && d.ClassCol != 0xffffff {
+					nc = d.ClassCol
+				}
+				c.text(f, v, x, cy, nc, a, 0)
 			case ci.key == "lic" && v != "–":
 				// the app's licence badge: the class colour darkened, its border in the colour, white text
 				lc := licColor(v)
@@ -1343,6 +1378,8 @@ func (st *ovState) colTitle(k string) (string, bool) {
 		return T("Tyre", "Neum."), false
 	case "inc":
 		return "Inc", true
+	case "pace":
+		return T("Pace", "Ritmo"), true
 	}
 	return "", false
 }
@@ -1463,6 +1500,21 @@ func (st *ovState) cell(k string, r ovRow, irc map[int]int) (string, uint32, boo
 		return "–", colMuted, true
 	case "inc":
 		return fmt.Sprintf("%dx", d.Inc), colText, true
+	case "pace":
+		// their last lap against yours: red when they are faster (a threat), green when slower
+		me, _ := st.num("PlayerCarIdx")
+		last := st.arr("CarIdxLastLapTime")
+		if int(me) < len(last) && i < len(last) && last[int(me)] > 0 && last[i] > 0 && i != int(me) {
+			dv := last[i] - last[int(me)]
+			col := uint32(colMuted)
+			if dv < -0.1 {
+				col = colBad
+			} else if dv > 0.1 {
+				col = colGood
+			}
+			return signed(dv, 1), col, true
+		}
+		return "–", colMuted, true
 	}
 	return "", colText, false
 }

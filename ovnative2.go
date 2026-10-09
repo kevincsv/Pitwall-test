@@ -33,18 +33,19 @@ func gaugeVars(name string, st *ovState) []string {
 		return []string{"SessionFlags"}
 	case "dash":
 		return []string{"Gear", "Speed", "RPM", "Throttle", "Brake", "Clutch", "PlayerCarSLShiftRPM", "dcTractionControl", "dcTractionControlMax", "dcTractionControl2", "dcTractionControl2Max",
-			"dcABS", "dcABSMax", "dcEngineMap", "dcEngineMapMax", "dcBrakeBias", "VirtualEnergyPct", "EnergyERSBatteryPct"}
+			"dcABS", "dcABSMax", "dcEngineMap", "dcEngineMapMax", "dcBrakeBias", "VirtualEnergyPct", "EnergyERSBatteryPct", "BrakeABSactive", "Lap", "PlayerCarPosition", "PlayerCarMyIncidentCount",
+			"LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK", "LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK"}
 	case "timing":
 		return []string{"LapCurrentLapTime", "LapBestLapTime", "LapLastLapTime", "LapDistPct", "LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK",
-			"LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK"}
+			"LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK", "SessionTime", "IsOnTrack"}
 	case "fuel":
 		return []string{"FuelLevel", "FuelLevelPct", "FuelUsePerHour", "LapLastLapTime", "LapCompleted", "LapDistPct", "OnPitRoad", "SessionLapsRemainEx", "SessionTimeRemain"}
 	case "engine":
-		return []string{"WaterTemp", "OilTemp", "OilPress", "Voltage", "AirTemp", "TrackTempCrew"}
+		return []string{"WaterTemp", "OilTemp", "OilPress", "FuelPress", "Voltage", "AirTemp", "TrackTempCrew", "EngineWarnings"}
 	case "tyres":
 		out := []string{}
 		for _, c := range []string{"LF", "RF", "LR", "RR"} {
-			for _, k := range []string{"tempL", "tempM", "tempR", "tempCL", "tempCM", "tempCR", "wearL", "wearM", "wearR"} {
+			for _, k := range []string{"tempL", "tempM", "tempR", "tempCL", "tempCM", "tempCR", "wearL", "wearM", "wearR", "pressure", "coldPressure"} {
 				out = append(out, c+k)
 			}
 		}
@@ -147,6 +148,7 @@ func (st *ovState) collect() {
 		}
 	}
 	st.collectSession()
+	st.collectSectors()
 	st.collectLaps()
 	if on := f("P2P_Status") != 0; on != L.p2pOn {
 		L.p2pOn = on
@@ -320,7 +322,7 @@ func fmtCur(t float64) string {
 func drawGauge(name string, c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	switch name {
 	case "flag":
-		return drawFlagOv(c, st, z)
+		return drawFlagOv(c, st, z, now)
 	case "dash":
 		return drawDashOv(c, st, z, now)
 	case "timing":
@@ -349,23 +351,66 @@ var ovFlags = []struct {
 	kind   string
 	en, es string
 }{
-	{0x10000, "black", "Black flag", "Bandera negra"}, {0x10, "red", "Red flag", "Bandera roja"}, {0x100000, "black", "Repair required", "Reparación obligatoria"},
-	{0x1, "checkered", "Checkered flag", "Bandera a cuadros"}, {0x2, "white", "Last lap", "Última vuelta"}, {0x8, "yellow", "Yellow", "Amarilla"},
-	{0x100, "yellow", "Yellow waving", "Amarilla agitada"}, {0x4000, "yellow", "Caution", "Safety car"}, {0x8000, "yellow", "Caution", "Safety car"},
-	{0x20, "blue", "Blue flag · let faster car by", "Bandera azul · deja pasar"},
+	{0x10000, "black", "Black flag", "Bandera negra"}, {0x20000, "black", "Disqualified", "Descalificado"}, {0x10, "red", "Red flag", "Bandera roja"},
+	{0x100000, "black", "Repair required", "Reparación obligatoria"},
+	{0x1, "checkered", "Checkered flag", "Bandera a cuadros"}, {0x2, "white", "Last lap", "Última vuelta"}, {0x100, "yellow", "Yellow waving", "Amarilla agitada"},
+	{0x8, "yellow", "Yellow", "Amarilla"}, {0x4000, "yellow", "Caution", "Safety car"}, {0x8000, "yellow", "Caution", "Safety car"},
+	{0x20, "blue", "Blue flag · let faster car by", "Bandera azul · deja pasar"}, {0x40, "yellow", "Debris", "Restos en pista"},
+	{0x800, "info", "10 laps to go", "Quedan 10 vueltas"}, {0x1000, "info", "5 laps to go", "Quedan 5 vueltas"}, {0x200, "info", "One lap to green", "Una vuelta para la verde"},
+	{0x4, "green", "Green flag", "Bandera verde"},
 }
 
-func drawFlagOv(c *ovCanvas, st *ovState, z float64) int {
+const (
+	flagStartReady = 0x20000000
+	flagStartSet   = 0x40000000
+	flagStartGo    = 0x80000000
+)
+
+func drawFlagOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	H := 60 * z
 	W := float64(c.w)
 	fv, _ := st.num("SessionFlags")
 	f := uint32(int64(fv))
+	st.noteFlags(f, now)
+	r := 10 * z
+	// the start: the lights come on (ready, set) and go out (go), like the gantry
+	goAt, going := st.flagSince(flagStartGo, now)
+	if f&flagStartReady != 0 || f&flagStartSet != 0 || (going && goAt < 3*time.Second) {
+		c.roundRect(0.5, 0.5, W-1, H-1, r, 0x0b0d10, 0.96, 0xffffff, 0.25, 1)
+		lit, col, s := 0, uint32(colAmber), st.T("READY", "PREPARADOS")
+		switch {
+		case going && goAt < 3*time.Second:
+			lit, col, s = 5, colGood, "GO"
+		case f&flagStartSet != 0:
+			lit, s = 5, st.T("SET", "LISTOS")
+		default:
+			lit = 2
+		}
+		d := 16 * z
+		x0 := pad0(W, 5*d+4*8*z) + d/2
+		for k := 0; k < 5; k++ {
+			x := x0 + float64(k)*(d+8*z)
+			if k < lit {
+				c.disc(x, H/2, d/2, col, 1)
+			} else {
+				c.ring(x, H/2, d/2-1, 2*z, 0x3a4150, 1)
+			}
+		}
+		c.text(ovFace(fkDisplayB, 26*z), s, W-16*z, H/2, col, 1, 1)
+		return int(math.Ceil(H))
+	}
 	hit := -1
 	for k, x := range ovFlags {
-		if f&x.bit != 0 {
-			hit = k
-			break
+		if f&x.bit == 0 {
+			continue
 		}
+		if x.kind == "green" { // the green stays on all race: it shows the first seconds only
+			if since, ok := st.flagSince(x.bit, now); !ok || since > 4*time.Second {
+				continue
+			}
+		}
+		hit = k
+		break
 	}
 	if hit < 0 { // no flag: nothing over the game (a placeholder while moving the overlays)
 		if st.edit {
@@ -385,8 +430,11 @@ func drawFlagOv(c *ovCanvas, st *ovState, z float64) int {
 		bg, fg = colWarn, 0x11151b
 	case "blue":
 		bg = 0x3d7bff
+	case "green":
+		bg, fg = colGood, 0x0b1a10
+	case "info":
+		bg = 0x1e2631
 	}
-	r := 10 * z
 	c.roundRect(0.5, 0.5, W-1, H-1, r, bg, 0.96, 0xffffff, 0.25, 1)
 	if x.kind == "checkered" { // a chequered band
 		sq := H / 4
@@ -412,6 +460,9 @@ func drawFlagOv(c *ovCanvas, st *ovState, z float64) int {
 	c.text(ovFace(fkDisplayB, 28*z), strings.ToUpper(st.T(x.en, x.es)), W/2, H/2, fg, 1, 2)
 	return int(math.Ceil(H))
 }
+
+// pad0: the left edge that centres something of width w in W
+func pad0(W, w float64) float64 { return math.Max(0, (W-w)/2) }
 
 // inRound: whether a point is inside a rounded rectangle
 func inRound(px, py, x, y, w, h, r float64) bool {
@@ -449,7 +500,7 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	gf, sf := ovFace(fkDisplayB, 64*z), ovFace(fkDisplayB, 48*z)
 	topH := 80 * z
 	// gear, speed, the pedals
-	H := pad + topH + 10*z + 16*z + 8*z + 18*z + pad
+	H := pad + topH + 10*z + 16*z + 8*z + 18*z + 6*z + 22*z + pad
 	dc := st.dcItems()
 	if len(dc) > 0 {
 		H += 30 * z
@@ -471,6 +522,9 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	}
 	pedalBar(c, bx, y+2*z, bw, bh, 1-clu, colBlue)
 	pedalBar(c, bx+bw+8*z, y+2*z, bw, bh, brk, colBad)
+	if a, _ := st.num("BrakeABSactive"); a != 0 { // the ABS is working: the brake bar lights up
+		c.roundRect(bx+bw+8*z-2*z, y, bw+4*z, bh+4*z, 4*z, 0, 0, colBad, 1, 1.5*z)
+	}
 	pedalBar(c, bx+2*(bw+8*z), y+2*z, bw, bh, thr, colGood)
 	y += topH + 10*z
 	// the shift lights: 16 segments, green, yellow, red; all purple at the shift point, blinking past it
@@ -507,6 +561,11 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		c.label(z, st.T("Shift ", "Cambio ")+strconv.Itoa(int(shift)), W-pad, y+9*z, 1)
 	}
 	y += 18 * z
+	// the lap, your place, the delta and the incidents, like the tables' footer
+	y += 6 * z
+	c.rect(pad, y-3*z, W-2*pad, 1, colLine, 1)
+	strip(c, st, []string{"lap", "pos", "delta", "inc"}, pad, y, W-pad, z)
+	y += 22 * z
 	if len(dc) > 0 { // the car's controls: TC, ABS, map, bias, energy
 		y += 6 * z
 		x := pad
@@ -599,6 +658,11 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64) int {
 	vf := ovFace(fkData, 24*z)
 	cellH := 54 * z
 	H := pad + 2*cellH + 10*z + 8*z + pad
+	secN := 0
+	if st.ses != nil && len(st.ses.Sectors) >= 2 {
+		secN = len(st.ses.Sectors)
+		H += 10*z + 36*z
+	}
 	panel(c, H, z)
 	colW := (W - 2*pad) / 2
 	cell := func(i, j int, l, v string, col uint32) {
@@ -623,6 +687,48 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64) int {
 	cell(1, 1, st.T("Last lap", "Última vuelta"), fmtLap(last), colText)
 	p, _ := st.num("LapDistPct")
 	meter(c, pad, pad+2*cellH+10*z, W-2*pad, z, p, colAmber)
+	if secN > 0 { // the game's sectors: this lap's, purple when the best of the session, green when better than your best lap
+		m := &st.x6
+		y := pad + 2*cellH + 10*z + 8*z + 10*z
+		gap := 6 * z
+		cw := (W - 2*pad - float64(secN-1)*gap) / float64(secN)
+		tf, df, lf := ovFace(fkData, 13*z), ovFace(fkData, 10*z), ovFace(fkData, 9.5*z)
+		for k := 0; k < secN; k++ {
+			x := pad + float64(k)*(cw+gap)
+			v := 0.0
+			if k < len(m.secCur) {
+				v = m.secCur[k]
+			}
+			col, s := uint32(colText), "–"
+			if v > 0 {
+				s = strconv.FormatFloat(v, 'f', 3, 64)
+				switch {
+				case k < len(m.secBest) && m.secBest[k] > 0 && v <= m.secBest[k]+1e-6:
+					col = colPB
+				case m.secBestLap != nil && k < len(m.secBestLap) && v < m.secBestLap[k]:
+					col = colGood
+				case m.secBestLap != nil:
+					col = colWarn
+				}
+			} else if k < len(m.secLast) && m.secLast[k] > 0 { // not there yet this lap: the last lap's, dimmed
+				s, col = strconv.FormatFloat(m.secLast[k], 'f', 3, 64), colMuted
+			}
+			c.roundRect(x, y, cw, 36*z, 5*z, colSurf2, 1, colLine, 1, 1)
+			if k == m.secIdx {
+				c.roundRect(x, y, cw, 36*z, 5*z, 0, 0, colText, 0.8, 1.5*z)
+			}
+			c.textT(lf, "S"+strconv.Itoa(k+1), x+6*z, y+9*z, colMuted, 1, 0, 0.6*z)
+			c.text(tf, s, x+cw/2, y+23*z, col, 1, 2)
+			if v > 0 && m.secBestLap != nil && k < len(m.secBestLap) && m.secBestLap[k] > 0 {
+				d := v - m.secBestLap[k]
+				dc := uint32(colBad)
+				if d <= 0 {
+					dc = colGood
+				}
+				c.text(df, signed(d, 2), x+cw-6*z, y+9*z, dc, 1, 1)
+			}
+		}
+	}
 	return int(math.Ceil(H))
 }
 
@@ -674,7 +780,7 @@ func drawFuelOv(c *ovCanvas, st *ovState, z float64) int {
 	pad := 14 * z
 	vf := font_{ovFace(fkData, 24*z), 24 * z}
 	sf := ovFace(fkBody, 12*z)
-	H := pad + 18*z + 56*z + 8*z + 10*z + 26*z + pad - 4*z
+	H := pad + 18*z + 56*z + 8*z + 10*z + 26*z + 18*z + pad - 4*z
 	panel(c, H, z)
 	c.label(z, st.T("Fuel", "Combustible"), pad, pad+6*z, 0)
 	fuel, has := st.num("FuelLevel")
@@ -726,6 +832,26 @@ func drawFuelOv(c *ovCanvas, st *ovState, z float64) int {
 	default:
 		c.text(nf, ellipsis(nf, st.T("Average fuel use appears after your first full lap.", "El consumo medio aparece tras tu primera vuelta completa."), W-2*pad), pad, y+10*z, colMuted, 1, 0)
 	}
+	// the last lap's use, and what you may use per lap to finish without a stop
+	y += 20 * z
+	sf2 := ovFace(fkBody, 12*z)
+	parts, pcol := "", uint32(colMuted)
+	if u := st.live.fuelUses; len(u) > 0 {
+		parts = st.T("Last lap ", "Última vuelta ") + strconv.FormatFloat(st.vol(u[len(u)-1]), 'f', 2, 64) + " " + st.volU()
+	}
+	if ok && has && left > 0.5 {
+		need := fuel / left
+		if parts != "" {
+			parts += " · "
+		}
+		parts += st.T("to finish without a stop: ≤ ", "para acabar sin parar: ≤ ") + strconv.FormatFloat(st.vol(need), 'f', 2, 64) + " " + st.volU() + st.T(" a lap", " por vuelta")
+		if per > 0 && per > need*1.02 {
+			pcol = colWarn
+		}
+	}
+	if parts != "" {
+		c.text(sf2, ellipsis(sf2, parts, W-2*pad), pad, y+8*z, pcol, 1, 0)
+	}
 	return int(math.Ceil(H))
 }
 
@@ -733,34 +859,66 @@ func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
 	rowH := 26 * z
-	rows := [][2]string{}
+	wv, _ := st.num("EngineWarnings")
+	warn := uint32(int64(wv)) // the game's bits: 1 water, 2 fuel pressure, 4 oil pressure, 8 stalled, 16 pit limiter, 32 rev limiter, 64 oil temperature
+	type row struct {
+		k, v string
+		bad  bool
+	}
 	t := func(n string) string {
 		if v, ok := st.num(n); ok {
 			return strconv.FormatFloat(st.tmp(v), 'f', 1, 64) + " " + st.tmpU()
 		}
 		return "–"
 	}
-	op := "–"
-	if v, ok := st.num("OilPress"); ok {
-		op = strconv.FormatFloat(v, 'f', 2, 64) + " bar"
+	bar := func(n string) (string, bool) {
+		if v, ok := st.num(n); ok {
+			return strconv.FormatFloat(v, 'f', 2, 64) + " bar", true
+		}
+		return "–", false
 	}
+	op, _ := bar("OilPress")
 	vo := "–"
 	if v, ok := st.num("Voltage"); ok {
 		vo = strconv.FormatFloat(v, 'f', 1, 64) + " V"
 	}
-	rows = append(rows, [2]string{st.T("Water", "Agua"), t("WaterTemp")}, [2]string{st.T("Oil", "Aceite"), t("OilTemp")}, [2]string{st.T("Oil pressure", "Presión aceite"), op},
-		[2]string{st.T("Voltage", "Voltaje"), vo}, [2]string{st.T("Air", "Aire"), t("AirTemp")}, [2]string{st.T("Track", "Pista"), t("TrackTempCrew")})
+	rows := []row{{st.T("Water", "Agua"), t("WaterTemp"), warn&1 != 0}, {st.T("Oil", "Aceite"), t("OilTemp"), warn&64 != 0}, {st.T("Oil pressure", "Presión aceite"), op, warn&4 != 0}}
+	if fp, ok := bar("FuelPress"); ok {
+		rows = append(rows, row{st.T("Fuel pressure", "Presión gasolina"), fp, warn&2 != 0})
+	}
+	rows = append(rows, row{st.T("Voltage", "Voltaje"), vo, false}, row{st.T("Air", "Aire"), t("AirTemp"), false}, row{st.T("Track", "Pista"), t("TrackTempCrew"), false})
 	H := pad + 18*z + float64(len(rows))*rowH + pad - 6*z
 	panel(c, H, z)
 	c.label(z, st.T("Engine", "Motor"), pad, pad+6*z, 0)
+	// the badges: the pit limiter, the rev limiter, a stalled engine
+	bx := W - pad
+	pf := ovFace(fkDataB, 10*z)
+	for _, b := range []struct {
+		bit uint32
+		s   string
+		col uint32
+	}{{8, st.T("STALLED", "CALADO"), colBad}, {32, st.T("REV LIMITER", "CORTE"), colBad}, {16, st.T("PIT LIMITER", "LIMITADOR"), colAmber}} {
+		if warn&b.bit == 0 {
+			continue
+		}
+		w := textW(pf, b.s) + 12*z
+		c.roundRect(bx-w, pad-2*z, w, 16*z, 4*z, b.col, 0.2, b.col, 1, 1)
+		c.text(pf, b.s, bx-w/2, pad+6*z, b.col, 1, 2)
+		bx -= w + 6*z
+	}
 	y := pad + 18*z
 	kf, vf := ovFace(fkBody, 13.5*z), ovFace(fkData, 14*z)
 	for k, r := range rows {
 		if k > 0 {
 			c.rect(pad, y, W-2*pad, 1, colLine, 1)
 		}
-		c.text(kf, r[0], pad, y+rowH/2, colMuted, 1, 0)
-		c.text(vf, r[1], W-pad, y+rowH/2, colText, 1, 1)
+		col := uint32(colText)
+		if r.bad { // the game warns about it: the row in red
+			c.roundRect(pad-6*z, y+2*z, W-2*pad+12*z, rowH-4*z, 5*z, colBad, 0.14, 0, 0, 0)
+			col = colBad
+		}
+		c.text(kf, r.k, pad, y+rowH/2, colMuted, 1, 0)
+		c.text(vf, r.v, W-pad, y+rowH/2, col, 1, 1)
 		y += rowH
 	}
 	return int(math.Ceil(H))
@@ -784,11 +942,17 @@ func heatColor(t float64) uint32 {
 func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
-	boxH := 52 * z
+	boxH := 70 * z
 	gap := 8 * z
 	H := pad + 18*z + 2*boxH + gap + pad
 	live := false
-	vals := map[string][2]float64{} // average temperature, middle wear (−1 when unknown)
+	type tyre struct {
+		zones [3]float64 // inside, middle, outside (−999 when unknown)
+		avg   float64
+		wear  float64 // middle, −1 when unknown
+		press float64 // kPa, 0 when unknown
+	}
+	vals := map[string]tyre{}
 	for _, k := range []string{"LF", "RF", "LR", "RR"} {
 		l, lok := st.num(k + "tempL")
 		isLive := lok && l > 0
@@ -797,45 +961,81 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 		if isLive {
 			pre = "temp"
 		}
-		a, ok1 := st.num(k + pre + "L")
-		m, ok2 := st.num(k + pre + "M")
-		r, ok3 := st.num(k + pre + "R")
-		avg := -999.0
-		if ok1 && ok2 && ok3 {
-			avg = (a + m + r) / 3
-		} else if ok2 {
-			avg = m
+		t := tyre{zones: [3]float64{-999, -999, -999}, avg: -999, wear: -1}
+		n, sum := 0, 0.0
+		for j, zk := range []string{"L", "M", "R"} {
+			if v, ok := st.num(k + pre + zk); ok && v > 0 {
+				t.zones[j] = v
+				n++
+				sum += v
+			}
 		}
-		w := -1.0
+		if n > 0 {
+			t.avg = sum / float64(n)
+		}
 		if v, ok := st.num(k + "wearM"); ok {
-			w = v
+			t.wear = v
 		}
-		vals[k] = [2]float64{avg, w}
+		if v, ok := st.num(k + "pressure"); ok && v > 0 {
+			t.press = v
+		}
+		// the left tyres' inside is on the right of the car: the zones read inside → outside for both sides
+		if k[0] == 'L' {
+			t.zones[0], t.zones[2] = t.zones[2], t.zones[0]
+		}
+		vals[k] = t
 	}
 	if !live {
 		H += 20 * z
 	}
 	panel(c, H, z)
 	c.label(z, st.T("Tyres", "Neumáticos"), pad, pad+6*z, 0)
+	c.textT(ovFace(fkData, 9.5*z), st.T("IN · MID · OUT", "INT · MED · EXT"), W-pad, pad+6*z, colMuted, 1, 1, 0.6*z)
 	bw := (W - 2*pad - gap) / 2
-	vf := ovFace(fkData, 14*z)
+	vf, zf, sf := ovFace(fkData, 15*z), ovFace(fkData, 11*z), ovFace(fkData, 10.5*z)
 	for i, k := range []string{"LF", "RF", "LR", "RR"} {
 		x, y := pad+float64(i%2)*(bw+gap), pad+18*z+float64(i/2)*(boxH+gap)
 		v := vals[k]
 		border := uint32(colLine)
-		if v[0] > -999 {
-			border = heatColor(v[0])
+		if v.avg > -999 {
+			border = heatColor(v.avg)
 		}
 		c.roundRect(x, y, bw, boxH, 8*z, colSurf2, 1, border, 1, 2*z)
-		c.label(z, k, x+10*z, y+15*z, 0)
-		t, w := "–", "–"
-		if v[0] > -999 {
-			t = strconv.Itoa(int(math.Round(st.tmp(v[0])))) + st.tmpU()
+		c.label(z, k, x+10*z, y+14*z, 0)
+		// the wear and the pressure at the right of the label
+		right := ""
+		if v.wear >= 0 {
+			right = strconv.Itoa(int(math.Round(v.wear*100))) + "%"
 		}
-		if v[1] >= 0 {
-			w = strconv.Itoa(int(math.Round(v[1]*100))) + "%"
+		if v.press > 0 {
+			ps := strconv.Itoa(int(math.Round(v.press))) + " kPa"
+			if st.imperial() {
+				ps = strconv.FormatFloat(v.press*0.145038, 'f', 1, 64) + " psi"
+			}
+			if right != "" {
+				right += " · "
+			}
+			right += ps
 		}
-		c.text(vf, t+" · "+w, x+10*z, y+36*z, colText, 1, 0)
+		if right != "" {
+			c.text(sf, right, x+bw-10*z, y+14*z, colMuted, 1, 1)
+		}
+		t := "–"
+		if v.avg > -999 {
+			t = strconv.Itoa(int(math.Round(st.tmp(v.avg)))) + st.tmpU()
+		}
+		c.text(vf, t, x+10*z, y+34*z, colText, 1, 0)
+		// the three zones: the number over a strip in its colour
+		zw := (bw - 20*z - 2*4*z) / 3
+		for j, zt := range v.zones {
+			zx := x + 10*z + float64(j)*(zw+4*z)
+			if zt <= -999 {
+				c.roundRect(zx, y+boxH-12*z, zw, 4*z, 2*z, colLine, 1, 0, 0, 0)
+				continue
+			}
+			c.text(zf, strconv.Itoa(int(math.Round(st.tmp(zt)))), zx+zw/2, y+52*z, colText, 1, 2)
+			c.roundRect(zx, y+boxH-12*z, zw, 4*z, 2*z, heatColor(zt), 1, 0, 0, 0)
+		}
 	}
 	if !live {
 		nf := ovFace(fkBody, 12*z)
@@ -923,12 +1123,16 @@ func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
 		if values {
 			w -= 34 * z
 		}
+		absOn, _ := st.num("BrakeABSactive")
 		for k, b := range bars {
 			by := y + gap + float64(k)*(bh+gap)
 			v := clamp01(val[b])
 			c.roundRect(x, by, w, bh, 4*z, colSurf2, 1, colLine, 1, 1)
 			if v > 0 {
 				c.roundRect(x+1, by+1, (w-2)*v, bh-2, 3*z, barCol[b], 1, 0, 0, 0)
+			}
+			if b == "brk" && abs && absOn != 0 { // the ABS is working: the brake bar lights up
+				c.roundRect(x-2*z, by-2*z, w+4*z, bh+4*z, 5*z, 0, 0, colBad, 1, 1.5*z)
 			}
 			if values {
 				c.text(vf, strconv.Itoa(int(math.Round(v*100))), W-pad, by+bh/2, colText, 1, 1)
@@ -942,9 +1146,13 @@ func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
 		if bx < x {
 			bx = x
 		}
+		absOn, _ := st.num("BrakeABSactive")
 		for k, b := range bars {
 			px := bx + float64(k)*(bw+gap)
 			pedalBar(c, px, y, bw, bh, val[b], barCol[b])
+			if b == "brk" && abs && absOn != 0 {
+				c.roundRect(px-2*z, y-2*z, bw+4*z, bh+4*z, 4*z, 0, 0, colBad, 1, 1.5*z)
+			}
 			if values {
 				c.text(vf, strconv.Itoa(int(math.Round(clamp01(val[b])*100))), px+bw/2, y+bh+10*z, colText, 1, 2)
 			}
@@ -1028,6 +1236,7 @@ func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	p2c, hasP2c := st.num("P2P_Count")
 	bat, hasBat := st.num("EnergyERSBatteryPct")
 	dep, hasDep := st.num("EnergyMGU_KLapDeployPct")
+	batFrac := -1.0
 	if !(hasDRS || hasP2s || hasP2c || hasBat || hasDep) {
 		if !st.edit && uiBool(st.uiMap("boost"), "autohide", true) {
 			return int(math.Ceil(H)) // this car has none: nothing over the game
@@ -1078,6 +1287,7 @@ func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			sub = st.T("Deploy ", "Despliegue ") + strconv.Itoa(int(math.Round(d))) + "%"
 		}
 		cells = append(cells, cell{st.T("Battery", "Batería"), strconv.Itoa(int(math.Round(v))) + "%", sub, colText, colText})
+		batFrac = clamp01(v / 100)
 	}
 	n := float64(len(cells))
 	gap := 8 * z
@@ -1092,7 +1302,11 @@ func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		c.label(z, ce.l, x+10*z, y+13*z, 0)
 		c.text(vf, ellipsis(vf, ce.v, cw-20*z), x+10*z, y+36*z, ce.col, 1, 0)
 		if ce.sub != "" {
-			c.text(sf, ellipsis(sf, ce.sub, cw-20*z), x+10*z, y+58*z, colMuted, 1, 0)
+			c.text(sf, ellipsis(sf, ce.sub, cw-20*z), x+10*z, y+56*z, colMuted, 1, 0)
+		}
+		if batFrac >= 0 && k == len(cells)-1 { // the battery's charge as a bar along the bottom of its cell
+			c.roundRect(x+10*z, y+64*z, cw-20*z, 3*z, 1.5*z, colLine, 1, 0, 0, 0)
+			c.roundRect(x+10*z, y+64*z, (cw-20*z)*batFrac, 3*z, 1.5*z, colBlue, 1, 0, 0, 0)
 		}
 	}
 	return int(math.Ceil(H))

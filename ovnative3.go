@@ -32,7 +32,8 @@ func sessionVars(name string) []string {
 		return []string{"PlayerCarMyIncidentCount", "Lap", "LapDistPct", "SessionTime"}
 	case "pit":
 		return []string{"FuelLevel", "FuelLevelPct", "FuelUsePerHour", "LapLastLapTime", "LapBestLapTime", "LapCompleted", "OnPitRoad", "Lap", "LapDistPct", "SessionLapsRemainEx",
-			"SessionTimeRemain", "PlayerCarPosition", "CarIdxLapDistPct", "CarIdxLap", "CarIdxEstTime", "CarIdxPosition", "CarIdxLastLapTime", "CarIdxBestLapTime"}
+			"SessionTimeRemain", "PlayerCarPosition", "CarIdxLapDistPct", "CarIdxLap", "CarIdxEstTime", "CarIdxPosition", "CarIdxLastLapTime", "CarIdxBestLapTime",
+			"Speed", "PitstopActive", "PitRepairLeft", "PitOptRepairLeft", "PitSvFuel", "EngineWarnings"}
 	}
 	return nil
 }
@@ -417,9 +418,79 @@ func (st *ovState) lapsLeftRace() (float64, bool) {
 	return 1 + math.Max(0, math.Ceil((tr-first)/lt)), true
 }
 
+// drawPitLane: on the pit road, the overlay is your speed against the limit and what the stop is doing
+func drawPitLane(c *ovCanvas, st *ovState, z float64) int {
+	W := float64(c.w)
+	pad := 14 * z
+	H := pad + 18*z + 56*z + 24*z + pad
+	sp, _ := st.num("Speed")
+	lim := 0.0
+	if st.ses != nil {
+		lim = st.ses.PitLimit
+	}
+	over := lim > 0 && sp > lim+0.4
+	wv, _ := st.num("EngineWarnings")
+	limiter := uint32(int64(wv))&16 != 0
+	panel(c, H, z)
+	if over { // over the limit: the whole card goes red
+		c.roundRect(0.5, 0.5, W-1, H-1, 10*z, colBad, 0.25, colBad, 0.9, 2)
+	}
+	c.label(z, st.T("Pit lane", "Pit lane"), pad, pad+6*z, 0)
+	if limiter {
+		pf := ovFace(fkDataB, 10*z)
+		s := st.T("LIMITER ON", "LIMITADOR")
+		w := textW(pf, s) + 12*z
+		c.roundRect(W-pad-w, pad-2*z, w, 16*z, 4*z, colGood, 0.2, colGood, 1, 1)
+		c.text(pf, s, W-pad-w/2, pad+6*z, colGood, 1, 2)
+	}
+	y := pad + 18*z
+	bf := ovFace(fkDisplayB, 40*z)
+	col := uint32(colGood)
+	if over {
+		col = colBad
+	} else if lim <= 0 {
+		col = colText
+	}
+	v := strconv.Itoa(int(math.Round(st.spd(sp))))
+	c.text(bf, v, pad, y+26*z, col, 1, 0)
+	x := pad + textW(bf, v) + 8*z
+	if lim > 0 {
+		lf := ovFace(fkDisplay, 22*z)
+		c.text(lf, "/ "+strconv.Itoa(int(math.Round(st.spd(lim))))+" "+st.spdU(), x, y+30*z, colMuted, 1, 0)
+	} else {
+		c.text(ovFace(fkDisplay, 18*z), st.spdU(), x, y+30*z, colMuted, 1, 0)
+	}
+	if over {
+		c.text(ovFace(fkDisplayB, 22*z), st.T("SLOW DOWN", "FRENA"), W-pad, y+28*z, colBad, 1, 1)
+	}
+	y += 56 * z
+	nf := ovFace(fkBody, 13*z)
+	note := st.T("Keep it under the limit until the pit exit.", "Mantén la velocidad bajo el límite hasta la salida.")
+	if act, _ := st.num("PitstopActive"); act != 0 {
+		rep, _ := st.num("PitRepairLeft")
+		opt, _ := st.num("PitOptRepairLeft")
+		fuel, _ := st.num("PitSvFuel")
+		note = st.T("Stopped", "Parado")
+		if rep > 0 || opt > 0 {
+			note += " · " + st.T("repairs ", "reparaciones ") + strconv.FormatFloat(rep, 'f', 1, 64) + " s"
+			if opt > 0 {
+				note += " (+" + strconv.FormatFloat(opt, 'f', 1, 64) + " " + st.T("optional", "opcionales") + ")"
+			}
+		}
+		if fuel > 0 {
+			note += " · " + st.T("fuel ", "gasolina ") + strconv.FormatFloat(st.vol(fuel), 'f', 1, 64) + " " + st.volU()
+		}
+	}
+	c.text(nf, ellipsis(nf, note, W-2*pad), pad, y+10*z, colMuted, 1, 0)
+	return int(math.Ceil(H))
+}
+
 func drawPitOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
+	if v, _ := st.num("OnPitRoad"); v != 0 {
+		return drawPitLane(c, st, z)
+	}
 	cfg := st.uiMap("pit")
 	loss, margin := uiNum(cfg, "loss", 25), uiNum(cfg, "margin", .3)
 	fuel, hasFuel := st.num("FuelLevel")

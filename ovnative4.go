@@ -71,6 +71,8 @@ type ovExtra struct {
 	mapKey   string
 	mapX     []float64
 	mapY     []float64
+	turnsKey string
+	turns    []float64 // the track's official turns (T1 … Tn), as fractions of the lap
 	modelKey string
 	modelRef *ovLap
 	modelAt  time.Time
@@ -258,6 +260,53 @@ func (st *ovState) loadMap() {
 	}()
 }
 
+// loadTurns gets the track's official turn numbers from the PC (the ones an admin placed on its map); st.mu is held
+func (st *ovState) loadTurns() {
+	if st.ses == nil || st.ses.TrackID <= 0 {
+		return
+	}
+	key := "t" + strconv.Itoa(st.ses.TrackID)
+	if st.ext.turnsKey == key {
+		return
+	}
+	st.ext.turnsKey = key
+	tid := st.ses.TrackID
+	go func() {
+		var d struct {
+			Turns []float64 `json:"turns"`
+		}
+		if st.fetchJSON("/api/turns?trackId="+strconv.Itoa(tid)+"&game=iracing", &d) {
+			st.mu.Lock()
+			st.ext.turns = d.Turns
+			st.mu.Unlock()
+		}
+	}()
+}
+
+// turnName: the official turn nearest to a point of the lap ("T4"), or the corner's own number when the track has
+// no official turns yet; st.mu is held
+func (st *ovState) turnName(d float64, fb int) string {
+	st.loadTurns()
+	t := st.ext.turns
+	L := 0.0
+	if st.ses != nil {
+		L = st.ses.TrackLen
+	}
+	if len(t) == 0 || L <= 0 {
+		return "T" + strconv.Itoa(fb)
+	}
+	f := math.Mod(math.Mod(d/L, 1)+1, 1)
+	bi, bd := 0, 2.0
+	for i, x := range t {
+		dd := math.Abs(x - f)
+		dd = math.Min(dd, 1-dd)
+		if dd < bd {
+			bd, bi = dd, i
+		}
+	}
+	return "T" + strconv.Itoa(bi+1)
+}
+
 // loadModelRef gets the model's next level for your pace (the real lap of the driver just ahead) from the PC;
 // st.mu is held
 func (st *ovState) loadModelRef() {
@@ -417,7 +466,28 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 			c.line(tx, ty, tx-ux*h-nx*h*.6, ty-uy*h-ny*h*.6, 2.6*z, colBad, 1)
 		}
 	}
-	// the cars: you in amber, a lap ahead red, a lap behind blue, the rest light; their place inside
+	// the official turns, numbered on the outside of the track
+	st.loadTurns()
+	if len(st.ext.turns) > 0 {
+		cxm, cym := 0.0, 0.0
+		for i := range X {
+			cxm += X[i]
+			cym += Y[i]
+		}
+		cxm, cym = cxm/float64(N), cym/float64(N)
+		tf := ovFace(fkDataB, 9.5*z)
+		for k, f := range st.ext.turns {
+			i := int(math.Floor(f*float64(N))) % N
+			px, py := P(X[i], Y[i])
+			ox, oy := P(cxm, cym)
+			dx, dy := px-ox, py-oy
+			m := math.Max(math.Hypot(dx, dy), 1e-6)
+			c.text(tf, "T"+strconv.Itoa(k+1), px+dx/m*15*z, py+dy/m*15*z, colMuted, 1, 2)
+		}
+	}
+	// the cars: you in amber, a lap ahead red, a lap behind blue, the rest light (their class's colour when several
+	// classes race); their place inside
+	multi := st.multiClass()
 	pct, pos, pit, laps := st.arr("CarIdxLapDistPct"), st.arr("CarIdxPosition"), st.arr("CarIdxOnPitRoad"), st.arr("CarIdxLap")
 	mev, _ := st.num("PlayerCarIdx")
 	me := int(mev)
@@ -454,6 +524,10 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 		switch {
 		case i == me:
 			col = colAmber
+		case multi:
+			if d := st.ses.Drivers[i]; d != nil {
+				col = classColor(st, d)
+			}
 		case lapDiff > .5:
 			col = colBad
 		case lapDiff < -.5:
@@ -680,6 +754,7 @@ type bmState struct {
 
 type bmCur struct {
 	n                                  int
+	d                                  float64 // where the reference brakes (m from the line)
 	mark, tTo, early, fast, vref, vmin float64
 	side, traffic                      bool
 	trafficDt                          float64
@@ -694,6 +769,7 @@ type bmWatch struct {
 
 type bmFeedback struct {
 	n       int
+	d       float64
 	dd      float64
 	hasDD   bool
 	traffic bool
@@ -840,7 +916,7 @@ func (st *ovState) bmTick() {
 		fast = math.Max(-25, math.Min(60, (v*v-nz.v*nz.v)/(2*nz.dec)))
 	}
 	mark := dTo - early - fast
-	B.cur = &bmCur{n: nz.n, mark: mark, tTo: mark / v, early: early, fast: fast, vref: nz.v, vmin: nz.vmin, side: side, traffic: traffic, trafficDt: dt}
+	B.cur = &bmCur{n: nz.n, d: nz.d, mark: mark, tTo: mark / v, early: early, fast: fast, vref: nz.v, vmin: nz.vmin, side: side, traffic: traffic, trafficDt: dt}
 	lk := lap
 	if wrap {
 		lk++
@@ -859,10 +935,10 @@ func (st *ovState) bmTick() {
 		}
 		if f("Brake") > .12 && dd > -80 {
 			w.done = true
-			B.fb = &bmFeedback{n: w.n, dd: math.Round(dd), hasDD: true, traffic: w.traffic || traffic, at: time.Now()}
+			B.fb = &bmFeedback{n: w.n, d: w.d, dd: math.Round(dd), hasDD: true, traffic: w.traffic || traffic, at: time.Now()}
 		} else if dd > 80 {
 			w.done = true
-			B.fb = &bmFeedback{n: w.n, traffic: w.traffic, at: time.Now()}
+			B.fb = &bmFeedback{n: w.n, d: w.d, traffic: w.traffic, at: time.Now()}
 		}
 	}
 }
@@ -891,15 +967,16 @@ func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
 	}
 	fbTxt, fbCol := "", uint32(colMuted)
 	if fb != nil {
+		fn := st.turnName(fb.d, fb.n)
 		switch {
 		case !fb.hasDD:
-			fbTxt, fbCol = st.T(fmt.Sprintf("C%d: no braking", fb.n), fmt.Sprintf("C%d: sin frenar", fb.n)), colBad
+			fbTxt, fbCol = fn+st.T(": no braking", ": sin frenar"), colBad
 		case math.Abs(fb.dd) <= 3:
-			fbTxt, fbCol = st.T(fmt.Sprintf("C%d: on the mark", fb.n), fmt.Sprintf("C%d: en el punto", fb.n)), colGood
+			fbTxt, fbCol = fn+st.T(": on the mark", ": en el punto"), colGood
 		case fb.dd > 0:
-			fbTxt, fbCol = st.T(fmt.Sprintf("C%d: %d m late", fb.n, int(fb.dd)), fmt.Sprintf("C%d: %d m tarde", fb.n, int(fb.dd))), colBad
+			fbTxt, fbCol = fn+st.T(fmt.Sprintf(": %d m late", int(fb.dd)), fmt.Sprintf(": %d m tarde", int(fb.dd))), colBad
 		default:
-			fbTxt, fbCol = st.T(fmt.Sprintf("C%d: %d m early", fb.n, int(-fb.dd)), fmt.Sprintf("C%d: %d m antes", fb.n, int(-fb.dd))), colWarn
+			fbTxt, fbCol = fn+st.T(fmt.Sprintf(": %d m early", int(-fb.dd)), fmt.Sprintf(": %d m antes", int(-fb.dd))), colWarn
 		}
 		if fb.traffic {
 			fbTxt += st.T(" · traffic", " · tráfico")
@@ -916,7 +993,7 @@ func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
 		c.roundRect(0.5, 0.5, W-1, H-1, 10*z, colBad, 0.22, colBad, 0.9, 2)
 	}
 	big := ovFace(fkDisplayB, 40*z)
-	cn := "C" + strconv.Itoa(cur.n)
+	cn := st.turnName(cur.d, cur.n)
 	c.text(big, cn, pad, y+22*z, colText, 1, 0)
 	ds := "–"
 	switch {
@@ -967,24 +1044,32 @@ func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
 
 type coachTip struct {
 	n      int
+	d      float64 // where the corner's braking starts (m from the line): its official turn
 	lost   float64
 	en, es string
 }
 
-func (st *ovState) coachTips() []coachTip {
+// coachTips: your last lap against the reference: the model's next level (the real lap of the driver just ahead)
+// when it is faster than your best, else your best lap of the session; the name of the reference comes too
+func (st *ovState) coachTips() ([]coachTip, string) {
 	E := &st.ext
-	if len(E.laps) < 2 {
-		return nil
+	if len(E.laps) < 1 {
+		return nil, ""
 	}
 	A := E.laps[len(E.laps)-1]
 	R := st.bestLap(nil)
 	if R == A {
 		R = st.bestLap(A)
 	}
-	if R == nil || R == A {
-		return nil
+	st.loadModelRef()
+	ref := st.T("vs your best lap", "vs tu mejor vuelta")
+	if m := E.modelRef; m != nil && m.time < A.time-0.001 && (R == nil || m.time < R.time-0.001) {
+		R, ref = m, st.T("vs the driver just ahead", "vs el piloto justo por delante")
 	}
-	return st.compareLaps(A, R, 3)
+	if R == nil || R == A {
+		return nil, ""
+	}
+	return st.compareLaps(A, R, 3), ref
 }
 
 // compareLaps: lap A corner by corner against the reference R, the corners that lose the most first (max of them)
@@ -1038,6 +1123,49 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		return 0, false
 	}
 	r := func(v float64) int { return int(math.Round(v)) }
+	gearAt := func(s []*lapPt, i int) int {
+		if ok(s, i) {
+			return int(math.Round(s[i][4]))
+		}
+		return 0
+	}
+	// throttle lifts after the apex: back off from over 80 % to under 50 % (wheelspin, a nervous exit)
+	lifts := func(s []*lapPt, from, to int) int {
+		n, prev := 0, -1.0
+		for k := from; k <= to && k < len(s); k++ {
+			if s[k] == nil {
+				continue
+			}
+			if prev >= 0 && prev > .8 && s[k][2] < .5 {
+				n++
+			}
+			prev = s[k][2]
+		}
+		return n
+	}
+	// steering corrections: the wheel changing direction inside the corner
+	reversals := func(s []*lapPt, from, to int) (int, bool) {
+		n, prevD, last, has := 0, 0.0, math.NaN(), false
+		for k := from; k <= to && k < len(s); k++ {
+			if s[k] == nil {
+				continue
+			}
+			v := s[k][5]
+			if v != 0 {
+				has = true
+			}
+			if !math.IsNaN(last) {
+				if d := v - last; math.Abs(d) > .004 {
+					if prevD != 0 && (d > 0) != (prevD > 0) {
+						n++
+					}
+					prevD = d
+				}
+			}
+			last = v
+		}
+		return n, has
+	}
 	lat := lineOffsets(A.x, A.y, R.x, R.y) // the line, when both laps carry their path
 	var out []coachTip
 	for k, z := range zb {
@@ -1139,6 +1267,29 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 				en, es = "Full throttle sooner on exit", "Acelerador a fondo antes a la salida"
 			}
 		}
+		// a generic tip gives way to what the data shows plainly: the gear through the corner, lifts on the exit,
+		// corrections of the wheel
+		generic := en == "Brake a little later and harder" || en == "Carry more speed into the turn" || en == "A rounder, faster line through the apex" || en == "Full throttle sooner on exit"
+		if generic {
+			apexA := z.imin
+			if hasM {
+				apexA = za[mi].imin
+			}
+			gA, gB := gearAt(sa, apexA), gearAt(sb, z.imin)
+			lA, lB := lifts(sa, apexA, i1), lifts(sb, z.imin, i1)
+			rA, hasA := reversals(sa, i0, i1)
+			rB, hasB := reversals(sb, i0, i1)
+			switch {
+			case gA >= 1 && gB >= 1 && gB > gA:
+				en, es = fmt.Sprintf("Take this corner in gear %d like the reference (you use gear %d)", gB, gA), fmt.Sprintf("Toma esta curva en %dª como la referencia (tú vas en %dª)", gB, gA)
+			case gA >= 1 && gB >= 1 && gB < gA:
+				en, es = fmt.Sprintf("Drop to gear %d for the apex like the reference (you stay in gear %d)", gB, gA), fmt.Sprintf("Baja a %dª en el vértice como la referencia (tú te quedas en %dª)", gB, gA)
+			case ph[0].k == "exit" && lA >= 2 && lA > lB+1:
+				en, es = fmt.Sprintf("Smoother throttle on exit: you lifted %d times after the apex (reference %d)", lA, lB), fmt.Sprintf("Acelera más progresivo a la salida: levantaste %d veces tras el vértice (referencia %d)", lA, lB)
+			case hasA && hasB && rA >= 3 && rA > rB+2:
+				en, es = fmt.Sprintf("%d steering corrections in this corner (reference %d): turn in once, smoothly", rA, rB), fmt.Sprintf("%d correcciones de volante en esta curva (referencia %d): gira una vez, suave", rA, rB)
+			}
+		}
 		// the line: where the car was across the track. A lap that brakes at the reference's point but on the wrong
 		// part of the track hears that first; otherwise it follows the tip of the phase
 		if lat != nil {
@@ -1153,7 +1304,7 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 				}
 			}
 		}
-		out = append(out, coachTip{n: k + 1, lost: lost, en: en, es: es})
+		out = append(out, coachTip{n: k + 1, d: float64(z.i) * ovLapBin, lost: lost, en: en, es: es})
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].lost > out[b].lost })
 	if len(out) > max {
@@ -1165,7 +1316,7 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
-	tips := st.coachTips()
+	tips, ref := st.coachTips()
 	rowH := 34 * z
 	rows := len(tips)
 	if rows == 0 {
@@ -1174,12 +1325,15 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	H := pad + 18*z + float64(rows)*rowH + pad - 4*z
 	panel(c, H, z)
 	c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+	if ref != "" {
+		c.labelFit(z, ref, W/2, pad+6*z, W/2-pad)
+	}
 	y := pad + 18*z
 	nf := ovFace(fkBody, 13.5*z)
 	if len(tips) == 0 {
-		msg := st.T("Your last lap loses nothing clear against your best: keep it up.", "Tu última vuelta no pierde nada claro frente a tu mejor: sigue así.")
-		if len(st.ext.laps) < 2 {
-			msg = st.T("Tips appear after your second lap.", "Los consejos aparecen tras tu segunda vuelta.")
+		msg := st.T("Your last lap loses nothing clear against the reference: keep it up.", "Tu última vuelta no pierde nada claro frente a la referencia: sigue así.")
+		if ref == "" {
+			msg = st.T("Tips appear after your second lap (or your first, once the model knows a faster driver).", "Los consejos aparecen tras tu segunda vuelta (o la primera, si el modelo conoce a un piloto más rápido).")
 		}
 		c.text(nf, ellipsis(nf, msg, W-2*pad), pad, y+rowH/2, colMuted, 1, 0)
 		return int(math.Ceil(H))
@@ -1189,7 +1343,7 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		if k > 0 {
 			c.rect(pad, y, W-2*pad, 1, colLine, 1)
 		}
-		cn := "C" + strconv.Itoa(t.n)
+		cn := st.turnName(t.d, t.n)
 		cw := textW(cf, cn) + 12*z
 		c.roundRect(pad, y+rowH/2-10*z, cw, 20*z, 5*z, colSurf2, 1, colLine, 1, 1)
 		c.text(cf, cn, pad+cw/2, y+rowH/2, colText, 1, 2)

@@ -4,6 +4,23 @@ Pitlane HQ is in **beta**. PitlaneHQ.exe, the web app and the phone apps share o
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.3 beta
+
+- **The coach says more**: the gear to take a corner in, a throttle that lifts after the apex, corrections of the wheel
+  (PC, web and phones), and on the PC's coach overlay it measures you against the driver just ahead when the model
+  knows one faster than your best. Corners are named by the track's official turns everywhere.
+- **The model** learns only clean traces, and the "next level" prefers a lap whose pedals are real, so the braking
+  and throttle tips come from real data.
+- **Every overlay, sharper**: the flags show the start lights, a green for a few seconds, debris, 10 and 5 to go and
+  one lap to green; the delta bar says where the delta is going; the relative and the standings colour the car numbers
+  by class and have a "Pace" column (their last lap against yours); the dash has the lap, your place and the delta,
+  and lights the brake bar with the ABS; the timing shows the official sectors of your lap in purple, green or
+  yellow; the fuel says what you may use per lap to finish without a stop; the engine shows the game's warnings
+  (water, oil, fuel pressure, stalled, rev limiter, pit limiter); the tyres show inside, middle and outside and the
+  pressure; the pit stop overlay shows your speed against the pit lane's limit on the pit road, and what the stop is
+  doing; the map numbers the official turns and colours the classes; the hybrid battery has a bar.
+- Fixes and improvements.
+
 ## 0.9.2 beta
 
 - **Four new overlays**: Weather (track and air temperature, the wind against your car, rain and how wet the track

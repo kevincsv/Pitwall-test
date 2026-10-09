@@ -246,7 +246,7 @@ func TestNativeGaugesDraw(t *testing.T) {
 		}
 		ovSavePNG(t, c, h, "g-"+name)
 	}
-	if len(gaugeVars("tyres", st)) != 36 || gaugeVars("telemetry", st)[0] != "LatAccel" {
+	if len(gaugeVars("tyres", st)) != 44 || gaugeVars("telemetry", st)[0] != "LatAccel" {
 		t.Fatal("gauge variables")
 	}
 	if st.units = "imperial"; st.spdU() != "mph" || math.Abs(st.tmp(100)-212) > 1e-9 {
@@ -370,7 +370,7 @@ func TestNativeLapOverlaysDraw(t *testing.T) {
 	if z := st.bmZones(); len(z) != 2 {
 		t.Fatalf("braking zones: %d", len(z))
 	}
-	if tips := st.coachTips(); len(tips) == 0 {
+	if tips, ref := st.coachTips(); len(tips) == 0 || ref == "" {
 		t.Fatal("the coach finds nothing in the lap that braked late")
 	}
 	for i := 0; i < 200; i++ { // an oval for the map
@@ -609,5 +609,126 @@ func TestExtraOverlaysDraw(t *testing.T) {
 		if h := ovDraw(n, newCanvas(400, 600), st, now); h < 30 {
 			t.Fatalf("%s with no data: height %d", n, h)
 		}
+	}
+}
+
+func TestFlagsStartLightsAndGreen(t *testing.T) {
+	st := ovTestState(t, nil)
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	painted := func(c *ovCanvas) int {
+		n := 0
+		for _, p := range c.px {
+			if p>>24 > 0 {
+				n++
+			}
+		}
+		return n
+	}
+	now := time.Now()
+	st.at = now.Add(20 * time.Second) // the game keeps sending all along
+	set("SessionFlags", float64(flagStartSet))
+	c := newCanvas(520, 90)
+	ovDraw("flag", c, st, now)
+	if painted(c) == 0 {
+		t.Fatal("the start lights draw nothing")
+	}
+	// the green: shown the first seconds only
+	set("SessionFlags", 0x4)
+	c = newCanvas(520, 90)
+	ovDraw("flag", c, st, now.Add(time.Second))
+	if painted(c) == 0 {
+		t.Fatal("a fresh green flag draws nothing")
+	}
+	c = newCanvas(520, 90)
+	ovDraw("flag", c, st, now.Add(10*time.Second))
+	if painted(c) != 0 {
+		t.Fatal("a green flag still shows after ten seconds")
+	}
+	set("SessionFlags", 0x40) // debris
+	c = newCanvas(520, 90)
+	ovDraw("flag", c, st, now.Add(11*time.Second))
+	if painted(c) == 0 {
+		t.Fatal("the debris flag draws nothing")
+	}
+}
+
+func TestOfficialSectorsAndPitLane(t *testing.T) {
+	st := ovTestState(t, nil)
+	st.ses = parseOvSession(ovTestYAML + "SplitTimeInfo:\n Sectors:\n - SectorNum: 0\n   SectorStartPct: 0.000000\n - SectorNum: 1\n   SectorStartPct: 0.400000\n - SectorNum: 2\n   SectorStartPct: 0.700000\n")
+	st.ses.PitLimit = 60 / 3.6
+	if len(st.ses.Sectors) != 3 {
+		t.Fatalf("sectors parsed: %v", st.ses.Sectors)
+	}
+	set := func(k string, v any) {
+		b, _ := json.Marshal(v)
+		st.frame[k] = b
+	}
+	set("IsOnTrack", 1)
+	// two laps of 90 s, the second one faster in its first sector
+	tm := 0.0
+	for lap := 0; lap < 2; lap++ {
+		for i := 0; i <= 100; i++ {
+			p := float64(i) / 100
+			if p >= 1 {
+				p = 0
+			}
+			set("LapDistPct", p)
+			set("SessionTime", tm)
+			st.collectSectors()
+			dt := 0.9
+			if lap == 1 && p < 0.4 {
+				dt = 0.8
+			}
+			tm += dt
+		}
+	}
+	m := &st.x6
+	if m.secBestLap == nil || len(m.secLast) != 3 || !(m.secLast[0] < 36) {
+		t.Fatalf("sector timing: last %v best lap %v", m.secLast, m.secBestLap)
+	}
+	if !(m.secBest[0] > 0 && m.secBest[0] <= m.secLast[0]+1e-6) {
+		t.Fatalf("best sectors: %v", m.secBest)
+	}
+	c := newCanvas(440, 400)
+	if h := ovDraw("timing", c, st, time.Now()); h < 150 {
+		t.Fatalf("timing with sectors: height %d", h)
+	}
+	ovSavePNG(t, c, 260, "g-timing-sectors")
+	// the pit lane: over the limit the card says so
+	set("OnPitRoad", 1)
+	set("Speed", 20.0)
+	c = newCanvas(440, 300)
+	h := ovDraw("pit", c, st, time.Now())
+	red := 0
+	for _, p := range c.px {
+		if p>>24 > 0 && (p>>16)&0xff > 0xc0 && (p>>8)&0xff < 0x80 {
+			red++
+		}
+	}
+	if h < 60 || red < 200 {
+		t.Fatalf("pit lane over the limit: height %d, red pixels %d", h, red)
+	}
+	ovSavePNG(t, c, h, "s-pitlane")
+}
+
+func TestDeltaTrendAndPace(t *testing.T) {
+	st := ovTestState(t, nil)
+	if _, has := st.deltaTrend(0.1, true); has {
+		t.Fatal("a trend with one sample")
+	}
+	st.x6.dHist = []dSample{{time.Now().Add(-900 * time.Millisecond), 0.4}}
+	if tr, has := st.deltaTrend(0.1, true); !has || tr >= 0 {
+		t.Fatalf("gaining three tenths: %v %v", tr, has)
+	}
+	if v, col, _ := st.cell("pace", ovRow{idx: 1}, nil); v != "−0.4" || col != colBad {
+		t.Fatalf("pace of the faster rival: %q", v)
+	}
+	st.ui = map[string]any{"rel": map[string]any{"cols": []any{"pos", "num", "name", "pace", "gap"}}}
+	c := newCanvas(600, 600)
+	if h := ovDraw("relative", c, st, time.Now()); h < 100 {
+		t.Fatalf("relative with the pace column: %d", h)
 	}
 }
