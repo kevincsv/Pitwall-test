@@ -63,6 +63,8 @@
   only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
   recorded races, ir + irChange); Home's "Licence summary" (PC, web, Pitlane HQ Desktop; the phones' Licence summary)
   shows them per discipline with Community's symbols and colours (`DISC_IC`, `.c-*`; `DiscIcons.cs` on the Desktop),
+  centred in their cards, the licence as a pill in its colour ("B 3.21" as the game shows it in a session, or the class
+  alone from a race; `licPill`, `LicBadge`),
   the change of the last races of each and one short line ("Updated when you join a session with iRacing and Pitlane HQ open"). Never one "current iRating" mixed
   from every discipline.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized

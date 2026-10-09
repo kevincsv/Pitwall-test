@@ -233,18 +233,18 @@ public partial class MainWindow : Window
             var d = r?[id];
             var ir = (int)D(d?["ir"]);
             var col = new SolidColorBrush(DiscColor(id));
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             row.Children.Add(DiscIcon(id, 30));
             var sp = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             sp.Children.Add(new TextBlock { Text = T(en, es), Foreground = B("Muted"), FontSize = 12, FontWeight = FontWeights.SemiBold });
             sp.Children.Add(new TextBlock { Text = ir > 0 ? ir.ToString() : "–", Foreground = ir > 0 ? col : B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 20, FontWeight = FontWeights.Bold });
-            if (ir > 0 && S(d?["lic"]) != "") sp.Children.Add(new TextBlock { Text = S(d?["lic"]), Foreground = B("Muted"), FontFamily = (FontFamily)FindResource("FData"), FontSize = 11 });
+            if (ir > 0 && LicBadge(S(d?["lic"])) is { } lb) sp.Children.Add(lb);
             row.Children.Add(sp);
             var c = DiscColor(id);
             RatingsList.Children.Add(new Border
             {
                 Background = B("Surface"), BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, c.R, c.G, c.B)), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(12, 10, 14, 10), Margin = new Thickness(0, 0, 8, 8), MinWidth = 150, Opacity = ir > 0 ? 1 : 0.5, Child = row,
+                Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, 0, 8, 8), MinWidth = 150, MinHeight = 78, Opacity = ir > 0 ? 1 : 0.5, Child = row,
                 ToolTip = ir > 0 ? DateTimeOffset.FromUnixTimeMilliseconds((long)D(d?["at"])).LocalDateTime.ToString("d") : null,
             });
         }
@@ -253,6 +253,24 @@ public partial class MainWindow : Window
         RatingsNote.Text = T("Updated when you join a session with iRacing and Pitlane HQ open.", "Se actualiza al entrar en una sesión con iRacing y Pitlane HQ abiertos.");
         RatingsList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         RatingsTitle.Visibility = RatingsNote.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // the licence as the game shows it ("B 3.21"), or its class alone from a race, in the licence's colour
+    private Border? LicBadge(string v)
+    {
+        var t = v.Trim().ToUpperInvariant();
+        if (t == "") return null;
+        var L = t.StartsWith("WC") || t.StartsWith("PRO") ? "P" : "RDCBA".Contains(t[0]) ? t[..1] : "";
+        if (L == "") return null;
+        var m = System.Text.RegularExpressions.Regex.Match(t, @"\d+\.\d+");
+        var lc = ((SolidColorBrush)Hex(L switch { "R" => "#FF6363", "D" => "#FF8F45", "C" => "#F2C94C", "B" => "#38C97C", "A" => "#5C9DFF", _ => "#C9D1DC" })).Color;
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb((byte)(lc.R * .62 + 11 * .38), (byte)(lc.G * .62 + 13 * .38), (byte)(lc.B * .62 + 16 * .38))),
+            BorderBrush = new SolidColorBrush(lc), BorderThickness = new Thickness(1.5), CornerRadius = new CornerRadius(4), Padding = new Thickness(5, 1, 5, 1),
+            Margin = new Thickness(0, 3, 0, 0), HorizontalAlignment = HorizontalAlignment.Left,
+            Child = new TextBlock { Text = (L == "P" ? "Pro" : L) + (m.Success ? " " + m.Value : ""), Foreground = Brushes.White, FontFamily = (FontFamily)FindResource("FData"), FontSize = 10.5, FontWeight = FontWeights.Bold },
+        };
     }
 
     private Border Chip(string text, Brush fg) => new()
