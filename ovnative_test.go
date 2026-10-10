@@ -355,14 +355,14 @@ func TestNativeLapOverlaysDraw(t *testing.T) {
 			st.collect()
 		}
 		set("LapLastLapTime", 70.0+float64(lap)*0.3)
-		st.ext.pendAt = time.Now().Add(-time.Second)
+		st.ext.pendAt = time.Now().Add(-2 * time.Second)
 	}
 	set("LapCompleted", 3)
 	set("LapDist", 1000.0)
 	set("LapDistPct", 0.25)
 	set("Speed", 72.0)
 	st.collect()
-	st.ext.pendAt = time.Now().Add(-time.Second)
+	st.ext.pendAt = time.Now().Add(-2 * time.Second)
 	st.collect()
 	if len(st.ext.laps) != 3 {
 		t.Fatalf("recorded %d laps, want 3", len(st.ext.laps))
