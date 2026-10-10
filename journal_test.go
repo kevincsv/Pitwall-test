@@ -357,7 +357,7 @@ func TestFieldSkipsAI(t *testing.T) {
 		t.Fatal("the test race has no Fast One to turn into a bot")
 	}
 	res := sessionResults(y, 2)
-	if len(res) != 3 || !res[0].ai || res[2].ai {
+	if len(res) != 3 || !res[0].AI || res[2].AI {
 		t.Fatalf("AI flag: %+v", res)
 	}
 	r := &raceReport{TrackID: 515, Track: "Navarra", Best: 99, Results: res}
