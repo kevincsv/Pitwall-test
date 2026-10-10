@@ -50,6 +50,7 @@ type ovLap struct {
 	maxBin int
 	name   string
 	x, y   []float64 // the path the car drove, every 5 m, when the lap carries it (racingline.go)
+	pit    bool      // it went through the pit lane (an out-lap or an in-lap): never the reference
 }
 
 type ovRec struct {
@@ -58,7 +59,7 @@ type ovRec struct {
 	t, ld, lt            float64
 	hasLd                bool
 	pv                   lapPt
-	started              bool
+	started, pit         bool
 }
 
 type ovExtra struct {
@@ -91,10 +92,10 @@ type ovButton struct {
 func (st *ovState) collectLaps() {
 	E := &st.ext
 	f := func(n string) float64 { v, _ := st.num(n); return v }
-	if E.pending != nil && time.Since(E.pendAt) > 400*time.Millisecond {
-		if ll := f("LapLastLapTime"); ll > 0 {
-			E.pending.time = ll
-		}
+	// iRacing updates the last lap time a moment after the line (the race recorder waits 1.5 s too): read too early,
+	// LapLastLapTime is still the lap before, and a slow lap would take a fast lap's time and become the "best"
+	if E.pending != nil && time.Since(E.pendAt) > 1500*time.Millisecond {
+		E.pending.time = lapTimeOf(f("LapLastLapTime"), E.pending.time)
 		if E.pending.time > 0 {
 			E.laps = append(E.laps, E.pending)
 			if len(E.laps) > 40 {
@@ -111,11 +112,15 @@ func (st *ovState) collectLaps() {
 	}
 	R := &E.rec
 	lc := int(lcv)
+	onPit := f("OnPitRoad") != 0
 	if !R.started || lc != R.lc {
 		if R.started && lc == R.lc+1 && R.cnt > 0 && float64(R.cnt)/float64(R.maxBin+1) > .9 {
-			E.pending, E.pendAt = &ovLap{n: R.lap, time: R.t, bins: R.bins, maxBin: R.maxBin}, time.Now()
+			E.pending, E.pendAt = &ovLap{n: R.lap, time: R.t, bins: R.bins, maxBin: R.maxBin, pit: R.pit}, time.Now()
 		}
 		*R = ovRec{lc: lc, lap: int(f("Lap")), started: true}
+	}
+	if onPit {
+		R.pit = true
 	}
 	if !ok3 || d < 0 || (d < 60 && t > 8) {
 		return
@@ -195,10 +200,29 @@ func timeAt(s []*lapPt, d float64) (float64, bool) {
 	return s[i][1] + (d/ovLapBin-float64(i))*(s[i+1][1]-s[i][1]), true
 }
 
+// lapTimeOf: a finished lap's time: the game's LapLastLapTime when it is this lap's (within 1.5 s of the time the
+// recorder saw at the line), else the recorder's own (the game's still showed the lap before, or none)
+func lapTimeOf(gameLast, seen float64) float64 {
+	if gameLast > 0 && (seen <= 0 || math.Abs(gameLast-seen) < 1.5) {
+		return gameLast
+	}
+	return seen
+}
+
+// bestLap: the reference of the live compare and the coach: the lap the game itself counts as your best
+// (LapBestLapTime, a valid lap) when this window recorded it, else the fastest recorded lap that did not go
+// through the pits
 func (st *ovState) bestLap(except *ovLap) *ovLap {
+	gb, _ := st.num("LapBestLapTime")
 	var best *ovLap
 	for _, l := range st.ext.laps {
-		if l != except && (best == nil || l.time < best.time) {
+		if l == except || l.pit || l.time <= 0 {
+			continue
+		}
+		if gb > 0 && math.Abs(l.time-gb) < 0.02 {
+			return l
+		}
+		if best == nil || l.time < best.time {
 			best = l
 		}
 	}

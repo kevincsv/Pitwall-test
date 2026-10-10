@@ -800,3 +800,22 @@ func TestOverlaysRoundTwo(t *testing.T) {
 		}
 	}
 }
+
+// the live compare's reference: a lap's time is its own (never the lap before's, read too early), and the game's best
+// lap is the reference when this window recorded it; laps through the pits never are
+func TestCompareReference(t *testing.T) {
+	if v := lapTimeOf(95.2, 95.18); v != 95.2 {
+		t.Fatalf("the game's time of this lap: %v", v)
+	}
+	if v := lapTimeOf(93.3, 97.9); v != 97.9 {
+		t.Fatalf("the game still showed the lap before: %v", v)
+	}
+	if v := lapTimeOf(0, 96.1); v != 96.1 {
+		t.Fatalf("no game time: %v", v)
+	}
+	st := &ovState{}
+	st.ext.laps = []*ovLap{{n: 1, time: 90.0, pit: true}, {n: 2, time: 94.0}, {n: 3, time: 93.5}}
+	if b := st.bestLap(nil); b == nil || b.n != 3 {
+		t.Fatalf("fastest lap outside the pits: %+v", b)
+	}
+}
