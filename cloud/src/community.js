@@ -130,12 +130,13 @@ async function comboIds(env, s, name, g, uid, body) {
 // (with its telemetry when it has some), when it beats what the account already shares for that car and track;
 // under the account's public name, or as Anonymous when the account chose so
 export async function autoShare(env, accountId, sessionId, laps, hint) {
-  const best = (laps || []).filter((l) => l && l.valid !== false && num(l.time) > 10 && l.time < 3600)
+  // a friend's lap in DRINKS mode (drv) is shared by the PC under the friend's own name, never as the account's
+  const best = (laps || []).filter((l) => l && l.valid !== false && !(typeof l.drv === "string" && l.drv.trim()) && num(l.time) > 10 && l.time < 3600)
     .sort((a, b) => a.time - b.time || (b.trace ? 1 : 0) - (a.trace ? 1 : 0))[0];
   if (!best) return null;
   const acc = await env.DB.prepare("SELECT a.anon, a.name_kind FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(accountId).first();
   const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(sessionId, "acct:" + accountId).first();
-  const lap = await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE id=?1 AND session_id=?2 AND valid=1").bind(String(best.id), sessionId).first();
+  const lap = await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE id=?1 AND session_id=?2 AND valid=1 AND drv IS NULL").bind(String(best.id), sessionId).first();
   if (!acc || !s || !lap || isTestDrive(s.kind)) return null;
   const g = s.game || "iracing", name = s.track + (s.track_config ? " · " + s.track_config : "");
   const { trackId, carId } = await comboIds(env, s, name, g, accountId, hint);
@@ -699,6 +700,8 @@ export async function community(req, env, url) {
       if (clash) return json({ error: `You already have a driver called "${to}"`, code: "name_taken" }, 409);
     }
     if (row) await env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(row.id, to).run();
+    // and their laps in the account's sessions
+    await env.DB.prepare("UPDATE laps SET drv=?3 WHERE lower(drv)=lower(?2) AND session_id IN (SELECT id FROM sessions WHERE uploader=?1)").bind("acct:" + u.id, from, to).run().catch(() => {});
     return json({ ok: true, renamed: !!row, name: to });
   }
   // is this name free? (Drinks drivers of an admin only clash with other people on the platform)
@@ -864,9 +867,9 @@ export async function community(req, env, url) {
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(String(body.sessionId || ""), "acct:" + u.id).first();
     if (!s) return err("session not found in your account", 404);
     const lap = body.lapId
-      ? await env.DB.prepare("SELECT time, sectors, trace, valid FROM laps WHERE id=?1 AND session_id=?2").bind(String(body.lapId), s.id).first()
-      : (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first()) ||
-        (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND time>0 ORDER BY time LIMIT 1").bind(s.id).first());
+      ? await env.DB.prepare("SELECT time, sectors, trace, valid FROM laps WHERE id=?1 AND session_id=?2 AND drv IS NULL").bind(String(body.lapId), s.id).first()
+      : (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL AND time>0 AND trace IS NOT NULL ORDER BY time LIMIT 1").bind(s.id).first()) ||
+        (await env.DB.prepare("SELECT time, sectors, trace FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL AND time>0 ORDER BY time LIMIT 1").bind(s.id).first());
     if (!lap || !(lap.time > 10)) return err("this session has no valid lap to share", 404);
     // only valid laps go to the community: no cutting, no pit lane
     if (body.lapId && lap.valid !== 1) return err("this lap is not valid (off track or the pit lane): it cannot be shared", 400);

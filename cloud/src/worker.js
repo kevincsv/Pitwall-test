@@ -62,6 +62,12 @@ async function upsertSession(env, s, uploader) {
   return null;
 }
 
+// DRINKS mode: the friend who drove a lap (null: the account's own)
+const lapDrv = (l) => (typeof l.drv === "string" && l.drv.trim() ? l.drv.trim().slice(0, 32) : null);
+// a session's lap count and its best: the account's own laps only (a friend's lap in DRINKS mode is never yours)
+const SESSION_SUMS = `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
+       best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL) WHERE id=?1`;
+
 async function addLap(env, sessionId, l) {
   if (!idOk(sessionId) || !idOk(l.id) || !num(l.n) || !num(l.time) || l.time <= 0 || l.time > 3600) return "lap needs id, n and time";
   const plain = l.trace ? JSON.stringify(l.trace) : null;
@@ -70,13 +76,10 @@ async function addLap(env, sessionId, l) {
   const sectors = Array.isArray(l.sectors) ? JSON.stringify(l.sectors.filter((x) => typeof x === "number").slice(0, 40)) : null;
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
+      `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc, drv) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
        ON CONFLICT(id) DO NOTHING`
-    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0))),
-    env.DB.prepare(
-      `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
-       best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1) WHERE id=?1`
-    ).bind(sessionId),
+    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0)), lapDrv(l)),
+    env.DB.prepare(SESSION_SUMS).bind(sessionId),
   ]);
   return null;
 }
@@ -117,7 +120,7 @@ async function api(req, env, url) {
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
-    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0) AS best FROM sessions";
+    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0 AND l.drv IS NULL) AS best, (SELECT group_concat(DISTINCT l.drv) FROM laps l WHERE l.session_id=sessions.id AND l.drv IS NOT NULL) AS drvs FROM sessions";
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
@@ -143,14 +146,14 @@ async function api(req, env, url) {
     const { results } = await env.DB.prepare(
       `SELECT s.game, s.track, s.track_config, s.car, COALESCE(s.uploader,'owner') AS who, MAX(s.driver) AS driver, MIN(l.time) AS best, COUNT(l.id) AS laps, MAX(s.started) AS last,
         (SELECT l2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
-         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+         WHERE l2.valid=1 AND l2.drv IS NULL AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
            AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
          ORDER BY l2.time LIMIT 1) AS bestLapId,
         (SELECT s2.id FROM laps l2 JOIN sessions s2 ON s2.id=l2.session_id
-         WHERE l2.valid=1 AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
+         WHERE l2.valid=1 AND l2.drv IS NULL AND s2.game=s.game AND s2.track=s.track AND COALESCE(s2.track_config,'')=COALESCE(s.track_config,'')
            AND s2.car=s.car AND COALESCE(s2.uploader,'')=COALESCE(s.uploader,'') AND (?1 IS NULL OR s2.uploader=?1)
          ORDER BY l2.time LIMIT 1) AS bestSessionId
-       FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND (?1 IS NULL OR s.uploader=?1)
+       FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.drv IS NULL AND (?1 IS NULL OR s.uploader=?1)
        GROUP BY s.game, s.track, s.track_config, s.car, who ORDER BY last DESC LIMIT 600`
     ).bind(own).all();
     return json(results);
@@ -165,6 +168,19 @@ async function api(req, env, url) {
     // only the laps without incidents: an incident lap stays as it is
     const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0 AND COALESCE(inc,0)=0").bind(sid).run();
     return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
+  }
+
+  // DRINKS mode: who drove a lap of your session, changed by hand ("" or null: you); the session's best follows
+  mm = p.match(/^\/api\/sessions\/([A-Za-z0-9_.:-]+)\/driver$/);
+  if (mm && m === "POST") {
+    const sid = decodeURIComponent(mm[1]);
+    const s = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(sid).first();
+    if (!s || role === "viewer" || (own && s.uploader !== own)) return err("not found", 404);
+    const b = await req.json().catch(() => ({}));
+    const n = Math.round(num(b.n) || 0);
+    if (!n) return err("which lap?", 400);
+    await env.DB.batch([env.DB.prepare("UPDATE laps SET drv=?3 WHERE session_id=?1 AND n=?2").bind(sid, n, lapDrv(b)), env.DB.prepare(SESSION_SUMS).bind(sid)]);
+    return json({ ok: true });
   }
 
   // the incidents of older laps, copied from the race summary by the app (your own sessions only)
@@ -221,7 +237,7 @@ async function api(req, env, url) {
     if (!s || (own && s.uploader !== own)) return err("not found", 404);
     // ?traces=1: every lap with its telemetry in one answer (the app's analyzer), instead of one call per lap
     const withTraces = url.searchParams.get("traces") === "1";
-    const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
+    const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc, drv${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
     const laps = [];
     for (const l of results) laps.push({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null } : {}) });
     return json({ session: s, laps });
@@ -231,7 +247,7 @@ async function api(req, env, url) {
   if (p === "/api/teambest" && m === "GET") {
     const q = url.searchParams;
     const l = await env.DB.prepare(
-      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 AND (?4 IS NULL OR s.uploader=?4) AND s.game=?5 ORDER BY l.time LIMIT 1`
+      `SELECT l.id FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.valid=1 AND l.drv IS NULL AND l.trace IS NOT NULL AND s.track=?1 AND COALESCE(s.track_config,'')=?2 AND s.car=?3 AND (?4 IS NULL OR s.uploader=?4) AND s.game=?5 ORDER BY l.time LIMIT 1`
     ).bind(q.get("track") || "", q.get("config") || "", q.get("car") || "", own, gameOf(q.get("game"))).first();
     return json(l || {});
   }
@@ -274,6 +290,37 @@ async function api(req, env, url) {
   return err("not found", 404);
 }
 
+// older PCs could give a lap the time of the lap before when the game updated it late and the two laps were close
+// (two laps in a row with the very same time): the lap's own telemetry says its time (the clock at its last point
+// and the few metres left at its speed), and the session's best and the model follow. A few laps each run.
+export function traceLapTime(t) {
+  const d = t && Array.isArray(t.d) ? t.d : null;
+  if (!d || d.length < 40) return null;
+  const bin = num(t.bin) || 5;
+  let k = d.length - 1;
+  while (k > 0 && d[k - 1] && d[k] && d[k - 1][5] === d[k][5]) k--; // the end filled in with the last real point
+  const p = d[k];
+  if (!p || !(p[5] > 0) || !(p[0] > 1)) return null;
+  return p[5] + ((d.length - k) * bin) / p[0];
+}
+async function fixLapTimes(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT a.id, a.session_id AS sid, a.time, a.trace, s.game, s.track_id AS tid, s.car_id AS cid FROM laps a
+     JOIN laps b ON b.session_id=a.session_id AND b.n=a.n-1 AND b.time=a.time JOIN sessions s ON s.id=a.session_id
+     WHERE a.tfix IS NULL AND a.trace IS NOT NULL LIMIT 15`
+  ).all().catch(() => ({ results: [] }));
+  for (const l of results || []) {
+    let est = null;
+    try { est = traceLapTime(JSON.parse(await openData(env, l.trace))); } catch (e) {}
+    const fix = est != null && Math.abs(est - l.time) > 0.3 && est > 10 && est < 3600;
+    await env.DB.batch([
+      env.DB.prepare(fix ? "UPDATE laps SET time=?2, tfix=1 WHERE id=?1" : "UPDATE laps SET tfix=1 WHERE id=?1").bind(...(fix ? [l.id, Math.round(est * 1000) / 1000] : [l.id])),
+      env.DB.prepare(SESSION_SUMS).bind(l.sid),
+    ]);
+    if (fix && l.tid && l.cid) await markModel(env, l.game || "iracing", l.tid, l.cid).catch(() => {});
+  }
+}
+
 // every answer leaves with the same protective headers (no sniffing, no framing by other sites,
 // no referrer, nothing cached by proxies unless the handler said so)
 const HARDEN = { "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer", "permissions-policy": "camera=(), microphone=(), geolocation=()", "strict-transport-security": "max-age=31536000; includeSubDomains", "cross-origin-opener-policy": "same-origin" };
@@ -289,7 +336,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },
