@@ -300,7 +300,8 @@
 - Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
   installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
 - Analysis's sub-tabs: Laps, Coach, My sessions (`cloudlaps`, every session in the account) and My races (`races`, the
-  race summaries with the driver notes); Home's "See all" opens My races. A finished race shows no notice on the PC
+  race summaries with the driver notes); Home's "See all" opens My races. The phone apps have the same four (and
+  Telemetry, Standings and Tyres under Telemetry). A finished race shows no notice on the PC
   (it appears in My races); only the phones tell you.
 - Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app
   schedules no browser notifications): what it has to say shows inside the app.

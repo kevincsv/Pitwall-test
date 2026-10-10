@@ -8,6 +8,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 
 - **DRINKS: each driver against their own laps**: the delta, the live compare, the coach and the braking markers
   measure whoever is driving against their own best lap of the session, never a friend's.
+- **The phone apps have the PC's Telemetry and Analysis**: Telemetry, Standings and Tyres; Laps, Coach, My sessions and
+  My races, with the coach's plan against the next level and the lap analysis against the next level or the record.
 - Fixes and improvements.
 
 ## 0.9.7 beta
