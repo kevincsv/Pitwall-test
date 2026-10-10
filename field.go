@@ -439,7 +439,7 @@ func myLapStat(lap int) (lapStat, bool) {
 
 func myLapWatcher() {
 	vars := []string{"Lap", "LapDistPct", "Throttle", "Brake", "Speed", "Gear", "SessionTime", "OnPitRoad", "IsOnTrack", "SessionNum", "PlayerCarIdx", "TrackTempCrew", "TrackWetness"}
-	var lap, n, full, brk, coast, shifts int
+	var lap, n, full, brk, coast, shifts, runSeen int
 	var vmax, lastT, pitT, lastPct, lastGear float64
 	var cross [3]float64
 	for range time.Tick(time.Second / 30) {
@@ -460,6 +460,11 @@ func myLapWatcher() {
 		}
 		myMu.Unlock()
 		l, pct, t := int(v[0]), v[1], v[6]
+		// a lap is known by its number in the session, counted over its restarts (sessionrun.go)
+		if base, _ := noteRun(curRunKey(int(v[9])), t, l); base != runSeen {
+			runSeen, lap = base, -1
+		}
+		l += runSeen
 		if l != lap {
 			if lap > 0 && n > 30 {
 				s := lapStat{Full: round(float64(full)/float64(n), 3), Brk: round(float64(brk)/float64(n), 3), Coast: round(float64(coast)/float64(n), 3), Vmax: round(vmax, 1), Shifts: shifts, PitT: round(pitT, 1), Track: round(v[11], 1), Wet: int(v[12])}

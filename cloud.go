@@ -61,6 +61,7 @@ type cloudLap struct {
 	Sectors []float64 `json:"sectors,omitempty"`
 	Pit     bool      `json:"pit,omitempty"` // through the pit lane: a real lap, but never a best or shared
 	Inc     int       `json:"inc,omitempty"` // incident points during the lap (they do not make it invalid)
+	Drv     string    `json:"drv,omitempty"` // DRINKS mode: the friend who drove most of the lap ("" you)
 	Trace   *lapTrace `json:"trace,omitempty"`
 }
 
@@ -235,10 +236,9 @@ func kickCloud() {
 	}
 }
 
+// queueLap: every lap goes to the account as soon as it is done (a friend's in DRINKS mode too, with their name:
+// the session and its race summary keep every lap, and the server never takes a friend's lap for yours)
 func queueLap(s cloudSession, l cloudLap) {
-	if fridayDriver() != "" { // a friend's lap on Friday night: community only, not the owner's laps
-		return
-	}
 	acct := accountCloud()
 	cloudMu.Lock()
 	defer cloudMu.Unlock()
@@ -351,6 +351,33 @@ type lapRec struct {
 	besideAt       time.Time // the last moment another car was right beside you
 	pitB           []bool    // the 5 m points on the pit road (pitlane.go)
 	lastPitB       int
+	drv            map[string]int // DRINKS mode: who was at the wheel, sampled once a second ("" you)
+	drvAt          time.Time
+	driver         string // who drove most of the lap, set when it ends
+}
+
+// noteDriver counts who is driving (DRINKS mode), once a second: the lap is theirs who drove most of it, so a
+// driver changed just after the line or while the car sits in the pits never takes the lap before
+func (r *lapRec) noteDriver(now time.Time) {
+	if !r.drvAt.IsZero() && now.Sub(r.drvAt) < time.Second {
+		return
+	}
+	r.drvAt = now
+	if r.drv == nil {
+		r.drv = map[string]int{}
+	}
+	r.drv[fridayDriver()]++
+}
+
+// topDriver: who drove most of the lap ("" you, also when nothing was counted)
+func (r *lapRec) topDriver() string {
+	best, n := "", -1
+	for k, c := range r.drv {
+		if c > n || (c == n && k < best) {
+			best, n = k, c
+		}
+	}
+	return best
 }
 
 // move integrates the car's position from its yaw and velocity (m/s, in the car's frame).
@@ -420,6 +447,7 @@ func lapRecorder() {
 	var cur *lapRec
 	var sess cloudSession
 	sessNum, sessVer, sessKey := -1, -1, ""
+	lastBase := 0  // the lap offset of the session's current run (sessionrun.go)
 	lastLL := -1.0 // LapLastLapTime one sample before, to tell when iRacing updates it
 	t := time.NewTicker(time.Second / 30)
 	for range t.C {
@@ -457,19 +485,32 @@ func lapRecorder() {
 			cur = nil
 			continue
 		}
+		// the session started again without leaving it: the lap under way is gone, and the new run's laps are
+		// numbered after the ones already driven (lap is the session's own count from here on)
+		base, _ := noteRun(curRunKey(sn), v[14], lap)
+		if base != lastBase {
+			lastBase, cur = base, nil
+		}
+		lap += base
+		now := time.Now()
 		if cur == nil || lap != cur.n {
 			if cur != nil && lap == cur.n+1 {
 				setLapCut(sn, cur.n, cur.off >= offTrackSamples) // the race report reads the same verdict
 				setLapIncs(sn, cur.n, cur.incAt, cur.incK)       // and the same incidents
+				cur.driver = cur.topDriver()
+				setLapDriver(sn, cur.n, cur.driver) // and the same driver
 				done, s := cur, sess
 				fuelNow := v[9]
 				prevLast := prevLL
 				go func() { // iRacing updates the last lap time a moment after the line
-					finishLap(done, s, fuelNow, waitLastLap(done, prevLast))
+					lt := waitLastLap(done, prevLast)
+					setLapTime(sn, done.n, lt)
+					finishLap(done, s, fuelNow, lt)
 				}()
 			}
 			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1}
 		}
+		cur.noteDriver(now)
 		if pct < 0 || dist < 0 {
 			continue
 		}
@@ -527,13 +568,11 @@ func waitLastLap(r *lapRec, prev float64) float64 {
 	for i := 0; i < 30; i++ {
 		time.Sleep(200 * time.Millisecond)
 		lt := telNums([]string{"LapLastLapTime"})[0]
-		if lt <= 0 {
+		// still the lap before's (two laps a few tenths apart once took the same time this way): wait
+		if lt <= 0 || lt == prev {
 			continue
 		}
-		if measured > 0 && math.Abs(lt-measured) < 0.25 { // matches what was measured here
-			return lt
-		}
-		if lt != prev && (measured <= 0 || math.Abs(lt-measured) < 1.5) {
+		if measured <= 0 || math.Abs(lt-measured) < 1.5 {
 			return lt
 		}
 	}
@@ -589,7 +628,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	// valid means the same here as in the race summary: the car stayed on the track (no cut).
 	// A pit lane lap or one with a hole in its telemetry is still a lap, just never a best.
 	l := cloudLap{ID: fmt.Sprintf("%s-%d", s.ID, r.n), N: r.n, Time: round(lt, 3), Valid: !r.bad, Pit: r.pit,
-		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Trace: &lapTrace{Bin: lapBin, D: r.bins}}
+		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Drv: r.driver, Trace: &lapTrace{Bin: lapBin, D: r.bins}}
 	if x, y := r.shape(maxGap); x != nil {
 		l.Trace.X, l.Trace.Y = x, y
 	}
@@ -609,10 +648,10 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		l.Fuel = 0
 	}
 	best := l.Valid && !l.Pit && maxGap*lapBin <= 40
-	if best {
+	if best && l.Drv == "" { // a friend's lap (DRINKS) is never your best
 		recordSetupLap(l.Time)
 	}
-	recordBookLap(l.Time, l.Fuel, best)
+	recordBookLap(l.Time, l.Fuel, best && l.Drv == "")
 	if best {
 		shareLap(l, s)
 	}
@@ -728,6 +767,48 @@ func recorderIncidents(session int, laps []raceLap) ([]incEvent, map[int]int) {
 		return nil, nil
 	}
 	return out, per
+}
+
+// the time and the driver of each lap as the recorder settled them (the game's time once it is this lap's, who
+// drove most of it): the race report takes them from here, so a lap has one time and one driver everywhere
+var (
+	lapMetaMu sync.Mutex
+	lapTimes  = map[[2]int]float64{}
+	lapDrvs   = map[[2]int]string{}
+)
+
+func setLapTime(session, lap int, t float64) {
+	lapMetaMu.Lock()
+	defer lapMetaMu.Unlock()
+	if len(lapTimes) > 2000 {
+		lapTimes = map[[2]int]float64{}
+	}
+	lapTimes[[2]int{session, lap}] = t
+}
+
+// lapTimeRec: the recorder's time of a lap, false while it has none yet
+func lapTimeRec(session, lap int) (float64, bool) {
+	lapMetaMu.Lock()
+	defer lapMetaMu.Unlock()
+	t, ok := lapTimes[[2]int{session, lap}]
+	return t, ok
+}
+
+func setLapDriver(session, lap int, d string) {
+	lapMetaMu.Lock()
+	defer lapMetaMu.Unlock()
+	if len(lapDrvs) > 2000 {
+		lapDrvs = map[[2]int]string{}
+	}
+	lapDrvs[[2]int{session, lap}] = d
+}
+
+// lapDriver: who drove a lap, as the recorder counted it (false when it did not see the lap)
+func lapDriver(session, lap int) (string, bool) {
+	lapMetaMu.Lock()
+	defer lapMetaMu.Unlock()
+	d, ok := lapDrvs[[2]int{session, lap}]
+	return d, ok
 }
 
 func setLapCut(session, lap int, cut bool) {

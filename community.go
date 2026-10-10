@@ -250,6 +250,7 @@ func renameGuest(from, to string) error {
 		commCfg.Guest = to
 	}
 	saveCommLocked()
+	go renameRaceDriver(from, to) // and in the race summaries
 	return nil
 }
 
@@ -331,7 +332,7 @@ func shareLap(l cloudLap, s cloudSession) {
 	if tel.isDemo() { // the demo race is never shared
 		return
 	}
-	guest := fridayDriver()
+	guest := l.Drv   // who drove most of the lap (DRINKS mode), not who is at the wheel now
 	if guest != "" { // a friend's lap: always shared with its telemetry, under their name
 		on, traces, anon = true, true, false
 	}

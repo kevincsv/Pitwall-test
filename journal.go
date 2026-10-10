@@ -119,6 +119,9 @@ func loadJournal() {
 		if repairRealIR(x) {
 			fixed = true
 		}
+		if markOfflineAI(x) {
+			fixed = true
+		}
 	}
 	if chainRealIR(r) {
 		fixed = true
@@ -131,6 +134,58 @@ func loadJournal() {
 	journalMu.Unlock()
 	loadDrivers()
 	loadRatings()
+}
+
+// markOfflineAI: a race summarised before it said whether it had AI drivers: an iRacing race without a
+// subsession (its id "t-…") is an offline race, so against iRacing's AI
+func markOfflineAI(r *raceReport) bool {
+	if r == nil || r.AI || r.Subsession != 0 || (r.Game != "" && r.Game != "iracing") || !strings.HasPrefix(r.ID, "t-") {
+		return false
+	}
+	r.AI = true
+	return true
+}
+
+// renameRaceDriver: a DRINKS driver renamed: their laps in the race summaries take the new name too
+func renameRaceDriver(from, to string) {
+	journalMu.Lock()
+	defer journalMu.Unlock()
+	changed := false
+	for _, r := range races {
+		hit := false
+		for i := range r.Laps {
+			if r.Laps[i].Drv != "" && strings.EqualFold(r.Laps[i].Drv, from) {
+				r.Laps[i].Drv, hit = to, true
+			}
+		}
+		if hit {
+			r.Drinks, changed = drinksDrivers(r.Laps, ownName()), true
+		}
+	}
+	if changed {
+		writeJSONFile(journalFile("races.json"), races)
+	}
+}
+
+// setRaceLapDriver: who drove a lap of a race summary, changed by hand (an admin in DRINKS mode: the lap was
+// another friend's); "" is you. Returns false when the race or the lap is not there.
+func setRaceLapDriver(id string, n int, drv string) bool {
+	journalMu.Lock()
+	defer journalMu.Unlock()
+	for _, r := range races {
+		if r.ID != id {
+			continue
+		}
+		for i := range r.Laps {
+			if r.Laps[i].N == n {
+				r.Laps[i].Drv = drv
+				r.Drinks = drinksDrivers(r.Laps, ownName())
+				writeJSONFile(journalFile("races.json"), races)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // maxRealIRStep: more than this between one race and the next session is not that race's result but the
@@ -461,9 +516,14 @@ type raceTrack struct {
 	lastFuel                    float64
 	state                       int
 	saved                       bool
+	// restarts of the session (sessionrun.go): the run seen last, and what the runs before it added up to
+	run               int
+	rid               string // the report's id: the session's, plus the run when a finished race is run again
+	incDone, fuelDone float64
+	pendPit           bool // the lap at the line went through the pits (the next one starts with the car where it is)
 }
 
-var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface", "CarLeftRight"}
+var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface", "CarLeftRight", "SessionTime", "Lap"}
 
 func sessionKind(y string, sn int) string {
 	if si := listItem(y, "SessionNum", strconv.Itoa(sn)); si != "" {
@@ -516,9 +576,29 @@ func raceWatcher() {
 			cur = nil
 			continue
 		}
+		// the session's own lap count, over its restarts (an AI race run again without leaving it): the new run's
+		// laps come after the ones already driven instead of being lost under the same numbers
+		var base, run int
+		if onTrack {
+			base, run = noteRun(curRunKey(sn), v[13], int(v[14]))
+		} else {
+			base, run = runBase(curRunKey(sn))
+		}
 		if cur == nil || cur.id != id {
 			end(cur != nil && cur.state < 5)
-			cur = &raceTrack{id: id, kind: kind, meta: meta}
+			cur = &raceTrack{id: id, rid: id, kind: kind, meta: meta, run: run}
+		}
+		lc += base
+		if cur.run != run {
+			if cur.saved || !cur.started { // the race before was finished (or never started): this run is a race of its own
+				cur = &raceTrack{id: id, rid: fmt.Sprintf("%s-r%d", id, run), kind: kind, meta: meta, run: run}
+			} else { // stopped halfway: the same race goes on, every lap of every run in it
+				cur.run, cur.lapSeen, cur.pending = run, lc, 0
+				cur.incDone += math.Max(0, cur.incPrev-cur.inc0)
+				cur.fuelDone += math.Max(0, cur.fuel0-cur.lastFuel)
+				cur.inc0, cur.fuel0, cur.lapInc, cur.lapFuel, cur.incPrev, cur.pitPrev, cur.lapPit = inc, fuel, inc, fuel, inc, onPit, onPit
+				cur.chkAt, cur.doneAt = time.Time{}, time.Time{}
+			}
 		}
 		now := time.Now()
 		if !cur.started && state == 4 && pos > 0 {
@@ -532,7 +612,7 @@ func raceWatcher() {
 		if pos > 0 {
 			cur.lastPos, cur.lastClass = pos, cpos
 		}
-		cur.lastInc, cur.lastFuel = int(inc-cur.inc0), fuel
+		cur.lastInc, cur.lastFuel = int(cur.incDone+inc-cur.inc0), fuel
 		if v[12] > 1 { // a car beside you, on either side
 			cur.besideAt = now
 		}
@@ -560,16 +640,29 @@ func raceWatcher() {
 		cur.pitPrev = onPit
 		if lc > cur.lapSeen && cur.pending == 0 {
 			cur.pending, cur.pendingAt = lc, now
+			cur.pendPit, cur.lapPit = cur.lapPit, onPit
 		}
-		// iRacing updates the last lap time a moment after the line
+		// iRacing updates the last lap time a moment after the line: the lap takes the time the lap recorder
+		// settled (the game's once it is really this lap's), and the game's own after 7 s without one
 		if cur.pending > 0 && now.Sub(cur.pendingAt) > 1500*time.Millisecond {
-			rl := raceLap{N: cur.pending, Time: round(v[8], 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.lapPit, Cut: lapCut(sn, cur.pending), Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
-			if s, ok := myLapStat(cur.pending); ok {
-				rl.lapStat = &s
+			lt, ok := lapTimeRec(sn, cur.pending)
+			if ok || now.Sub(cur.pendingAt) > 7*time.Second {
+				if !ok || lt <= 0 {
+					lt = v[8]
+				}
+				rl := raceLap{N: cur.pending, Time: round(lt, 3), Pos: pos, Inc: int(inc - cur.lapInc), Pit: cur.pendPit, Cut: lapCut(sn, cur.pending), Fuel: round(math.Max(0, cur.lapFuel-fuel), 2)}
+				if s, ok := myLapStat(cur.pending); ok {
+					rl.lapStat = &s
+				}
+				// DRINKS mode: whoever drove most of the lap, as the recorder counted it
+				if d, ok := lapDriver(sn, cur.pending); ok {
+					rl.Drv = d
+				} else {
+					rl.Drv = fridayDriver()
+				}
+				cur.laps = append(cur.laps, rl)
+				cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel = cur.pending, 0, inc, fuel
 			}
-			rl.Drv = fridayDriver()
-			cur.laps = append(cur.laps, rl)
-			cur.lapSeen, cur.pending, cur.lapInc, cur.lapFuel, cur.lapPit = cur.pending, 0, inc, fuel, onPit
 		}
 		if state >= 5 {
 			if cur.chkAt.IsZero() {
@@ -678,7 +771,11 @@ func strengthOfField(irs []int) int {
 
 func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	m := t.meta
-	r := &raceReport{Game: gameTag(currentGame()), ID: t.id, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
+	rid := t.rid
+	if rid == "" {
+		rid = t.id
+	}
+	r := &raceReport{Game: gameTag(currentGame()), ID: rid, When: time.Now().UnixMilli(), Track: m.Track, TrackID: m.TrackID, Car: m.Car, CarID: m.CarID, SeriesID: m.SeriesID, SeasonID: m.SeasonID,
 		Subsession: m.Subsession, Official: m.Official, Cat: m.Cat, Start: t.start, Finish: t.lastPos, Inc: t.lastInc, Pits: t.pits, Laps: t.laps, Incidents: t.incs, DNF: dnf, Multiclass: m.NumClasses > 1, App: appVersion}
 	// the incidents the lap recorder saw (what the analysis and the coach show): one story everywhere
 	if evs, per := recorderIncidents(sessionNumOf(t.id), t.laps); per != nil {
@@ -693,7 +790,7 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 	r.Drinks = drinksDrivers(r.Laps, ownName())
 	r.AI = hasAI(y)
 	if t.fuel0 > 0 && t.lastFuel >= 0 {
-		r.FuelUsed = round(math.Max(0, t.fuel0-t.lastFuel), 1)
+		r.FuelUsed = round(t.fuelDone+math.Max(0, t.fuel0-t.lastFuel), 1)
 	}
 	// lap statistics: clean laps are green-flag laps without pit or incident (not lap 1)
 	var clean []float64
@@ -990,8 +1087,22 @@ func registerJournalRoutes(mux *http.ServeMux) {
 				Laps       []lapInc   `json:"laps"`      // "incidents": the incidents of each lap, from the account's laps of the race
 				Incidents  []incEvent `json:"incidents"` // and where on the lap they happened
 				Inc        int        `json:"inc"`
+				N          int        `json:"n"`   // "lapDriver": the lap
+				Drv        string     `json:"drv"` // and who drove it ("" you)
 			}
 			json.NewDecoder(io.LimitReader(r.Body, 1<<17)).Decode(&in)
+			// DRINKS mode (admins): the lap was another friend's
+			if in.Action == "lapDriver" {
+				loadPL()
+				plMu.Lock()
+				admin := plAcc.Admin
+				plMu.Unlock()
+				if !admin || !setRaceLapDriver(in.ID, in.N, cleanText(in.Drv, 32)) {
+					w.WriteHeader(400)
+					writeJSON(w, map[string]string{"error": "only the admins can change who drove a lap"})
+					return
+				}
+			}
 			journalMu.Lock()
 			var found *raceReport
 			for i, x := range races {
