@@ -2305,6 +2305,13 @@ function drawTrace(){const cv=$("#trace");if(!cv||cv.hidden)return;const[x,w,h]=
 
 /* ===================== lap recorder ===================== */
 const BIN=5,LAPS=[];let rec=null;
+/* iRacing updates the last lap time a moment after the line: read too early it is still the lap before's, so it
+   counts only when it matches the time seen at the line (else that one) */
+function lapTimeOf(game,seen){return game>0&&(!(seen>0)||Math.abs(game-seen)<1.5)?game:seen}
+/* the live reference: the lap the game counts as your best (LapBestLapTime) when recorded here, else the fastest
+   recorded lap that did not go through the pits */
+function liveBest(){const ok=LAPS.filter(l=>!l.pit&&l.time>0),gb=T.LapBestLapTime;
+  return(gb>0&&ok.find(l=>Math.abs(l.time-gb)<.02))||ok.reduce((a,b)=>!a||b.time<a.time?b:a,null)}
 /* Each 5 m of the lap stores the time at the exact start of that 5 m,
    interpolated between telemetry samples, so two laps can be compared
    to the millisecond at any point. */
@@ -2312,8 +2319,8 @@ function recordLap(){
   const d=T.LapDist,lc=T.LapCompleted,t=T.LapCurrentLapTime;if(d==null||lc==null||!T.IsOnTrack)return;
   if(!rec||lc!==rec.lc){
     if(rec&&lc===rec.lc+1&&rec.n>0){const done=rec,cov=done.n/(done.maxBin+1);
-      setTimeout(()=>{const time=T.LapLastLapTime>0?T.LapLastLapTime:done.t;if(cov>.9&&time>0){LAPS.push({n:done.lap,time,fuel:done.f0!=null&&T.FuelLevel!=null?done.f0-T.FuelLevel:null,bins:done.bins,vmax:done.vmax,maxBin:done.maxBin});if(LAPS.length>40)LAPS.shift();
-        if(done.f0!=null&&T.FuelLevel!=null){const u=done.f0-T.FuelLevel;if(u>0&&!done.pit)fuelLog.uses.push(u)}goalsLapDone(time);if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps();else lapsDirty=true}},400)}
+      setTimeout(()=>{const time=lapTimeOf(T.LapLastLapTime,done.t);if(cov>.9&&time>0){LAPS.push({n:done.lap,time,pit:done.pit,fuel:done.f0!=null&&T.FuelLevel!=null?done.f0-T.FuelLevel:null,bins:done.bins,vmax:done.vmax,maxBin:done.maxBin});if(LAPS.length>40)LAPS.shift();
+        if(done.f0!=null&&T.FuelLevel!=null){const u=done.f0-T.FuelLevel;if(u>0&&!done.pit)fuelLog.uses.push(u)}goalsLapDone(time);if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps();else lapsDirty=true}},1500)}
     rec={lc,lap:T.Lap,n:0,bins:[],f0:T.FuelLevel,vmax:0,pit:false,t:0,maxBin:0,ld:null,lt:null};
   }
   rec.vmax=Math.max(rec.vmax,T.Speed||0);if(T.OnPitRoad)rec.pit=true;
@@ -4223,7 +4230,7 @@ function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const 
   box.querySelector("[data-follow]").onclick=()=>{setUI("cmp",{follow:!ui("cmp").follow});cmpCtl();drawCompare()}}
 function serOf(l){if(!l._ser||l._serN!==l.bins.length){l._ser=lapSeries(l).arr;l._serN=l.bins.length}return l._ser}
 function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;cmpCtl();if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1)-cv.getBoundingClientRect().top-16));if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}const c=ui("cmp");
-  const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null),last=LAPS.length?LAPS.at(-1):null,cur=rec;
+  const best=liveBest(),last=LAPS.length?LAPS.at(-1):null,cur=rec;
   const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null,rs=G61REF?serOf(G61REF):null,base=rs||bs;
   const curD=T.LapDist||0,len=Math.max(trackLenM(),(bs?bs.length:0)*BIN);
   // header: lap times and live delta
@@ -4359,7 +4366,7 @@ function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");
 let DB_HIST=[];
 /* delta against the reference you choose (Layout → Delta bar → Configure) */
 const DELTA_SRC={best:["LapDeltaToBestLap","My best lap","Mi mejor vuelta"],session:["LapDeltaToSessionBestLap","Session best lap","Mejor vuelta de la sesión"],optimal:["LapDeltaToOptimalLap","My optimal lap (best sectors)","Mi vuelta óptima (mejores sectores)"],sessopt:["LapDeltaToSessionOptimalLap","Session optimal lap","Vuelta óptima de la sesión"],own:[null,"Pitlane HQ: best recorded lap","Pitlane HQ: mejor vuelta grabada"]};
-function ownDelta(){const best=LAPS.reduce((a,b)=>!a||b.time<a.time?b:a,null),d=T.LapDist;if(!best||d==null||d<20||T.LapCurrentLapTime==null)return null;const r=lapTimeAt(serOf(best),d);return r==null?null:T.LapCurrentLapTime-r}
+function ownDelta(){const best=liveBest(),d=T.LapDist;if(!best||d==null||d<20||T.LapCurrentLapTime==null)return null;const r=lapTimeAt(serOf(best),d);return r==null?null:T.LapCurrentLapTime-r}
 function deltaNow(){const src=ui("delta").src,def=DELTA_SRC[src]||DELTA_SRC.best;if(def[0]){const ok=T[def[0]+"_OK"],v=T[def[0]];if(ok!==false&&v!=null)return v;if(ok===false)return null}return ownDelta()}
 function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const d=deltaNow(),now=performance.now();
   DB_HIST.push([now,d]);while(DB_HIST.length&&now-DB_HIST[0][0]>600)DB_HIST.shift();const old=DB_HIST[0][1];
