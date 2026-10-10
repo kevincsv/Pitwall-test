@@ -24,7 +24,7 @@ import (
 
 // One version for PitlaneHQ.exe, the web and the phone apps (see CHANGELOG.md). While in beta:
 // 0.MINOR.PATCH, PATCH for fixes, MINOR for a set of new features. 1.0.0 ends the beta.
-const appVersion = "0.9.7"
+const appVersion = "0.9.8"
 
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
@@ -266,6 +266,8 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	var lastTick int32 = -1
 	var want []int
 	var lastStatus statusMsg
+	var drvAt time.Time
+	drvOn, drvName := false, ""
 	tk := time.NewTicker(time.Second / time.Duration(hz))
 	defer tk.Stop()
 	keep := time.NewTicker(15 * time.Second)
@@ -305,6 +307,16 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			noticeSeen = seq
+		}
+		// DRINKS mode: who is at the wheel, so the overlays and the app compare each driver with their own laps
+		if first || time.Since(drvAt) > time.Second {
+			drvAt = time.Now()
+			if on, d := drinksActive(); first || on != drvOn || d != drvName {
+				drvOn, drvName = on, d
+				if !send("driver", map[string]any{"on": on, "name": d}) {
+					return
+				}
+			}
 		}
 		if c, v := settingsSnapshot(); v != configVer || uiPrefsVer.Load() != prefsVer {
 			configVer, prefsVer = v, uiPrefsVer.Load()

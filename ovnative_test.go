@@ -819,3 +819,27 @@ func TestCompareReference(t *testing.T) {
 		t.Fatalf("fastest lap outside the pits: %+v", b)
 	}
 }
+
+// DRINKS mode: each driver is measured against their own laps, never a friend's
+func TestCompareOwnDriver(t *testing.T) {
+	st := &ovState{}
+	st.ext.laps = []*ovLap{{n: 1, time: 90.0, drv: "Ana"}, {n: 2, time: 94.0}, {n: 3, time: 92.5, drv: "Ana"}, {n: 4, time: 93.0}}
+	if b := st.bestLap(nil); b == nil || b.n != 1 {
+		t.Fatalf("DRINKS off: the fastest lap: %+v", b)
+	}
+	st.ext.drinks = true
+	if b := st.bestLap(nil); b == nil || b.n != 4 {
+		t.Fatalf("you driving: your own best: %+v", b)
+	}
+	st.ext.driver = "Ana"
+	if b := st.bestLap(nil); b == nil || b.n != 1 {
+		t.Fatalf("Ana driving: her best: %+v", b)
+	}
+	st.ext.driver = "Leo"
+	if b := st.bestLap(nil); b != nil {
+		t.Fatalf("a driver with no laps yet has no reference: %+v", b)
+	}
+	if m := topOf(map[string]int{"Ana": 40, "": 3}); m != "Ana" {
+		t.Fatalf("who drove most: %q", m)
+	}
+}

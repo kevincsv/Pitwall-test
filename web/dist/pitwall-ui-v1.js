@@ -92,9 +92,11 @@ function updateDashboard(){
  set("pwSession",[sess.SessionName||sess.SessionType||"",wi.TrackConfigName||"",car].filter(Boolean).join(" · ")||"—");$("#pwDashState").innerHTML=badge(s.telemetry);
  var p=tx.PlayerCarPosition||((tx.CarIdxPosition||[])[di.DriverCarIdx]),field=(di.Drivers||[]).filter(function(x){return!x.IsSpectator&&!x.CarIsPaceCar}).length,total=sess.SessionLaps||tx.SessionLapsTotal;
  set("pwPos",p>0?"P"+p+(field>1?" / "+field:""):"—");set("pwLap",tx.Lap!=null?tr("Lap ","Vuelta ")+tx.Lap+(total&&total<32000?" / "+total:""):"—");
- var dd=tx.LapDeltaToBestLap_OK===false||tx.LapDeltaToBestLap==null?null:+tx.LapDeltaToBestLap;set("pwDelta",dd==null?"—":(dd>=0?"+":"−")+Math.abs(dd).toFixed(2)+" s",dd==null?"":dd<=0?"good":"bad");
- set("pwBest",tx.LapBestLapTime>0?tr("Best ","Mejor ")+sec(tx.LapBestLapTime):"—");
- var ll=tx.LapLastLapTime>0?+tx.LapLastLapTime:null,bb=tx.LapBestLapTime>0?+tx.LapBestLapTime:null;set("pwLast",ll?sec(ll):"—",ll&&bb&&ll<=bb+.001?"pb":"");set("pwLastSub",ll&&bb?(ll<=bb+.001?tr("your best","tu mejor vuelta"):"+"+(ll-bb).toFixed(2)+" s "+tr("off your best","de tu mejor")):"—");
+ // DRINKS mode: the delta and the best are the driver's own (the game's are the car's, whoever drove it)
+ var dv=typeof drvNow==="function"?drvNow():{on:false},own=dv.on&&typeof liveBest==="function"?liveBest():null;
+ var dd=dv.on?(typeof deltaNow==="function"?deltaNow():null):tx.LapDeltaToBestLap_OK===false||tx.LapDeltaToBestLap==null?null:+tx.LapDeltaToBestLap;set("pwDelta",dd==null?"—":(dd>=0?"+":"−")+Math.abs(dd).toFixed(2)+" s",dd==null?"":dd<=0?"good":"bad");
+ var bb=dv.on?(own?own.time:null):tx.LapBestLapTime>0?+tx.LapBestLapTime:null;set("pwBest",bb?tr("Best ","Mejor ")+sec(bb)+(dv.on&&dv.name?" · "+dv.name:""):"—");
+ var ll=tx.LapLastLapTime>0?+tx.LapLastLapTime:null;set("pwLast",ll?sec(ll):"—",ll&&bb&&ll<=bb+.001?"pb":"");set("pwLastSub",ll&&bb?(ll<=bb+.001?tr("your best","tu mejor vuelta"):"+"+(ll-bb).toFixed(2)+" s "+tr("off your best","de tu mejor")):"—");
  var f=typeof fuelInfo==="function"?fuelInfo():null,fu=typeof vol==="function"?vol:function(v){return v},fl=typeof volU==="function"?volU():"L";
  set("pwFuel",tx.FuelLevel==null?"—":fmt(fu(tx.FuelLevel),1)+" "+fl);set("pwFuelSub",f&&f.laps!=null?f.laps.toFixed(1)+tr(" laps"," vueltas"):"—");
  var g=null;try{g=typeof gapsNow==="function"?gapsNow():null}catch(e){}

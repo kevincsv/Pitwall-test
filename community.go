@@ -292,6 +292,21 @@ func drinksState() map[string]any {
 	return map[string]any{"admin": admin, "on": c.Friday, "guest": c.Guest, "guestAuto": c.GuestAuto, "guests": guests, "driver": fridayDriver()}
 }
 
+// drinksActive: whether DRINKS mode is on (an admin signed in) and who drives now ("" the owner)
+func drinksActive() (bool, string) {
+	loadPL()
+	plMu.Lock()
+	admin, signed := plAcc.Admin, plAcc.Token != ""
+	plMu.Unlock()
+	commMu.Lock()
+	on := commCfg.Friday
+	commMu.Unlock()
+	if !on || !admin || !signed {
+		return false, ""
+	}
+	return true, fridayDriver()
+}
+
 // shareLap: called for every valid lap; sends it only when it beats what you shared for that car and track.
 // fridayDriver: on Friday night mode, the friend driving now; "" when it is the account owner.
 func fridayDriver() string {

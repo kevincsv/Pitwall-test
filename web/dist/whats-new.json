@@ -1,6 +1,15 @@
 {
   "versions": [
     {
+      "v": "0.9.8",
+      "en": [
+        "DRINKS: the delta, the live compare and the coach measure each driver against their own best lap, never a friend's."
+      ],
+      "es": [
+        "DRINKS: la delta, la comparación en vivo y el coach miden a cada piloto contra su propia mejor vuelta, nunca la de un amigo."
+      ]
+    },
+    {
       "v": "0.9.7",
       "en": [
         "DRINKS races keep every lap and who drove it, even when the session starts again; \"DRINKS · Multiple drivers\" shows who drove.",

@@ -51,6 +51,7 @@ type ovLap struct {
 	name   string
 	x, y   []float64 // the path the car drove, every 5 m, when the lap carries it (racingline.go)
 	pit    bool      // it went through the pit lane (an out-lap or an in-lap): never the reference
+	drv    string    // DRINKS mode: who drove most of it ("" the owner)
 }
 
 type ovRec struct {
@@ -60,6 +61,7 @@ type ovRec struct {
 	hasLd                bool
 	pv                   lapPt
 	started, pit         bool
+	drv                  map[string]int // DRINKS mode: the samples each driver drove
 }
 
 type ovExtra struct {
@@ -81,6 +83,8 @@ type ovExtra struct {
 	buttons  []ovButton
 	pressed  string
 	pressAt  time.Time
+	drinks   bool   // DRINKS mode is on (the PC's "driver" event)
+	driver   string // who drives now ("" the owner)
 }
 
 type ovButton struct {
@@ -115,13 +119,17 @@ func (st *ovState) collectLaps() {
 	onPit := f("OnPitRoad") != 0
 	if !R.started || lc != R.lc {
 		if R.started && lc == R.lc+1 && R.cnt > 0 && float64(R.cnt)/float64(R.maxBin+1) > .9 {
-			E.pending, E.pendAt = &ovLap{n: R.lap, time: R.t, bins: R.bins, maxBin: R.maxBin, pit: R.pit}, time.Now()
+			E.pending, E.pendAt = &ovLap{n: R.lap, time: R.t, bins: R.bins, maxBin: R.maxBin, pit: R.pit, drv: topOf(R.drv)}, time.Now()
 		}
 		*R = ovRec{lc: lc, lap: int(f("Lap")), started: true}
 	}
 	if onPit {
 		R.pit = true
 	}
+	if R.drv == nil {
+		R.drv = map[string]int{}
+	}
+	R.drv[E.driver]++
 	if !ok3 || d < 0 || (d < 60 && t > 8) {
 		return
 	}
@@ -209,14 +217,25 @@ func lapTimeOf(gameLast, seen float64) float64 {
 	return seen
 }
 
+// topOf: who drove most of a lap ("" the owner, also when nobody was counted)
+func topOf(m map[string]int) string {
+	best, n := "", -1
+	for k, c := range m {
+		if c > n || (c == n && k < best) {
+			best, n = k, c
+		}
+	}
+	return best
+}
+
 // bestLap: the reference of the live compare and the coach: the lap the game itself counts as your best
 // (LapBestLapTime, a valid lap) when this window recorded it, else the fastest recorded lap that did not go
-// through the pits
+// through the pits. In DRINKS mode only the laps of who is driving now: each driver against their own
 func (st *ovState) bestLap(except *ovLap) *ovLap {
 	gb, _ := st.num("LapBestLapTime")
 	var best *ovLap
 	for _, l := range st.ext.laps {
-		if l == except || l.pit || l.time <= 0 {
+		if l == except || l.pit || l.time <= 0 || (st.ext.drinks && l.drv != st.ext.driver) {
 			continue
 		}
 		if gb > 0 && math.Abs(l.time-gb) < 0.02 {
@@ -227,6 +246,21 @@ func (st *ovState) bestLap(except *ovLap) *ovLap {
 		}
 	}
 	return best
+}
+
+// ownDelta: the current lap against the driver's own best lap recorded here, at the same point of the lap
+func (st *ovState) ownDelta() (float64, bool) {
+	b := st.bestLap(nil)
+	d, ok1 := st.num("LapDist")
+	t, ok2 := st.num("LapCurrentLapTime")
+	if b == nil || !ok1 || !ok2 || d < 20 {
+		return 0, false
+	}
+	r, ok := timeAt(b.series(), d)
+	if !ok {
+		return 0, false
+	}
+	return t - r, true
 }
 
 // ---------- the PC's API (the map, the model) ----------

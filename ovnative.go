@@ -704,6 +704,17 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 			st.unitOf[v.Name] = v.Unit
 		}
 		st.mu.Unlock()
+	case "driver": // DRINKS mode: who is at the wheel now
+		var d struct {
+			On   bool
+			Name string
+		}
+		if json.Unmarshal([]byte(data), &d) != nil {
+			return
+		}
+		st.mu.Lock()
+		st.ext.drinks, st.ext.driver = d.On, d.Name
+		st.mu.Unlock()
 	case "config":
 		var c struct {
 			Config struct {
@@ -985,8 +996,12 @@ func (st *ovState) item(k string) (string, string, uint32) {
 	return "", "", 0
 }
 
-// delta: your gap to the reference chosen for the delta bar (iRacing's own deltas)
+// delta: your gap to the reference chosen for the delta bar (iRacing's own deltas). In DRINKS mode the game's best
+// is the car's, whoever drove it: each driver is measured against their own best lap recorded here instead
 func (st *ovState) delta() (float64, bool) {
+	if st.ext.drinks {
+		return st.ownDelta()
+	}
 	src := map[string]string{"best": "LapDeltaToBestLap", "session": "LapDeltaToSessionBestLap", "optimal": "LapDeltaToOptimalLap", "sessopt": "LapDeltaToSessionOptimalLap"}
 	k, _ := st.uiMap("delta")["src"].(string)
 	v := src[k]
@@ -2022,8 +2037,8 @@ func ovVars(name string, st *ovState) []string {
 	switch name {
 	case "radar":
 		return append(base, "CarIdxLapDistPct", "CarIdxTrackSurface", "CarLeftRight")
-	case "deltabar":
-		return append(base, "LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK", "LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK", "LapBestLapTime")
+	case "deltabar": // the lap recorder's values too: in DRINKS mode the delta is the driver's own (ownDelta)
+		return append(append(base, recVars...), "LapDeltaToBestLap", "LapDeltaToBestLap_OK", "LapDeltaToSessionBestLap", "LapDeltaToSessionBestLap_OK", "LapDeltaToOptimalLap", "LapDeltaToOptimalLap_OK", "LapDeltaToSessionOptimalLap", "LapDeltaToSessionOptimalLap_OK", "LapBestLapTime")
 	}
 	return append(base, "CarIdxLapDistPct", "CarIdxEstTime", "CarIdxLap", "CarIdxLapCompleted", "CarIdxPosition", "CarIdxClassPosition", "CarIdxF2Time",
 		"CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxOnPitRoad", "CarIdxTireCompound", "SessionTimeRemain", "SessionLapsRemainEx", "Lap",

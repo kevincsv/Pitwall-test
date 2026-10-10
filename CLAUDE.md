@@ -31,7 +31,11 @@
   any lap of carries them (`drinks`, you by your public name): My races, Home, My sessions, the race summary and the
   phones show a "DRINKS · Ana" badge, or "DRINKS · Multiple drivers" that opens who drove (their laps and best); the
   summary's laps say their driver (admins change it with ✎: `lapDriver` in /api/races and `/api/sessions/:id/driver`)
-  and your car in the results says who drove it; such a race never goes to your public profile.
+  and your car in the results says who drove it; such a race never goes to your public profile. Each driver is
+  measured against their own laps only: the PC's stream says who drives (`driver` event, `drinksActive`), the overlays'
+  and the app's laps keep their driver, and the delta, the live compare, the coach and the braking markers take that
+  driver's best lap (`bestLap`/`ownDelta` in ovnative4.go, `liveBest`/`deltaNow` in index.html), never the game's
+  best of the car.
 - A session started again without leaving it (an AI race restarted: same session number, its clock back at zero)
   numbers its laps after the ones already driven (`sessionrun.go`, `noteRun`): no lap takes another's place on the
   server or in the race summary, and an unfinished race goes on with every run's laps (a finished one starts a new

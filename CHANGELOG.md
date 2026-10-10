@@ -4,6 +4,12 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.8 beta
+
+- **DRINKS: each driver against their own laps**: the delta, the live compare, the coach and the braking markers
+  measure whoever is driving against their own best lap of the session, never a friend's.
+- Fixes and improvements.
+
 ## 0.9.7 beta
 
 - **DRINKS races keep every lap and who drove it**: a lap is theirs who drove most of it (changing the driver just

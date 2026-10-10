@@ -2124,7 +2124,7 @@ function devWords(r){if(typeof r!=="string")return r;try{if(WEBAPP)r=DEV_WORDS.r
 const Tx=(en,es,de,pt)=>devWords(TxRaw(en,es,de,pt));
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as Pitlane HQ Agent (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.7",APP_STAGE="beta";
+const WEB_VERSION="0.9.8",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2183,6 +2183,9 @@ let SESSION_RAW="";
 
 /* one handler for the events of the PC's stream, local (/api/stream) or through your account (cloud relay) */
 let STREAM_FIELDS=[];
+/* DRINKS mode: who is at the wheel now (the PC's "driver" event; on a phone, what the PC said of DRINKS mode) */
+var DRIVING={on:false,name:""};
+function drvNow(){try{if(COMPANION&&DRINKS)return{on:!!DRINKS.on,name:DRINKS.driver||""}}catch(e){}return DRIVING}
 function onStream(ev,d){
   if(ev==="status"){if(typeof PVDEMO!=="undefined"&&PVDEMO&&!d.connected)return;STATUS=d;renderConn()}
   else if(ev==="schema"){SCHEMA=d||[];schemaChanged()}
@@ -2191,6 +2194,7 @@ function onStream(ev,d){
   else if(ev==="config"){try{profileEvent(d);applyServerCfg(d.config)}catch(err){}}
   else if(ev==="radio"){try{onRadioEvent(d)}catch(err){}}
   else if(ev==="drinks")onDrinks(d)
+  else if(ev==="driver")DRIVING={on:!!(d&&d.on),name:(d&&d.name)||""}
   else if(ev==="notice"){try{if(d.kind==="race"&&!OV.on)onRaceReport(d.data);if(d.kind==="liveask")liveAskShow()}catch(err){}}
   else if(ev==="t"){const o=wantAll?{...T}:{};STREAM_FIELDS.forEach((n,i)=>o[n]=d.v[i]);onFrame(o)}}
 const streamVars=()=>[...new Set([...LIVE_VARS.split(","),...TYRE_VARS,...ui("tel").vars])];
@@ -2201,7 +2205,7 @@ function connectBridge(){
   const all=wantAll&&!OV.on,hz=OV.on?60:30;
   const url=all?"/api/stream?vars=*&hz="+hz:"/api/stream?vars="+streamVars().join(",")+"&hz="+hz;
   es=new EventSource(url);
-  ["status","schema","fields","session","config","radio","notice","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
+  ["status","schema","fields","session","config","radio","notice","driver","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
   es.onopen=()=>{if(STATUS.offline){STATUS.offline=false;renderConn()}};
 }
@@ -2310,8 +2314,9 @@ const BIN=5,LAPS=[];let rec=null;
    counts only when it matches the time seen at the line (else that one) */
 function lapTimeOf(game,seen){return game>0&&(!(seen>0)||Math.abs(game-seen)<1.5)?game:seen}
 /* the live reference: the lap the game counts as your best (LapBestLapTime) when recorded here, else the fastest
-   recorded lap that did not go through the pits */
-function liveBest(){const ok=LAPS.filter(l=>!l.pit&&l.time>0),gb=T.LapBestLapTime;
+   recorded lap that did not go through the pits. In DRINKS mode only the laps of who drives now: each driver against
+   their own (the game's best is the car's, whoever drove it) */
+function liveBest(){const dv=drvNow(),ok=LAPS.filter(l=>!l.pit&&l.time>0&&(!dv.on||(l.drv||"")===dv.name)),gb=T.LapBestLapTime;
   return(gb>0&&ok.find(l=>Math.abs(l.time-gb)<.02))||ok.reduce((a,b)=>!a||b.time<a.time?b:a,null)}
 /* Each 5 m of the lap stores the time at the exact start of that 5 m,
    interpolated between telemetry samples, so two laps can be compared
@@ -2320,11 +2325,11 @@ function recordLap(){
   const d=T.LapDist,lc=T.LapCompleted,t=T.LapCurrentLapTime;if(d==null||lc==null||!T.IsOnTrack)return;
   if(!rec||lc!==rec.lc){
     if(rec&&lc===rec.lc+1&&rec.n>0){const done=rec,cov=done.n/(done.maxBin+1);
-      setTimeout(()=>{const time=lapTimeOf(T.LapLastLapTime,done.t);if(cov>.9&&time>0){LAPS.push({n:done.lap,time,pit:done.pit,fuel:done.f0!=null&&T.FuelLevel!=null?done.f0-T.FuelLevel:null,bins:done.bins,vmax:done.vmax,maxBin:done.maxBin});if(LAPS.length>40)LAPS.shift();
+      setTimeout(()=>{const time=lapTimeOf(T.LapLastLapTime,done.t);if(cov>.9&&time>0){LAPS.push({n:done.lap,time,pit:done.pit,drv:Object.entries(done.drv||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||"",fuel:done.f0!=null&&T.FuelLevel!=null?done.f0-T.FuelLevel:null,bins:done.bins,vmax:done.vmax,maxBin:done.maxBin});if(LAPS.length>40)LAPS.shift();
         if(done.f0!=null&&T.FuelLevel!=null){const u=done.f0-T.FuelLevel;if(u>0&&!done.pit)fuelLog.uses.push(u)}goalsLapDone(time);if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps();else lapsDirty=true}},1500)}
     rec={lc,lap:T.Lap,n:0,bins:[],f0:T.FuelLevel,vmax:0,pit:false,t:0,maxBin:0,ld:null,lt:null};
   }
-  rec.vmax=Math.max(rec.vmax,T.Speed||0);if(T.OnPitRoad)rec.pit=true;
+  rec.vmax=Math.max(rec.vmax,T.Speed||0);if(T.OnPitRoad)rec.pit=true;{const dn=drvNow().name;rec.drv=rec.drv||{};rec.drv[dn]=(rec.drv[dn]||0)+1}
   if(t==null||d<0)return;
   if(d<60&&t>8)return; // the clock of the previous lap can linger a moment after the line
   if(rec.lt!=null&&t<rec.lt){rec.ld=rec.lt=null} // reset or tow: start a fresh segment
@@ -4428,7 +4433,7 @@ let DB_HIST=[];
 /* delta against the reference you choose (Layout → Delta bar → Configure) */
 const DELTA_SRC={best:["LapDeltaToBestLap","My best lap","Mi mejor vuelta"],session:["LapDeltaToSessionBestLap","Session best lap","Mejor vuelta de la sesión"],optimal:["LapDeltaToOptimalLap","My optimal lap (best sectors)","Mi vuelta óptima (mejores sectores)"],sessopt:["LapDeltaToSessionOptimalLap","Session optimal lap","Vuelta óptima de la sesión"],own:[null,"Pitlane HQ: best recorded lap","Pitlane HQ: mejor vuelta grabada"]};
 function ownDelta(){const best=liveBest(),d=T.LapDist;if(!best||d==null||d<20||T.LapCurrentLapTime==null)return null;const r=lapTimeAt(serOf(best),d);return r==null?null:T.LapCurrentLapTime-r}
-function deltaNow(){const src=ui("delta").src,def=DELTA_SRC[src]||DELTA_SRC.best;if(def[0]){const ok=T[def[0]+"_OK"],v=T[def[0]];if(ok!==false&&v!=null)return v;if(ok===false)return null}return ownDelta()}
+function deltaNow(){if(drvNow().on)return ownDelta();const src=ui("delta").src,def=DELTA_SRC[src]||DELTA_SRC.best;if(def[0]){const ok=T[def[0]+"_OK"],v=T[def[0]];if(ok!==false&&v!=null)return v;if(ok===false)return null}return ownDelta()}
 function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const d=deltaNow(),now=performance.now();
   DB_HIST.push([now,d]);while(DB_HIST.length&&now-DB_HIST[0][0]>600)DB_HIST.shift();const old=DB_HIST[0][1];
   if(d==null){fill.style.width="0";$("#dbVal").textContent="–";$("#dbTrend").textContent="";return}
