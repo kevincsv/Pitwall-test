@@ -3337,6 +3337,11 @@ function updateMapData(lap,src){const k=MAP.key;if(!k)return;let d=MAP.data;
   MAP.data=d;store.set("pw.map."+k,d);
   if(MODE==="bridge"&&!OV.on){fetch("/api/map?key="+k,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).catch(()=>{})}
   drawMapSoon()}
+/* the outline drawn a little smoothed (the dead reckoning's small wobbles), kept beside the map, never saved with it */
+const MAP_SM=new WeakMap();
+function mapSmooth(d){let c=MAP_SM.get(d);if(c&&c.u===d.updated&&c.x.length===d.x.length&&c.src===d.x)return c;const n=d.x.length,K=2,sx=new Array(n),sy=new Array(n);
+  for(let i=0;i<n;i++){let a=0,b=0,m=0;for(let k=-K;k<=K;k++){const j=(i+k+n)%n;if(d.x[j]==null)continue;a+=d.x[j];b+=d.y[j];m++}sx[i]=m?a/m:d.x[i];sy[i]=m?b/m:d.y[i]}
+  c={x:sx,y:sy,u:d.updated,src:d.x};MAP_SM.set(d,c);return c}
 let mapRaf=0;function drawMapSoon(){if(!mapRaf)mapRaf=requestAnimationFrame(()=>{mapRaf=0;drawMap()})}
 function mapXY(d){const r=MAPL.rot||0,mi=MAPL.mirror?-1:1;return(x,y)=>{x*=mi;for(let k=0;k<r;k++){const t=x;x=-y;y=t}return[x,y]}}
 function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on){const hh=Math.round(Math.min(380,Math.max(220,cv.clientWidth*.8)));if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
@@ -3351,19 +3356,34 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
     if(!colorAt){x.beginPath();for(let i=0;i<=n;i++){const k=i%n;if(xs[k]==null)continue;const[a,b]=P(xs[k],ys[k]);i?x.lineTo(a,b):x.moveTo(a,b)}x.strokeStyle=col;x.stroke();return}
     let prev=null,pc=null;x.beginPath();for(let i=0;i<n;i++){if(xs[i]==null)continue;const q=P(xs[i],ys[i]),cc=colorAt(i);if(prev&&cc!==pc){x.strokeStyle=pc;x.stroke();x.beginPath();x.moveTo(prev[0],prev[1])}if(!prev)x.moveTo(q[0],q[1]);else x.lineTo(q[0],q[1]);prev=q;pc=cc}if(pc){x.strokeStyle=pc;x.stroke()}};
   const good=css("--good"),bad=css("--bad"),acc=css("--accent"),pb=css("--pb"),mut=css("--muted");
-  if(d){line(d.x,d.y,css("--line"),14);line(d.x,d.y,css("--surface2"),9);
-    const[s0x,s0y]=P(d.x[0],d.y[0]),[s1x,s1y]=P(d.x[3],d.y[3]);const ang=Math.atan2(s1y-s0y,s1x-s0x)+Math.PI/2;x.strokeStyle=css("--fg");x.lineWidth=3;x.beginPath();x.moveTo(s0x+Math.cos(ang)*9,s0y+Math.sin(ang)*9);x.lineTo(s0x-Math.cos(ang)*9,s0y-Math.sin(ang)*9);x.stroke();
-    if(MAPL.tel&&MAPL.best&&d.best)line(d.best.x,d.best.y,pb,1.6);
-    if(MAPL.tel&&MAPL.ideal&&d.ideal){const I=d.ideal;line(I.x,I.y,acc,2.2,i=>I.b[i]>.12?bad:acc)}}
+  const sm=d?mapSmooth(d):null,rw=Math.max(8,Math.min(18,Math.min(w,h)/24));
+  if(d){const n=sm.x.length,alpha=(a,f)=>{x.save();x.globalAlpha=a;f();x.restore()};
+    // the track as a road with depth, like the coach's maps: its shadow, the kerb-coloured rim and the darker asphalt
+    x.save();x.translate(2,3.5);x.globalAlpha=.38;line(sm.x,sm.y,"#000",rw+5);x.restore();
+    line(sm.x,sm.y,css("--line"),rw+2);alpha(.2,()=>line(sm.x,sm.y,"#fff",rw+2));
+    line(sm.x,sm.y,css("--surface2"),rw-3);alpha(.3,()=>line(sm.x,sm.y,"#000",rw-3));
+    // the start/finish line across the road, and the way the cars go beside it (on the outside of the track)
+    const k1=Math.min(n-1,Math.max(3,Math.round(n/90))),[s0x,s0y]=P(sm.x[0],sm.y[0]),[s1x,s1y]=P(sm.x[k1],sm.y[k1]),um=Math.hypot(s1x-s0x,s1y-s0y)||1,ux=(s1x-s0x)/um,uy=(s1y-s0y)/um;
+    let nx=-uy,ny=ux;if((s0x-w/2)*nx+(s0y-h/2)*ny<0){nx=-nx;ny=-ny}const half=rw/2+1;
+    x.lineCap="butt";x.lineWidth=4;x.strokeStyle="#fff";x.beginPath();x.moveTo(s0x+nx*half,s0y+ny*half);x.lineTo(s0x-nx*half,s0y-ny*half);x.stroke();x.setLineDash([3,3]);x.strokeStyle="#111";x.stroke();x.setLineDash([]);
+    const bx=s0x+nx*(half+9),by=s0y+ny*(half+9),tx=bx+ux*22,ty=by+uy*22,hh=6;x.strokeStyle=x.fillStyle=css("--fg");x.lineWidth=2;x.lineCap="round";
+    x.beginPath();x.moveTo(bx,by);x.lineTo(tx-ux*hh,ty-uy*hh);x.stroke();x.beginPath();x.moveTo(tx,ty);x.lineTo(tx-ux*hh+nx*hh*.6,ty-uy*hh+ny*hh*.6);x.lineTo(tx-ux*hh-nx*hh*.6,ty-uy*hh-ny*hh*.6);x.closePath();x.fill();
+    // the official turn numbers, beside the road
+    const tid=(S.WeekendInfo||{}).TrackID,oc=tid&&liveGame()==="iracing"?officialCorners(tid,"iracing",n,d.len||trackLenM()):null;
+    if(oc){x.font="700 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";x.lineJoin="round";
+      oc.forEach(cn=>{const i=cn.i,[a,b]=P(sm.x[i],sm.y[i]),[a1,b1]=P(sm.x[(i+2)%n],sm.y[(i+2)%n]),[a0,b0]=P(sm.x[(i-2+n)%n],sm.y[(i-2+n)%n]),tm=Math.hypot(a1-a0,b1-b0)||1;
+        let qx=-(b1-b0)/tm,qy=(a1-a0)/tm;if((a-w/2)*qx+(b-h/2)*qy<0){qx=-qx;qy=-qy}const X=a+qx*(rw/2+9),Y=b+qy*(rw/2+9);
+        x.lineWidth=3;x.strokeStyle=css("--bg");x.strokeText(cn.n,X,Y);x.fillStyle=css("--muted");x.fillText(cn.n,X,Y)})}
+    if(MAPL.tel&&MAPL.best&&d.best)line(d.best.x,d.best.y,pb,1.6)}
   if(MAPL.line&&c&&c.pts.length>1&&(!d||c.p0<.03||c.src==="geo")){const ps=c.pts;line(ps.map(p=>p[1]),ps.map(p=>p[2]),MAPL.tel?null:acc,2.6,MAPL.tel?(i=>ps[i][5]>.12?bad:ps[i][4]>.5?good:mut):null)}
   // braking markers with comparison to the reference
-  if(d&&MAPL.tel&&MAPL.brakes){const ref=(MAPL.ideal&&d.ideal?d.ideal.brakes:d.best&&d.best.brakes)||[],refL=MAPL.ideal&&d.ideal?d.ideal:d.best,last=MAP.laps.at(-1),len=d.len||trackLenM();
+  if(d&&MAPL.tel&&MAPL.brakes){const ref=(d.best&&d.best.brakes)||[],refL=d.best,last=MAP.laps.at(-1),len=d.len||trackLenM();
     x.font="600 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";
     ref.forEach((bp,n)=>{if(!refL)return;const[a,b]=P(refL.x[bp.i],refL.y[bp.i]);x.fillStyle=bad;x.beginPath();x.arc(a,b,8,0,7);x.fill();x.fillStyle="#fff";x.fillText(n+1,a,b+.5);
       if(last&&last.brakes&&last.N===d.N){const m=last.brakes.find(q=>Math.abs(q.i-bp.i)<d.N*.03);if(m){const dm=(m.i-bp.i)/d.N*len;if(Math.abs(dm)>=3){x.fillStyle=dm>0?good:bad;x.textAlign="left";x.fillText((dm>0?"+":"−")+Math.abs(dm).toFixed(0)+" m",a+11,b);x.textAlign="center"}}}});}
   // cars
   if(d){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,pos=T.CarIdxPosition||[],pit=T.CarIdxOnPitRoad||[],laps=T.CarIdxLap||[];const N=d.N;
-    const at=q=>{const f=q*N,i=Math.floor(f)%N,j=(i+1)%N,t=f-Math.floor(f);return P(d.x[i]+(d.x[j]-d.x[i])*t,d.y[i]+(d.y[j]-d.y[i])*t)};
+    const at=q=>{const f=q*N,i=Math.floor(f)%N,j=(i+1)%N,t=f-Math.floor(f);return P(sm.x[i]+(sm.x[j]-sm.x[i])*t,sm.y[i]+(sm.y[j]-sm.y[i])*t)};
     x.font="700 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";
     const list=drivers().filter(dr=>!dr.IsSpectator&&!dr.CarIsPaceCar&&pct[dr.CarIdx]>=0).sort((a,b)=>(a.CarIdx===me)-(b.CarIdx===me));
     list.forEach(dr=>{const i=dr.CarIdx;if(i!==me&&!MAPL.cars)return;const[a,b]=at(pct[i]);const lapDiff=(laps[i]+pct[i])-(laps[me]+pct[me]);
@@ -3372,10 +3392,10 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
       if(MAPL.nums&&pos[i]>0){x.fillStyle=i===me?css("--accent-ink"):css("--surface");x.fillText(pos[i],a,b+.5)}x.globalAlpha=1})}
   // note
   if(!d){const p=c&&c.pts.length?c.pts.at(-1)[0]:0;note.innerHTML=Lp(`Drawing the map from your car: ${Math.round(p*100)}% of the first clean lap. It is saved for next time.`,`Dibujando el mapa con tu coche: ${Math.round(p*100)}% de la primera vuelta limpia. Se guarda para la próxima vez.`,0,`Zeichne die Karte mit deinem Auto: ${Math.round(p*100)}% der ersten sauberen Runde. Sie wird für das nächste Mal gespeichert.`,`Desenhando o mapa com seu carro: ${Math.round(p*100)}% da primeira volta limpa. Fica salvo para a próxima vez.`)}
-  else{const I=d.ideal;note.innerHTML=(d.community?Lp(`Track layout from the community: the fastest lap without incidents (${fmtT(d.commTime)}). `,`Trazado de la comunidad: la vuelta más rápida sin incidentes (${fmtT(d.commTime)}). `,0,`Streckenverlauf aus der Community: die schnellste Runde ohne Zwischenfälle (${fmtT(d.commTime)}). `,`Traçado da comunidade: a volta mais rápida sem incidentes (${fmtT(d.commTime)}). `):"")+(I&&MAPL.tel&&MAPL.ideal?Lp(`Ideal line estimated from your fastest mini-sectors over ${d.laps} laps: ${fmtT(I.time)}. iRacing does not share its own racing line.`,`Línea ideal estimada con tus mini-sectores más rápidos en ${d.laps} vueltas: ${fmtT(I.time)}. iRacing no comparte su propia trazada.`,0,`Ideallinie geschätzt aus deinen schnellsten Mini-Sektoren über ${d.laps} Runden: ${fmtT(I.time)}. iRacing teilt seine eigene Ideallinie nicht.`,`Linha ideal estimada pelos seus mini-setores mais rápidos em ${d.laps} voltas: ${fmtT(I.time)}. O iRacing não compartilha sua própria linha.`):"")
+  else{const I=d.ideal;note.innerHTML=(d.community?Lp(`Track layout from the community: the fastest lap without incidents (${fmtT(d.commTime)}). `,`Trazado de la comunidad: la vuelta más rápida sin incidentes (${fmtT(d.commTime)}). `,0,`Streckenverlauf aus der Community: die schnellste Runde ohne Zwischenfälle (${fmtT(d.commTime)}). `,`Traçado da comunidade: a volta mais rápida sem incidentes (${fmtT(d.commTime)}). `):"")
     +(MAPL.brakes&&MAP.laps.length?" "+Lp("Numbers next to braking points: your last lap vs the reference (+ = braked later).","Números junto a las frenadas: tu última vuelta vs la referencia (+ = frenaste más tarde)."):"")}
 }
-function renderMapLayers(){const box=$("#mapLayers");const items=MAPL.tel?["tel","ideal","best","line","brakes","cars","nums"]:["tel","line","cars","nums"];
+function renderMapLayers(){const box=$("#mapLayers");const items=MAPL.tel?["tel","best","line","brakes","cars","nums"]:["tel","line","cars","nums"];
   box.innerHTML=items.map(k=>`<button type="button" class="chip" data-ly="${k}" aria-pressed="${!!MAPL[k]}">${L("ly."+k,true)}</button>`).join("")+
    `<button type="button" class="chip" data-act="rot">⟳ ${L("ly.rot",true)}</button><button type="button" class="chip" data-act="mirror" aria-pressed="${!!MAPL.mirror}">⇋ ${L("ly.mirror",true)}</button><button type="button" class="chip" data-act="reset">${L("ly.reset",true)}</button>`;
   box.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{MAPL[b.dataset.ly]=!MAPL[b.dataset.ly];store.set("pw.maplayers",MAPL);renderMapLayers();drawMap()});
@@ -3594,7 +3614,12 @@ function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(
 const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","radio","engine","tyres","standings","telemetry","weather","controls","trackbar","system"];
 if(!FEATURES.voice)WIDGETS.splice(WIDGETS.indexOf("radio"),1);
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps"};
-let HIDDEN=new Set(store.get("pw.hiddenW",["standings","telemetry"]));
+/* the Telemetry screen shows what matters while you drive, nothing more: the flags, where you are, the delta and the
+   lap times, the cars around you, the map, the fuel and the incidents (the tyres and the standings have their own
+   tabs). Every other widget stays one click away in Layout */
+const LIVE_ESSENTIAL=["flag","dash","timing","deltabar","map","relative","fuel","incidents"];
+const liveNonEssential=()=>[...new Set([...WIDGETS,"radio",...[...document.querySelectorAll("#v-live .wpanel[data-w]")].map(p=>p.dataset.w)])].filter(w=>!LIVE_ESSENTIAL.includes(w));
+let HIDDEN=new Set(store.get("pw.hiddenW",null)||liveNonEssential());
 const OV={on:false,list:[],bg:true};
 (function parseOverlay(){const q=new URLSearchParams(location.search);let v=q.get("overlay");if(!v){const m=(location.hash||"").match(/^#overlay-([a-z,-]+)/);if(m)v=m[1].replace(/-/g,",")}
   if(!v)return;OV.on=true;OV.preview=q.get("preview")==="1";OV.list=v.split(",").filter(Boolean);OV.bg=q.get("bg")!=="transparent";OV.win=q.get("win")==="1";OV.scale=+(q.get("scale")||1)||1;
@@ -3613,7 +3638,9 @@ if(OV.on&&new URLSearchParams(location.search).get("fl")==="1"&&typeof window.pw
   window.pwVisible=on=>fetch(`/api/overlay/visible?w=${encodeURIComponent(name)}&on=${on?1:0}`,{method:"POST"}).catch(()=>{});
 })();
 
-function applyLayout(){setTimeout(markGameGaps,0);if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
+/* once (also after the PC's profile brings an older layout): the Telemetry screen back to its essentials */
+function liveEssentialsOnce(){if(OV.on||+store.get("pw.liveV",0)>=2)return;HIDDEN=new Set(liveNonEssential());store.set("pw.hiddenW",[...HIDDEN]);store.set("pw.order",null);try{ORDER=null}catch(e){}store.set("pw.liveV",2)}
+function applyLayout(){liveEssentialsOnce();setTimeout(markGameGaps,0);if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
   document.querySelectorAll("#v-live .wpanel").forEach(p=>{p.hidden=HIDDEN.has(p.dataset.w)});
   const vis=WIDGETS.filter(w=>!HIDDEN.has(w)&&w!=="flag");$("#liveEmpty").hidden=vis.length>0;$("#liveEmpty").innerHTML=Lp("Every widget is in an overlay or hidden. Use Layout to bring them back.","Todos los widgets están en overlays u ocultos. Usa Diseño para recuperarlos.")}
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
@@ -3856,14 +3883,14 @@ function chk(id,on,label){return `<button type="button" class="chip" id="${id}" 
 /* the Live screen's recommended set, as an engineer for an amateur driver would pick it:
    flags, lap times and the delta, who is around and the gaps, fuel and tyres for the stint,
    incidents (safety rating) and the inputs to coach braking and throttle */
-const LIVE_REC=["flag","timing","deltabar","relative","gaps","fuel","tyres","incidents","inputs"];
+const LIVE_REC=LIVE_ESSENTIAL;
 function openLayout(){floatDrawer(false);LAYOUT_VIEW=openLayout;CFG_BACK=null;
   $("#dTitle").innerHTML=L("layout");$("#dSub").innerHTML=Lp("Choose what this screen shows. Overlay windows are set up in Rig → Overlays.","Elige qué muestra esta pantalla. Las ventanas overlay se configuran en Rig → Overlays.");
   const rows=WIDGETS.map(w=>`<div class="lyrow"><span class="s">${L("w."+w,true)}</span>
     <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${esc(HIDDEN.has(w)?Tx("Hidden","Oculto"):Tx("Shown","Visible"))}</button>
     ${w!=="flag"?`<button type="button" class="pin" data-size="${w}" title="${esc(Tx("Width","Ancho"))}">${esc(Tx("Width","Ancho"))}: ${sizeLabel(w)}</button>`:""}
     ${CONFIGURABLE[w]?`<button type="button" class="pin" data-cfg="${w}">${L("configure",true)}</button>`:""}</div>`).join("");
-  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><div class="frow" style="margin:0 0 10px"><button type="button" class="btn small" id="lyRec">★ ${esc(Tx("Recommended","Recomendados","Empfohlen","Recomendados"))}</button><button type="button" class="btn small" id="lyNone">${esc(Tx("Hide all","Desactivar todos","Alle ausblenden","Desativar todos"))}</button><button type="button" class="btn small" id="lyAll">${esc(Tx("Show all","Mostrar todos","Alle anzeigen","Mostrar todos"))}</button></div><p class="note" style="margin:0 0 10px">${Lp("Tip: drag the ⠿ handle on any block to move it.","Consejo: arrastra el asa ⠿ de cualquier bloque para moverlo.")}</p><div class="panel">${rows}</div>
+  $("#dBody").innerHTML=`<button type="button" class="btn primary" id="toOverlays" style="margin-bottom:10px">${L("ovSettings",true)} →</button><div class="frow" style="margin:0 0 10px"><button type="button" class="btn small" id="lyRec">★ ${esc(Tx("Essentials","Lo esencial","Das Wichtigste","O essencial"))}</button><button type="button" class="btn small" id="lyNone">${esc(Tx("Hide all","Desactivar todos","Alle ausblenden","Desativar todos"))}</button><button type="button" class="btn small" id="lyAll">${esc(Tx("Show all","Mostrar todos","Alle anzeigen","Mostrar todos"))}</button></div><p class="note" style="margin:0 0 10px">${Lp("Tip: drag the ⠿ handle on any block to move it.","Consejo: arrastra el asa ⠿ de cualquier bloque para moverlo.")}</p><div class="panel">${rows}</div>
    <div style="margin-top:10px"><button type="button" class="btn" id="resetOrder">${esc(Tx("Reset order and widths","Restablecer orden y anchos"))}</button></div>`;
   document.querySelectorAll("#dBody [data-size]").forEach(b=>b.onclick=()=>{cycleSize(b.dataset.size);openLayout()});
   $("#resetOrder").onclick=()=>{ORDER=null;WSIZE={};WHGT={};store.set("pw.order",null);store.set("pw.sizes",{});store.set("pw.heights",{});location.reload()};
@@ -4723,7 +4750,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  pitLoss:["Pit loss (s)","Pérdida en boxes (s)"],traceSecs:["Trace length (s)","Duración de la gráfica (s)"],traceH:["Trace height (px)","Altura de la gráfica (px)"],gapMins:["Minutes shown","Minutos visibles"],gapCars:["Cars ahead and behind","Coches delante y detrás"]});
 /* Settings that belong to a person (language, favourites, layout…) live in the
    PC's profile so they follow the profile. Phones keep their own Live layout. */
-const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsugg|calsrc|haptics|goals|strategy|radio|shift|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW)$/;
+const SYNC_ANY=/^pw\.(lang|units|theme|fav|plan|filters|maplayers|cat|events|remind|calghost|calsugg|calsrc|haptics|goals|strategy|radio|shift|tw\..+)$/,SYNC_PC=/^pw\.(order|sizes|heights|hiddenW|seenW|liveV)$/;
 const syncable=k=>SYNC_ANY.test(k)||(SYNC_PC.test(k)&&isPC());
 let PROFILE={id:null,name:""},PROF_PUSH={},profTimer=0;
 const rawSet=store.set.bind(store);
