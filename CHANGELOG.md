@@ -4,6 +4,21 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.7 beta
+
+- **DRINKS races keep every lap and who drove it**: a lap is theirs who drove most of it (changing the driver just
+  after the line no longer moves the lap to the next one), a session started again without leaving it keeps the laps
+  already driven, and friends' laps go to your sessions and race summaries with their name, never as your best.
+  "DRINKS · Multiple drivers" shows who drove, their laps and their best; admins can change who drove a lap.
+- **Races against the AI** say "vs AI", the AI drivers are marked in the results, and those races stay off your
+  public profile.
+- **Live compare and the delta** measure each lap with its own time, against your best valid lap (never a lap
+  through the pits).
+- **Telemetry shows the essentials**: position, delta, last lap, fuel, the cars around you, the map and your
+  incidents; the rest is one click away in Layout. The map is drawn like the coach's, with the direction and the
+  official turns.
+- Fixes and improvements.
+
 ## 0.9.6 beta
 
 - **The league hub** (Community → Leagues, in development): every league is a post with the days it races, the

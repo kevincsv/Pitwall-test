@@ -23,10 +23,21 @@
   error and no element wider than the screen, tables only inside a scrolling container).
 - DRINKS mode (formerly Friday night mode): admins only, on the PC or from the phone app. A driver already on the
   list can be renamed (✎: the same driver on the server, `/guest-rename`, so their shared laps change name too) or
-  taken off the list (×: what they shared stays). Every race lap keeps who drove it (`drv`), and a race a friend drove
-  any lap of carries them (`drinks`, you by your public name): My races, Home, the race summary and the phones show a
-  "DRINKS · Ana" badge, or "DRINKS · Multiple" (the names on hover / under it) when several drove; such a race never
-  goes to your public profile.
+  taken off the list (×: what they shared stays; renamed, their laps in the summaries and the account follow). A lap
+  is theirs who drove most of it (`noteDriver`/`topDriver`, counted once a second, `lapDriver` for the race report),
+  never whoever is at the wheel after the line. Every lap goes to the account as soon as it is done, a friend's too
+  with their name (`drv` on the lap, migration 0036): the session and its race summary keep every lap, and a
+  friend's lap is never the account's best, its share or its trackbook best. Every race lap keeps who drove it (`drv`), and a race a friend drove
+  any lap of carries them (`drinks`, you by your public name): My races, Home, My sessions, the race summary and the
+  phones show a "DRINKS · Ana" badge, or "DRINKS · Multiple drivers" that opens who drove (their laps and best); the
+  summary's laps say their driver (admins change it with ✎: `lapDriver` in /api/races and `/api/sessions/:id/driver`)
+  and your car in the results says who drove it; such a race never goes to your public profile.
+- A session started again without leaving it (an AI race restarted: same session number, its clock back at zero)
+  numbers its laps after the ones already driven (`sessionrun.go`, `noteRun`): no lap takes another's place on the
+  server or in the race summary, and an unfinished race goes on with every run's laps (a finished one starts a new
+  report). A lap's time waits until the game's is this lap's (`waitLastLap`, `lapTimeRec`), never the lap before's.
+- Races against iRacing's AI (`ai`; an offline race, id "t-…", counts too) say "vs AI" (`aiBadge`, the phones'
+  `AiBadge`), the AI drivers are marked "AI" in the results (no driver notes), and they never go to the public profile.
 - One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
   `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared
   or not; shared laps; the laps of the rivals of your races) and its references are real laps,
@@ -121,6 +132,11 @@
   "Live" any more ("Telemetry → …"). Telemetry → Phone & sharing on the PC: your phone or tablet (pitlanehq.app or
   the app, same account, Telemetry → Connect, accept on the PC; a QR to the web app and the Android download) and
   sharing with a code; no Wi-Fi addresses, PIN or local links (`renderPhoneHow`).
+- The Telemetry screen shows only the essentials (`LIVE_ESSENTIAL`: flags, the top card with position, delta, last
+  lap and fuel beside the cars ahead and behind, incidents and what is left, the delta bar, the map, the relative,
+  fuel and incidents); every other widget is one click away in Layout ("Essentials" puts them back). The live map is
+  the coach maps' road with depth, its start/finish line, the direction arrow and the official turns; it has no
+  "ideal" line.
 - Live in the web and phone apps: Connect/Disconnect for your own PC (presence only until Connect),
   and watching someone else with a share code made on the PC (Settings → Phone) or from the phone.
   The room is one hash of the code and the key a PBKDF2 of it, so the server never reads the

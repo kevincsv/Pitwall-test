@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.9.7",
+      "en": [
+        "DRINKS races keep every lap and who drove it, even when the session starts again; \"DRINKS · Multiple drivers\" shows who drove.",
+        "Races against the AI say \"vs AI\" and stay off your public profile.",
+        "Live compare and the delta measure each lap with its own time, against your best valid lap.",
+        "Telemetry shows the essentials, and its map is drawn like the coach's."
+      ],
+      "es": [
+        "Las carreras DRINKS guardan cada vuelta y quién la condujo, aunque la sesión empiece de nuevo; \"DRINKS · Varios pilotos\" muestra quién condujo.",
+        "Las carreras contra la IA dicen \"vs IA\" y no salen en tu perfil público.",
+        "La comparación en vivo y la delta miden cada vuelta con su propio tiempo, contra tu mejor vuelta válida.",
+        "Telemetría muestra lo esencial, y su mapa se dibuja como el del coach."
+      ]
+    },
+    {
       "v": "0.9.6",
       "en": [
         "The league hub: every league is a post with the days it races, the usual start in its time zone and in yours, its next race, its disciplines, its Discord or website and whether it is looking for drivers.",
