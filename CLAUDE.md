@@ -97,7 +97,8 @@
   phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
   and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch: the road is B's own path when
   both laps have one (`lapShape(B)` first on the web, `c.bx`/`c.by` on the phones), so the dashed line really is B
-  and the offsets are A's; else the lap's own path, else the community's layout (web and PC).
+  and the offsets are A's; else the lap's own path, else the community's layout (web, PC and phones: `trackLayout`,
+  `layout` in the phones' `LapAnalysis`).
 - Official turn numbers (`track_turns` on the server, `/community/turns`, `/api/turns`): an admin places T1 … Tn on a
   track's map in the race summary ("Official turns · Admin", clicks in order, saved for everyone, as fractions of the lap).
   The coach, the lap analyzer and the race summary (PC, web, phones: `turnNo`) give every corner the number of the
