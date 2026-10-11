@@ -52,8 +52,9 @@ const idOk = (v) => typeof v === "string" && /^[A-Za-z0-9_.:-]{6,80}$/.test(v);
 
 const posInt = (v) => (Number.isInteger(v) && v > 0 && v < 1e9 ? v : null);
 // a session against iRacing's AI the agent did not flag (an older one): an iRacing session without a subsession
-// (id "t-…") that is not a test is a single-player session, so against the AI (markOfflineAI on the PC)
-const offlineAI = (s) => gameOf(s.game) === "iracing" && /^t-/.test(String(s.id || "")) && !/test/i.test(String(s.kind || ""));
+// (id "t-…", after the account's "acct_…:" prefix) that is not a test is a single-player session, so against the AI
+// (markOfflineAI on the PC)
+const offlineAI = (s) => gameOf(s.game) === "iracing" && /(^|:)t-/.test(String(s.id || "")) && !/test/i.test(String(s.kind || ""));
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(

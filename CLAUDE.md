@@ -58,9 +58,9 @@
   the ratings (`clearAIRatings`, which also cleans older summaries when the journal loads; `isAIRace` on the web; `ai`
   on the phones). An estimate is never made from a driver without an iRating (`irChanges`).
   A session the server has no `ai` flag for (recorded by an older agent) is against the AI when it is an iRacing
-  session without a subsession (id "t-…") that is not a test (like `markOfflineAI`): the web's `sessIsAI` (the session
+  session without a subsession (id "t-…" after the server's `acct_…:` prefix) that is not a test (like `markOfflineAI`): the web's `sessIsAI` (the session
   picker, My sessions, the session's window, the "Looking at" line and the session lists' text), the server when it
-  saves a session (`offlineAI`; migration 0038 marks the old ones) and the phones' session parsing. Every session list
+  saves a session (`offlineAI`; migration 0039 marks the old ones) and the phones' session parsing. Every session list
   shows "vs AI" and the DRINKS pill the same way.
 - One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
   `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared

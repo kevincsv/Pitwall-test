@@ -2465,9 +2465,9 @@ let LAPF={q:"",track:"",extra:false,cat:"",car:"",kind:"",day:""},SESS_ASK="";/*
 // the car and the track are two filters: with many of each, one list of every pair gets long
 const sessCar=x=>(x.game||"")+"|"+(x.car||""),sessTrk=x=>(x.game||"")+"|"+(x.track||"")+"|"+(x.track_config||""),sessTn=x=>(x.track||"")+(x.track_config?" · "+x.track_config:"");
 const sessKindOf=x=>{const k=String(x.kind||"").toLowerCase();return /race/.test(k)?"race":/qual/.test(k)?"qual":/test/.test(k)?"test":/prac|warm|offline/.test(k)?"prac":""};
-/* a session against iRacing's AI: the server's flag; else an iRacing session without a subsession (id "t-…") that is not a test
+/* a session against iRacing's AI: the server's flag; else an iRacing session without a subsession (id "t-…" after the account's "acct_…:" prefix) that is not a test
    (a single-player session, like markOfflineAI on the PC: recorded by an older agent); else its race summary says so */
-const sessIsAI=x=>!!x&&(!!x.ai||((x.game||"iracing")==="iracing"&&/^t-/.test(String(x.id||""))&&sessKindOf(x)!=="test")||isAIRace(raceForSession(x)));
+const sessIsAI=x=>!!x&&(!!x.ai||((x.game||"iracing")==="iracing"&&/(^|:)t-/.test(String(x.id||""))&&sessKindOf(x)!=="test")||isAIRace(raceForSession(x)));
 const sessDrkPill=x=>x&&x.drvs?` <span class="pill drk" title="${esc("DRINKS: "+x.drvs.split(",").join(", "))}">DRINKS · ${esc(x.drvs.split(",").length>1?Tx("Multiple drivers","Varios pilotos","Mehrere Fahrer","Vários pilotos"):x.drvs)}</span>`:"";
 const SESS_KINDS=[["race",["Races","Carreras","Rennen","Corridas"]],["qual",["Qualifying","Clasificaciones","Qualifyings","Classificações"]],["prac",["Practice","Prácticas","Training","Treinos"]],["test",["Test drives","Test drives","Testfahrten","Test drives"]]];
 // f without one of its filters: what each filter can still choose
