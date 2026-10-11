@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -13,8 +14,9 @@ namespace PitlaneHQ.Desktop;
 /// </summary>
 public partial class MainWindow
 {
-    // X/Y: the path the car drove every 5 m (the lap's trace), for the coach's racing line
-    private sealed record AnaLap(string Label, double Time, double[][] Bins, bool Valid, int N, int Inc, double[]? Sectors, string Kind, double[]? X = null, double[]? Y = null)
+    // X/Y: the path the car drove every 5 m (the lap's trace), for the coach's racing line and the map; IncAt: its
+    // incidents as [m from the line, points, …]
+    private sealed record AnaLap(string Label, double Time, double[][] Bins, bool Valid, int N, int Inc, double[]? Sectors, string Kind, double[]? X = null, double[]? Y = null, double[]? IncAt = null)
     {
         public override string ToString() => Label;
     }
@@ -24,6 +26,13 @@ public partial class MainWindow
     private JsonNode? _model;
     private bool _anaFilling, _imperial;
     private string _anaSessId = "";
+    private int _anaTrackId;
+    // the track map, like the web's and the phones': its toggles (braking points, incidents, the coach's corners, the two
+    // lines, where A gains or loses), the engine's answer for the laps shown (tips, braking points, the line) and the
+    // track's layout drawn by the community, for laps with no path of their own
+    private bool _mapBrk = true, _mapInc = true, _mapCoach = true, _mapLine = true, _mapDelta = true;
+    private JsonNode? _coachRes;
+    private double[]? _layoutX, _layoutY;
 
     private static string Esc(string s) => Uri.EscapeDataString(s).Replace("%3A", ":").Replace("%3a", ":");
     private Task<JsonNode?> AccountGet(string path) => _engine.GetAsync("/api/sync/get?p=" + Uri.EscapeDataString(path));
@@ -35,8 +44,36 @@ public partial class MainWindow
     {
         AnaTitle.Text = T("Analysis", "Análisis"); AnaSessL.Text = T("SESSION", "SESIÓN");
         AnaSpeedT.Text = T("SPEED", "VELOCIDAD"); AnaPedT.Text = T("THROTTLE AND BRAKE", "ACELERADOR Y FRENO"); AnaDeltaT.Text = T("TIME DELTA (A − B)", "DIFERENCIA DE TIEMPO (A − B)");
-        AnaCoachT.Text = T("WHERE A LOSES TIME", "DÓNDE PIERDE TIEMPO A"); AnaLapsT.Text = T("LAPS", "VUELTAS");
-        AnaMore.Content = T("Map, sectors and more in the full analyzer", "Mapa, sectores y más en el analizador completo");
+        AnaCoachT.Text = T("WHERE A LOSES TIME", "DÓNDE PIERDE TIEMPO A"); AnaLapsT.Text = T("LAPS", "VUELTAS"); AnaMapT.Text = T("TRACK MAP", "MAPA DEL CIRCUITO");
+        AnaMore.Content = T("Sectors and more in the full analyzer", "Sectores y más en el analizador completo");
+        FillMapBar();
+    }
+
+    // the map's legend and toggles, the web's chips: each one redraws the map
+    private void FillMapBar()
+    {
+        AnaMapBar.Children.Clear();
+        void Leg(Brush col, string text)
+        {
+            AnaMapBar.Children.Add(new Border { Width = 9, Height = 9, CornerRadius = new CornerRadius(5), Background = col, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) });
+            AnaMapBar.Children.Add(new TextBlock { Text = text, Style = (Style)FindResource("Note"), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center });
+        }
+        Leg(B("Accent"), T("A brakes", "A frena"));
+        Leg(B("Blue"), T("B brakes", "B frena"));
+        void Tog(string text, Func<bool> get, Action flip)
+        {
+            var chip = Chip(text, get() ? B("Fg") : B("Muted"));
+            chip.Background = get() ? B("AccentSoft") : B("Surface2");
+            chip.Cursor = Cursors.Hand;
+            chip.Margin = new Thickness(0, 0, 6, 4);
+            chip.MouseLeftButtonUp += (_, _) => { flip(); FillMapBar(); _ = DrawAnalysisAsync(false); };
+            AnaMapBar.Children.Add(chip);
+        }
+        Tog(T("Braking", "Frenadas"), () => _mapBrk, () => _mapBrk = !_mapBrk);
+        Tog(T("Incidents", "Incidentes"), () => _mapInc, () => _mapInc = !_mapInc);
+        Tog(T("Coach", "Coach"), () => _mapCoach, () => _mapCoach = !_mapCoach);
+        Tog(T("Line A / B", "Trazada A / B"), () => _mapLine, () => _mapLine = !_mapLine);
+        Tog(T("A vs B time", "Tiempo A vs B"), () => _mapDelta, () => _mapDelta = !_mapDelta);
     }
 
     private async Task AnalysisAsync()
@@ -83,6 +120,10 @@ public partial class MainWindow
     private async Task LoadSessionAsync(SessItem s)
     {
         _anaSessId = s.Id;
+        _anaTrackId = s.TrackId;
+        _coachKey = "";
+        _coachRes = null;
+        _layoutX = _layoutY = null;
         AnaMsg.Text = T("Loading…", "Cargando…");
         AnaMsg.Visibility = Visibility.Visible;
         JsonNode? j;
@@ -99,8 +140,18 @@ public partial class MainWindow
             var valid = Bo(l["valid"]);
             int n = (int)D(l["n"]);
             double[]? px = l["trace"]?["x"] is JsonArray xa ? xa.Select(D).ToArray() : null, py = l["trace"]?["y"] is JsonArray ya ? ya.Select(D).ToArray() : null;
-            _anaLaps.Add(new AnaLap($"{T("L", "V")}{n} · {LapTime(D(l["time"]))}{(valid ? "" : " ✕")}", D(l["time"]), bins, valid, n, (int)D(l["inc"]), sec, "own", px, py));
+            double[]? incAt = l["incAt"] is JsonArray ia ? ia.Select(D).ToArray() : null;
+            _anaLaps.Add(new AnaLap($"{T("L", "V")}{n} · {LapTime(D(l["time"]))}{(valid ? "" : " ✕")}", D(l["time"]), bins, valid, n, (int)D(l["inc"]), sec, "own", px, py, incAt));
         }
+        // laps with no path of their own (older ones) still get their map: the track's layout drawn by the community
+        if (s.TrackId > 0 && !_anaLaps.Any(l => l.X != null && l.X.Length > 10))
+            try
+            {
+                var m = await _engine.GetAsync($"/api/trackmap?trackId={s.TrackId}&game=iracing");
+                double[]? lx = m?["x"] is JsonArray mx ? mx.Select(D).ToArray() : null, ly = m?["y"] is JsonArray my ? my.Select(D).ToArray() : null;
+                if (lx != null && ly != null && lx.Length > 10 && lx.Length == ly.Length) { _layoutX = lx; _layoutY = ly; }
+            }
+            catch { }
         if (_anaLaps.Count == 0)
         {
             AnaMsg.Text = T("These laps have no telemetry: turn on sending the whole lap on the PC.", "Estas vueltas no tienen telemetría: activa en el PC enviar la vuelta completa.");
@@ -245,14 +296,19 @@ public partial class MainWindow
             border.MouseLeftButtonUp += async (_, _) => { AnaA.SelectedItem = lap; await Task.CompletedTask; };
             AnaLaps.Children.Add(border);
         }
-        // the coach: where A loses the most against B (the engine works it out)
-        if (!coach || b == null) return;
-        var key = a.Label + "|" + b.Label + "|" + _lang;
-        if (key == _coachKey) return;
+        // the coach: where A loses the most against B (the engine works it out), and the map with its answer
+        var key = b == null ? "" : a.Label + "|" + b.Label + "|" + _lang;
+        bool fresh = coach && b != null && key != _coachKey;
+        if (b == null || fresh) _coachRes = null;
+        DrawMap(a, b);
+        if (!coach || b == null || !fresh) return;
         _coachKey = key;
         AnaTips.Children.Clear();
-        var (res, err) = await _engine.SendAsync("/api/desk/coach", new { a = a.Bins, b = b.Bins, ax = a.X, ay = a.Y, bx = b.X, by = b.Y });
+        var (res, err) = await _engine.SendAsync("/api/desk/coach", new { a = a.Bins, b = b.Bins, ax = a.X, ay = a.Y, bx = b.X, by = b.Y, trackId = _anaTrackId });
         if (err != null) { AnaTips.Children.Add(new TextBlock { Text = err, Style = (Style)FindResource("Note") }); return; }
+        if (key != _coachKey) return; // other laps were chosen meanwhile
+        _coachRes = res;
+        DrawMap(a, b);
         var tips = res?["tips"]?.AsArray();
         if (tips == null || tips.Count == 0)
         {
@@ -265,7 +321,7 @@ public partial class MainWindow
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
-            var cn = Chip((Es ? "C" : "C") + (int)D(t?["n"]), B("Fg"));
+            var cn = Chip(S(t?["name"]) is { Length: > 0 } nm ? nm : "T" + (int)D(t?["n"]), B("Fg"));
             cn.Margin = new Thickness(0);
             cn.HorizontalAlignment = HorizontalAlignment.Left;
             g.Children.Add(cn);
@@ -277,6 +333,185 @@ public partial class MainWindow
             g.Children.Add(lost);
             AnaTips.Children.Add(g);
         }
+    }
+
+    // the track map, the same as the web's and the phones': the track as a road with depth, where A gains (green) or
+    // loses (red) time against B, the direction arrow and the sectors, the braking points of both laps, the incidents,
+    // the coach's corners (named by the official turns) and, with both paths, B dashed along the middle and A beside it
+    // by how far it was from B (2.2 px a metre at 600 px wide)
+    private void DrawMap(AnaLap a, AnaLap? b)
+    {
+        var cv = AnaMap;
+        cv.Children.Clear();
+        double W = cv.ActualWidth, H = cv.Height;
+        if (W < 40) return;
+        // the road: B's own path when both laps have one (B runs along the middle, A beside it), else the lap's own,
+        // else the track's layout drawn by the community
+        double[]? xs = null, ys = null;
+        bool roadIsB = false;
+        if (a.X != null && a.Y != null && a.X.Length > 10 && b?.X != null && b.Y != null && b.X.Length > 10) { xs = b.X; ys = b.Y; roadIsB = true; }
+        else if (a.X != null && a.Y != null && a.X.Length > 10) { xs = a.X; ys = a.Y; }
+        else if (b?.X != null && b.Y != null && b.X.Length > 10) { xs = b.X; ys = b.Y; }
+        else if (_layoutX != null && _layoutY != null) { xs = _layoutX; ys = _layoutY; }
+        if (xs == null || ys == null || xs.Length != ys.Length || xs.Length < 10)
+        {
+            AnaMapNote.Text = T("This track is not scanned yet: a lap recorded with Pitlane HQ at this track draws its map by itself.", "Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ en él dibuja el mapa sola.");
+            AnaMapNote.Visibility = Visibility.Visible;
+            return;
+        }
+        AnaMapNote.Visibility = Visibility.Collapsed;
+        int N = xs.Length;
+        int nb = b == null ? a.Bins.Length : Math.Min(a.Bins.Length, b.Bins.Length);
+        double L = Math.Max(nb, 2) * 5.0;
+        double minx = xs.Min(), maxx = xs.Max(), miny = ys.Min(), maxy = ys.Max();
+        double pad = 26, k = Math.Min((W - 2 * pad) / Math.Max(maxx - minx, 1), (H - 2 * pad) / Math.Max(maxy - miny, 1)), s = W / 600.0;
+        double ox = (W - 2 * pad - (maxx - minx) * k) / 2, oy = (H - 2 * pad - (maxy - miny) * k) / 2, cx = W / 2, cy = H / 2;
+        Point P(int i) { i = ((i % N) + N) % N; return new Point(pad + (xs[i] - minx) * k + ox, H - pad - (ys[i] - miny) * k - oy); }
+        Point At(double d) => P((int)Math.Round(d / L * N));
+        Point Out(Point q, double r) { double dx = q.X - cx, dy = q.Y - cy, m = Math.Max(1e-6, Math.Sqrt(dx * dx + dy * dy)); return new Point(q.X + dx / m * r, q.Y + dy / m * r); }
+        Polyline Poly(Brush col, double w, double op = 1)
+        {
+            var pl = new Polyline { Stroke = col, StrokeThickness = w, Opacity = op, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
+            cv.Children.Add(pl);
+            return pl;
+        }
+        void Label(string text, double x, double y, Brush col, double size)
+        {
+            var tb = new TextBlock { Text = text, Foreground = col, FontFamily = (FontFamily)FindResource("FData"), FontSize = size, FontWeight = FontWeights.Bold };
+            tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(tb, x - tb.DesiredSize.Width / 2);
+            Canvas.SetTop(tb, y - tb.DesiredSize.Height / 2);
+            cv.Children.Add(tb);
+        }
+        void Dot(Point q, double r, Brush fill, Brush stroke, double sw, string? tip, double op = 1)
+        {
+            var e = new Ellipse { Width = 2 * r, Height = 2 * r, Fill = fill, Stroke = stroke, StrokeThickness = sw, Opacity = op, ToolTip = tip };
+            Canvas.SetLeft(e, q.X - r);
+            Canvas.SetTop(e, q.Y - r);
+            cv.Children.Add(e);
+        }
+        // the road with depth: its shadow, the rim and the darker asphalt inside
+        int step = Math.Max(1, N / 900);
+        foreach (var (col, w, op, dx, dy) in new[] { ((Brush)Brushes.Black, 24 * s, 0.38, 2.0, 3.5), (B("Line"), 22 * s, 1.0, 0.0, 0.0), ((Brush)new SolidColorBrush(Color.FromRgb(0x15, 0x1a, 0x21)), 17 * s, 1.0, 0.0, 0.0) })
+        {
+            var pl = Poly(col, w, op);
+            for (int i = 0; i < N; i += step) pl.Points.Add(P(i));
+            pl.Points.Add(P(0));
+            if (dx != 0 || dy != 0) pl.RenderTransform = new TranslateTransform(dx, dy);
+        }
+        // where A gains or loses time against B, in 48 stretches, stronger where more time changes hands
+        if (_mapDelta && b != null && nb > 10)
+        {
+            const int SEG = 48;
+            var segs = new List<(int i0, int i1, double v)>();
+            for (int j = 0; j < SEG; j++)
+            {
+                int i0 = (int)Math.Floor((double)j / SEG * (nb - 1)), i1 = (int)Math.Floor((double)(j + 1) / SEG * (nb - 1));
+                double[] a0 = a.Bins[i0], a1 = a.Bins[i1], b0 = b.Bins[i0], b1 = b.Bins[i1];
+                if (a0.Length < 2 || a1.Length < 2 || b0.Length < 2 || b1.Length < 2) continue;
+                segs.Add((i0, i1, (a1[1] - b1[1]) - (a0[1] - b0[1])));
+            }
+            double mx = Math.Max(0.01, segs.Select(g => Math.Abs(g.v)).DefaultIfEmpty(0).Max());
+            foreach (var g in segs)
+            {
+                if (Math.Abs(g.v) < 0.003) continue;
+                var pl = Poly(g.v > 0 ? B("Bad") : B("Good"), 7 * s, 0.3 + 0.7 * Math.Min(1, Math.Abs(g.v) / mx));
+                int m0 = (int)Math.Round(g.i0 * 5.0 / L * N), m1 = (int)Math.Round(g.i1 * 5.0 / L * N);
+                for (int m = m0; m <= m1; m++) pl.Points.Add(P(m));
+            }
+        }
+        // the way the cars go: an arrow beside the start/finish line, on the outside of the track
+        if (N > 20)
+        {
+            Point p0 = P(0), p1 = P(Math.Max(2, N / 60));
+            double dx = p1.X - p0.X, dy = p1.Y - p0.Y, m = Math.Max(1e-6, Math.Sqrt(dx * dx + dy * dy)), ux = dx / m, uy = dy / m, nx = -uy, ny = ux;
+            if ((p0.X - cx) * nx + (p0.Y - cy) * ny < 0) { nx = -nx; ny = -ny; }
+            double bx = p0.X + nx * 13 * s, by = p0.Y + ny * 13 * s, tx = bx + ux * 18 * s, ty = by + uy * 18 * s, h = 6 * s;
+            cv.Children.Add(new Line { X1 = bx, Y1 = by, X2 = tx - ux * h, Y2 = ty - uy * h, Stroke = B("Bad"), StrokeThickness = 2.2 * s, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round });
+            var head = new Polygon { Fill = B("Bad") };
+            head.Points.Add(new Point(tx, ty));
+            head.Points.Add(new Point(tx - ux * h + nx * h * .6, ty - uy * h + ny * h * .6));
+            head.Points.Add(new Point(tx - ux * h - nx * h * .6, ty - uy * h - ny * h * .6));
+            cv.Children.Add(head);
+        }
+        // the two lines on the track: B dashed along the middle, A beside it by how far it was from B
+        var lat = _coachRes?["lat"]?.AsArray();
+        if (_mapLine && roadIsB && lat != null && lat.Count > 10)
+        {
+            double EX = 2.2 * s;
+            Polyline? cur = null;
+            for (int m = 0; m <= N; m++)
+            {
+                int i = (int)Math.Round((double)(m % N) / N * L / 5);
+                var v = i < lat.Count ? lat[i] : null;
+                if (v == null) { cur = null; continue; }
+                int i0 = ((m - 2) % N + N) % N, i1 = (m + 2) % N;
+                double tx = xs[i1] - xs[i0], ty = ys[i1] - ys[i0], tm = Math.Max(1e-6, Math.Sqrt(tx * tx + ty * ty)), o = Math.Max(-5, Math.Min(5, D(v))) * EX;
+                var q = P(m);
+                cur ??= Poly(B("Accent"), 2.6 * s);
+                cur.Points.Add(new Point(q.X + (-ty / tm) * o, q.Y - (tx / tm) * o));
+            }
+            var pb = Poly(new SolidColorBrush(Color.FromRgb(0xcf, 0xe3, 0xff)), 1.6 * s, 0.85);
+            pb.StrokeDashArray = new DoubleCollection { 5, 4 };
+            for (int i = 0; i < N; i += step) pb.Points.Add(P(i));
+            pb.Points.Add(P(0));
+        }
+        // the corners by their official turns, outside the track
+        var brA = _coachRes?["brakes"]?.AsArray();
+        var brB = _coachRes?["brakesB"]?.AsArray();
+        if (brA != null)
+            foreach (var z in brA)
+            {
+                var q = Out(At(D(z?["d"])), 22 * s);
+                Label(S(z?["name"]) is { Length: > 0 } nm ? nm : "T" + (int)D(z?["n"]), q.X, q.Y + 2, B("Muted"), 10.5);
+            }
+        // the sectors: the start/finish line, a cut at each sector change, S1, S2… on the inside
+        int cnt = Math.Max(3, Math.Max(a.Sectors?.Length ?? 0, b?.Sectors?.Length ?? 0));
+        (double nx, double ny) Normal(double d)
+        {
+            Point q = At(d), q2 = At((d + 12) % L);
+            double tx = q2.X - q.X, ty = q2.Y - q.Y, tm = Math.Max(1e-6, Math.Sqrt(tx * tx + ty * ty));
+            return (-ty / tm, tx / tm);
+        }
+        void Bar(double d, double len, Brush col, double w)
+        {
+            var q = At(d);
+            var (nx, ny) = Normal(d);
+            cv.Children.Add(new Line { X1 = q.X - nx * len, Y1 = q.Y - ny * len, X2 = q.X + nx * len, Y2 = q.Y + ny * len, Stroke = col, StrokeThickness = w });
+        }
+        Bar(0, 10 * s, B("Fg"), 3 * s);
+        for (int j = 1; j < cnt; j++) Bar(j / (double)cnt * L, 8 * s, B("Muted"), 1.5 * s);
+        for (int j = 0; j < cnt; j++)
+        {
+            double d = (j + .5) / cnt * L;
+            var q = At(d);
+            var (nx, ny) = Normal(d);
+            double inw = nx * (q.X - cx) + ny * (q.Y - cy) > 0 ? -1 : 1;
+            Label("S" + (j + 1), q.X + nx * inw * 22 * s, q.Y + ny * inw * 22 * s, B("Accent"), 10.5);
+        }
+        // the coach's corners: a ring where A loses the most, with its tip
+        var tips = _coachRes?["tips"]?.AsArray();
+        if (_mapCoach && tips != null)
+            foreach (var t in tips)
+                Dot(At(D(t?["d"])), 13 * s, Brushes.Transparent, B("Pb"), 2.5 * s, $"{S(t?["name"])} · +{D(t?["lost"]):0.00} s: {S(t?["tip"])}", 0.9);
+        // the braking points: B's then A's on top
+        if (_mapBrk)
+        {
+            if (brB != null) foreach (var z in brB) Dot(At(D(z?["d"])), 4.5 * s, B("Blue"), B("Bg"), 1.5 * s, $"B · {Math.Round(D(z?["d"]))} m · {Math.Round(D(z?["v"]))}→{Math.Round(D(z?["vmin"]))} {SpdU}");
+            if (brA != null) foreach (var z in brA) Dot(At(D(z?["d"])), 5.5 * s, B("Accent"), B("Bg"), 1.5 * s, $"A · {Math.Round(D(z?["d"]))} m · {Math.Round(D(z?["v"]))}→{Math.Round(D(z?["vmin"]))} {SpdU}");
+        }
+        // lap A's incidents, as crosses with their points
+        if (_mapInc && a.IncAt != null)
+            for (int i = 0; i + 1 < a.IncAt.Length; i += 2)
+            {
+                var q = At(a.IncAt[i]);
+                double r = 5 * s;
+                int pts = (int)a.IncAt[i + 1];
+                string tip = $"{pts}x · {Math.Round(a.IncAt[i])} m";
+                cv.Children.Add(new Line { X1 = q.X - r, Y1 = q.Y - r, X2 = q.X + r, Y2 = q.Y + r, Stroke = B("Bad"), StrokeThickness = 2.2 * s, ToolTip = tip });
+                cv.Children.Add(new Line { X1 = q.X + r, Y1 = q.Y - r, X2 = q.X - r, Y2 = q.Y + r, Stroke = B("Bad"), StrokeThickness = 2.2 * s, ToolTip = tip });
+                Label(pts + "x", q.X + 12 * s, q.Y - 9 * s, B("Bad"), 9.5);
+            }
     }
 
     // a chart along the lap: one line per (lap, channel); y fits the values unless lo/hi are given

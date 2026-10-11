@@ -4,23 +4,33 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
-## 0.9.8 beta
+## 0.9.9 beta
 
-- **DRINKS: each driver against their own laps**: the delta, the live compare, the coach and the braking markers
-  measure whoever is driving against their own best lap of the session, never a friend's.
-- **The phone apps have the PC's Telemetry and Analysis**: Telemetry, Standings and Tyres; Laps, Coach, My sessions and
-  My races, with the coach's plan against the next level and the lap analysis against the next level or the record.
+- **The coach's advice follows your data**: no "brake later" when you already brake later than the reference, no
+  "full throttle sooner" when you are already on the throttle earlier; the plan's habit advice takes its direction
+  from your corners.
+- **The track map everywhere, the same**: the PC's Analysis has it too (the road, where A gains or loses, both laps'
+  braking points, the incidents, the coach's corners and the two lines, with the same switches); the map runs along
+  the reference lap's path, so the two lines are the right way round; a lap without a path of its own shows the
+  track's layout drawn by the community, on the phones too.
 - **Changes from your phone or the web reach your PC at once**: the server tells the PC the moment another device
   saves the account.
 - **DRINKS drivers never lost**: the list on the PC comes back from the server by itself (every friend who shared a
   lap) and with "Recover the drivers from the server"; in a race summary an admin can say who drove each lap of any
   race and rename a driver from "Who drove"; the leaderboards follow every change. In the admin panel, a DRINKS
   driver can be joined to the friend's own account: what they shared goes to it, and what comes later too.
-- **Races against the AI have no iRating**: no change, no estimate, no iR columns, nothing in Home or the licence
-  summary (older summaries are cleaned).
-- **The coach's advice follows your data**: no "brake later" when you already brake later than the reference, no
-  "full throttle sooner" when you are already on the throttle earlier; the plan's habit advice takes its direction
-  from your corners. The track map runs along the reference lap's path, so the two lines are the right way round.
+- **Races against the AI**: no iRating at all (no change, no estimate, no iR columns, nothing in Home or the licence
+  summary; older summaries are cleaned) and "vs AI" on every session list, the older sessions included.
+- **Overlays**: the gaps chart no longer spikes when a lap is counted a moment late at the line, the track bar's car
+  numbers never overlap, and the live compare's "Now" waits for a lap the game times.
+- Fixes and improvements.
+
+## 0.9.8 beta
+
+- **DRINKS: each driver against their own laps**: the delta, the live compare, the coach and the braking markers
+  measure whoever is driving against their own best lap of the session, never a friend's.
+- **The phone apps have the PC's Telemetry and Analysis**: Telemetry, Standings and Tyres; Laps, Coach, My sessions and
+  My races, with the coach's plan against the next level and the lap analysis against the next level or the record.
 - Fixes and improvements.
 
 ## 0.9.7 beta

@@ -283,7 +283,10 @@
   a car that stops overlapping eases back into line over the next 7 m, a car closing fast turns red before it is beside
   you and trails a fading line, a car off the track beside you still shows as an outline, a car on the pit road dimmed. The windows that need laps record the ones they see.
   WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
-  (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, `/api/desk/coach`), Telemetry,
+  (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, the track map with the
+  web's switches (`DrawMap`: the road, where A gains or loses, both laps' braking points, the incidents, the coach's
+  corners named by the official turns, the two lines; `/api/desk/coach` gives the tips, the braking points and the
+  line, `/api/trackmap` the community's layout when the laps have no path), `/api/desk/coach`), Telemetry,
   Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,
   `desknow.go`); the parts not moved yet (map, profiles, full settings) are the app in a WebView that runs hidden
   from the start (engineer, beeps and lap recording live there). Builds of other branches only check

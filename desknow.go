@@ -102,7 +102,8 @@ func registerDeskRoutes(mux *http.ServeMux) {
 		}
 		var in struct {
 			A, B           [][]float64
-			Ax, Ay, Bx, By []float64 // each lap's path (Trace.X/Y), for the line
+			Ax, Ay, Bx, By []float64 // each lap's path (Trace.X/Y), for the line and the map
+			TrackId        int       // the track, for the official turn numbers
 		}
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<20)).Decode(&in) != nil || len(in.A) < 10 || len(in.B) < 10 {
 			http.Error(w, "two laps", 400)
@@ -110,18 +111,46 @@ func registerDeskRoutes(mux *http.ServeMux) {
 		}
 		st := newOvState(uiLangChoice())
 		st.units = uiUnits()
+		// the official turns of this track, so the corners are named like everywhere else ("T4"); the key keeps
+		// turnName from asking again
+		st.ses = &ovSession{TrackID: in.TrackId, TrackLen: float64(len(in.A)) * ovLapBin}
+		if in.TrackId > 0 {
+			st.ext.turnsKey = "t" + strconv.Itoa(in.TrackId)
+			if b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(in.TrackId)+"&game=iracing", nil, false); err == nil {
+				var d struct {
+					Turns []float64 `json:"turns"`
+				}
+				if json.Unmarshal(b, &d) == nil {
+					st.ext.turns = d.Turns
+				}
+			}
+		}
 		la, lb := deskLap(in.A), deskLap(in.B)
 		la.x, la.y, lb.x, lb.y = in.Ax, in.Ay, in.Bx, in.By
 		tips := st.compareLaps(la, lb, 8)
 		out := []map[string]any{}
 		for _, t := range tips {
-			out = append(out, map[string]any{"n": t.n, "lost": t.lost, "tip": st.T(t.en, t.es)})
+			out = append(out, map[string]any{"n": t.n, "d": t.d, "name": st.turnName(t.d, t.n), "lost": t.lost, "tip": st.T(t.en, t.es)})
 		}
-		zones := []map[string]any{}
-		for k, z := range brakeZones(deskLap(in.A).series()) {
-			zones = append(zones, map[string]any{"n": k + 1, "d": float64(z.i) * ovLapBin, "v": st.spd(z.v), "vmin": st.spd(z.vmin)})
+		zonesOf := func(l *ovLap) []map[string]any {
+			zones := []map[string]any{}
+			for k, z := range brakeZones(l.series()) {
+				d := float64(z.i) * ovLapBin
+				zones = append(zones, map[string]any{"n": k + 1, "d": d, "name": st.turnName(d, k+1), "v": st.spd(z.v), "vmin": st.spd(z.vmin)})
+			}
+			return zones
 		}
-		writeJSON(w, map[string]any{"tips": out, "brakes": zones, "speedUnit": st.spdU()})
+		// the racing line for the map: how far A was to one side of B every 5 m (null where the two do not line up)
+		var lat []any
+		if v := lineOffsets(in.Ax, in.Ay, in.Bx, in.By); v != nil {
+			lat = make([]any, len(v))
+			for i, x := range v {
+				if !math.IsNaN(x) {
+					lat[i] = math.Round(x*100) / 100
+				}
+			}
+		}
+		writeJSON(w, map[string]any{"tips": out, "brakes": zonesOf(la), "brakesB": zonesOf(lb), "lat": lat, "speedUnit": st.spdU()})
 	})
 	mux.HandleFunc("/api/desk", func(w http.ResponseWriter, r *http.Request) {
 		st := deskState()

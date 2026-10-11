@@ -279,6 +279,15 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
+                            <!-- the track map: the road, where A gains or loses, both laps' braking points, the incidents, the coach's corners and the two lines -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="AnaMapT" Style="{StaticResource CardTitle}" Text="TRACK MAP"/>
+                                    <WrapPanel x:Name="AnaMapBar" Margin="0,0,0,6"/>
+                                    <Canvas x:Name="AnaMap" Height="380" ClipToBounds="True" SizeChanged="OnAnaResize"/>
+                                    <TextBlock x:Name="AnaMapNote" Style="{StaticResource Note}" Margin="0,6,0,0" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Border>
                             <!-- the corners that cost the most -->
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
