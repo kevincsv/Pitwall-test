@@ -51,6 +51,9 @@ const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
 const idOk = (v) => typeof v === "string" && /^[A-Za-z0-9_.:-]{6,80}$/.test(v);
 
 const posInt = (v) => (Number.isInteger(v) && v > 0 && v < 1e9 ? v : null);
+// a session against iRacing's AI the agent did not flag (an older one): an iRacing session without a subsession
+// (id "t-…") that is not a test is a single-player session, so against the AI (markOfflineAI on the PC)
+const offlineAI = (s) => gameOf(s.game) === "iracing" && /^t-/.test(String(s.id || "")) && !/test/i.test(String(s.kind || ""));
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(
@@ -58,7 +61,7 @@ async function upsertSession(env, s, uploader) {
      VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
      ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp, track_id=COALESCE(excluded.track_id, track_id), car_id=COALESCE(excluded.car_id, car_id), official=COALESCE(excluded.official, official), ai=COALESCE(excluded.ai, ai),
        lic=COALESCE(excluded.lic, lic), cat=COALESCE(excluded.cat, cat)`
-  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId), typeof s.official === "boolean" ? (s.official ? 1 : 0) : null, licOf(s.lic), str(s.cat, 20), s.ai === true ? 1 : null).run();
+  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId), typeof s.official === "boolean" ? (s.official ? 1 : 0) : null, licOf(s.lic), str(s.cat, 20), s.ai === true || offlineAI(s) ? 1 : null).run();
   return null;
 }
 
