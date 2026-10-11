@@ -812,7 +812,6 @@ nav.tabs button[data-g=more]{display:none}nav.tabs button[data-g=home]{order:-1}
 .me-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .me-strength{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden}.me-strength b{display:block;height:100%;transition:width .2s}
 .namech{display:grid;gap:6px;margin-top:4px}.namech label{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
-.me-conf{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--surface));border-radius:10px;padding:12px;display:grid;gap:8px}
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:10px}
 .scard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;align-content:start}
 .scard h3{margin:0;font-size:15px;word-break:break-word}.scard .meta{font-size:12.5px;color:var(--muted)}.scard p{margin:0;font-size:13px;white-space:pre-wrap}
@@ -1918,7 +1917,7 @@ async function cpPush(tries=0){if(!CP.acc)return;const pend=CP.pending;const sea
   catch(e){if(/conflict/i.test(e.message)&&tries<3){await cpPull();cpApplyPending(pend);return cpPush(tries+1)}throw e}}
 const cpSnapAll=()=>CP.files["companion.json"]||{};
 function cpSnap(k){const c=cpSnapAll();if(c[k])return c[k].body;const path=k.split("?")[0],hits=Object.keys(c).filter(x=>x.split("?")[0]===path);return hits.length===1?c[hits[0]].body:null}
-function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,id:a&&a.id,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,admin:!!(a&&a.admin),supporter:!!(a&&a.supporter),supporterHidden:!!(a&&a.supporterHidden),verified:!!(a&&a.verified),mail:!!(a&&a.mail),twoFactor:!!(a&&a.twoFactor),recoveryLeft:a&&a.recoveryLeft,autoSync:true,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
+function cpStatus(){const a=CP.acc;return{ready:!!CP.server,signedIn:!!a,id:a&&a.id,email:a&&a.email,display:a&&a.display,nameKind:a&&a.nameKind,admin:!!(a&&a.admin),supporter:!!(a&&a.supporter),supporterHidden:!!(a&&a.supporterHidden),verified:!!(a&&a.verified),mail:!!(a&&a.mail),twoFactor:!!(a&&a.twoFactor),recoveryLeft:a&&a.recoveryLeft,version:CP.ver,lastSync:CP.lastSync||undefined,error:CP.err,companion:true,hasIracing:!!cpSnap("member/info")}}
 // the browser and system of this device, for the list of signed-in devices (on iPhone every browser
 // is Safari inside, so Firefox, Chrome and Edge say their own name with FxiOS, CriOS and EdgiOS)
 const cpDevice=()=>{const u=navigator.userAgent,b=/Edg(e|A|iOS)?\//.test(u)?"Edge":/Firefox\/|FxiOS\//.test(u)?"Firefox":/OPR\/|Opera/.test(u)?"Opera":/SamsungBrowser\//.test(u)?"Samsung Internet":/Chrome\/|CriOS\//.test(u)?"Chrome":/Safari\//.test(u)?"Safari":"";
@@ -1937,9 +1936,6 @@ async function cpAccount(b){const a=b.action;
     const loc={};localKeys().filter(syncable).forEach(k=>loc[k]=store.get(k,null));CP.files={"local.json":loc};await cpPush();return cpStatus()}
   if(!CP.acc)throw new Error(Tx("Sign in first","Inicia sesión primero"));
   if(a==="logout"){cpCall("POST","/account/logout").catch(()=>{});cpForget();return cpStatus()}
-  if(a==="sync"||a==="pull"){const ch=await cpPull();if(ch)setTimeout(()=>location.reload(),400);return cpStatus()}
-  if(a==="push"){await cpPush();return cpStatus()}
-  if(a==="autosync")return cpStatus();
   if(a==="verify"){await cpCall("POST","/account/verify/resend",{email:CP.acc.email,lang:LANG});return cpStatus()}
   if(a==="refresh"){await cpMe();return cpStatus()}
   if(a==="name"){let name=(b.nick||"").trim().slice(0,32),kind="nick";if(b.nameKind==="iracing"){const m=cpSnap("member/info");if(!m)throw new Error(cpNeedPC());name=m.display_name;kind="iracing"}
@@ -7147,12 +7143,9 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
     ${twoFactorHTML(a)}</div>
   <div class="me-col"><div class="me-grp">${esc(Tx("Sync and devices","Sincronización y dispositivos","Synchronisierung und Geräte","Sincronização e dispositivos"))}</div>
     <div class="panel"><h2>${esc(Tx("Sync","Sincronización"))}</h2>
-      ${a.conflict&&!a.autoSync?`<div class="me-conf"><b>${esc(Tx("This PC and your account have different data","Este PC y tu cuenta tienen datos distintos"))}</b><span class="note" style="margin:0">${esc(Tx("Choose which copy to keep. The other one is replaced.","Elige qué copia conservar. La otra se reemplaza."))}</span>
-        <div class="me-row"><button type="button" class="btn primary small" id="mePull">${esc(Tx("Use my account's data","Usar los datos de mi cuenta"))}</button><button type="button" class="btn small" id="mePush">${esc(Tx("Keep this PC's data","Conservar los de este PC"))}</button></div></div>`:""}
       <dl class="kv" style="margin-top:8px"><dt>${esc(Tx("Last sync","Última sincronización"))}</dt><dd>${esc(when(a.lastSync))}</dd><dt>${esc(Tx("Version","Versión"))}</dt><dd class="mono">${a.version||0}</dd></dl>
       ${a.error?`<p class="note err">${esc(a.error)}</p>`:""}
       ${COMPANION?"":`<div class="me-row" style="margin-top:8px">${chk("meLaps",a.lapsToAccount,Lp("Keep my laps in my account","Guardar mis vueltas en mi cuenta",true))}<button type="button" class="btn small" id="meWeb">${esc(Tx("See my laps on the web","Ver mis vueltas en la web","Meine Runden im Web ansehen","Ver minhas voltas na web"))}</button></div><p class="note" style="margin:4px 0 0">${esc(Tx("Every lap you drive is uploaded by itself; sign in on the web with your email and password.","Cada vuelta que das se sube sola; en la web entras con tu email y contraseña.","Jede gefahrene Runde wird automatisch hochgeladen; im Web meldest du dich mit E-Mail und Passwort an.","Cada volta que você dá é enviada sozinha; na web você entra com seu e-mail e senha."))}</p>`}
-      <div class="me-row" style="margin-top:8px">${COMPANION?"":chk("meAuto",a.autoSync,Lp("Sync by itself: when it starts and with every change","Sincronizar solo: al abrir y con cada cambio",true))}<button type="button" class="btn small" id="meSync">${esc(Tx("Sync now","Sincronizar ahora"))}</button></div>
 </div>
     <div class="panel"><h2>${esc((COMPANION?Tx("Signed-in devices","Dispositivos con sesión","Angemeldete Geräte","Dispositivos conectados"):Tx("Signed-in PCs","PCs con sesión")))}</h2><div id="meSess" class="devlist"><p class="note">…</p></div><div class="me-row" style="margin-top:8px"><button type="button" class="btn small" id="meOthers">${esc((COMPANION?Tx("Sign out every other device","Cerrar sesión en los demás dispositivos","Alle anderen Geräte abmelden","Encerrar a sessão nos outros dispositivos"):Tx("Sign out every other PC","Cerrar sesión en los demás PCs")))}</button></div></div></div></div>
   ${a.admin&&!asUser()?adminProfileHTML():""}
@@ -7161,12 +7154,8 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
   const act=async(body,ok)=>{try{ME=await jpost("/api/sync",body);if(ok)toast(ok)}catch(x){toast(x.message)}renderMe()};
   {const v=$("#meVer");if(v)v.onclick=()=>act({action:"verify"},Tx("Email sent: check your inbox","Email enviado: mira tu bandeja de entrada","E-Mail gesendet: sieh in deinem Posteingang nach","Email enviado: veja sua caixa de entrada"))}
   if(a.signedIn&&!renderMe.ref){renderMe.ref=1;jpost("/api/sync",{action:"refresh"}).then(m=>{const ch=m.verified!==a.verified||!!m.twoFactor!==!!a.twoFactor||m.recoveryLeft!==a.recoveryLeft;ME=m;if(ch)renderMe()}).catch(()=>{})}
-$("#meSync").onclick=()=>act({action:"sync"},Tx("Synced","Sincronizado"));
-  const au=$("#meAuto");if(au)au.onclick=()=>act({action:"autosync",on:!a.autoSync});
   const ml=$("#meLaps");if(ml)ml.onclick=()=>act({action:"laps",on:!a.lapsToAccount});
   const mw=$("#meWeb");if(mw)mw.onclick=async()=>{try{const c=await jget("/api/community");const u=(c.server||c.url||c.defaultUrl||"").replace(/\/+$/,"");if(u)window.open(u+"/#cloudlaps","_blank");else toast(Tx("The server is not set up yet.","El servidor aún no está configurado."))}catch(e){toast(e.message)}};
-  const pl=$("#mePull");if(pl)pl.onclick=async()=>{if(await uiConfirm(Tx("Replace this PC's settings and history with your account's copy?","¿Reemplazar los ajustes e historial de este PC con la copia de tu cuenta?")))act({action:"pull"},Tx("Done","Hecho")).then(()=>location.reload())};
-  const ps=$("#mePush");if(ps)ps.onclick=async()=>{if(await uiConfirm(Tx("Replace your account's copy with this PC's data?","¿Reemplazar la copia de tu cuenta con los datos de este PC?")))act({action:"push"},Tx("Uploaded","Subido"))};
   {const g=$("#meGoComm");if(g)g.onclick=e=>{e.preventDefault();show("community")}}{const pf=$("#meProf");if(pf)pf.onclick=()=>openProfile({me:1})}{const so=$("#meSignOut");if(so)so.onclick=async()=>{if(!(await uiConfirm(Tx("Sign out?","¿Cerrar sesión?","Abmelden?","Sair?"))))return;try{ME=await jpost("/api/sync",{action:"logout"});toast(Tx("Signed out","Sesión cerrada","Abgemeldet","Sessão terminada"))}catch(x){toast(x.message)}renderMe()}}wireHidden(box);
   {const on=$("#me2on"),off=$("#me2off");if(on)on.onclick=setup2fa;if(off)off.onclick=disable2fa}
   wireAdminProfile();

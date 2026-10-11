@@ -49,12 +49,10 @@ type plAccount struct {
 	DataKey   string    `json:"dataKey,omitempty"` // hex, never sent anywhere
 	Display   string    `json:"display,omitempty"`
 	NameKind  string    `json:"nameKind,omitempty"` // "iracing" or "nick"
-	AutoSync  bool      `json:"autoSync"`
 	Version   int64     `json:"version"`  // server version this PC last synced
 	LastHash  string    `json:"lastHash"` // hash of the data at that time
 	LastSync  time.Time `json:"lastSync"`
 	SyncErr   string    `json:"syncErr,omitempty"`
-	Conflict  bool      `json:"conflict,omitempty"`
 	NoLaps    bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server
 	Admin     bool      `json:"admin,omitempty"`     // an admin of the Pitlane HQ server (sees Connections)
 	Verified  bool      `json:"verified,omitempty"`  // the email was confirmed
@@ -63,7 +61,6 @@ type plAccount struct {
 	Anon      bool      `json:"anon,omitempty"`      // what you share goes as "Anonymous" (kept with the account)
 	Supporter bool      `json:"supporter,omitempty"` // has the supporter badge (donates)
 	SupHidden bool      `json:"supHidden,omitempty"` // and chose to hide it
-	SyncAuto2 bool      `json:"syncAuto2,omitempty"` // moved to the automatic sync of 0.8.10 (once)
 	Ended     bool      `json:"ended,omitempty"`     // signed out by the server (see plSessionEnded); the email stays
 }
 
@@ -342,7 +339,7 @@ var errSyncConflict = errors.New("the account changed on another device at the s
 // syncRecord: this PC and the account hold the same files at this version
 func syncRecord(version int64, files map[string][]byte) {
 	plMu.Lock()
-	plAcc.Version, plAcc.LastHash, plAcc.LastSync, plAcc.Conflict, plAcc.SyncErr = version, bundleHash(files), time.Now(), false, ""
+	plAcc.Version, plAcc.LastHash, plAcc.LastSync, plAcc.SyncErr = version, bundleHash(files), time.Now(), ""
 	savePLLocked()
 	plMu.Unlock()
 	saveSyncBase(version, files)
@@ -444,25 +441,12 @@ func writeLocal(files, local map[string][]byte) {
 	}
 }
 
-// syncPush keeps this PC's copy (whatever the account has); syncPull keeps the account's
+// syncPush uploads this PC's copy (force: whatever the account has)
 func syncPush(force bool) error {
 	plMu.Lock()
 	base := plAcc.Version
 	plMu.Unlock()
 	return pushFiles(bundleFiles(), base, force)
-}
-
-func syncPull() error {
-	files, version, _, err := fetchFiles()
-	if err != nil {
-		return err
-	}
-	if len(files) == 0 {
-		return errors.New("nothing saved in your account yet")
-	}
-	writeLocal(files, bundleFiles())
-	syncRecord(version, bundleFiles())
-	return nil
 }
 
 // syncOnce: nothing changed → nothing; only this PC changed → upload; the account changed → merge both
@@ -577,12 +561,6 @@ func kickSync() {
 // it signed in under the account's name.
 func syncWatcher() {
 	loadPL()
-	plMu.Lock()
-	if plAcc.Token != "" && !plAcc.SyncAuto2 { // everyone moves to the automatic sync once; the old conflict question is gone
-		plAcc.AutoSync, plAcc.Conflict, plAcc.SyncAuto2 = true, false, true
-		savePLLocked()
-	}
-	plMu.Unlock()
 	time.Sleep(3 * time.Second)
 	var stamp string
 	var changedAt, nextRemote, lastRun time.Time
@@ -590,7 +568,7 @@ func syncWatcher() {
 	for {
 		plMu.Lock()
 		signed := plAcc.Token != ""
-		on := signed && plAcc.AutoSync
+		on := signed // the sync is always on: nobody syncs by hand
 		plMu.Unlock()
 		now := time.Now()
 		remoteDue := now.After(nextRemote) || kicked
@@ -702,7 +680,7 @@ func plSignedIn(r plLoginRes, email string, wrap []byte, newKey []byte) error {
 		key = k
 	}
 	plMu.Lock()
-	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, AutoSync: true, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil, TwoFactor: r.TwoFactor, SyncAuto2: true}
+	plAcc = plAccount{Email: normEmail(email), ID: r.ID, Token: r.Token, DataKey: hex.EncodeToString(key), Display: r.Display, NameKind: r.NameKind, Admin: r.Admin, Verified: r.Verified, Mail: r.Mailed != nil, TwoFactor: r.TwoFactor}
 	savePLLocked()
 	plMu.Unlock()
 	return nil
@@ -714,7 +692,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"autoSync": a.AutoSync, "lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "conflict": a.Conflict, "error": a.SyncErr, "ended": a.Ended}
+		"lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "error": a.SyncErr, "ended": a.Ended}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -1004,21 +982,6 @@ func registerPLRoutes(mux *http.ServeMux) {
 				email, tok := plAcc.Email, plAcc.Token
 				plMu.Unlock()
 				_, err = commRequest("POST", "/account/verify/resend", map[string]any{"email": email, "lang": in.Lang}, tok)
-			case "autosync":
-				plMu.Lock()
-				plAcc.AutoSync = in.On
-				savePLLocked()
-				plMu.Unlock()
-			case "sync":
-				err = syncNow()
-			case "push": // keep this PC's copy
-				plBusy.Lock()
-				err = syncPush(true)
-				plBusy.Unlock()
-			case "pull": // keep the account's copy
-				plBusy.Lock()
-				err = syncPull()
-				plBusy.Unlock()
 			case "sessions":
 				b, e := plCall("GET", "/sessions", nil)
 				if e != nil {

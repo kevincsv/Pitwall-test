@@ -331,7 +331,8 @@
   companion reads the account again (`CP.refresh`), so a change on the phone or the web is on the PC in seconds. When the server
   answers "signed out" to the PC's token (`plSessionEnded`), the PC signs out by itself keeping the email and
   shows the sign-in screen with a note; a wrong password never signs it out. My account has "Sign out on this
-  PC" and says when the PC could not sync. One
+  PC" and says when the PC could not sync. Nobody syncs by hand: no "Sync now" button and no switch to turn the sync
+  off anywhere (PC, web, Pitlane HQ Desktop, phones); the sync is always on while signed in. One
   public name per account: changing it anywhere changes it everywhere, shared laps included.
 - Deleting your own account never deletes what the leaderboard shows or what the model learns from:
   those laps stay as an anonymous driver (`deleteAccount` in `cloud/src/accounts.js`); everything

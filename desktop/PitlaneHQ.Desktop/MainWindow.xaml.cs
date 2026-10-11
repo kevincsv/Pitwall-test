@@ -135,7 +135,7 @@ public partial class MainWindow : Window
         AccNameL.Text = T("PUBLIC NAME", "NOMBRE PÚBLICO"); AccNameSave.Content = T("Save", "Guardar");
         AccNameNote.Text = T("Changing it here changes it everywhere, your shared laps too.", "Si lo cambias aquí cambia en todas partes, también en tus vueltas compartidas.");
         AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar"); AccSyncT.Text = T("SYNC", "SINCRONIZACIÓN");
-        AccSync.Content = T("Sync now", "Sincronizar ahora"); AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
+        AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
         SetTitle.Text = T("Settings", "Ajustes"); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
         SetCloseOv.Content = T("Close the overlays when Pitlane HQ closes", "Cerrar los overlays al cerrar Pitlane HQ");
@@ -829,15 +829,6 @@ public partial class MainWindow : Window
         _reveal = !_reveal;
         AccEmailV.Text = _reveal ? _email : "••••••";
         AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar");
-    }
-
-    private async void OnAccSync(object sender, RoutedEventArgs e)
-    {
-        AccSync.IsEnabled = false;
-        var (_, err) = await _engine.SendAsync("/api/sync", new { action = "sync" });
-        AccSync.IsEnabled = true;
-        if (err != null) MessageBox.Show(this, err, "Pitlane HQ");
-        await AccountAsync();
     }
 
     private async void OnAccOut(object sender, RoutedEventArgs e)

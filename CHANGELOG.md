@@ -14,7 +14,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   the reference lap's path, so the two lines are the right way round; a lap without a path of its own shows the
   track's layout drawn by the community, on the phones too.
 - **Changes from your phone or the web reach your PC at once**: the server tells the PC the moment another device
-  saves the account.
+  saves the account. Nobody syncs by hand any more: the "Sync now" button is gone on every device.
 - **DRINKS drivers never lost**: the list on the PC comes back from the server by itself (every friend who shared a
   lap) and with "Recover the drivers from the server"; in a race summary an admin can say who drove each lap of any
   race and rename a driver from "Who drove"; the leaderboards follow every change. In the admin panel, a DRINKS
