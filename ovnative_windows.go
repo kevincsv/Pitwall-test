@@ -10,6 +10,7 @@ package main
 // dragged and resized from its corner. Its opacity is the overlays' opacity from Settings.
 
 import (
+	"log"
 	"os"
 	"syscall"
 	"time"
@@ -108,7 +109,14 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	}
 }
 
-func ovNativeProc(h, msg, wp, lp uintptr) uintptr {
+func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
+	// a panic inside a window callback would take the whole program down: it is logged and the frame is skipped
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("overlay %s: %v", nat.name, r)
+			ret = 0
+		}
+	}()
 	switch msg {
 	case 0x0113: // WM_TIMER
 		nat.st.mu.Lock()
@@ -255,6 +263,11 @@ func ovPaint(hwnd uintptr) {
 	}
 	pt, src, size := [2]int32{int32(x), int32(y)}, [2]int32{0, 0}, [2]int32{int32(w), int32(h)}
 	blend := uint32(0x01000000) | uint32(alpha)<<16 // AC_SRC_OVER, the overlays' opacity, AC_SRC_ALPHA
-	// with the position and the size, this also moves and resizes the window
-	ovUpdateLayered.Call(hwnd, 0, uintptr(unsafe.Pointer(&pt)), uintptr(unsafe.Pointer(&size)), nat.dc, uintptr(unsafe.Pointer(&src)), 0, uintptr(unsafe.Pointer(&blend)), 2) // ULW_ALPHA
+	// with the position and the size, this also moves and resizes the window; while Windows itself drags or resizes
+	// it, neither is given (the two would fight over where the window is, and it flickers)
+	ppt, psize := uintptr(unsafe.Pointer(&pt)), uintptr(unsafe.Pointer(&size))
+	if nat.sizing {
+		ppt, psize = 0, 0
+	}
+	ovUpdateLayered.Call(hwnd, 0, ppt, psize, nat.dc, uintptr(unsafe.Pointer(&src)), 0, uintptr(unsafe.Pointer(&blend)), 2) // ULW_ALPHA
 }

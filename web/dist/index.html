@@ -3664,7 +3664,7 @@ function applyLayout(){liveEssentialsOnce();setTimeout(markGameGaps,0);if(!OV.on
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
 function pcOverlays(){return MODE==="bridge"&&INFO&&INFO.overlays}
 async function openOverlayOnPC(w){const r=await fetch(`/api/overlay/open?w=${w}`,{method:"POST"}).catch(()=>null);if(!r||!r.ok){toast(Tx("Could not open the overlay window.","No se pudo abrir la ventana overlay."));return false}return true}
-async function popOut(w){if(pcOverlays()){if(!await openOverlayOnPC(w))return;if(isPC()&&w!=="standings"){HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}toast(isPC()?Tx("Opened as an overlay. Bring it back here from Layout.","Abierto como overlay. Recupéralo aquí desde Diseño."):Tx("Opened on your PC.","Abierto en tu PC."))}
+async function popOut(w){if(pcOverlays()){if(!await openOverlayOnPC(w))return;OV_OPEN.add(w);markOvOpen();if(isPC()&&w!=="standings"){HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}toast(isPC()?Tx("Opened as an overlay. Bring it back here from Layout.","Abierto como overlay. Recupéralo aquí desde Diseño."):Tx("Opened on your PC.","Abierto en tu PC."))}
   else if(MODE==="bridge")window.open(`/?overlay=${w}`,"_blank")}
 /* a race report as saved: the incident total can be the 0 that iRacing's results still show at the
    flag while the laps counted them, and older PCs saved "AutÃ³dromo" for "Autódromo" */
@@ -3986,7 +3986,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     :Lp("Changes here apply to the overlays on your PC.","Los cambios aquí se aplican a los overlays de tu PC.");
   $("#ovSub").textContent=Tx(`${auto.size} open automatically`,`${auto.size} se abren automáticamente`,`${auto.size} öffnen sich automatisch`,`${auto.size} abrem automaticamente`);
   const dis=remote?"":" disabled";
-  const ovExp=ovExpOn(),list=WIDGETS.filter(w=>ovExp||OV_BASIC.includes(w));
+  const ovExp=ovExpOn(),list=WIDGETS.filter(w=>ovExp||OV_BASIC.includes(w)||OV_OPEN.has(w)); // an open one always has its card, so it can be closed
   if(!ovExp&&(CFG.autoWidgets||[]).some(w=>!OV_BASIC.includes(w))&&MODE==="bridge"){CFG.autoWidgets=CFG.autoWidgets.filter(w=>OV_BASIC.includes(w));saveCfg()}
   $("#ovGlobal").innerHTML=`<h2>${L("ovGlobal")}</h2>
     <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}</div>
@@ -4008,12 +4008,13 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   document.querySelectorAll("#oLook [data-look]").forEach(b=>b.onclick=()=>{CFG.ui=CFG.ui||{};CFG.ui.ovlook={t:b.dataset.look};saveCfg();renderOverlaysTab()});
   q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oAlpha").onchange=e=>{CFG.alpha=+e.target.value;saveCfg()};
   q("#oOpenSel").onclick=async()=>{if(!(CFG.autoWidgets||[]).length){toast(Tx("Mark some overlays with Auto first.","Marca primero algunos overlays con Auto."));return}for(const w of CFG.autoWidgets){await openOverlayOnPC(w)}toast(Tx("Opened on your PC.","Abiertos en tu PC."))};
-  q("#oCloseAll").onclick=()=>{OV_OPEN.clear();markOvOpen();fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))};
+  const backToLive=w=>{if(HIDDEN.has(w)){HIDDEN.delete(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}}; // a closed overlay comes back to Telemetry
+  q("#oCloseAll").onclick=()=>{[...OV_OPEN].forEach(backToLive);OV_OPEN.clear();markOvOpen();fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))};
   q("#oReset").onclick=()=>fetch("/api/overlay/reset",{method:"POST"}).then(()=>toast(Tx("Positions reset. Reopen overlays to apply.","Posiciones restablecidas. Vuelve a abrir los overlays.")));
   box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
   box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const w=b.dataset.open;if(OV_OPEN.has(w))return;await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600)});
-  box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const w=b.dataset.close;OV_OPEN.delete(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
-  markOvOpen();markGameGaps();
+  box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const w=b.dataset.close;OV_OPEN.delete(w);backToLive(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
+  markOvOpen();markGameGaps();refreshScreenRects(); // what is really open on the PC, at once
   box.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>window.open(`/?overlay=${b.dataset.view}`,"_blank"));
   box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg)});
   box.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderOverlaysTab()});
