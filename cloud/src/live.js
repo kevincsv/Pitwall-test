@@ -35,6 +35,7 @@ export async function live(req, env) {
   h.set("x-live-proto", protos[0] === "pitlane" ? "pitlane" : "");
   h.delete("authorization");
   h.delete("sec-websocket-protocol");
+  h.delete("x-live-nudge"); // only the worker itself nudges a room
   return room.fetch(new Request(req.url, { headers: h }));
 }
 
@@ -66,6 +67,11 @@ export class LiveRoom extends DurableObject {
   }
 
   async fetch(req) {
+    // a nudge from the worker (another device uploaded the account): the PC and the screens sync at once
+    if (req.headers.get("x-live-nudge") === "sync") {
+      this.tell([...this.socks("pc"), ...this.socks("view"), ...this.socks("idle")], { ctl: "sync", version: Number(req.headers.get("x-live-version") || 0) });
+      return new Response(null, { status: 204 });
+    }
     const r0 = req.headers.get("x-live-role"), role = r0 === "pc" ? "pc" : r0 === "idle" ? "idle" : "view";
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);

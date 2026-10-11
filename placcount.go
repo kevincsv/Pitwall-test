@@ -551,6 +551,18 @@ func syncStamp() string {
 
 var syncKick = make(chan struct{}, 1)
 
+// kickSyncFrom: the server says another device uploaded the account (version v): this PC syncs at once,
+// unless it has that version already (its own upload).
+func kickSyncFrom(v int64) {
+	plMu.Lock()
+	have := plAcc.Version
+	plMu.Unlock()
+	if v != 0 && v <= have {
+		return
+	}
+	kickSync()
+}
+
 // kickSync asks for a sync now (after a sign-in, a change of name, a press of Sync now)
 func kickSync() {
 	select {

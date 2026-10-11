@@ -446,6 +446,8 @@ export async function accounts(req, env, url) {
         "INSERT INTO account_sync (account_id, version, updated, chunks) VALUES (?1,?2,?3,?4) ON CONFLICT(account_id) DO UPDATE SET version=excluded.version, updated=excluded.updated, chunks=excluded.chunks"
       ).bind(a.id, v, Date.now(), parts.length),
     ]);
+    // the account's other devices learn at once: the PC syncs on the spot instead of at its next minute
+    if (env.LIVE) await env.LIVE.get(env.LIVE.idFromName(a.id)).fetch(new Request("https://live/nudge", { headers: { "x-live-nudge": "sync", "x-live-version": String(v) } })).catch(() => {});
     return json({ version: v });
   }
   return err("not found", 404);

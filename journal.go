@@ -122,6 +122,9 @@ func loadJournal() {
 		if markOfflineAI(x) {
 			fixed = true
 		}
+		if clearAIRatings(x) {
+			fixed = true
+		}
 	}
 	if chainRealIR(r) {
 		fixed = true
@@ -144,6 +147,22 @@ func markOfflineAI(r *raceReport) bool {
 	}
 	r.AI = true
 	return true
+}
+
+// clearAIRatings: a race against iRacing's AI has no iRating at all (the game shows none worth keeping and the
+// AI drivers have none, so the estimate came out as nonsense): no iRating, no change, no "real" one, for anybody
+func clearAIRatings(r *raceReport) bool {
+	if r == nil || !r.AI {
+		return false
+	}
+	changed := r.IR != 0 || r.IRChange != 0 || r.IRReal
+	r.IR, r.IRChange, r.IRReal = 0, 0, false
+	for i := range r.Results {
+		if r.Results[i].IR != 0 || r.Results[i].IRChange != 0 {
+			r.Results[i].IR, r.Results[i].IRChange, changed = 0, 0, true
+		}
+	}
+	return changed
 }
 
 // renameRaceDriver: a DRINKS driver renamed: their laps in the race summaries take the new name too
@@ -263,7 +282,7 @@ func chainRealIR(rs []*raceReport) bool {
 	sort.SliceStable(byTime, func(i, j int) bool { return byTime[i].When < byTime[j].When })
 	changed := false
 	for i, a := range byTime {
-		if a.IRReal || a.IR <= 0 || (a.Game != "" && a.Game != "iracing") {
+		if a.IRReal || a.IR <= 0 || a.AI || (a.Game != "" && a.Game != "iracing") {
 			continue
 		}
 		da := discipline(a.Cat, a.Car)
@@ -271,7 +290,7 @@ func chainRealIR(rs []*raceReport) bool {
 			continue
 		}
 		for _, b := range byTime[i+1:] {
-			if (b.Game != "" && b.Game != "iracing") || discipline(b.Cat, b.Car) != da {
+			if b.AI || (b.Game != "" && b.Game != "iracing") || discipline(b.Cat, b.Car) != da {
 				continue
 			}
 			if b.IR > 0 && b.Subsession != a.Subsession && abs(b.IR-a.IR) <= maxRealIRStep {
@@ -752,7 +771,11 @@ func irChanges(irs []int, pos []int, started []bool) []int {
 			continue
 		}
 		fudge := (float64(n-nonStarters)/2 - float64(pos[i])) / 100
-		out[i] = int(math.Round((float64(n-pos[i]) - exp - fudge) * 200 / float64(starters)))
+		v := math.Round((float64(n-pos[i]) - exp - fudge) * 200 / float64(starters))
+		if irs[i] <= 0 || math.IsNaN(v) || math.IsInf(v, 0) { // a driver without an iRating (the AI) gets no estimate
+			continue
+		}
+		out[i] = int(v)
 	}
 	return out
 }
@@ -841,6 +864,9 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 		}
 	}
 	ch := irChanges(irs, ps, st)
+	if r.AI { // a race against the AI: no iRating for anybody
+		ch = make([]int, len(cls))
+	}
 	for i := range cls {
 		cls[i].IRChange = ch[i]
 		if cls[i].Me {
@@ -885,6 +911,7 @@ func saveRace(r *raceReport) {
 			break
 		}
 	}
+	clearAIRatings(r)
 	races = append(races, r)
 	chainRealIR(races) // your last race of this discipline now knows what it really gave
 	if len(races) > 1000 {
@@ -987,7 +1014,7 @@ func applyRealIR(ir, subsession int, cat, car string) {
 	var r *raceReport
 	for k := len(races) - 1; k >= 0; k-- {
 		x := races[k]
-		if x.Game != "" && x.Game != "iracing" {
+		if x.AI || (x.Game != "" && x.Game != "iracing") { // a race against the AI changes no iRating
 			continue
 		}
 		if want == "" || want == "road" || discipline(x.Cat, x.Car) == want {

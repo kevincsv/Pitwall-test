@@ -665,6 +665,13 @@ export async function community(req, env, url) {
   // everything below needs the driver's token
   let u = await me(req, env);
   if (!u) return err("wrong or missing token", 401);
+  // the DRINKS drivers of this admin (every friend who ever shared a lap from their PC): a list lost on the PC
+  // comes back from here
+  if (p === "/guests" && m === "GET") {
+    if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare("SELECT g.alias, g.created, (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=g.id) AS laps FROM community_users g WHERE g.owner=?1 AND g.id LIKE 'guest-%' ORDER BY g.created DESC LIMIT 60").bind(u.id).all();
+    return json({ guests: (r.results || []).map((x) => ({ name: x.alias, laps: x.laps || 0, created: x.created })) });
+  }
   // Friday night mode: an admin shares the laps of friends who drive on the admin's PC,
   // each under the friend's own name (one community driver per name, owned by that admin)
   if (m === "POST" && (p === "/laps" || p === "/reports") && typeof body.guest === "string" && body.guest.trim()) {

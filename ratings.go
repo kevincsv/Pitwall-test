@@ -83,7 +83,7 @@ func ratingsFromRaces() {
 		}
 	}
 	for _, r := range rs {
-		if r == nil || (r.Game != "" && r.Game != "iracing") || r.IR <= 0 {
+		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") || r.IR <= 0 {
 			continue
 		}
 		ir := r.IR + r.IRChange // the estimate until the real change comes: closer than the iRating before the race
@@ -130,7 +130,7 @@ func ratingChanges() (chg, n map[string]int) {
 	sort.SliceStable(rs, func(i, j int) bool { return rs[i].When > rs[j].When })
 	chg, n = map[string]int{}, map[string]int{}
 	for _, r := range rs {
-		if r == nil || (r.Game != "" && r.Game != "iracing") {
+		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") { // a race against the AI gives none
 			continue
 		}
 		d := discipline(r.Cat, r.Car)

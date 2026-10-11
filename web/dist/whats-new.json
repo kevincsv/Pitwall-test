@@ -4,11 +4,17 @@
       "v": "0.9.8",
       "en": [
         "DRINKS: the delta, the live compare and the coach measure each driver against their own best lap, never a friend's.",
-        "The phone apps have the PC's Telemetry (Telemetry, Standings, Tyres) and Analysis (Laps, Coach, My sessions, My races)."
+        "The phone apps have the PC's Telemetry (Telemetry, Standings, Tyres) and Analysis (Laps, Coach, My sessions, My races).",
+        "Changes from your phone or the web reach your PC at once.",
+        "DRINKS: the list of drivers comes back from the server by itself; an admin can say who drove each lap of any race and rename a driver from \"Who drove\".",
+        "Races against the AI show no iRating."
       ],
       "es": [
         "DRINKS: la delta, la comparación en vivo y el coach miden a cada piloto contra su propia mejor vuelta, nunca la de un amigo.",
-        "Las apps del móvil tienen la Telemetría (Telemetría, Posiciones, Neumáticos) y el Análisis (Vueltas, Coach, Mis sesiones, Mis carreras) del PC."
+        "Las apps del móvil tienen la Telemetría (Telemetría, Posiciones, Neumáticos) y el Análisis (Vueltas, Coach, Mis sesiones, Mis carreras) del PC.",
+        "Los cambios hechos en el móvil o en la web llegan al PC al momento.",
+        "DRINKS: la lista de pilotos vuelve sola desde el servidor; un admin puede decir quién condujo cada vuelta de cualquier carrera y renombrar a un piloto desde \"Quién condujo\".",
+        "Las carreras contra la IA no muestran iRating."
       ]
     },
     {

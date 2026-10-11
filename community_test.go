@@ -108,3 +108,50 @@ func TestCommunityShareReportAnonymous(t *testing.T) {
 		t.Fatal("report not sent")
 	}
 }
+
+// the list of DRINKS drivers: the names the server knows join the PC's list (the same name once, whatever its case)
+func TestMergeGuests(t *testing.T) {
+	got, changed := mergeGuests([]string{"Ginge"}, []string{"George", "ginge", "Luis", ""})
+	if !changed || strings.Join(got, ",") != "Ginge,George,Luis" {
+		t.Fatalf("merged %v", got)
+	}
+	if _, changed := mergeGuests([]string{"Ginge", "Luis"}, []string{"GINGE", "luis"}); changed {
+		t.Fatal("the same names must change nothing")
+	}
+}
+
+// a list lost on the PC comes back from the server: every friend who shared a lap from this account
+func TestRestoreGuests(t *testing.T) {
+	dir := shareHome(t)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("APPDATA", dir)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/community/guests" && strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+			w.Write([]byte(`{"guests":[{"name":"George","laps":3},{"name":"Luis","laps":1},{"name":"Ginge","laps":2}]}`))
+			return
+		}
+		t.Logf("unexpected request %s %s", r.URL.Path, r.Header.Get("Authorization"))
+		w.WriteHeader(404)
+	}))
+	defer srv.Close()
+	loadPL()
+	plMu.Lock()
+	wasAdmin, wasTok := plAcc.Admin, plAcc.Token
+	plAcc.Admin, plAcc.Token = true, "x"
+	plMu.Unlock()
+	defer func() { plMu.Lock(); plAcc.Admin, plAcc.Token = wasAdmin, wasTok; plMu.Unlock() }()
+	commMu.Lock()
+	commCfg = commConfig{URL: srv.URL, Token: "tok-0123456789abcdefghij", Guests: []string{"Ginge"}}
+	guestsSyncAt = time.Time{}
+	commMu.Unlock()
+	if err := restoreGuests(true); err != nil {
+		t.Fatal(err)
+	}
+	commMu.Lock()
+	got := strings.Join(commCfg.Guests, ",")
+	commMu.Unlock()
+	if got != "Ginge,George,Luis" {
+		t.Fatalf("the list after the server: %s", got)
+	}
+}

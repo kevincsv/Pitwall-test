@@ -212,7 +212,7 @@ func setDrinks(on bool, guest string, auto bool) error {
 	if g != "" {
 		list := []string{g}
 		for _, x := range commCfg.Guests {
-			if !strings.EqualFold(x, g) && len(list) < 30 {
+			if !strings.EqualFold(x, g) && len(list) < 60 {
 				list = append(list, x)
 			}
 		}
@@ -277,6 +277,77 @@ func forgetGuest(name string) error {
 	}
 	saveCommLocked()
 	return nil
+}
+
+// restoreGuests brings this account's DRINKS drivers back from the server (every friend who ever shared a lap
+// from this PC, /community/guests): a list lost on this PC comes back. Admins only; by itself when the list is
+// empty or every 30 minutes, at once when forced ("Recover the drivers from the server").
+var guestsSyncAt time.Time
+
+func restoreGuests(force bool) error {
+	loadPL()
+	plMu.Lock()
+	admin, signed := plAcc.Admin, plAcc.Token != ""
+	plMu.Unlock()
+	if !admin || !signed {
+		return nil
+	}
+	commMu.Lock()
+	due := force || len(commCfg.Guests) == 0 || time.Since(guestsSyncAt) > 30*time.Minute
+	commMu.Unlock()
+	if !due {
+		return nil
+	}
+	commMu.Lock()
+	guestsSyncAt = time.Now()
+	commMu.Unlock()
+	b, err := commCall("GET", "/guests", nil, true)
+	if err != nil {
+		return err
+	}
+	var r struct {
+		Guests []struct {
+			Name string `json:"name"`
+		} `json:"guests"`
+	}
+	if json.Unmarshal(b, &r) != nil {
+		return errors.New("the server gave no list")
+	}
+	names := make([]string, 0, len(r.Guests))
+	for _, g := range r.Guests {
+		names = append(names, g.Name)
+	}
+	commMu.Lock()
+	defer commMu.Unlock()
+	if merged, changed := mergeGuests(commCfg.Guests, names); changed {
+		commCfg.Guests = merged
+		saveCommLocked()
+	}
+	return nil
+}
+
+// mergeGuests adds to the list the names it lacks (a name is the same whatever its case), the list's own
+// order first; 60 at most.
+func mergeGuests(list, names []string) ([]string, bool) {
+	out := append([]string{}, list...)
+	changed := false
+	for _, n := range names {
+		n = cleanText(n, 32)
+		if n == "" || len(out) >= 60 {
+			continue
+		}
+		dup := false
+		for _, x := range out {
+			if strings.EqualFold(x, n) {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			out, changed = append(out, n), true
+		}
+	}
+	return out, changed
 }
 
 // drinksState is what the phone shows of DRINKS mode.
@@ -724,6 +795,11 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 					fail(err)
 					return
 				}
+			case "guestsRestore": // the list of DRINKS drivers back from the server
+				if err := restoreGuests(true); err != nil {
+					fail(err)
+					return
+				}
 			case "deleteAll":
 				if _, err := commCall("DELETE", "/me", nil, true); err != nil && err.Error() != "not registered" {
 					fail(err)
@@ -736,6 +812,9 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 				saveCommLocked()
 				commMu.Unlock()
 			}
+		}
+		if r.Method == http.MethodGet {
+			restoreGuests(false) // a lost list of DRINKS drivers comes back by itself
 		}
 		commMu.Lock()
 		c := commCfg

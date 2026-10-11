@@ -30,8 +30,13 @@
   friend's lap is never the account's best, its share or its trackbook best. Every race lap keeps who drove it (`drv`), and a race a friend drove
   any lap of carries them (`drinks`, you by your public name): My races, Home, My sessions, the race summary and the
   phones show a "DRINKS · Ana" badge, or "DRINKS · Multiple drivers" that opens who drove (their laps and best); the
-  summary's laps say their driver (admins change it with ✎: `lapDriver` in /api/races and `/api/sessions/:id/driver`)
-  and your car in the results says who drove it; such a race never goes to your public profile. Each driver is
+  summary's laps say their driver (admins change it with ✎: `lapDriver` in /api/races and `/api/sessions/:id/driver`;
+  a race recorded without the friends' names gets them with "Say who drove each lap (DRINKS)", `DRK_EDIT`) and
+  your car in the results says who drove it; such a race never goes to your public profile. "DRINKS · Who drove"
+  renames a driver everywhere (✎, `renameDrinksDriver` → `guestRename`). The PC's list of drivers (`Guests` in
+  `community.json`, this PC only, never synced) comes back from the server by itself (`restoreGuests`,
+  `/community/guests`: every friend who shared a lap from this account) and with "Recover the drivers from the
+  server". Each driver is
   measured against their own laps only: the PC's stream says who drives (`driver` event, `drinksActive`), the overlays'
   and the app's laps keep their driver, and the delta, the live compare, the coach and the braking markers take that
   driver's best lap (`bestLap`/`ownDelta` in ovnative4.go, `liveBest`/`deltaNow` in index.html), never the game's
@@ -42,6 +47,9 @@
   report). A lap's time waits until the game's is this lap's (`waitLastLap`, `lapTimeRec`), never the lap before's.
 - Races against iRacing's AI (`ai`; an offline race, id "t-…", counts too) say "vs AI" (`aiBadge`, the phones'
   `AiBadge`), the AI drivers are marked "AI" in the results (no driver notes), and they never go to the public profile.
+  They have no iRating at all: no change, no estimate, no iR columns, nothing in Home's races, the licence summary or
+  the ratings (`clearAIRatings`, which also cleans older summaries when the journal loads; `isAIRace` on the web; `ai`
+  on the phones). An estimate is never made from a driver without an iRating (`irChanges`).
 - One model per car and track (`cloud/src/model.js`, fed to the coach and the lap analyzer by
   `web/dist/pitwall-model.js`): it learns from every real lap it knows (the accounts' laps, shared
   or not; shared laps; the laps of the rivals of your races) and its references are real laps,
@@ -289,7 +297,10 @@
   Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, radio, system.
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
-  changes from several devices are merged (`syncmerge.go`), never a "which copy" question. When the server
+  changes from several devices are merged (`syncmerge.go`), never a "which copy" question. The moment any device
+  uploads the account (`/sync` PUT), the server nudges the account's live room (`{ctl:"sync", version}` to the PC
+  and the screens in it, `live.js`): the PC syncs at once (`kickSyncFrom`, never for its own upload) and the web
+  companion reads the account again (`CP.refresh`), so a change on the phone or the web is on the PC in seconds. When the server
   answers "signed out" to the PC's token (`plSessionEnded`), the PC signs out by itself keeping the email and
   shows the sign-in screen with a note; a wrong password never signs it out. My account has "Sign out on this
   PC" and says when the PC could not sync. One

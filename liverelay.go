@@ -546,10 +546,16 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 			}
 			if strings.HasPrefix(m, "{") {
 				var ctl struct {
-					Ctl string `json:"ctl"`
-					N   int    `json:"n"`
+					Ctl     string `json:"ctl"`
+					N       int    `json:"n"`
+					Version int64  `json:"version"`
 				}
-				if json.Unmarshal([]byte(m), &ctl) == nil && ctl.Ctl == "viewers" {
+				ok := json.Unmarshal([]byte(m), &ctl) == nil
+				if ok && ctl.Ctl == "sync" && share == nil { // another device uploaded the account: sync it now
+					kickSyncFrom(ctl.Version)
+					continue
+				}
+				if ok && ctl.Ctl == "viewers" {
 					mu.Lock()
 					if ctl.N > viewers {
 						reset = true // someone new: send everything again

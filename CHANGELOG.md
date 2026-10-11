@@ -10,6 +10,13 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   measure whoever is driving against their own best lap of the session, never a friend's.
 - **The phone apps have the PC's Telemetry and Analysis**: Telemetry, Standings and Tyres; Laps, Coach, My sessions and
   My races, with the coach's plan against the next level and the lap analysis against the next level or the record.
+- **Changes from your phone or the web reach your PC at once**: the server tells the PC the moment another device
+  saves the account.
+- **DRINKS drivers never lost**: the list on the PC comes back from the server by itself (every friend who shared a
+  lap) and with "Recover the drivers from the server"; in a race summary an admin can say who drove each lap of any
+  race and rename a driver from "Who drove".
+- **Races against the AI have no iRating**: no change, no estimate, no iR columns, nothing in Home or the licence
+  summary (older summaries are cleaned).
 - Fixes and improvements.
 
 ## 0.9.7 beta

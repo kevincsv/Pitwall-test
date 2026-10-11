@@ -56,3 +56,23 @@ func TestMarkOfflineAI(t *testing.T) {
 		t.Fatal("another game")
 	}
 }
+
+// a race against the AI has no iRating: the estimate from the AI's missing iRatings (0/0) is never kept, and an
+// older summary with it is cleaned when the journal loads
+func TestAIRaceHasNoIRating(t *testing.T) {
+	for _, v := range irChanges([]int{0, 0, 0}, []int{1, 2, 3}, []bool{true, true, true}) {
+		if v != 0 {
+			t.Fatalf("an estimate from no iRatings: %d", v)
+		}
+	}
+	r := &raceReport{ID: "t-1", AI: true, IR: 1, IRChange: -80, IRReal: true, Results: []raceResult{{Pos: 1, IR: 0, IRChange: -9223372036854775808, AI: true}, {Pos: 2, IR: 1, IRChange: -80, Me: true}}}
+	if !clearAIRatings(r) {
+		t.Fatal("the summary had iRatings to clear")
+	}
+	if r.IR != 0 || r.IRChange != 0 || r.IRReal || r.Results[0].IRChange != 0 || r.Results[1].IR != 0 || r.Results[1].IRChange != 0 {
+		t.Fatalf("iRating left on an AI race: %+v", r)
+	}
+	if clearAIRatings(r) || clearAIRatings(&raceReport{ID: "r2", IR: 1500, IRChange: 20}) {
+		t.Fatal("nothing to clear on a clean AI race or an official one")
+	}
+}
