@@ -327,8 +327,11 @@
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
   changes from several devices are merged (`syncmerge.go`), never a "which copy" question. The moment any device
   uploads the account (`/sync` PUT), the server nudges the account's live room (`{ctl:"sync", version}` to the PC
-  and the screens in it, `live.js`): the PC syncs at once (`kickSyncFrom`, never for its own upload) and the web
-  companion reads the account again (`CP.refresh`), so a change on the phone or the web is on the PC in seconds. When the server
+  and the screens in it, `live.js`): the PC syncs at once (`kickSyncFrom`, never for its own upload), the web
+  companion reads the account again (`CP.refresh`) and so do the phones, which keep the live room open as presence
+  (the `idle` role, nothing sent) on every screen while the app is on the screen (`startPresence`/`syncNudges` on
+  Android, `Live.startPresence`/`Account.nudged` on iOS; Telemetry takes the link over while it is on screen), so a
+  change on any device is on every other one in seconds. When the server
   answers "signed out" to the PC's token (`plSessionEnded`), the PC signs out by itself keeping the email and
   shows the sign-in screen with a note; a wrong password never signs it out. My account has "Sign out on this
   PC" and says when the PC could not sync. Nobody syncs by hand: no "Sync now" button and no switch to turn the sync
