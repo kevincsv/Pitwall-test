@@ -2,7 +2,7 @@
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { downloads } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
-import { autoShare } from "./community.js";
+import { autoShare, reshareSession } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
 import { patreonWebhook } from "./patreon.js";
 import { news } from "./news.js";
@@ -180,6 +180,8 @@ async function api(req, env, url) {
     const n = Math.round(num(b.n) || 0);
     if (!n) return err("which lap?", 400);
     await env.DB.batch([env.DB.prepare("UPDATE laps SET drv=?3 WHERE session_id=?1 AND n=?2").bind(sid, n, lapDrv(b)), env.DB.prepare(SESSION_SUMS).bind(sid)]);
+    // the leaderboards follow: every driver's shared best of this car and track made again
+    if (String(s.uploader).startsWith("acct:")) await reshareSession(env, String(s.uploader).slice(5), sid).catch(() => {});
     return json({ ok: true });
   }
 

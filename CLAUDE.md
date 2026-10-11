@@ -36,7 +36,14 @@
   renames a driver everywhere (✎, `renameDrinksDriver` → `guestRename`). The PC's list of drivers (`Guests` in
   `community.json`, this PC only, never synced) comes back from the server by itself (`restoreGuests`,
   `/community/guests`: every friend who shared a lap from this account) and with "Recover the drivers from the
-  server". Each driver is
+  server". When who drove a lap changes, the server makes every driver's shared best of that car and track again
+  from the account's sessions (`reshareSession`): no leaderboard keeps a lap that is somebody else's now, and the
+  lap goes up under its driver's name when it is their best. An admin joins a DRINKS driver to the friend's own
+  account ("Link a DRINKS driver" on an account in the admin panel, PC, web and phones; `guest_links`, migration
+  0037, `/admin/users/:id/link-guest` by driver id or name, `unlink-guest`): what was shared under the name goes
+  to the account (per car and track the faster lap stays, like `/link-driver`), its reports and the model's memory
+  too, and the laps shared later under that name (`/laps`, `/reports`, `reshareSession`) go to the account as it
+  chose to be shown. Each driver is
   measured against their own laps only: the PC's stream says who drives (`driver` event, `drinksActive`), the overlays'
   and the app's laps keep their driver, and the delta, the live compare, the coach and the braking markers take that
   driver's best lap (`bestLap`/`ownDelta` in ovnative4.go, `liveBest`/`deltaNow` in index.html), never the game's
@@ -210,7 +217,8 @@
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
   the leagues, the latest sessions, the server's emails and the tools (rebuild the coach models; the
   blocked sign-ins one by one, by email or all; per account: confirm its email, turn off its two-step
-  sign-in, sign it out everywhere, rename it). Networks are only ever a hash of their address. An admin
+  sign-in, sign it out everywhere, rename it, join a DRINKS driver to it or undo it; `/admin/guests` lists every
+  DRINKS driver on the platform for the chooser). Networks are only ever a hash of their address. An admin
   can see the app as a normal user on one device (the shield in the header, the admin panel, or
   Settings on the phones): everything for admins and in development hides until the admin view is back.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,

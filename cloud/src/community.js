@@ -145,6 +145,56 @@ export async function autoShare(env, accountId, sessionId, laps, hint) {
   return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1 });
 }
 
+// after who drove a lap changes (DRINKS mode: a lap given to a friend, or back to you): every driver's shared best
+// for that car and track is made again from the account's sessions, so no leaderboard keeps a lap that is somebody
+// else's now, and the lap goes up under its driver's name when it is their best (or to their own account once joined)
+export async function reshareSession(env, accountId, sid) {
+  const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(sid, "acct:" + accountId).first();
+  if (!s || isTestDrive(s.kind)) return;
+  const g = s.game || "iracing", name = s.track + (s.track_config ? " · " + s.track_config : "");
+  const { trackId, carId } = await comboIds(env, s, name, g, accountId, null);
+  if (!trackId || !carId) return;
+  const acc = await env.DB.prepare("SELECT anon, name_kind FROM accounts WHERE id=?1").bind(accountId).first();
+  if (!acc) return;
+  const key = (d) => String(d || "").trim().toLowerCase();
+  const here = (await env.DB.prepare("SELECT time, COALESCE(drv,'') AS drv FROM laps WHERE session_id=?1 AND valid=1").bind(sid).all()).results || [];
+  // the laps of this car and track in every session of the account, by driver ("" the account itself)
+  const all = (await env.DB.prepare(`SELECT l.time, l.sectors, l.trace, COALESCE(l.drv,'') AS drv FROM laps l JOIN sessions s ON s.id=l.session_id
+    WHERE s.uploader=?1 AND lower(s.track)=lower(?2) AND lower(COALESCE(s.track_config,''))=lower(?3) AND lower(s.car)=lower(?4) AND COALESCE(s.game,'iracing')=?5
+    AND l.valid=1 AND l.time>10 AND l.time<3600 AND lower(COALESCE(s.kind,'')) NOT LIKE '%test%'`).bind("acct:" + accountId, s.track, s.track_config || "", s.car, g).all()).results || [];
+  const by = new Map();
+  for (const l of all) { const k = key(l.drv); if (!by.has(k)) by.set(k, []); by.get(k).push(l); }
+  // who shares what: the account under its own name, each friend under theirs (or their own account once joined)
+  const who = async (k, nm) => {
+    if (!k) return { uid: accountId, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick" };
+    const alias = cleanAlias(nm);
+    if (!alias) return null;
+    let row = await env.DB.prepare("SELECT id FROM community_users WHERE owner=?1 AND id LIKE 'guest-%' AND lower(alias)=lower(?2)").bind(accountId, alias).first();
+    if (!row) {
+      if (await nameTaken(env, alias, accountId)) return null;
+      const gid = "guest-" + (await sha256(accountId + ":" + alias.toLowerCase())).slice(0, 20);
+      await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias, owner=excluded.owner")
+        .bind(gid, await sha256("guest:" + gid + ":" + rid()), alias, Date.now(), accountId).run();
+      row = { id: gid };
+    }
+    const gl = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM guest_links l JOIN accounts a ON a.id=l.account_id WHERE l.gid=?1").bind(row.id).first();
+    if (gl) return { uid: gl.id, anon: !!gl.anon, shown: gl.name_kind === "iracing" ? "iracing" : "nick" };
+    return { uid: row.id, anon: false, shown: "nick" };
+  };
+  // a share that came from a lap of this session which is somebody else's now goes
+  const mine = (await env.DB.prepare("SELECT c.id, c.user_id, c.time, u.alias FROM community_laps c JOIN community_users u ON u.id=c.user_id WHERE c.car_id=?1 AND c.track_id=?2 AND (c.user_id=?3 OR (u.owner=?3 AND u.id LIKE 'guest-%'))").bind(carId, trackId, accountId).all()).results || [];
+  for (const c of mine) {
+    const k = c.user_id === accountId ? "" : key(c.alias);
+    if (here.some((l) => Math.abs(l.time - c.time) < 0.0015 && key(l.drv) !== k)) await env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(c.id).run();
+  }
+  for (const [k, laps] of by) {
+    const w = await who(k, laps[0].drv).catch(() => null);
+    if (!w) continue;
+    const best = laps.sort((a, b) => a.time - b.time || (b.trace ? 1 : 0) - (a.trace ? 1 : 0))[0];
+    await keepBestLap(env, w.uid, { game: g, carId, trackId, car: s.car, track: name, time: best.time, sectors: best.sectors, trace: best.trace, anon: w.anon, shown: w.shown, official: s.official, ai: s.ai === 1 });
+  }
+}
+
 // an account's license class in one discipline (the others stay as they were)
 async function rememberLic(env, uid, cat, lic) {
   const v = licOf(lic);
@@ -328,6 +378,14 @@ export async function community(req, env, url) {
     const [items, domain] = await Promise.all([mailLog(env), mailDomain(env).catch(() => null)]);
     return json({ items, domain });
   }
+  // every DRINKS driver on the platform (a friend who drove on an admin's PC), with the account it was joined to
+  if (m === "GET" && p === "/admin/guests") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    const r = await env.DB.prepare(`SELECT g.id, g.alias, g.created, g.owner, o.display AS ownerName, (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=g.id) AS laps, gl.account_id AS linked, la.display AS linkedName
+      FROM community_users g LEFT JOIN accounts o ON o.id=g.owner LEFT JOIN guest_links gl ON gl.gid=g.id LEFT JOIN accounts la ON la.id=gl.account_id WHERE g.id LIKE 'guest-%' ORDER BY g.created DESC LIMIT 300`).all();
+    return json({ guests: (r.results || []).map((x) => ({ id: x.id, name: x.alias, created: x.created, owner: x.owner, ownerName: x.ownerName || "", laps: x.laps || 0, linked: x.linked || null, linkedName: x.linkedName || null })) });
+  }
   if (m === "GET" && (p === "/admin/uploads" || p === "/admin/users")) {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
@@ -338,6 +396,7 @@ export async function community(req, env, url) {
         (SELECT MAX(started) FROM sessions s WHERE s.uploader='acct:'||a.id) AS lastSession,
         (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=a.id) AS laps,
         (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests,
+        (SELECT group_concat(gl.gid || '|' || g.alias, ',') FROM guest_links gl JOIN community_users g ON g.id=gl.gid WHERE gl.account_id=a.id) AS guestLinked,
         (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues,
         EXISTS (SELECT 1 FROM driver_links d WHERE d.account_id=a.id) AS driverLinked
         FROM accounts a ${q ? "WHERE a.display LIKE ?1 OR a.id LIKE ?1" : ""} ORDER BY a.created DESC LIMIT 500`).bind(...(q ? ["%" + q.replace(/[%_]/g, "") + "%"] : [])).all();
@@ -420,7 +479,7 @@ export async function community(req, env, url) {
   }
   // help with an account (support and moderation): confirm its email, turn off its two-step sign-in (a lost
   // phone), sign it out everywhere, give it another public name (an offensive one) or undo its iRacing driver link
-  const ua = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})\/(verify|2fa-off|signout|rename|unlink-driver)$/);
+  const ua = p.match(/^\/admin\/users\/([A-Za-z0-9]{8,40})\/(verify|2fa-off|signout|rename|unlink-driver|link-guest|unlink-guest)$/);
   if (ua && m === "POST") {
     const acc = await sessionAccount(req, env);
     if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
@@ -431,6 +490,42 @@ export async function community(req, env, url) {
     if (ua[2] === "signout") await env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id).run();
     // a wrong link to an iRacing driver: their laps still to come go back to the rival of a race
     if (ua[2] === "unlink-driver") await env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id).run();
+    // a DRINKS driver (a friend who drove on an admin's PC) joined to the friend's own account: what was shared
+    // under the driver's name goes to the account (per car and track the faster lap stays, like an iRacing driver's)
+    // and so does what comes later; undone, the laps stay where they are and new ones go under the name again
+    if (ua[2] === "link-guest" || ua[2] === "unlink-guest") {
+      const want = String(body.guest || body.name || "").trim();
+      if (!want) return err("which DRINKS driver?", 400);
+      const g = want.startsWith("guest-")
+        ? await env.DB.prepare("SELECT id, alias FROM community_users WHERE id=?1 AND id LIKE 'guest-%'").bind(want).first()
+        : await env.DB.prepare("SELECT id, alias FROM community_users WHERE id LIKE 'guest-%' AND lower(alias)=lower(?1) ORDER BY (owner=?2) DESC LIMIT 1").bind(cleanAlias(want), acc.id).first();
+      if (!g) return err("DRINKS driver not found", 404);
+      if (ua[2] === "unlink-guest") {
+        await env.DB.prepare("DELETE FROM guest_links WHERE gid=?1 AND account_id=?2").bind(g.id, id).run();
+        return json({ ok: true, name: g.alias });
+      }
+      const had = await env.DB.prepare("SELECT account_id FROM guest_links WHERE gid=?1").bind(g.id).first();
+      if (had && had.account_id !== id) return err("this DRINKS driver is already joined to another account", 409);
+      const target = await env.DB.prepare("SELECT anon, name_kind FROM accounts WHERE id=?1").bind(id).first();
+      const shown = target && target.name_kind === "iracing" ? "iracing" : "nick";
+      const laps = (await env.DB.prepare("SELECT id, car_id, track_id, time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1").bind(g.id).all()).results || [];
+      const q = [], combos = new Set();
+      for (const l of laps) {
+        const mine = await env.DB.prepare("SELECT id, time, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(id, l.car_id, l.track_id).first();
+        combos.add(l.game + "|" + l.track_id + "|" + l.car_id);
+        const take = env.DB.prepare("UPDATE community_laps SET user_id=?2, anon=?3, shown=?4 WHERE id=?1").bind(l.id, id, target && target.anon ? 1 : 0, shown);
+        if (!mine) { q.push(take); continue; }
+        const better = mine.time > l.time || (!mine.traced && !!l.traced); // the same rule as keepBestLap
+        if (better) q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(mine.id), take);
+        else q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(l.id));
+      }
+      q.push(env.DB.prepare("UPDATE community_reports SET user_id=?2 WHERE user_id=?1").bind(g.id, id));
+      if (!had) q.push(env.DB.prepare("INSERT INTO guest_links (gid, account_id, created) VALUES (?1,?2,?3)").bind(g.id, id, Date.now()));
+      await env.DB.batch(q);
+      await moveDriver(env, "acct:" + g.id, "acct:" + id).catch(() => {}); // what the model learnt of the driver is the account's pace now
+      for (const c of combos) { const [gm, t, cId] = c.split("|"); await markModel(env, gm, +t, +cId).catch(() => {}); }
+      return json({ ok: true, name: g.alias, moved: laps.length });
+    }
     if (ua[2] === "rename") {
       const display = cleanName(body.name);
       if (!display) return err("choose a public name", 400);
@@ -669,8 +764,8 @@ export async function community(req, env, url) {
   // comes back from here
   if (p === "/guests" && m === "GET") {
     if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);
-    const r = await env.DB.prepare("SELECT g.alias, g.created, (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=g.id) AS laps FROM community_users g WHERE g.owner=?1 AND g.id LIKE 'guest-%' ORDER BY g.created DESC LIMIT 60").bind(u.id).all();
-    return json({ guests: (r.results || []).map((x) => ({ name: x.alias, laps: x.laps || 0, created: x.created })) });
+    const r = await env.DB.prepare("SELECT g.id, g.alias, g.created, (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=g.id) AS laps, (SELECT a.display FROM guest_links gl JOIN accounts a ON a.id=gl.account_id WHERE gl.gid=g.id) AS linked FROM community_users g WHERE g.owner=?1 AND g.id LIKE 'guest-%' ORDER BY g.created DESC LIMIT 60").bind(u.id).all();
+    return json({ guests: (r.results || []).map((x) => ({ id: x.id, name: x.alias, laps: x.laps || 0, created: x.created, linked: x.linked || null })) });
   }
   // Friday night mode: an admin shares the laps of friends who drive on the admin's PC,
   // each under the friend's own name (one community driver per name, owned by that admin)
@@ -684,9 +779,12 @@ export async function community(req, env, url) {
     if (await nameTaken(env, name, u.id)) return json({ error: `"${name}" is already used by another driver on Pitlane HQ, choose another name`, code: "name_taken" }, 409);
     await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias, owner=excluded.owner")
       .bind(gid, await sha256("guest:" + gid + ":" + rid()), name, Date.now(), u.id).run();
-    u = await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(gid).first();
-    body.anon = false;
-    body.as = "nick";
+    // a driver an admin joined to the friend's own Pitlane HQ account: the lap goes to that account, as the account chose
+    const gl = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM guest_links l JOIN accounts a ON a.id=l.account_id WHERE l.gid=?1").bind(gid).first();
+    const to = gl ? await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(gl.id).first() : null;
+    u = to || (await env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE id=?1").bind(gid).first());
+    body.anon = !!(to && gl.anon);
+    body.as = to && gl.name_kind === "iracing" ? "iracing" : "nick";
   }
   // the name a shared item goes under, asked before every share: anonymous (stays anonymous
   // whatever you change later), your nickname or your iRacing name (both follow your changes)
