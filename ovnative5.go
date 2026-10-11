@@ -457,6 +457,11 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 	sort.Slice(nears, func(a, b int) bool { return math.Abs(nears[a].d) < math.Abs(nears[b].d) })
 	nf := ovFace(fkData, 10.5*z)
 	ahead, behind := 0, 0
+	type tag struct {
+		x, w float64
+		s    string
+	}
+	var tags []tag
 	for _, n := range nears {
 		if n.d > 0 && ahead < 2 || n.d < 0 && behind < 2 {
 			if n.d > 0 {
@@ -465,9 +470,30 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 				behind++
 			}
 			if d := st.ses.Drivers[n.idx]; d != nil && d.Num != "" {
-				c.text(nf, "#"+d.Num, xOf(at(pct, n.idx)), by+14*z, colMuted, 1, 2)
+				s := "#" + d.Num
+				tags = append(tags, tag{xOf(at(pct, n.idx)), textW(nf, s), s})
 			}
 		}
+	}
+	// two numbers never overlap: one too close to the one on its left moves right, and none leaves the bar
+	sort.Slice(tags, func(a, b int) bool { return tags[a].x < tags[b].x })
+	for k := 1; k < len(tags); k++ {
+		if lim := tags[k-1].x + (tags[k-1].w+tags[k].w)/2 + 4*z; tags[k].x < lim {
+			tags[k].x = lim
+		}
+	}
+	for k := len(tags) - 1; k >= 0; k-- {
+		if over := tags[k].x + tags[k].w/2 - x1; over > 0 {
+			tags[k].x -= over
+		}
+		if k < len(tags)-1 {
+			if lim := tags[k+1].x - (tags[k+1].w+tags[k].w)/2 - 4*z; tags[k].x > lim {
+				tags[k].x = lim
+			}
+		}
+	}
+	for _, g := range tags {
+		c.text(nf, g.s, g.x, by+14*z, colMuted, 1, 2)
 	}
 	x := xOf(pct[me])
 	c.ring(x, by, 7.5*z, 2*z, colText, 1)
@@ -517,8 +543,9 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		}
 		c.rect(gx0, gy1, gx1-gx0, 1, colLine, 1)
 		step := (gx1 - gx0) / 59
+		off := gx1 - float64(len(m.fps)-1)*step // the newest second at the right edge
 		for k := 1; k < len(m.fps); k++ {
-			xa, xb := gx0+float64(k-1)*step, gx0+float64(k)*step
+			xa, xb := off+float64(k-1)*step, off+float64(k)*step
 			ya, yb := gy1-(gy1-gy0)*clamp01(m.fps[k-1]/top), gy1-(gy1-gy0)*clamp01(m.fps[k]/top)
 			c.line(xa, ya, xb, yb, 1.5*z, colMuted, 0.9)
 		}

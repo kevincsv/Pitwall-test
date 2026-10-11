@@ -570,7 +570,7 @@ func drawPitOv(c *ovCanvas, st *ovState, z float64) int {
 	cell(0, 0, st.T("Stops left", "Paradas"), sv, colText)
 	cell(0, 1, st.T("Window", "Ventana"), wv, wcol)
 	cell(0, 2, st.T("Add", "Añadir"), av, colText)
-	cell(1, 0, st.T("Laps of fuel", "Vueltas de gasolina"), strconv.FormatFloat(lapsFuel, 'f', 1, 64), colText)
+	cell(1, 0, st.T("Laps of fuel", "Vueltas posibles"), strconv.FormatFloat(lapsFuel, 'f', 1, 64), colText)
 	rj := "–"
 	if myPos > 0 {
 		rj = "P" + strconv.Itoa(int(myPos)+lose)
@@ -722,12 +722,21 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 	panel(c, H, z)
 	c.label(z, st.T("Gaps", "Gaps"), pad, pad+6*z, 0)
 	top := pad + 18*z
+	// each car's gaps of the last minutes, without the one-second spikes of a lap counted a moment late at the line
+	le := st.estLap()
+	series := map[int][][2]float64{}
 	mx := 2.0
 	for _, i := range pick {
+		var a [][2]float64
 		for _, p := range m.gapH[i] {
 			if p[0] >= t-span {
-				mx = math.Max(mx, math.Abs(p[1]))
+				a = append(a, p)
 			}
+		}
+		a = cleanGaps(a, le)
+		series[i] = a
+		for _, p := range a {
+			mx = math.Max(mx, math.Abs(p[1]))
 		}
 	}
 	mx = math.Ceil(mx * 1.15)
@@ -759,12 +768,7 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 		if i == me {
 			continue
 		}
-		var a [][2]float64
-		for _, p := range m.gapH[i] {
-			if p[0] >= t-span {
-				a = append(a, p)
-			}
-		}
+		a := series[i]
 		if len(a) < 2 {
 			continue
 		}
@@ -813,6 +817,35 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 	}
 	return int(math.Ceil(H))
+}
+
+// cleanGaps: a gap history without its one-sample spikes: at the line the game counts a car's lap a moment before
+// or after its distance wraps, so one sample can be a whole lap off; a point more than half a lap away from both its
+// neighbours (the last one, from the one before it) is left out
+func cleanGaps(a [][2]float64, le float64) [][2]float64 {
+	if len(a) < 3 || le <= 0 {
+		return a
+	}
+	lim := le / 2
+	out := make([][2]float64, 0, len(a))
+	for j, p := range a {
+		switch {
+		case j == 0:
+			if math.Abs(p[1]-a[1][1]) > lim && math.Abs(a[1][1]-a[2][1]) <= lim {
+				continue
+			}
+		case j == len(a)-1:
+			if math.Abs(p[1]-a[j-1][1]) > lim {
+				continue
+			}
+		default:
+			if math.Abs(p[1]-a[j-1][1]) > lim && math.Abs(p[1]-a[j+1][1]) > lim {
+				continue
+			}
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 func drawIncidentsOv(c *ovCanvas, st *ovState, z float64) int {

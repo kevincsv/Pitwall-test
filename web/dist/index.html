@@ -657,7 +657,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .updbanner[hidden]{display:none}.updwait{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);display:grid;place-items:center;text-align:center;color:#fff}
 .discpre{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;font:13px/1.5 var(--f-data)}
 .genprof{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}.csel{width:18px;height:18px;vertical-align:middle;accent-color:var(--accent)}
-.rbmap{width:100%;max-width:640px;height:auto;display:block;margin:0 auto}.rbmap .trk{fill:none;stroke:var(--line);stroke-width:9;stroke-linejoin:round}
+.rbmap{width:100%;max-width:720px;height:auto;display:block;margin:0 auto}.rbmap .trk{fill:none;stroke:var(--line);stroke-width:9;stroke-linejoin:round}
 /* the track as a road with some depth: its shadow, the kerb-coloured rim and the darker asphalt inside */
 .rbmap .trkS{fill:none;stroke:#000;stroke-opacity:.38;stroke-width:24;stroke-linejoin:round;transform:translate(2px,3.5px)}.rbmap .trkS+.trk{stroke-width:22;stroke:color-mix(in srgb,var(--line) 80%,#fff 20%)}.rbmap .trkI{fill:none;stroke:color-mix(in srgb,var(--surface2) 70%,#000 30%);stroke-width:17;stroke-linejoin:round}
 .rbmap .trkI~.seg{stroke-width:15}.rbmap .lnB{fill:none;stroke:#cfe3ff;stroke-opacity:.85;stroke-width:1.6;stroke-dasharray:5 4;stroke-linejoin:round}.rbmap .lnA{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
@@ -2708,7 +2708,7 @@ function sessionIncs(A){try{const LP=(typeof analysisLaps==="function"?analysisL
     if(!out.length&&A&&A.sessionId){const x=(CLOUD.sessions||[]).find(z=>z.id===A.sessionId),r=x&&raceForSession(x);if(r)out=(r.incidents||[]).map(e=>({d:e.d||0,pts:e.pts||e.p||1,k:incKind(e),lap:e.lap}))}
     return out}catch(e){return lapIncs(A)}}
 const lapIncs=l=>{const a=(l&&l.incAt)||[],ks=(l&&l.incK)||[],o=[];for(let i=0;i+1<a.length;i+=2)o.push({d:a[i],pts:a[i+1],k:incKind({pts:a[i+1],kind:ks[i/2]})});return o};
-async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=lapShape(A)||lapShape(B);
+async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=lapShape(B)||lapShape(A); // the road is B's path when it has one: B runs along the middle, A beside it by how far it was from B
   lapTrackId(A,B).then(t=>{if(!t||t===TURN_TID)return;TURN_TID=t;const k=turnsFor(t,A.game||B.game);if(k&&k.length)turnsChanged()}).catch(()=>{});
   if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
@@ -4142,7 +4142,7 @@ VelocityX|Forward speed|Velocidad longitudinal
 VelocityY|Sideways speed|Velocidad lateral
 VelocityZ|Vertical speed|Velocidad vertical
 LatAccel|Lateral g-force|Fuerza g lateral
-LongAccel|Braking and acceleration g-force|Fuerza g de frenada y aceleración
+LongAccel|Longitudinal g-force|Fuerza g longitudinal
 VertAccel|Vertical g-force|Fuerza g vertical
 YawRate|Rotation rate (yaw)|Velocidad de giro (guiñada)
 PitchRate|Pitch rate|Velocidad de cabeceo
@@ -4319,7 +4319,7 @@ function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidd
   const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null,rs=G61REF?serOf(G61REF):null,base=rs||bs;
   const curD=T.LapDist||0,len=Math.max(trackLenM(),(bs?bs.length:0)*BIN);
   // header: lap times and live delta
-  let now=null;if(base&&T.LapCurrentLapTime!=null&&T.IsOnTrack){const r=lapTimeAt(base,curD);if(r!=null&&curD>20)now=T.LapCurrentLapTime-r}
+  let now=null;if(base&&T.LapCurrentLapTime>0&&T.IsOnTrack){const r=lapTimeAt(base,curD);if(r!=null&&curD>20)now=T.LapCurrentLapTime-r}
   $("#cmpHead").innerHTML=`<div><span class="k" style="color:var(--pb)">${L("it.cmpbest",true)}</span><span class="v">${best?Tx("L","V")+best.n+" "+fmtT(best.time):"–"}</span></div>
     <div><span class="k">${L("it.cmplast",true)}</span><span class="v">${last?Tx("L","V")+last.n+" "+fmtT(last.time):"–"}</span></div>
     ${G61REF?`<div><span class="k" style="color:var(--good)">${esc(Tx("Reference","Referencia","Referenz","Referência"))}</span><span class="v">${esc(G61REF.name||"")} ${fmtT(G61REF.time)}</span></div>`:""}
@@ -4872,7 +4872,7 @@ function renderPit(){const box=$("#pitBox");if(!box)return;const c=ui("pit"),fue
   rel.forEach(r=>{const g=r.lapDiff*le;if(g<0&&g>-c.loss){lose++;if(!next||g<next.g)next={g,r}}});
   const rejoin=myPos?myPos+lose:null;
   box.innerHTML=`<div class="row" style="margin-top:4px">${kv(Lp("Stops left","Paradas",true),left==null?"–":stops)}${kv(Lp("Window","Ventana",true),stops?`${first}–${last}`:left==null?"–":Tx("none","no hace falta"),stops&&lapNow>=first?"good":"")}${kv(Lp("Add","Añadir",true),add==null?"–":vol(add).toFixed(1)+" "+volU())}</div>
-    <div class="row" style="margin-top:8px">${kv(Lp("Laps of fuel","Vueltas de gasolina",true),lapsFuel.toFixed(1))}${kv(Lp("Rejoin","Sales",true),rejoin?"P"+rejoin+(lose?` <span class="unit bad">−${lose}</span>`:""):"–")}
+    <div class="row" style="margin-top:8px">${kv(Lp("Laps of fuel","Vueltas posibles",true),lapsFuel.toFixed(1))}${kv(Lp("Rejoin","Sales",true),rejoin?"P"+rejoin+(lose?` <span class="unit bad">−${lose}</span>`:""):"–")}
       <div><div class="label">${Lp("Pit loss","Pérdida",true)}</div><div class="frow" style="gap:4px"><button type="button" class="pin ovhide" data-pl="-1">−</button><span class="mid mono">${c.loss}s</span><button type="button" class="pin ovhide" data-pl="1">+</button></div></div></div>
     <p class="note">${stops?(lapNow>=first?Lp("Pit window is open. ","La ventana de parada está abierta. "):Lp(`Window opens on lap ${first}. `,`La ventana se abre en la vuelta ${first}. `,0,`Das Fenster öffnet sich in Runde ${first}. `,`A janela abre na volta ${first}. `)):""}${next?Lp("You would come out near ","Saldrías cerca de ")+esc("#"+(next.r.d.CarNumber||"")+" "+(next.r.d.UserName||"")):""}</p>`;
   box.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>{setUI("pit",{loss:Math.max(5,Math.min(180,c.loss+ +b.dataset.pl))});renderPit()})}
@@ -4901,15 +4901,19 @@ function renderSectors(){const box=$("#secBox");if(!box)return;const cells=(a,no
 const GAPH=new Map();let GAP_AT=0,GAP_SESS=null;const GAPCOL=["#5c9dff","#38c97c","#ffb02e","#ff6363","#b98cff","#2ec4c4","#f28cd0","#c9d1dc","#9acd32","#ff8f45"];
 function sampleGaps(){const t=T.SessionTime;if(t==null||t-GAP_AT<1&&t>=GAP_AT)return;GAP_AT=t;if(T.SessionNum!==GAP_SESS){GAP_SESS=T.SessionNum;GAPH.clear()}
   const le=estLap(),keep=ui("gaps").mins*60+5;relList().forEach(r=>{let a=GAPH.get(r.i);if(!a){a=[];GAPH.set(r.i,a)}a.push([t,r.lapDiff*le]);while(a.length&&a[0][0]<t-keep)a.shift()})}
+/* a gap history without its one-sample spikes: at the line the game counts a car's lap a moment before or after its
+   distance wraps, so one sample can be a whole lap off; a point more than half a lap from both neighbours goes */
+function cleanGaps(a,le){if(a.length<3||!(le>0))return a;const lim=le/2,out=[];a.forEach((p,j)=>{const d=k=>Math.abs(p[1]-a[k][1]);if(j===0?d(1)>lim&&Math.abs(a[1][1]-a[2][1])<=lim:j===a.length-1?d(j-1)>lim:d(j-1)>lim&&d(j+1)>lim)return;out.push(p)});return out}
 function drawGaps(){const cv=$("#gapC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1))-70);if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}
   const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);const c=ui("gaps"),t=T.SessionTime||0,span=c.mins*60,pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me]||0;
   const pick=[...GAPH.keys()].filter(i=>my&&pos[i]>0&&Math.abs(pos[i]-my)<=c.cars).sort((a,b)=>pos[a]-pos[b]);
-  let m=2;pick.forEach(i=>GAPH.get(i).forEach(p=>{if(p[0]>=t-span)m=Math.max(m,Math.abs(p[1]))}));m=Math.ceil(m*1.15);
+  const le=estLap(),ser=new Map();pick.forEach(i=>ser.set(i,cleanGaps(GAPH.get(i).filter(p=>p[0]>=t-span),le)));
+  let m=2;ser.forEach(a=>a.forEach(p=>{m=Math.max(m,Math.abs(p[1]))}));m=Math.ceil(m*1.15);
   const Y=v=>h/2-v/m*(h/2-10),X=s=>(s-(t-span))/span*(w-60);
   x.strokeStyle=css("--line");x.lineWidth=1;x.font="11px "+css("--f-data");x.fillStyle=css("--muted");
   [m,m/2,0,-m/2,-m].forEach(v=>{x.beginPath();x.moveTo(0,Y(v));x.lineTo(w-60,Y(v));x.stroke();x.fillText((v>0?"+":"")+v.toFixed(v%1?1:0)+"s",w-56,Y(v)+4)});
   x.fillStyle=css("--accent");x.fillRect(0,Y(0)-1,w-60,2);
-  const leg=[];pick.forEach((i,k)=>{if(i===me)return;const a=GAPH.get(i).filter(p=>p[0]>=t-span);if(a.length<2)return;const col=GAPCOL[k%GAPCOL.length];x.strokeStyle=col;x.lineWidth=2;x.beginPath();a.forEach((p,j)=>j?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.stroke();
+  const leg=[];pick.forEach((i,k)=>{if(i===me)return;const a=ser.get(i);if(a.length<2)return;const col=GAPCOL[k%GAPCOL.length];x.strokeStyle=col;x.lineWidth=2;x.beginPath();a.forEach((p,j)=>j?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.stroke();
     const d=driverBy(i)||{},g=a[a.length-1][1],tr=a.length>30?g-a[a.length-31][1]:null;leg.push(`<div><span class="k" style="color:${col}">P${pos[i]} #${esc(d.CarNumber||"")} ${esc((d.UserName||"").split(" ").pop())}</span><span class="v mono">${sgn(g,1)}${tr!=null?` <span class="${(g>0)===(tr<0)?"good":"bad"}">${tr<0?"▼":"▲"}${Math.abs(tr).toFixed(1)}</span>`:""}</span></div>`)});
   const lg=$("#gapLegend");if(lg)lg.innerHTML=leg.join("")||`<div class="muted">${Lp("Gaps to the cars around you appear after a few seconds.","Los gaps con los coches cercanos aparecen en unos segundos.",true)}</div>`}
 
@@ -4965,7 +4969,11 @@ function drawTrackbar(){const cv=$("#tbC");if(!cv||!cv.clientWidth)return;const 
     if(pos[i]===1){g.strokeStyle=col("--fg");g.lineWidth=1.2;g.beginPath();g.arc(xOf(p),by,5.6,0,7);g.stroke()}g.globalAlpha=1;
     if(pct[me]>=0){let dd=p-pct[me];if(dd>.5)dd--;else if(dd<-.5)dd++;nears.push([i,dd])}});
   if(!(pct[me]>=0))return;nears.sort((a,b)=>Math.abs(a[1])-Math.abs(b[1]));let ah=0,bh=0;g.font="10.5px "+col("--f-data");g.textAlign="center";g.fillStyle=col("--muted");
-  nears.forEach(([i,dd])=>{if(dd>0&&ah<2||dd<0&&bh<2){if(dd>0)ah++;else bh++;const d=byIdx[i];if(d&&d.CarNumber)g.fillText("#"+d.CarNumber,xOf(pct[i]),by+18)}});
+  const tags=[];nears.forEach(([i,dd])=>{if(dd>0&&ah<2||dd<0&&bh<2){if(dd>0)ah++;else bh++;const d=byIdx[i];if(d&&d.CarNumber){const s="#"+d.CarNumber;tags.push({x:xOf(pct[i]),w:g.measureText(s).width,s})}}});
+  // two numbers never overlap: one too close to the one on its left moves right, and none leaves the bar
+  tags.sort((a,b)=>a.x-b.x);for(let k=1;k<tags.length;k++){const lim=tags[k-1].x+(tags[k-1].w+tags[k].w)/2+4;if(tags[k].x<lim)tags[k].x=lim}
+  for(let k=tags.length-1;k>=0;k--){const over=tags[k].x+tags[k].w/2-x1;if(over>0)tags[k].x-=over;if(k<tags.length-1){const lim=tags[k+1].x-(tags[k+1].w+tags[k].w)/2-4;if(tags[k].x>lim)tags[k].x=lim}}
+  tags.forEach(q=>g.fillText(q.s,q.x,by+18));
   const x=xOf(pct[me]);g.strokeStyle=col("--fg");g.lineWidth=2;g.beginPath();g.arc(x,by,7.5,0,7);g.stroke();g.fillStyle=col("--accent");g.beginPath();g.arc(x,by,5.5,0,7);g.fill();
   if(T.PlayerCarPosition>0){g.fillStyle=col("--accent");g.font="700 11px "+col("--f-data");g.fillText("P"+T.PlayerCarPosition,x,by-10)}}
 /* frames a second with the last minute, GPU and CPU, the connection's latency and quality */
@@ -4973,7 +4981,7 @@ const SYS={fps:[],at:0};
 function renderSystem(){const box=$("#sysBox");if(!box)return;const now=Date.now(),f=T.FrameRate;if(f!=null&&now-SYS.at>=1000){SYS.at=now;SYS.fps.push(f);if(SYS.fps.length>60)SYS.fps.shift()}
   const pc=v=>v==null?null:Math.round(v<=1?v*100:v),gpu=pc(T.GpuUsage),cpu=pc(T.CpuUsageFG),q=pc(T.ChanQuality);let lat=T.ChanLatency;if(lat!=null&&lat<5)lat*=1000;
   const bar=(l,v)=>`<div class="row" style="align-items:center;gap:8px;margin-top:6px"><span class="muted" style="min-width:36px">${l}</span><div class="meter" style="flex:1;margin:0"><b style="width:${v||0}%;background:${v>90?"var(--bad)":v>75?"var(--accent)":"var(--blue)"}"></b></div><b class="mono" style="min-width:40px;text-align:right">${v==null?"–":v+"%"}</b></div>`;
-  const top=Math.max(60,...SYS.fps),pts=SYS.fps.map((v,i)=>`${(i/59*120).toFixed(1)},${(40-36*Math.min(1,v/top)).toFixed(1)}`).join(" ");
+  const top=Math.max(60,...SYS.fps),pts=SYS.fps.map((v,i)=>`${((i+59-(SYS.fps.length-1))/59*120).toFixed(1)},${(40-36*Math.min(1,v/top)).toFixed(1)}`).join(" ");
   const fc=f==null?"var(--muted)":f<30?"var(--bad)":f<55?"var(--warn,#ffb02e)":"var(--fg)",cc=lat>300||q<60?"var(--bad)":lat>150||q<80?"var(--warn,#ffb02e)":"var(--fg)";
   box.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:4px"><div class="big mono" style="color:${fc}">${f==null?"–":Math.round(f)} <small>fps</small></div>${SYS.fps.length>1?`<svg width="120" height="42" viewBox="0 0 120 42"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg>`:""}</div>
     ${bar("GPU",gpu)}${bar("CPU",cpu)}<div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted">${esc(Tx("Connection","Conexión"))}</span><b class="mono" style="color:${cc}">${lat==null?"–":Math.round(lat)+" ms"}${q!=null?` · ${q}%`:""}</b></div>`}
@@ -5501,6 +5509,8 @@ function dirArrowSvg(p0,p1,cx,cy){const dx=p1[0]-p0[0],dy=p1[1]-p0[1],m=Math.hyp
   return `<g class="dirarr"><title>${esc(Tx("Direction","Sentido","Fahrtrichtung","Sentido"))}</title><line x1="${f(b[0])}" y1="${f(b[1])}" x2="${f(t[0]-ux*h)}" y2="${f(t[1]-uy*h)}"/><polygon points="${f(t[0])},${f(t[1])} ${f(t[0]-ux*h+nx*h*.6)},${f(t[1]-uy*h+ny*h*.6)} ${f(t[0]-ux*h-nx*h*.6)},${f(t[1]-uy*h-ny*h*.6)}"/></g>`}
 function turnNo(id,d,L,fb){const t=id?turnsFor(id):null;if(!t||!t.length||!(L>0))return fb;const f=(((d/L)%1)+1)%1;let bi=0,bd=2;
   t.forEach((x,i)=>{let dd=Math.abs(x-f);dd=Math.min(dd,1-dd);if(dd<bd){bd=dd;bi=i}});return bi+1}
+/* the tips that say nothing the data showed: what the data shows plainly (the gear, lifts, the wheel, the line) replaces them */
+const COACH_GEN=["Brake a little later and harder","Carry more speed into the turn","A rounder, faster line through the apex","Full throttle sooner on exit","Same braking point, slower through the braking zone: brake hard at once, then release progressively","You reach the apex as fast as the reference: the time goes before it, so release the brake more gradually as you turn in","As fast at the slowest point, but slow for longer: shorten the slow part of the corner (turn in later, later apex)"];
 function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length),lat=lineOffsets(A,B);
   const T=(s,i)=>s[i]&&s[i][1],seg=(x,y)=>x<y&&sa[x]&&sa[y]&&sb[x]&&sb[y]?(T(sa,y)-T(sa,x))-(T(sb,y)-T(sb,x)):0;
   const peak=(s,x,y)=>{let p=0,ip=x;for(let k=x;k<=y&&k<s.length;k++)if(s[k]&&s[k][3]>p){p=s[k][3];ip=k}return[p,ip]};
@@ -5524,16 +5534,21 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
     const revs=(s,from,to)=>{let n=0,prevD=0,last=null,has=false;for(let k=from;k<=to&&k<s.length;k++){if(!s[k]||!isFinite(s[k][5]))continue;const v=s[k][5];if(v!==0)has=true;if(last!=null){const d=v-last;if(Math.abs(d)>.004){if(prevD!==0&&Math.sign(d)!==Math.sign(prevD))n++;prevD=d}}last=v}return[n,has]},[rA,hasA]=revs(sa,i0,i1),[rB,hasB]=revs(sb,i0,i1);
     let en="",es="",phase=null;
     if(lost>.03){phase=worst[0];const r=Math.round;
-      if(phase==="brake"){if(dd!=null&&dd<-6){en=`Brake ${r(-dd)} m later`;es=`Frena ${r(-dd)} m más tarde`}
-        else if(m&&pa<pb-.1){en=`Brake harder at first (${r(pa*100)}% vs ${r(pb*100)}%)`;es=`Pisa más fuerte al empezar a frenar (${r(pa*100)} % frente a ${r(pb*100)} %)`}
+      // braking later than the reference and arriving slower at the apex is one mistake, whatever phase pays for it
+      if(m&&dd!=null&&dd>6&&dmin!=null&&dmin<-2){en=`You brake ${r(dd)} m later than the reference and lose ${r(-dmin)} ${spdU()} at the apex: brake a little earlier and carry the speed`;es=`Frenas ${r(dd)} m más tarde que la referencia y pierdes ${r(-dmin)} ${spdU()} en el vértice: frena un poco antes y conserva la velocidad`}
+      else if(phase==="brake"){if(dd!=null&&dd<-6){en=`Brake ${r(-dd)} m later`;es=`Frena ${r(-dd)} m más tarde`}
+        else if(m&&pa<pb-.05){en=`Brake harder at first (${r(pa*100)}% vs ${r(pb*100)}%)`;es=`Pisa más fuerte al empezar a frenar (${r(pa*100)} % frente a ${r(pb*100)} %)`}
         else if(dd!=null&&dd>6){en=`You braked ${r(dd)} m too late and lost the corner: brake earlier`;es=`Frenaste ${r(dd)} m demasiado tarde y perdiste la curva: frena antes`}
+        else if(trailA!=null&&trailB-trailA>=15){en=`Release the brake more gradually into the turn (trail braking: ${r(trailA)} m vs ${r(trailB)} m)`;es=`Suelta el freno más progresivamente al entrar (trail braking: ${r(trailA)} m frente a ${r(trailB)} m)`}
+        else if(dd!=null){en="Same braking point, slower through the braking zone: brake hard at once, then release progressively";es="Mismo punto de frenada, pero más lento en la frenada: pisa fuerte de golpe y suelta progresivamente"}
         else{en="Brake a little later and harder";es="Frena un poco más tarde y más fuerte"}}
       else if(phase==="entry"){if(trailA!=null&&trailB-trailA>=15){en=`Release the brake more gradually into the turn (trail braking: ${r(trailA)} m vs ${r(trailB)} m)`;es=`Suelta el freno más progresivamente al entrar (trail braking: ${r(trailA)} m frente a ${r(trailB)} m)`}
         else if(coastA-coastB>=10){en=`Do not coast before the apex: ${r(coastA)} m without throttle or brake (reference ${r(coastB)} m)`;es=`No vayas sin gas ni freno antes del vértice: ${r(coastA)} m (referencia ${r(coastB)} m)`}
+        else if(dmin!=null&&dmin>=0){en="You reach the apex as fast as the reference: the time goes before it, so release the brake more gradually as you turn in";es="Llegas al vértice tan rápido como la referencia: el tiempo se va antes, suelta el freno más progresivamente al girar"}
         else{en="Carry more speed into the turn";es="Entra con más velocidad en la curva"}}
-      else if(phase==="apex"){if(dmin!=null&&dmin<-2){en=`Carry ${r(-dmin)} ${spdU()} more through the apex`;es=`Pasa ${r(-dmin)} ${spdU()} más rápido por el vértice`}else{en="A rounder, faster line through the apex";es="Una trazada más redonda y rápida por el vértice"}}
-      else{if(late!=null&&late>=8){en=`Get on the throttle ${r(late)} m earlier`;es=`Acelera ${r(late)} m antes`}else if(coastA-coastB>=10){en="Do not wait between the brake and the throttle";es="No esperes entre el freno y el acelerador"}else{en="Full throttle sooner on exit";es="Acelerador a fondo antes a la salida"}}
-      if(["Brake a little later and harder","Carry more speed into the turn","A rounder, faster line through the apex","Full throttle sooner on exit"].includes(en)){
+      else if(phase==="apex"){if(dmin!=null&&dmin<-2){en=`Carry ${r(-dmin)} ${spdU()} more through the apex`;es=`Pasa ${r(-dmin)} ${spdU()} más rápido por el vértice`}else if(dmin!=null&&dmin>=0){en="As fast at the slowest point, but slow for longer: shorten the slow part of the corner (turn in later, later apex)";es="Igual de rápido en el punto más lento, pero lento durante más metros: acorta la parte lenta de la curva (gira más tarde, vértice más tardío)"}else{en="A rounder, faster line through the apex";es="Una trazada más redonda y rápida por el vértice"}}
+      else{if(late!=null&&late>=8){en=`Get on the throttle ${r(late)} m earlier`;es=`Acelera ${r(late)} m antes`}else if(coastA-coastB>=10){en="Do not wait between the brake and the throttle";es="No esperes entre el freno y el acelerador"}else if(late!=null&&late<=-8&&dmin!=null&&dmin<-1){en=`You pick up the throttle ${r(-late)} m earlier but leave the apex ${r(-dmin)} ${spdU()} slower: carry the speed through the apex, the exit follows`;es=`Aceleras ${r(-late)} m antes pero sales del vértice ${r(-dmin)} ${spdU()} más lento: conserva la velocidad en el vértice y la salida vendrá sola`}else{en="Full throttle sooner on exit";es="Acelerador a fondo antes en la salida"}}
+      if(COACH_GEN.includes(en)){
         if(gA>=1&&gB>=1&&gB>gA){en=`Take this corner in gear ${gB} like the reference (you use gear ${gA})`;es=`Toma esta curva en ${gB}ª como la referencia (tú vas en ${gA}ª)`}
         else if(gA>=1&&gB>=1&&gB<gA){en=`Drop to gear ${gB} for the apex like the reference (you stay in gear ${gA})`;es=`Baja a ${gB}ª en el vértice como la referencia (tú te quedas en ${gA}ª)`}
         else if(phase==="exit"&&lA>=2&&lA>lB+1){en=`Smoother throttle on exit: you lifted ${lA} times after the apex (reference ${lB})`;es=`Acelera más progresivo a la salida: levantaste ${lA} veces tras el vértice (referencia ${lB})`}
@@ -5541,7 +5556,7 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
     // the line: where the car was across the track. Braking at the reference's point but on the wrong part of the
     // track is said first; a generic tip gives way to it; otherwise it goes after the tip of the phase
     const line=cornerLine(lat,B,z.i,z.imin),lt=lost>.03?lineTip(line,m&&dd!=null&&Math.abs(dd)<=6):null;
-    if(lt){const generic=["Brake a little later and harder","Carry more speed into the turn","A rounder, faster line through the apex","Full throttle sooner on exit"].includes(en);
+    if(lt){const generic=COACH_GEN.includes(en);
       if(generic||(phase==="brake"&&m&&Math.abs(dd)<=6)){en=lt[0];es=lt[1]}else{en+=". "+lt[0];es+=". "+lt[1]}}
     return{n:turnNo(A.trackId||B.trackId||TURN_TID,z.imin*BIN,n*BIN,k+1),d:z.i*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es]}}).filter(Boolean)}
 /* where the lap loses time, phase by phase, how much it coasts, and the least steady corners */
@@ -5649,7 +5664,12 @@ function coachPlan(A,R,LP){const cs=coachCompare(A,R),sa=lapSeries(A),sb=lapSeri
   const P=[],r2=v=>Math.round(v*100)/100;
   cs.filter(c=>c.lost>.05).sort((a,b)=>b.lost-a.lost).slice(0,3).forEach(c=>P.push({k:"corner",gain:c.lost,t:`T${c.n} · ${Tx(c.tip[0],c.tip[1])}`,why:Tx(`You lose ${r2(c.lost)} s here, mostly in the ${phaseName(c.phase||"brake").toLowerCase()} phase. Slowest point ${c.vmin==null?"–":Math.round(c.vmin)} vs ${Math.round(c.vminr)} ${spdU()}${c.dd!=null&&Math.abs(c.dd)>=5?`, you brake ${Math.abs(Math.round(c.dd))} m ${c.dd>0?"later":"earlier"}`:""}.`,`Pierdes ${r2(c.lost)} s aquí, sobre todo en la fase de ${phaseName(c.phase||"brake").toLowerCase()}. Punto más lento ${c.vmin==null?"–":Math.round(c.vmin)} frente a ${Math.round(c.vminr)} ${spdU()}${c.dd!=null&&Math.abs(c.dd)>=5?`, frenas ${Math.abs(Math.round(c.dd))} m ${c.dd>0?"más tarde":"antes"}`:""}.`)}));
   const worst=Object.entries(ph).sort((a,b)=>b[1]-a[1])[0];
-  if(worst&&worst[1]>.12&&phN[worst[0]]>=3){const HOW={brake:["Pick a fixed braking marker in every corner and brake 5 m later each lap until the entry gets nervous; press hard at first, then ease off.","Elige una referencia fija de frenada en cada curva y frena 5 m más tarde cada vuelta hasta que la entrada se ponga nerviosa; pisa fuerte al principio y luego afloja."],entry:["Release the brake gradually as you turn in (trail braking) instead of letting go at once, and do not coast: brake or throttle, never neither.","Suelta el freno poco a poco mientras giras (trail braking) en vez de soltarlo de golpe, y no vayas en punto muerto: freno o acelerador, nunca ninguno."],apex:["Turn in a little later and look at the exit: a rounder line lets you keep more speed at the slowest point.","Gira un poco más tarde y mira a la salida: una trazada más redonda te deja más velocidad en el punto más lento."],exit:["Unwind the steering sooner and open the throttle progressively from the apex; use all the track on the way out.","Abre el volante antes y acelera progresivamente desde el vértice; usa toda la pista a la salida."]};
+  // the habit's advice follows the data: where you brake against the reference on average, how fast you reach the apex and when you pick up the throttle
+  const avg=a=>a.length?a.reduce((q,v)=>q+v,0)/a.length:null,mdd=avg(cs.filter(c=>c.dd!=null).map(c=>c.dd)),mdmin=avg(cs.filter(c=>c.vmin!=null).map(c=>c.vmin-c.vminr)),mlate=avg(cs.filter(c=>c.late!=null).map(c=>c.late));
+  if(worst&&worst[1]>.12&&phN[worst[0]]>=3){const HOW={brake:mdd!=null&&mdd>4?["You go in deeper than the reference in most corners: brake a touch earlier and harder, and release the brake into the apex; a later braking point is not buying time here.","Entras más profundo que la referencia en casi todas las curvas: frena un poco antes y más fuerte, y suelta el freno hasta el vértice; frenar más tarde no te está dando tiempo."]:mdd!=null&&mdd<-4?["Pick a fixed braking marker in every corner and brake 5 m later each lap until the entry gets nervous; press hard at first, then ease off.","Elige una referencia fija de frenada en cada curva y frena 5 m más tarde cada vuelta hasta que la entrada se ponga nerviosa; pisa fuerte al principio y luego afloja."]:["Your braking points match the reference: the time goes in how you brake. Press hard at once, then release progressively as you turn in (trail braking).","Tus puntos de frenada coinciden con la referencia: el tiempo se va en cómo frenas. Pisa fuerte de golpe y suelta progresivamente mientras giras (trail braking)."],
+    entry:["Release the brake gradually as you turn in (trail braking) instead of letting go at once, and do not coast: brake or throttle, never neither.","Suelta el freno poco a poco mientras giras (trail braking) en vez de soltarlo de golpe, y no vayas en punto muerto: freno o acelerador, nunca ninguno."],
+    apex:mdmin!=null&&mdmin>=0?["You are as fast as the reference at the slowest point but slow for longer: turn in later and put the apex later, so the slow part of the corner gets shorter.","Vas tan rápido como la referencia en el punto más lento, pero lento durante más metros: gira más tarde y retrasa el vértice para acortar la parte lenta de la curva."]:["Turn in a little later and look at the exit: a rounder line lets you keep more speed at the slowest point.","Gira un poco más tarde y mira a la salida: una trazada más redonda te deja más velocidad en el punto más lento."],
+    exit:mlate!=null&&mlate<=-5&&mdmin!=null&&mdmin<-1?["You pick up the throttle earlier than the reference but leave the corners slower: the exit starts at the apex, carry the speed there and the throttle will follow.","Aceleras antes que la referencia pero sales de las curvas más lento: la salida empieza en el vértice, conserva la velocidad ahí y el acelerador vendrá solo."]:["Unwind the steering sooner and open the throttle progressively from the apex; use all the track on the way out.","Abre el volante antes y acelera progresivamente desde el vértice; usa toda la pista a la salida."]};
     P.push({k:"phase",gain:worst[1],t:Tx(`${phaseName(worst[0])} phase: ${r2(worst[1])} s over the lap`,`Fase de ${phaseName(worst[0]).toLowerCase()}: ${r2(worst[1])} s en la vuelta`),why:Tx(`It shows in ${phN[worst[0]]} corners, so it is a habit rather than one mistake.`,`Aparece en ${phN[worst[0]]} curvas, así que es un hábito más que un error puntual.`),how:Tx(...HOW[worst[0]])})}
   if(straight>.08)P.push({k:"straight",gain:straight,t:Tx(`${r2(straight)} s outside the braking zones`,`${r2(straight)} s fuera de las zonas de frenada`),why:Tx("Time lost on the straights comes from the corner exits before them (less speed at the apex and a later throttle) and from the gears.","El tiempo que se pierde en las rectas viene de las salidas de las curvas anteriores (menos velocidad en el vértice y el acelerador más tarde) y de las marchas."),how:Tx("Finish each corner with the throttle fully open as early as you can and check you shift at the right revs.","Termina cada curva con el acelerador a fondo lo antes posible y comprueba que cambias a las revoluciones correctas.")});
   const wob=cons.filter(x=>x.sd>.08).slice(0,2);wob.forEach(x=>P.push({k:"cons",gain:x.sd*.6,t:Tx(`T${x.n} changes ±${r2(x.sd)} s from lap to lap`,`T${x.n} cambia ±${r2(x.sd)} s de una vuelta a otra`),why:Tx("Over the session you take this corner differently every lap: the time spread is the gap between your best and your usual lap.","A lo largo de la sesión tomas esta curva distinto cada vuelta: la dispersión es la diferencia entre tu mejor vuelta y la habitual."),how:Tx("Same braking marker, same turn-in point, same line, every lap. Consistency first, speed after.","La misma referencia de frenada, el mismo punto de giro, la misma trazada, cada vuelta. Primero regularidad, luego velocidad.")}));

@@ -679,8 +679,8 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 	item(st.T("Last", "Última"), lapTxt(last), colMuted, colText)
 	nowS, nowC := "–", uint32(colText)
 	if bs != nil {
-		if r, ok := timeAt(bs, curD); ok && curD > 20 {
-			t, _ := st.num("LapCurrentLapTime")
+		t, _ := st.num("LapCurrentLapTime") // -1 while the game does not time this lap (an out lap)
+		if r, ok := timeAt(bs, curD); ok && curD > 20 && t > 0 {
 			d := t - r
 			nowS, nowC = signed(d, 2), colBad
 			if d <= 0 {
@@ -1302,46 +1302,63 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 			}
 		}
 		var en, es string
-		switch ph[0].k {
-		case "brake":
-			switch {
-			case hasM && dd < -6:
-				en, es = fmt.Sprintf("Brake %d m later", r(-dd)), fmt.Sprintf("Frena %d m más tarde", r(-dd))
-			case hasM && pa < pb-.1:
-				en, es = fmt.Sprintf("Brake harder at first (%d%% vs %d%%)", r(pa*100), r(pb*100)), fmt.Sprintf("Pisa más fuerte al empezar a frenar (%d %% frente a %d %%)", r(pa*100), r(pb*100))
-			case hasM && dd > 6:
-				en, es = fmt.Sprintf("You braked %d m too late and lost the corner: brake earlier", r(dd)), fmt.Sprintf("Frenaste %d m demasiado tarde y perdiste la curva: frena antes", r(dd))
+		if hasM && dd > 6 && dmin < -2 {
+			// braking later than the reference and arriving slower at the apex is one mistake, whatever phase pays for it
+			en = fmt.Sprintf("You brake %d m later than the reference and lose %d %s at the apex: brake a little earlier and carry the speed", r(dd), r(-dmin), st.spdU())
+			es = fmt.Sprintf("Frenas %d m más tarde que la referencia y pierdes %d %s en el vértice: frena un poco antes y conserva la velocidad", r(dd), r(-dmin), st.spdU())
+		} else {
+			switch ph[0].k {
+			case "brake":
+				switch {
+				case hasM && dd < -6:
+					en, es = fmt.Sprintf("Brake %d m later", r(-dd)), fmt.Sprintf("Frena %d m más tarde", r(-dd))
+				case hasM && pa < pb-.05:
+					en, es = fmt.Sprintf("Brake harder at first (%d%% vs %d%%)", r(pa*100), r(pb*100)), fmt.Sprintf("Pisa más fuerte al empezar a frenar (%d %% frente a %d %%)", r(pa*100), r(pb*100))
+				case hasM && dd > 6:
+					en, es = fmt.Sprintf("You braked %d m too late and lost the corner: brake earlier", r(dd)), fmt.Sprintf("Frenaste %d m demasiado tarde y perdiste la curva: frena antes", r(dd))
+				case hasTrail && trailB-trailA >= 15:
+					en, es = fmt.Sprintf("Release the brake more gradually into the turn (trail braking: %d m vs %d m)", r(trailA), r(trailB)), fmt.Sprintf("Suelta el freno más progresivamente al entrar (trail braking: %d m frente a %d m)", r(trailA), r(trailB))
+				case hasM:
+					en, es = "Same braking point, slower through the braking zone: brake hard at once, then release progressively", "Mismo punto de frenada, pero más lento en la frenada: pisa fuerte de golpe y suelta progresivamente"
+				default:
+					en, es = "Brake a little later and harder", "Frena un poco más tarde y más fuerte"
+				}
+			case "entry":
+				switch {
+				case hasTrail && trailB-trailA >= 15:
+					en, es = fmt.Sprintf("Release the brake more gradually into the turn (trail braking: %d m vs %d m)", r(trailA), r(trailB)), fmt.Sprintf("Suelta el freno más progresivamente al entrar (trail braking: %d m frente a %d m)", r(trailA), r(trailB))
+				case coastA-coastB >= 10:
+					en, es = fmt.Sprintf("Do not coast before the apex: %d m without throttle or brake (reference %d m)", r(coastA), r(coastB)), fmt.Sprintf("No vayas sin gas ni freno antes del vértice: %d m (referencia %d m)", r(coastA), r(coastB))
+				case hasM && dmin >= 0:
+					en, es = "You reach the apex as fast as the reference: the time goes before it, so release the brake more gradually as you turn in", "Llegas al vértice tan rápido como la referencia: el tiempo se va antes, suelta el freno más progresivamente al girar"
+				default:
+					en, es = "Carry more speed into the turn", "Entra con más velocidad en la curva"
+				}
+			case "apex":
+				switch {
+				case hasM && dmin < -2:
+					en, es = fmt.Sprintf("Carry %d %s more through the apex", r(-dmin), st.spdU()), fmt.Sprintf("Pasa %d %s más rápido por el vértice", r(-dmin), st.spdU())
+				case hasM && dmin >= 0:
+					en, es = "As fast at the slowest point, but slow for longer: shorten the slow part of the corner (turn in later, later apex)", "Igual de rápido en el punto más lento, pero lento durante más metros: acorta la parte lenta de la curva (gira más tarde, vértice más tardío)"
+				default:
+					en, es = "A rounder, faster line through the apex", "Una trazada más redonda y rápida por el vértice"
+				}
 			default:
-				en, es = "Brake a little later and harder", "Frena un poco más tarde y más fuerte"
-			}
-		case "entry":
-			switch {
-			case hasTrail && trailB-trailA >= 15:
-				en, es = fmt.Sprintf("Release the brake more gradually into the turn (trail braking: %d m vs %d m)", r(trailA), r(trailB)), fmt.Sprintf("Suelta el freno más progresivamente al entrar (trail braking: %d m frente a %d m)", r(trailA), r(trailB))
-			case coastA-coastB >= 10:
-				en, es = fmt.Sprintf("Do not coast before the apex: %d m without throttle or brake (reference %d m)", r(coastA), r(coastB)), fmt.Sprintf("No vayas sin gas ni freno antes del vértice: %d m (referencia %d m)", r(coastA), r(coastB))
-			default:
-				en, es = "Carry more speed into the turn", "Entra con más velocidad en la curva"
-			}
-		case "apex":
-			if hasM && dmin < -2 {
-				en, es = fmt.Sprintf("Carry %d %s more through the apex", r(-dmin), st.spdU()), fmt.Sprintf("Pasa %d %s más rápido por el vértice", r(-dmin), st.spdU())
-			} else {
-				en, es = "A rounder, faster line through the apex", "Una trazada más redonda y rápida por el vértice"
-			}
-		default:
-			switch {
-			case hasLate && late >= 8:
-				en, es = fmt.Sprintf("Get on the throttle %d m earlier", r(late)), fmt.Sprintf("Acelera %d m antes", r(late))
-			case coastA-coastB >= 10:
-				en, es = "Do not wait between the brake and the throttle", "No esperes entre el freno y el acelerador"
-			default:
-				en, es = "Full throttle sooner on exit", "Acelerador a fondo antes a la salida"
+				switch {
+				case hasLate && late >= 8:
+					en, es = fmt.Sprintf("Get on the throttle %d m earlier", r(late)), fmt.Sprintf("Acelera %d m antes", r(late))
+				case coastA-coastB >= 10:
+					en, es = "Do not wait between the brake and the throttle", "No esperes entre el freno y el acelerador"
+				case hasLate && late <= -8 && hasM && dmin < -1:
+					en, es = fmt.Sprintf("You pick up the throttle %d m earlier but leave the apex %d %s slower: carry the speed through the apex, the exit follows", r(-late), r(-dmin), st.spdU()), fmt.Sprintf("Aceleras %d m antes pero sales del vértice %d %s más lento: conserva la velocidad en el vértice y la salida vendrá sola", r(-late), r(-dmin), st.spdU())
+				default:
+					en, es = "Full throttle sooner on exit", "Acelerador a fondo antes en la salida"
+				}
 			}
 		}
 		// a generic tip gives way to what the data shows plainly: the gear through the corner, lifts on the exit,
 		// corrections of the wheel
-		generic := en == "Brake a little later and harder" || en == "Carry more speed into the turn" || en == "A rounder, faster line through the apex" || en == "Full throttle sooner on exit"
+		generic := coachGeneric(en)
 		if generic {
 			apexA := z.imin
 			if hasM {
@@ -1366,7 +1383,7 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		// part of the track hears that first; otherwise it follows the tip of the phase
 		if lat != nil {
 			if le, la, lx, okL := cornerLine(lat, R.x, R.y, z.i, z.imin); okL {
-				generic := en == "Brake a little later and harder" || en == "Carry more speed into the turn" || en == "A rounder, faster line through the apex" || en == "Full throttle sooner on exit"
+				generic := coachGeneric(en)
 				if ln, ls := lineTip(le, la, lx, hasM && math.Abs(dd) <= 6); ln != "" {
 					if generic || (ph[0].k == "brake" && hasM && math.Abs(dd) <= 6) {
 						en, es = ln, ls
@@ -1383,6 +1400,19 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		out = out[:max]
 	}
 	return out
+}
+
+// coachGeneric: a tip that says nothing the data showed; what the data shows plainly (the gear, lifts, the wheel, the
+// line) replaces it
+func coachGeneric(en string) bool {
+	switch en {
+	case "Brake a little later and harder", "Carry more speed into the turn", "A rounder, faster line through the apex", "Full throttle sooner on exit",
+		"Same braking point, slower through the braking zone: brake hard at once, then release progressively",
+		"You reach the apex as fast as the reference: the time goes before it, so release the brake more gradually as you turn in",
+		"As fast at the slowest point, but slow for longer: shorten the slow part of the corner (turn in later, later apex)":
+		return true
+	}
+	return false
 }
 
 func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {

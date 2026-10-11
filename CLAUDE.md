@@ -95,7 +95,9 @@
   it first when you brake at the reference's point on the wrong part of the track. The model's record and next levels
   carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,
   phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
-  and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch.
+  and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch: the road is B's own path when
+  both laps have one (`lapShape(B)` first on the web, `c.bx`/`c.by` on the phones), so the dashed line really is B
+  and the offsets are A's; else the lap's own path, else the community's layout (web and PC).
 - Official turn numbers (`track_turns` on the server, `/community/turns`, `/api/turns`): an admin places T1 … Tn on a
   track's map in the race summary ("Official turns · Admin", clicks in order, saved for everyone, as fractions of the lap).
   The coach, the lap analyzer and the race summary (PC, web, phones: `turnNo`) give every corner the number of the
@@ -233,9 +235,16 @@
   (`cmpCornerBands`), the "Line" chart (how far A was to one side of B, + left, `LAPCH.line`), the map, the sectors,
   the lap list and the braking points.
   The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):
-  the phase that loses the most says the tip; a generic one gives way to what the data shows plainly, in this order:
-  the line (inside/outside), the gear at the apex against the reference's, throttle lifts after the apex (exit),
-  steering corrections in the corner (PC and web only: the phones' traces carry no steering). The PC's coach overlay
+  the phase that loses the most says the tip, and every tip follows the measured facts, never against them: braking
+  later than the reference and arriving slower at the apex is one mistake whatever phase pays for it ("brake a little
+  earlier and carry the speed"); with the same braking point the tip is about the brake (harder at first, trail, or
+  "brake hard at once, then release progressively"), never "brake later"; an apex reached as fast as the reference's
+  says the time goes before it (entry) or in a longer slow part (apex); a throttle picked up earlier than the
+  reference's but a slower apex says to carry the speed, never "full throttle sooner". A generic tip gives way to
+  what the data shows plainly, in this order: the line (inside/outside), the gear at the apex against the reference's,
+  throttle lifts after the apex (exit), steering corrections in the corner (PC and web only: the phones' traces carry
+  no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
+  you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
 - The model (`cloud/src/model.js`, MODEL_VERSION 7) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
@@ -278,7 +287,9 @@
   `desknow.go`); the parts not moved yet (map, profiles, full settings) are the app in a WebView that runs hidden
   from the start (engineer, beeps and lap recording live there). Builds of other branches only check
   (nothing is published unless it is master). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
-  both in the stream's config event, so they change at once.
+  both in the stream's config event, so they change at once. The gaps overlay and widget drop a sample a whole lap
+  off from both its neighbours (`cleanGaps`: the game counts a car's lap a moment before or after its distance
+  wraps), the track bar's car numbers never overlap, and the live compare's "Now" waits for a lap the game times.
   Overlay presets: the four built in and your own (saved in the overlay settings, `CFG.ui.ovpresets`, so they go
   with the account), applied with one click and deleted with their ×; names asked in the app's own dialog.
   Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the

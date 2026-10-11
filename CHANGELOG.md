@@ -18,6 +18,9 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   driver can be joined to the friend's own account: what they shared goes to it, and what comes later too.
 - **Races against the AI have no iRating**: no change, no estimate, no iR columns, nothing in Home or the licence
   summary (older summaries are cleaned).
+- **The coach's advice follows your data**: no "brake later" when you already brake later than the reference, no
+  "full throttle sooner" when you are already on the throttle earlier; the plan's habit advice takes its direction
+  from your corners. The track map runs along the reference lap's path, so the two lines are the right way round.
 - Fixes and improvements.
 
 ## 0.9.7 beta
