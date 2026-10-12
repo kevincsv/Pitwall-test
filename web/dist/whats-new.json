@@ -1,12 +1,24 @@
 {
   "versions": [
     {
+      "v": "0.9.10",
+      "en": [
+        "Recent records in Community: the fastest lap of every car and track, the newest first, who set it and whom it beat; one click compares with it or opens its leaderboard.",
+        "Changes on any device reach the others at once, the phones included; nobody syncs by hand, the \"Sync now\" button is gone.",
+        "The discipline symbols show on iPhone."
+      ],
+      "es": [
+        "Récords recientes en Community: la vuelta más rápida de cada coche y circuito, la más nueva primero, quién la hizo y a quién batió; un clic la compara o abre su clasificación.",
+        "Los cambios hechos en cualquier dispositivo llegan a los demás al momento, también a los móviles; nadie sincroniza a mano, el botón \"Sincronizar ahora\" ya no existe.",
+        "Los símbolos de las disciplinas se ven en iPhone."
+      ]
+    },
+    {
       "v": "0.9.9",
       "en": [
         "The coach's advice follows your data: never \"brake later\" when you already brake later than the reference, nor \"full throttle sooner\" when you are already on the throttle earlier.",
         "The track map, the same everywhere: in the PC's Analysis too, with the two lines the right way round, and a lap without a path shows the track's layout drawn by the community.",
-        "Changes on any device reach the others at once; nobody syncs by hand.",
-        "Recent records in Community: the fastest lap of every car and track, the newest first, who set it and whom it beat.",
+        "Changes from your phone or the web reach your PC at once.",
         "DRINKS: the list of drivers comes back from the server by itself; an admin can say who drove each lap of any race and rename a driver from \"Who drove\".",
         "Races against the AI show no iRating.",
         "\"vs AI\" on every session list, the older sessions included.",
@@ -15,8 +27,7 @@
       "es": [
         "Los consejos del coach siguen tus datos: nunca \"frena más tarde\" cuando ya frenas más tarde que la referencia, ni \"acelera antes\" cuando ya aceleras antes.",
         "El mapa del circuito, igual en todas partes: también en el Analysis del PC, con las dos trazadas en su sitio, y una vuelta sin trazada muestra el circuito dibujado por la comunidad.",
-        "Los cambios hechos en cualquier dispositivo llegan a los demás al momento; nadie sincroniza a mano.",
-        "Récords recientes en Community: la vuelta más rápida de cada coche y circuito, la más nueva primero, quién la hizo y a quién batió.",
+        "Los cambios hechos en el móvil o en la web llegan al PC al momento.",
         "DRINKS: la lista de pilotos vuelve sola desde el servidor; un admin puede decir quién condujo cada vuelta de cualquier carrera y renombrar a un piloto desde \"Quién condujo\".",
         "Las carreras contra la IA no muestran iRating.",
         "\"vs AI\" en todas las listas de sesiones, también en las antiguas.",

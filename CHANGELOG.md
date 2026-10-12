@@ -4,6 +4,14 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.10 beta
+
+- **Recent records in Community**: the fastest lap of every car and track, the newest first, who set it and whom it
+  beat; one click compares with it or opens its leaderboard. The track page (map, record per car) is in development.
+- **Changes on any device reach the others at once**, the phones included, and nobody syncs by hand: the "Sync now"
+  button is gone on every device.
+- Fixes and improvements.
+
 ## 0.9.9 beta
 
 - **The coach's advice follows your data**: no "brake later" when you already brake later than the reference, no
@@ -13,16 +21,14 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   braking points, the incidents, the coach's corners and the two lines, with the same switches); the map runs along
   the reference lap's path, so the two lines are the right way round; a lap without a path of its own shows the
   track's layout drawn by the community, on the phones too.
-- **Changes on any device reach the others at once**: the server tells your PC, the web and the phones the moment
-  one of them saves the account. Nobody syncs by hand any more: the "Sync now" button is gone on every device.
+- **Changes from your phone or the web reach your PC at once**: the server tells the PC the moment another device
+  saves the account.
 - **DRINKS drivers never lost**: the list on the PC comes back from the server by itself (every friend who shared a
   lap) and with "Recover the drivers from the server"; in a race summary an admin can say who drove each lap of any
   race and rename a driver from "Who drove"; the leaderboards follow every change. In the admin panel, a DRINKS
   driver can be joined to the friend's own account: what they shared goes to it, and what comes later too.
 - **Races against the AI**: no iRating at all (no change, no estimate, no iR columns, nothing in Home or the licence
   summary; older summaries are cleaned) and "vs AI" on every session list, the older sessions included.
-- **Recent records in Community**: the fastest lap of every car and track, the newest first, who set it and whom it
-  beat; one click compares with it or opens its leaderboard. The track page (map, record per car) is in development.
 - **Overlays**: the gaps chart no longer spikes when a lap is counted a moment late at the line, the track bar's car
   numbers never overlap, and the live compare's "Now" waits for a lap the game times.
 - Fixes and improvements.
