@@ -36,7 +36,7 @@ export async function downloads(req, env, url) {
 <h2>Windows ${pc.version ? `<small>v${esc(pc.version)} beta</small>` : ""}</h2><div class="g">
 ${row("Pitlane HQ Agent", t("For Windows: records your laps, the overlays and live telemetry; it updates itself", "Para Windows: graba tus vueltas, los overlays y la telemetría en directo; se actualiza solo"), "PitlaneHQ-Setup.exe")}
 ${row(t("Native window (preview)", "Ventana nativa (preview)"), t("The new window over the same engine", "La ventana nueva sobre el mismo motor"), "PitlaneHQ-Desktop-Setup.exe")}</div>
-<h2>${t("Phones", "Móviles")} ${ph.version ? `<small>v${esc(ph.version)} beta</small>` : ""}</h2><div class="g">
+<h2>${t("Phones", "Móviles")} ${ph.version ? `<small>v${esc(String(ph.version).replace(/^v/, "").replace(/-?beta$/i, ""))} beta</small>` : ""}</h2><div class="g">
 ${ph.apk ? row("Android", t("App (APK); Google Play soon", "App (APK); pronto en Google Play"), ph.apk) : ""}<div class="c" style="opacity:.7"><b>iPhone</b><span>${t("Coming to the App Store", "Pronto en la App Store")}</span></div></div>
 <p class="n"><a href="/changelog">${t("What changed in each version", "Qué cambió en cada versión")}</a> · <a href="/">${t("Open the web app", "Abrir la app web")}</a></p>`;
     return new Response(page(body, { lang: es ? "es" : "en" }), { headers: H });
