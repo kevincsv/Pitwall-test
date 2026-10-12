@@ -863,6 +863,8 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("/api/community/season", proxy("/season"))
 	mux.HandleFunc("/api/community/combos", proxy("/combos"))
+	mux.HandleFunc("/api/community/records", proxy("/records"))
+	mux.HandleFunc("/api/community/track", proxy("/track"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))
 	mux.HandleFunc("/api/community/model", proxy("/model"))
 	mux.HandleFunc("/api/community/reports", proxy("/reports"))

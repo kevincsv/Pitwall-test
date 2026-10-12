@@ -251,6 +251,57 @@ export async function community(req, env, url) {
     if (!c) return err("carId", 400);
     return json((await getCarCard(env, game, c).catch(() => null)) || {});
   }
+  // the records: the fastest lap of every car and track, the newest first, with the lap it beat (the second fastest
+  // of the same car and track): Community's "Recent records" on every device
+  if (p === "/records" && m === "GET") {
+    const lim = Math.min(100, Math.max(1, +url.searchParams.get("limit") || 40));
+    const who = await me(req, env).catch(() => null);
+    const r = await env.DB.prepare(
+      `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY track_id, car_id) AS n
+         FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model')
+       SELECT l.id, l.user_id AS uid, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n,
+         CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
+         (l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
+         (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
+         p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE CASE WHEN p.anon=1 THEN 'Anonymous' WHEN p.shown='iracing' AND COALESCE(pu.iracing,'')<>'' THEN pu.iracing ELSE pu.alias END END AS prevAlias
+       FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
+         LEFT JOIN rk p ON p.track_id=l.track_id AND p.car_id=l.car_id AND p.rk=2 LEFT JOIN community_users pu ON pu.id=p.user_id
+       WHERE l.rk=1 ORDER BY l.created DESC LIMIT ?2`
+    ).bind(game, lim).all();
+    const cm = game === "iracing" ? await catMap(env) : null;
+    return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, cat: cm ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
+  }
+  // one track: its layout and official turns, how many drivers and laps it has, and the record of every car on it
+  // (the track page, in development)
+  if (p === "/track" && m === "GET") {
+    const t = +url.searchParams.get("trackId");
+    if (!t) return err("trackId", 400);
+    const who = await me(req, env).catch(() => null);
+    const [lay, tu, r, tot] = await Promise.all([
+      env.DB.prepare("SELECT track, n, len, pts FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first(),
+      env.DB.prepare("SELECT turns FROM track_turns WHERE game=?1 AND track_id=?2").bind(game, t).first(),
+      env.DB.prepare(
+        `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY car_id) AS n
+           FROM community_laps WHERE game=?1 AND track_id=?2 AND COALESCE(shown,'')<>'model')
+         SELECT l.id, l.user_id AS uid, l.car_id AS carId, l.car, l.track, l.cat AS hint, l.time, l.created, l.n,
+           CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
+           (l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
+           (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace
+         FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
+         WHERE l.rk=1 ORDER BY l.n DESC, l.time`
+      ).bind(game, t).all(),
+      env.DB.prepare("SELECT COUNT(*) AS laps, COUNT(DISTINCT user_id) AS drivers, MAX(track) AS track FROM community_laps WHERE game=?1 AND track_id=?2 AND COALESCE(shown,'')<>'model'").bind(game, t).first(),
+    ]);
+    const cm = game === "iracing" ? await catMap(env) : null;
+    const pts = lay && lay.pts ? JSON.parse(lay.pts) : null;
+    const name = (tot && tot.track) || (lay && lay.track) || "";
+    return json({
+      trackId: t, game, track: name, drivers: (tot && tot.drivers) || 0, laps: (tot && tot.laps) || 0,
+      layout: pts && pts.x && pts.x.length > 10 ? { n: lay.n, len: lay.len, x: pts.x, y: pts.y } : null,
+      turns: tu && tu.turns ? JSON.parse(tu.turns) : [],
+      cars: (r.results || []).map(({ uid, hint, ...x }) => ({ ...x, track: x.track || name, trackId: t, cat: cm ? catOf(cm, t, x.carId, hint, x.track || name, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:") })),
+    });
+  }
   if (p === "/laps" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
     if (!t || !c) return err("trackId and carId", 400);

@@ -147,6 +147,7 @@ public partial class MainWindow : Window
         SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
         SetMore.Content = T("Open all the settings", "Abrir todos los ajustes");
         ComTitle.Text = T("Community", "Comunidad"); ComBoardT.Text = "LEADERBOARD";
+        ComRecT.Text = T("RECENT RECORDS", "RÉCORDS RECIENTES"); ComRecSub.Text = T("The fastest lap of every car and track, the newest first.", "La vuelta más rápida de cada coche y circuito, la más nueva primero.");
         ComSub.Text = T("Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself.", "Leaderboards por tiempo de vuelta: la vuelta más rápida de cada coche y circuito de cada cuenta, compartida sola.");
         ComMore.Content = T("Profiles, race summaries and leagues", "Perfiles, resúmenes de carrera y ligas");
         _comKey = "";
@@ -652,7 +653,54 @@ public partial class MainWindow : Window
             ComDisc.Children.Add(b);
         }
         FillCombos();
+        await RecordsAsync();
         await BoardAsync();
+    }
+
+    // Recent records: the fastest lap of every car and track of the chosen discipline, the newest first, with the lap
+    // it beat; a row opens its leaderboard
+    private async Task RecordsAsync()
+    {
+        JsonArray? recs;
+        try { recs = (await _engine.GetAsync("/api/community/records?game=iracing"))?["records"]?.AsArray(); }
+        catch (Exception ex) { ComRecRows.Children.Clear(); ComRecEmpty.Text = ex.Message; ComRecEmpty.Visibility = Visibility.Visible; return; }
+        ComRecRows.Children.Clear();
+        var list = (recs ?? new JsonArray()).Where(r => r != null && (_disc == "" || S(r["cat"]) == _disc)).Take(10).ToList();
+        ComRecEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ComRecEmpty.Text = T("No records yet: the first lap shared on a car and track sets its record.", "Aún no hay récords: la primera vuelta compartida en un coche y circuito pone su récord.");
+        int k = 0;
+        foreach (var r in list)
+        {
+            if (r == null) continue;
+            var row = new Grid { Height = 30 };
+            foreach (var w in new[] { 190.0, 96, 0, 110 })
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = w == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(w) });
+            var border = new Border { Child = row, CornerRadius = new CornerRadius(5), Padding = new Thickness(6, 0, 6, 0) };
+            if (Bo(r["mine"])) border.Background = B("AccentSoft");
+            else if (k % 2 == 1) border.Background = new SolidColorBrush(Color.FromArgb(10, 255, 255, 255));
+            k++;
+            void Cell(int col, string text, Brush fg, bool mono, HorizontalAlignment al = HorizontalAlignment.Left)
+            {
+                var tb = new TextBlock { Text = text, Foreground = fg, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = al, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 13, Margin = new Thickness(0, 0, 8, 0) };
+                if (mono) tb.FontFamily = (FontFamily)FindResource("FData");
+                Grid.SetColumn(tb, col);
+                row.Children.Add(tb);
+            }
+            string Name(JsonNode? n) => S(n) == "Anonymous" ? T("Anonymous", "Anónimo") : S(n);
+            Cell(0, Name(r["alias"]) + (Bo(r["sup"]) ? "  ★" : "") + (Bo(r["mine"]) ? T("  (you)", "  (tú)") : ""), Bo(r["field"]) ? B("Muted") : B("Fg"), false);
+            Cell(1, LapTime(D(r["time"])), B("Pb"), true, HorizontalAlignment.Right);
+            var prev = r["prev"];
+            var beat = prev != null && D(prev["time"]) > 0
+                ? T("beat ", "batió a ") + Name(prev["alias"]) + T(" by ", " por ") + (D(prev["time"]) - D(r["time"])).ToString("0.000") + " s"
+                : T("the first lap here", "la primera vuelta aquí");
+            Cell(2, S(r["car"]) + " · " + S(r["track"]) + " · " + beat, B("Muted"), false);
+            var created = D(r["created"]);
+            Cell(3, created > 0 ? DateTimeOffset.FromUnixTimeMilliseconds((long)created).LocalDateTime.ToString("g") : "", B("Muted"), true, HorizontalAlignment.Right);
+            int tid = (int)D(r["trackId"]), cid = (int)D(r["carId"]);
+            var cat = S(r["cat"]);
+            border.MouseLeftButtonUp += async (_, _) => { if (cat != "") _disc = cat; _comTrack = tid; _comCar = cid; await CommunityAsync(); };
+            ComRecRows.Children.Add(border);
+        }
     }
 
     private record ComboItem(int Id, string Name, int Laps) { public override string ToString() => Name; }

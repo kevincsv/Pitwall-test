@@ -145,6 +145,16 @@
       return { laps: board(q.get("trackId"), q.get("carId")) };
     }
     if (p === "/api/community/reports") return q.get("id") ? undefined : { reports: reports() };
+    // the records feed: the fastest lap of every car and track (the leaderboard's first) and the lap it beat (its second)
+    if (p === "/api/community/records") return { records: COMBOS.map((c, i) => { const b = board(c.trackId, c.carId), r = b[0], s = b[1]; return r && { ...r, trackId: c.trackId, track: c.track, carId: c.carId, car: c.car, cat: c.cat || "sports_car", n: b.length, prev: s ? { time: s.time, alias: s.alias } : null, created: NOW - i * 5 * 3600e3 }; }).filter(Boolean) };
+    // the track page: its layout from the demo lap, no official turns, the record of every car driven on it
+    if (p === "/api/community/track") {
+      const tid = +q.get("trackId"), cs = COMBOS.filter((c) => c.trackId === tid);
+      if (!cs.length) return undefined;
+      const tr = trace(cs[0], cs[0].lap, 1);
+      return { trackId: tid, game: "iracing", track: cs[0].track, drivers: 9, laps: cs.length * 9, layout: { n: tr.x.length, len: cs[0].len, x: tr.x, y: tr.y }, turns: [],
+        cars: cs.map((c) => { const b = board(c.trackId, c.carId), r = b[0]; return { ...r, trackId: tid, track: c.track, carId: c.carId, car: c.car, cat: c.cat || "sports_car", n: b.length }; }) };
+    }
     if (p === "/api/community/setups") return { setups: setups() };
     return undefined;
   }

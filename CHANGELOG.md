@@ -21,6 +21,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   driver can be joined to the friend's own account: what they shared goes to it, and what comes later too.
 - **Races against the AI**: no iRating at all (no change, no estimate, no iR columns, nothing in Home or the licence
   summary; older summaries are cleaned) and "vs AI" on every session list, the older sessions included.
+- **Recent records in Community**: the fastest lap of every car and track, the newest first, who set it and whom it
+  beat; one click compares with it or opens its leaderboard. The track page (map, record per car) is in development.
 - **Overlays**: the gaps chart no longer spikes when a lap is counted a moment late at the line, the track bar's car
   numbers never overlap, and the live compare's "Now" waits for a lap the game times.
 - Fixes and improvements.

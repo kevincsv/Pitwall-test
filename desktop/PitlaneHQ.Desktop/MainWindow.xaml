@@ -318,6 +318,14 @@
                             <ComboBox x:Name="ComTrack" Width="300" Margin="0,0,8,6" SelectionChanged="OnComTrack"/>
                             <ComboBox x:Name="ComCar" Width="300" Margin="0,0,8,6" SelectionChanged="OnComCar"/>
                         </WrapPanel>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock x:Name="ComRecT" Style="{StaticResource CardTitle}" Text="RECENT RECORDS"/>
+                                <TextBlock x:Name="ComRecSub" Style="{StaticResource Note}" Margin="0,0,0,6" Text="The fastest lap of every car and track, the newest first."/>
+                                <StackPanel x:Name="ComRecRows"/>
+                                <TextBlock x:Name="ComRecEmpty" Style="{StaticResource Note}" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock x:Name="ComBoardT" Style="{StaticResource CardTitle}" Text="LEADERBOARD"/>
