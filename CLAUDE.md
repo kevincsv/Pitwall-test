@@ -4,6 +4,9 @@
 - The apps' languages are English, Spanish and Portuguese (Brazil) only (`LANGS` in index.html, `uiLang` in Go, `lang` in
   email.js): no German and no bilingual "EN + ES"; a German or bilingual choice from before reads English or Spanish.
 - Push only when the owner says so ("súbelo", "sube todo"…). Never create pull requests unless asked.
+- The notices the apps show in their inbox (`web/dist/app-news.json`, every device reads it from the server) are
+  never added or changed without asking the owner first, one by one, even when they say "sube todo" for everything
+  else: show the text and wait for their yes before it goes in.
 - Anything sensitive that goes to GitHub is encrypted or kept in GitHub secrets; never paste
   Cloudflare tokens or keys anywhere.
 - The subscription stays off (`license_plans.json` → `enforce: false`).
