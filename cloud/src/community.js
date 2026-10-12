@@ -446,7 +446,7 @@ export async function community(req, env, url) {
         (SELECT COUNT(*) FROM sessions s WHERE s.uploader='acct:'||a.id) AS sessions,
         (SELECT MAX(started) FROM sessions s WHERE s.uploader='acct:'||a.id) AS lastSession,
         (SELECT COUNT(*) FROM community_laps l WHERE l.user_id=a.id) AS laps,
-        (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id) AS guests,
+        (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id AND g.id LIKE 'guest-%') AS guests,
         (SELECT group_concat(gl.gid || '|' || g.alias, ',') FROM guest_links gl JOIN community_users g ON g.id=gl.gid WHERE gl.account_id=a.id) AS guestLinked,
         (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues,
         EXISTS (SELECT 1 FROM driver_links d WHERE d.account_id=a.id) AS driverLinked
