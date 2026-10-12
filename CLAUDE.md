@@ -121,8 +121,16 @@
   the change of the last races of each and one short line ("Updated when you join a session with iRacing and Pitlane HQ open"). Never one "current iRating" mixed
   from every discipline. The phones show the same five cards (`Licences`/`LicCard`, the symbols as path data in
   `DISC_PATHS`), and `/api/ratings` carries the change of the last five races of each (`chg`, `n`) for the Desktop.
+- One Windows app, "Pitlane HQ" (never "preview" or a second download): one installer (`installer/PitlaneHQ.iss`,
+  `PitlaneHQ-Setup.exe`; `PitlaneHQ-Desktop-Setup.exe` is the same file for old links) puts the native window
+  (`PitlaneHQ.Desktop.exe`, self-contained) and the agent next to it, and its shortcuts open the window, which runs the
+  agent as its engine (`-engine`). PitlaneHQ.exe started by itself (old shortcuts, the Run entry, the updater) opens
+  the window when it sits next to it (`openDesktop`, desktoplaunch*.go); it uninstalls the old preview install. The
+  updater's zip is the whole app folder (`out-desktop`, sub-folders kept); in engine mode it installs by itself too
+  and says `PITLANEHQ_RESTART=` so the window starts again on the new version (`-replace <pid>`). The window is one
+  instance (`Local\PitlaneHQ.Desktop`): a second start brings it forward, never when Windows started it.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
-  and never brings an already open window forward.
+  (the window with `-minimized`) and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
   matched by car, track and best lap; Anonymous or "Juan M." rivals this account shared take their whole name).
 - Wherever other drivers show (the relative and the standings in the overlays, the app and Pitlane HQ Desktop; the race

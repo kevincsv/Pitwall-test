@@ -112,7 +112,7 @@ func updateStatus() map[string]any {
 	// required: this version is older than the newest one's minimum, so it no longer works properly
 	required := avail && updLatest.Min != "" && versionLess(appVersion, updLatest.Min)
 	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev",
-		"auto": !loadUpdPrefs().Manual, "autoWorks": updateSupported && buildID != "dev" && !engineMode}
+		"auto": !loadUpdPrefs().Manual, "autoWorks": updateSupported && buildID != "dev" && (!engineMode || desktopNext() != "")}
 	if updLatest != nil {
 		m["latest"] = updLatest
 	}
@@ -159,14 +159,14 @@ func updateWatcher() {
 				if p.Told != l.Build {
 					p.Told = l.Build
 					saveUpdPrefs(p)
-					if p.Manual || engineMode {
+					if p.Manual || (engineMode && desktopNext() == "") {
 						notify("Pitlane HQ "+v+" is available", "Open Pitlane HQ and press Update now. Your settings and laps are kept.")
 					} else {
 						notify("Pitlane HQ "+v+" is available", "It installs by itself as soon as you are not driving. Your settings and laps are kept.")
 					}
 				}
 				// by itself: not while a sim is running, not in the first minutes after starting
-				if !p.Manual && !engineMode && updateSupported && !busy && !currentStatus().Connected && time.Since(started) > 2*time.Minute {
+				if !p.Manual && (!engineMode || desktopNext() != "") && updateSupported && !busy && !currentStatus().Connected && time.Since(started) > 2*time.Minute {
 					updMu.Lock()
 					updBusy = true
 					updMu.Unlock()
@@ -195,10 +195,13 @@ func cleanOldFiles() {
 	if err != nil {
 		return
 	}
-	matches, _ := filepath.Glob(filepath.Join(filepath.Dir(exe), "*.old"))
-	for _, m := range matches {
-		os.Remove(m)
-	}
+	// the program's folder and its sub-folders (the native window's files)
+	filepath.WalkDir(filepath.Dir(exe), func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && strings.HasSuffix(p, ".old") {
+			os.Remove(p)
+		}
+		return nil
+	})
 }
 
 // applyUpdate downloads the new version, puts its files next to the running
@@ -254,8 +257,9 @@ func applyUpdate() error {
 	}
 	var newExe string
 	for _, f := range zr.File {
-		name := filepath.Base(strings.ReplaceAll(f.Name, `\`, "/"))
-		if f.FileInfo().IsDir() || name == "" || name == "." || name == ".." || strings.Contains(f.Name, "..") {
+		rel := strings.Trim(strings.ReplaceAll(f.Name, `\`, "/"), "/")
+		name := filepath.Base(rel)
+		if f.FileInfo().IsDir() || name == "" || name == "." || name == ".." || strings.Contains(rel, "..") || strings.Contains(rel, ":") {
 			continue
 		}
 		rc, err := f.Open()
@@ -267,8 +271,12 @@ func applyUpdate() error {
 		if err != nil {
 			return err
 		}
-		dst := filepath.Join(dir, name)
-		if isProgramName(name) {
+		dst := filepath.Join(dir, filepath.FromSlash(rel))
+		if !strings.HasPrefix(filepath.Clean(dst), filepath.Clean(dir)+string(filepath.Separator)) {
+			continue
+		}
+		os.MkdirAll(filepath.Dir(dst), 0o755)
+		if isProgramName(name) && !strings.Contains(rel, "/") {
 			// write the new .exe beside the old one, then swap names
 			dst = filepath.Join(dir, exeName)
 			if strings.EqualFold(filepath.Base(exe), exeName) || filepath.Clean(exe) == filepath.Clean(dst) {
@@ -292,6 +300,13 @@ func applyUpdate() error {
 	log.Println("Updated to", latest.Version, latest.Build)
 	go func() {
 		time.Sleep(800 * time.Millisecond)
+		// the window's engine: the window starts again on the new version (and starts its new engine)
+		if d := desktopNext(); engineMode && d != "" {
+			fmt.Println("PITLANEHQ_RESTART=" + d)
+			time.Sleep(3 * time.Second)
+			quitApp()
+			return
+		}
 		restartInto(newExe)
 	}()
 	return nil

@@ -1,18 +1,16 @@
-# Pitlane HQ Desktop (preview): the native Windows window
+# Pitlane HQ for Windows: the native window
 
-The PC app is being rewritten in two halves, step by step:
+The PC app is two halves in one install:
 
-- **The engine stays in Go** (`PitlaneHQ.exe`): iRacing telemetry, the overlays, the local API,
-  the account and the uploads. Nothing changes for it, except a new flag: `PitlaneHQ.exe -engine`
-  runs it without a window and prints the address of its API with a one-use ticket.
-- **The window is native** (this folder, C# / WPF, .NET 8): its own frame, navigation and
-  status bar, native screens where they pay off (first the Home status), and the rest of the
-  app inside a WebView2 while each screen is moved over. Closing the window stops the engine.
+- **The engine is Go** (`PitlaneHQ.exe`, Pitlane HQ Agent): iRacing telemetry, the overlays, the local API,
+  the account and the uploads. `PitlaneHQ.exe -engine` runs it without a window and prints the address of its API
+  with a one-use ticket. Started by itself next to the window (old shortcuts, start with Windows), it opens the window.
+- **The window is native** (this folder, C# / WPF, .NET 8): its own frame, navigation and status bar, native
+  screens, and the parts not moved yet inside a WebView2. Closing the window stops the engine.
 
-Every build is published as an installer, `PitlaneHQ-Desktop-Setup.exe`, next to the normal
-download. It installs the window and its own copy of the engine in "Pitlane HQ Desktop", with the
-.NET runtime inside (nothing else to install). The normal installer still installs the Go app. It is a **preview** for admins and the curious: both
-windows show the same data, from the same engine.
+Every build ships one installer, `PitlaneHQ-Setup.exe` (`installer/PitlaneHQ.iss`): the window with the .NET runtime
+inside (nothing else to install) and the engine next to it. The updater's zip is the same folder; after an update the
+engine prints `PITLANEHQ_RESTART=<window>` and the window starts again on the new version (`-replace <pid>`).
 
 ## Run it
 
@@ -44,8 +42,8 @@ Needs the .NET 8 SDK and the WebView2 runtime (part of Windows 11 and of Edge). 
 
 - Community: the leaderboards by discipline, track and car, with search (profiles, race summaries and leagues
   open in the app).
-- Account: sign in (with the two-step code), the public name, the email behind Show, the account's state, Sync
-  now, Sign out on this PC; the rest (password, two-step sign-in, devices, admin) opens in the app.
+- Account: sign in (with the two-step code), the public name, the email behind Show, the account's state,
+  Sign out on this PC; the rest (password, two-step sign-in, devices, admin) opens in the app.
 - Settings: start with Windows, close the overlays on exit, the braking beeps, updates; the rest opens in the app.
 
 Not native yet: Analysis (the lap analyzer and the coach). The app runs hidden behind the native screens from the

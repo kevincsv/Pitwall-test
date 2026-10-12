@@ -9,6 +9,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - **The overlays in VR**: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, Meta
   Quest through Link or Air Link too), where it is on your screen; distance, size and height to taste.
 - **The track page on Pitlane HQ Desktop** too, from the leaderboard.
+- **One app for Windows**: one download, "Pitlane HQ for Windows", that opens the native window with the agent
+  inside; it updates itself, the window too. The old preview install is replaced by it.
 - Fixes and improvements.
 
 ## 0.9.10 beta

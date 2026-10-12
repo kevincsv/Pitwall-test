@@ -40,6 +40,13 @@ public partial class MainWindow : Window
         _poll.Tick += async (_, _) => await RefreshAsync();
         _fast.Tick += async (_, _) => await FastAsync();
         ApplyLanguage(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en");
+        if (App.StartMinimized) WindowState = WindowState.Minimized; // started with Windows
+        // an update installed by the engine: the new window starts (it waits for this one) and this one closes
+        _engine.Restart += path => Dispatcher.Invoke(() =>
+        {
+            try { Process.Start(new ProcessStartInfo(path, $"-replace {Environment.ProcessId}") { UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? "" }); } catch { return; }
+            Close();
+        });
     }
 
     private Brush B(string key) => (Brush)FindResource(key);

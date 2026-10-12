@@ -1,6 +1,8 @@
-﻿; Pitlane HQ installer (Inno Setup 6). Built by CI: iscc /DAppVersion=x.y.z installer\PitlaneHQ.iss
-; Installs for the current user only (no administrator needed), so the
-; built-in updater can replace the files later.
+; Pitlane HQ installer (Inno Setup 6). Built by CI: iscc /DAppVersion=x.y.z installer\PitlaneHQ.iss
+; One app: the native window (PitlaneHQ.Desktop.exe, self-contained .NET, so nothing else has to be
+; installed; WebView2 is part of Windows 10/11) with the agent (PitlaneHQ.exe) next to it as its engine.
+; Installs for the current user only (no administrator needed), so the built-in updater can replace
+; the files later.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -25,7 +27,7 @@ WizardStyle=modern
 WizardSizePercent=100
 WizardResizable=no
 LicenseFile=EULA.txt
-UninstallDisplayIcon={app}\PitlaneHQ.exe
+UninstallDisplayIcon={app}\PitlaneHQ.Desktop.exe
 SetupIconFile=..\assets\pitlanehq.ico
 CloseApplications=yes
 RestartApplications=no
@@ -35,17 +37,14 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Languages]
 Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "de"; MessagesFile: "compiler:Languages\German.isl"
 Name: "pt"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [CustomMessages]
 es.StartWithWindows=Abrir Pitlane HQ al iniciar Windows
 en.StartWithWindows=Open Pitlane HQ when Windows starts
-de.StartWithWindows=Pitlane HQ beim Start von Windows öffnen
 pt.StartWithWindows=Abrir o Pitlane HQ ao iniciar o Windows
 es.StartGroup=Inicio:
 en.StartGroup=Start:
-de.StartGroup=Start:
 pt.StartGroup=Início:
 
 [Tasks]
@@ -53,7 +52,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startup"; Description: "{cm:StartWithWindows}"; GroupDescription: "{cm:StartGroup}"; Flags: unchecked
 
 [Files]
-Source: "..\out\PitlaneHQ.exe"; DestDir: "{app}"; Flags: ignoreversion
+; the window (self-contained .NET publish) and the agent next to it
+Source: "..\out-desktop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\legal\PRIVACY.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -63,13 +63,17 @@ Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 Type: files; Name: "{app}\TrackIQ.exe"
 Type: files; Name: "{group}\TrackIQ.lnk"
 Type: files; Name: "{userdesktop}\TrackIQ.lnk"
+; the native window's preview had its own install: one app now
+Type: files; Name: "{group}\Pitlane HQ Desktop (preview).lnk"
+Type: files; Name: "{userdesktop}\Pitlane HQ Desktop.lnk"
 
 [Icons]
-Name: "{group}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"; AppUserModelID: "PitlaneHQ.App"
+Name: "{group}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.Desktop.exe"; AppUserModelID: "PitlaneHQ.App"
 Name: "{group}\{cm:UninstallProgram,Pitlane HQ}"; Filename: "{uninstallexe}"
-Name: "{userdesktop}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.exe"; Tasks: desktopicon
+Name: "{userdesktop}\Pitlane HQ"; Filename: "{app}\PitlaneHQ.Desktop.exe"; Tasks: desktopicon
 
 [Registry]
+; PitlaneHQ.exe -minimized opens the window minimized (installs that already start with Windows keep working)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PitlaneHQ"; ValueData: """{app}\PitlaneHQ.exe"" -minimized"; Tasks: startup; Flags: uninsdeletevalue
 ; installs that already start with Windows: their entry now points to PitlaneHQ.exe
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "PitlaneHQ"; ValueData: """{app}\PitlaneHQ.exe"" -minimized"; Check: RunEntryExists
@@ -77,10 +81,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "PitWall"; Flags: dontcreatekey uninsdeletevalue
 
 [Run]
-Filename: "{app}\PitlaneHQ.exe"; Description: "{cm:LaunchProgram,Pitlane HQ}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\PitlaneHQ.Desktop.exe"; Description: "{cm:LaunchProgram,Pitlane HQ}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-; close Pitlane HQ (and its overlay windows) before removing it
+; close Pitlane HQ (the window, the agent and its overlay windows) before removing it
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM PitlaneHQ.Desktop.exe"; Flags: runhidden; RunOnceId: "ClosePitlaneHQDesktop"
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM PitlaneHQ.exe"; Flags: runhidden; RunOnceId: "ClosePitlaneHQ"
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM TrackIQ.exe"; Flags: runhidden; RunOnceId: "CloseOldTrackIQ"
 
@@ -94,6 +99,9 @@ Type: filesandordirs; Name: "{userappdata}\PitWall"
 Type: filesandordirs; Name: "{localappdata}\PitlaneHQ"
 
 [Code]
+const
+  PreviewKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F1E2B7A-4C59-4E8B-9C3D-PITLANEHQDSK}_is1';
+
 function RunEntryExists: Boolean;
 begin
   Result := RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'PitlaneHQ');
@@ -104,3 +112,21 @@ begin
   WizardForm.Position := poScreenCenter;
 end;
 
+// the native window's preview (its own install, "Pitlane HQ Desktop") goes quietly: this is the same window now
+procedure RemovePreview();
+var
+  Cmd: String;
+  Code: Integer;
+begin
+  if RegQueryStringValue(HKCU, PreviewKey, 'UninstallString', Cmd) then
+  begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM PitlaneHQ.Desktop.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+    Exec(RemoveQuotes(Cmd), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssInstall then
+    RemovePreview();
+end;

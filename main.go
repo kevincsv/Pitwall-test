@@ -454,6 +454,11 @@ func main() {
 		runOverlayWindow(*ovName, *ovURL, *ovX, *ovY, *ovW, *ovH)
 		return
 	}
+	// one app: started by itself (not as the window's engine, not the development demo), PitlaneHQ.exe opens the
+	// native window, which starts it again as its engine
+	if !engineMode && !*demo && openDesktop(*minimized) {
+		return
+	}
 	log.SetFlags(log.Ltime)
 	if runtime.GOOS == "windows" {
 		// no console window: the log goes to a file

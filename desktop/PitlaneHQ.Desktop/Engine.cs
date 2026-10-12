@@ -22,6 +22,8 @@ public sealed class Engine : IDisposable
     public string Base { get; private set; } = "";
     public string Token { get; private set; } = "";
     public bool Running => _proc is { HasExited: false };
+    /// <summary>The engine updated the app: the new window to start (it then closes, this window closes too).</summary>
+    public event Action<string>? Restart;
 
     /// <summary>Finds PitlaneHQ.exe: the first argument, next to this program, or the Program Files install.</summary>
     public static string? FindExe(string[] args)
@@ -29,6 +31,7 @@ public sealed class Engine : IDisposable
         var c = new List<string>();
         if (args.Length > 0 && args[0].EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) c.Add(args[0]);
         c.Add(Path.Combine(AppContext.BaseDirectory, "PitlaneHQ.exe"));
+        c.Add(Path.Combine(AppContext.BaseDirectory, "TrackIQ.exe")); // installs from when the app was called TrackIQ
         c.Add(Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory.TrimEnd('\\')) ?? "", "PitlaneHQ.exe"));
         c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Pitlane HQ", "PitlaneHQ.exe"));
         c.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Pitlane HQ", "PitlaneHQ.exe"));
@@ -64,7 +67,16 @@ public sealed class Engine : IDisposable
         Base = Url[..Url.IndexOf('/', "http://".Length)];
         _http.DefaultRequestHeaders.Add("Cookie", "pw_lt=" + Token);
         // the rest of stdout is the engine's log: keep reading so it never blocks
-        _ = Task.Run(async () => { try { while (await _proc.StandardOutput.ReadLineAsync() != null) { } } catch { } });
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                string? l;
+                while ((l = await _proc.StandardOutput.ReadLineAsync()) != null)
+                    if (l.StartsWith("PITLANEHQ_RESTART=")) Restart?.Invoke(l["PITLANEHQ_RESTART=".Length..].Trim());
+            }
+            catch { }
+        });
     }
 
     public async Task<JsonNode?> GetAsync(string path)
