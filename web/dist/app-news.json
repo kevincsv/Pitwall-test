@@ -26,32 +26,6 @@
       "view": "community"
     },
     {
-      "id": "2026-10-recent-records",
-      "date": "2026-10-12",
-      "title": {
-        "en": "Recent records",
-        "es": "Récords recientes"
-      },
-      "text": {
-        "en": "Community shows the latest records of every car and track, who set them and whom they beat.",
-        "es": "Community muestra los últimos récords de cada coche y circuito, quién los hizo y a quién batieron."
-      },
-      "view": "community"
-    },
-    {
-      "id": "2026-10-track-page",
-      "date": "2026-10-12",
-      "title": {
-        "en": "The track page",
-        "es": "La página del circuito"
-      },
-      "text": {
-        "en": "Each track has its own page: its map with the official turns and the record of every car on it.",
-        "es": "Cada circuito tiene su página: su mapa con las curvas oficiales y el récord de cada coche en él."
-      },
-      "view": "community"
-    },
-    {
       "id": "2026-10-two-step",
       "date": "2026-10-07",
       "title": {
