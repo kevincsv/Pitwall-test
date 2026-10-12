@@ -139,6 +139,9 @@ public partial class MainWindow : Window
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
         SetTitle.Text = T("Settings", "Ajustes"); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
         SetCloseOv.Content = T("Close the overlays when Pitlane HQ closes", "Cerrar los overlays al cerrar Pitlane HQ");
+        SetVR.Content = T("Show the overlays in VR (SteamVR)", "Mostrar los overlays en VR (SteamVR)");
+        SetVRNote.Text = T("Every open overlay also shows in the headset, where it is on your main screen: move them in Overlays → Edit positions and they move in VR too. Needs SteamVR running (a Meta Quest through Link or Air Link too, with SteamVR as the OpenXR runtime); Pitlane HQ never starts it.", "Cada overlay abierto se ve también en las gafas, donde está en tu pantalla principal: muévelos en Overlays → Editar posiciones y se mueven también en VR. Necesita SteamVR abierto (también unas Meta Quest por Link o Air Link, con SteamVR como runtime de OpenXR); Pitlane HQ nunca lo abre.");
+        SetVRDistL.Text = T("DISTANCE", "DISTANCIA"); SetVRSizeL.Text = T("SIZE (YOUR SCREEN IN VR)", "TAMAÑO (TU PANTALLA EN VR)"); SetVRHeightL.Text = T("HEIGHT", "ALTURA");
         SetBeepT.Text = T("BRAKING BEEPS", "PITIDOS DE FRENADA"); SetBeepOff.Content = T("Off", "Apagados"); SetBeepOne.Content = T("1 beep", "1 pitido"); SetBeepCount.Content = T("3 beeps", "3 pitidos");
         SetTraffic.Content = T("Earlier with traffic", "Antes con tráfico"); SetVolL.Text = T("VOLUME", "VOLUMEN");
         SetBeepNote.Text = T("Where to brake comes from the model of your car and track; the beeps come earlier with more speed, or with a car close ahead or alongside.", "El punto de frenada sale del modelo de tu coche y circuito; los pitidos suenan antes con más velocidad o con un coche justo delante o al lado.");
@@ -147,6 +150,7 @@ public partial class MainWindow : Window
         SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
         SetMore.Content = T("Open all the settings", "Abrir todos los ajustes");
         ComTitle.Text = T("Community", "Comunidad"); ComBoardT.Text = "LEADERBOARD";
+        ComTrkBtn.Content = T("Track page", "Página del circuito");
         ComRecT.Text = T("RECENT RECORDS", "RÉCORDS RECIENTES"); ComRecSub.Text = T("The fastest lap of every car and track, the newest first.", "La vuelta más rápida de cada coche y circuito, la más nueva primero.");
         ComSub.Text = T("Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself.", "Leaderboards por tiempo de vuelta: la vuelta más rápida de cada coche y circuito de cada cuenta, compartida sola.");
         ComMore.Content = T("Profiles, race summaries and leagues", "Perfiles, resúmenes de carrera y ligas");
@@ -917,6 +921,13 @@ public partial class MainWindow : Window
             SetBeepOff.IsChecked = beeps == "off"; SetBeepOne.IsChecked = beeps == "one"; SetBeepCount.IsChecked = beeps != "off" && beeps != "one";
             SetTraffic.IsChecked = br?["traffic"] == null || Bo(br["traffic"]);
             if (!SetVol.IsMouseCaptureWithin) SetVol.Value = Math.Clamp((br?["vol"] == null ? 0.7 : D(br["vol"])) * 100, 5, 100);
+            var vrc = _set["ui"]?["vr"];
+            SetVR.IsChecked = Bo(vrc?["on"]);
+            if (!SetVRDist.IsMouseCaptureWithin) SetVRDist.Value = vrc?["dist"] == null ? 0.9 : D(vrc["dist"]);
+            if (!SetVRSize.IsMouseCaptureWithin) SetVRSize.Value = vrc?["size"] == null ? 1.2 : D(vrc["size"]);
+            if (!SetVRHeight.IsMouseCaptureWithin) SetVRHeight.Value = vrc?["height"] == null ? 0 : D(vrc["height"]);
+            SetVRDist.IsEnabled = SetVRSize.IsEnabled = SetVRHeight.IsEnabled = SetVR.IsChecked == true;
+            OnSetVRShow(this, new RoutedPropertyChangedEventArgs<double>(0, 0));
             var u = await _engine.GetAsync("/api/update");
             var latest = S(u?["latest"]?["version"]);
             SetUpdV.Text = T("This version: ", "Esta versión: ") + S(u?["version"]) + (Bo(u?["available"]) && latest != "" ? T($" · {latest} is ready", $" · la {latest} está lista") : T(" · up to date", " · al día"));
@@ -933,6 +944,29 @@ public partial class MainWindow : Window
         _set.Remove("positions");
         await Post("/api/config", _set);
         await SettingsAsync();
+    }
+
+    // the overlays in VR (CFG.ui.vr, the same as the web's Settings → VR): on, and the screen's distance, size and height
+    private JsonObject VR()
+    {
+        var ui = _set!["ui"] as JsonObject;
+        if (ui == null) { ui = new JsonObject(); _set["ui"] = ui; }
+        var v = ui["vr"] as JsonObject;
+        if (v == null) { v = new JsonObject { ["on"] = false, ["dist"] = 0.9, ["size"] = 1.2, ["height"] = 0.0 }; ui["vr"] = v; }
+        return v;
+    }
+    private async void OnSetVR(object sender, RoutedEventArgs e) { if (_set == null) return; VR()["on"] = SetVR.IsChecked == true; await SaveSettingsAsync(); }
+    private async void OnSetVRSlide(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_set == null) return;
+        var v = VR();
+        v["dist"] = Math.Round(SetVRDist.Value, 2); v["size"] = Math.Round(SetVRSize.Value, 2); v["height"] = Math.Round(SetVRHeight.Value, 2);
+        await SaveSettingsAsync();
+    }
+    private void OnSetVRShow(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (SetVRDistV == null || SetVRSizeV == null || SetVRHeightV == null) return;
+        SetVRDistV.Text = SetVRDist.Value.ToString("0.00") + " m"; SetVRSizeV.Text = SetVRSize.Value.ToString("0.00") + " m"; SetVRHeightV.Text = SetVRHeight.Value.ToString("0.00") + " m";
     }
 
     private JsonObject Brakes()

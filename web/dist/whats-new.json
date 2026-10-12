@@ -1,6 +1,17 @@
 {
   "versions": [
     {
+      "v": "0.9.11",
+      "en": [
+        "The overlays in VR: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, a Meta Quest through Link or Air Link too), where it is on your screen.",
+        "The track page on Pitlane HQ Desktop too."
+      ],
+      "es": [
+        "Los overlays en VR: actívalo en Settings → VR y cada overlay abierto se ve también en las gafas (SteamVR, también unas Meta Quest por Link o Air Link), donde está en tu pantalla.",
+        "La página del circuito también en Pitlane HQ Desktop."
+      ]
+    },
+    {
       "v": "0.9.10",
       "en": [
         "Recent records in Community: the fastest lap of every car and track, the newest first, who set it and whom it beat; one click compares with it or opens its leaderboard.",

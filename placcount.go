@@ -49,8 +49,8 @@ type plAccount struct {
 	DataKey   string    `json:"dataKey,omitempty"` // hex, never sent anywhere
 	Display   string    `json:"display,omitempty"`
 	NameKind  string    `json:"nameKind,omitempty"` // "iracing" or "nick"
-	Version   int64     `json:"version"`  // server version this PC last synced
-	LastHash  string    `json:"lastHash"` // hash of the data at that time
+	Version   int64     `json:"version"`            // server version this PC last synced
+	LastHash  string    `json:"lastHash"`           // hash of the data at that time
 	LastSync  time.Time `json:"lastSync"`
 	SyncErr   string    `json:"syncErr,omitempty"`
 	NoLaps    bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server

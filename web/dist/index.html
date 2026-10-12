@@ -1657,6 +1657,7 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
     </div>
     <div class="panel s6" id="notifPanel"></div>
     <div class="panel s12" id="startPanel"></div>
+    <div class="panel s12" id="vrPanel" hidden></div>
     <div class="panel s12" id="appsPanel"></div>
     <div class="panel s12" id="voicePanel"></div>
   </div>
@@ -2133,7 +2134,7 @@ function devWords(r){if(typeof r!=="string")return r;try{if(WEBAPP)r=DEV_WORDS.r
 const Tx=(en,es,de,pt)=>devWords(TxRaw(en,es,de,pt));
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as Pitlane HQ Agent (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.10",APP_STAGE="beta";
+const WEB_VERSION="0.9.11",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -3746,6 +3747,18 @@ function raceSummaryHTML(r,opt){opt=opt||{};const S=raceSummary(r),d=r.start-r.f
 function renderRaceRecap(){const box=$("#raceRecap");if(!box)return;const r=(RACES||[]).slice().sort((a,b)=>b.when-a.when)[0];if(!r){box.innerHTML="";return}
   box.innerHTML=raceSummaryHTML(r,{title:`<small class="muted">${esc((seriesName(r.seriesId)||r.car)+" · "+r.track+" · "+dshort(r.when))}</small><button type="button" class="btn small" id="rsOpen">${esc(Tx("Full report","Informe completo","Ganzer Bericht","Relatório completo"))} ›</button>`});
   $("#rsOpen").onclick=()=>openRace(r.id)}
+/* the overlays in VR (PC only): every open overlay also shows in the headset through SteamVR, where it sits on
+   your main screen (move them in Overlays → Edit positions), on a flat screen in front of you of this size, at
+   this distance and height; CFG.ui.vr, read by every overlay window (vr_windows.go) */
+function vrCfg(){const v=(CFG.ui||{}).vr||{};return{on:!!v.on,dist:+v.dist||0.9,size:+v.size||1.2,height:v.height==null?0:+v.height}}
+function renderVRPanel(){const p=$("#vrPanel");if(!p)return;const pc=MODE==="bridge"&&!COMPANION;p.hidden=!pc;if(!pc)return;const v=vrCfg(),m=x=>(+x).toFixed(2)+" m";
+  p.innerHTML=`<h2>VR</h2>
+    <div class="frow">${chk("vrOn",v.on,Lp("Show the overlays in VR (SteamVR)","Mostrar los overlays en VR (SteamVR)",true))}</div>
+    <p class="note" style="margin:6px 0 10px">${esc(Tx("Every open overlay also shows in the headset, where it is on your main screen: move them in Overlays → Edit positions and they move in VR too. Needs SteamVR running (a Meta Quest through Link or Air Link too, with SteamVR as the OpenXR runtime); Pitlane HQ never starts it.","Cada overlay abierto se ve también en las gafas, donde está en tu pantalla principal: muévelos en Overlays → Editar posiciones y se mueven también en VR. Necesita SteamVR abierto (también unas Meta Quest por Link o Air Link, con SteamVR como runtime de OpenXR); Pitlane HQ nunca lo abre.","Every open overlay also shows in the headset, where it is on your main screen.","Cada overlay aberto também aparece nos óculos, onde está na sua tela principal: mova-os em Overlays → Editar posições e eles se movem também em VR. Precisa do SteamVR aberto (também um Meta Quest por Link ou Air Link, com o SteamVR como runtime OpenXR); o Pitlane HQ nunca o abre."))}</p>
+    ${[["vrDist","dist",0.3,3,0.05,Tx("Distance","Distancia","Distance","Distância")],["vrSize","size",0.3,4,0.05,Tx("Size (width of your screen in VR)","Tamaño (ancho de tu pantalla en VR)","Size","Tamanho (largura da sua tela em VR)")],["vrHeight","height",-1,1,0.02,Tx("Height","Altura","Height","Altura")]].map(([id,k,lo,hi,st,lab])=>`<div class="frow" style="margin:6px 0"><label class="label" for="${id}" style="min-width:220px">${esc(lab)}</label><input type="range" id="${id}" data-k="${k}" min="${lo}" max="${hi}" step="${st}" value="${v[k]}" style="flex:1;max-width:280px"${v.on?"":" disabled"}><span class="mono" id="${id}V" style="min-width:64px;text-align:right">${m(v[k])}</span></div>`).join("")}`;
+  const save=()=>{CFG.ui=CFG.ui||{};CFG.ui.vr={...vrCfg(),...(CFG.ui.vr||{})};saveCfg()};
+  {const b=$("#vrOn");if(b)b.onclick=()=>{CFG.ui=CFG.ui||{};CFG.ui.vr={...vrCfg(),on:!vrCfg().on};saveCfg();renderVRPanel()}}
+  p.querySelectorAll("input[type=range]").forEach(r=>{r.oninput=()=>{const o=$("#"+r.id+"V");if(o)o.textContent=m(r.value)};r.onchange=()=>{CFG.ui=CFG.ui||{};CFG.ui.vr={...vrCfg(),[r.dataset.k]:+r.value};save()}})}
 /* features being built: shown as "in development" with what they will do */
 const WIP={
   team:{box:"#wipTeam",pct:25,icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -4632,7 +4645,7 @@ function renderSetAccount(){const b=$("#setAccount");if(!b)return;const on=ME&&M
   wireHidden(b);$("#setManage").onclick=()=>show("me");
   $("#setOut").onclick=async()=>{if(!(await uiConfirm(T("Sign out?","¿Cerrar sesión?","Abmelden?","Sair?"))))return;try{ME=await jpost("/api/sync",{action:"logout"});toast(T("Signed out","Sesión cerrada"))}catch(x){toast(x.message)}renderSetAccount();show("me")}}
 function renderSettings(){renderSetAccount();
-  renderVersion();
+  renderVersion();renderVRPanel();
   const langSel=$("#langSeg");if(langSel)langSel.value=LANG;
   document.querySelectorAll("#unitSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===UNITS));
   const th=store.get("pw.theme","dark");document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===th));

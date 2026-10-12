@@ -137,7 +137,8 @@
   by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page.
   The track page (`/community/track`, `openTrackPage` on the web, `TrackPageScreen`/`TrackPageView` on the phones):
   the map with the official turns and the direction arrow, how many drivers and laps the track has and the record of
-  every car on it. It opens from the leaderboard's "Track page" chip and from every record; not on the Desktop yet.
+  every car on it. It opens from the leaderboard's "Track page" chip and from every record; on Pitlane HQ Desktop
+  it is the "Track page" button beside the car (`TrackPage.cs`), a row opening that car's leaderboard.
 - Analysis (lap analyzer and coach): "Choose a session" is a window (discipline, kind of session, car
   and track, a day you drove on the calendar, then the session) that opens by itself when you enter
   Analysis from another tab; the bars only show what is chosen; the car and the track are two
@@ -329,6 +330,13 @@
   the timing flashes the lap just finished for 4 s (purple a best, green better than the one before); the delta bar
   shows the lap this pace gives (best + delta, `predict` in its settings); the weather says where the track's
   temperature goes over ten minutes (`trackTrend`); the map and the track bar mark the sectors.
+  The overlays in VR (Settings → VR on the PC and Pitlane HQ Desktop, `CFG.ui.vr`: on, distance, size, height):
+  every open overlay window also shows in the headset as a SteamVR overlay (OpenVR 2.5.1, `vr/openvr_api.dll`
+  embedded and written to %LOCALAPPDATA%\PitlaneHQ\openvr, `vr_windows.go`) with the same picture it draws on the
+  screen, where it sits on the main screen (`vrPlace` in vrmath.go: a flat screen of that width at that distance and
+  height, each overlay turned to face you), so moving them in Overlays → Edit positions moves them in VR. It joins
+  SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
+  work through SteamVR as the OpenXR runtime.
   The basic overlays, shown without the experimental switch (`OV_BASIC`): radar, delta bar, relative, standings,
   flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, controls, track bar.
   Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, radio, system.

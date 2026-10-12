@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.11 beta
+
+- **The overlays in VR**: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, Meta
+  Quest through Link or Air Link too), where it is on your screen; distance, size and height to taste.
+- **The track page on Pitlane HQ Desktop** too, from the leaderboard.
+- Fixes and improvements.
+
 ## 0.9.10 beta
 
 - **Recent records in Community**: the fastest lap of every car and track, the newest first, who set it and whom it

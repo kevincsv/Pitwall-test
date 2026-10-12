@@ -317,7 +317,22 @@
                             <TextBox x:Name="ComSearch" Width="220" Padding="8,6" Margin="0,0,8,6" Background="{StaticResource Surface2}" Foreground="{StaticResource Fg}" BorderBrush="{StaticResource Line}" CaretBrush="{StaticResource Fg}" TextChanged="OnComFilter"/>
                             <ComboBox x:Name="ComTrack" Width="300" Margin="0,0,8,6" SelectionChanged="OnComTrack"/>
                             <ComboBox x:Name="ComCar" Width="300" Margin="0,0,8,6" SelectionChanged="OnComCar"/>
+                            <Button x:Name="ComTrkBtn" Style="{StaticResource Btn}" Margin="0,0,8,6" Content="Track page" Click="OnComTrackPage"/>
                         </WrapPanel>
+                        <!-- the track page: the map with the official turns, the drivers and laps, the record of every car -->
+                        <Border x:Name="ComTrkCard" Style="{StaticResource Card}" Margin="0,0,0,10" Visibility="Collapsed">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button x:Name="ComTrkClose" DockPanel.Dock="Right" Style="{StaticResource Btn}" Content="Close" Click="OnComTrackClose"/>
+                                    <TextBlock x:Name="ComTrkT" Style="{StaticResource CardTitle}" VerticalAlignment="Center" Text="TRACK"/>
+                                </DockPanel>
+                                <TextBlock x:Name="ComTrkSub" Style="{StaticResource Note}" Margin="0,2,0,6"/>
+                                <Canvas x:Name="ComTrkMap" Height="300" ClipToBounds="True" SizeChanged="OnComTrackResize"/>
+                                <TextBlock x:Name="ComTrkNote" Style="{StaticResource Note}" Visibility="Collapsed"/>
+                                <TextBlock x:Name="ComTrkRecT" Style="{StaticResource Label}" Margin="0,10,0,4" Text="RECORD PER CAR"/>
+                                <StackPanel x:Name="ComTrkRows"/>
+                            </StackPanel>
+                        </Border>
                         <Border Style="{StaticResource Card}" Margin="0,0,0,10">
                             <StackPanel>
                                 <TextBlock x:Name="ComRecT" Style="{StaticResource CardTitle}" Text="RECENT RECORDS"/>
@@ -418,6 +433,28 @@
                                     <Slider x:Name="SetVol" Width="200" Minimum="5" Maximum="100" VerticalAlignment="Center" PreviewMouseUp="OnSetVol"/>
                                 </StackPanel>
                                 <TextBlock x:Name="SetBeepNote" Style="{StaticResource Note}" Margin="0,8,0,0" Text="Where to brake comes from the model of your car and track; the beeps come earlier with more speed or a car close ahead or alongside."/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitle}" Text="VR"/>
+                                <CheckBox x:Name="SetVR" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,4" Content="Show the overlays in VR (SteamVR)" Click="OnSetVR"/>
+                                <TextBlock x:Name="SetVRNote" Style="{StaticResource Note}" Margin="0,4,0,6" Text="Every open overlay also shows in the headset, where it is on your main screen."/>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock x:Name="SetVRDistL" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" Text="DISTANCE"/>
+                                    <Slider x:Name="SetVRDist" Width="200" Minimum="0.3" Maximum="3" VerticalAlignment="Center" PreviewMouseUp="OnSetVRSlide" ValueChanged="OnSetVRShow"/>
+                                    <TextBlock x:Name="SetVRDistV" Style="{StaticResource Note}" Width="60" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock x:Name="SetVRSizeL" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" Text="SIZE"/>
+                                    <Slider x:Name="SetVRSize" Width="200" Minimum="0.3" Maximum="4" VerticalAlignment="Center" PreviewMouseUp="OnSetVRSlide" ValueChanged="OnSetVRShow"/>
+                                    <TextBlock x:Name="SetVRSizeV" Style="{StaticResource Note}" Width="60" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock x:Name="SetVRHeightL" Style="{StaticResource Label}" Width="200" VerticalAlignment="Center" Text="HEIGHT"/>
+                                    <Slider x:Name="SetVRHeight" Width="200" Minimum="-1" Maximum="1" VerticalAlignment="Center" PreviewMouseUp="OnSetVRSlide" ValueChanged="OnSetVRShow"/>
+                                    <TextBlock x:Name="SetVRHeightV" Style="{StaticResource Note}" Width="60" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">

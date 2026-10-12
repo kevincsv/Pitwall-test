@@ -175,6 +175,7 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 		ovPaint(h)
 		return 0
 	case 0x0002: // WM_DESTROY
+		vrStop()
 		ovPostQuit.Call(0)
 		return 0
 	}
@@ -256,11 +257,12 @@ func ovPaint(hwnd uintptr) {
 		}
 	}
 	nat.st.mu.Lock()
-	alpha := nat.st.alpha
+	alpha, ui := nat.st.alpha, nat.st.ui
 	nat.st.mu.Unlock()
 	if alpha < 40 || alpha > 255 {
 		alpha = 255
 	}
+	defer vrFrame(nat.name, unsafe.Slice((*uint32)(nat.bits), w*h), x, y, w, h, int(alpha), ui) // and in the headset, with VR on
 	pt, src, size := [2]int32{int32(x), int32(y)}, [2]int32{0, 0}, [2]int32{int32(w), int32(h)}
 	blend := uint32(0x01000000) | uint32(alpha)<<16 // AC_SRC_OVER, the overlays' opacity, AC_SRC_ALPHA
 	// with the position and the size, this also moves and resizes the window; while Windows itself drags or resizes
