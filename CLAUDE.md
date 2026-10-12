@@ -135,10 +135,9 @@
   Community's "Recent records" (PC, web, Pitlane HQ Desktop, phones; `/community/records`): the fastest lap of every
   car and track, the newest first, with the lap it beat ("beat Juan by 0.312 s", or "the first lap here"), filtered
   by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page.
-  The track page (`/community/track`, `openTrackPage` on the web, `TrackPage`/`TrackPageView` on the phones) is in
-  development: admins see the map with the official turns and the direction arrow, how many drivers and laps the
-  track has and the record of every car on it; everyone else sees the "In development" card. It opens from the
-  leaderboard's "Track page" chip and from every record; not on the Desktop yet.
+  The track page (`/community/track`, `openTrackPage` on the web, `TrackPageScreen`/`TrackPageView` on the phones):
+  the map with the official turns and the direction arrow, how many drivers and laps the track has and the record of
+  every car on it. It opens from the leaderboard's "Track page" chip and from every record; not on the Desktop yet.
 - Analysis (lap analyzer and coach): "Choose a session" is a window (discipline, kind of session, car
   and track, a day you drove on the calendar, then the session) that opens by itself when you enter
   Analysis from another tab; the bars only show what is chosen; the car and the track are two

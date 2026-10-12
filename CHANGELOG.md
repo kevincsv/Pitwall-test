@@ -7,7 +7,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 ## 0.9.10 beta
 
 - **Recent records in Community**: the fastest lap of every car and track, the newest first, who set it and whom it
-  beat; one click compares with it or opens its leaderboard. The track page (map, record per car) is in development.
+  beat; one click compares with it or opens its leaderboard. And the track page: its map with the official turns,
+  how many drivers and laps the track has, and the record of every car on it.
 - **Changes on any device reach the others at once**, the phones included, and nobody syncs by hand: the "Sync now"
   button is gone on every device.
 - Fixes and improvements.
