@@ -215,8 +215,9 @@
   /es/overlays-iracing, /pt/overlays-iracing), /records, /es/records and
   /pt/records, one page per car and track (BreadcrumbList; the records index an ItemList; the landings WebSite,
   Organization, SoftwareApplication and FAQPage); the sitemap carries every language (xhtml:link) and lastmod; IndexNow
-  sends every page again when SEO_VER changes; the app's "/" has the hreflang links and a <noscript> with crawlable links (one canonical address,
-  301 for any other, 404 when it does not exist), the sitemap made by the server, IndexNow once a day. www.pitlanehq.app is a custom domain of the Worker
+  sends every page again when SEO_VER changes; the app's "/" has its doctype, the hreflang links and a <noscript> with crawlable links in the
+  body (never before the head's tags) (one canonical address, 301 for any other such as /index.html, a real 404 page for any address
+  that does not exist, never the app or the lap viewer with 200; the viewer is noindex), the sitemap made by the server, IndexNow once a day. www.pitlanehq.app is a custom domain of the Worker
   (made by the deploy) that answers 301 to pitlanehq.app.
   Titles, descriptions and texts name the brand as people search it (Pitlane HQ, PitlaneHQ; `alternateName` in the
   JSON-LD) and what it is (iRacing and sim racing telemetry, lap analysis, overlays), plainly, never stuffed.

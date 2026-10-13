@@ -12,7 +12,7 @@ import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
 import { live } from "./live.js";
-import { seoPage, indexNow } from "./seo.js";
+import { seoPage, indexNow, notFound } from "./seo.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -381,7 +381,9 @@ async function handle(req, env, ctx) {
       to.searchParams.delete("companion");
       return Response.redirect(to.href, 301);
     }
-    const isAppFile = /^\/(index\.html|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og\.png|robots\.txt)$/.test(url.pathname);
+    // one address for the app: /index.html is "/"
+    if (url.pathname === "/index.html") { const to = new URL(req.url); to.pathname = "/"; return Response.redirect(to.href, 301); }
+    const isAppFile = /^\/(pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og\.png|robots\.txt)$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       const r = await env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin), req));
@@ -404,6 +406,11 @@ async function handle(req, env, ctx) {
         return err("server error: " + (e && e.message), 500);
       }
     }
+    // any other address does not exist: a real 404 (never a page with 200, which search engines would index)
+    if (url.pathname !== "/" && url.pathname.replace(/\/+$/, "") !== "/laps") {
+      const al = /^\/(es|pt)(\/|$)/.exec(url.pathname)?.[1] || (req.headers.get("accept-language") || "").toLowerCase().slice(0, 2);
+      return notFound(al === "es" || al === "pt" ? al : "en");
+    }
     // the lap viewer: My laps lives inside the app (/?embed=1); /laps alone still signs in with a server key (owner, team, read-only)
     return new Response(VIEWER, {
       headers: {
@@ -411,6 +418,8 @@ async function handle(req, env, ctx) {
         // shown inside the Pitlane HQ apps with embed=1 (then it only uses the session handed in the address)
         "content-security-policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; frame-ancestors " + (url.searchParams.get("embed") === "1" ? "*" : "'none'"),
         "referrer-policy": "no-referrer",
+        // the viewer is part of the app, never a page of its own in search results
+        "x-robots-tag": "noindex",
       },
     });
 }

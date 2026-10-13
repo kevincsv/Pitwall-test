@@ -271,7 +271,7 @@ async function recordsCombo(env, l, t, c, asked) {
 }
 
 // an address of the public pages that does not exist: a real 404 (never the app), so it is not indexed
-const notFound = (l) => new Response(page(l, { title: S[l].nfT + " · Pitlane HQ", desc: "", path: PRE[l] + "/records", noindex: true,
+export const notFound = (l) => new Response(page(l, { title: S[l].nfT + " · Pitlane HQ", desc: "", path: PRE[l] + "/records", noindex: true,
   body: `<h1>${esc(S[l].nf)}</h1><p><a href="${PRE[l]}/records">${esc(T[l].rec)}</a> · <a href="/">${esc(T[l].app)}</a></p>` }),
   { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
 
@@ -294,7 +294,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "4";
+const SEO_VER = "5";
 export async function indexNow(env) {
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
   const ver = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_ver'").first().catch(() => null);

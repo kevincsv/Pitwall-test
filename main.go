@@ -621,14 +621,13 @@ func main() {
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
 		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
-			// the page is authored without a doctype; add it so browsers use standards mode
+			// the page carries its own doctype (standards mode, the same page the web serves)
 			b, err := fs.ReadFile(sub, "index.html")
 			if err != nil {
 				http.Error(w, "missing app", 500)
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte("<!doctype html>\n"))
 			w.Write(b)
 			return
 		}
