@@ -142,8 +142,12 @@
   (or `-server URL`, or the `PITLANEHQ_SERVER`, `PITLANEHQ_DATA`, `PITLANEHQ_PORT` environment the native window's engine
   and the overlay windows inherit; `localmode.go`): `commBase()` is that server, its own data folder (`PitlaneHQ-local`,
   the script copies the normal one once without the sign-ins) and port (8585), the native window its own instance, no
-  updates, and the PC calls the server's ten-minute job (`/__scheduled`, the models). The laps already on pitlanehq.app
-  are not there: the local server gets the laps driven from then on.
+  updates, and the PC calls the server's ten-minute job (`/__scheduled`, the models). Nothing leaves the PC: every HTTP
+  client of the program dials through `localDialContext` (`tlsTransport`, the live relay, the default transport), which
+  refuses any host but the PC itself, the page is served without its Google Fonts link (`localPage`), the local server
+  listens on 127.0.0.1 only and never pings IndexNow. pitlanehq.app never hears of local mode, and local mode is the
+  owner's alone (the script needs the repository and Node.js; the shipped flag does nothing without that server). The
+  laps already on pitlanehq.app are not there: the local server gets the laps driven from then on.
 - The app's page takes its fonts from the program first (`/fonts.css` and `/fonts/*` from the embedded `ovfonts/`,
   `registerLocalRoutes`; on the web `fonts.css` is empty) and Google Fonts after, so with internet nothing changes
   and without it the app looks the same.

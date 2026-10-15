@@ -87,6 +87,9 @@ func updateBase() string {
 }
 
 func checkUpdate() error {
+	if localServer() != "" {
+		return errors.New("local mode: no updates, nothing leaves this PC")
+	}
 	resp, err := (&http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}).Get(updateBase() + "version.json")
 	if err != nil {
 		return fmt.Errorf("could not check for updates: %w", err)

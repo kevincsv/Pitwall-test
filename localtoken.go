@@ -116,5 +116,7 @@ func localOpen(p string) bool {
 func tlsTransport() *http.Transport {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	t.DialContext = localDialContext(t.DialContext) // local mode: nothing leaves the PC (localmode.go)
+	t.Proxy = localProxy(t.Proxy)
 	return t
 }

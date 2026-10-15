@@ -102,7 +102,8 @@ type wsConn struct {
 }
 
 var liveHTTP = &http.Client{Transport: &http.Transport{
-	Proxy:           http.ProxyFromEnvironment,
+	Proxy:           localProxy(http.ProxyFromEnvironment),
+	DialContext:     localDialContext(nil), // local mode: nothing leaves the PC (localmode.go)
 	TLSClientConfig: &tls.Config{NextProtos: []string{"http/1.1"}},
 	TLSNextProto:    map[string]func(string, *tls.Conn) http.RoundTripper{}, // HTTP/1.1: the upgrade needs it
 }}

@@ -9,10 +9,14 @@ package main
 // because a local server has no clock of its own.
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -49,6 +53,70 @@ func localServer() string {
 	localServerMu.Lock()
 	defer localServerMu.Unlock()
 	return localServerURL
+}
+
+// In local mode nothing leaves the PC: every HTTP client of the program (tlsTransport, the live relay, the ones on
+// the default transport) dials through this guard, which only lets a connection to this PC itself through (the
+// local server, the program's own API); pitlanehq.app, iRacing's feed, Discord, anything else is refused. It looks
+// at localServer() on every dial, so outside local mode it costs nothing and changes nothing.
+var errLocalOnly = errors.New("local mode: nothing leaves this PC")
+
+func localHost(addr string) bool {
+	h, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		h = addr
+	}
+	h = strings.Trim(strings.ToLower(h), "[]")
+	if h == "localhost" || h == "127.0.0.1" || h == "::1" {
+		return true
+	}
+	if ip := net.ParseIP(h); ip != nil && ip.IsLoopback() {
+		return true
+	}
+	return false
+}
+
+// localDialContext wraps a dialer (nil: the net package's default) with the guard.
+func localDialContext(base func(ctx context.Context, network, addr string) (net.Conn, error)) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	if base == nil {
+		d := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+		base = d.DialContext
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if localServer() != "" && !localHost(addr) {
+			return nil, errLocalOnly
+		}
+		return base(ctx, network, addr)
+	}
+}
+
+// localProxy wraps a transport's proxy choice: in local mode no proxy either (a proxy on this PC would carry a
+// request out of it behind the guard's back).
+func localProxy(base func(*http.Request) (*url.URL, error)) func(*http.Request) (*url.URL, error) {
+	return func(r *http.Request) (*url.URL, error) {
+		if localServer() != "" || base == nil {
+			return nil, nil
+		}
+		return base(r)
+	}
+}
+
+func init() {
+	// the clients without a transport of their own (the news feed, the shared files…) use the default one
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		t.DialContext = localDialContext(t.DialContext)
+		t.Proxy = localProxy(t.Proxy)
+	}
+}
+
+// localPage: the app's page served in local mode asks nothing of Google Fonts (the program's own fonts stay)
+var googleFontsRe = regexp.MustCompile(`(?m)^<link [^\n]*https://fonts\.googleapis\.com[^\n]*>\n?`)
+
+func localPage(b []byte) []byte {
+	if localServer() == "" {
+		return b
+	}
+	return googleFontsRe.ReplaceAll(b, nil)
 }
 
 // localScheduler calls the server's ten-minute job (wrangler dev --test-scheduled answers /__scheduled): the models of

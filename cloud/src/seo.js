@@ -296,6 +296,7 @@ const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
 const SEO_VER = "5";
 export async function indexNow(env) {
+  if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
   const ver = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_ver'").first().catch(() => null);
   const full = !ver || ver.v !== SEO_VER;

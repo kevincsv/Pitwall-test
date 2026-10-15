@@ -649,7 +649,7 @@ func main() {
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(b)
+			w.Write(localPage(b))
 			return
 		}
 		files.ServeHTTP(w, r)

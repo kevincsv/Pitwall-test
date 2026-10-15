@@ -6,7 +6,8 @@ rem    community, the model, live telemetry; the database and files stay in clou
 rem    account is an admin and sign-up needs no email;
 rem  - the app starts in local mode (PitlaneHQ.exe -local): it uses that server, its own data folder
 rem    (%%APPDATA%%\PitlaneHQ-local, a copy of the normal one the first time, without the sign-ins) and its own
-rem    port, so the normal Pitlane HQ is left alone; no updates.
+rem    port, so the normal Pitlane HQ is left alone; no updates, and nothing leaves the PC: every connection to
+rem    anything but this PC is refused (pitlanehq.app never hears of it). The server listens on 127.0.0.1 only.
 rem Needs Node.js (https://nodejs.org); the first run needs internet once (npm install). Then it all works offline.
 rem   tools\local.cmd                  the installed app (%%LOCALAPPDATA%%\Programs\Pitlane HQ)
 rem   tools\local.cmd C:\path\to\PitlaneHQ.exe   another build (PitlaneHQ.exe or PitlaneHQ.Desktop.exe)
@@ -26,9 +27,10 @@ if not exist .dev.vars (
 echo Preparing the local database...
 call npx wrangler d1 migrations apply DB --local || exit /b 1
 
+set "WRANGLER_SEND_METRICS=false"
 curl -s -o nul http://127.0.0.1:%PORT%/server.json 2>nul
 if errorlevel 1 (
-  start "Pitlane HQ server (local)" cmd /k npx wrangler dev --local --port %PORT% --var LOCAL:1 --test-scheduled
+  start "Pitlane HQ server (local)" cmd /k npx wrangler dev --local --ip 127.0.0.1 --port %PORT% --var LOCAL:1 --test-scheduled
   echo Waiting for the server...
   :wait
   timeout /t 1 >nul
