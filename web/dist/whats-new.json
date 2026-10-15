@@ -5,12 +5,14 @@
       "en": [
         "The overlays in VR: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, a Meta Quest through Link or Air Link too), where it is on your screen.",
         "The track page on Pitlane HQ Desktop too.",
-        "One app for Windows: one download that opens the native window and updates itself, the window too."
+        "One app for Windows: one download that opens the native window and updates itself, the window too.",
+        "The web shows what Pitlane HQ does before the sign-in, with sample data to look around."
       ],
       "es": [
         "Los overlays en VR: actívalo en Settings → VR y cada overlay abierto se ve también en las gafas (SteamVR, también unas Meta Quest por Link o Air Link), donde está en tu pantalla.",
         "La página del circuito también en Pitlane HQ Desktop.",
-        "Una sola app para Windows: una descarga que abre la ventana nativa y se actualiza sola, la ventana también."
+        "Una sola app para Windows: una descarga que abre la ventana nativa y se actualiza sola, la ventana también.",
+        "La web enseña qué hace Pitlane HQ antes de iniciar sesión, con datos de muestra para echar un vistazo."
       ]
     },
     {

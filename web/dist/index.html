@@ -5597,7 +5597,9 @@ function coachTips(forVoice){const LP=analysisLaps(),last=LP.at(-1),ref=coachRef
 const CLOUD={sessions:null,sid:"",bid:"",laps:[],lapsB:[],busy:false,err:"",game:""};
 /* demo data for testing (admins only, Settings → About): pitwall-demo.js answers the reads of your laps,
    races and the community; nothing is uploaded and a banner shows on every screen */
-function demoOn(){try{return !!window.PITLANE_DEMO&&localStorage.getItem("pw.demo")==="1"&&isAdmin()}catch(e){return false}}
+// the sample a visitor of the web looks at before signing in (pitwall-tour.js): the same invented data, nothing uploaded
+const sampleOn=()=>{try{return !!window.PITLANE_DEMO&&COMPANION&&!(typeof CP!=="undefined"&&CP.acc)&&localStorage.getItem("pw.sample")==="1"}catch(e){return false}};
+function demoOn(){try{return !!window.PITLANE_DEMO&&localStorage.getItem("pw.demo")==="1"&&isAdmin()||sampleOn()}catch(e){return false}}
 /* demo data on and no real telemetry: Live (and the overlays' data) runs an invented race at 30 frames a second, never uploaded */
 var DEMOLIVE=null;
 function demoLiveTick(){const want=demoOn()&&!!(window.PITLANE_DEMO&&window.PITLANE_DEMO.liveFrame)&&!OV.on&&(COMPANION?!CPLIVE.on:!(STATUS&&STATUS.connected&&!STATUS.demoWeb));
@@ -5619,6 +5621,8 @@ function previewDemoTick(){const D=window.PITLANE_DEMO;if(!(OV.on&&OV.preview)||
 if(OV.on&&OV.preview){setTimeout(previewDemoTick,1200);setInterval(previewDemoTick,2000)}
 function demoBanner(){let b=document.getElementById("demoBanner");const on=demoOn();if(!on){if(b)b.remove();return}
   if(!b){b=document.createElement("div");b.id="demoBanner";b.style.cssText="position:sticky;top:0;z-index:60;background:var(--acc,#ffb02e);color:#11151b;font:800 14px/1.4 ui-monospace,monospace;letter-spacing:.04em;padding:10px 16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.35)";document.body.prepend(b)}
+  if(sampleOn()&&!isAdmin()){b.innerHTML=`${esc(Tx("SAMPLE DATA","DATOS DE MUESTRA","BEISPIELDATEN","DADOS DE EXEMPLO"))}<span class="db-more"> · ${esc(Tx("invented laps, nothing is saved","vueltas inventadas, no se guarda nada","erfundene Runden, nichts wird gespeichert","voltas inventadas, nada é salvo"))}</span> · <a href="#" id="dbSign" style="color:inherit">${esc(Tx("Sign in to see your own","Inicia sesión para ver las tuyas","Anmelden für deine eigenen","Entre para ver as suas"))}</a>`;
+    b.querySelector("#dbSign").onclick=(ev)=>{ev.preventDefault();try{localStorage.removeItem("pw.sample")}catch(e){}b.remove();try{signWall();show("me")}catch(e){}};return}
   const [k,rest]=[Tx("DEMO DATA","DATOS DE PRUEBA","DEMODATEN","DADOS DE DEMONSTRAÇÃO"),Tx(" · turn off in Settings → About"," · se apagan en Ajustes → Acerca de"," · in Einstellungen → Über ausschalten"," · desligue em Configurações → Sobre")];b.innerHTML=`⚠ ${esc(k)}<span class="db-more">${esc(rest)}</span>`}
 /* on the PC, the laps in your account when this window has no laps of its own (after a race, after a restart) */
 let PCACC=null;
@@ -7079,10 +7083,12 @@ function openWelcome(){const k=deviceKind(),T=Tx,name=(ME&&ME.display)||(CP.acc&
   else if(k==="android")body=step("1",T("Install the companion on this phone","Instala el companion en este móvil","Installiere den Companion auf diesem Handy","Instale o companion neste celular"),p(T("It shows your races, laps, analysis and the live telemetry. If Android asks, allow installing from your browser.","Muestra tus carreras, vueltas, análisis y la telemetría en vivo. Si Android lo pide, permite instalar desde tu navegador.","Er zeigt deine Rennen, Runden, Analysen und die Live-Telemetrie. Wenn Android fragt, erlaube die Installation aus dem Browser.","Mostra suas corridas, voltas, análises e a telemetria ao vivo. Se o Android pedir, permita instalar pelo navegador."))+apkBtn+p(T("Or keep using this web: it works the same.","O sigue usando esta web: funciona igual.","Oder nutze weiter diese Web-App: sie funktioniert genauso.","Ou continue usando esta web: funciona igual.")))+step("2",T("Pitlane HQ Agent, on your racing PC","Pitlane HQ Agent, en tu PC de carreras","Der Agent, auf deinem Renn-PC","O Pitlane HQ Agent, no seu PC de corrida"),p(agentNeed+" "+T("On that PC open pitlanehq.app and download it.","En ese PC abre pitlanehq.app y descárgalo.","Öffne auf diesem PC pitlanehq.app und lade ihn herunter.","Nesse PC abra pitlanehq.app e baixe-o.")));
   else body=step("1",T("Use it as an app on this iPhone","Úsala como app en este iPhone","Nutze sie als App auf diesem iPhone","Use como app neste iPhone"),p(iosHow))+step("2",T("Pitlane HQ Agent, on your racing PC","Pitlane HQ Agent, en tu PC de carreras","Der Agent, auf deinem Renn-PC","O Pitlane HQ Agent, no seu PC de corrida"),p(agentNeed+" "+T("On that PC open pitlanehq.app and download it.","En ese PC abre pitlanehq.app y descárgalo.","Öffne auf diesem PC pitlanehq.app und lade ihn herunter.","Nesse PC abra pitlanehq.app e baixe-o.")));
   return uiPanel(`<button type="button" class="uidlg-x" data-ok aria-label="${esc(T("Close","Cerrar","Schließen","Fechar"))}">×</button><h2 style="margin:6px 0 2px">${esc(T("Welcome","Bienvenido","Willkommen","Bem-vindo"))}${name?", "+esc(name):""}</h2>${p(T("Two pieces, one account: the agent records, the companion shows.","Dos piezas, una cuenta: el agente graba, el companion muestra.","Zwei Teile, ein Konto: der Agent zeichnet auf, der Companion zeigt.","Duas peças, uma conta: o agente grava, o companion mostra."))}<div class="wel">${body}</div><div class="uidlg-b"><button type="button" class="btn primary" data-ok>${esc(T("Got it","Entendido","Verstanden","Entendi"))}</button></div>`,(d,done)=>{d.querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>{if(ME&&ME.id)onboarded(ME.id,true);done(true)})},true)}
-const signWallOn=()=>!OV.on&&MODE==="bridge"&&!!ME&&ME.ready===true&&!ME.signedIn;
+const signWallOn=()=>!OV.on&&MODE==="bridge"&&!!ME&&ME.ready===true&&!ME.signedIn&&!sampleOn(); // a visitor on the sample looks around
 function signWall(){const on=signWallOn(),was=document.documentElement.classList.contains("signwall");document.documentElement.classList.toggle("signwall",on);
   const welcome=!on&&ME&&ME.signedIn&&ME.id&&!onboarded(ME.id);
-  if(on&&CUR_VIEW!=="me")show("me");else if(welcome&&!signWall.welcomed){signWall.welcomed=1;if(CUR_VIEW==="me")show("home");setTimeout(()=>{if(ME&&ME.signedIn&&!onboarded(ME.id)&&!document.querySelector(".uidlg[data-sticky]"))openWelcome()},1200)}else if(!on&&was&&CUR_VIEW==="me")show("home")}
+  if(on&&CUR_VIEW!=="me")show("me");else if(welcome&&!signWall.welcomed){signWall.welcomed=1;if(CUR_VIEW==="me")show("home");setTimeout(()=>{if(ME&&ME.signedIn&&!onboarded(ME.id)&&!document.querySelector(".uidlg[data-sticky]"))openWelcome()},1200)}else if(!on&&was&&CUR_VIEW==="me")show("home")
+  // the web's first screen for a visitor: what Pitlane HQ does, before the sign-in (pitwall-tour.js)
+  if(COMPANION&&window.PITLANE_TOUR)try{window.PITLANE_TOUR.maybeOpen(on)}catch(e){}}
 setInterval(()=>{if(ME&&document.documentElement.classList.contains("signwall")!==signWallOn())signWall()},1000);
 function pwScore(p){let s=0;if(p.length>=10)s++;if(p.length>=14)s++;if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++;if(/\d/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;return Math.min(4,s)}
 // what deleting your account removes and what stays (the leaderboard and the coach model, anonymous)
@@ -7301,3 +7307,4 @@ async function askShare(){if(MODE!=="bridge"||REMOTE||COMPANION||OV.on||$("#shar
 <script src="pitwall-my-laps-v2.js"></script>
 <script src="pitwall-model.js"></script>
 <script src="pitwall-demo.js"></script>
+<script src="pitwall-tour.js"></script>

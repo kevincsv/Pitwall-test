@@ -13,7 +13,13 @@
 - Real data by default: no demo races, sample drivers or made-up laps on the server. Invented data
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
-  PitlaneHQ.exe is for development only and has no button in the app.
+  PitlaneHQ.exe is for development only and has no button in the app. The one exception is the web's visitor
+  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): before the sign-in ever shows, a short presentation
+  of what Pitlane HQ does with samples drawn from that invented data (a lap, two laps compared, the coach's
+  corners, the live relative, a leaderboard, a race summary), "Try it with sample data" (`pw.sample`, `sampleOn()`:
+  the app itself on the invented data, the sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own",
+  nothing uploaded), Sign in, Create account and the download; shown once per browser, after the language window,
+  and "What Pitlane HQ does" on the sign-in screen opens it again. Never on the PC app.
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it rarely: a MINOR version for a big set of features; fixes and small changes go into the current
@@ -129,6 +135,18 @@
   updater's zip is the whole app folder (`out-desktop`, sub-folders kept); in engine mode it installs by itself too
   and says `PITLANEHQ_RESTART=` so the window starts again on the new version (`-replace <pid>`). The window is one
   instance (`Local\PitlaneHQ.Desktop`): a second start brings it forward, never when Windows started it.
+- Local mode (the owner's development, `tools/local.cmd`, never a button in the app): the whole of Pitlane HQ on one PC
+  without internet. The server (`cloud/`, the same code as pitlanehq.app) runs on the PC with `wrangler dev --local
+  --var LOCAL:1 --test-scheduled` (database and files in `cloud/.wrangler`, `DATA_KEY` in `cloud/.dev.vars`; `LOCAL=1`:
+  every account is an admin, sign-up needs no email, `/server.json` names the local server). `PitlaneHQ.exe -local`
+  (or `-server URL`, or the `PITLANEHQ_SERVER`, `PITLANEHQ_DATA`, `PITLANEHQ_PORT` environment the native window's engine
+  and the overlay windows inherit; `localmode.go`): `commBase()` is that server, its own data folder (`PitlaneHQ-local`,
+  the script copies the normal one once without the sign-ins) and port (8585), the native window its own instance, no
+  updates, and the PC calls the server's ten-minute job (`/__scheduled`, the models). The laps already on pitlanehq.app
+  are not there: the local server gets the laps driven from then on.
+- The app's page takes its fonts from the program first (`/fonts.css` and `/fonts/*` from the embedded `ovfonts/`,
+  `registerLocalRoutes`; on the web `fonts.css` is empty) and Google Fonts after, so with internet nothing changes
+  and without it the app looks the same.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
   (the window with `-minimized`) and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
