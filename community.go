@@ -82,6 +82,9 @@ func saveCommLocked() {
 }
 
 func commBase() string {
+	if u := localServer(); u != "" { // local mode: the server on this PC (localmode.go)
+		return u
+	}
 	commMu.Lock()
 	defer commMu.Unlock()
 	u := commCfg.URL

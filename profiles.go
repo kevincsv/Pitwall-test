@@ -48,6 +48,13 @@ func dataDir() string {
 	if err != nil {
 		dir = "."
 	}
+	// local mode (localmode.go): its own folder, a name beside the normal one or a whole path
+	if d := os.Getenv("PITLANEHQ_DATA"); d != "" {
+		if filepath.IsAbs(d) {
+			return d
+		}
+		return filepath.Join(dir, filepath.Base(d))
+	}
 	return filepath.Join(dir, "PitlaneHQ")
 }
 

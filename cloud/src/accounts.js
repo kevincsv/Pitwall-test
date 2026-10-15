@@ -160,7 +160,8 @@ export async function nameTaken(env, name, mine) {
   if (n === "anonymous" || n === "anónimo" || n === "anonimo") return true;
   return !!(await env.DB.prepare("SELECT 1 FROM community_users WHERE lower(alias)=?1 AND id<>?2 AND (owner IS NULL OR owner<>?2) AND (token_hash LIKE 'acct:%' OR id LIKE 'guest-%') LIMIT 1").bind(n, mine || "").first());
 }
-export const isAdmin = (env, id) => String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean).includes(id);
+// on a local server (LOCAL=1: one PC, its owner, tools/local.cmd) every account is an admin
+export const isAdmin = (env, id) => env.LOCAL === "1" || String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean).includes(id);
 
 export async function accounts(req, env, url) {
   if (env.COMMUNITY !== "1") return err("accounts are not enabled on this server", 404);

@@ -446,7 +446,26 @@ func main() {
 	ovH := flag.Int("h", 260, "internal")
 	rate := flag.Float64("demo-rate", 1, "demo playback speed (testing)")
 	cd := flag.Bool("cloud-demo", false, "internal: upload the demo race laps (testing)")
+	server := flag.String("server", "", "development: the Pitlane HQ server to use (http://127.0.0.1:8787 for the one tools/local.cmd runs on this PC) instead of pitlanehq.app")
+	localMode := flag.Bool("local", false, "development: everything on this PC without internet (tools/local.cmd): the server on this PC, its own data folder (PitlaneHQ-local) and port")
 	flag.Parse()
+	// local mode: the server on this PC, a data folder and a port of its own, so the normal Pitlane HQ is left alone;
+	// the native window's engine and the overlay windows inherit it all through the environment (localmode.go)
+	if *localMode {
+		if *server == "" {
+			*server = "http://127.0.0.1:8787"
+		}
+		if os.Getenv("PITLANEHQ_DATA") == "" {
+			os.Setenv("PITLANEHQ_DATA", "PitlaneHQ-local")
+		}
+		if os.Getenv("PITLANEHQ_PORT") == "" {
+			os.Setenv("PITLANEHQ_PORT", "8585")
+		}
+	}
+	setLocalServer(*server)
+	if p, _ := strconv.Atoi(os.Getenv("PITLANEHQ_PORT")); p > 0 && *port == 8484 {
+		*port = p
+	}
 	engineMode = *engine
 	cloudDemo = *cd
 	demoRate = *rate
@@ -504,6 +523,7 @@ func main() {
 	go fieldWatcher()
 	go myLapWatcher()
 	go updateWatcher()
+	go localScheduler()
 	loadLicense()
 	go licenseWatcher()
 	go liveRelay()
@@ -612,6 +632,7 @@ func main() {
 	registerJournalRoutes(mux)
 	registerDiscordRoutes(mux)
 	registerUpdateRoutes(mux)
+	registerLocalRoutes(mux)
 	registerNewsRoutes(mux)
 	registerPairRoutes(mux)
 	registerLicenseRoutes(mux)

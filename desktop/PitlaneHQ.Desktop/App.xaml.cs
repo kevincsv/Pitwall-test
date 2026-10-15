@@ -26,7 +26,8 @@ public partial class App : Application
         {
             try { using var old = Process.GetProcessById(oldPid); old.WaitForExit(15000); } catch { }
         }
-        _single = new Mutex(true, @"Local\PitlaneHQ.Desktop", out bool first);
+        // local mode (PITLANEHQ_DATA, its own data folder) runs beside the normal window
+        _single = new Mutex(true, @"Local\PitlaneHQ.Desktop" + (Environment.GetEnvironmentVariable("PITLANEHQ_DATA") ?? ""), out bool first);
         if (!first && ri < 0)
         {
             if (!StartMinimized)

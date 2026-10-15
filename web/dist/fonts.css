@@ -1,0 +1,2 @@
+/* On the PC, Pitlane HQ Agent answers this address with the app's own fonts (ovfonts/, embedded), so the app looks
+   the same without internet; on the web the fonts come from Google Fonts (the next stylesheet) and this file is empty. */

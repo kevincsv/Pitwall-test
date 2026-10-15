@@ -111,8 +111,9 @@ func updateStatus() map[string]any {
 	avail := updLatest != nil && buildID != "dev" && updLatest.Build != buildID
 	// required: this version is older than the newest one's minimum, so it no longer works properly
 	required := avail && updLatest.Min != "" && versionLess(appVersion, updLatest.Min)
-	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": updateSupported && buildID != "dev",
-		"auto": !loadUpdPrefs().Manual, "autoWorks": updateSupported && buildID != "dev" && (!engineMode || desktopNext() != "")}
+	on := updateSupported && buildID != "dev" && localServer() == "" // local mode: no updates (the local server has none)
+	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": on,
+		"auto": !loadUpdPrefs().Manual, "autoWorks": on && (!engineMode || desktopNext() != "")}
 	if updLatest != nil {
 		m["latest"] = updLatest
 	}
@@ -127,6 +128,9 @@ func updateStatus() map[string]any {
 // is running (unless you switched that off): Pitlane HQ restarts on the new version with its windows.
 func updateWatcher() {
 	cleanOldFiles()
+	if localServer() != "" { // local mode: nothing to check, no internet
+		return
+	}
 	if os.Getenv("PITLANE_UPDATED") != "" && buildID != "dev" {
 		go func() {
 			time.Sleep(8 * time.Second)
@@ -207,7 +211,7 @@ func cleanOldFiles() {
 // applyUpdate downloads the new version, puts its files next to the running
 // .exe and starts it. The current files are kept as .old until the next start.
 func applyUpdate() error {
-	if !updateSupported || buildID == "dev" {
+	if !updateSupported || buildID == "dev" || localServer() != "" {
 		return errors.New("updates work in the Windows app downloaded from the downloads page")
 	}
 	if err := checkUpdate(); err != nil {
