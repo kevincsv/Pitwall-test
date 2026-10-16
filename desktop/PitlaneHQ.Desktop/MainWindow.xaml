@@ -296,7 +296,9 @@
                                 <StackPanel>
                                     <TextBlock x:Name="AnaMapT" Style="{StaticResource CardTitle}" Text="TRACK MAP"/>
                                     <WrapPanel x:Name="AnaMapBar" Margin="0,0,0,6"/>
-                                    <Canvas x:Name="AnaMap" Height="380" ClipToBounds="True" SizeChanged="OnAnaResize"/>
+                                    <Viewbox x:Name="AnaMapBox" Stretch="Uniform" MaxWidth="720" HorizontalAlignment="Center">
+                                        <Canvas x:Name="AnaMap" Width="600" Height="360" ClipToBounds="True"/>
+                                    </Viewbox>
                                     <TextBlock x:Name="AnaMapNote" Style="{StaticResource Note}" Margin="0,6,0,0" Visibility="Collapsed"/>
                                 </StackPanel>
                             </Border>
@@ -339,7 +341,9 @@
                                     <TextBlock x:Name="ComTrkT" Style="{StaticResource CardTitle}" VerticalAlignment="Center" Text="TRACK"/>
                                 </DockPanel>
                                 <TextBlock x:Name="ComTrkSub" Style="{StaticResource Note}" Margin="0,2,0,6"/>
-                                <Canvas x:Name="ComTrkMap" Height="300" ClipToBounds="True" SizeChanged="OnComTrackResize"/>
+                                <Viewbox x:Name="ComTrkMapBox" Stretch="Uniform" MaxWidth="720" HorizontalAlignment="Center">
+                                    <Canvas x:Name="ComTrkMap" Width="600" Height="360" ClipToBounds="True"/>
+                                </Viewbox>
                                 <TextBlock x:Name="ComTrkNote" Style="{StaticResource Note}" Visibility="Collapsed"/>
                                 <TextBlock x:Name="ComTrkRecT" Style="{StaticResource Label}" Margin="0,10,0,4" Text="RECORD PER CAR"/>
                                 <StackPanel x:Name="ComTrkRows"/>

@@ -341,10 +341,12 @@ public partial class MainWindow
     // by how far it was from B (2.2 px a metre at 600 px wide)
     private void DrawMap(AnaLap a, AnaLap? b)
     {
+        // the same box as the web's map (600×360, its viewBox): the Viewbox around the canvas scales it whole to the
+        // panel's width, up to 720 px, so the road, the labels and the markers keep their proportions at any size
         var cv = AnaMap;
         cv.Children.Clear();
-        double W = cv.ActualWidth, H = cv.Height;
-        if (W < 40) return;
+        AnaMapBox.Visibility = Visibility.Visible;
+        const double W = 600, H = 360;
         // the road: B's own path when both laps have one (B runs along the middle, A beside it), else the lap's own,
         // else the track's layout drawn by the community
         double[]? xs = null, ys = null;
@@ -357,6 +359,7 @@ public partial class MainWindow
         {
             AnaMapNote.Text = T("This track is not scanned yet: a lap recorded with Pitlane HQ at this track draws its map by itself.", "Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ en él dibuja el mapa sola.");
             AnaMapNote.Visibility = Visibility.Visible;
+            AnaMapBox.Visibility = Visibility.Collapsed;
             return;
         }
         AnaMapNote.Visibility = Visibility.Collapsed;
@@ -364,7 +367,7 @@ public partial class MainWindow
         int nb = b == null ? a.Bins.Length : Math.Min(a.Bins.Length, b.Bins.Length);
         double L = Math.Max(nb, 2) * 5.0;
         double minx = xs.Min(), maxx = xs.Max(), miny = ys.Min(), maxy = ys.Max();
-        double pad = 26, k = Math.Min((W - 2 * pad) / Math.Max(maxx - minx, 1), (H - 2 * pad) / Math.Max(maxy - miny, 1)), s = W / 600.0;
+        double pad = 26, k = Math.Min((W - 2 * pad) / Math.Max(maxx - minx, 1), (H - 2 * pad) / Math.Max(maxy - miny, 1)), s = 1; // design units, like the web's
         double ox = (W - 2 * pad - (maxx - minx) * k) / 2, oy = (H - 2 * pad - (maxy - miny) * k) / 2, cx = W / 2, cy = H / 2;
         Point P(int i) { i = ((i % N) + N) % N; return new Point(pad + (xs[i] - minx) * k + ox, H - pad - (ys[i] - miny) * k - oy); }
         Point At(double d) => P((int)Math.Round(d / L * N));

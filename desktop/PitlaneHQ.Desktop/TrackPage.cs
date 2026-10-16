@@ -24,8 +24,6 @@ public partial class MainWindow
 
     private void OnComTrackClose(object sender, RoutedEventArgs e) => ComTrkCard.Visibility = Visibility.Collapsed;
 
-    private void OnComTrackResize(object sender, SizeChangedEventArgs e) { if (_trk != null) DrawTrackPage(); }
-
     private async Task OpenTrackPageAsync(int trackId, string name)
     {
         _trkId = trackId;
@@ -90,14 +88,13 @@ public partial class MainWindow
         {
             ComTrkNote.Text = T("This track is not scanned yet: a lap driven here with Pitlane HQ Agent draws its map by itself.", "Este circuito aún no está escaneado: una vuelta en él con Pitlane HQ Agent dibuja el mapa sola.");
             ComTrkNote.Visibility = Visibility.Visible;
-            cv.Height = 0;
+            ComTrkMapBox.Visibility = Visibility.Collapsed;
             return;
         }
-        cv.Height = 300;
+        ComTrkMapBox.Visibility = Visibility.Visible;
         ComTrkNote.Visibility = Visibility.Collapsed;
         double[] xs = xa.Select(v => D(v)).ToArray(), ys = ya.Select(v => D(v)).ToArray();
-        double W = cv.ActualWidth, H = cv.Height;
-        if (W < 40) return;
+        const double W = 600, H = 360; // the web's box, scaled whole by the Viewbox around the canvas
         int N = xs.Length;
         double minx = xs.Min(), maxx = xs.Max(), miny = ys.Min(), maxy = ys.Max();
         double pad = 26, k = Math.Min((W - 2 * pad) / Math.Max(maxx - minx, 1), (H - 2 * pad) / Math.Max(maxy - miny, 1));
@@ -105,7 +102,7 @@ public partial class MainWindow
         Point P(int i) { i = ((i % N) + N) % N; return new Point(pad + (xs[i] - minx) * k + ox, H - pad - (ys[i] - miny) * k - oy); }
         int step = Math.Max(1, N / 900);
         var asphalt = new SolidColorBrush(Color.FromRgb(0x15, 0x1a, 0x21));
-        foreach (var (col, w, op, dx, dy) in new[] { ((Brush)Brushes.Black, 15.0, 0.38, 1.5, 2.5), (B("Line"), 13.0, 1.0, 0.0, 0.0), ((Brush)asphalt, 9.5, 1.0, 0.0, 0.0) })
+        foreach (var (col, w, op, dx, dy) in new[] { ((Brush)Brushes.Black, 24.0, 0.38, 2.0, 3.5), (B("Line"), 22.0, 1.0, 0.0, 0.0), ((Brush)asphalt, 17.0, 1.0, 0.0, 0.0) })
         {
             var pl = new Polyline { Stroke = col, StrokeThickness = w, Opacity = op, StrokeLineJoin = PenLineJoin.Round, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
             for (int i = 0; i < N; i += step) pl.Points.Add(P(i));
@@ -119,8 +116,8 @@ public partial class MainWindow
         ux /= um; uy /= um;
         double nx = -uy, ny = ux;
         if ((p0.X - cx) * nx + (p0.Y - cy) * ny < 0) { nx = -nx; ny = -ny; }
-        const double half = 6.5;
-        cv.Children.Add(new Line { X1 = p0.X - nx * half, Y1 = p0.Y - ny * half, X2 = p0.X + nx * half, Y2 = p0.Y + ny * half, Stroke = Brushes.White, StrokeThickness = 3.5 });
+        const double half = 10;
+        cv.Children.Add(new Line { X1 = p0.X - nx * half, Y1 = p0.Y - ny * half, X2 = p0.X + nx * half, Y2 = p0.Y + ny * half, Stroke = Brushes.White, StrokeThickness = 3 });
         double bx = p0.X + nx * (half + 8), by = p0.Y + ny * (half + 8), tx = bx + ux * 18, ty = by + uy * 18, h = 6;
         cv.Children.Add(new Line { X1 = bx, Y1 = by, X2 = tx - ux * h, Y2 = ty - uy * h, Stroke = B("Fg"), StrokeThickness = 2, StrokeStartLineCap = PenLineCap.Round });
         cv.Children.Add(new Polygon { Fill = B("Fg"), Points = new PointCollection { new Point(tx, ty), new Point(tx - ux * h + nx * h * .6, ty - uy * h + ny * h * .6), new Point(tx - ux * h - nx * h * .6, ty - uy * h - ny * h * .6) } });
