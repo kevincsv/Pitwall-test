@@ -222,13 +222,14 @@
   retries for two minutes, but pressing Connect again always asks the PC again (`again` in the hello). No Wi-Fi pairing panel and no
   encryption wording on the Live card. The Live page is: your PC, watch another driver (the code gets
   its dashes as you type), then the download, with the same gap between the boxes.
-- What is encrypted how (say it exactly so, never more): the account (settings, race summaries, notes, ratings) is
+- What is encrypted how (for us, never said in the apps): the account (settings, race summaries, notes, ratings) is
   end-to-end encrypted with the password's key, the server cannot read it; the laps' telemetry is stored sealed on the
   server (DATA_KEY), which opens it to teach the model and share the fastest laps; live telemetry with a code is
   end-to-end. The analysis of your laps runs on your device.
-- No text about encryption or about everything sync does in the account, sync, Live or community
-  screens (only notes the driver needs, like "your data does not need to be uploaded again"); the
-  "How your data is protected" list in About is the one place that explains it.
+- No text anywhere (PC, web, Pitlane HQ Desktop, phones, the server's pages, the landing) about encryption, how the data
+  is protected, where the password goes or what the server can see: no "How your data is protected" list, no privacy
+  panel, no password note. Only the notes the driver needs to act ("your data does not need to be uploaded again",
+  what deleting the account removes, the PC uploading again after a new password).
 - Emails go through Resend (domain pitlanehq.app, secret RESEND_API_KEY); Proton Mail's SMTP (`smtp.js`,
   bodies in base64) only when Resend is not set up, never after Resend refuses one (Proton's mail as pitlanehq.app
   fails SPF and DKIM, so Gmail bounces it); Admin → Server shows the last
