@@ -30,6 +30,8 @@ type updateInfo struct {
 	Build   string `json:"build"`
 	Date    string `json:"date,omitempty"`
 	Min     string `json:"min,omitempty"` // older versions than this must update (they no longer work with the server)
+	// what the version brings, as whats-new.json says it (en, es, pt): the update window shows its first lines
+	Notes map[string][]string `json:"notes,omitempty"`
 }
 
 // versionLess: "0.6.1" < "0.6.10" (numbers, not text)

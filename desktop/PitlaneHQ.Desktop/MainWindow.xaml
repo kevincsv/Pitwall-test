@@ -461,6 +461,7 @@
                             <StackPanel>
                                 <TextBlock x:Name="SetUpdT" Style="{StaticResource CardTitle}" Text="UPDATES"/>
                                 <TextBlock x:Name="SetUpdV" Style="{StaticResource Note}"/>
+                                <TextBlock x:Name="SetUpdNew" Style="{StaticResource Note}" Margin="0,4,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
                                 <CheckBox x:Name="SetUpdAuto" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,8,0,4" Content="Install updates by themselves when no sim is running" Click="OnSetUpdAuto"/>
                                 <WrapPanel Margin="0,6,0,0">
                                     <Button x:Name="SetUpdCheck" Style="{StaticResource Btn}" Content="Check now" Click="OnSetUpdCheck"/>

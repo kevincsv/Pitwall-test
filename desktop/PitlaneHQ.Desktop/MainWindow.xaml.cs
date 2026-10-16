@@ -977,6 +977,14 @@ public partial class MainWindow : Window
             SetUpdAuto.IsChecked = Bo(u?["auto"]);
             SetUpdAuto.IsEnabled = Bo(u?["autoWorks"]);
             SetUpdApply.Visibility = Bo(u?["available"]) ? Visibility.Visible : Visibility.Collapsed;
+            // what the new version brings: the first lines of its notes, each up to its ":" (as the app's update window)
+            var notes = u?["latest"]?["notes"];
+            var lines = (notes?[_lang] ?? notes?["en"]) as JsonArray;
+            var hl = new List<string>();
+            if (Bo(u?["available"]) && lines != null)
+                foreach (var n in lines.Take(3)) { var t = S(n); var c = t.IndexOf(": ", StringComparison.Ordinal); if (c > 8 && c < 70) t = t[..c]; else { var d = t.IndexOf(". ", StringComparison.Ordinal); if (d > 8) t = t[..d]; } hl.Add("• " + t.TrimEnd('.')); }
+            SetUpdNew.Text = string.Join("\n", hl);
+            SetUpdNew.Visibility = hl.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
         catch { }
     }
