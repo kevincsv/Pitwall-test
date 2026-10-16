@@ -94,11 +94,14 @@
   speed and where), from the model's memory. The coach shows it against lap A only when nobody known
   is ahead on that car and track; the phone apps show it in the lap analysis. It is a hint of what the
   car can do, never a reference lap.
-- Braking beeps (Settings → Engineer → Beeps: Off, 1 or 3 beeps, earlier with traffic, volume; and the Braking
-  markers widget): the braking points come from the model (the next level for your best lap of the session; your
-  own best lap while the model has none or you are its fastest), and each beep moves with your speed against that
-  lap (the extra braking distance at its own deceleration) and with a car close ahead or alongside. The widget and the
-  overlay name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".
+- The rev beep (Telemetry → Engineer → Rev beep, `renderShiftPanel`/`shiftTick`, `pw.shift`; on Pitlane HQ Desktop the
+  "REV BEEP" card in Settings opens it): a beep to change up at the revs the driver chooses, kept per car: "Every gear
+  at" one RPM, or one for each gear ("My RPM"), or iRacing's shift lights, or the estimate from their own flat-out laps;
+  a moment early for the reaction time, pitch and volume, "Beeps in this screen" (the PC by default). No braking beeps
+  any more (they did not work well): the Braking markers widget and overlay only show where to brake. Their braking
+  points come from the model (the next level for your best lap of the session; your own best lap while the model has
+  none or you are its fastest), each marker moves with your speed against that lap and with a car close ahead or
+  alongside, and they name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".
 - A race's real iRating comes from your next session of the same discipline only (each has its own iRating; a change
   over 300 is another one's), never from a session of another one (`applyRealIR`, which finds your last race of that
   discipline even with races of others after it). iRacing says "Road" for sports and formula cars alike, so the car

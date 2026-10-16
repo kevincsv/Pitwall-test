@@ -11,6 +11,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - **The track page on Pitlane HQ Desktop** too, from the leaderboard.
 - **One app for Windows**: one download, "Pitlane HQ for Windows", that opens the native window with the agent
   inside; it updates itself, the window too. The old preview install is replaced by it.
+- **Rev beep**: a beep to change up at the revs you choose, for each car (one RPM for every gear or one per gear), in
+  Telemetry → Engineer. The braking beeps are gone; the braking markers stay.
 - **The web shows what Pitlane HQ does**: under the sign-in, one page with every feature and a sample of each from
   real laps of the leaderboards, and "Try it with sample data" to look around the app before creating an account.
 - Fixes and improvements.

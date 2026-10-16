@@ -1413,7 +1413,6 @@ nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{
 <!-- CAR PROFILES -->
 <section class="view" id="v-cars" hidden>
   <div class="vhead"><div><h1 data-i18n="tab.cars"></h1><div class="sub" id="carsSub"></div></div></div>
-  <div class="grid" id="shiftPanel" style="margin-bottom:10px"></div>
   <div id="carsBody"></div>
 </section>
 
@@ -5482,16 +5481,9 @@ async function renderEngineer(){const box=$("#engBody");if(!box)return;if(!engLo
       <label class="frow" style="gap:8px"><span class="label" style="min-width:80px">${esc(Tx("Speed","Velocidad"))}</span><input type="range" id="e-rate" min="70" max="150" value="${Math.round(VOICE.rate*100)}" style="flex:1"></label>
       <label class="frow" style="gap:8px"><span class="label" style="min-width:80px">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="e-vol" min="10" max="100" value="${Math.round(VOICE.vol*100)}" style="flex:1"></label></div>
     <p class="note">${Lp("It speaks through the speakers or headphones of the screen where you turn it on. Turn it on in one screen only (the PC, or the phone with headphones).","Habla por los altavoces o auriculares de la pantalla donde lo actives. Actívalo solo en una (el PC, o el móvil con auriculares).")}</p>${ok?"":`<p class="err">${esc(Tx("This browser cannot speak; only audio packs will play.","Este navegador no puede hablar; solo sonarán los paquetes de audio."))}</p>`}</div>
-  <div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Beeps","Pitidos"))}</h2>${chk("e-beep",beepHere(),Lp("Beeps in this screen","Pitidos en esta pantalla",true))}</div>
-    <div class="label">${esc(Tx("Braking beeps","Pitidos de frenada"))}</div>
-    <div class="frow" style="align-items:center;margin:4px 0 6px">${[["off","Off","Apagados"],["one","1 beep","1 pitido"],["count","3 beeps","3 pitidos"]].map(o=>`<button type="button" class="chip" data-ebm="${o[0]}" aria-pressed="${(bmc.beeps||"off")===o[0]}">${esc(Tx(o[1],o[2]))}</button>`).join("")}<button type="button" class="chip" id="e-bmt" aria-pressed="${!!bmc.traffic}">${esc(Tx("Earlier with traffic","Antes con tráfico"))}</button>
-      <label class="frow" style="gap:6px"><span class="label">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="e-bmvol" min="5" max="100" value="${Math.round((bmc.vol??.7)*100)}"></label><button type="button" class="btn small" id="e-bmtest">${esc(Tx("Test","Probar"))}</button></div>
-    <p class="note" style="margin-top:0">${Lp("Where to brake comes from the model of your car and track (the real lap of the driver just ahead of your pace; your own best lap while there is none). The beeps come earlier when you carry more speed than that lap, with a car close ahead or alongside. By default they sound on the PC only.","El punto de frenada sale del modelo de tu coche y circuito (la vuelta real del piloto justo por delante de tu ritmo; tu mejor vuelta mientras no lo haya). Los pitidos suenan antes si llevas más velocidad que esa vuelta, o con un coche justo delante o al lado. Por defecto solo suenan en el PC.")}</p>
-    <div class="frow"><button type="button" class="btn small" id="e-bm">${esc(Tx("Braking markers","Marcas de frenada"))}</button><button type="button" class="btn small" id="e-shift">${esc(Tx("Shift beep for this car","Pitido de cambio de este coche"))}</button><button type="button" class="btn small" id="e-notes">${esc(Tx("My track notes","Mis notas de circuitos"))}</button></div></div>`;
-  document.querySelectorAll("[data-ebm]").forEach(b=>b.onclick=()=>{setUI("brakes",{beeps:b.dataset.ebm});if(b.dataset.ebm!=="off")beep(1320,130,ui("brakes").vol);renderEngineer()});
-  $("#e-bmt").onclick=()=>{setUI("brakes",{traffic:!ui("brakes").traffic});renderEngineer()};
-  $("#e-bmvol").onchange=e=>{setUI("brakes",{vol:e.target.value/100});beep(1320,130,e.target.value/100)};$("#e-bmtest").onclick=()=>{const v=ui("brakes").vol;beep(880,55,v);setTimeout(()=>beep(880,55,v),300);setTimeout(()=>beep(1320,130,v),600)};
-  $("#e-beep").onclick=()=>{store.set("pw.beepHere",!beepHere());renderEngineer()};$("#e-shift").onclick=()=>show("cars");$("#e-notes").onclick=()=>show("tracks");
+  <div class="s12" id="shiftPanel"></div>
+  <div class="panel s12"><div class="frow"><button type="button" class="btn small" id="e-bm">${esc(Tx("Braking markers","Marcas de frenada"))}</button><button type="button" class="btn small" id="e-notes">${esc(Tx("My track notes","Mis notas de circuitos"))}</button></div></div></div>`;
+  renderShiftPanel();$("#e-notes").onclick=()=>show("tracks");
   $("#e-bm").onclick=()=>{HIDDEN.delete("brakes");store.set("pw.hiddenW",[...HIDDEN]);applyLayout();show("live");setTimeout(()=>{const w=document.querySelector('[data-w="brakes"]');if(w)w.scrollIntoView({behavior:"smooth",block:"center"})},150)};
   $("#e-on").onclick=()=>{VOICE.on=!VOICE.on;VS.base=false;saveVoice();if(VOICE.on)say(M("radio_check"),0,0,true);else stopSpeech();renderEngineer()};
   $("#e-test").onclick=()=>say(M("radio_check"),0,0,true);
@@ -6014,10 +6006,6 @@ function brakeTick(){const c=ui("brakes");if(!c.on||!T.IsOnTrack||T.OnPitRoad){B
   const fast=dTo<300?Math.max(-25,Math.min(60,(v*v-nz.v*nz.v)/(2*nz.dec))):0;
   const mark=dTo-early-fast,tTo=mark/v,key=(wrap?lap+1:lap)+":"+k;
   BM.cur={n:nz.n,mark,tTo,early,fast,side,vref:nz.v,vmin:nz.vmin};
-  if(c.beeps&&c.beeps!=="off"&&beepHere()){const b=BM.beeped[key]||0,vol=c.vol;
-    if(c.beeps==="count"&&b<1&&tTo<=.6+BM_LAT&&tTo>.3+BM_LAT){beep(880,55,vol);BM.beeped[key]=1}
-    else if(c.beeps==="count"&&b<2&&tTo<=.3+BM_LAT&&tTo>BM_LAT){beep(880,55,vol);BM.beeped[key]=2}
-    else if(b<3&&tTo<=BM_LAT&&tTo>-.3){beep(1320,130,vol);BM.beeped[key]=3}}
   /* where you really started braking, against the marker */
   if(dTo<70&&dTo>-3&&(!BM.watch||BM.watch.key!==key))BM.watch={key,n:nz.n,d:nz.d,traffic:!!BM.traffic,done:false};
   const w=BM.watch;if(w&&!w.done){let dd=d-w.d;if(dd<-L/2)dd+=L;if(dd>L/2)dd-=L;
@@ -6457,10 +6445,11 @@ setTimeout(()=>{if(!OV.on||OV.list.includes("brakes"))loadNotes()},2500);
 function renderShiftPanel(){const box=$("#shiftPanel");if(!box)return;const k=carKey(),c=shiftCfg(k),top=topGear()||6,ir=Math.round(irShiftRPM()),here=beepHere();
   if(k){const e=estimateShifts(k);if(Object.keys(e).length){c.est=Object.assign(c.est,e);if(SHIFT.cars[k])saveShift(k,c)}}
   const saved=Object.entries(SHIFT.cars).filter(([x])=>x!==k);
-  box.innerHTML=`<div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Shift beep","Pitido de cambio"))}</h2><div class="frow">${chk("shHere",here,Lp("Beeps in this screen","Pitidos en esta pantalla",true))}</div></div>
-    <p class="note" style="margin-top:0">${Lp("A beep when it is time to change up, set for each car. It sounds a moment early to make up for your reaction time.","Un pitido cuando toca subir de marcha, configurado para cada coche. Suena un instante antes para compensar tu tiempo de reacción.")}</p>
+  box.innerHTML=`<div class="panel s12"><div class="vhead" style="margin:0 0 6px"><h2 style="margin:0">${esc(Tx("Rev beep","Pitido de revoluciones","Drehzahl-Piepton","Bipe de giros"))}</h2><div class="frow">${chk("shHere",here,Lp("Beeps in this screen","Pitidos en esta pantalla",true))}</div></div>
+    <p class="note" style="margin-top:0">${Lp("A beep to change up at the revs you choose: for each car, the same RPM for every gear or one for each gear, or at iRacing's shift lights. It sounds a moment early to make up for your reaction time.","Un pitido para subir de marcha a las revoluciones que tú elijas: para cada coche, las mismas RPM en todas las marchas o unas para cada marcha, o en las luces de cambio de iRacing. Suena un instante antes para compensar tu tiempo de reacción.")}</p>
     ${k?`<div class="frow" style="align-items:center;margin:8px 0"><b>${esc(myDriver().CarScreenName||k)}</b>${chk("shOn",c.on,Lp("On for this car","Activado en este coche",true))}
       <div class="seg3" role="group">${[["ir","iRacing lights","Luces de iRacing"],["est","Estimated best","Óptimo estimado"],["custom","My RPM","Mis RPM"]].map(m=>`<button type="button" data-shm="${m[0]}" aria-pressed="${c.mode===m[0]}">${esc(Tx(m[1],m[2]))}</button>`).join("")}</div></div>
+    <label class="frow" style="gap:8px;align-items:center;margin:0 0 8px"><span class="label">${esc(Tx("Every gear at","Todas las marchas a","Alle Gänge bei","Todas as marchas a"))}</span><input type="number" class="num" id="shAll" min="1000" max="20000" step="50" placeholder="${ir}" value="${(()=>{const v=Object.values(c.custom).map(Number);return v.length&&v.every(x=>x===v[0])&&v.length>=Math.max(1,top-1)?v[0]:""})()}"><span class="note" style="margin:0">RPM</span></label>
     <div style="overflow:auto"><table class="rtable shtable"><thead><tr><th>${esc(Tx("Gear","Marcha"))}</th><th>${esc(Tx("iRacing lights","Luces de iRacing"))}</th><th>${esc(Tx("Estimated best","Óptimo estimado"))}</th><th>${esc(Tx("My RPM","Mis RPM"))}</th></tr></thead><tbody>
       ${Array.from({length:Math.max(1,top-1)},(_,i)=>i+1).map(g=>`<tr class="${shiftRPM(g,c)===(+c.custom[g]||-1)&&c.mode==="custom"||c.mode==="est"&&c.est[g]?"":""}"><td class="mono">${g} → ${g+1}</td><td class="mono">${ir}</td><td class="mono">${c.est[g]?c.est[g]:`<span class="muted">${esc(Tx("drive flat out in this gear","acelera a fondo en esta marcha"))}</span>`}</td><td><input type="number" class="num" min="1000" max="20000" step="50" data-shg="${g}" value="${c.custom[g]||""}" placeholder="${c.est[g]||ir}"></td></tr>`).join("")}</tbody></table></div>
     <div class="frow" style="margin-top:10px;align-items:center"><label class="frow" style="gap:6px"><span class="label">${esc(Tx("Early by","Adelanto"))}</span><input type="range" id="shLead" min="0" max="250" step="10" value="${Math.round(c.lead*1000)}"><span class="mono" id="shLeadV">${Math.round(c.lead*1000)} ms</span></label>
@@ -6468,11 +6457,12 @@ function renderShiftPanel(){const box=$("#shiftPanel");if(!box)return;const k=ca
       <label class="frow" style="gap:6px"><span class="label">${esc(Tx("Volume","Volumen"))}</span><input type="range" id="shVol" min="5" max="100" value="${Math.round(c.vol*100)}"></label>
       <button type="button" class="btn small" id="shTest">${esc(Tx("Test","Probar"))}</button>${Object.keys(c.est).length?`<button type="button" class="btn small" id="shCopy">${esc(Tx("Use the estimate as mine","Usar el estimado como mío"))}</button>`:""}</div>
     <p class="note">${Lp("“Estimated best” is worked out from your own laps: in each gear, flat out, where the next gear would pull harder. It fills in as you drive.","El «óptimo estimado» sale de tus propias vueltas: en cada marcha, a fondo, dónde la siguiente marcha tiraría más. Se completa mientras conduces.")}</p>`
-    :`<p class="note">${Lp("Get in a car (or start the demo) to set its shift beep.","Súbete a un coche (o arranca la demo) para configurar su pitido.")}</p>`}
+    :`<p class="note">${Lp("Get in a car to set its rev beep: each car keeps its own.","Súbete a un coche para configurar su pitido de revoluciones: cada coche guarda el suyo.")}</p>`}
     ${saved.length?`<div class="label" style="margin-top:10px">${esc(Tx("Other cars","Otros coches"))}</div><div class="frow">${saved.map(([x,v])=>`<span class="pill">${esc(v.name||x)} · ${esc(v.on?Tx("on","activo"):Tx("off","apagado"))} <button type="button" class="linkbtn" data-shdel="${esc(x)}">✕</button></span>`).join("")}</div>`:""}</div>`;
   $("#shHere").onclick=()=>{store.set("pw.beepHere",!beepHere());renderShiftPanel()};
-  if(!k)return;const upd=patch=>{const n=Object.assign(shiftCfg(k),patch);saveShift(k,n);renderShiftPanel()};
+  if(!k)return;const upd=patch=>{const n=Object.assign(shiftCfg(k),patch);saveShift(k,n);setTimeout(renderShiftPanel)}; // drawn again after the event (a field that loses the focus while it goes fires its change once more)
   $("#shOn").onclick=()=>upd({on:!c.on});box.querySelectorAll("[data-shm]").forEach(b=>b.onclick=()=>upd({mode:b.dataset.shm}));
+  {const all=$("#shAll");if(all)all.onchange=()=>{const v=+all.value,cu={};if(v>0)for(let g=1;g<Math.max(2,top);g++)cu[g]=v;upd({custom:cu,mode:"custom"})}}
   box.querySelectorAll("[data-shg]").forEach(i=>i.onchange=()=>{const cu=Object.assign({},c.custom);if(+i.value>0)cu[i.dataset.shg]=+i.value;else delete cu[i.dataset.shg];upd({custom:cu,mode:"custom"})});
   $("#shLead").oninput=e=>{$("#shLeadV").textContent=e.target.value+" ms"};$("#shLead").onchange=e=>upd({lead:e.target.value/1000});
   box.querySelectorAll("[data-shp]").forEach(b=>b.onclick=()=>{beep(+b.dataset.shp,75,c.vol);upd({pitch:+b.dataset.shp})});$("#shVol").onchange=e=>{upd({vol:e.target.value/100});beep(c.pitch,75,e.target.value/100)};

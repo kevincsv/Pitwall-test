@@ -807,7 +807,7 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 	return int(math.Ceil(H))
 }
 
-// ---------- braking markers (the app's brakeTick, without the beeps: the app plays them) ----------
+// ---------- braking markers (the app's brakeTick; no beeps: the rev beep is the one that sounds) ----------
 
 type bmZone struct {
 	n               int

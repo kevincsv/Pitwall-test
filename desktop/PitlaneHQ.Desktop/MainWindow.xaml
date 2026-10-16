@@ -430,18 +430,9 @@
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock x:Name="SetBeepT" Style="{StaticResource CardTitle}" Text="BRAKING BEEPS"/>
-                                <WrapPanel>
-                                    <RadioButton x:Name="SetBeepOff" GroupName="beeps" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,4,16,4" Content="Off" Tag="off" Click="OnSetBeeps"/>
-                                    <RadioButton x:Name="SetBeepOne" GroupName="beeps" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,4,16,4" Content="1 beep" Tag="one" Click="OnSetBeeps"/>
-                                    <RadioButton x:Name="SetBeepCount" GroupName="beeps" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,4,16,4" Content="3 beeps" Tag="count" Click="OnSetBeeps"/>
-                                </WrapPanel>
-                                <CheckBox x:Name="SetTraffic" Foreground="{StaticResource Fg}" FontSize="14" Margin="0,4" Content="Earlier with traffic" Click="OnSetTraffic"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                    <TextBlock x:Name="SetVolL" Style="{StaticResource Label}" Margin="0,0,10,0" VerticalAlignment="Center" Text="VOLUME"/>
-                                    <Slider x:Name="SetVol" Width="200" Minimum="5" Maximum="100" VerticalAlignment="Center" PreviewMouseUp="OnSetVol"/>
-                                </StackPanel>
-                                <TextBlock x:Name="SetBeepNote" Style="{StaticResource Note}" Margin="0,8,0,0" Text="Where to brake comes from the model of your car and track; the beeps come earlier with more speed or a car close ahead or alongside."/>
+                                <TextBlock x:Name="SetBeepT" Style="{StaticResource CardTitle}" Text="REV BEEP"/>
+                                <TextBlock x:Name="SetBeepNote" Style="{StaticResource Note}" Margin="0,0,0,8" Text="A beep to change up at the revs you choose, for each car: the same RPM for every gear or one for each, or at iRacing's shift lights."/>
+                                <WrapPanel><Button x:Name="SetBeepGo" Style="{StaticResource Btn}" Content="Set the rev beep" Click="OnSetRevBeep"/></WrapPanel>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">

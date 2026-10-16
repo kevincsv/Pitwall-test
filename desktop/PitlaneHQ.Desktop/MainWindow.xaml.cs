@@ -141,6 +141,8 @@ public partial class MainWindow : Window
         AccLogin.Content = T("Sign in", "Entrar"); AccCreate.Content = T("Create an account", "Crear una cuenta");
         AccNameL.Text = T("PUBLIC NAME", "NOMBRE PÚBLICO"); AccNameSave.Content = T("Save", "Guardar");
         AccNameNote.Text = T("Changing it here changes it everywhere, your shared laps too.", "Si lo cambias aquí cambia en todas partes, también en tus vueltas compartidas.");
+        SetBeepT.Text = T("REV BEEP", "PITIDO DE REVOLUCIONES"); SetBeepGo.Content = T("Set the rev beep", "Configurar el pitido");
+        SetBeepNote.Text = T("A beep to change up at the revs you choose, for each car: the same RPM for every gear or one for each, or at iRacing's shift lights.", "Un pitido para subir de marcha a las revoluciones que tú elijas, para cada coche: las mismas RPM en todas las marchas o unas para cada una, o en las luces de cambio de iRacing.");
         AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar");
         AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
@@ -151,9 +153,6 @@ public partial class MainWindow : Window
         SetVR.Content = T("Show the overlays in VR (SteamVR)", "Mostrar los overlays en VR (SteamVR)");
         SetVRNote.Text = T("Every open overlay also shows in the headset, where it is on your main screen: move them in Overlays → Edit positions and they move in VR too. Needs SteamVR running (a Meta Quest through Link or Air Link too, with SteamVR as the OpenXR runtime); Pitlane HQ never starts it.", "Cada overlay abierto se ve también en las gafas, donde está en tu pantalla principal: muévelos en Overlays → Editar posiciones y se mueven también en VR. Necesita SteamVR abierto (también unas Meta Quest por Link o Air Link, con SteamVR como runtime de OpenXR); Pitlane HQ nunca lo abre.");
         SetVRDistL.Text = T("DISTANCE", "DISTANCIA"); SetVRSizeL.Text = T("SIZE (YOUR SCREEN IN VR)", "TAMAÑO (TU PANTALLA EN VR)"); SetVRHeightL.Text = T("HEIGHT", "ALTURA");
-        SetBeepT.Text = T("BRAKING BEEPS", "PITIDOS DE FRENADA"); SetBeepOff.Content = T("Off", "Apagados"); SetBeepOne.Content = T("1 beep", "1 pitido"); SetBeepCount.Content = T("3 beeps", "3 pitidos");
-        SetTraffic.Content = T("Earlier with traffic", "Antes con tráfico"); SetVolL.Text = T("VOLUME", "VOLUMEN");
-        SetBeepNote.Text = T("Where to brake comes from the model of your car and track; the beeps come earlier with more speed, or with a car close ahead or alongside.", "El punto de frenada sale del modelo de tu coche y circuito; los pitidos suenan antes con más velocidad o con un coche justo delante o al lado.");
         SetUpdT.Text = T("UPDATES", "ACTUALIZACIONES"); SetUpdAuto.Content = T("Install updates by themselves when no sim is running", "Instalar las actualizaciones solas cuando no hay ningún simulador abierto");
         SetUpdCheck.Content = T("Check now", "Comprobar ahora"); SetUpdApply.Content = T("Update now", "Actualizar ahora");
         SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
@@ -965,11 +964,6 @@ public partial class MainWindow : Window
             if (_set == null) return;
             SetStart.IsChecked = Bo(_set["startWithWindows"]);
             SetCloseOv.IsChecked = Bo(_set["closeOnExit"]);
-            var br = _set["ui"]?["brakes"];
-            var beeps = S(br?["beeps"], "count");
-            SetBeepOff.IsChecked = beeps == "off"; SetBeepOne.IsChecked = beeps == "one"; SetBeepCount.IsChecked = beeps != "off" && beeps != "one";
-            SetTraffic.IsChecked = br?["traffic"] == null || Bo(br["traffic"]);
-            if (!SetVol.IsMouseCaptureWithin) SetVol.Value = Math.Clamp((br?["vol"] == null ? 0.7 : D(br["vol"])) * 100, 5, 100);
             var vrc = _set["ui"]?["vr"];
             SetVR.IsChecked = Bo(vrc?["on"]);
             if (!SetVRDist.IsMouseCaptureWithin) SetVRDist.Value = vrc?["dist"] == null ? 0.9 : D(vrc["dist"]);
@@ -1018,20 +1012,10 @@ public partial class MainWindow : Window
         SetVRDistV.Text = SetVRDist.Value.ToString("0.00") + " m"; SetVRSizeV.Text = SetVRSize.Value.ToString("0.00") + " m"; SetVRHeightV.Text = SetVRHeight.Value.ToString("0.00") + " m";
     }
 
-    private JsonObject Brakes()
-    {
-        var ui = _set!["ui"] as JsonObject;
-        if (ui == null) { ui = new JsonObject(); _set["ui"] = ui; }
-        var br = ui["brakes"] as JsonObject;
-        if (br == null) { br = new JsonObject { ["on"] = true, ["beeps"] = "count", ["traffic"] = true, ["vol"] = 0.7 }; ui["brakes"] = br; }
-        return br;
-    }
-
     private async void OnSetStart(object sender, RoutedEventArgs e) { if (_set == null) return; _set["startWithWindows"] = SetStart.IsChecked == true; await SaveSettingsAsync(); }
     private async void OnSetCloseOv(object sender, RoutedEventArgs e) { if (_set == null) return; _set["closeOnExit"] = SetCloseOv.IsChecked == true; await SaveSettingsAsync(); }
-    private async void OnSetBeeps(object sender, RoutedEventArgs e) { if (_set == null || sender is not RadioButton { Tag: string v }) return; Brakes()["beeps"] = v; await SaveSettingsAsync(); }
-    private async void OnSetTraffic(object sender, RoutedEventArgs e) { if (_set == null) return; Brakes()["traffic"] = SetTraffic.IsChecked == true; await SaveSettingsAsync(); }
-    private async void OnSetVol(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (_set == null) return; Brakes()["vol"] = Math.Round(SetVol.Value) / 100.0; await SaveSettingsAsync(); }
+    // the rev beep is set per car in the app's engineer (its table of gears), the app plays it
+    private void OnSetRevBeep(object sender, RoutedEventArgs e) => OpenInApp("engineer");
     private async void OnSetUpdAuto(object sender, RoutedEventArgs e) { await Post("/api/update?action=auto&on=" + (SetUpdAuto.IsChecked == true ? "1" : "0")); await SettingsAsync(); }
     private async void OnSetUpdCheck(object sender, RoutedEventArgs e) { await Post("/api/update?action=check"); await SettingsAsync(); }
     private async void OnSetUpdApply(object sender, RoutedEventArgs e)
