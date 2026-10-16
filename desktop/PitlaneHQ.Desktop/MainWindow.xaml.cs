@@ -50,6 +50,45 @@ public partial class MainWindow : Window
     }
 
     private Brush B(string key) => (Brush)FindResource(key);
+
+    // the header's pill with the game's state, like the web's (.conn): live in green, waiting in yellow, the demo in
+    // amber, the agent not answering in red
+    private void SetConn(string brush, string text, string? tip = null)
+    {
+        var b = B(brush);
+        ConnPill.BorderBrush = b; ConnPillDot.Fill = b; ConnPillText.Foreground = b;
+        ConnPillText.Text = text.ToUpperInvariant();
+        ConnPill.ToolTip = tip;
+    }
+
+    // the main tabs keep their names; a narrow window shows only their icons (the name on hover), like the web
+    private readonly Dictionary<RadioButton, string> _navText = new();
+    private bool _compact;
+    private string _version = "";
+    private void SetNav(RadioButton rb, string text)
+    {
+        _navText[rb] = text;
+        rb.ToolTip = text;
+        rb.Content = _compact ? null : text;
+    }
+
+    private void OnWinSize(object sender, SizeChangedEventArgs e) => FitHeader();
+
+    private void FitHeader()
+    {
+        var w = ActualWidth;
+        if (w <= 0) return;
+        BrandText.Visibility = w < 1000 ? Visibility.Collapsed : Visibility.Visible;
+        VersionPill.Visibility = _version == "" || w < 1120 ? Visibility.Collapsed : Visibility.Visible;
+        var compact = w < 1300;
+        if (compact == _compact) return;
+        _compact = compact;
+        foreach (var (rb, t) in _navText) rb.Content = compact ? null : t;
+    }
+
+    // a maximised window without the system's frame goes past the screen's edges by its resize border
+    private void OnWinState(object? sender, EventArgs e) =>
+        Root.Margin = WindowState == WindowState.Maximized ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
     private static Brush Hex(string? h)
     {
         try { return (Brush)new BrushConverter().ConvertFromString(string.IsNullOrEmpty(h) ? "#E7EBF1" : h)!; }
@@ -66,15 +105,14 @@ public partial class MainWindow : Window
         if (exe == null)
         {
             StartError.Text = T("Pitlane HQ Agent was not found on this PC. Install it from pitlanehq.app, then open Pitlane HQ again.", "No se encontró Pitlane HQ Agent en este PC. Instálalo desde pitlanehq.app y vuelve a abrir Pitlane HQ.");
-            EngineText.Text = "Engine: not found";
+            SetConn("Bad", T("Agent not found", "Agente no encontrado"));
             return;
         }
         try
         {
             await _engine.StartAsync(exe, _cts.Token);
-            EngineText.Text = "Engine: " + _engine.Base;
             Starting.Visibility = Visibility.Collapsed;
-            // the app runs behind the native screens from the start (hidden): the race engineer, the beeps and
+            // the app runs behind the native screens from the start (hidden): the rev beep and
             // the recording of your laps live there
             _ = EnsureWebAsync();
             _poll.Start();
@@ -85,7 +123,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StartError.Text = ex.Message;
-            EngineText.Text = "Engine: failed";
+            SetConn("Bad", T("The agent did not start", "El agente no arrancó"));
         }
     }
 
@@ -97,7 +135,7 @@ public partial class MainWindow : Window
         try
         {
             // its own data folder (the install folder may not be writable) and no slowing down while hidden:
-            // the beeps and the engineer keep their timing behind a native screen
+            // the rev beep keeps its timing behind a native screen
             var env = await CoreWebView2Environment.CreateAsync(null,
                 System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PitlaneHQ", "WebView2-desktop"),
                 new CoreWebView2EnvironmentOptions("--disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows"));
@@ -123,41 +161,42 @@ public partial class MainWindow : Window
     {
         if (lang == _lang) return;
         _lang = lang;
-        NavHome.Content = T("Home", "Inicio"); NavAnalysis.Content = T("Analysis", "Análisis"); NavCommunity.Content = T("Community", "Comunidad");
-        NavLive.Content = T("Telemetry", "Telemetría"); NavOverlays.Content = "Overlays"; NavAccount.Content = T("Account", "Cuenta"); NavSettings.Content = T("Settings", "Ajustes");
-        HomeTitle.Text = T("Home", "Inicio"); GameLabel.Text = T("GAME", "JUEGO"); TrackLabel.Text = T("TRACK", "CIRCUITO"); CarLabel.Text = T("CAR", "COCHE");
+        SetNav(NavHome, T("Home", "Inicio")); SetNav(NavAnalysis, T("Analysis", "Análisis")); SetNav(NavCommunity, T("Community", "Comunidad"));
+        SetNav(NavLive, T("Telemetry", "Telemetría")); SetNav(NavOverlays, "Overlays"); SetNav(NavAccount, T("Account", "Cuenta"));
+        NavSettings.ToolTip = T("Settings", "Ajustes");
+        HomeTitle.Text = T("Home", "Inicio").ToUpperInvariant(); GameLabel.Text = T("GAME", "JUEGO"); TrackLabel.Text = T("TRACK", "CIRCUITO"); CarLabel.Text = T("CAR", "COCHE");
         RacesTitle.Text = T("RECENT RACES", "CARRERAS RECIENTES"); RacesEmpty.Text = T("Your races appear here after you finish one.", "Tus carreras aparecen aquí cuando terminas una.");
-        LiveTitle.Text = T("Telemetry", "Telemetría"); GearLabel.Text = T("GEAR", "MARCHA"); SpeedLabel.Text = T("SPEED", "VELOCIDAD");
+        LiveTitle.Text = T("Telemetry", "Telemetría").ToUpperInvariant(); GearLabel.Text = T("GEAR", "MARCHA"); SpeedLabel.Text = T("SPEED", "VELOCIDAD");
         CurLabel.Text = T("CURRENT LAP", "VUELTA ACTUAL"); DeltaLabel.Text = T("DELTA TO BEST", "DELTA VS MEJOR"); BestLabel.Text = T("BEST LAP", "MEJOR VUELTA"); LastLabel.Text = T("LAST LAP", "ÚLTIMA VUELTA");
         FuelTitle.Text = T("FUEL", "COMBUSTIBLE"); FuelTankL.Text = T("in tank", "en el depósito"); FuelLapsL.Text = T("laps of fuel", "vueltas posibles"); FuelPerL.Text = T("per lap", "por vuelta");
         RelTitle.Text = "RELATIVE"; RelEmpty.Text = T("Waiting for cars on track", "Esperando coches en pista");
-        OvTitle.Text = "Overlays"; OvSub.Text = T("Windows on top of the game, drawn by Pitlane HQ. Open them here; Auto opens them when you get in the car.", "Ventanas sobre el juego, dibujadas por Pitlane HQ. Ábrelas aquí; Auto las abre al subirte al coche.");
+        OvTitle.Text = "OVERLAYS"; OvSub.Text = T("Windows on top of the game, drawn by Pitlane HQ. Open them here; Auto opens them when you get in the car.", "Ventanas sobre el juego, dibujadas por Pitlane HQ. Ábrelas aquí; Auto las abre al subirte al coche.");
         OvWipText.Text = T("In development: the overlays are for admins for now.", "En desarrollo: los overlays son solo para admins por ahora.");
         OvReset.Content = T("Reset positions", "Restablecer posiciones"); OvCloseAll.Content = T("Close all", "Cerrar todos"); OvAlphaL.Text = T("OPACITY", "OPACIDAD");
         OvPresetsL.Text = T("PRESETS", "PERFILES"); OvPresetSave.Content = T("+ Save current", "+ Guardar el actual"); DemoText.Text = T("DEMO DATA", "DATOS DE PRUEBA");
         StartingText.Text = T("Starting the Pitlane HQ engine…", "Arrancando el motor de Pitlane HQ…");
-        AccTitle.Text = T("Account", "Cuenta"); AccSignInT.Text = T("SIGN IN", "INICIAR SESIÓN"); AccEmailL.Text = "EMAIL"; AccPassL.Text = T("PASSWORD", "CONTRASEÑA");
+        AccTitle.Text = T("Account", "Cuenta").ToUpperInvariant(); AccSignInT.Text = T("SIGN IN", "INICIAR SESIÓN"); AccEmailL.Text = "EMAIL"; AccPassL.Text = T("PASSWORD", "CONTRASEÑA");
         AccCodeL.Text = T("CODE FROM YOUR AUTHENTICATOR APP (OR A RECOVERY CODE)", "CÓDIGO DE TU APP DE AUTENTICACIÓN (O UN CÓDIGO DE RECUPERACIÓN)");
         AccLogin.Content = T("Sign in", "Entrar"); AccCreate.Content = T("Create an account", "Crear una cuenta");
         AccNameL.Text = T("PUBLIC NAME", "NOMBRE PÚBLICO"); AccNameSave.Content = T("Save", "Guardar");
         AccNameNote.Text = T("Changing it here changes it everywhere, your shared laps too.", "Si lo cambias aquí cambia en todas partes, también en tus vueltas compartidas.");
-        SetBeepT.Text = T("REV BEEP", "PITIDO DE REVOLUCIONES"); SetBeepGo.Content = T("Set the rev beep", "Configurar el pitido");
+        SetBeepT.Text = T("REV BEEP", "PITIDO DE REVOLUCIONES"); SetBeepGo.Content = T("Turn it on and set it", "Activarlo y configurarlo");
         SetBeepNote.Text = T("A beep to change up at the revs you choose, for each car: the same RPM for every gear or one for each, or at iRacing's shift lights.", "Un pitido para subir de marcha a las revoluciones que tú elijas, para cada coche: las mismas RPM en todas las marchas o unas para cada una, o en las luces de cambio de iRacing.");
         AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar");
         AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
         AccDiscShow.Content = T("Show my Discord on my profile", "Mostrar mi Discord en mi perfil");
         AccDiscGo.Content = T("Link Discord", "Vincular Discord"); AccDiscOff.Content = T("Unlink", "Desvincular");
-        SetTitle.Text = T("Settings", "Ajustes"); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
+        SetTitle.Text = T("Settings", "Ajustes").ToUpperInvariant(); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
         SetCloseOv.Content = T("Close the overlays when Pitlane HQ closes", "Cerrar los overlays al cerrar Pitlane HQ");
         SetVR.Content = T("Show the overlays in VR (SteamVR)", "Mostrar los overlays en VR (SteamVR)");
         SetVRNote.Text = T("Every open overlay also shows in the headset, where it is on your main screen: move them in Overlays → Edit positions and they move in VR too. Needs SteamVR running (a Meta Quest through Link or Air Link too, with SteamVR as the OpenXR runtime); Pitlane HQ never starts it.", "Cada overlay abierto se ve también en las gafas, donde está en tu pantalla principal: muévelos en Overlays → Editar posiciones y se mueven también en VR. Necesita SteamVR abierto (también unas Meta Quest por Link o Air Link, con SteamVR como runtime de OpenXR); Pitlane HQ nunca lo abre.");
         SetVRDistL.Text = T("DISTANCE", "DISTANCIA"); SetVRSizeL.Text = T("SIZE (YOUR SCREEN IN VR)", "TAMAÑO (TU PANTALLA EN VR)"); SetVRHeightL.Text = T("HEIGHT", "ALTURA");
         SetUpdT.Text = T("UPDATES", "ACTUALIZACIONES"); SetUpdAuto.Content = T("Install updates by themselves when no sim is running", "Instalar las actualizaciones solas cuando no hay ningún simulador abierto");
         SetUpdCheck.Content = T("Check now", "Comprobar ahora"); SetUpdApply.Content = T("Update now", "Actualizar ahora");
-        SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the race engineer's voice, the phone, notifications and About.", "Idioma y unidades, la voz del ingeniero, el móvil, las notificaciones y Acerca de.");
+        SetMoreT.Text = T("MORE", "MÁS"); SetMoreNote.Text = T("Language and units, the phone, notifications and About.", "Idioma y unidades, el móvil, las notificaciones y Acerca de.");
         SetMore.Content = T("Open all the settings", "Abrir todos los ajustes");
-        ComTitle.Text = T("Community", "Comunidad"); ComBoardT.Text = "LEADERBOARD";
+        ComTitle.Text = T("Community", "Comunidad").ToUpperInvariant(); ComBoardT.Text = "LEADERBOARD";
         ComTrkBtn.Content = T("Track page", "Página del circuito");
         ComRecT.Text = T("RECENT RECORDS", "RÉCORDS RECIENTES"); ComRecSub.Text = T("The fastest lap of every car and track, the newest first.", "La vuelta más rápida de cada coche y circuito, la más nueva primero.");
         ComSub.Text = T("Leaderboards by lap time: the fastest lap of each car and track in every account, shared by itself.", "Leaderboards por tiempo de vuelta: la vuelta más rápida de cada coche y circuito de cada cuenta, compartida sola.");
@@ -177,7 +216,7 @@ public partial class MainWindow : Window
         {
             if (!_engine.Running)
             {
-                EngineText.Text = "Engine: stopped";
+                SetConn("Bad", T("Agent stopped", "Agente detenido"));
                 ConnDot.Fill = B("Bad");
                 return;
             }
@@ -186,14 +225,17 @@ public partial class MainWindow : Window
             ConnText.Text = st.Connected ? st.Game + T(" connected", " conectado") : T("Waiting for ", "Esperando a ") + st.Game;
             TrackText.Text = st.Track == "" ? "–" : st.Track;
             CarText.Text = st.Car == "" ? "–" : st.Car;
-            VersionText.Text = st.Version == "" ? "desktop" : $"v{st.Version} {st.Stage}";
-            AccountText.Text = st.Account == "" ? T("iRacing: not signed in", "iRacing: sin sesión") : "iRacing: " + st.Account;
+            _version = st.Version == "" ? "" : $"v{st.Version} {st.Stage}".Trim();
+            VersionText.Text = _version;
+            SetConn(st.Demo ? "Accent" : st.Connected ? "Good" : "Warn",
+                st.Demo ? "Demo" : st.Connected ? st.Game + T(" live", " en vivo") : T("Waiting for ", "Esperando ") + st.Game);
+            FitHeader();
             DemoPill.Visibility = st.Demo ? Visibility.Visible : Visibility.Collapsed;
             if (_view == "home") { await HomeRacesAsync(); await HomeRatingsAsync(); }
             if (_view == "overlays") await OverlaysAsync();
             if (_view == "me") await AccountAsync();
         }
-        catch (Exception ex) { EngineText.Text = "Engine: " + ex.Message; }
+        catch (Exception ex) { SetConn("Bad", T("The agent is not answering", "El agente no responde"), ex.Message); }
         finally { _busyPoll = false; }
     }
 
@@ -477,7 +519,7 @@ public partial class MainWindow : Window
         ("compare","Lap comparison","Comparación de vueltas"),("boost","DRS & push-to-pass","DRS y push-to-pass"),("inputs","Inputs","Pedales"),("fuel","Fuel","Combustible"),
         ("engine","Engine & track","Motor y pista"),("tyres","Tyres","Neumáticos"),("telemetry","Telemetry","Telemetría"),("gg","G-force circle","Círculo de fuerzas g"),
         ("stats","Driving stats","Estadísticas de conducción"),("pit","Pit stop calculator","Calculadora de parada"),("sectors","Mini-sectors","Mini-sectores"),("gaps","Gap graph","Gráfica de gaps"),
-        ("incidents","Incident log","Registro de incidentes"),("coach","Braking coach","Coach de frenada"),("brakes","Braking markers","Marcas de frenada"),("radio","Radio","Radio"),
+        ("incidents","Incident log","Registro de incidentes"),("coach","Braking coach","Coach de frenada"),("brakes","Braking markers","Marcas de frenada"),
         ("weather","Weather","Tiempo"),("controls","Car controls","Ajustes del coche"),("trackbar","Track position bar","Barra de posición"),("system","Performance","Rendimiento"),
     };
     private static readonly (string Id, string En, string Es, string[] W)[] BuiltIn =
@@ -485,7 +527,7 @@ public partial class MainWindow : Window
         ("race","Race","Carrera",new[]{"radar","deltabar","relative","standings"}),
         ("qualifying","Qualifying","Clasificación",new[]{"deltabar","compare","inputs","map"}),
         ("endurance","Endurance","Resistencia",new[]{"relative","fuel","tyres","deltabar","standings"}),
-        ("engineer","Engineer","Ingeniero",new[]{"map","relative","radar","inputs","fuel","tyres","telemetry"}),
+        ("pitwall","Pit wall","Muro de boxes",new[]{"map","relative","radar","inputs","fuel","tyres","telemetry"}),
     };
     private JsonObject? _cfg;
     private string _ovKey = "";
@@ -556,7 +598,7 @@ public partial class MainWindow : Window
     private async Task Post(string path, object? body = null)
     {
         try { await _engine.PostAsync(path, body); }
-        catch (Exception ex) { EngineText.Text = "Engine: " + ex.Message; }
+        catch (Exception ex) { SetConn("Bad", T("The agent is not answering", "El agente no responde"), ex.Message); }
     }
 
     // the settings go back whole, as the app sends them (the engine keeps the window positions)
@@ -1022,8 +1064,8 @@ public partial class MainWindow : Window
 
     private async void OnSetStart(object sender, RoutedEventArgs e) { if (_set == null) return; _set["startWithWindows"] = SetStart.IsChecked == true; await SaveSettingsAsync(); }
     private async void OnSetCloseOv(object sender, RoutedEventArgs e) { if (_set == null) return; _set["closeOnExit"] = SetCloseOv.IsChecked == true; await SaveSettingsAsync(); }
-    // the rev beep is set per car in the app's engineer (its table of gears), the app plays it
-    private void OnSetRevBeep(object sender, RoutedEventArgs e) => OpenInApp("engineer");
+    // the rev beep is set per car in the app's Telemetry → Rev beep (its table of gears), the app plays it
+    private void OnSetRevBeep(object sender, RoutedEventArgs e) => OpenInApp("revbeep");
     private async void OnSetUpdAuto(object sender, RoutedEventArgs e) { await Post("/api/update?action=auto&on=" + (SetUpdAuto.IsChecked == true ? "1" : "0")); await SettingsAsync(); }
     private async void OnSetUpdCheck(object sender, RoutedEventArgs e) { await Post("/api/update?action=check"); await SettingsAsync(); }
     private async void OnSetUpdApply(object sender, RoutedEventArgs e)

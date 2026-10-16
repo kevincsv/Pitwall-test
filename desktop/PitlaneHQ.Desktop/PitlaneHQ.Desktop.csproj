@@ -19,6 +19,8 @@
   <!-- the app's fonts, the same files the native overlays draw with -->
   <ItemGroup>
     <Resource Include="..\..\ovfonts\*.ttf" Link="fonts\%(Filename)%(Extension)" />
+    <!-- the logo in the header, rendered from assets/logo.svg -->
+    <Resource Include="img\logo.png" />
   </ItemGroup>
 
   <ItemGroup>

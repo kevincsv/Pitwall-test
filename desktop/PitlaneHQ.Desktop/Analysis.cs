@@ -42,7 +42,7 @@ public partial class MainWindow
 
     private void ApplyAnaLanguage()
     {
-        AnaTitle.Text = T("Analysis", "Análisis"); AnaSessL.Text = T("SESSION", "SESIÓN");
+        AnaTitle.Text = T("Analysis", "Análisis").ToUpperInvariant(); AnaSessL.Text = T("SESSION", "SESIÓN");
         AnaSpeedT.Text = T("SPEED", "VELOCIDAD"); AnaPedT.Text = T("THROTTLE AND BRAKE", "ACELERADOR Y FRENO"); AnaDeltaT.Text = T("TIME DELTA (A − B)", "DIFERENCIA DE TIEMPO (A − B)");
         AnaCoachT.Text = T("WHERE A LOSES TIME", "DÓNDE PIERDE TIEMPO A"); AnaLapsT.Text = T("LAPS", "VUELTAS"); AnaMapT.Text = T("TRACK MAP", "MAPA DEL CIRCUITO");
         AnaMore.Content = T("Sectors and more in the full analyzer", "Sectores y más en el analizador completo");
