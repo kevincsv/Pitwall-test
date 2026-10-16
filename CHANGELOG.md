@@ -10,6 +10,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
   leaving the chat, and get the server's new records in a channel. Link your account in Account → Discord, on every
   device.
 - **The update window says what the new version brings**, in a short list.
+- **The rev beep is in Telemetry → Rev beep** (on Pitlane HQ Desktop, the card at the top of Telemetry). The voice
+  engineer, its radio overlay and the audio packs are gone.
 - Fixes and improvements.
 
 ## 0.9.11 beta
@@ -20,7 +22,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - **One app for Windows**: one download, "Pitlane HQ for Windows", that opens the native window with the agent
   inside; it updates itself, the window too. The old preview install is replaced by it.
 - **Rev beep**: a beep to change up at the revs you choose, for each car (one RPM for every gear or one per gear), in
-  Telemetry → Engineer. The braking beeps are gone; the braking markers stay.
+  Telemetry → Rev beep. The braking beeps are gone; the braking markers stay.
 - **The web shows what Pitlane HQ does**: under the sign-in, one page with every feature and a sample of each from
   real laps of the leaderboards, and "Try it with sample data" to look around the app before creating an account.
 - Fixes and improvements.

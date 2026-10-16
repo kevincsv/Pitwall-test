@@ -261,7 +261,6 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "retry: 2000\n\n")
 	schemaVer, sessionVer, configVer := -1, -1, -1
 	prefsVer := int64(-1)
-	_, radioSeen := radioSince(-1) // only questions asked after this screen connected
 	_, noticeSeen := noticesSince(-1)
 	var lastTick int32 = -1
 	var want []int
@@ -291,14 +290,6 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			lastStatus = st
-		}
-		if evs, seq := radioSince(radioSeen); seq != radioSeen {
-			for _, e := range evs {
-				if !send("radio", e) {
-					return
-				}
-			}
-			radioSeen = seq
 		}
 		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
 			for _, e := range evs {
@@ -518,7 +509,6 @@ func main() {
 	go appsOnSim()
 	go lapRecorder()
 	go carWatcher()
-	go joyWatcher()
 	go raceWatcher()
 	go fieldWatcher()
 	go myLapWatcher()
@@ -628,7 +618,6 @@ func main() {
 	registerCloudRoutes(mux)
 	registerSetupRoutes(mux)
 	registerCarRoutes(mux)
-	registerRadioRoutes(mux)
 	registerJournalRoutes(mux)
 	registerDiscordRoutes(mux)
 	registerUpdateRoutes(mux)

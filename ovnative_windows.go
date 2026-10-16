@@ -125,7 +125,7 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 		if edit != nat.edit || !nat.styled { // moving the overlays: it takes the mouse; otherwise every click goes to the game
 			nat.edit, nat.styled = edit, true
 			st, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlExStyle))
-			if edit || ovClickable(nat.name) { // the radio's buttons take clicks (without taking the focus from the game)
+			if edit {
 				st &^= wsExTransparent
 			} else {
 				st |= wsExTransparent
@@ -136,9 +136,6 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 		return 0
 	case 0x0084: // WM_NCHITTEST: drag it anywhere, resize it from the bottom-right corner
 		if !nat.edit {
-			if ovClickable(nat.name) {
-				return 1 // HTCLIENT: its buttons
-			}
 			return ^uintptr(0) // HTTRANSPARENT
 		}
 		x, y, w, hh := windowRect(h)
@@ -162,11 +159,6 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 		return 1
 	case 0x0021: // WM_MOUSEACTIVATE: a click never takes the focus from the game
 		return 3 // MA_NOACTIVATE
-	case 0x0201: // WM_LBUTTONDOWN
-		if !nat.edit {
-			ovClick(nat.name, nat.st, float64(int16(lp&0xffff)), float64(int16((lp>>16)&0xffff)))
-		}
-		return 0
 	case 0x0231: // WM_ENTERSIZEMOVE
 		nat.sizing = true
 	case 0x0232: // WM_EXITSIZEMOVE

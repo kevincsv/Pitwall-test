@@ -112,7 +112,7 @@ func pinRequired() bool {
 	return !pairs.Off
 }
 
-// needsPairing: requests from the network (not the engineer link) without a paired token, and
+// needsPairing: requests from the network (not the share link) without a paired token, and
 // requests from this PC that do not come from one of Pitlane HQ's own windows (see localtoken.go).
 func needsPairing(w http.ResponseWriter, r *http.Request) bool {
 	if isRemote(r) || !pinRequired() {

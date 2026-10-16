@@ -40,7 +40,7 @@ func nativeOverlay(name string) bool {
 var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600, "standings": 720,
 	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280,
 	"stats": 420, "pit": 440, "sectors": 560, "gaps": 560, "incidents": 380,
-	"map": 440, "compare": 680, "brakes": 480, "coach": 520, "radio": 420,
+	"map": 440, "compare": 680, "brakes": 480, "coach": 520,
 	"weather": 360, "controls": 340, "trackbar": 700, "system": 320}
 
 // ---------- the picture ----------
@@ -342,7 +342,7 @@ type ovState struct {
 	varsFn  func() []string
 	client  *http.Client // the PC's API, with this window's cookie (the native overlays that fetch: map, brakes)
 	base    string
-	ext     ovExtra // the map, the recorded laps, the model's reference, the radio's buttons (ovnative4.go)
+	ext     ovExtra // the map, the recorded laps, the model's reference (ovnative4.go)
 }
 
 // unitsFromURL: the app's units ("imperial", else metric), given to the overlay window in its address

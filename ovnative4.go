@@ -1,14 +1,13 @@
 package main
 
 // Native overlays, fourth part: the ones that need laps or the track (track map, live compare, braking markers,
-// coach) and the radio's buttons. Each window records the laps it sees, every 5 m, like the app, gets the track's
-// outline and the model's reference lap from the PC, and the radio window takes clicks to ask the engineer.
+// coach). Each window records the laps it sees, every 5 m, like the app, and gets the track's outline and the
+// model's reference lap from the PC.
 
 import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,7 +16,7 @@ import (
 
 func lapOverlay(name string) bool {
 	switch name {
-	case "map", "compare", "brakes", "coach", "radio":
+	case "map", "compare", "brakes", "coach":
 		return true
 	}
 	return false
@@ -80,16 +79,8 @@ type ovExtra struct {
 	modelRef *ovLap
 	modelAt  time.Time
 	bm       bmState
-	buttons  []ovButton
-	pressed  string
-	pressAt  time.Time
 	drinks   bool   // DRINKS mode is on (the PC's "driver" event)
 	driver   string // who drives now ("" the owner)
-}
-
-type ovButton struct {
-	x, y, w, h float64
-	q          string
 }
 
 // collectLaps records the laps this window sees; st.mu is held
@@ -456,8 +447,6 @@ func drawLapOv(name string, c *ovCanvas, st *ovState, z float64, now time.Time) 
 		return drawBrakesOv(c, st, z)
 	case "coach":
 		return drawCoachOv(c, st, z)
-	case "radio":
-		return drawRadioOv(c, st, z, now)
 	}
 	return 0
 }
@@ -1457,67 +1446,4 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		y += rowH
 	}
 	return int(math.Ceil(H))
-}
-
-// ---------- radio: the questions to the engineer, as buttons ----------
-
-var ovRadioAsks = [][3]string{{"weather", "Weather", "Tiempo"}, {"fuel", "Fuel", "Gasolina"}, {"gaps", "Gaps", "Gaps"}, {"position", "Position", "Posición"},
-	{"last", "Last lap", "Última vuelta"}, {"remaining", "How long left", "Cuánto queda"}, {"pit", "Pit stop", "Parada"}, {"incidents", "Incidents", "Incidentes"},
-	{"delta", "Delta", "Delta"}, {"mute", "Quiet / talk", "Callar / hablar"}}
-
-func drawRadioOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
-	W := float64(c.w)
-	pad := 14 * z
-	cols := 2
-	bh, gap := 38*z, 8*z
-	rows := (len(ovRadioAsks) + cols - 1) / cols
-	H := pad + 18*z + float64(rows)*bh + float64(rows-1)*gap + pad
-	panel(c, H, z)
-	c.label(z, st.T("Radio", "Radio"), pad, pad+6*z, 0)
-	bw := (W - 2*pad - gap) / float64(cols)
-	bf := ovFace(fkBodyB, 13.5*z)
-	st.ext.buttons = st.ext.buttons[:0]
-	for k, a := range ovRadioAsks {
-		x, y := pad+float64(k%cols)*(bw+gap), pad+18*z+float64(k/cols)*(bh+gap)
-		on := st.ext.pressed == a[0] && now.Sub(st.ext.pressAt) < 600*time.Millisecond
-		if on {
-			c.roundRect(x, y, bw, bh, 8*z, colAmber, 0.25, colAmber, 1, 1.5*z)
-		} else {
-			c.roundRect(x, y, bw, bh, 8*z, colSurf2, 1, colLine, 1, 1)
-		}
-		c.text(bf, ellipsis(bf, st.T(a[1], a[2]), bw-16*z), x+bw/2, y+bh/2, colText, 1, 2)
-		st.ext.buttons = append(st.ext.buttons, ovButton{x, y, bw, bh, a[0]})
-	}
-	return int(math.Ceil(H))
-}
-
-// ovClickable: the native overlays that take clicks when the overlays are not being moved (the radio's buttons)
-func ovClickable(name string) bool { return name == "radio" }
-
-// ovClick handles a click at x, y (window pixels): a radio button asks the engineer through the PC
-func ovClick(name string, st *ovState, x, y float64) {
-	if name != "radio" {
-		return
-	}
-	st.mu.Lock()
-	q := ""
-	for _, b := range st.ext.buttons {
-		if x >= b.x && x < b.x+b.w && y >= b.y && y < b.y+b.h {
-			q = b.q
-		}
-	}
-	if q != "" {
-		st.ext.pressed, st.ext.pressAt = q, time.Now()
-	}
-	cl, base := st.client, st.base
-	st.mu.Unlock()
-	if q == "" || cl == nil {
-		return
-	}
-	go func() {
-		r, err := cl.Post(base+"/api/radio/ask?q="+url.QueryEscape(q), "text/plain", nil)
-		if err == nil {
-			r.Body.Close()
-		}
-	}()
 }

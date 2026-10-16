@@ -379,7 +379,7 @@ func TestNativeLapOverlaysDraw(t *testing.T) {
 		st.ext.mapY = append(st.ext.mapY, 300*math.Sin(a))
 	}
 	st.ext.mapKey = "t0"
-	for _, name := range []string{"map", "compare", "brakes", "coach", "radio"} {
+	for _, name := range []string{"map", "compare", "brakes", "coach"} {
 		h0 := 900
 		if name == "map" {
 			h0 = 480
@@ -393,11 +393,6 @@ func TestNativeLapOverlaysDraw(t *testing.T) {
 			t.Fatalf("%s: height %d", name, h)
 		}
 		ovSavePNG(t, c, h, "l-"+name)
-	}
-	b := st.ext.buttons[3]
-	ovClick("radio", st, b.x+5, b.y+5)
-	if st.ext.pressed != "position" {
-		t.Fatalf("radio click pressed %q", st.ext.pressed)
 	}
 }
 

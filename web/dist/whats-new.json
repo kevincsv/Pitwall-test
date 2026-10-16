@@ -4,15 +4,18 @@
       "v": "0.9.12",
       "en": [
         "The Pitlane HQ bot on Discord: ask for a car and track's record, a driver's laps or your coach without leaving the chat, and get the new records in a channel. Link your account in Account → Discord.",
-        "The update window says what the new version brings."
+        "The update window says what the new version brings.",
+        "The rev beep is in Telemetry → Rev beep. The voice engineer and its radio overlay are gone."
       ],
       "es": [
         "El bot de Pitlane HQ en Discord: pide el récord de un coche y circuito, las vueltas de un piloto o tu coach sin salir del chat, y recibe los récords nuevos en un canal. Vincula tu cuenta en Cuenta → Discord.",
-        "La ventana de actualización dice lo que trae la versión nueva."
+        "La ventana de actualización dice lo que trae la versión nueva.",
+        "El pitido de revoluciones está en Telemetría → Pitido de revoluciones. El ingeniero por voz y su overlay de radio desaparecen."
       ],
       "pt": [
         "O bot do Pitlane HQ no Discord: peça o recorde de um carro e pista, as voltas de um piloto ou o seu coach sem sair do chat, e receba os novos recordes num canal. Vincule a sua conta em Conta → Discord.",
-        "A janela de atualização diz o que a nova versão traz."
+        "A janela de atualização diz o que a nova versão traz.",
+        "O bipe de giros está em Telemetria → Bipe de giros. O engenheiro por voz e seu overlay de rádio se foram."
       ]
     },
     {
@@ -22,14 +25,14 @@
         "The track page on Pitlane HQ Desktop too.",
         "One app for Windows: one download that opens the native window and updates itself, the window too.",
         "The web shows what Pitlane HQ does before the sign-in, with sample data to look around.",
-        "Rev beep: a beep to change up at the revs you choose, for each car, in Telemetry → Engineer. The braking beeps are gone."
+        "Rev beep: a beep to change up at the revs you choose, for each car, in Telemetry → Rev beep. The braking beeps are gone."
       ],
       "es": [
         "Los overlays en VR: actívalo en Settings → VR y cada overlay abierto se ve también en las gafas (SteamVR, también unas Meta Quest por Link o Air Link), donde está en tu pantalla.",
         "La página del circuito también en Pitlane HQ Desktop.",
         "Una sola app para Windows: una descarga que abre la ventana nativa y se actualiza sola, la ventana también.",
         "La web enseña qué hace Pitlane HQ antes de iniciar sesión, con datos de muestra para echar un vistazo.",
-        "Pitido de revoluciones: un pitido para subir de marcha a las revoluciones que elijas, para cada coche, en Telemetría → Ingeniero. Los pitidos de frenada desaparecen."
+        "Pitido de revoluciones: un pitido para subir de marcha a las revoluciones que elijas, para cada coche, en Telemetría → Pitido de revoluciones. Los pitidos de frenada desaparecen."
       ]
     },
     {

@@ -2,7 +2,7 @@ package main
 
 // Your racing journal: what Pitlane HQ learns about each car at each track
 // (best lap, fuel per lap), a report after every race, and your notes for each
-// corner of each track (the engineer can read them to you).
+// corner of each track.
 
 import (
 	"crypto/sha256"

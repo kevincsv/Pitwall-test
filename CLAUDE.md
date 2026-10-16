@@ -94,11 +94,13 @@
   speed and where), from the model's memory. The coach shows it against lap A only when nobody known
   is ahead on that car and track; the phone apps show it in the lap analysis. It is a hint of what the
   car can do, never a reference lap.
-- The rev beep (Telemetry → Engineer → Rev beep, `renderShiftPanel`/`shiftTick`, `pw.shift`; on Pitlane HQ Desktop the
-  "REV BEEP" card in Settings opens it): a beep to change up at the revs the driver chooses, kept per car: "Every gear
+- The rev beep (Telemetry → Rev beep, its own sub-tab after Tyres, `v-revbeep`, `renderShiftPanel`/`shiftTick`, `pw.shift`;
+  on Pitlane HQ Desktop the "REV BEEP" card at the top of Telemetry opens it): a beep to change up at the revs the driver chooses, kept per car: "Every gear
   at" one RPM, or one for each gear ("My RPM"), or iRacing's shift lights, or the estimate from their own flat-out laps;
   a moment early for the reaction time, pitch and volume, "Beeps in this screen" (the PC by default). No braking beeps
-  any more (they did not work well): the Braking markers widget and overlay only show where to brake. Their braking
+  any more (they did not work well): the Braking markers widget and overlay only show where to brake. There is no voice
+  engineer, spotter, radio or audio packs anywhere any more (the owner's choice, 0.9.12): the PC never speaks and the only
+  sound of the app is the rev beep; the share code lets a friend watch, never "an engineer". Their braking
   points come from the model (the next level for your best lap of the session; your own best lap while the model has
   none or you are its fastest), each marker moves with your speed against that lap and with a car close ahead or
   alongside, and they name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".
@@ -191,8 +193,7 @@
   account, `drivers.go`, `/api/drivers`). A driver is known by the community's opaque key (`driverKey`, the races keep
   it as `k`; never their iRacing id) or by name for older races. The icon shows before the name in the relative and the
   standings (native overlays, the app, Pitlane HQ Desktop) and in the race summary, where you mark them (✎; the phone
-  apps tap the driver and write the account's bundle); Analysis → My races lists them; the engineer warns you when a driver
-  you marked dangerous or careful is within 1.5 s (Settings → Engineer, "A driver I marked…").
+  apps tap the driver and write the account's bundle); Analysis → My races lists them.
 - Race rivals (the other real drivers of your races, whose best laps your PC shares; AI drivers and the pace car never,
   `CarIsAI`/`CarIsPaceCar`, `ai` in journal.go) show on the leaderboards with their
   whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
@@ -335,13 +336,13 @@
   and pills; the live stream; radar, delta bar, relative, standings), `ovnative2.go` (flag, dash, timing, fuel,
   engine, tyres, inputs, DRS & push-to-pass, telemetry, g-force), `ovnative3.go` (stats, pit stop, mini-sectors,
   gaps, incidents), `ovnative4.go` (track map from `/api/map` or the community's layout, live compare, braking
-  markers with the model's next level from `/api/community/model`, coach, radio), `ovnative5.go` (weather: the track's and
+  markers with the model's next level from `/api/community/model`, coach), `ovnative5.go` (weather: the track's and
   the air's temperature, the wind against your car with the game's clock, rain and how wet the track is; the car's
   controls: every in-car adjustment this car has, `controlRows`, lit up for a moment when it changes; the track position
   bar: every car along the lap on one line, class colours, you marked, the two nearest numbers each way; performance:
   frames a second with the last minute, GPU and CPU, the connection's latency and quality) and `ovnative_windows.go` (a
   layered window with alpha per pixel and the overlays' opacity). Only the panel and its content show, the rest is
-  see-through, every click goes to the game (the radio's buttons take clicks without taking the focus), and while
+  see-through, every click goes to the game, and while
   moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
   the cars coming, the red side bar and the nearest distance; it reads and draws every sample the game gives (60 a
@@ -357,7 +358,7 @@
   line, `/api/trackmap` the community's layout when the laps have no path), `/api/desk/coach`), Telemetry,
   Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,
   `desknow.go`); the parts not moved yet (map, profiles, full settings) are the app in a WebView that runs hidden
-  from the start (engineer, beeps and lap recording live there). Builds of other branches only check
+  from the start (the rev beep and the lap recording live there). Builds of other branches only check
   (nothing is published unless it is master). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
   both in the stream's config event, so they change at once. The gaps overlay and widget drop a sample a whole lap
   off from both its neighbours (`cleanGaps`: the game counts a car's lap a moment before or after its distance
@@ -397,7 +398,7 @@
   work through SteamVR as the OpenXR runtime.
   The basic overlays, shown without the experimental switch (`OV_BASIC`): radar, delta bar, relative, standings,
   flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, controls, track bar.
-  Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, radio, system.
+  Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, system.
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
   changes from several devices are merged (`syncmerge.go`), never a "which copy" question. The moment any device

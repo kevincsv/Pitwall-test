@@ -3,7 +3,7 @@ package main
 // Driver notes: your own marks on the other iRacing drivers, like a notebook of who races clean and who
 // closes the door when they can. Each driver gets one tag (danger, careful, clean, friend) and a note; the
 // relative and the standings (overlays and the app) show the tag's icon next to their name, the race summary
-// lets you mark them, and the engineer warns you when a driver marked dangerous is close. They live in
+// lets you mark them. They live in
 // drivers.json, synced with the account like the rest. A driver is known by the same opaque key as the
 // community's (driverKey, never their iRacing id), or by their name for races recorded before keys.
 

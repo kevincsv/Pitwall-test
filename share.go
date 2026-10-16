@@ -1,6 +1,6 @@
 package main
 
-// Engineer sharing. On the same network anyone can open the PC's address.
+// Sharing your session. On the same network anyone can open the PC's address.
 // For another house, Pitlane HQ starts a free Cloudflare quick tunnel
 // (cloudflared, downloaded from Cloudflare's GitHub releases on first use)
 // and gives a private link. Remote viewers need the key in that link and get a
@@ -136,7 +136,7 @@ func startShare() {
 				if shareURL == "" {
 					shareURL = m
 					shareBusy = false
-					log.Println("Engineer link ready")
+					log.Println("Share link ready")
 				}
 				shareMu.Unlock()
 			}
@@ -242,12 +242,12 @@ func guard(next http.Handler) http.Handler {
 			http.SetCookie(w, &http.Cookie{Name: "pw_k", Value: key, Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			http.Error(w, "read-only engineer view", 403)
+			http.Error(w, "read-only view", 403)
 			return
 		}
 		for _, p := range remoteBlocked {
 			if strings.HasPrefix(r.URL.Path, p) && !(p == "/api/config" && r.Method == http.MethodGet) && !(p == "/api/map" && r.Method == http.MethodGet) {
-				http.Error(w, "not available in the engineer view", 403)
+				http.Error(w, "not available while watching another PC", 403)
 				return
 			}
 		}
@@ -271,7 +271,7 @@ func registerShareRoutes(mux *http.ServeMux) {
 }
 
 // hostAllowed accepts IP addresses, localhost, this PC's name, local network
-// names (.local, .lan, .home, .internal) and the engineer link.
+// names (.local, .lan, .home, .internal) and the share link.
 func hostAllowed(hostport string) bool {
 	h := strings.ToLower(hostport)
 	if hh, _, err := net.SplitHostPort(h); err == nil {
