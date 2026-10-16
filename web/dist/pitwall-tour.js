@@ -81,7 +81,7 @@
       const e = Math.min(n - 1, c.i + 2 * w), i0 = Math.max(0, c.b - w);
       const loss = (A[e][5] - A[i0][5]) - (B[e][5] - B[i0][5]);
       let ab = c.i; while (ab > 0 && A[ab - 1][2] > 0.05 && c.i - ab < 4 * w) ab--;
-      let av = A[c.i][0]; for (let j = Math.max(0, c.i - w / 2); j < Math.min(n, c.i + w / 2); j++) av = Math.min(av, A[j][0]);
+      const hw = Math.ceil(w / 2); let av = A[c.i][0]; for (let j = Math.max(0, c.i - hw); j < Math.min(n, c.i + hw); j++) av = Math.min(av, A[j][0]);
       const later = ab > c.b + 2, slower = av < c.v - 0.2;
       const tip = later && slower ? t("Brake a little earlier and carry the speed", "Frena un poco antes y lleva la velocidad", "Freie um pouco antes e leve a velocidade")
         : slower ? t("Carry more speed through the apex", "Lleva más velocidad en el vértice", "Leve mais velocidade no vértice")
