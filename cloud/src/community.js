@@ -49,6 +49,7 @@ async function countUpload(env, u) {
 }
 
 import { gameOf } from "./games.js";
+import { discordLapAlert } from "./discord.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
@@ -91,7 +92,12 @@ async function keepBestLap(env, uid, x) {
        lic=COALESCE(excluded.lic, community_laps.lic), cat=COALESCE(excluded.cat, community_laps.cat), official=excluded.official, ai=excluded.ai`
   ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick", licOf(x.lic), str(x.cat, 20), officialOf(x.official), x.ai ? 1 : null).run();
   await markModel(env, x.game, x.trackId, x.carId);
-  return { shared: true, traced: !!x.trace };
+  // improved: a faster lap than the one shared before (the Discord alerts), not only its telemetry added
+  const improved = !old || old.game !== x.game || x.time < old.time;
+  const res = { shared: true, traced: !!x.trace, improved, prev: old && old.game === x.game ? old.time : null, game: x.game, trackId: x.trackId, carId: x.carId, track: x.track, car: x.car, time: x.time, anon: !!x.anon };
+  // a new best lap: the Discord servers of its driver hear about it (x.ctx only where a lap was just driven)
+  if (improved && x.ctx) x.ctx.waitUntil(discordLapAlert(env, uid, res).catch(() => {}));
+  return res;
 }
 
 // the iRacing ids of a session's track and car: from the session (newer PCs), from the app (it knows your
@@ -129,7 +135,7 @@ async function comboIds(env, s, name, g, uid, body) {
 // a lap saved in an account goes to the leaderboard by itself: the fastest valid lap of what was just uploaded
 // (with its telemetry when it has some), when it beats what the account already shares for that car and track;
 // under the account's public name, or as Anonymous when the account chose so
-export async function autoShare(env, accountId, sessionId, laps, hint) {
+export async function autoShare(env, accountId, sessionId, laps, hint, ctx) {
   // a friend's lap in DRINKS mode (drv) is shared by the PC under the friend's own name, never as the account's
   const best = (laps || []).filter((l) => l && l.valid !== false && !(typeof l.drv === "string" && l.drv.trim()) && num(l.time) > 10 && l.time < 3600)
     .sort((a, b) => a.time - b.time || (b.trace ? 1 : 0) - (a.trace ? 1 : 0))[0];
@@ -142,7 +148,7 @@ export async function autoShare(env, accountId, sessionId, laps, hint) {
   const { trackId, carId } = await comboIds(env, s, name, g, accountId, hint);
   // the license class of this discipline is the account's current one (kept per discipline)
   if (g === "iracing" && licOf(hint && hint.lic)) await rememberLic(env, accountId, catOf(await catMap(env), trackId, carId, hint && hint.cat, name, s.car), hint.lic).catch(() => {});
-  return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1 });
+  return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1, ctx });
 }
 
 // after who drove a lap changes (DRINKS mode: a lap given to a friend, or back to you): every driver's shared best
@@ -213,7 +219,7 @@ function firstName(n) {
   return w[0] ? w[0].replace(/\d+$/, "") : "";
 }
 
-export async function community(req, env, url) {
+export async function community(req, env, url, ctx) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
   if (m === "OPTIONS") return new Response(null, { headers: { ...JSONH, "access-control-allow-methods": "GET,POST,DELETE", "access-control-max-age": "86400", "access-control-allow-headers": "authorization,content-type" } });
@@ -1033,7 +1039,7 @@ export async function community(req, env, url) {
     const g = s.game || "iracing";
     const { trackId, carId } = await comboIds(env, s, name, g, u.id, body);
     // your faster lap stays, unless it has no telemetry and this one does
-    const r = await keepBestLap(env, u.id, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!body.anon, shown: shownAs, count: () => countUpload(env, u) });
+    const r = await keepBestLap(env, u.id, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!body.anon, shown: shownAs, count: () => countUpload(env, u), ctx });
     if (r.limit) return err("too many uploads today", 429);
     if (r.kept) return json({ kept: "your faster lap is already shared", traced: r.traced });
     return json({ shared: true, traced: r.traced });
@@ -1055,7 +1061,7 @@ export async function community(req, env, url) {
       // its public name or as Anonymous, as the account chose
       const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1").bind(oid).first();
       if (link) {
-        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
+        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
         if (r.limit) return err("too many uploads today", 429);
         return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
       }
@@ -1073,7 +1079,7 @@ export async function community(req, env, url) {
     if (plainTrace && plainTrace.length > 900000) return err("lap trace too large", 400);
     const trace = await sealData(env, plainTrace);
     // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
-    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
+    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
     if (r.limit) return err("too many uploads today", 429);
     return json(r.kept ? { kept: "your faster lap is already shared" } : { shared: true });
   }

@@ -13,6 +13,7 @@ import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
 import { live } from "./live.js";
 import { seoPage, indexNow, notFound } from "./seo.js";
+import { discordInteraction } from "./discord.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -88,7 +89,7 @@ async function addLap(env, sessionId, l) {
   return null;
 }
 
-async function api(req, env, url) {
+async function api(req, env, url, ctx) {
   const me = await who(req, env);
   if (!me) return err(env.PITLANE_KEY ? "wrong or missing key" : "sign in with your Pitlane HQ account (this server has no PITLANE_KEY)", 401);
   const role = me.role;
@@ -117,7 +118,8 @@ async function api(req, env, url) {
     if ((body.laps || []).some((l) => l.valid !== false && l.trace)) await markModel(env, gameOf(body.session.game), posInt(body.session.trackId), posInt(body.session.carId));
     // the fastest lap of each car and track goes to the leaderboard by itself once it is in the account
     let shared = null;
-    if (role === "account") shared = await autoShare(env, me.name.slice(5), body.session.id, body.laps, { trackId: body.session.trackId, carId: body.session.carId, lic: body.session.lic, cat: body.session.cat }).catch(() => null);
+    // (a faster lap than before: the Discord servers of this driver hear about it, their alerts channel)
+    if (role === "account") shared = await autoShare(env, me.name.slice(5), body.session.id, body.laps, { trackId: body.session.trackId, carId: body.session.carId, lic: body.session.lic, cat: body.session.cat }, ctx).catch(() => null);
     return json({ ok: true, shared: !!(shared && shared.shared) });
   }
 
@@ -361,7 +363,7 @@ async function handle(req, env, ctx) {
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     if (url.pathname.startsWith("/community/")) {
       try {
-        return await community(req, env, url);
+        return await community(req, env, url, ctx);
       } catch (e) {
         return new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } });
       }
@@ -399,11 +401,19 @@ async function handle(req, env, ctx) {
     }
     // live telemetry from your PC to your browser or phone, end-to-end encrypted
     if (url.pathname === "/live") return live(req, env);
+    // the Discord bot: Discord sends its slash commands here (signed), the answer goes back at once
+    if (url.pathname === "/discord/interactions") {
+      try {
+        return await discordInteraction(req, env, ctx);
+      } catch (e) {
+        return err("server error", 500);
+      }
+    }
     // Patreon tells the server about memberships: the supporter badge by itself
     if (url.pathname === "/patreon/webhook" && req.method === "POST") return patreonWebhook(req, env);
     if (url.pathname.startsWith("/api/")) {
       try {
-        return await api(req, env, url);
+        return await api(req, env, url, ctx);
       } catch (e) {
         return err("server error: " + (e && e.message), 500);
       }

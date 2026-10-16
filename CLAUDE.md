@@ -245,6 +245,15 @@
   JSON-LD) and what it is (iRacing and sim racing telemetry, lap analysis, overlays), plainly, never stuffed.
   They show the accounts' nicknames (never their iRacing names), race rivals by their whole name as the game shows it,
   or Anonymous.
+- The Discord bot (`cloud/src/discord.js`, commands in `discord-commands.js`, registered by the deploy with
+  `discord-register.mjs`, migration 0040): slash commands answered by the Worker at `/discord/interactions` (Ed25519,
+  DISCORD_PUBLIC_KEY), lap alerts posted with DISCORD_BOT_TOKEN. In English, Spanish and Portuguese (Discord's
+  locale). Free: /record, /driver, /link, /unlink, /download, /help; Pro (`discordPro` in license_plans.json, open to
+  everyone while `enforce` is false): /coach, /compare, /board (the server's ranking), /alerts (a channel for the
+  server's new best laps and records, `discordLapAlert` from autoShare, `/laps` and `reshareSession`). /link gives a
+  one-use button to pitlanehq.app (`?discord=`) where the signed-in web app confirms (`discordLinkAsk`). It shows
+  what the public pages show: nicknames, race rivals by their whole name, anonymous laps and accounts as
+  "Anonymous"; an anonymous account's answers only to itself; the Windows app is "Pitlane HQ for Windows", as on the downloads page.
 - Signing in with an email that has no account says so and offers to create it (`no_account`).
 - The welcome window of a new account (the downloads) stays until the driver closes it (`uiPanel` sticky).
 - Leagues are a hub of posts (Community → Leagues on the web, the PC and the phones; `LEAG`/`leagCard`/`leagOpen` in

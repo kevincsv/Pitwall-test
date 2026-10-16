@@ -8,6 +8,7 @@ import { mailReady, sendVerify, sendReset, sendTest, lang } from "./email.js";
 import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pages.js";
 import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes } from "./crypt.js";
 import { patreonOnRegister } from "./patreon.js";
+import { discordAccount } from "./discord.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -107,6 +108,8 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM league_hits WHERE league_id IN (SELECT id FROM leagues WHERE owner=?1)").bind(id),
   env.DB.prepare("DELETE FROM league_days WHERE league_id IN (SELECT id FROM leagues WHERE owner=?1)").bind(id),
   env.DB.prepare("DELETE FROM leagues WHERE owner=?1").bind(id),
+  env.DB.prepare("DELETE FROM discord_members WHERE discord_id IN (SELECT discord_id FROM discord_links WHERE account_id=?1)").bind(id),
+  env.DB.prepare("DELETE FROM discord_links WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
 ];
 
@@ -302,6 +305,8 @@ export async function accounts(req, env, url) {
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
+  // /link of the Discord bot: who is asking, and the confirmation from the web app
+  if (p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
   if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });

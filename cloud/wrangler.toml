@@ -24,6 +24,7 @@ migrations_dir = "migrations"
 #                A long random string (`openssl rand -hex 32`). Never change it once rows are sealed.
 #   EMAIL_PEPPER optional, salts the email hashes; set it before the first account is created
 #   RESEND_API_KEY + EMAIL_FROM   emails (see README)
+#   DISCORD_PUBLIC_KEY + DISCORD_BOT_TOKEN   the Discord bot (its commands come to /discord/interactions)
 
 [vars]
 # accounts, end-to-end encrypted sync, community and shared setups on this server

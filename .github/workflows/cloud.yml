@@ -13,6 +13,8 @@ name: Pitlane HQ Cloud (web version)
 # (your mailbox, e.g. Proton Mail's SMTP submission; SMTP_USER if it is not the address) or RESEND_API_KEY.
 # Encryption at rest: secret DATA_KEY (a long random string; never change it once set, or the
 # sealed rows cannot be read). Optional EMAIL_PEPPER (set before the first account).
+# Discord bot: variable DISCORD_APP_ID and secrets DISCORD_PUBLIC_KEY and DISCORD_BOT_TOKEN (Discord Developer
+# Portal → your application); the deploy then registers its slash commands.
 
 on:
   workflow_dispatch:
@@ -45,6 +47,9 @@ jobs:
       DATA_KEY: ${{ secrets.DATA_KEY }}
       EMAIL_PEPPER: ${{ secrets.EMAIL_PEPPER }}
       PATREON_WEBHOOK_SECRET: ${{ secrets.PATREON_WEBHOOK_SECRET }}
+      DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+      DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
       ADMINS: ${{ vars.ADMINS }}
       # the server's own address (pitlanehq.app); the repository variable CUSTOM_DOMAIN overrides it
@@ -103,6 +108,10 @@ jobs:
           if [ -n "$EMAIL_PEPPER" ]; then printf '%s' "$EMAIL_PEPPER" | npx wrangler secret put EMAIL_PEPPER; fi
           # the Patreon webhook's secret: the supporter badge by itself for the patrons
           if [ -n "$PATREON_WEBHOOK_SECRET" ]; then printf '%s' "$PATREON_WEBHOOK_SECRET" | npx wrangler secret put PATREON_WEBHOOK_SECRET; fi
+          # the Discord bot: its keys for the Worker, and its slash commands registered with Discord
+          if [ -n "$DISCORD_PUBLIC_KEY" ]; then printf '%s' "$DISCORD_PUBLIC_KEY" | npx wrangler secret put DISCORD_PUBLIC_KEY; fi
+          if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
+          if [ -n "$DISCORD_APP_ID" ] && [ -n "$DISCORD_BOT_TOKEN" ]; then node discord-register.mjs || echo "::warning::Discord did not take the bot's commands (see the log above)."; fi
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
           if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi
           {
@@ -113,4 +122,8 @@ jobs:
             echo "Drivers sign in to their laps on this address with their Pitlane HQ account."
             echo
             echo "Put it in web/dist/server.json so every Pitlane HQ uses it; drivers only create an account in the app."
+            if [ -n "$DISCORD_APP_ID" ]; then
+              echo
+              echo "Discord bot: Interactions Endpoint URL **$url/discord/interactions** · add it to a server: https://discord.com/oauth2/authorize?client_id=$DISCORD_APP_ID&scope=bot%20applications.commands&permissions=19456"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

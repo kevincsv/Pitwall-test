@@ -1995,7 +1995,20 @@ if(COMPANION){window.fetch=async(input,init={})=>{const url=typeof input==="stri
   const cpRefresh=async()=>{await cpReady;if(!CP.acc||document.hidden)return;try{const me=await cpMe();const m=await cpCall("GET","/account/sync/meta");let again=me;
     if(m.version!==CP.ver&&!CP.pending){const ch=await cpPull();if(ch){location.reload();return}again=true}if(again&&typeof rerenderAll==="function")rerenderAll()}catch(e){CP.err=e.message}};
   CP.refresh=cpRefresh; // the live room's "sync" nudge (another device uploaded the account) calls it at once
-  setTimeout(cpRefresh,1500);setInterval(cpRefresh,60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden)cpRefresh()})}
+  setTimeout(cpRefresh,1500);setInterval(cpRefresh,60e3);document.addEventListener("visibilitychange",()=>{if(!document.hidden){cpRefresh();discordLinkAsk()}});setTimeout(()=>cpReady.then(discordLinkAsk),1500);setInterval(discordLinkAsk,60e3)}
+// the Discord bot's /link: its button opens pitlanehq.app/?discord=CODE; signed in, you confirm which Discord user gets
+// your account (kept for this tab until you sign in)
+async function discordLinkAsk(){let c=null;try{c=new URLSearchParams(location.search).get("discord");if(c)sessionStorage.setItem("pw.discord",c);else c=sessionStorage.getItem("pw.discord")}catch(e){}
+  if(new URLSearchParams(location.search).has("discord")){const u=new URL(location.href);u.searchParams.delete("discord");history.replaceState(null,"",u.pathname+u.search+u.hash)}
+  if(!c||discordLinkAsk.busy)return;const drop=()=>{try{sessionStorage.removeItem("pw.discord")}catch(e){}};
+  if(!/^[A-Za-z0-9]{8}$/.test(c))return drop();
+  if(!CP.acc){if(!discordLinkAsk.told){discordLinkAsk.told=1;toast(Tx("Sign in to link your Discord.","Inicia sesión para vincular tu Discord.","Sign in to link your Discord.","Entre na sua conta para vincular o seu Discord."))}return}
+  discordLinkAsk.busy=1;
+  try{const j=await cpCall("GET","/account/discord/code?c="+encodeURIComponent(c)),n=String(j.name||"?"),me=CP.acc.display||"";
+    if(await uiConfirm(Tx(`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`¿Vincular el usuario de Discord "${n}" a tu cuenta de Pitlane HQ ${me}? El bot mostrará allí tus vueltas y tu perfil.`,`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`Vincular o usuário do Discord "${n}" à sua conta do Pitlane HQ ${me}? O bot vai mostrar lá as suas voltas e o seu perfil.`))){
+      await cpCall("POST","/account/discord/link",{code:c});toast(Tx("Discord linked","Discord vinculado","Discord linked","Discord vinculado"))}}
+  catch(e){toast(/expired/.test(e.message)?Tx("This link expired: ask the bot again with /link.","Este enlace ha caducado: pídeselo otra vez al bot con /vincular.","This link expired: ask the bot again with /link.","Este link expirou: peça outra vez ao bot com /link."):e.message)}
+  finally{drop();discordLinkAsk.busy=0}}
 // the PC app: when its window comes back, the PC reads your account again (name changed on the phone, say) and syncs
 document.addEventListener("visibilitychange",()=>{if(document.hidden||COMPANION||typeof MODE==="undefined"||MODE!=="bridge"||REMOTE||OV.on)return;const was=ME&&ME.display;
   jpost("/api/sync",{action:"refresh"}).then(m=>{if(!m||!ME)return;const changed=m.display!==was;ME=m;if(changed&&typeof rerenderAll==="function")rerenderAll()}).catch(()=>{})});
