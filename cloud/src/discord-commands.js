@@ -1,9 +1,9 @@
-// The Discord bot's slash commands, in English with their Spanish and Portuguese (Brazil) names. Registered with
+// The Discord bot's slash commands: English names, descriptions also in Spanish and Portuguese (Brazil). Registered with
 // Discord by discord-register.mjs (the deploy workflow runs it when the bot's secrets exist). The Pro ones are the
 // "discordPro" list of license_plans.json: open to everyone while the subscription is off (enforce: false).
 const S = 3, C = 7; // option types: string, channel
+// the names stay in English for everyone (one name per command, never two in the list); the descriptions in each language
 const loc = (es, pt) => ({
-  name_localizations: { "es-ES": es[0], "es-419": es[0], "pt-BR": pt[0] },
   description_localizations: { "es-ES": es[1], "es-419": es[1], "pt-BR": pt[1] },
 });
 const combo = { type: S, name: "car_track", description: "Car and track (type to search)", required: true, autocomplete: true,

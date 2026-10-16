@@ -860,7 +860,7 @@ public partial class MainWindow : Window
         AccDiscV.Text = err != null ? err
             : linked ? T("Linked: ", "Vinculado: ") + (handle != "" ? "@" + handle : "Discord") + "\n" + T("If you show it, other drivers see it on your profile and can find you on Discord.", "Si lo muestras, los demás pilotos lo ven en tu perfil y pueden encontrarte en Discord.")
             : Bo(d?["oauth"]) ? T("Link your Discord account: the Pitlane HQ bot knows you there, and other drivers can find you if you want.", "Vincula tu cuenta de Discord: el bot de Pitlane HQ te reconoce allí, y otros pilotos pueden encontrarte si quieres.")
-            : T("In Discord, write /link to the Pitlane HQ bot.", "En Discord, escribe /vincular al bot de Pitlane HQ.");
+            : T("In Discord, write /link to the Pitlane HQ bot.", "En Discord, escribe /link al bot de Pitlane HQ.");
         AccDiscShow.IsChecked = _discShown;
         AccDiscShow.Visibility = linked ? Visibility.Visible : Visibility.Collapsed;
         AccDiscOff.Visibility = linked ? Visibility.Visible : Visibility.Collapsed;

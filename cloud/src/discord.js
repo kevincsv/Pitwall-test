@@ -109,13 +109,13 @@ function later(x, eph, work, update) {
   return reply(update ? { type: 6 } : { type: 5, data: eph ? { flags: EPHEMERAL } : {} });
 }
 
-const needLink = (x) => say({ content: tr(x.l, "Link your Pitlane HQ account first with /link.", "Vincula antes tu cuenta de Pitlane HQ con /vincular.", "Vincule antes a sua conta do Pitlane HQ com /vincular.") }, true);
+const needLink = (x) => say({ content: tr(x.l, "Link your Pitlane HQ account first with /link.", "Vincula antes tu cuenta de Pitlane HQ con /link.", "Vincule antes a sua conta do Pitlane HQ com /link.") }, true);
 function proOnly(x) {
   const url = PLANS.storeUrl || SITE;
   return say({
     embeds: [{ color: PURPLE, title: tr(x.l, "A Pitlane HQ Pro feature", "Una función de Pitlane HQ Pro", "Um recurso do Pitlane HQ Pro"),
       description: x.account ? tr(x.l, "This command is part of Pitlane HQ Pro.", "Este comando es parte de Pitlane HQ Pro.", "Este comando faz parte do Pitlane HQ Pro.")
-        : tr(x.l, "This command is part of Pitlane HQ Pro. Link your account with /link first.", "Este comando es parte de Pitlane HQ Pro. Vincula antes tu cuenta con /vincular.", "Este comando faz parte do Pitlane HQ Pro. Vincule antes a sua conta com /vincular.") }],
+        : tr(x.l, "This command is part of Pitlane HQ Pro. Link your account with /link first.", "Este comando es parte de Pitlane HQ Pro. Vincula antes tu cuenta con /link.", "Este comando faz parte do Pitlane HQ Pro. Vincule antes a sua conta com /link.") }],
     components: buttons(button(tr(x.l, "See the plans", "Ver los planes", "Ver os planos"), url)),
   }, true);
 }
@@ -235,7 +235,7 @@ async function driver(x) {
 async function linkStart(x) {
   if (x.account) {
     const a = await accountOf(x.env, x.account);
-    return text(tr(x.l, `Your Discord is linked to **${md(a ? a.alias : "?")}**. Use /unlink to change it.`, `Tu Discord está vinculado a **${md(a ? a.alias : "?")}**. Usa /desvincular para cambiarlo.`, `O seu Discord está vinculado a **${md(a ? a.alias : "?")}**. Use /desvincular para mudar.`));
+    return text(tr(x.l, `Your Discord is linked to **${md(a ? a.alias : "?")}**. Use /unlink to change it.`, `Tu Discord está vinculado a **${md(a ? a.alias : "?")}**. Usa /unlink para cambiarlo.`, `O seu Discord está vinculado a **${md(a ? a.alias : "?")}**. Use /unlink para mudar.`));
   }
   const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", code = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => ABC[b % 32]).join("");
   const now = Date.now();
@@ -273,31 +273,30 @@ async function download(x) {
 function help(x) {
   const free = tr(x.l,
     "`/record` the record and top 10 of a car and track\n`/driver` a driver's profile, or yours\n`/link` · `/unlink` your Pitlane HQ account\n`/download` the apps\n`/language` the bot's language",
-    "`/record` el récord y el top 10 de un coche y circuito\n`/piloto` el perfil de un piloto, o el tuyo\n`/vincular` · `/desvincular` tu cuenta de Pitlane HQ\n`/descargar` las apps\n`/idioma` el idioma del bot", "`/recorde` o recorde e o top 10 de um carro e pista\n`/piloto` o perfil de um piloto, ou o seu\n`/vincular` · `/desvincular` a sua conta do Pitlane HQ\n`/baixar` os apps\n`/idioma` o idioma do bot");
+    "`/record` el récord y el top 10 de un coche y circuito\n`/driver` el perfil de un piloto, o el tuyo\n`/link` · `/unlink` tu cuenta de Pitlane HQ\n`/download` las apps\n`/language` el idioma del bot", "`/record` o recorde e o top 10 de um carro e pista\n`/driver` o perfil de um piloto, ou o seu\n`/link` · `/unlink` a sua conta do Pitlane HQ\n`/download` os apps\n`/language` o idioma do bot");
   const pro = tr(x.l,
     "`/coach` your best lap against the next level and the record\n`/compare` your laps against another driver's\n`/board` this server's ranking on a car and track\n`/alerts` this server's new best laps and records, posted in a channel",
-    "`/coach` tu mejor vuelta contra el siguiente nivel y el récord\n`/comparar` tus vueltas contra las de otro piloto\n`/ranking` el ranking de este servidor en un coche y circuito\n`/alertas` las mejores vueltas y récords de este servidor, en un canal", "`/coach` a sua melhor volta contra o próximo nível e o recorde\n`/comparar` as suas voltas contra as de outro piloto\n`/ranking` o ranking deste servidor em um carro e pista\n`/alertas` as melhores voltas e recordes deste servidor, em um canal");
+    "`/coach` tu mejor vuelta contra el siguiente nivel y el récord\n`/compare` tus vueltas contra las de otro piloto\n`/board` el ranking de este servidor en un coche y circuito\n`/alerts` las mejores vueltas y récords de este servidor, en un canal", "`/coach` a sua melhor volta contra o próximo nível e o recorde\n`/compare` as suas voltas contra as de outro piloto\n`/board` o ranking deste servidor em um carro e pista\n`/alerts` as melhores voltas e recordes deste servidor, em um canal");
   const open = PLANS.enforce ? "" : tr(x.l, "\n*Open to everyone for now.*", "\n*Abierto a todos por ahora.*", "\n*Aberto a todos por enquanto.*");
   return say({
     embeds: [{ color: AMBER, title: "Pitlane HQ", url: SITE,
       fields: [{ name: tr(x.l, "Free", "Gratis", "Grátis"), value: free }, { name: "Pro", value: pro + open },
         { name: tr(x.l, "For the server's managers", "Para quien gestiona el servidor", "Para quem gerencia o servidor"),
           value: tr(x.l, "`/setup` the channels the bot answers in, the channels for best laps and records, and their language",
-            "`/configurar` los canales donde responde el bot, los de mejores vueltas y récords, y su idioma",
-            "`/configurar` os canais onde o bot responde, os das melhores voltas e recordes, e o idioma deles") }],
+            "`/setup` los canales donde responde el bot, los de mejores vueltas y récords, y su idioma",
+            "`/setup` os canais onde o bot responde, os das melhores voltas e recordes, e o idioma deles") }],
       footer: { text: tr(x.l, "Your laps reach the bot once Pitlane HQ for Windows records them.", "Tus vueltas llegan al bot cuando Pitlane HQ para Windows las graba.", "As suas voltas chegam ao bot quando o Pitlane HQ para Windows as grava.") } }],
   }, true);
 }
 
-// the bot's language for this Discord user ("auto": the Discord app's own); the command names always follow the app's
+// the bot's language for this Discord user ("auto": the Discord app's own); the command names are English for everyone
 async function language(x) {
   const v = String(x.opt.lang || "auto");
   if (LANGS.includes(v)) await x.env.DB.prepare("INSERT INTO discord_users (discord_id, lang, updated) VALUES (?1,?2,?3) ON CONFLICT(discord_id) DO UPDATE SET lang=excluded.lang, updated=excluded.updated").bind(x.user.id, v, Date.now()).run();
   else await x.env.DB.prepare("DELETE FROM discord_users WHERE discord_id=?1").bind(x.user.id).run();
   const l = LANGS.includes(v) ? v : langOf(x.it.locale);
-  const note = tr(l, "Command names follow your Discord app's language.", "Los nombres de los comandos siguen el idioma de tu app de Discord.", "Os nomes dos comandos seguem o idioma do seu app do Discord.");
-  return text((LANGS.includes(v) ? tr(l, "Done: the bot answers you in English.", "Hecho: el bot te responde en español.", "Pronto: o bot responde a você em português.")
-    : tr(l, "Done: the bot answers you in your Discord app's language.", "Hecho: el bot te responde en el idioma de tu app de Discord.", "Pronto: o bot responde a você no idioma do seu app do Discord.")) + "\n" + note);
+  return text(LANGS.includes(v) ? tr(l, "Done: the bot answers you in English.", "Hecho: el bot te responde en español.", "Pronto: o bot responde a você em português.")
+    : tr(l, "Done: the bot answers you in your Discord app's language.", "Hecho: el bot te responde en el idioma de tu app de Discord.", "Pronto: o bot responde a você no idioma do seu app do Discord."));
 }
 
 // ---------- the server's settings: /setup ----------
@@ -356,7 +355,7 @@ async function panelAction(x) {
   const col = kind === "laps" ? "alerts_channel" : "records_channel", ch = chans[0] || null;
   if (!ch) { await saveGuild(x.env, x.guild, col, null); return upd(tr(x.l, "Saved.", "Guardado.", "Salvo.")); }
   // the alerts are Pro and go out while the account that set them has it
-  if (!x.account) return upd(tr(x.l, "Link your Pitlane HQ account first with /link to set the alerts.", "Vincula antes tu cuenta de Pitlane HQ con /vincular para configurar las alertas.", "Vincule antes a sua conta do Pitlane HQ com /vincular para configurar os alertas."));
+  if (!x.account) return upd(tr(x.l, "Link your Pitlane HQ account first with /link to set the alerts.", "Vincula antes tu cuenta de Pitlane HQ con /link para configurar las alertas.", "Vincule antes a sua conta do Pitlane HQ com /link para configurar os alertas."));
   if (!(await isPro(x.env, x.account))) return upd(tr(x.l, "The alerts are part of Pitlane HQ Pro.", "Las alertas son parte de Pitlane HQ Pro.", "Os alertas fazem parte do Pitlane HQ Pro."));
   if (!x.env.DISCORD_BOT_TOKEN) return upd(tr(x.l, "The bot cannot post yet (no bot token on the server).", "El bot aún no puede publicar (falta su token en el servidor).", "O bot ainda não pode publicar (falta o token dele no servidor)."));
   return later(x, true, async () => {
@@ -446,7 +445,7 @@ async function board(x) {
   ).bind(x.guild, k.t, k.c).all();
   const rows = r.results || [];
   if (!rows.length) return text(tr(x.l, "Nobody in this server has a lap there yet. Drivers show up once they link their account (/link) and use the bot here.",
-    "Nadie de este servidor tiene vuelta ahí todavía. Los pilotos aparecen cuando vinculan su cuenta (/vincular) y usan el bot aquí.", "Ninguém deste servidor tem volta aí ainda. Os pilotos aparecem quando vinculam a conta (/vincular) e usam o bot aqui."), false);
+    "Nadie de este servidor tiene vuelta ahí todavía. Los pilotos aparecen cuando vinculan su cuenta (/link) y usan el bot aquí.", "Ninguém deste servidor tem volta aí ainda. Os pilotos aparecem quando vinculam a conta (/link) e usam o bot aqui."), false);
   const lines = rows.map((v, i) => `\`${String(i + 1).padStart(2)}\` \`${fmt(v.time)}\` ${i ? `\`${gap(v.time - rows[0].time)}\` ` : ""}<@${v.did}> ${md(v.alias)} · P${v.pos} ${tr(x.l, "overall", "general", "geral")}`);
   return say({
     embeds: [{ color: AMBER, title: `${fix(k.car)}`.slice(0, 250), url: recUrl(x.l, k), description: `**${md(fix(k.track))}** · ${tr(x.l, "this server", "este servidor", "este servidor")}\n\n` + lines.join("\n") }],
