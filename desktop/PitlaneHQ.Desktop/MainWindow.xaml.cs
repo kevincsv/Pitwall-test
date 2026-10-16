@@ -141,7 +141,7 @@ public partial class MainWindow : Window
         AccLogin.Content = T("Sign in", "Entrar"); AccCreate.Content = T("Create an account", "Crear una cuenta");
         AccNameL.Text = T("PUBLIC NAME", "NOMBRE PÚBLICO"); AccNameSave.Content = T("Save", "Guardar");
         AccNameNote.Text = T("Changing it here changes it everywhere, your shared laps too.", "Si lo cambias aquí cambia en todas partes, también en tus vueltas compartidas.");
-        AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar"); AccSyncT.Text = T("SYNC", "SINCRONIZACIÓN");
+        AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar");
         AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
         AccDiscShow.Content = T("Show my Discord on my profile", "Mostrar mi Discord en mi perfil");
@@ -840,8 +840,6 @@ public partial class MainWindow : Window
         AccFlags.Children.Add(Chip(Bo(a?["twoFactor"]) ? T("Two-step sign-in on", "Verificación en dos pasos activada") : T("Two-step sign-in off", "Verificación en dos pasos desactivada"), B("Muted")));
         if (Bo(a?["admin"])) AccFlags.Children.Add(Chip("Admin", B("Accent")));
         if (Bo(a?["supporter"])) AccFlags.Children.Add(Chip(T("Supporter", "Supporter"), B("Pb")));
-        var last = D(a?["lastSync"]);
-        AccSyncV.Text = last > 0 ? T("Last sync: ", "Última sincronización: ") + DateTimeOffset.FromUnixTimeMilliseconds((long)last).LocalDateTime.ToString("g") : T("Not synced yet", "Aún sin sincronizar");
         var err = S(a?["error"]);
         AccSyncErr.Text = err == "" ? "" : T("This PC could not sync: ", "Este PC no pudo sincronizar: ") + err;
         AccSyncErr.Visibility = err == "" ? Visibility.Collapsed : Visibility.Visible;

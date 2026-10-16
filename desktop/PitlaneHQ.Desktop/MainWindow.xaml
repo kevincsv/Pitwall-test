@@ -395,10 +395,8 @@
                             </Border>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <TextBlock x:Name="AccSyncT" Style="{StaticResource CardTitle}" Text="SYNC"/>
-                                    <TextBlock x:Name="AccSyncV" Style="{StaticResource Note}"/>
-                                    <TextBlock x:Name="AccSyncErr" Foreground="{StaticResource Bad}" FontSize="13" TextWrapping="Wrap" Visibility="Collapsed"/>
-                                    <WrapPanel Margin="0,10,0,0">
+                                    <TextBlock x:Name="AccSyncErr" Foreground="{StaticResource Bad}" FontSize="13" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,10"/>
+                                    <WrapPanel>
                                         <Button x:Name="AccOut" Style="{StaticResource Btn}" Content="Sign out on this PC" Click="OnAccOut"/>
                                         <Button x:Name="AccMore" Style="{StaticResource Btn}" Content="More (password, two-step sign-in, devices, admin)" Click="OnAccMore"/>
                                     </WrapPanel>
