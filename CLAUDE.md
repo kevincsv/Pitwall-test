@@ -14,14 +14,18 @@
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
   PitlaneHQ.exe is for development only and has no button in the app. The one exception is the web's visitor
-  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): before the sign-in ever shows, one page like a product
-  site (never a slideshow) that says what Pitlane HQ does: a hero, then every feature as a section with a sample drawn
-  from that invented data (a lap, two laps compared, the coach's corners, the live relative, a leaderboard, a race
-  summary) that draws itself as it scrolls into view (IntersectionObserver, `tr-rv` reveals), "And also" cards,
-  "Try it with sample data" (`pw.sample`, `sampleOn()`:
-  the app itself on the invented data, the sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own",
-  nothing uploaded), Sign in, Create account and the download; shown once per browser, after the language window,
-  and "What Pitlane HQ does" on the sign-in screen opens it again. Never on the PC app.
+  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): the landing. The sign-in stays at the top of the page
+  (the "me" view as it is) and under it (`#tour` after `#meBody`, mounted by `signWall` while the wall is up) one page
+  like a product site (never a slideshow): a tagline, then every feature as a section with a sample that draws itself
+  as it scrolls into view (IntersectionObserver, `tr-rv` reveals), "And also" cards (driver notes, rev beeps, overlays
+  in VR; never "one account everywhere") and the calls to action. The samples of the lap, the comparison, the coach
+  and the board are real laps from the leaderboards (`loadReal`: the record of the most driven car and track with ≥ 2
+  laps and the lap behind it, with their traces; a car and track whose laps cannot be read is skipped; the names as
+  the public pages show them, Anonymous included; the tag says "Real laps from the leaderboards · car · track"), the
+  invented data only when the server has none ("Sample data · invented laps"); the live relative and the race summary
+  are always a sample. "Try it with sample data" (`pw.sample`, `sampleOn()`: the app itself on the invented data, the
+  sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own", nothing uploaded); "Create account" scrolls
+  to the form at the top. Never on the PC app.
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it rarely: a MINOR version for a big set of features; fixes and small changes go into the current
