@@ -1,16 +1,19 @@
 {
   "items": [
     {
-      "id": "2026-10-discord-bot",
-      "date": "2026-10-12",
+      "id": "2026-10-discord-bot-live",
+      "date": "2026-10-16",
       "title": {
-        "en": "We are working on the Discord bot",
-        "es": "Estamos trabajando en el bot de Discord"
+        "en": "The Pitlane HQ bot is on Discord",
+        "es": "El bot de Pitlane HQ ya está en Discord",
+        "pt": "O bot do Pitlane HQ já está no Discord"
       },
       "text": {
-        "en": "Pitlane HQ is coming to your Discord server: the records, your lap times and your race results, without leaving the chat. We will tell you as soon as it is ready.",
-        "es": "Pitlane HQ llegará a tu servidor de Discord: los récords, tus tiempos y los resultados de tus carreras, sin salir del chat. Te avisaremos en cuanto esté listo."
-      }
+        "en": "Ask for the record of a car and track, a driver's laps or your coach without leaving the chat, and get the new records in a channel. Link your account in Account → Discord.",
+        "es": "Pide el récord de un coche y circuito, las vueltas de un piloto o tu coach sin salir del chat, y recibe los récords nuevos en un canal. Vincula tu cuenta en Cuenta → Discord.",
+        "pt": "Peça o recorde de um carro e pista, as voltas de um piloto ou o seu coach sem sair do chat, e receba os novos recordes num canal. Vincule sua conta em Conta → Discord."
+      },
+      "view": "me"
     },
     {
       "id": "2026-10-records-track",
