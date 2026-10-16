@@ -34,6 +34,8 @@ export const COMMANDS = [
     ...loc(["idioma", "El idioma en que te responde el bot"], ["idioma", "O idioma em que o bot responde a você"]),
     options: [{ type: S, name: "lang", description: "Language", required: true, choices: langs(true),
       ...loc(["idioma", "Idioma"], ["idioma", "Idioma"]) }] },
+  { name: "setup", description: "The channels the bot answers in and posts to, and the alerts' language", default_member_permissions: "32", contexts: [0],
+    ...loc(["configurar", "Los canales donde responde y publica el bot, y el idioma de las alertas"], ["configurar", "Os canais onde o bot responde e publica, e o idioma dos alertas"]) },
   // Pro
   { name: "coach", description: "Pro · Your best lap against the next level and the record", options: [combo],
     ...loc(["coach", "Pro · Tu mejor vuelta contra el siguiente nivel y el récord"], ["coach", "Pro · A sua melhor volta contra o próximo nível e o recorde"]) },

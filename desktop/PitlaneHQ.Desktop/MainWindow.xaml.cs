@@ -144,6 +144,8 @@ public partial class MainWindow : Window
         AccEmailT.Text = "EMAIL"; AccReveal.Content = _reveal ? T("Hide", "Ocultar") : T("Show", "Mostrar"); AccSyncT.Text = T("SYNC", "SINCRONIZACIÓN");
         AccOut.Content = T("Sign out on this PC", "Cerrar sesión en este PC");
         AccMore.Content = T("More (password, two-step sign-in, devices, admin)", "Más (contraseña, verificación en dos pasos, dispositivos, admin)");
+        AccDiscShow.Content = T("Show my Discord on my profile", "Mostrar mi Discord en mi perfil");
+        AccDiscGo.Content = T("Link Discord", "Vincular Discord"); AccDiscOff.Content = T("Unlink", "Desvincular");
         SetTitle.Text = T("Settings", "Ajustes"); SetGenT.Text = "GENERAL"; SetStart.Content = T("Start with Windows", "Iniciar con Windows");
         SetCloseOv.Content = T("Close the overlays when Pitlane HQ closes", "Cerrar los overlays al cerrar Pitlane HQ");
         SetVR.Content = T("Show the overlays in VR (SteamVR)", "Mostrar los overlays en VR (SteamVR)");
@@ -843,6 +845,48 @@ public partial class MainWindow : Window
         var err = S(a?["error"]);
         AccSyncErr.Text = err == "" ? "" : T("This PC could not sync: ", "Este PC no pudo sincronizar: ") + err;
         AccSyncErr.Visibility = err == "" ? Visibility.Collapsed : Visibility.Visible;
+        await DiscordAsync();
+    }
+
+    // Account → Discord: link the Discord account (Discord's sign-in in the browser), show it on the public profile
+    // so other drivers can find you there (off until you say), or unlink it
+    private bool _discShown;
+    private async Task DiscordAsync()
+    {
+        var (d, err) = await _engine.SendAsync("/api/sync", new { action = "discord" });
+        bool linked = Bo(d?["linked"]);
+        _discShown = Bo(d?["shown"]);
+        var handle = S(d?["handle"]);
+        AccDiscV.Text = err != null ? err
+            : linked ? T("Linked: ", "Vinculado: ") + (handle != "" ? "@" + handle : "Discord") + "\n" + T("If you show it, other drivers see it on your profile and can find you on Discord.", "Si lo muestras, los demás pilotos lo ven en tu perfil y pueden encontrarte en Discord.")
+            : Bo(d?["oauth"]) ? T("Link your Discord account: the Pitlane HQ bot knows you there, and other drivers can find you if you want.", "Vincula tu cuenta de Discord: el bot de Pitlane HQ te reconoce allí, y otros pilotos pueden encontrarte si quieres.")
+            : T("In Discord, write /link to the Pitlane HQ bot.", "En Discord, escribe /vincular al bot de Pitlane HQ.");
+        AccDiscShow.IsChecked = _discShown;
+        AccDiscShow.Visibility = linked ? Visibility.Visible : Visibility.Collapsed;
+        AccDiscOff.Visibility = linked ? Visibility.Visible : Visibility.Collapsed;
+        AccDiscGo.Visibility = !linked && err == null && Bo(d?["oauth"]) ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void OnAccDiscGo(object sender, RoutedEventArgs e)
+    {
+        var (d, err) = await _engine.SendAsync("/api/sync", new { action = "discordStart" });
+        var url = S(d?["url"]);
+        if (err != null || !url.StartsWith("https://discord.com/")) { MessageBox.Show(this, err ?? "Discord", "Pitlane HQ"); return; }
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+        AccDiscV.Text = T("Finish in the browser, then come back here.", "Termina en el navegador y vuelve aquí.");
+    }
+
+    private async void OnAccDiscShow(object sender, RoutedEventArgs e)
+    {
+        await _engine.SendAsync("/api/sync", new { action = "discordShow", on = !_discShown });
+        await DiscordAsync();
+    }
+
+    private async void OnAccDiscOff(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show(this, T("Unlink your Discord account?", "¿Desvincular tu cuenta de Discord?"), "Pitlane HQ", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        await _engine.SendAsync("/api/sync", new { action = "discordUnlink" });
+        await DiscordAsync();
     }
 
     private void ShowAccErr(string? m)

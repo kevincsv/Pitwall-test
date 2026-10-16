@@ -15,6 +15,8 @@ const SITE = "https://pitlanehq.app";
 const API = "https://discord.com/api/v10";
 const AMBER = 0xffb02e, PURPLE = 0xa970ff, EPHEMERAL = 64, MANAGE_GUILD = 0x20n;
 const PRO = new Set(PLANS.discordPro || []);
+// the commands that answer in the channel for everyone (a server can keep them to its chosen channels)
+const PUBLIC_CMDS = new Set(["record", "driver", "download", "coach", "compare", "board"]);
 const fmt = (t) => { if (!(t > 0)) return "–"; const m = Math.floor(t / 60), s = t - m * 60; return (m ? m + ":" + (s < 10 ? "0" : "") : "") + s.toFixed(3); };
 const gap = (d) => (d < 0 ? "−" : "+") + Math.abs(d).toFixed(3);
 // text that came through a wrong encoding ("AutÃ³dromo") read back as it was written
@@ -73,16 +75,25 @@ export async function discordInteraction(req, env, ctx) {
   if (it.type === 4) return reply({ type: 8, data: { choices: await suggest(env, it).catch(() => []) } });
   const user = (it.member && it.member.user) || it.user || {};
   // the language chosen with /language, else the one of the user's Discord app
-  const me = user.id ? await env.DB.prepare("SELECT (SELECT account_id FROM discord_links WHERE discord_id=?1) AS account, (SELECT lang FROM discord_users WHERE discord_id=?1) AS lang").bind(user.id).first() : null;
+  const me = user.id ? await env.DB.prepare("SELECT (SELECT account_id FROM discord_links WHERE discord_id=?1) AS account, (SELECT lang FROM discord_users WHERE discord_id=?1) AS lang, (SELECT cmd_channels FROM discord_guilds WHERE guild_id=?2) AS chans")
+    .bind(user.id, it.guild_id || "").first() : null;
   const l = LANGS.includes(me && me.lang) ? me.lang : langOf(it.locale);
-  if (it.type !== 2 || !it.data) return text(tr(l, "Unknown action", "Acción desconocida", "Ação desconhecida"));
+  if ((it.type !== 2 && it.type !== 3) || !it.data) return text(tr(l, "Unknown action", "Acción desconocida", "Ação desconhecida"));
   const x = { env, ctx, it, l, user, account: (me && me.account) || null, guild: it.guild_id || null, opt: {} };
+  if (it.type === 3) {
+    try { return await panelAction(x); } catch (e) { return text(tr(l, "Something went wrong, try again in a moment.", "Algo ha fallado, prueba otra vez en un momento.", "Algo deu errado, tente de novo em um momento.")); }
+  }
   for (const o of it.data.options || []) x.opt[o.name] = o.value;
   // a linked driver who uses the bot in a server is one of its drivers (its ranking and its alerts)
   if (x.account && x.guild) ctx.waitUntil(env.DB.prepare("INSERT INTO discord_members (guild_id, discord_id, seen) VALUES (?1,?2,?3) ON CONFLICT(guild_id, discord_id) DO UPDATE SET seen=excluded.seen").bind(x.guild, user.id, Date.now()).run().catch(() => {}));
   const name = it.data.name;
+  // a server that chose the channels the bot answers in: its public answers only there (private ones anywhere)
+  let chans = [];
+  try { chans = JSON.parse((me && me.chans) || "[]") || []; } catch (e) {}
+  if (x.guild && chans.length && PUBLIC_CMDS.has(name) && !chans.includes(it.channel_id) && !chans.includes(it.channel && it.channel.parent_id))
+    return text(tr(l, "In this server the bot answers in ", "En este servidor el bot responde en ", "Neste servidor o bot responde em ") + chans.map((c) => `<#${c}>`).join(" ") + ".");
   if (PRO.has(name) && !(await isPro(env, x.account))) return proOnly(x);
-  const run = { record, driver, link: linkStart, unlink, download, help, language, coach, compare, board, alerts }[name];
+  const run = { record, driver, link: linkStart, unlink, download, help, language, setup, coach, compare, board, alerts }[name];
   if (!run) return text(tr(l, "Unknown command", "Comando desconocido", "Comando desconhecido"));
   try {
     return await run(x);
@@ -92,10 +103,10 @@ export async function discordInteraction(req, env, ctx) {
 }
 
 // an answer that takes longer than Discord's 3 seconds (the coach builds the model when it has new laps)
-function later(x, eph, work) {
+function later(x, eph, work, update) {
   const send = (data) => fetch(`${API}/webhooks/${x.it.application_id}/${x.it.token}/messages/@original`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(answer(data)) });
   x.ctx.waitUntil(work().catch(() => ({ content: tr(x.l, "Something went wrong, try again in a moment.", "Algo ha fallado, prueba otra vez en un momento.", "Algo deu errado, tente de novo em um momento.") })).then(send).catch(() => {}));
-  return reply({ type: 5, data: eph ? { flags: EPHEMERAL } : {} });
+  return reply(update ? { type: 6 } : { type: 5, data: eph ? { flags: EPHEMERAL } : {} });
 }
 
 const needLink = (x) => say({ content: tr(x.l, "Link your Pitlane HQ account first with /link.", "Vincula antes tu cuenta de Pitlane HQ con /vincular.", "Vincule antes a sua conta do Pitlane HQ com /vincular.") }, true);
@@ -209,6 +220,8 @@ async function driver(x) {
   const sup = a.supporter === 1 && (!a.supporter_hidden || self);
   const fields = [];
   if (licLine) fields.push({ name: tr(x.l, "Licences", "Licencias", "Licenças"), value: licLine });
+  const dc = !a.anon ? await x.env.DB.prepare("SELECT discord_id FROM discord_links WHERE account_id=?1 AND shown=1").bind(a.id).first() : null;
+  if (dc) fields.push({ name: "Discord", value: `<@${dc.discord_id}>` });
   fields.push({ name: tr(x.l, "On the leaderboards", "En las clasificaciones", "Nos leaderboards"), value: laps.length
     ? top.map((v) => `**P${v.pos}**/${v.total} \`${fmt(v.time)}\` ${md(fix(v.car))} · ${md(fix(v.track))}`).join("\n").slice(0, 1024)
     : tr(x.l, "No laps yet", "Aún sin vueltas", "Ainda sem voltas") });
@@ -228,8 +241,8 @@ async function linkStart(x) {
   const now = Date.now();
   await x.env.DB.batch([
     x.env.DB.prepare("DELETE FROM discord_codes WHERE expires<?1 OR discord_id=?2").bind(now, x.user.id),
-    x.env.DB.prepare("INSERT INTO discord_codes (code_hash, discord_id, discord_name, guild_id, expires) VALUES (?1,?2,?3,?4,?5)")
-      .bind(await sha256("discord:" + code), x.user.id, String(x.user.global_name || x.user.username || "").slice(0, 40), x.guild, now + 10 * 60e3),
+    x.env.DB.prepare("INSERT INTO discord_codes (code_hash, discord_id, discord_name, guild_id, expires, handle) VALUES (?1,?2,?3,?4,?5,?6)")
+      .bind(await sha256("discord:" + code), x.user.id, String(x.user.global_name || x.user.username || "").slice(0, 40), x.guild, now + 10 * 60e3, String(x.user.username || "").slice(0, 40) || null),
   ]);
   return say({
     content: tr(x.l, "Open this link where you are signed in to Pitlane HQ (the web app) and confirm. It works for 10 minutes and only once.",
@@ -267,7 +280,11 @@ function help(x) {
   const open = PLANS.enforce ? "" : tr(x.l, "\n*Open to everyone for now.*", "\n*Abierto a todos por ahora.*", "\n*Aberto a todos por enquanto.*");
   return say({
     embeds: [{ color: AMBER, title: "Pitlane HQ", url: SITE,
-      fields: [{ name: tr(x.l, "Free", "Gratis", "Grátis"), value: free }, { name: "Pro", value: pro + open }],
+      fields: [{ name: tr(x.l, "Free", "Gratis", "Grátis"), value: free }, { name: "Pro", value: pro + open },
+        { name: tr(x.l, "For the server's managers", "Para quien gestiona el servidor", "Para quem gerencia o servidor"),
+          value: tr(x.l, "`/setup` the channels the bot answers in, the channels for best laps and records, and their language",
+            "`/configurar` los canales donde responde el bot, los de mejores vueltas y récords, y su idioma",
+            "`/configurar` os canais onde o bot responde, os das melhores voltas e recordes, e o idioma deles") }],
       footer: { text: tr(x.l, "Your laps reach the bot once Pitlane HQ for Windows records them.", "Tus vueltas llegan al bot cuando Pitlane HQ para Windows las graba.", "As suas voltas chegam ao bot quando o Pitlane HQ para Windows as grava.") } }],
   }, true);
 }
@@ -281,6 +298,80 @@ async function language(x) {
   const note = tr(l, "Command names follow your Discord app's language.", "Los nombres de los comandos siguen el idioma de tu app de Discord.", "Os nomes dos comandos seguem o idioma do seu app do Discord.");
   return text((LANGS.includes(v) ? tr(l, "Done: the bot answers you in English.", "Hecho: el bot te responde en español.", "Pronto: o bot responde a você em português.")
     : tr(l, "Done: the bot answers you in your Discord app's language.", "Hecho: el bot te responde en el idioma de tu app de Discord.", "Pronto: o bot responde a você no idioma do seu app do Discord.")) + "\n" + note);
+}
+
+// ---------- the server's settings: /setup ----------
+const canManage = (x) => { try { return !!(BigInt((x.it.member && x.it.member.permissions) || "0") & MANAGE_GUILD); } catch (e) { return false; } };
+const LNAME = { en: "English", es: "Español", pt: "Português" };
+async function guildCfg(env, guild) {
+  const g = await env.DB.prepare("SELECT alerts_channel, records_channel, cmd_channels, lang FROM discord_guilds WHERE guild_id=?1").bind(guild).first();
+  let cmd = [];
+  try { cmd = JSON.parse((g && g.cmd_channels) || "[]") || []; } catch (e) {}
+  return { laps: (g && g.alerts_channel) || null, recs: (g && g.records_channel) || null, cmd, lang: (g && g.lang) || null };
+}
+const saveGuild = (env, guild, col, val) => env.DB.prepare(`INSERT INTO discord_guilds (guild_id, ${col}, updated) VALUES (?1,?2,?3) ON CONFLICT(guild_id) DO UPDATE SET ${col}=excluded.${col}, updated=excluded.updated`).bind(guild, val, Date.now()).run();
+function panel(x, c, note) {
+  const L = c.lang || langOf(x.it.guild_locale || x.it.locale), off = tr(x.l, "off", "apagado", "desligado");
+  const pick = (id, ph, max, vals) => ({ type: 1, components: [{ type: 8, custom_id: id, placeholder: ph, min_values: 0, max_values: max, channel_types: [0, 5], default_values: vals.map((v) => ({ id: v, type: "channel" })) }] });
+  const lines = [
+    "**" + tr(x.l, "Pitlane HQ in this server", "Pitlane HQ en este servidor", "Pitlane HQ neste servidor") + "**",
+    tr(x.l, "Commands answer in: ", "Los comandos responden en: ", "Os comandos respondem em: ") + (c.cmd.length ? c.cmd.map((v) => `<#${v}>`).join(" ") : tr(x.l, "every channel", "todos los canales", "todos os canais")),
+    tr(x.l, "New best laps: ", "Mejores vueltas: ", "Melhores voltas: ") + (c.laps ? `<#${c.laps}>` : off),
+    tr(x.l, "New records: ", "Récords: ", "Recordes: ") + (c.recs ? `<#${c.recs}>` : c.laps ? `<#${c.laps}>` : off),
+    tr(x.l, "Alerts' language: ", "Idioma de las alertas: ", "Idioma dos alertas: ") + LNAME[L],
+  ];
+  if (note) lines.push("", note);
+  return {
+    content: lines.join("\n"),
+    components: [
+      pick("cfg:cmd", tr(x.l, "Channels where the bot answers (none: all)", "Canales donde responde el bot (ninguno: todos)", "Canais onde o bot responde (nenhum: todos)"), 25, c.cmd),
+      pick("cfg:laps", tr(x.l, "Channel for new best laps (none: off)", "Canal de mejores vueltas (ninguno: apagado)", "Canal das melhores voltas (nenhum: desligado)"), 1, c.laps ? [c.laps] : []),
+      pick("cfg:recs", tr(x.l, "Channel for new records (none: the best laps' one)", "Canal de récords (ninguno: el de mejores vueltas)", "Canal dos recordes (nenhum: o das melhores voltas)"), 1, c.recs ? [c.recs] : []),
+      { type: 1, components: [{ type: 3, custom_id: "cfg:lang", placeholder: tr(x.l, "Alerts' language", "Idioma de las alertas", "Idioma dos alertas"), options: LANGS.map((v) => ({ label: LNAME[v], value: v, default: v === L })) }] },
+    ],
+  };
+}
+const onlyManagers = (x) => text(tr(x.l, "Only the people who manage this server can change this.", "Solo quien gestiona este servidor puede cambiar esto.", "Só quem gerencia este servidor pode mudar isto."));
+async function setup(x) {
+  if (!x.guild) return text(tr(x.l, "This works inside a server.", "Esto funciona dentro de un servidor.", "Isto funciona dentro de um servidor."));
+  if (!canManage(x)) return onlyManagers(x);
+  return say(panel(x, await guildCfg(x.env, x.guild)), true);
+}
+// a choice in the panel: saved at once, the panel shows the server as it is now
+async function panelAction(x) {
+  const id = String(x.it.data.custom_id || "");
+  if (!id.startsWith("cfg:")) return reply({ type: 6 });
+  if (!x.guild || !canManage(x)) return onlyManagers(x);
+  const kind = id.slice(4), raw = (x.it.data.values || []).map(String), chans = raw.filter((v) => /^\d{5,25}$/.test(v));
+  const upd = async (note) => reply({ type: 7, data: answer(panel(x, await guildCfg(x.env, x.guild), note)) });
+  if (kind === "lang") {
+    if (LANGS.includes(raw[0])) await saveGuild(x.env, x.guild, "lang", raw[0]);
+    return upd(tr(x.l, "Saved.", "Guardado.", "Salvo."));
+  }
+  if (kind === "cmd") {
+    await saveGuild(x.env, x.guild, "cmd_channels", chans.length ? JSON.stringify(chans.slice(0, 25)) : null);
+    return upd(tr(x.l, "Saved.", "Guardado.", "Salvo."));
+  }
+  if (kind !== "laps" && kind !== "recs") return reply({ type: 6 });
+  const col = kind === "laps" ? "alerts_channel" : "records_channel", ch = chans[0] || null;
+  if (!ch) { await saveGuild(x.env, x.guild, col, null); return upd(tr(x.l, "Saved.", "Guardado.", "Salvo.")); }
+  // the alerts are Pro and go out while the account that set them has it
+  if (!x.account) return upd(tr(x.l, "Link your Pitlane HQ account first with /link to set the alerts.", "Vincula antes tu cuenta de Pitlane HQ con /vincular para configurar las alertas.", "Vincule antes a sua conta do Pitlane HQ com /vincular para configurar os alertas."));
+  if (!(await isPro(x.env, x.account))) return upd(tr(x.l, "The alerts are part of Pitlane HQ Pro.", "Las alertas son parte de Pitlane HQ Pro.", "Os alertas fazem parte do Pitlane HQ Pro."));
+  if (!x.env.DISCORD_BOT_TOKEN) return upd(tr(x.l, "The bot cannot post yet (no bot token on the server).", "El bot aún no puede publicar (falta su token en el servidor).", "O bot ainda não pode publicar (falta o token dele no servidor)."));
+  return later(x, true, async () => {
+    const c = await guildCfg(x.env, x.guild), gl = c.lang || langOf(x.it.guild_locale || x.it.locale);
+    const hello = kind === "laps"
+      ? tr(gl, "🏁 Pitlane HQ: this server's new best laps will show up here.", "🏁 Pitlane HQ: aquí saldrán las nuevas mejores vueltas de este servidor.", "🏁 Pitlane HQ: aqui vão aparecer as novas melhores voltas deste servidor.")
+      : tr(gl, "🏆 Pitlane HQ: the records this server's drivers set will show up here.", "🏆 Pitlane HQ: aquí saldrán los récords que batan los pilotos de este servidor.", "🏆 Pitlane HQ: aqui vão aparecer os recordes que os pilotos deste servidor baterem.");
+    if (!(await post(x.env, ch, { content: hello })))
+      return panel(x, c, tr(x.l, `I cannot post in <#${ch}>: give the bot View channel, Send messages and Embed links there.`, `No puedo publicar en <#${ch}>: da al bot Ver canal, Enviar mensajes e Insertar enlaces allí.`, `Não consigo publicar em <#${ch}>: dê ao bot Ver canal, Enviar mensagens e Inserir links lá.`));
+    await x.env.DB.batch([
+      x.env.DB.prepare(`INSERT INTO discord_guilds (guild_id, ${col}, set_by, lang, updated) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(guild_id) DO UPDATE SET ${col}=excluded.${col}, set_by=excluded.set_by, lang=COALESCE(discord_guilds.lang, excluded.lang), updated=excluded.updated`)
+        .bind(x.guild, ch, x.account, gl, Date.now()),
+    ]);
+    return panel(x, await guildCfg(x.env, x.guild), tr(x.l, "Saved.", "Guardado.", "Salvo."));
+  }, true);
 }
 
 // ---------- Pro ----------
@@ -364,13 +455,11 @@ async function board(x) {
 
 async function alerts(x) {
   if (!x.guild) return text(tr(x.l, "This works inside a server.", "Esto funciona dentro de un servidor.", "Isto funciona dentro de um servidor."));
-  let perms = 0n;
-  try { perms = BigInt((x.it.member && x.it.member.permissions) || "0"); } catch (e) {}
-  if (!(perms & MANAGE_GUILD)) return text(tr(x.l, "Only the people who manage this server can set the alerts.", "Solo quien gestiona este servidor puede configurar las alertas.", "Só quem gerencia este servidor pode configurar os alertas."));
+  if (!canManage(x)) return text(tr(x.l, "Only the people who manage this server can set the alerts.", "Solo quien gestiona este servidor puede configurar las alertas.", "Só quem gerencia este servidor pode configurar os alertas."));
   if (!x.account) return needLink(x);
   const ch = x.opt.channel, now = Date.now(), gl = LANGS.includes(x.opt.language) ? x.opt.language : langOf(x.it.guild_locale || x.it.locale);
   if (!ch) {
-    await x.env.DB.prepare("UPDATE discord_guilds SET alerts_channel=NULL, updated=?2 WHERE guild_id=?1").bind(x.guild, now).run();
+    await x.env.DB.prepare("UPDATE discord_guilds SET alerts_channel=NULL, records_channel=NULL, updated=?2 WHERE guild_id=?1").bind(x.guild, now).run();
     return text(tr(x.l, "Alerts off.", "Alertas apagadas.", "Alertas desligados."));
   }
   if (!x.env.DISCORD_BOT_TOKEN) return text(tr(x.l, "The bot cannot post yet (no bot token on the server).", "El bot aún no puede publicar (falta su token en el servidor).", "O bot ainda não pode publicar (falta o token dele no servidor)."));
@@ -378,7 +467,7 @@ async function alerts(x) {
     // a first message: the bot can post there, or it says what it is missing
     const ok = await post(x.env, ch, { content: tr(gl, "🏁 Pitlane HQ alerts: this server's new best laps and records will show up here.", "🏁 Alertas de Pitlane HQ: aquí saldrán las mejores vueltas y los récords de este servidor.", "🏁 Alertas do Pitlane HQ: aqui vão aparecer as melhores voltas e os recordes deste servidor.") });
     if (!ok) return { content: tr(x.l, `I cannot post in <#${ch}>: give the bot View channel, Send messages and Embed links there.`, `No puedo publicar en <#${ch}>: da al bot Ver canal, Enviar mensajes e Insertar enlaces allí.`, `Não consigo publicar em <#${ch}>: dê ao bot Ver canal, Enviar mensagens e Inserir links lá.`) };
-    await x.env.DB.prepare("INSERT INTO discord_guilds (guild_id, alerts_channel, set_by, lang, updated) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(guild_id) DO UPDATE SET alerts_channel=excluded.alerts_channel, set_by=excluded.set_by, lang=excluded.lang, updated=excluded.updated")
+    await x.env.DB.prepare("INSERT INTO discord_guilds (guild_id, alerts_channel, set_by, lang, updated) VALUES (?1,?2,?3,?4,?5) ON CONFLICT(guild_id) DO UPDATE SET alerts_channel=excluded.alerts_channel, records_channel=NULL, set_by=excluded.set_by, lang=excluded.lang, updated=excluded.updated")
       .bind(x.guild, ch, x.account, gl, now).run();
     return { content: tr(x.l, `Alerts on in <#${ch}>. They cover the drivers who linked their account and used the bot in this server.`, `Alertas activadas en <#${ch}>. Cubren a los pilotos que vincularon su cuenta y usaron el bot en este servidor.`, `Alertas ativados em <#${ch}>. Cobrem os pilotos que vincularam a conta e usaram o bot neste servidor.`) };
   });
@@ -399,7 +488,7 @@ export async function discordLapAlert(env, accountId, lap) {
   if (!env.DISCORD_BOT_TOKEN || !lap || !lap.improved || lap.game !== "iracing") return;
   const a = await env.DB.prepare("SELECT a.anon, u.alias, dl.discord_id FROM accounts a JOIN community_users u ON u.id=a.id JOIN discord_links dl ON dl.account_id=a.id WHERE a.id=?1").bind(accountId).first();
   if (!a || a.anon || lap.anon) return;
-  const gs = (await env.DB.prepare("SELECT g.guild_id, g.alerts_channel, g.set_by, g.lang FROM discord_members m JOIN discord_guilds g ON g.guild_id=m.guild_id WHERE m.discord_id=?1 AND g.alerts_channel IS NOT NULL").bind(a.discord_id).all()).results || [];
+  const gs = (await env.DB.prepare("SELECT g.guild_id, g.alerts_channel, g.records_channel, g.set_by, g.lang FROM discord_members m JOIN discord_guilds g ON g.guild_id=m.guild_id WHERE m.discord_id=?1 AND (g.alerts_channel IS NOT NULL OR g.records_channel IS NOT NULL)").bind(a.discord_id).all()).results || [];
   if (!gs.length) return;
   const st = await env.DB.prepare(
     `SELECT (SELECT COUNT(*) FROM community_laps l WHERE l.track_id=?1 AND l.car_id=?2 AND l.game='iracing' AND ${NOT_MODEL} AND l.time<?3)+1 AS pos,
@@ -407,38 +496,102 @@ export async function discordLapAlert(env, accountId, lap) {
   ).bind(lap.trackId, lap.carId, lap.time).first();
   const k = { t: lap.trackId, c: lap.carId, track: lap.track, car: lap.car };
   for (const g of gs) {
-    if (!(await isPro(env, g.set_by))) continue;
-    const l = ["es", "pt"].includes(g.lang) ? g.lang : "en", rec = st.pos === 1 && st.total > 1;
+    const rec = st.pos === 1 && st.total > 1, channel = rec ? g.records_channel || g.alerts_channel : g.alerts_channel;
+    if (!channel || !(await isPro(env, g.set_by))) continue;
+    const l = ["es", "pt"].includes(g.lang) ? g.lang : "en";
     const fields = [
       { name: tr(l, "Time", "Tiempo", "Tempo"), value: `\`${fmt(lap.time)}\`` + (lap.prev ? ` \`${gap(lap.time - lap.prev)}\`` : ""), inline: true },
       { name: tr(l, "Position", "Posición", "Posição"), value: `**P${st.pos}** ${tr(l, "of", "de", "de")} ${st.total}`, inline: true },
     ];
-    await post(env, g.alerts_channel, {
+    await post(env, channel, {
       embeds: [{ color: rec ? PURPLE : AMBER, url: recUrl(l, k), title: rec ? tr(l, "🏆 New record", "🏆 Nuevo récord", "🏆 Novo recorde") : tr(l, "⏱️ New best lap", "⏱️ Nueva mejor vuelta", "⏱️ Nova melhor volta"),
         description: `<@${a.discord_id}> **${md(a.alias)}**\n${md(fix(lap.car))} · ${md(fix(lap.track))}`, fields }],
     });
   }
 }
 
-// the account side of /link: the web app shows who is asking and confirms (signed in, /account/discord/…)
+// link one Discord user to one account (either side's older link goes); a relink of the same pair keeps "shown"
+async function linkPair(env, discordId, accountId, handle, guildId) {
+  const was = await env.DB.prepare("SELECT shown FROM discord_links WHERE discord_id=?1 AND account_id=?2").bind(discordId, accountId).first();
+  const now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM discord_links WHERE discord_id=?1 OR account_id=?2").bind(discordId, accountId),
+    env.DB.prepare("INSERT INTO discord_links (discord_id, account_id, created, handle, shown) VALUES (?1,?2,?3,?4,?5)").bind(discordId, accountId, now, handle || null, was && was.shown ? 1 : 0),
+    ...(guildId ? [env.DB.prepare("INSERT OR REPLACE INTO discord_members (guild_id, discord_id, seen) VALUES (?1,?2,?3)").bind(guildId, discordId, now)] : []),
+  ]);
+}
+const OAUTH_BACK = () => SITE + "/discord/oauth";
+const oauthReady = (env) => !!(env.DISCORD_APP_ID && env.DISCORD_CLIENT_SECRET);
+
+// the account side (signed in, /account/discord/…): what is linked, Discord's sign-in to link it from any app,
+// whether the profile shows it, unlinking, and the bot's /link code that the web app confirms
 export async function discordAccount(env, a, p, m, body, url) {
   const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
   const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
+  if (p === "/discord" && m === "GET") {
+    const l = await env.DB.prepare("SELECT discord_id, handle, shown FROM discord_links WHERE account_id=?1").bind(a.id).first();
+    return json({ linked: !!l, id: l ? l.discord_id : undefined, handle: l ? l.handle || "" : undefined, shown: !!(l && l.shown), oauth: oauthReady(env) });
+  }
+  if (p === "/discord/start" && m === "POST") {
+    if (!oauthReady(env)) return json({ error: "Discord sign-in is not set up on this server yet: use /link in Discord" }, 503);
+    const state = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join(""), now = Date.now();
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM discord_oauth WHERE expires<?1 OR account_id=?2").bind(now, a.id),
+      env.DB.prepare("INSERT INTO discord_oauth (state_hash, account_id, expires) VALUES (?1,?2,?3)").bind(await sha256("discord-oauth:" + state), a.id, now + 10 * 60e3),
+    ]);
+    const q = new URLSearchParams({ client_id: env.DISCORD_APP_ID, response_type: "code", scope: "identify", redirect_uri: OAUTH_BACK(), state });
+    return json({ url: "https://discord.com/oauth2/authorize?" + q });
+  }
+  if (p === "/discord/show" && m === "POST") {
+    await env.DB.prepare("UPDATE discord_links SET shown=?2 WHERE account_id=?1").bind(a.id, body.shown ? 1 : 0).run();
+    return json({ ok: true, shown: !!body.shown });
+  }
+  if (p === "/discord/unlink" && m === "POST") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM discord_members WHERE discord_id IN (SELECT discord_id FROM discord_links WHERE account_id=?1)").bind(a.id),
+      env.DB.prepare("DELETE FROM discord_links WHERE account_id=?1").bind(a.id),
+    ]);
+    return json({ ok: true });
+  }
+  // the bot's /link: its one-use code, confirmed in the web app
   const code = String((m === "GET" ? url.searchParams.get("c") : body.code) || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (code.length !== 8) return json({ error: "this link is not valid" }, 400);
   const h = await sha256("discord:" + code);
-  const c = await env.DB.prepare("SELECT discord_id, discord_name, guild_id FROM discord_codes WHERE code_hash=?1 AND expires>?2").bind(h, Date.now()).first();
+  const c = await env.DB.prepare("SELECT discord_id, discord_name, guild_id, handle FROM discord_codes WHERE code_hash=?1 AND expires>?2").bind(h, Date.now()).first();
   if (!c) return json({ error: "this link expired: ask the bot again with /link" }, 404);
   if (p === "/discord/code" && m === "GET") return json({ name: c.discord_name });
   if (p === "/discord/link" && m === "POST") {
-    const now = Date.now();
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM discord_links WHERE discord_id=?1 OR account_id=?2").bind(c.discord_id, a.id),
-      env.DB.prepare("INSERT INTO discord_links (discord_id, account_id, created) VALUES (?1,?2,?3)").bind(c.discord_id, a.id, now),
-      env.DB.prepare("DELETE FROM discord_codes WHERE code_hash=?1").bind(h),
-      ...(c.guild_id ? [env.DB.prepare("INSERT OR REPLACE INTO discord_members (guild_id, discord_id, seen) VALUES (?1,?2,?3)").bind(c.guild_id, c.discord_id, now)] : []),
-    ]);
+    await linkPair(env, c.discord_id, a.id, c.handle, c.guild_id);
+    await env.DB.prepare("DELETE FROM discord_codes WHERE code_hash=?1").bind(h).run();
     return json({ ok: true, name: c.discord_name });
   }
   return json({ error: "not found" }, 404);
+}
+
+// Discord's sign-in comes back here (GET /discord/oauth?code&state): the user it names is linked to the account that
+// asked, and the browser goes to the web app with the result. Only "identify" is asked: the id and the username.
+export async function discordOAuth(req, env, url) {
+  const back = (ok) => Response.redirect(SITE + "/?discordLinked=" + (ok ? "1" : "0"), 302);
+  const state = url.searchParams.get("state") || "", code = url.searchParams.get("code") || "";
+  if (!oauthReady(env) || !/^[0-9a-f]{48}$/.test(state)) return back(false);
+  const h = await sha256("discord-oauth:" + state);
+  const st = await env.DB.prepare("SELECT account_id FROM discord_oauth WHERE state_hash=?1 AND expires>?2").bind(h, Date.now()).first();
+  await env.DB.prepare("DELETE FROM discord_oauth WHERE state_hash=?1").bind(h).run();
+  if (!st || !code) return back(false);
+  try {
+    const t = await fetch(API + "/oauth2/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: env.DISCORD_APP_ID, client_secret: env.DISCORD_CLIENT_SECRET, grant_type: "authorization_code", code, redirect_uri: OAUTH_BACK() }),
+    });
+    const tok = t.ok ? await t.json() : null;
+    if (!tok || !tok.access_token) return back(false);
+    const u = await fetch(API + "/users/@me", { headers: { authorization: "Bearer " + tok.access_token } });
+    const me = u.ok ? await u.json() : null;
+    if (!me || !/^\d{5,25}$/.test(String(me.id || ""))) return back(false);
+    await linkPair(env, String(me.id), st.account_id, String(me.username || "").slice(0, 40), null);
+    return back(true);
+  } catch (e) {
+    return back(false);
+  }
 }

@@ -25,6 +25,7 @@ migrations_dir = "migrations"
 #   EMAIL_PEPPER optional, salts the email hashes; set it before the first account is created
 #   RESEND_API_KEY + EMAIL_FROM   emails (see README)
 #   DISCORD_PUBLIC_KEY + DISCORD_BOT_TOKEN   the Discord bot (its commands come to /discord/interactions)
+#   DISCORD_APP_ID + DISCORD_CLIENT_SECRET   "Link Discord" in the apps (Discord's sign-in comes back to /discord/oauth)
 
 [vars]
 # accounts, end-to-end encrypted sync, community and shared setups on this server

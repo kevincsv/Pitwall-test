@@ -305,8 +305,8 @@ export async function accounts(req, env, url) {
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
-  // /link of the Discord bot: who is asking, and the confirmation from the web app
-  if (p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
+  // Discord: the linked account (Account → Discord, Discord's sign-in) and the bot's /link confirmed in the web app
+  if (p === "/discord" || p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
   if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });

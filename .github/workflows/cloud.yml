@@ -14,7 +14,8 @@ name: Pitlane HQ Cloud (web version)
 # Encryption at rest: secret DATA_KEY (a long random string; never change it once set, or the
 # sealed rows cannot be read). Optional EMAIL_PEPPER (set before the first account).
 # Discord bot: variable DISCORD_APP_ID and secrets DISCORD_PUBLIC_KEY and DISCORD_BOT_TOKEN (Discord Developer
-# Portal → your application); the deploy then registers its slash commands.
+# Portal → your application); the deploy then registers its slash commands. "Link Discord" in the apps also needs
+# the secret DISCORD_CLIENT_SECRET (OAuth2 → Client Secret) and https://pitlanehq.app/discord/oauth as a redirect.
 
 on:
   workflow_dispatch:
@@ -50,6 +51,7 @@ jobs:
       DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
       DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
       ADMINS: ${{ vars.ADMINS }}
       # the server's own address (pitlanehq.app); the repository variable CUSTOM_DOMAIN overrides it
@@ -111,6 +113,9 @@ jobs:
           # the Discord bot: its keys for the Worker, and its slash commands registered with Discord
           if [ -n "$DISCORD_PUBLIC_KEY" ]; then printf '%s' "$DISCORD_PUBLIC_KEY" | npx wrangler secret put DISCORD_PUBLIC_KEY; fi
           if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi
+          # "Link Discord" in the apps (Discord's sign-in): the application's id and its OAuth2 client secret
+          if [ -n "$DISCORD_APP_ID" ]; then printf '%s' "$DISCORD_APP_ID" | npx wrangler secret put DISCORD_APP_ID; fi
+          if [ -n "$DISCORD_CLIENT_SECRET" ]; then printf '%s' "$DISCORD_CLIENT_SECRET" | npx wrangler secret put DISCORD_CLIENT_SECRET; fi
           if [ -n "$DISCORD_APP_ID" ] && [ -n "$DISCORD_BOT_TOKEN" ]; then node discord-register.mjs || echo "::warning::Discord did not take the bot's commands (see the log above)."; fi
           url=$(grep -o 'https://[a-zA-Z0-9.-]*workers.dev' deploy.log | head -1)
           if [ -n "$CUSTOM_DOMAIN" ]; then url="https://$CUSTOM_DOMAIN"; fi

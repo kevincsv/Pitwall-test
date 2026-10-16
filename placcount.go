@@ -993,6 +993,28 @@ func registerPLRoutes(mux *http.ServeMux) {
 				return
 			case "revoke":
 				_, err = plCall("POST", "/sessions/revoke", map[string]string{"id": in.ID})
+			case "discord", "discordStart", "discordShow", "discordUnlink":
+				// the Discord account linked to this one (Account → Discord): what is linked, Discord's sign-in
+				// to link it (the window opens the address it gives), shown on the profile or not, unlink
+				var b []byte
+				var e error
+				switch in.Action {
+				case "discord":
+					b, e = plCall("GET", "/discord", nil)
+				case "discordStart":
+					b, e = plCall("POST", "/discord/start", map[string]any{})
+				case "discordShow":
+					b, e = plCall("POST", "/discord/show", map[string]bool{"shown": in.On})
+				default:
+					b, e = plCall("POST", "/discord/unlink", map[string]any{})
+				}
+				if e != nil {
+					fail(e)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(b)
+				return
 			case "delete":
 				plMu.Lock()
 				email := plAcc.Email

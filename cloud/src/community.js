@@ -756,8 +756,11 @@ export async function community(req, env, url, ctx) {
       const d = new Date(x.started - tz * 60000), k = d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1) + "-" + d.getUTCDate();
       days[k] = (days[k] || 0) + 1;
     }
+    // their Discord, when they chose to show it (Account → Discord) so other drivers can find them there
+    const dc = await env.DB.prepare("SELECT discord_id, handle FROM discord_links WHERE account_id=?1 AND shown=1").bind(a.id).first().catch(() => null);
     return json({
       name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
+      discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days,
       laps: laps.map((x) => ({ ...x, anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
