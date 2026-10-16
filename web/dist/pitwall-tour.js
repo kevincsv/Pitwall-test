@@ -45,12 +45,23 @@
     } catch (e) { /* the next one */ }
     return null;
   }
+  // a lap's trace with at most n points (every channel the same way): enough for the samples, light to keep
+  function thin(tr, n) {
+    const d = tr && tr.d; if (!d || d.length <= n) return tr;
+    const st = d.length / n, o = {};
+    for (const k of Object.keys(tr)) { const v = tr[k]; if (Array.isArray(v) && v.length === d.length) { const w = []; for (let i = 0; i < n; i++) w.push(v[Math.floor(i * st)]); w[n - 1] = v[v.length - 1]; o[k] = w; } else o[k] = v; }
+    return o;
+  }
+  // the real laps of the last visit, kept in this browser for a day: the page shows them at once next time
+  const CACHE = "pw.tourReal", DAY = 864e5;
+  function cached() { try { const c = JSON.parse(localStorage.getItem(CACHE) || "null"); return c && c.real && Date.now() - c.at < DAY ? c : null; } catch (e) { return null; } }
+  function keep(d) { try { const c = Object.assign({}, d, { at: Date.now(), a: Object.assign({}, d.a, { trace: thin(d.a.trace, 700) }), b: Object.assign({}, d.b, { trace: thin(d.b.trace, 700) }) }); localStorage.setItem(CACHE, JSON.stringify(c)); return c; } catch (e) { return d; } }
   async function loadData() {
     try { if (typeof cpReady !== "undefined") await cpReady; } catch (e) {}
     const srv = (typeof CP !== "undefined" && CP.server) || "";
     let real = null;
     if (srv) { try { real = await loadReal(srv); } catch (e) { real = null; } }
-    return real || invented();
+    return real ? keep(real) : null;
   }
   // the race: a sample always (there is no public race)
   const sampleRace = () => { const r = (D() && (D().get("/api/races") || {}).races) || []; return r.slice().sort((p, q) => Math.abs(q.finish - q.start) - Math.abs(p.finish - p.start))[0]; };
@@ -280,7 +291,27 @@
     S.el.innerHTML = pageHTML();
     S.anims.forEach((st) => cancelAnimationFrame(st.raf)); S.anims.clear(); liveStop(S.live);
     observe();
-    if (!S.loading) S.loading = loadData().then((d) => { S.data = d; dataReady(); }).catch(() => { S.data = invented(); dataReady(); });
+    if (!S.data) S.data = cached(); // the real laps of the last visit, at once
+    if (S.data) dataReady();
+    // the first visit: the laps come from the leaderboards; if they take more than a moment the invented sample
+    // shows meanwhile and the real laps take its place when they arrive
+    const wait = S.data ? null : setTimeout(() => { if (!S.data) { S.data = invented(); dataReady(); } }, 900);
+    if (!S.loading) S.loading = loadData().then((d) => {
+      clearTimeout(wait);
+      if (!d) { if (!S.data) { S.data = invented(); dataReady(); } return; }
+      const was = S.data; S.data = d;
+      if (!was) dataReady(); else if (!was.real) redrawLaps();
+    }).catch(() => { clearTimeout(wait); if (!S.data) { S.data = invented(); dataReady(); } });
+  }
+  // the real laps arrived after the sample: the sections that show laps draw again with them
+  function redrawLaps() {
+    if (!S.el) return;
+    S.el.querySelectorAll(".tr-sec").forEach((el) => {
+      const s = SECTIONS().find((q) => q.k === el.dataset.k); if (!s || !s.laps) return;
+      const st = S.anims.get(s.k); if (st) cancelAnimationFrame(st.raf); S.anims.delete(s.k);
+      el.querySelector(".tr-visin").innerHTML = ""; el.querySelector(".tr-tag").innerHTML = tag(s);
+      if (el.querySelector(".tr-txt.in")) showSection(el);
+    });
   }
   function unmount() {
     if (!S.el) return;
