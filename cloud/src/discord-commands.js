@@ -11,6 +11,12 @@ const combo = { type: S, name: "car_track", description: "Car and track (type to
 const name = (required) => ({ type: S, name: "name", description: "Their Pitlane HQ name", autocomplete: true, ...(required ? { required } : {}),
   ...loc(["nombre", "Su nombre en Pitlane HQ"], ["nome", "O nome no Pitlane HQ"]) });
 
+// the languages to choose (each in its own name); "auto" is the Discord app's language
+const langs = (auto) => [
+  ...(auto ? [{ name: "Automatic (Discord's language)", value: "auto", name_localizations: { "es-ES": "Automático (el idioma de Discord)", "es-419": "Automático (el idioma de Discord)", "pt-BR": "Automático (o idioma do Discord)" } }] : []),
+  { name: "English", value: "en" }, { name: "Español", value: "es" }, { name: "Português", value: "pt" },
+];
+
 export const COMMANDS = [
   { name: "record", description: "The record and the top 10 of a car and track", options: [combo],
     ...loc(["record", "El récord y el top 10 de un coche y circuito"], ["recorde", "O recorde e o top 10 de um carro e pista"]) },
@@ -24,6 +30,10 @@ export const COMMANDS = [
     ...loc(["descargar", "Descargar Pitlane HQ"], ["baixar", "Baixar o Pitlane HQ"]) },
   { name: "help", description: "What the Pitlane HQ bot does",
     ...loc(["ayuda", "Qué hace el bot de Pitlane HQ"], ["ajuda", "O que o bot do Pitlane HQ faz"]) },
+  { name: "language", description: "The language the bot answers you in",
+    ...loc(["idioma", "El idioma en que te responde el bot"], ["idioma", "O idioma em que o bot responde a você"]),
+    options: [{ type: S, name: "lang", description: "Language", required: true, choices: langs(true),
+      ...loc(["idioma", "Idioma"], ["idioma", "Idioma"]) }] },
   // Pro
   { name: "coach", description: "Pro · Your best lap against the next level and the record", options: [combo],
     ...loc(["coach", "Pro · Tu mejor vuelta contra el siguiente nivel y el récord"], ["coach", "Pro · A sua melhor volta contra o próximo nível e o recorde"]) },
@@ -34,5 +44,7 @@ export const COMMANDS = [
   { name: "alerts", description: "Pro · Post this server's new best laps and records in a channel", default_member_permissions: "32", contexts: [0],
     ...loc(["alertas", "Pro · Publica las mejores vueltas y récords de este servidor en un canal"], ["alertas", "Pro · Publica as melhores voltas e recordes deste servidor em um canal"]),
     options: [{ type: C, name: "channel", description: "The channel (empty: turn the alerts off)", channel_types: [0, 5],
-      ...loc(["canal", "El canal (vacío: apaga las alertas)"], ["canal", "O canal (vazio: desliga os alertas)"]) }] },
+      ...loc(["canal", "El canal (vacío: apaga las alertas)"], ["canal", "O canal (vazio: desliga os alertas)"]) },
+      { type: S, name: "language", description: "The alerts' language (default: the server's)", choices: langs(false),
+        ...loc(["idioma", "El idioma de las alertas (por defecto: el del servidor)"], ["idioma", "O idioma dos alertas (padrão: o do servidor)"]) }] },
 ];

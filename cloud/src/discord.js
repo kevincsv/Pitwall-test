@@ -30,6 +30,7 @@ const CAT = {
   pt: { oval: "Oval", sports_car: "Sports Car", formula_car: "Fórmula", dirt_oval: "Oval de terra", dirt_road: "Terra" },
 };
 const langOf = (loc) => { const s = String(loc || ""); return s.startsWith("es") ? "es" : s.startsWith("pt") ? "pt" : "en"; };
+const LANGS = ["en", "es", "pt"];
 const tr = (l, en, es, pt) => (l === "es" ? es : l === "pt" ? pt : en);
 const anonName = (l) => tr(l, "Anonymous", "Anónimo", "Anônimo");
 // the name a lap shows in public (the records pages do the same: race rivals by their whole name)
@@ -70,17 +71,18 @@ export async function discordInteraction(req, env, ctx) {
   const it = JSON.parse(body);
   if (it.type === 1) return reply({ type: 1 }); // Discord checking the address
   if (it.type === 4) return reply({ type: 8, data: { choices: await suggest(env, it).catch(() => []) } });
-  const l = langOf(it.locale);
-  if (it.type !== 2 || !it.data) return text(tr(l, "Unknown action", "Acción desconocida", "Ação desconhecida"));
   const user = (it.member && it.member.user) || it.user || {};
-  const link = user.id ? await env.DB.prepare("SELECT account_id FROM discord_links WHERE discord_id=?1").bind(user.id).first() : null;
-  const x = { env, ctx, it, l, user, account: link ? link.account_id : null, guild: it.guild_id || null, opt: {} };
+  // the language chosen with /language, else the one of the user's Discord app
+  const me = user.id ? await env.DB.prepare("SELECT (SELECT account_id FROM discord_links WHERE discord_id=?1) AS account, (SELECT lang FROM discord_users WHERE discord_id=?1) AS lang").bind(user.id).first() : null;
+  const l = LANGS.includes(me && me.lang) ? me.lang : langOf(it.locale);
+  if (it.type !== 2 || !it.data) return text(tr(l, "Unknown action", "Acción desconocida", "Ação desconhecida"));
+  const x = { env, ctx, it, l, user, account: (me && me.account) || null, guild: it.guild_id || null, opt: {} };
   for (const o of it.data.options || []) x.opt[o.name] = o.value;
   // a linked driver who uses the bot in a server is one of its drivers (its ranking and its alerts)
   if (x.account && x.guild) ctx.waitUntil(env.DB.prepare("INSERT INTO discord_members (guild_id, discord_id, seen) VALUES (?1,?2,?3) ON CONFLICT(guild_id, discord_id) DO UPDATE SET seen=excluded.seen").bind(x.guild, user.id, Date.now()).run().catch(() => {}));
   const name = it.data.name;
   if (PRO.has(name) && !(await isPro(env, x.account))) return proOnly(x);
-  const run = { record, driver, link: linkStart, unlink, download, help, coach, compare, board, alerts }[name];
+  const run = { record, driver, link: linkStart, unlink, download, help, language, coach, compare, board, alerts }[name];
   if (!run) return text(tr(l, "Unknown command", "Comando desconocido", "Comando desconhecido"));
   try {
     return await run(x);
@@ -257,8 +259,8 @@ async function download(x) {
 
 function help(x) {
   const free = tr(x.l,
-    "`/record` the record and top 10 of a car and track\n`/driver` a driver's profile, or yours\n`/link` · `/unlink` your Pitlane HQ account\n`/download` the apps",
-    "`/record` el récord y el top 10 de un coche y circuito\n`/piloto` el perfil de un piloto, o el tuyo\n`/vincular` · `/desvincular` tu cuenta de Pitlane HQ\n`/descargar` las apps", "`/recorde` o recorde e o top 10 de um carro e pista\n`/piloto` o perfil de um piloto, ou o seu\n`/vincular` · `/desvincular` a sua conta do Pitlane HQ\n`/baixar` os apps");
+    "`/record` the record and top 10 of a car and track\n`/driver` a driver's profile, or yours\n`/link` · `/unlink` your Pitlane HQ account\n`/download` the apps\n`/language` the bot's language",
+    "`/record` el récord y el top 10 de un coche y circuito\n`/piloto` el perfil de un piloto, o el tuyo\n`/vincular` · `/desvincular` tu cuenta de Pitlane HQ\n`/descargar` las apps\n`/idioma` el idioma del bot", "`/recorde` o recorde e o top 10 de um carro e pista\n`/piloto` o perfil de um piloto, ou o seu\n`/vincular` · `/desvincular` a sua conta do Pitlane HQ\n`/baixar` os apps\n`/idioma` o idioma do bot");
   const pro = tr(x.l,
     "`/coach` your best lap against the next level and the record\n`/compare` your laps against another driver's\n`/board` this server's ranking on a car and track\n`/alerts` this server's new best laps and records, posted in a channel",
     "`/coach` tu mejor vuelta contra el siguiente nivel y el récord\n`/comparar` tus vueltas contra las de otro piloto\n`/ranking` el ranking de este servidor en un coche y circuito\n`/alertas` las mejores vueltas y récords de este servidor, en un canal", "`/coach` a sua melhor volta contra o próximo nível e o recorde\n`/comparar` as suas voltas contra as de outro piloto\n`/ranking` o ranking deste servidor em um carro e pista\n`/alertas` as melhores voltas e recordes deste servidor, em um canal");
@@ -268,6 +270,17 @@ function help(x) {
       fields: [{ name: tr(x.l, "Free", "Gratis", "Grátis"), value: free }, { name: "Pro", value: pro + open }],
       footer: { text: tr(x.l, "Your laps reach the bot once Pitlane HQ for Windows records them.", "Tus vueltas llegan al bot cuando Pitlane HQ para Windows las graba.", "As suas voltas chegam ao bot quando o Pitlane HQ para Windows as grava.") } }],
   }, true);
+}
+
+// the bot's language for this Discord user ("auto": the Discord app's own); the command names always follow the app's
+async function language(x) {
+  const v = String(x.opt.lang || "auto");
+  if (LANGS.includes(v)) await x.env.DB.prepare("INSERT INTO discord_users (discord_id, lang, updated) VALUES (?1,?2,?3) ON CONFLICT(discord_id) DO UPDATE SET lang=excluded.lang, updated=excluded.updated").bind(x.user.id, v, Date.now()).run();
+  else await x.env.DB.prepare("DELETE FROM discord_users WHERE discord_id=?1").bind(x.user.id).run();
+  const l = LANGS.includes(v) ? v : langOf(x.it.locale);
+  const note = tr(l, "Command names follow your Discord app's language.", "Los nombres de los comandos siguen el idioma de tu app de Discord.", "Os nomes dos comandos seguem o idioma do seu app do Discord.");
+  return text((LANGS.includes(v) ? tr(l, "Done: the bot answers you in English.", "Hecho: el bot te responde en español.", "Pronto: o bot responde a você em português.")
+    : tr(l, "Done: the bot answers you in your Discord app's language.", "Hecho: el bot te responde en el idioma de tu app de Discord.", "Pronto: o bot responde a você no idioma do seu app do Discord.")) + "\n" + note);
 }
 
 // ---------- Pro ----------
@@ -355,7 +368,7 @@ async function alerts(x) {
   try { perms = BigInt((x.it.member && x.it.member.permissions) || "0"); } catch (e) {}
   if (!(perms & MANAGE_GUILD)) return text(tr(x.l, "Only the people who manage this server can set the alerts.", "Solo quien gestiona este servidor puede configurar las alertas.", "Só quem gerencia este servidor pode configurar os alertas."));
   if (!x.account) return needLink(x);
-  const ch = x.opt.channel, now = Date.now(), gl = langOf(x.it.guild_locale || x.it.locale);
+  const ch = x.opt.channel, now = Date.now(), gl = LANGS.includes(x.opt.language) ? x.opt.language : langOf(x.it.guild_locale || x.it.locale);
   if (!ch) {
     await x.env.DB.prepare("UPDATE discord_guilds SET alerts_channel=NULL, updated=?2 WHERE guild_id=?1").bind(x.guild, now).run();
     return text(tr(x.l, "Alerts off.", "Alertas apagadas.", "Alertas desligados."));

@@ -246,9 +246,10 @@
   They show the accounts' nicknames (never their iRacing names), race rivals by their whole name as the game shows it,
   or Anonymous.
 - The Discord bot (`cloud/src/discord.js`, commands in `discord-commands.js`, registered by the deploy with
-  `discord-register.mjs`, migration 0040): slash commands answered by the Worker at `/discord/interactions` (Ed25519,
-  DISCORD_PUBLIC_KEY), lap alerts posted with DISCORD_BOT_TOKEN. In English, Spanish and Portuguese (Discord's
-  locale). Free: /record, /driver, /link, /unlink, /download, /help; Pro (`discordPro` in license_plans.json, open to
+  `discord-register.mjs`, migrations 0040 and 0041): slash commands answered by the Worker at `/discord/interactions`
+  (Ed25519, DISCORD_PUBLIC_KEY), lap alerts posted with DISCORD_BOT_TOKEN. In English, Spanish and Portuguese: the
+  language each user chose with /language (`discord_users`), else their Discord app's; the alerts in the language
+  chosen in /alerts, else the server's. Free: /record, /driver, /link, /unlink, /download, /help, /language; Pro (`discordPro` in license_plans.json, open to
   everyone while `enforce` is false): /coach, /compare, /board (the server's ranking), /alerts (a channel for the
   server's new best laps and records, `discordLapAlert` from autoShare, `/laps` and `reshareSession`). /link gives a
   one-use button to pitlanehq.app (`?discord=`) where the signed-in web app confirms (`discordLinkAsk`). It shows
