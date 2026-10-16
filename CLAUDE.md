@@ -14,9 +14,11 @@
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
   PitlaneHQ.exe is for development only and has no button in the app. The one exception is the web's visitor
-  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): before the sign-in ever shows, a short presentation
-  of what Pitlane HQ does with samples drawn from that invented data (a lap, two laps compared, the coach's
-  corners, the live relative, a leaderboard, a race summary), "Try it with sample data" (`pw.sample`, `sampleOn()`:
+  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): before the sign-in ever shows, one page like a product
+  site (never a slideshow) that says what Pitlane HQ does: a hero, then every feature as a section with a sample drawn
+  from that invented data (a lap, two laps compared, the coach's corners, the live relative, a leaderboard, a race
+  summary) that draws itself as it scrolls into view (IntersectionObserver, `tr-rv` reveals), "And also" cards,
+  "Try it with sample data" (`pw.sample`, `sampleOn()`:
   the app itself on the invented data, the sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own",
   nothing uploaded), Sign in, Create account and the download; shown once per browser, after the language window,
   and "What Pitlane HQ does" on the sign-in screen opens it again. Never on the PC app.
