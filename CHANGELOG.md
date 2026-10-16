@@ -4,6 +4,14 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.12 beta
+
+- **The Pitlane HQ bot on Discord**: ask for the record of a car and track, a driver's laps or your coach without
+  leaving the chat, and get the server's new records in a channel. Link your account in Account → Discord, on every
+  device.
+- **The update window says what the new version brings**, in a short list.
+- Fixes and improvements.
+
 ## 0.9.11 beta
 
 - **The overlays in VR**: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, Meta
