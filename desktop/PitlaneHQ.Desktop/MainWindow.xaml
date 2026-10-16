@@ -8,18 +8,20 @@
         FontFamily="{StaticResource FBody}" Foreground="{StaticResource Fg}"
         Loaded="OnLoaded" Closing="OnClosing" SizeChanged="OnWinSize" StateChanged="OnWinState">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+        <!-- no caption of its own: the app's header is the title bar (drag, double-click, its buttons), like the web on the PC -->
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid x:Name="Root">
         <Grid.RowDefinitions>
-            <RowDefinition Height="56"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- the header, like the web's: the logo and the name, the game's state, the version, the main tabs
              (Home, Analysis, Telemetry, Overlays, Community, Account), Settings and the window's own buttons -->
-        <Border Grid.Row="0" Background="{StaticResource Bg}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+        <!-- not shown: the window is the app itself, exactly the web (its own header, tabs and window buttons) -->
+        <Border Grid.Row="0" Visibility="Collapsed" Background="{StaticResource Bg}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
             <DockPanel Margin="18,0,0,0" LastChildFill="True">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
                     <RadioButton x:Name="NavSettings" GroupName="nav" Style="{StaticResource NavButton}" Tag="settings" Checked="OnNav" Margin="8,0,10,0"
@@ -59,7 +61,9 @@
         <Grid Grid.Row="1">
             <Grid>
                 <!-- the screens not native yet: the app inside a WebView -->
-                <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="#11151B" Visibility="Hidden"/>
+                <!-- the app itself (web/dist, served by the engine): every screen, exactly as on the web; the 6 px margin
+                     leaves the window's resize borders to the window (a child window would take the mouse there) -->
+                <wv2:WebView2 x:Name="Web" DefaultBackgroundColor="#11151B" Margin="6"/>
 
                 <!-- HOME (native) -->
                 <ScrollViewer x:Name="HomeView" VerticalScrollBarVisibility="Auto" Padding="28,20,18,24" Background="{StaticResource Bg}">

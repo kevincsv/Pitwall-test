@@ -27,7 +27,9 @@ public partial class MainWindow : Window
     private readonly Border[] _rpm = new Border[16];
 
     // the native screens; every other view is the WebView
-    private static readonly HashSet<string> Native = new() { "home", "live", "overlays", "me", "settings", "community", "laps" };
+    // every screen is the app itself (web/dist in the WebView), exactly the web: no screen is native any more (the
+    // owner's choice); the native screens stay in the code, not shown
+    private static readonly HashSet<string> Native = new();
 
     public MainWindow()
     {
@@ -87,8 +89,12 @@ public partial class MainWindow : Window
     }
 
     // a maximised window without the system's frame goes past the screen's edges by its resize border
-    private void OnWinState(object? sender, EventArgs e) =>
-        Root.Margin = WindowState == WindowState.Maximized ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
+    private void OnWinState(object? sender, EventArgs e)
+    {
+        bool max = WindowState == WindowState.Maximized;
+        Root.Margin = max ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
+        Web.Margin = max ? new Thickness(0) : new Thickness(6);
+    }
     private static Brush Hex(string? h)
     {
         try { return (Brush)new BrushConverter().ConvertFromString(string.IsNullOrEmpty(h) ? "#E7EBF1" : h)!; }
@@ -143,6 +149,11 @@ public partial class MainWindow : Window
             Web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             Web.CoreWebView2.Settings.IsStatusBarEnabled = false;
             Web.CoreWebView2.NewWindowRequested += OnNewWindow;
+            Web.CoreWebView2.NavigationStarting += OnNavigating;
+            Web.CoreWebView2.WebMessageReceived += OnWebMessage;
+            // the app's header works as the title bar (window.pwWin, as in the agent's own window) and links to other
+            // sites open in the browser (window.pwOpen)
+            await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(HostScript);
             Web.CoreWebView2.NavigationCompleted += (_, _) => { _webReady = true; ShowView(_view); };
             Web.Source = new Uri(_engine.Url + "#" + _view);
         }
@@ -153,8 +164,63 @@ public partial class MainWindow : Window
     private void OnNewWindow(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         e.Handled = true;
-        if (e.Uri.StartsWith("https://") || e.Uri.StartsWith("http://"))
-            Process.Start(new ProcessStartInfo(e.Uri) { UseShellExecute = true });
+        OpenExternal(e.Uri);
+    }
+
+    private void OnNavigating(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var u) && (u.Scheme == "http" || u.Scheme == "https") && !u.IsLoopback)
+        {
+            e.Cancel = true;
+            OpenExternal(e.Uri);
+        }
+    }
+
+    private static void OpenExternal(string url)
+    {
+        if (url.StartsWith("https://") || url.StartsWith("http://") || url.StartsWith("mailto:"))
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+    }
+
+    // what the page gets from the window before its own scripts run: pwWin (the header as the title bar: drag,
+    // minimise, maximise, close, the top edges to resize, the maximised state back), pwOpen (a site in the browser)
+    // and the clicks on links to other sites, the same as the agent's own window gives it
+    private const string HostScript = """
+        (function(){var n=0,w={};
+        window.pwWin=function(a){return new Promise(function(res,rej){var id=++n;w[id]=res;try{chrome.webview.postMessage({type:"win",a:a,id:id})}catch(e){delete w[id];rej(e)}})};
+        window.pwOpen=function(u){try{chrome.webview.postMessage({type:"open",url:String(u)})}catch(e){}};
+        chrome.webview.addEventListener("message",function(e){var d=e.data;if(d&&d.type==="winr"&&w[d.id]){w[d.id](!!d.v);delete w[d.id]}});
+        var ext=function(u){try{var x=new URL(u,location.href);return x.origin!==location.origin&&/^https?:$/.test(x.protocol)}catch(e){return false}};
+        document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a&&ext(a.href)){e.preventDefault();window.pwOpen(a.href)}},true);
+        var o=window.open;window.open=function(u){if(u&&ext(u)){window.pwOpen(new URL(u,location.href).href);return null}return o.apply(window,arguments)}})();
+        """;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool ReleaseCapture();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
+
+    private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        JsonNode? m;
+        try { m = JsonNode.Parse(e.WebMessageAsJson); } catch { return; }
+        var type = S(m?["type"]);
+        if (type == "open") { OpenExternal(S(m?["url"])); return; }
+        if (type != "win") return;
+        var a = S(m?["a"]);
+        switch (a)
+        {
+            case "min": WindowState = WindowState.Minimized; break;
+            case "max": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break;
+            case "close": Close(); return;
+            case "drag": case "top": case "topleft": case "topright":
+                // WM_NCLBUTTONDOWN with the hit the page asks for: the caption (drag) or a top edge (resize)
+                var hit = a switch { "drag" => 2, "top" => 12, "topleft" => 13, _ => 14 };
+                ReleaseCapture();
+                SendMessage(new System.Windows.Interop.WindowInteropHelper(this).Handle, 0x00A1, (IntPtr)hit, IntPtr.Zero);
+                break;
+        }
+        var id = (int)D(m?["id"]);
+        var reply = new JsonObject { ["type"] = "winr", ["id"] = id, ["v"] = WindowState == WindowState.Maximized };
+        try { Web.CoreWebView2?.PostWebMessageAsJson(reply.ToJsonString()); } catch { }
     }
 
     private void ApplyLanguage(string lang)
@@ -376,7 +442,7 @@ public partial class MainWindow : Window
 
     private async Task FastAsync()
     {
-        if (_busyFast || !_engine.Running || (_view != "live" && _view != "home")) return;
+        if (_busyFast || !_engine.Running || !Native.Contains(_view)) return;
         _busyFast = true;
         try
         {

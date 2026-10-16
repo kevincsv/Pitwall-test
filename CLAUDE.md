@@ -351,14 +351,14 @@
   its side (even while the game's flag lags) and slides there smoothly, three wide puts the second car beyond the first,
   a car that stops overlapping eases back into line over the next 7 m, a car closing fast turns red before it is beside
   you and trails a fading line, a car off the track beside you still shows as an outline, a car on the pit road dimmed. The windows that need laps record the ones they see.
-  WebView2 is only the main window now, until it moves to C#/WPF (`desktop/PitlaneHQ.Desktop`) screen by screen
-  (the owner's choice): its Home, Analysis (laps A/B with the model's references, the charts, the track map with the
-  web's switches (`DrawMap`: the road, where A gains or loses, both laps' braking points, the incidents, the coach's
-  corners named by the official turns, the two lines; `/api/desk/coach` gives the tips, the braking points and the
-  line, `/api/trackmap` the community's layout when the laps have no path), `/api/desk/coach`), Telemetry,
-  Overlays, Community (leaderboards), Account and Settings screens are native (WPF; Telemetry fed by `/api/desk`,
-  `desknow.go`); the parts not moved yet (map, profiles, full settings) are the app in a WebView that runs hidden
-  from the start (the rev beep and the lap recording live there). Builds of other branches only check
+  The main window (Pitlane HQ Desktop, `desktop/PitlaneHQ.Desktop`, C#/WPF) is the app itself: `web/dist` served by the
+  engine in a WebView2 on every screen, exactly the web (the owner's choice, 0.9.12: the native WPF screens were never
+  the same as the web). The window has no title bar of its own: the app's header is the title bar (`ownFrame`:
+  `window.pwWin` for drag, minimise, maximise, close and the top edges, `window.pwOpen` for other sites, given to the
+  page by the shell before its scripts run, `HostScript`, as the agent's own window did), a 6 px margin leaves the
+  resize borders to the window. The native screens (Home, Analysis with `DrawMap`, Telemetry from `/api/desk`,
+  Overlays, Community, Account, Settings; `/api/desk/coach`, `/api/trackmap`, `desknow.go`) stay in the code but are
+  not shown (`Native` is empty). Builds of other branches only check
   (nothing is published unless it is master). The app tells the PC its language and units (`/api/lang?l=&u=`), and the native overlays get
   both in the stream's config event, so they change at once. The gaps overlay and widget drop a sample a whole lap
   off from both its neighbours (`cleanGaps`: the game counts a car's lap a moment before or after its distance
