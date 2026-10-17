@@ -4,6 +4,7 @@
 // Leaderboards show the accounts' nicknames (never their iRacing names) and race rivals by their whole name as the game
 // shows it; anonymous laps are "Anonymous".
 import { catMap, catOf } from "./categories.js";
+import { TOPICS, GUIDES } from "./seo-topics.js";
 
 const SITE = "https://pitlanehq.app";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -71,7 +72,7 @@ ${hl}
 <style>${CSS}</style>${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>` : ""}</head><body>
 <header><div class="w"><a class="b" href="/">${LOGO}Pitlane HQ</a><nav><a href="${links.tel}">${esc(t.tel)}</a><a href="${links.ov}">Overlays</a><a href="${links.rec}">${esc(t.rec)}</a><a href="/downloads">${esc(t.dl)}</a><a href="/">${esc(t.app)}</a>${others}</nav></div></header>
 <main class="w">${body}</main>
-<footer><div class="w">Pitlane HQ · ${esc(t.free)} · <a href="/downloads">${esc(t.dl)}</a> · <a href="${links.rec}">${esc(t.rec)}</a> · <a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a> · ${LANGS.map((k) => `<a href="${LAND[k].path}" hreflang="${k}">${NAME[k]}</a>`).join(" · ")}</div></footer></body></html>`;
+<footer><div class="w"><p class="m">${esc(GUIDES[l])}: ${TOPICS.map((x) => `<a href="${x[l].path}">${esc(x[l].h1)}</a>`).join(" · ")} · <a href="${OVL[l].path}">${esc(OVL[l].h1)}</a></p>Pitlane HQ · ${esc(t.free)} · <a href="/downloads">${esc(t.dl)}</a> · <a href="${links.rec}">${esc(t.rec)}</a> · <a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a> · ${LANGS.map((k) => `<a href="${LAND[k].path}" hreflang="${k}">${NAME[k]}</a>`).join(" · ")}</div></footer></body></html>`;
 }
 // the breadcrumb search engines show under the result: Pitlane HQ › Records › the page
 const crumbs = (items) => ({ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items.map(([name, path], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE + path })) });
@@ -89,7 +90,7 @@ const LAND = {
       ["Telemetry from every lap", "Pitlane HQ Agent runs next to iRacing and saves speed, throttle, brake, gear and steering on every lap, with nothing to set up. The laps go to your account, so you can open them later on the web or on your phone."],
       ["Compare two laps", "Speed, inputs and the time gap along the lap, the track map, the sectors and the braking points. Pick any two laps: yours, one from another session or one from the leaderboard."],
       ["A coach that uses real laps", "For each car and track Pitlane HQ learns from real laps driven by real people. The coach compares your lap with the record and with the driver just ahead of you, and tells you which corners cost the most."],
-      ["Live telemetry on your phone", "While you drive, watch your telemetry on the phone or in a browser. Share a code and a friend or your engineer can watch too."],
+      ["Live telemetry on your phone", "While you drive, watch your telemetry on the phone or in a browser. Share a code and a friend can watch too."],
       ["Leaderboards by car and track", "The fastest lap of every driver on each car and track, by discipline: oval, sports car, formula, dirt oval and dirt road."],
       ["Race summaries", "After each race: your result, your laps, your incidents and how you compared with the drivers around you."],
       ["Overlays on top of the game", "Relative, standings, radar, delta bar, fuel, tyres, track map, flags and more, drawn by Pitlane HQ over iRacing. Free for everyone."],
@@ -116,7 +117,7 @@ const LAND = {
       ["Telemetría de cada vuelta", "Pitlane HQ Agent funciona junto a iRacing y guarda velocidad, acelerador, freno, marcha y volante en cada vuelta, sin configurar nada. Las vueltas van a tu cuenta, así que luego las abres en la web o en el móvil."],
       ["Comparar dos vueltas", "Velocidad, pedales y diferencia de tiempo a lo largo de la vuelta, el mapa del circuito, los sectores y los puntos de frenada. Eliges dos vueltas cualquiera: tuyas, de otra sesión o de la clasificación."],
       ["Un coach con vueltas reales", "Para cada coche y circuito, Pitlane HQ aprende de vueltas reales de pilotos reales. El coach compara tu vuelta con el récord y con el piloto que va justo por delante, y te dice qué curvas te cuestan más."],
-      ["Telemetría en vivo en el móvil", "Mientras corres, mira tu telemetría en el móvil o en el navegador. Comparte un código y un amigo o tu ingeniero también puede verla."],
+      ["Telemetría en vivo en el móvil", "Mientras corres, mira tu telemetría en el móvil o en el navegador. Comparte un código y un amigo también puede verla."],
       ["Clasificaciones por coche y circuito", "La vuelta más rápida de cada piloto en cada coche y circuito, por disciplina: óvalo, sports car, fórmula, óvalo de tierra y tierra."],
       ["Resumen de cada carrera", "Después de cada carrera: tu resultado, tus vueltas, tus incidentes y cómo ibas frente a los pilotos de tu alrededor."],
       ["Overlays encima del juego", "Relative, clasificación, radar, barra de delta, combustible, neumáticos, mapa del circuito, banderas y más, dibujados por Pitlane HQ sobre iRacing. Gratis para todos."],
@@ -143,7 +144,7 @@ const LAND = {
       ["Telemetria de cada volta", "O Pitlane HQ Agent roda ao lado do iRacing e salva velocidade, acelerador, freio, marcha e volante em cada volta, sem configurar nada. As voltas vão para a sua conta, então você as abre depois na web ou no celular."],
       ["Compare duas voltas", "Velocidade, pedais e a diferença de tempo ao longo da volta, o mapa da pista, os setores e os pontos de frenagem. Escolha duas voltas quaisquer: suas, de outra sessão ou do leaderboard."],
       ["Um coach com voltas reais", "Para cada carro e pista, o Pitlane HQ aprende com voltas reais de pilotos reais. O coach compara a sua volta com o recorde e com o piloto logo à frente e diz quais curvas custam mais."],
-      ["Telemetria ao vivo no celular", "Enquanto você corre, veja a sua telemetria no celular ou no navegador. Compartilhe um código e um amigo ou o seu engenheiro também pode acompanhar."],
+      ["Telemetria ao vivo no celular", "Enquanto você corre, veja a sua telemetria no celular ou no navegador. Compartilhe um código e um amigo também pode acompanhar."],
       ["Leaderboards por carro e pista", "A volta mais rápida de cada piloto em cada carro e pista, por disciplina: oval, sports car, fórmula, oval de terra e terra."],
       ["Resumo de cada corrida", "Depois de cada corrida: o seu resultado, as suas voltas, os seus incidentes e como você foi contra os pilotos ao seu redor."],
       ["Overlays sobre o jogo", "Relative, classificação, radar, barra de delta, combustível, pneus, mapa da pista, bandeiras e mais, desenhados pelo Pitlane HQ sobre o iRacing. Grátis para todos."],
@@ -214,7 +215,7 @@ async function landing(env, l) {
   const body = `<h1>${esc(L.h1)}</h1><p class="lead">${esc(L.lead)}</p>
 <div class="cta"><a class="btn p" href="/dl/PitlaneHQ-Setup.exe">${esc(L.dl)}</a><a class="btn" href="/">${esc(L.app)}</a></div>
 <div class="g">${L.cards.map(([h, p]) => `<section class="c"><h3>${esc(h)}</h3><p>${esc(p)}</p></section>`).join("")}</div>
-<p><a href="${OVL[l].path}">${esc(OVL[l].h1)} →</a></p>
+<h2>${esc(GUIDES[l])}</h2><div class="g">${[...TOPICS.map((x) => x[l]), OVL[l]].map((x) => `<a class="c" href="${x.path}" style="text-decoration:none;color:inherit"><h3>${esc(x.h1)} →</h3><p>${esc(x.desc)}</p></a>`).join("")}</div>
 ${combos.length ? `<h2>${esc(L.recs)}</h2><p class="m">${esc(L.recsLead)}</p><table><tbody>${combos.map((x) => `<tr><td><a href="${recPath(l, x)}">${esc(fix(x.track))}</a></td><td class="m">${esc(fix(x.car))}</td><td class="t">${fmt(x.best)}</td></tr>`).join("")}</tbody></table><p><a href="${PRE[l]}/records">${esc(T[l].rec)} →</a></p>` : ""}
 <h2>${esc(L.faqT)}</h2>${L.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}`;
   const ld = [
@@ -275,6 +276,23 @@ export const notFound = (l) => new Response(page(l, { title: S[l].nfT + " · Pit
   body: `<h1>${esc(S[l].nf)}</h1><p><a href="${PRE[l]}/records">${esc(T[l].rec)}</a> · <a href="/">${esc(T[l].app)}</a></p>` }),
   { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
 
+// ---------- the guides (seo-topics.js) ----------
+const TOPIC_AT = new Map();
+for (const x of TOPICS) for (const k of LANGS) TOPIC_AT.set(x[k].path, [x, k]);
+const topicAlts = (x) => ({ en: x.en.path, es: x.es.path, pt: x.pt.path });
+function topicPage(x, l) {
+  const G = x[l], L = LAND[l], more = TOPICS.filter((y) => y !== x);
+  const body = `<h1>${esc(G.h1)}</h1><p class="lead">${esc(G.lead)}</p>
+<div class="cta"><a class="btn p" href="/dl/PitlaneHQ-Setup.exe">${esc(L.dl)}</a><a class="btn" href="/">${esc(L.app)}</a></div>
+<div class="g">${G.secs.map(([h, p]) => `<section class="c"><h2 style="font-size:22px;margin:0 0 6px">${esc(h)}</h2><p>${esc(p)}</p></section>`).join("")}</div>
+<h2>${esc(L.faqT)}</h2>${G.faq.map(([q, a]) => `<details open><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}
+<h2>${esc(GUIDES[l])}</h2><ul>${more.map((y) => `<li><a href="${y[l].path}">${esc(y[l].h1)}</a></li>`).join("")}<li><a href="${OVL[l].path}">${esc(OVL[l].h1)}</a></li><li><a href="${L.path}">${esc(L.h1)}</a></li><li><a href="${PRE[l]}/records">${esc(S[l].recH)}</a></li></ul>`;
+  const ld = [crumbs([["Pitlane HQ", L.path], [G.h1, G.path]]),
+    { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: G.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+    { "@context": "https://schema.org", "@type": "SoftwareApplication", name: "Pitlane HQ", alternateName: ["PitlaneHQ", "Pitlane HQ Agent"], url: SITE + "/", applicationCategory: "SportsApplication", operatingSystem: "Windows, Android, Web", description: G.desc, inLanguage: l, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }];
+  return html(page(l, { title: G.title, desc: G.desc, path: G.path, alts: topicAlts(x), body, ld }));
+}
+
 async function sitemap(env) {
   const combos = await topCombos(env, 2000), day = (v) => (v > 0 ? new Date(v).toISOString().slice(0, 10) : "");
   // every page with its two other languages (xhtml:link), as search engines like them
@@ -284,6 +302,7 @@ async function sitemap(env) {
   const s = [u("/", "weekly", "1.0", null, newest)];
   for (const k of LANGS) s.push(u(LAND_ALTS[k], "weekly", k === "en" ? "0.9" : "0.8", LAND_ALTS, newest));
   for (const k of LANGS) s.push(u(OVL_ALTS[k], "weekly", k === "en" ? "0.8" : "0.7", OVL_ALTS));
+  for (const x of TOPICS) { const a = topicAlts(x); for (const k of LANGS) s.push(u(a[k], "monthly", k === "en" ? "0.8" : "0.7", a)); }
   for (const k of LANGS) s.push(u(recAll[k], "daily", k === "en" ? "0.8" : "0.7", recAll, newest));
   s.push(u("/downloads", "weekly", "0.7"), u("/changelog", "weekly", "0.4"));
   for (const x of combos) { const a = recAlts(x); for (const k of LANGS) s.push(u(a[k], "daily", k === "en" ? "0.6" : "0.5", a, day(x.upd))); }
@@ -294,7 +313,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "5";
+const SEO_VER = "6";
 export async function indexNow(env) {
   if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
@@ -312,7 +331,7 @@ export async function indexNow(env) {
     "SELECT track_id AS t, MAX(track) AS track, car_id AS c, MAX(car) AS car FROM community_laps WHERE game='iracing' AND track_id>0 AND car_id>0 AND created>?1 GROUP BY track_id, car_id LIMIT 4000"
   ).bind(last).all().catch(() => ({ results: [] }));
   const urls = [];
-  if (!last) urls.push("/", ...Object.values(LAND_ALTS), ...Object.values(OVL_ALTS), "/records", "/es/records", "/pt/records", "/downloads", "/changelog");
+  if (!last) urls.push("/", ...Object.values(LAND_ALTS), ...Object.values(OVL_ALTS), ...TOPICS.flatMap((x) => Object.values(topicAlts(x))), "/records", "/es/records", "/pt/records", "/downloads", "/changelog");
   else if ((fresh.results || []).length) urls.push("/records", "/es/records", "/pt/records");
   for (const x of fresh.results || []) urls.push(...Object.values(recAlts(x)));
   if (urls.length) {
@@ -350,6 +369,7 @@ export async function seoPage(req, env, url) {
   if (p === "/iracing-overlays" || p === "/overlays") return overlaysPage("en");
   if (p === "/es/overlays-iracing" || p === "/es/overlays") return overlaysPage("es");
   if (p === "/pt/overlays-iracing" || p === "/pt/overlays") return overlaysPage("pt");
+  { const tp = TOPIC_AT.get(p); if (tp) return topicPage(tp[0], tp[1]); }
   const dsc = url.searchParams.get("d"), cat = CAT.en[dsc] ? dsc : "";
   if (p === "/records") return recordsIndex(env, "en", cat);
   if (p === "/es/records") return recordsIndex(env, "es", cat);

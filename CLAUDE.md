@@ -245,7 +245,9 @@
   JSON-LD; robots.txt is in web/dist. Descriptions are short and plain, never hype. The public pages
   (`cloud/src/seo.js`, plain HTML, English, Spanish and Portuguese, each naming the other two with hreflang and
   x-default): /iracing-telemetry, /es/telemetria-iracing and /pt/telemetria-iracing, the overlays (/iracing-overlays,
-  /es/overlays-iracing, /pt/overlays-iracing), /records, /es/records and
+  /es/overlays-iracing, /pt/overlays-iracing), the guides (`seo-topics.js`, one page per thing people search for, each in the
+  three languages, linked at the foot of every public page and in the app's <noscript>: the coach, comparing laps, braking
+  points, the racing line, the iRating, the shift beep, telemetry on the phone, free telemetry), /records, /es/records and
   /pt/records, one page per car and track (BreadcrumbList; the records index an ItemList; the landings WebSite,
   Organization, SoftwareApplication and FAQPage); the sitemap carries every language (xhtml:link) and lastmod; IndexNow
   sends every page again when SEO_VER changes; the app's "/" has its doctype, the hreflang links and a <noscript> with crawlable links in the
