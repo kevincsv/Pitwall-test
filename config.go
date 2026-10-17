@@ -154,7 +154,7 @@ func autoOverlays() {
 			for _, n := range listOverlays() {
 				open[n] = true
 			}
-			for _, wdg := range c.AutoWidgets {
+			for _, wdg := range proAutoList(c.AutoWidgets) {
 				if !open[wdg] && widgetRe.MatchString(wdg) && wdg != "*" {
 					go openNamedOverlay(wdg)
 				}

@@ -48,6 +48,7 @@ jobs:
       DATA_KEY: ${{ secrets.DATA_KEY }}
       EMAIL_PEPPER: ${{ secrets.EMAIL_PEPPER }}
       PATREON_WEBHOOK_SECRET: ${{ secrets.PATREON_WEBHOOK_SECRET }}
+      LEMONSQUEEZY_WEBHOOK_SECRET: ${{ secrets.LEMONSQUEEZY_WEBHOOK_SECRET }}
       DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
       DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -110,6 +111,7 @@ jobs:
           if [ -n "$EMAIL_PEPPER" ]; then printf '%s' "$EMAIL_PEPPER" | npx wrangler secret put EMAIL_PEPPER; fi
           # the Patreon webhook's secret: the supporter badge by itself for the patrons
           if [ -n "$PATREON_WEBHOOK_SECRET" ]; then printf '%s' "$PATREON_WEBHOOK_SECRET" | npx wrangler secret put PATREON_WEBHOOK_SECRET; fi
+          if [ -n "$LEMONSQUEEZY_WEBHOOK_SECRET" ]; then printf '%s' "$LEMONSQUEEZY_WEBHOOK_SECRET" | npx wrangler secret put LEMONSQUEEZY_WEBHOOK_SECRET; fi
           # the Discord bot: its keys for the Worker, and its slash commands registered with Discord
           if [ -n "$DISCORD_PUBLIC_KEY" ]; then printf '%s' "$DISCORD_PUBLIC_KEY" | npx wrangler secret put DISCORD_PUBLIC_KEY; fi
           if [ -n "$DISCORD_BOT_TOKEN" ]; then printf '%s' "$DISCORD_BOT_TOKEN" | npx wrangler secret put DISCORD_BOT_TOKEN; fi

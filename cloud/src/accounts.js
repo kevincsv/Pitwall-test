@@ -8,6 +8,7 @@ import { mailReady, sendVerify, sendReset, sendTest, lang } from "./email.js";
 import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pages.js";
 import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes } from "./crypt.js";
 import { patreonOnRegister } from "./patreon.js";
+import { proOnRegister, proOf, proGate, proHere } from "./lemon.js";
 import { discordAccount } from "./discord.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
@@ -239,6 +240,7 @@ export async function accounts(req, env, url) {
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
     await patreonOnRegister(env, id, eh).catch(() => {}); // a patron already: the supporter badge
+    await proOnRegister(env, id, eh).catch(() => {}); // bought Pro before having an account
     const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
     // the email went out: confirm it first, then sign in. If it could not be sent, the account
     // still works (signed in) so nobody is locked out while the email service is down.
@@ -309,7 +311,7 @@ export async function accounts(req, env, url) {
   if (p === "/discord" || p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, ...proOf(a), ...(await proHere(env, a, url.searchParams)), proGate: await proGate(env), verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
   // two-step sign-in with an authenticator app (Google Authenticator, Authy, 1Password…):
   // setup gives the secret (and the QR address), enable confirms it with a first code and hands
   // out the recovery codes once; disable needs the password and a code

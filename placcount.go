@@ -30,6 +30,7 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,25 +44,29 @@ import (
 const kdfRounds = 600000
 
 type plAccount struct {
-	Email     string    `json:"email,omitempty"`
-	ID        string    `json:"id,omitempty"`
-	Token     string    `json:"token,omitempty"`
-	DataKey   string    `json:"dataKey,omitempty"` // hex, never sent anywhere
-	Display   string    `json:"display,omitempty"`
-	NameKind  string    `json:"nameKind,omitempty"` // "iracing" or "nick"
-	Version   int64     `json:"version"`            // server version this PC last synced
-	LastHash  string    `json:"lastHash"`           // hash of the data at that time
-	LastSync  time.Time `json:"lastSync"`
-	SyncErr   string    `json:"syncErr,omitempty"`
-	NoLaps    bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server
-	Admin     bool      `json:"admin,omitempty"`     // an admin of the Pitlane HQ server (sees Connections)
-	Verified  bool      `json:"verified,omitempty"`  // the email was confirmed
-	Mail      bool      `json:"mail,omitempty"`      // the server can send emails
-	TwoFactor bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
-	Anon      bool      `json:"anon,omitempty"`      // what you share goes as "Anonymous" (kept with the account)
-	Supporter bool      `json:"supporter,omitempty"` // has the supporter badge (donates)
-	SupHidden bool      `json:"supHidden,omitempty"` // and chose to hide it
-	Ended     bool      `json:"ended,omitempty"`     // signed out by the server (see plSessionEnded); the email stays
+	Email        string    `json:"email,omitempty"`
+	ID           string    `json:"id,omitempty"`
+	Token        string    `json:"token,omitempty"`
+	DataKey      string    `json:"dataKey,omitempty"` // hex, never sent anywhere
+	Display      string    `json:"display,omitempty"`
+	NameKind     string    `json:"nameKind,omitempty"` // "iracing" or "nick"
+	Version      int64     `json:"version"`            // server version this PC last synced
+	LastHash     string    `json:"lastHash"`           // hash of the data at that time
+	LastSync     time.Time `json:"lastSync"`
+	SyncErr      string    `json:"syncErr,omitempty"`
+	NoLaps       bool      `json:"noLaps,omitempty"`    // do not keep my laps on the server
+	Admin        bool      `json:"admin,omitempty"`     // an admin of the Pitlane HQ server (sees Connections)
+	Verified     bool      `json:"verified,omitempty"`  // the email was confirmed
+	Mail         bool      `json:"mail,omitempty"`      // the server can send emails
+	TwoFactor    bool      `json:"twoFactor,omitempty"` // signs in with an authenticator app too
+	Anon         bool      `json:"anon,omitempty"`      // what you share goes as "Anonymous" (kept with the account)
+	Supporter    bool      `json:"supporter,omitempty"` // has the supporter badge (donates)
+	SupHidden    bool      `json:"supHidden,omitempty"` // and chose to hide it
+	Pro          bool      `json:"pro,omitempty"`       // has Pitlane HQ Pro (lifetime, a subscription or given by hand)
+	ProSrc       string    `json:"proSrc,omitempty"`
+	ProGate      bool      `json:"proGate,omitempty"`      // the beta is over: Pro is needed for what it unlocks
+	ProElsewhere bool      `json:"proElsewhere,omitempty"` // the account's Pro is on another PC
+	Ended        bool      `json:"ended,omitempty"`        // signed out by the server (see plSessionEnded); the email stays
 }
 
 var (
@@ -692,7 +697,7 @@ func plStatus() map[string]any {
 	defer plMu.Unlock()
 	a := plAcc
 	out := map[string]any{"ready": commBase() != "", "signedIn": a.Token != "", "id": a.ID, "email": a.Email, "display": a.Display, "nameKind": a.NameKind,
-		"lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "error": a.SyncErr, "ended": a.Ended}
+		"lapsToAccount": !a.NoLaps, "admin": a.Admin, "supporter": a.Supporter, "supporterHidden": a.SupHidden, "pro": a.Pro, "proSrc": a.ProSrc, "proGate": a.ProGate, "proElsewhere": a.ProElsewhere, "verified": a.Verified, "mail": a.Mail, "twoFactor": a.TwoFactor, "recoveryLeft": plRecovery, "version": a.Version, "error": a.SyncErr, "ended": a.Ended}
 	if !a.LastSync.IsZero() {
 		out["lastSync"] = a.LastSync.UnixMilli()
 	}
@@ -715,7 +720,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		// admins may also mark the laps of a session valid again (POST .../validate)
 		// and your profile: the summary of your recent races, hiding your supporter badge, your license classes
 		post := r.Method == http.MethodPost && ((strings.HasPrefix(p, "/api/sessions/") && (strings.HasSuffix(p, "/validate") || strings.HasSuffix(p, "/incidents"))) || (strings.HasPrefix(p, "/api/laps/") && strings.HasSuffix(p, "/valid")) ||
-			p == "/community/profile/races" || p == "/community/profile/badge" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/") ||
+			p == "/community/profile/races" || p == "/community/profile/badge" || p == "/community/pro/pc" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/") ||
 			strings.HasPrefix(p, "/community/admin/")) // the admin panel (the server checks the account is an admin)
 		// and the admin panel deletes shared items and accounts
 		del := r.Method == http.MethodDelete && strings.HasPrefix(p, "/community/admin/")
@@ -733,6 +738,14 @@ func registerPLRoutes(mux *http.ServeMux) {
 			writeJSON(w, map[string]string{"error": "sign in with your Pitlane HQ account"})
 			return
 		}
+		// Pro is kept on one PC: its questions carry this PC's id and name
+		if p == "/community/pro" || strings.HasPrefix(p, "/community/pro?") || p == "/community/pro/pc" {
+			sep := "?"
+			if strings.Contains(p, "?") {
+				sep = "&"
+			}
+			p += sep + "pc=" + pcID() + "&pcname=" + url.QueryEscape(pcName())
+		}
 		var body any
 		if post { // the request's JSON goes through as it is
 			var in map[string]any
@@ -747,6 +760,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 			w.WriteHeader(502)
 			writeJSON(w, map[string]string{"error": err.Error()})
 			return
+		}
+		if post && strings.HasPrefix(p, "/community/pro/pc") {
+			go plRefreshMe() // Pro moved to this PC: Auto opens everything again
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
@@ -1060,7 +1076,7 @@ func plRefreshMe() {
 	if tok == "" {
 		return
 	}
-	b, err := commRequest("GET", "/account/me", nil, tok)
+	b, err := commRequest("GET", "/account/me?pc="+pcID()+"&pcname="+url.QueryEscape(pcName()), nil, tok)
 	if err != nil {
 		plSessionEnded(tok, err)
 		return
@@ -1073,6 +1089,10 @@ func plRefreshMe() {
 		Admin        bool   `json:"admin"`
 		Supporter    bool   `json:"supporter"`
 		SupHidden    bool   `json:"supporterHidden"`
+		Pro          bool   `json:"pro"`
+		ProSrc       string `json:"proSrc"`
+		ProGate      bool   `json:"proGate"`
+		PcOk         *bool  `json:"pcOk"`
 		Verified     bool   `json:"verified"`
 		Mail         bool   `json:"mail"`
 		TwoFactor    bool   `json:"twoFactor"`
@@ -1084,13 +1104,15 @@ func plRefreshMe() {
 	if me.NameKind != "iracing" {
 		me.NameKind = "nick"
 	}
+	elsewhere := me.Pro && me.PcOk != nil && !*me.PcOk // Pro is on another PC of the account
 	plMu.Lock()
 	if plAcc.ID != me.ID {
 		plMu.Unlock()
 		return
 	}
-	if plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor || plAcc.Display != me.Display || plAcc.NameKind != me.NameKind || plAcc.Anon != me.Anon || plAcc.Supporter != me.Supporter || plAcc.SupHidden != me.SupHidden {
+	if plAcc.Admin != me.Admin || plAcc.Verified != me.Verified || plAcc.Mail != me.Mail || plAcc.TwoFactor != me.TwoFactor || plAcc.Display != me.Display || plAcc.NameKind != me.NameKind || plAcc.Anon != me.Anon || plAcc.Supporter != me.Supporter || plAcc.SupHidden != me.SupHidden || plAcc.Pro != me.Pro || plAcc.ProSrc != me.ProSrc || plAcc.ProGate != me.ProGate || plAcc.ProElsewhere != elsewhere {
 		plAcc.Supporter, plAcc.SupHidden = me.Supporter, me.SupHidden
+		plAcc.Pro, plAcc.ProSrc, plAcc.ProGate, plAcc.ProElsewhere = me.Pro, me.ProSrc, me.ProGate, elsewhere
 		plAcc.Admin, plAcc.Verified, plAcc.Mail, plAcc.TwoFactor = me.Admin, me.Verified, me.Mail, me.TwoFactor
 		plAcc.Display, plAcc.NameKind, plAcc.Anon = me.Display, me.NameKind, me.Anon
 		savePLLocked()

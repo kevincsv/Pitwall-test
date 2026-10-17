@@ -5,6 +5,7 @@ import { markModel, rebuildDirty, reconcileIds } from "./model.js";
 import { autoShare, reshareSession } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
 import { patreonWebhook } from "./patreon.js";
+import { lemonWebhook } from "./lemon.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
@@ -413,6 +414,10 @@ async function handle(req, env, ctx) {
     if (url.pathname === "/discord/oauth" && req.method === "GET") return discordOAuth(req, env, url).catch(() => Response.redirect("https://pitlanehq.app/?discordLinked=0", 302));
     // Patreon tells the server about memberships: the supporter badge by itself
     if (url.pathname === "/patreon/webhook" && req.method === "POST") return patreonWebhook(req, env);
+    // Lemon Squeezy tells the server about purchases: Pitlane HQ Pro on the account
+    if (url.pathname === "/lemonsqueezy/webhook" && req.method === "POST") return lemonWebhook(req, env);
+    // the admin page: the app opened on it (only the admins see anything there)
+    if (url.pathname === "/admin" && req.method === "GET") return Response.redirect(url.origin + "/app#admin", 302);
     if (url.pathname.startsWith("/api/")) {
       try {
         return await api(req, env, url, ctx);

@@ -10,6 +10,20 @@
 - Anything sensitive that goes to GitHub is encrypted or kept in GitHub secrets; never paste
   Cloudflare tokens or keys anywhere.
 - The subscription stays off (`license_plans.json` → `enforce: false`).
+- Pitlane HQ Pro (`cloud/src/lemon.js`, migration 0043, `PRO`/`proGated`/`renderProCard` in index.html): everything is
+  free during the beta; when it ends the admin switches Pro on (admin page → Pro, app_state `pro_gate`). Then without Pro
+  the experimental overlays close and only `freeAuto` (3) overlays may be on Auto; admins always have it. Pro is the
+  lifetime offer (`lifetime` in license_plans.json: 12 € during the beta, 24 € after, paid once) bought with Lemon
+  Squeezy (`lifetime.buy` is the checkout link; the checkout carries the account id; POST `/lemonsqueezy/webhook`
+  signed with LEMONSQUEEZY_WEBHOOK_SECRET; a buyer without an account gets it when they sign up with that email) or
+  given by hand on the admin page. Patreon donations are still welcome beside it (Account → Pitlane HQ Pro).
+  Pro limits only the PC (its overlays and what opens by itself); the web and the phones only receive and always have
+  everything. Pro lives on one PC at a time (`pcid.go`: a hash of Windows' MachineGuid, sent as `?pc=` on `/community/pro`
+  and `/account/me`; `pro_pc` on the account, `proHere` in lemon.js): the first PC that asks takes it, another PC of the
+  account is told where it is and offers "Move to this PC" (`/community/pro/pc`; the other PC goes back to free). The
+  Auto list goes with the account and is never trimmed: the agent opens only what this PC may (`proAutoList`).
+- The admin panel is its own page, only for admins (pitlanehq.app/admin → `/app#admin`, `v-admin`); Account only has
+  the button that opens it.
 - Real data by default: no demo races, sample drivers or made-up laps on the server. Invented data
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of

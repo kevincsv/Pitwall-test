@@ -49,6 +49,7 @@ async function countUpload(env, u) {
 }
 
 import { gameOf } from "./games.js";
+import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
@@ -230,6 +231,7 @@ export async function community(req, env, url, ctx) {
     await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, await sha256(token), cleanAlias(body.alias), Date.now()).run();
     return json({ id, token });
   }
+  { const pr = await proRoutes(req, env, p, m, body); if (pr) return pr; } // Pitlane HQ Pro: the offer, the beta switch
   // every list is for one game: laps and analyses of different games are never mixed
   const game = gameOf(url.searchParams.get("game") || body.game);
   if (p === "/combos" && m === "GET") {
