@@ -348,7 +348,9 @@
   apply (`carProfilesOn` in carprofiles.go), and a sync reload never closes or reopens the overlays. An overlay
   window is the widget itself, with Windows 11's rounded corners and a quiet border (`ovwin`, `noWinBorder`); it
   fits its content's height (grows at once, shrinks after a moment). An overlay never leaves the desktop when
-  dragged, resized or placed (`keepOnScreen`, `clampMove`). An overlay window draws only its own widget; only the
+  dragged, resized or placed (`keepOnScreen`, `clampMove`). Nor is it made smaller than it can be read: 70 % of its default width
+  (`overlayMinSize`; the map, the radar and the g-force 70 % of their height too), when resized, moved or opened. The
+  Overlays cards show no OBS address. An overlay window draws only its own widget; only the
   radar's window hides itself when nobody is near. Every overlay is native UI drawn in Go, never WebView2 (its
   content is always opaque; a test checks every overlay in `overlayOrder`): `ovnative.go` (shapes, the app's own
   fonts embedded from `ovfonts/` (IBM Plex Sans, JetBrains Mono, Barlow Condensed, OFL), its colours, licence badges

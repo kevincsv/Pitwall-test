@@ -25,6 +25,20 @@ var overlaySizes = map[string][2]int{"flag": {520, 90}, "dash": {560, 230}, "tim
 	"pit": {440, 260}, "sectors": {560, 150}, "gaps": {560, 260}, "incidents": {380, 300}, "coach": {520, 200}, "brakes": {480, 170},
 	"weather": {360, 250}, "controls": {340, 300}, "trackbar": {700, 70}, "system": {320, 230}}
 
+// the smallest an overlay may be made: 70 % of its default width, so its text never gets too small to read (its
+// height follows its content); the map, the radar and the g-force keep the window's height, so theirs too
+func overlayMinSize(name string) (int, int) {
+	d, ok := overlaySizes[name]
+	if !ok {
+		return 200, 60
+	}
+	w, h := d[0]*7/10, 40
+	if name == "map" || name == "radar" || name == "gg" {
+		h = d[1] * 7 / 10
+	}
+	return w, h
+}
+
 func itoa(i int) string { return strconv.Itoa(i) }
 
 // Each overlay gets its own loopback address (127.0.0.2, 127.0.0.3, ...). Browsers
@@ -122,6 +136,9 @@ func registerOverlayRoutes(mux *http.ServeMux) {
 		if !ok || n == "*" || e1 != nil || e2 != nil || e3 != nil || e4 != nil || ww < 80 || hh < 40 {
 			http.Error(w, "bad request", 400)
 			return
+		}
+		if mw, mh := overlayMinSize(n); ww < mw || hh < mh { // never smaller than it can be read
+			ww, hh = max(ww, mw), max(hh, mh)
 		}
 		moveOverlay(n, x, y, ww, hh)
 		cfgMu.Lock()

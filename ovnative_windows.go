@@ -57,6 +57,9 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	if h < 40 {
 		h = 90
 	}
+	if mw, mh := overlayMinSize(name); w < mw || h < mh { // one made smaller before stays readable
+		w, h = max(w, mw), max(h, mh)
+	}
 	nat.name = name
 	nat.st = newOvState(langFromURL(rawURL))
 	nat.st.units = unitsFromURL(rawURL)
@@ -150,11 +153,12 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 	case 0x0214: // WM_SIZING
 		r := (*winRect)(unsafe.Pointer(lp))
 		clampSize(r)
-		if r.Right-r.Left < 80 {
-			r.Right = r.Left + 80
+		mw, mh := overlayMinSize(nat.name)
+		if r.Right-r.Left < int32(mw) {
+			r.Right = r.Left + int32(mw)
 		}
-		if r.Bottom-r.Top < 40 {
-			r.Bottom = r.Top + 40
+		if r.Bottom-r.Top < int32(mh) {
+			r.Bottom = r.Top + int32(mh)
 		}
 		return 1
 	case 0x0021: // WM_MOUSEACTIVATE: a click never takes the focus from the game

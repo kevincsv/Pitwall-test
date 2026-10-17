@@ -357,7 +357,6 @@ html.pvdemo[lang=es] body::before{content:"DATOS DE EJEMPLO"}
 .ovcard.on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
 .ovcard .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.ovcard .top .chip{flex:none;white-space:nowrap}
 .ovcard .nm{font:700 18px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
-.ovcard .obs{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
 .btn[disabled],.pin[disabled]{opacity:.45;cursor:default}
 #ovGlobal{display:grid;gap:4px}
 /* components */
@@ -4038,7 +4037,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     <div class="frow">${remote?`<button type="button" class="pin" data-open="${w}">${L("open",true)}</button><button type="button" class="pin" data-close="${w}">${L("close",true)}</button>`:MODE==="bridge"?`<button type="button" class="pin" data-view="${w}">${L("openHere",true)}</button>`:""}
       ${CONFIGURABLE[w]?`<button type="button" class="pin" data-cfg="${w}">${L("configure",true)}</button>`:""}
       <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${L("showHere",true)}: ${esc(HIDDEN.has(w)?Tx("off","no"):Tx("on","sí"))}</button></div>
-    ${MODE==="bridge"?`<div class="obs mono hide-sm" title="OBS">${esc(location.origin)}/?overlay=${w}&amp;bg=transparent</div>`:""}</div>`).join("");
+</div>`).join("");
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
   {const e=q("#oExp");if(e)e.onclick=()=>{if(proGated()&&!ovExpOn()){proDialog(Tx("The experimental overlays need Pro.","Los overlays experimentales necesitan Pro.","The experimental overlays need Pro.","Os overlays experimentais precisam do Pro."));renderOverlaysTab();return}const on=!ovExpOn();store.set("pw.ovExp",on);if(!on){CFG.autoWidgets=(CFG.autoWidgets||[]).filter(w=>OV_BASIC.includes(w));saveCfg();WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}))}renderOverlaysTab()}}
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
