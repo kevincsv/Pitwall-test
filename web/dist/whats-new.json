@@ -1,184 +1,27 @@
 {
   "versions": [
     {
-      "v": "0.9.12",
+      "v": "0.4.1",
       "en": [
-        "The Pitlane HQ bot on Discord: ask for a car and track's record, a driver's laps or your coach without leaving the chat, and get the new records in a channel. Link your account in Account → Discord.",
-        "The update window says what the new version brings.",
-        "The rev beep is in Telemetry → Rev beep. The voice engineer and its radio overlay are gone."
+        "Telemetry from every lap, in your account on the PC, the web and the phone.",
+        "Lap analysis and a coach: any two laps compared, and the corners that cost the most against real faster laps.",
+        "Overlays on top of the game: relative, standings, radar, delta bar, track map, braking markers and more, also in VR.",
+        "Leaderboards, records, race summaries and your iRating of every discipline.",
+        "Rev beep: a beep to change up at the revs you choose, in Telemetry → Rev beep."
       ],
       "es": [
-        "El bot de Pitlane HQ en Discord: pide el récord de un coche y circuito, las vueltas de un piloto o tu coach sin salir del chat, y recibe los récords nuevos en un canal. Vincula tu cuenta en Cuenta → Discord.",
-        "La ventana de actualización dice lo que trae la versión nueva.",
-        "El pitido de revoluciones está en Telemetría → Pitido de revoluciones. El ingeniero por voz y su overlay de radio desaparecen."
+        "Telemetría de cada vuelta, en tu cuenta en el PC, la web y el móvil.",
+        "Análisis de vueltas y un coach: dos vueltas cualesquiera comparadas, y las curvas que más te cuestan frente a vueltas reales más rápidas.",
+        "Overlays sobre el juego: relative, clasificación, radar, barra de delta, mapa, marcas de frenada y más, también en VR.",
+        "Clasificaciones, récords, resúmenes de carrera y tu iRating de cada disciplina.",
+        "Pitido de revoluciones: un pitido para subir de marcha a las revoluciones que elijas, en Telemetría → Pitido de revoluciones."
       ],
       "pt": [
-        "O bot do Pitlane HQ no Discord: peça o recorde de um carro e pista, as voltas de um piloto ou o seu coach sem sair do chat, e receba os novos recordes num canal. Vincule a sua conta em Conta → Discord.",
-        "A janela de atualização diz o que a nova versão traz.",
-        "O bipe de giros está em Telemetria → Bipe de giros. O engenheiro por voz e seu overlay de rádio se foram."
-      ]
-    },
-    {
-      "v": "0.9.11",
-      "en": [
-        "The overlays in VR: turn it on in Settings → VR and every open overlay also shows in the headset (SteamVR, a Meta Quest through Link or Air Link too), where it is on your screen.",
-        "The track page on Pitlane HQ Desktop too.",
-        "One app for Windows: one download that opens the native window and updates itself, the window too.",
-        "The web shows what Pitlane HQ does before the sign-in, with sample data to look around.",
-        "Rev beep: a beep to change up at the revs you choose, for each car, in Telemetry → Rev beep. The braking beeps are gone."
-      ],
-      "es": [
-        "Los overlays en VR: actívalo en Settings → VR y cada overlay abierto se ve también en las gafas (SteamVR, también unas Meta Quest por Link o Air Link), donde está en tu pantalla.",
-        "La página del circuito también en Pitlane HQ Desktop.",
-        "Una sola app para Windows: una descarga que abre la ventana nativa y se actualiza sola, la ventana también.",
-        "La web enseña qué hace Pitlane HQ antes de iniciar sesión, con datos de muestra para echar un vistazo.",
-        "Pitido de revoluciones: un pitido para subir de marcha a las revoluciones que elijas, para cada coche, en Telemetría → Pitido de revoluciones. Los pitidos de frenada desaparecen."
-      ]
-    },
-    {
-      "v": "0.9.10",
-      "en": [
-        "Recent records in Community: the fastest lap of every car and track, the newest first, who set it and whom it beat; one click compares with it or opens its leaderboard.",
-        "The track page: its map with the official turns, how many drivers and laps the track has, and the record of every car on it.",
-        "Changes on any device reach the others at once, the phones included; nobody syncs by hand, the \"Sync now\" button is gone.",
-        "The discipline symbols show on iPhone."
-      ],
-      "es": [
-        "Récords recientes en Community: la vuelta más rápida de cada coche y circuito, la más nueva primero, quién la hizo y a quién batió; un clic la compara o abre su clasificación.",
-        "La página del circuito: su mapa con las curvas oficiales, cuántos pilotos y vueltas tiene y el récord de cada coche en él.",
-        "Los cambios hechos en cualquier dispositivo llegan a los demás al momento, también a los móviles; nadie sincroniza a mano, el botón \"Sincronizar ahora\" ya no existe.",
-        "Los símbolos de las disciplinas se ven en iPhone."
-      ]
-    },
-    {
-      "v": "0.9.9",
-      "en": [
-        "The coach's advice follows your data: never \"brake later\" when you already brake later than the reference, nor \"full throttle sooner\" when you are already on the throttle earlier.",
-        "The track map, the same everywhere: in the PC's Analysis too, with the two lines the right way round, and a lap without a path shows the track's layout drawn by the community.",
-        "Changes from your phone or the web reach your PC at once.",
-        "DRINKS: the list of drivers comes back from the server by itself; an admin can say who drove each lap of any race and rename a driver from \"Who drove\".",
-        "Races against the AI show no iRating.",
-        "\"vs AI\" on every session list, the older sessions included.",
-        "Overlays: no false spikes in the gaps chart, the track bar's numbers never overlap."
-      ],
-      "es": [
-        "Los consejos del coach siguen tus datos: nunca \"frena más tarde\" cuando ya frenas más tarde que la referencia, ni \"acelera antes\" cuando ya aceleras antes.",
-        "El mapa del circuito, igual en todas partes: también en el Analysis del PC, con las dos trazadas en su sitio, y una vuelta sin trazada muestra el circuito dibujado por la comunidad.",
-        "Los cambios hechos en el móvil o en la web llegan al PC al momento.",
-        "DRINKS: la lista de pilotos vuelve sola desde el servidor; un admin puede decir quién condujo cada vuelta de cualquier carrera y renombrar a un piloto desde \"Quién condujo\".",
-        "Las carreras contra la IA no muestran iRating.",
-        "\"vs AI\" en todas las listas de sesiones, también en las antiguas.",
-        "Overlays: sin picos falsos en la gráfica de gaps, y los números de la barra de pista ya no se pisan."
-      ]
-    },
-    {
-      "v": "0.9.8",
-      "en": [
-        "DRINKS: the delta, the live compare and the coach measure each driver against their own best lap, never a friend's.",
-        "The phone apps have the PC's Telemetry (Telemetry, Standings, Tyres) and Analysis (Laps, Coach, My sessions, My races)."
-      ],
-      "es": [
-        "DRINKS: la delta, la comparación en vivo y el coach miden a cada piloto contra su propia mejor vuelta, nunca la de un amigo.",
-        "Las apps del móvil tienen la Telemetría (Telemetría, Posiciones, Neumáticos) y el Análisis (Vueltas, Coach, Mis sesiones, Mis carreras) del PC."
-      ]
-    },
-    {
-      "v": "0.9.7",
-      "en": [
-        "DRINKS races keep every lap and who drove it, even when the session starts again; \"DRINKS · Multiple drivers\" shows who drove.",
-        "Races against the AI say \"vs AI\" and stay off your public profile.",
-        "Live compare and the delta measure each lap with its own time, against your best valid lap.",
-        "Telemetry shows the essentials, and its map is drawn like the coach's."
-      ],
-      "es": [
-        "Las carreras DRINKS guardan cada vuelta y quién la condujo, aunque la sesión empiece de nuevo; \"DRINKS · Varios pilotos\" muestra quién condujo.",
-        "Las carreras contra la IA dicen \"vs IA\" y no salen en tu perfil público.",
-        "La comparación en vivo y la delta miden cada vuelta con su propio tiempo, contra tu mejor vuelta válida.",
-        "Telemetría muestra lo esencial, y su mapa se dibuja como el del coach."
-      ]
-    },
-    {
-      "v": "0.9.6",
-      "en": [
-        "The league hub: every league is a post with the days it races, the usual start in its time zone and in yours, its next race, its disciplines, its Discord or website and whether it is looking for drivers.",
-        "Post your league and see how many times it was opened and its links pressed, day by day.",
-        "Your licence on Home is only what the game shows in a session."
-      ],
-      "es": [
-        "El hub de ligas: cada liga es un post con los días que corre, la hora habitual en su zona horaria y en la tuya, su próxima carrera, sus disciplinas, su Discord o su web y si busca pilotos.",
-        "Publica tu liga y ve cuántas veces se abrió y se pulsaron sus enlaces, día a día.",
-        "Tu licencia en Inicio es solo la que el juego muestra en una sesión."
-      ]
-    },
-    {
-      "v": "0.9.0",
-      "en": [
-        "Overlays for everyone, drawn by Pitlane HQ itself, with the live preview next to their settings.",
-        "The coach reads your racing line, not only where you brake.",
-        "Track maps like iRacing's: both lines, the official turns and the direction of the lap.",
-        "Licence summary on Home: each category's iRating on its own.",
-        "Driver notes, and +1L / −1L wherever other drivers show.",
-        "Started with Windows it opens minimized, and no Windows notifications."
-      ],
-      "es": [
-        "Overlays para todos, dibujados por Pitlane HQ, con la vista previa al lado de sus ajustes.",
-        "El coach lee tu trazada, no solo dónde frenas.",
-        "Mapas como los de iRacing: las dos trazadas, las curvas oficiales y el sentido de la vuelta.",
-        "Resumen de licencias en Inicio: el iRating de cada categoría por separado.",
-        "Notas de pilotos, y +1L / −1L donde salen los demás pilotos.",
-        "Al iniciar con Windows arranca minimizado, y sin notificaciones de Windows."
-      ]
-    },
-    {
-      "v": "0.8.0",
-      "en": [
-        "Community by discipline, with your fastest laps shared by themselves and driver profiles.",
-        "A coach model that learns from every real lap, with real reference laps.",
-        "Choose a session: discipline, kind, car, track and day in one window.",
-        "Your account syncs by itself everywhere; updates install by themselves.",
-        "Watch another driver's telemetry with a code; connect your phone to your PC.",
-        "Pitlane HQ Desktop (preview), a new logo and two-step sign-in."
-      ],
-      "es": [
-        "Comunidad por disciplina, con tus vueltas más rápidas compartidas solas y perfiles de pilotos.",
-        "Un modelo del coach que aprende de cada vuelta real, con vueltas de referencia reales.",
-        "Elegir sesión: disciplina, tipo, coche, circuito y día en una ventana.",
-        "Tu cuenta se sincroniza sola en todas partes; las actualizaciones se instalan solas.",
-        "Mira la telemetría de otro piloto con un código; conecta el móvil a tu PC.",
-        "Pitlane HQ Desktop (vista previa), un logo nuevo y verificación en dos pasos."
-      ]
-    },
-    {
-      "v": "0.7.0",
-      "en": [
-        "Unique nicknames and your choice of name for what you share.",
-        "The coach model learns on the server from every valid lap."
-      ],
-      "es": [
-        "Apodos únicos y tu elección de nombre para lo que compartes.",
-        "El modelo del coach aprende en el servidor de cada vuelta válida."
-      ]
-    },
-    {
-      "v": "0.6.0",
-      "en": [
-        "Days you drove on Home and filters in My races.",
-        "Pitlane HQ lives at pitlanehq.app."
-      ],
-      "es": [
-        "Días que has corrido en Inicio y filtros en Mis carreras.",
-        "Pitlane HQ vive en pitlanehq.app."
-      ]
-    },
-    {
-      "v": "0.5.0",
-      "en": [
-        "Track maps draw themselves from your laps.",
-        "Incidents on every lap, named as the game does."
-      ],
-      "es": [
-        "Los mapas se dibujan solos con tus vueltas.",
-        "Incidentes en cada vuelta, con el nombre que les da el juego."
+        "Telemetria de cada volta, na sua conta no PC, na web e no celular.",
+        "Análise de voltas e um coach: duas voltas quaisquer comparadas, e as curvas que mais custam contra voltas reais mais rápidas.",
+        "Overlays sobre o jogo: relative, classificação, radar, barra de delta, mapa, marcas de frenagem e mais, também em VR.",
+        "Classificações, recordes, resumos de corrida e seu iRating de cada disciplina.",
+        "Bipe de giros: um bipe para subir de marcha nos giros que você escolher, em Telemetria → Bipe de giros."
       ]
     }
   ]

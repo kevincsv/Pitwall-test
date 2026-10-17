@@ -26,7 +26,10 @@
   are always a sample. "Try it with sample data" (`pw.sample`, `sampleOn()`: the app itself on the invented data, the
   sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own", nothing uploaded); "Create account" scrolls
   to the form at the top. Never on the PC app.
-- One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0
+- One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0. The numbering
+  started again at 0.4.1 (the owner's choice): the changelogs and What's new begin there, the releases of a higher number
+  are deleted by the builds, and the phones announce an update when the server's number differs from theirs (not only
+  when it is higher)
   (`appVersion`/`appStage` in main.go = `WEB_VERSION`/`APP_STAGE` in index.html, checked by a
   test). Raise it rarely: a MINOR version for a big set of features; fixes and small changes go into the current
   version (or a PATCH only when a fix must reach PCs that already have it), never one version per build.

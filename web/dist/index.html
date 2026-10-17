@@ -2137,7 +2137,7 @@ function devWords(r){if(typeof r!=="string")return r;try{if(WEBAPP)r=DEV_WORDS.r
 const Tx=(en,es,de,pt)=>devWords(TxRaw(en,es,de,pt));
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as Pitlane HQ Agent (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.9.12",APP_STAGE="beta";
+const WEB_VERSION="0.4.1",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -2642,7 +2642,7 @@ function drawChannels(sa,sb,n,len,pl,A,B){const host=$("#cmpCh"),chips=$("#cmpCh
   lanes.forEach(([k,t,col])=>{const cv=host.querySelector(`[data-chp="${k}"] canvas`);if(!cv)return;const [x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);x.font="10px "+css("--f-data");
     if(k==="line"){ // how far A was to one side of B, metre by metre: + to the left of B's direction, − to the right
       const bh=h-14;x.strokeStyle=css("--line");x.lineWidth=1;x.beginPath();x.moveTo(pl,4+bh);x.lineTo(w-6,4+bh);x.stroke();
-      if(!LAT){x.fillStyle=css("--muted");x.font="12px "+css("--f-body");x.fillText(Tx("Both laps need their path (recorded with Pitlane HQ 0.5 or later on the same track).","Las dos vueltas necesitan su trazado (grabadas con Pitlane HQ 0.5 o posterior en el mismo circuito).","Beide Runden brauchen ihren Pfad (mit Pitlane HQ 0.5 oder neuer auf derselben Strecke).","As duas voltas precisam do seu traçado (gravadas com o Pitlane HQ 0.5 ou posterior na mesma pista)."),pl,h/2);return}
+      if(!LAT){x.fillStyle=css("--muted");x.font="12px "+css("--f-body");x.fillText(Tx("Both laps need their path (recorded with Pitlane HQ Agent on the same track).","Las dos vueltas necesitan su trazado (grabadas con Pitlane HQ Agent en el mismo circuito).","Beide Runden brauchen ihren Pfad (mit Pitlane HQ Agent auf derselben Strecke).","As duas voltas precisam do seu traçado (gravadas com o Pitlane HQ Agent na mesma pista)."),pl,h/2);return}
       let m=1;for(let i=0;i<n&&i<LAT.length;i++)if(isFinite(LAT[i]))m=Math.max(m,Math.abs(LAT[i]));m=Math.ceil(m);const Y=v=>4+(1-(v+m)/(2*m))*bh;
       x.beginPath();x.moveTo(pl,Y(0));x.lineTo(w-6,Y(0));x.strokeStyle=css("--pb");x.lineWidth=1.2;x.stroke();x.fillStyle=css("--muted");x.fillText("+"+m+" m "+Tx("left","izq.","links","esq."),4,12);x.fillText("−"+m+" m "+Tx("right","der.","rechts","dir."),4,4+bh);cmpSectorLines(x,w,4+bh,pl,CMP_SECN,12);
       x.beginPath();let st=false;for(let i=0;i<n&&i<LAT.length;i++){const v=LAT[i];if(!isFinite(v)){st=false;continue}const px=X(w,i*BIN),py=Y(v);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css("--accent");x.lineWidth=1.6;x.stroke();
@@ -2716,7 +2716,7 @@ async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAP
   lapTrackId(A,B).then(t=>{if(!t||t===TURN_TID)return;TURN_TID=t;const k=turnsFor(t,A.game||B.game);if(k&&k.length)turnsChanged()}).catch(()=>{});
   if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
-  if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("This track is not scanned yet: a lap recorded with Pitlane HQ (0.5 or later) at this track draws its map by itself.","Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ (0.5 o posterior) en él dibuja el mapa sola.","Noch keine Karte dieser Strecke: Runden, die mit Pitlane HQ 0.5 oder neuer aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o Pitlane HQ 0.5 ou posterior desenham-no sozinhas."))}</p>`;return}
+  if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("This track is not scanned yet: a lap recorded with Pitlane HQ Agent at this track draws its map by itself.","Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ Agent en él dibuja el mapa sola.","Noch keine Karte dieser Strecke: Runden, die mit Pitlane HQ Agent aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o Pitlane HQ Agent desenham-no sozinhas."))}</p>`;return}
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end);if(n<8){box.innerHTML="";return}
   const lat=lineOffsets(A,B);
   const L=n*BIN,N=map.x.length,xs=map.x,ys=map.y,minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),W=600,H=360,pad=26,k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1)),f=q=>q.map(z=>z.toFixed(1)).join(",");

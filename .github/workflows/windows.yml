@@ -133,6 +133,8 @@ jobs:
           bash .github/scripts/publish.sh version.json
           # one release per version with its part of CHANGELOG.md (later builds of the same version
           # refresh its files and its notes)
+          # the public history started again at 0.4.1 (the owner's choice): the releases of a higher number go, tags too
+          gh release list --limit 300 --json tagName -q '.[].tagName' 2>/dev/null | while read -r t; do o="${t#v}"; o="${o%-beta}"; [[ "$o" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue; [ "$o" = "$ver" ] && continue; [ "$(printf '%s\n%s\n' "$ver" "$o" | sort -V | tail -1)" = "$o" ] && gh release delete "$t" -y --cleanup-tag || true; done
           tag="v$ver-beta"
           awk -v v="$ver" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on {print}' CHANGELOG.md > notes.md
           printf '\n---\nDownloads: https://pitlanehq.app/downloads · Full history: https://pitlanehq.app/changelog\n' >> notes.md
