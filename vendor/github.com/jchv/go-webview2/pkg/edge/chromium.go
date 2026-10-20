@@ -257,9 +257,11 @@ func (e *Chromium) SetGlobalPermission(state CoreWebView2PermissionState) {
 
 func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2PermissionRequestedEventArgs) uintptr {
 	var kind CoreWebView2PermissionKind
+	// Pitlane HQ: the kind is written to the address given (the library passed its value, 0, so every request read
+	// as "unknown" and the microphone of the voice chat was never allowed)
 	_, _, _ = args.vtbl.GetPermissionKind.Call(
 		uintptr(unsafe.Pointer(args)),
-		uintptr(kind),
+		uintptr(unsafe.Pointer(&kind)),
 	)
 	var result CoreWebView2PermissionState
 	if e.globalPermission != nil {

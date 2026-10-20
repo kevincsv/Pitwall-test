@@ -130,7 +130,10 @@
   messages go through the live room sealed like the telemetry (the agent passes them between the room and the page, and
   one window of the PC answers each call); the voice goes straight between the two. STUN by default, Cloudflare TURN
   when the server has TURN_KEY_ID and TURN_KEY_TOKEN; none in local mode. The bar (who, time, Mute, Hang up) stays above
-  every window; Pitlane HQ Desktop lets the app's page use the microphone. Web and PC for now (phone browsers too). Their braking
+  every window. Both PC windows let the app's own page use the microphone (Pitlane HQ Desktop's PermissionRequested for
+  loopback; the agent's window through go-webview2, patched in vendor/ to read the permission's kind and allow the
+  microphone: keep the patch if the library is vendored again). Settings → Phone & sharing has "Test the microphone"
+  for admins, and a microphone that fails says why (`voiceMicError`: Windows' privacy switch, none found, in use). Web and PC for now (phone browsers too). Their braking
   points come from the model (the next level for your best lap of the session; your own best lap while the model has
   none or you are its fastest), each marker moves with your speed against that lap and with a car close ahead or
   alongside, and they name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".

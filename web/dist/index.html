@@ -306,6 +306,7 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 #mapLayers{margin-bottom:8px}
 .voicebar{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:101;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 32px);background:var(--panel,#1a1f29);border:1px solid var(--line,#2a3140);border-radius:10px;padding:8px 10px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .voicebar b{display:inline-flex;align-items:center;gap:5px}.voicebar svg{vertical-align:-3px}
+.vcmeter{height:8px;max-width:320px;border-radius:4px;background:var(--line,#2a3140);overflow:hidden}.vcmeter i{display:block;height:100%;width:0;background:#3ecf6e;transition:width .06s}
 .vcdot{width:9px;height:9px;border-radius:50%;background:var(--muted,#888)}.vcdot.on{background:#3ecf6e;box-shadow:0 0 0 3px rgba(62,207,110,.2)}
 @media (max-width:640px){.voicebar{right:16px;left:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));justify-content:center}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:6px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:calc(100% - 32px)}
@@ -2086,6 +2087,20 @@ const VOICE={avail:false,pc:null,call:"",peer:"",name:"",mic:null,muted:false,st
 async function voiceIce(){try{const r=await fetch(COMPANION?CP.server+"/voice/ice":"/api/voice/ice",{cache:"no-store"});const j=await r.json();return Array.isArray(j.iceServers)?j.iceServers:[]}catch(e){return[]}}
 // the microphone for speech: echo and noise taken out, one channel
 const voiceMic=()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+// why the microphone did not open, in words the driver can act on
+function voiceMicError(e){const n=e&&e.name,T=Tx;
+  if(n==="NotAllowedError"||n==="SecurityError")return COMPANION?T("The browser blocks the microphone: allow it for pitlanehq.app (the padlock beside the address).","El navegador bloquea el micrófono: permítelo para pitlanehq.app (el candado junto a la dirección).","The browser blocks the microphone: allow it for pitlanehq.app (the padlock beside the address).","O navegador bloqueia o microfone: permita para pitlanehq.app (o cadeado ao lado do endereço).")
+    :T("Windows blocks the microphone: Settings → Privacy & security → Microphone, turn on \"Microphone access\" and \"Let desktop apps access your microphone\".","Windows bloquea el micrófono: Configuración → Privacidad y seguridad → Micrófono, activa \"Acceso al micrófono\" y \"Permitir que las aplicaciones de escritorio accedan al micrófono\".","Windows blocks the microphone: Settings → Privacy & security → Microphone, turn on \"Microphone access\" and \"Let desktop apps access your microphone\".","O Windows bloqueia o microfone: Configurações → Privacidade e segurança → Microfone, ative \"Acesso ao microfone\" e \"Permitir que aplicativos da área de trabalho acessem o microfone\".");
+  if(n==="NotFoundError"||n==="OverconstrainedError")return T("No microphone found: connect one or choose it in Windows' sound settings.","No se encontró ningún micrófono: conecta uno o elígelo en la configuración de sonido de Windows.","No microphone found: connect one or choose it in Windows' sound settings.","Nenhum microfone encontrado: conecte um ou escolha-o nas configurações de som do Windows.");
+  if(n==="NotReadableError")return T("The microphone cannot be opened: another program may be using it.","No se puede abrir el micrófono: puede que otro programa lo esté usando.","The microphone cannot be opened: another program may be using it.","Não é possível abrir o microfone: outro programa pode estar usando.");
+  return T("The microphone could not be opened.","No se pudo abrir el micrófono.","The microphone could not be opened.","Não foi possível abrir o microfone.")+(e&&e.message?" ("+e.message+")":"")}
+// "Test the microphone": its level for a few seconds, so the driver knows it works before a race
+async function voiceTestMic(out){let st;try{st=await voiceMic()}catch(e){out.innerHTML=`<span class="bad">${esc(voiceMicError(e))}</span>`;return}
+  const ac=new (window.AudioContext||window.webkitAudioContext)(),an=ac.createAnalyser();an.fftSize=512;ac.createMediaStreamSource(st).connect(an);
+  const buf=new Uint8Array(an.fftSize),end=Date.now()+6000,lbl=esc((st.getAudioTracks()[0]||{}).label||"");
+  out.innerHTML=`<div class="note" style="margin:0 0 4px">${esc(Tx("Speak now","Habla ahora","Speak now","Fale agora"))}${lbl?" · "+lbl:""}</div><div class="vcmeter"><i></i></div>`;const bar=out.querySelector("i");
+  const step=()=>{an.getByteTimeDomainData(buf);let m=0;for(const v of buf)m=Math.max(m,Math.abs(v-128));bar.style.width=Math.min(100,m/64*100)+"%";
+    if(Date.now()<end)requestAnimationFrame(step);else{st.getTracks().forEach(t=>t.stop());ac.close();out.innerHTML=`<span class="good">${esc(Tx("The microphone works.","El micrófono funciona.","The microphone works.","O microfone funciona."))}</span>`}};step()}
 // play what arrives at once: no extra buffer on top of what the network needs
 function voiceLowDelay(pc){pc.getReceivers().forEach(r=>{try{r.jitterBufferTarget=0}catch(e){}try{r.playoutDelayHint=0}catch(e){}})}
 // Opus for speech: nothing sent while nobody talks (DTX), error correction in the packets and 32 kbps at most, so a
@@ -2113,7 +2128,7 @@ function voiceEnd(tell){if(tell&&VOICE.call)try{voiceSend({t:"bye",call:VOICE.ca
 function voiceMute(){VOICE.muted=!VOICE.muted;if(VOICE.mic)VOICE.mic.getAudioTracks().forEach(t=>t.enabled=!VOICE.muted);voiceUI()}
 // the engineer calls the driver
 async function voiceCall(){if(VOICE.pc||!COMPANION)return;VOICE.call=vRid();VOICE.state="calling";VOICE.name="";voiceUI();
-  try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Allow the microphone to talk to the driver.","Permite el micrófono para hablar con el piloto.","Allow the microphone to talk to the driver.","Permita o microfone para falar com o piloto."));voiceEnd(false);return}
+  try{VOICE.mic=await voiceMic()}catch(e){toast(voiceMicError(e));voiceEnd(false);return}
   const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
   const o=await pc.createOffer();o.sdp=voiceSdp(o.sdp);await pc.setLocalDescription(o);
   voiceSend({t:"offer",call:VOICE.call,name:(CP.acc&&CP.acc.display)||LIVE_DEV.name,sdp:o.sdp});
@@ -2121,7 +2136,7 @@ async function voiceCall(){if(VOICE.pc||!COMPANION)return;VOICE.call=vRid();VOIC
 // the driver's PC answers by itself (an admin's account only)
 async function voiceAnswer(d){if(VOICE.pc){if(d.call!==VOICE.call)voiceSendTo(d.id,{t:"busy",call:d.call});return}
   VOICE.peer=d.id;VOICE.call=d.call;VOICE.name=String(d.name||"").slice(0,40);VOICE.state="calling";voiceUI();
-  try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Pitlane HQ needs the microphone for the voice chat.","Pitlane HQ necesita el micrófono para el chat de voz.","Pitlane HQ needs the microphone for the voice chat.","O Pitlane HQ precisa do microfone para o chat de voz."));voiceEnd(true);return}
+  try{VOICE.mic=await voiceMic()}catch(e){toast(voiceMicError(e));voiceEnd(true);return}
   const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
   try{await pc.setRemoteDescription({type:"offer",sdp:d.sdp});const a=await pc.createAnswer();a.sdp=voiceSdp(a.sdp);await pc.setLocalDescription(a);
     if(!await voiceSend({t:"answer",call:VOICE.call,sdp:a.sdp})){voiceEnd(false);return} // another window of this PC has the call
@@ -4696,6 +4711,10 @@ async function renderCodeShare(){const box=$("#codePanel");if(!box)return;if(MOD
     :st.shareCode?`<div class="pc-code mono" style="margin:6px 0">${esc(st.shareCode)}</div><p class="note" style="margin:0 0 8px">${esc(st.shareOn?T(`${st.shareViewers||0} watching now`,`${st.shareViewers||0} viendo ahora`,`${st.shareViewers||0} sehen gerade zu`,`${st.shareViewers||0} vendo agora`):T("Connecting…","Conectando…","Verbinde…","Conectando…"))}</p>
       <div class="frow" style="gap:8px"><button type="button" class="btn small" id="codeNew">${esc(T("New code","Código nuevo","Neuer Code","Novo código"))}</button><button type="button" class="btn small danger" id="codeOff">${esc(T("Stop sharing","Dejar de compartir","Teilen beenden","Parar de compartilhar"))}</button></div>`
     :`<button type="button" class="btn primary" id="codeOn">${esc(T("Get a code","Crear un código","Code erstellen","Criar um código"))}</button>`}`;
+  if(realAdmin())box.insertAdjacentHTML("beforeend",`<h2 style="margin-top:18px">${esc(T("Voice chat","Chat de voz","Voice chat","Chat de voz"))} <span class="pill acc" style="font-size:10px">ADMIN</span></h2>
+    <p class="note">${esc(T("Whoever watches you live (your devices, or with the code) can talk to you: this PC answers by itself. Test the microphone before you race.","Quien te vea en directo (tus dispositivos, o con el código) puede hablarte: este PC contesta solo. Prueba el micrófono antes de correr.","Whoever watches you live (your devices, or with the code) can talk to you: this PC answers by itself. Test the microphone before you race.","Quem assiste você ao vivo (seus dispositivos, ou com o código) pode falar com você: este PC atende sozinho. Teste o microfone antes de correr."))}</p>
+    <button type="button" class="btn small" id="vcTest">${esc(T("Test the microphone","Probar el micrófono","Test the microphone","Testar o microfone"))}</button><div id="vcTestOut" style="margin-top:8px"></div>`);
+  {const b=$("#vcTest");if(b)b.onclick=()=>voiceTestMic($("#vcTestOut"))}
   const post=b=>jpost("/api/live/share",b).then(renderCodeShare).catch(e=>toast(e.message));
   {const b=$("#codeOn");if(b)b.onclick=()=>post({on:true})}{const b=$("#codeNew");if(b)b.onclick=()=>post({on:true,new:true})}{const b=$("#codeOff");if(b)b.onclick=()=>post({on:false})}
   clearTimeout(renderCodeShare.t);if(st.shareCode)renderCodeShare.t=setTimeout(()=>{if(CUR_VIEW==="settings"||CUR_VIEW==="share")renderCodeShare()},5000)}
