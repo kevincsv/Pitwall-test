@@ -1,6 +1,6 @@
 // Pitlane HQ Pro: who has it and the lifetime offer.
 // During the beta everything is free; the admins switch Pro on when it ends (the admin page, app_state 'pro_gate').
-// Then the experimental overlays and more than freeAuto overlays on Auto need Pro. Pro comes from Lemon Squeezy (the
+// Then the experimental overlays and more than freeApps programs starting by themselves need Pro. Pro comes from Lemon Squeezy (the
 // lifetime offer: half price during the beta) or from an admin by hand. Lemon Squeezy calls POST /lemonsqueezy/webhook
 // for every order and subscription, signed with the webhook's secret (LEMONSQUEEZY_WEBHOOK_SECRET, HMAC-SHA256 of the
 // body in X-Signature); the checkout carries the account's id (custom data), else the buyer's email is matched by its
@@ -31,7 +31,7 @@ export function proOf(a) {
 // may be on Auto without Pro
 export async function proOffer(env) {
   const gate = await proGate(env), L = PLANS.lifetime || {};
-  return { gate, beta: !gate, freeAuto: PLANS.freeAuto || 3, lifetime: { price: gate ? L.full : L.beta, full: L.full, beta: L.beta, currency: L.currency || "EUR", buy: L.buy || "" } };
+  return { gate, beta: !gate, freeApps: PLANS.freeApps || 3, lifetime: { price: gate ? L.full : L.beta, full: L.full, beta: L.beta, currency: L.currency || "EUR", buy: L.buy || "" } };
 }
 
 async function hmacHex(secret, body) {

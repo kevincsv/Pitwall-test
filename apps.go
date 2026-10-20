@@ -298,8 +298,9 @@ func launchGroup(when string) {
 	list := append([]appEntry{}, apps...)
 	appsMu.Unlock()
 	running := runningProcs()
+	allowed := proAppsAllowed(list) // without Pro, only the first ones start by themselves
 	for _, a := range list {
-		if (when != "*" && a.When != when) || isAppRunning(a, running) {
+		if (when != "*" && a.When != when) || isAppRunning(a, running) || (when != "*" && !allowed[a.ID]) {
 			continue
 		}
 		if _, err := launchApp(a, true); err != nil {

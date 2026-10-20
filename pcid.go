@@ -47,26 +47,48 @@ func pcName() string {
 	return n
 }
 
-// the basic overlays (OV_BASIC in index.html): without Pro once the beta is over, only these, and only the first
-// proFreeAuto of them, open by themselves (Auto)
+// the basic overlays (OV_BASIC in index.html): without Pro once the beta is over, only these open by themselves (Auto)
 var ovBasic = map[string]bool{"radar": true, "deltabar": true, "relative": true, "standings": true, "flag": true, "dash": true, "timing": true, "map": true, "fuel": true, "tyres": true, "inputs": true, "pit": true, "brakes": true, "coach": true, "incidents": true, "engine": true, "weather": true, "controls": true, "trackbar": true}
 
-const proFreeAuto = 3
+// without Pro, this many programs start by themselves (when Pitlane HQ opens or iRacing starts, apps.go)
+const proFreeApps = 3
 
-// what Auto opens on this PC: everything with Pro here (or during the beta, or for an admin), else the first basic ones
-func proAutoList(list []string) []string {
+// proGated: the beta is over and this PC has no Pro (admins always have it)
+func proGated() bool {
 	loadPL()
 	plMu.Lock()
-	gated := plAcc.ProGate && !plAcc.Admin && (!plAcc.Pro || plAcc.ProElsewhere)
-	plMu.Unlock()
-	if !gated {
+	defer plMu.Unlock()
+	return plAcc.ProGate && !plAcc.Admin && (!plAcc.Pro || plAcc.ProElsewhere)
+}
+
+// what Auto opens on this PC: every overlay with Pro (or during the beta), else the basic ones
+func proAutoList(list []string) []string {
+	if !proGated() {
 		return list
 	}
 	out := []string{}
 	for _, w := range list {
-		if ovBasic[w] && len(out) < proFreeAuto {
+		if ovBasic[w] {
 			out = append(out, w)
 		}
 	}
 	return out
+}
+
+// the programs that may start by themselves: all with Pro, else the first proFreeApps of the list (its order)
+func proAppsAllowed(list []appEntry) map[string]bool {
+	ok := map[string]bool{}
+	n := 0
+	gated := proGated()
+	for _, a := range list {
+		if a.When == "" {
+			continue
+		}
+		if gated && n >= proFreeApps {
+			break
+		}
+		ok[a.ID] = true
+		n++
+	}
+	return ok
 }
