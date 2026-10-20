@@ -34,11 +34,11 @@ const S = {
     cL: (t) => `Record: ${t}. One lap per driver, their fastest.`, cQ: "Where do you lose time in this car?", cA: "Pitlane HQ records your iRacing laps and compares them with these, corner by corner. It is free." },
   es: { recH: "Récords de iRacing por coche y circuito", recD: "Las vueltas más rápidas de iRacing en cada coche y circuito, de pilotos que usan Pitlane HQ.", all: "Todas", track: "Circuito", car: "Coche", record: "Récord", drivers: "Pilotos", none: "Aún no hay vueltas.",
     anon: "Anónimo", driver: "Piloto", time: "Tiempo", date: "Fecha", nf: "Esta página no existe", nfT: "No encontrado",
-    cT: (car, track) => `${car} en ${track}: récords y vueltas más rápidas en iRacing`, cD: (car, track, t, n) => `Récord de ${car} en ${track}: ${t}. Las ${n} vueltas más rápidas de iRacing de pilotos de Pitlane HQ, una por piloto.`,
+    cT: (car, track) => `${car} en ${track}: récords de iRacing`, cD: (car, track, t, n) => `Récord de ${car} en ${track}: ${t}. Las ${n} vueltas más rápidas de iRacing de pilotos de Pitlane HQ, una por piloto.`,
     cL: (t) => `Récord: ${t}. Una vuelta por piloto, la más rápida.`, cQ: "¿Dónde pierdes tiempo con este coche?", cA: "Pitlane HQ graba tus vueltas en iRacing y las compara con estas, curva a curva. Es gratis." },
   pt: { recH: "Recordes do iRacing por carro e pista", recD: "As voltas mais rápidas do iRacing em cada carro e pista, de pilotos que usam o Pitlane HQ.", all: "Todas", track: "Pista", car: "Carro", record: "Recorde", drivers: "Pilotos", none: "Ainda não há voltas.",
     anon: "Anônimo", driver: "Piloto", time: "Tempo", date: "Data", nf: "Esta página não existe", nfT: "Não encontrado",
-    cT: (car, track) => `${car} em ${track}: recordes e voltas mais rápidas no iRacing`, cD: (car, track, t, n) => `Recorde de ${car} em ${track}: ${t}. As ${n} voltas mais rápidas do iRacing de pilotos do Pitlane HQ, uma por piloto.`,
+    cT: (car, track) => `${car} em ${track}: recordes do iRacing`, cD: (car, track, t, n) => `Recorde de ${car} em ${track}: ${t}. As ${n} voltas mais rápidas do iRacing de pilotos do Pitlane HQ, uma por piloto.`,
     cL: (t) => `Recorde: ${t}. Uma volta por piloto, a mais rápida.`, cQ: "Onde você perde tempo com este carro?", cA: "O Pitlane HQ grava suas voltas no iRacing e as compara com estas, curva a curva. É grátis." },
 };
 const LOGO = `<svg viewBox="0 0 512 512" width="30" height="30" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2733"/><stop offset="1" stop-color="#0d1116"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="112" fill="url(#g)"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="460 1000"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#f2f4f7" stroke-width="48" stroke-dasharray="0 460 247 1000"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="0 460 31 31 31 31 31 31 31 31 1000"/><path d="M188.1 343.9A96 96 0 1 1 323.9 343.9" fill="none" stroke="#2f3a48" stroke-width="10" stroke-linecap="round"/><path d="M256 276L330 188" stroke="#f2f4f7" stroke-width="20" stroke-linecap="round"/><circle cx="256" cy="276" r="30" fill="#f2f4f7"/><circle cx="256" cy="276" r="12" fill="#ffb02e"/></svg>`;
@@ -83,8 +83,8 @@ const html = (s, cache = 600) => new Response(s, { headers: { "content-type": "t
 const LAND = {
   en: {
     path: "/iracing-telemetry",
-    title: "Pitlane HQ · iRacing and sim racing telemetry, lap analysis and overlays",
-    desc: "Pitlane HQ (PitlaneHQ) is free sim racing telemetry for iRacing: record your laps, see where you lose time, compare with faster drivers and use overlays in the game.",
+    title: "Pitlane HQ · iRacing telemetry, lap analysis and overlays",
+    desc: "Free iRacing telemetry from Pitlane HQ: record every lap, see where you lose time, compare with faster drivers and race with overlays on top of the game.",
     h1: "Pitlane HQ: iRacing telemetry and a coach for your laps",
     lead: "Pitlane HQ records every lap you drive in iRacing and shows where you lose time: against your own best lap, against the record and against the driver just ahead of you in the same car. It is free and works on Windows, Android and the web.",
     cards: [
@@ -110,8 +110,8 @@ const LAND = {
   },
   es: {
     path: "/es/telemetria-iracing",
-    title: "Pitlane HQ · Telemetría para iRacing y sim racing, análisis de vueltas y overlays",
-    desc: "Pitlane HQ (PitlaneHQ) es telemetría gratis para iRacing y sim racing: graba tus vueltas, mira dónde pierdes tiempo, compárate con pilotos más rápidos y usa overlays en el juego.",
+    title: "Pitlane HQ · Telemetría de iRacing, análisis de vueltas y overlays",
+    desc: "Telemetría gratis para iRacing con Pitlane HQ: graba tus vueltas, mira dónde pierdes tiempo, compárate con pilotos más rápidos y usa overlays en el juego.",
     h1: "Pitlane HQ: telemetría para iRacing y un coach para tus vueltas",
     lead: "Pitlane HQ graba cada vuelta que das en iRacing y te enseña dónde pierdes tiempo: frente a tu mejor vuelta, frente al récord y frente al piloto que va justo por delante con el mismo coche. Es gratis y funciona en Windows, Android y la web.",
     cards: [
@@ -137,8 +137,8 @@ const LAND = {
   },
   pt: {
     path: "/pt/telemetria-iracing",
-    title: "Pitlane HQ · Telemetria para iRacing e sim racing, análise de voltas e overlays",
-    desc: "Pitlane HQ (PitlaneHQ) é telemetria grátis para iRacing e sim racing: grave suas voltas, veja onde você perde tempo, compare com pilotos mais rápidos e use overlays no jogo.",
+    title: "Pitlane HQ · Telemetria do iRacing, análise de voltas e overlays",
+    desc: "Telemetria grátis para iRacing com Pitlane HQ: grave suas voltas, veja onde perde tempo, compare com pilotos mais rápidos e use overlays no jogo.",
     h1: "Pitlane HQ: telemetria para iRacing e um coach para suas voltas",
     lead: "O Pitlane HQ grava cada volta que você dá no iRacing e mostra onde você perde tempo: contra a sua melhor volta, contra o recorde e contra o piloto logo à sua frente no mesmo carro. É grátis e funciona no Windows, no Android e na web.",
     cards: [
@@ -167,21 +167,21 @@ const LAND_ALTS = { en: LAND.en.path, es: LAND.es.path, pt: LAND.pt.path };
 
 // ---------- the overlays ----------
 const OVL = {
-  en: { path: "/iracing-overlays", title: "iRacing overlays: relative, radar, standings and delta · Pitlane HQ",
+  en: { path: "/iracing-overlays", title: "iRacing overlays: relative, radar and standings · Pitlane HQ",
     desc: "Free iRacing overlays from Pitlane HQ: relative, standings, radar, delta bar, fuel, tyres, track map, flags and more, on top of the game.",
     h1: "iRacing overlays, free", lead: "Pitlane HQ Agent draws its overlays itself, on top of iRacing: light, sharp and see-through, and every click goes to the game. Place them once, save them as a preset and they open by themselves when you get in the car.",
     listT: "The overlays", howT: "How they work",
     how: ["Drawn natively by Pitlane HQ Agent on Windows, not in a browser window.", "Only the panel shows; the rest is see-through and every click goes to the game.", "Drag and resize them while you place them; they never leave the screen.", "Four presets built in, and your own, saved in your account.", "Auto: they open when you get in the car and close when you get out."],
     faq: [["Do the overlays cost anything?", "No. They are free for everyone, like the rest of Pitlane HQ."], ["Do they need anything else?", "Only Pitlane HQ Agent on the Windows PC where you race in iRacing."]],
     items: [["Relative", "The cars ahead and behind on track, with the gaps, their trend, the class colours and +1L / −1L."], ["Standings", "The positions of the race, the gaps, the last laps and each driver's pace against yours."], ["Radar", "The cars beside and behind you, 60 times a second, with the side they are on."], ["Delta bar", "Your gap to your best lap, metre by metre, and the lap this pace gives."], ["Fuel", "What each lap uses and what you may use per lap to finish without a stop."], ["Tyres", "Temperatures inside, middle and outside, and the pressure."], ["Track map", "Every car on the track, the official turn numbers and the sectors."], ["Flags", "The start lights, the flags, debris, laps to go and one lap to green."], ["Dash", "Gear, speed, revs, the pedals, ABS and a strip with the lap, the place and the delta."], ["Timing", "The official sectors of the lap in purple, green or yellow."], ["Pit stop", "Your speed against the pit lane limit and what the stop is doing."], ["Braking markers", "Where to brake in each corner, from the coach."], ["Weather", "Track and air temperature, the wind against your car and the rain."], ["Car controls", "Brake bias, TC, ABS and every in-car adjustment, lit when it changes."]] },
-  es: { path: "/es/overlays-iracing", title: "Overlays para iRacing: relative, radar, clasificación y delta · Pitlane HQ",
+  es: { path: "/es/overlays-iracing", title: "Overlays para iRacing: relative, radar y más · Pitlane HQ",
     desc: "Overlays gratis para iRacing de Pitlane HQ: relative, clasificación, radar, barra de delta, combustible, neumáticos, mapa, banderas y más, encima del juego.",
     h1: "Overlays para iRacing, gratis", lead: "Pitlane HQ Agent dibuja sus overlays él mismo, encima de iRacing: ligeros, nítidos y transparentes, y cada clic va al juego. Colócalos una vez, guárdalos como preset y se abren solos al subirte al coche.",
     listT: "Los overlays", howT: "Cómo funcionan",
     how: ["Dibujados de forma nativa por Pitlane HQ Agent en Windows, no en una ventana de navegador.", "Solo se ve el panel; el resto es transparente y cada clic va al juego.", "Los arrastras y cambias de tamaño mientras los colocas; nunca se salen de la pantalla.", "Cuatro presets incluidos y los tuyos, guardados en tu cuenta.", "Auto: se abren al subirte al coche y se cierran al bajarte."],
     faq: [["¿Los overlays cuestan algo?", "No. Son gratis para todos, como el resto de Pitlane HQ."], ["¿Necesitan algo más?", "Solo Pitlane HQ Agent en el PC con Windows donde corres en iRacing."]],
     items: [["Relative", "Los coches delante y detrás en pista, con las diferencias, su tendencia, los colores de clase y +1L / −1L."], ["Clasificación", "Las posiciones de la carrera, las diferencias, las últimas vueltas y el ritmo de cada piloto frente al tuyo."], ["Radar", "Los coches a tu lado y detrás, 60 veces por segundo, con el lado en que van."], ["Barra de delta", "Tu diferencia con tu mejor vuelta, metro a metro, y la vuelta que da este ritmo."], ["Combustible", "Lo que gasta cada vuelta y lo que puedes gastar por vuelta para terminar sin parar."], ["Neumáticos", "Temperaturas por dentro, centro y fuera, y la presión."], ["Mapa del circuito", "Todos los coches en pista, los números oficiales de las curvas y los sectores."], ["Banderas", "El semáforo de salida, las banderas, restos en pista, vueltas restantes y una para la verde."], ["Dash", "Marcha, velocidad, revoluciones, los pedales, el ABS y una tira con la vuelta, la posición y el delta."], ["Tiempos", "Los sectores oficiales de la vuelta en morado, verde o amarillo."], ["Parada en boxes", "Tu velocidad frente al límite del pit lane y lo que está haciendo la parada."], ["Puntos de frenada", "Dónde frenar en cada curva, del coach."], ["Clima", "Temperatura de pista y aire, el viento contra tu coche y la lluvia."], ["Controles del coche", "Reparto de frenada, TC, ABS y cada ajuste del coche, iluminado cuando cambia."]] },
-  pt: { path: "/pt/overlays-iracing", title: "Overlays para iRacing: relative, radar, classificação e delta · Pitlane HQ",
+  pt: { path: "/pt/overlays-iracing", title: "Overlays para iRacing: relative, radar e mais · Pitlane HQ",
     desc: "Overlays grátis para iRacing do Pitlane HQ: relative, classificação, radar, barra de delta, combustível, pneus, mapa, bandeiras e mais, sobre o jogo.",
     h1: "Overlays para iRacing, grátis", lead: "O Pitlane HQ Agent desenha seus overlays sozinho, sobre o iRacing: leves, nítidos e transparentes, e cada clique vai para o jogo. Posicione uma vez, salve como preset e eles abrem sozinhos quando você entra no carro.",
     listT: "Os overlays", howT: "Como funcionam",
@@ -316,7 +316,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "6";
+const SEO_VER = "7";
 export async function indexNow(env) {
   if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
@@ -366,19 +366,21 @@ export async function seoPage(req, env, url) {
   await noteBot(req, env, p);
   if (p === "/sitemap.xml") return sitemap(env);
   if (p === "/" + INDEXNOW_KEY + ".txt") return new Response(INDEXNOW_KEY, { headers: { "content-type": "text/plain; charset=utf-8" } });
-  if (p === "/iracing-telemetry" || p === "/telemetry") return landing(env, "en");
-  if (p === "/es/telemetria-iracing" || p === "/es/telemetria" || p === "/es") return landing(env, "es");
-  if (p === "/pt/telemetria-iracing" || p === "/pt/telemetria" || p === "/pt" || p === "/pt-br") return landing(env, "pt");
-  if (p === "/iracing-overlays" || p === "/overlays") return overlaysPage("en");
-  if (p === "/es/overlays-iracing" || p === "/es/overlays") return overlaysPage("es");
-  if (p === "/pt/overlays-iracing" || p === "/pt/overlays") return overlaysPage("pt");
-  { const tp = TOPIC_AT.get(p); if (tp) return topicPage(tp[0], tp[1]); }
+  // one address per page: a short alias or a trailing slash goes to it for good (301), never a second copy with 200
+  const at = (canon, show) => url.pathname === canon ? show() : Response.redirect(SITE + canon + url.search, 301);
+  if (p === "/iracing-telemetry" || p === "/telemetry") return at("/iracing-telemetry", () => landing(env, "en"));
+  if (p === "/es/telemetria-iracing" || p === "/es/telemetria" || p === "/es") return at("/es/telemetria-iracing", () => landing(env, "es"));
+  if (p === "/pt/telemetria-iracing" || p === "/pt/telemetria" || p === "/pt" || p === "/pt-br") return at("/pt/telemetria-iracing", () => landing(env, "pt"));
+  if (p === "/iracing-overlays" || p === "/overlays") return at("/iracing-overlays", () => overlaysPage("en"));
+  if (p === "/es/overlays-iracing" || p === "/es/overlays") return at("/es/overlays-iracing", () => overlaysPage("es"));
+  if (p === "/pt/overlays-iracing" || p === "/pt/overlays") return at("/pt/overlays-iracing", () => overlaysPage("pt"));
+  { const tp = TOPIC_AT.get(p); if (tp) return at(p, () => topicPage(tp[0], tp[1])); }
   const dsc = url.searchParams.get("d"), cat = CAT.en[dsc] ? dsc : "";
-  if (p === "/records") return recordsIndex(env, "en", cat);
-  if (p === "/es/records") return recordsIndex(env, "es", cat);
-  if (p === "/pt/records") return recordsIndex(env, "pt", cat);
+  if (p === "/records") return at(p, () => recordsIndex(env, "en", cat));
+  if (p === "/es/records") return at(p, () => recordsIndex(env, "es", cat));
+  if (p === "/pt/records") return at(p, () => recordsIndex(env, "pt", cat));
   const m = /^(?:\/(es|pt))?\/records\/(\d+)-(\d+)(?:\/[a-z0-9-]*)?$/.exec(p);
-  if (m) return (await recordsCombo(env, m[1] || "en", +m[2], +m[3], p)) || notFound(m[1] || "en");
+  if (m) return (await recordsCombo(env, m[1] || "en", +m[2], +m[3], url.pathname)) || notFound(m[1] || "en");
   if (/^(\/(es|pt))?\/records\//.test(p)) return notFound(p.startsWith("/es") ? "es" : p.startsWith("/pt") ? "pt" : "en");
   return null;
 }

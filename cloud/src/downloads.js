@@ -6,7 +6,7 @@
 //   /dl/phones.json       the phone apps' version and files
 //   /downloads            the downloads page
 //   /changelog[/phones]   the release notes, one anchor per version (#062-beta)
-const H = { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", "referrer-policy": "no-referrer" };
+const H = { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", "referrer-policy": "no-referrer", vary: "Accept-Language" }; // English or Spanish by the browser's language
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const TYPES = { exe: "application/vnd.microsoft.portable-executable", zip: "application/zip", apk: "application/vnd.android.package-archive", aab: "application/octet-stream", ipa: "application/octet-stream", json: "application/json; charset=utf-8", md: "text/markdown; charset=utf-8" };
 
@@ -28,7 +28,8 @@ export async function downloads(req, env, url) {
   const read = async (n) => { const o = await env.DL.get(n); return o ? o.text() : null; };
   const json = async (n) => { try { return JSON.parse((await read(n)) || "null"); } catch (e) { return null; } };
   const es = (req.headers.get("accept-language") || "").toLowerCase().startsWith("es");
-  if (p === "/downloads" || p === "/downloads/") {
+  if (p === "/downloads/" || p === "/changelog/") return Response.redirect("https://pitlanehq.app" + p.slice(0, -1), 301); // one address per page
+  if (p === "/downloads") {
     const pc = (await json("version.json")) || {}, ph = (await json("phones.json")) || {};
     const t = (en, s) => (es ? s : en);
     const row = (title, sub, file) => `<a class="c" href="/dl/${esc(file)}"><b>${esc(title)}</b><span>${esc(sub)}</span></a>`;

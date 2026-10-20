@@ -77,8 +77,8 @@ export const TOPICS = [
       ],
     },
     es: {
-      path: "/es/comparar-vueltas-iracing", title: "Comparar vueltas de iRacing: velocidad, pedales y diferencia · Pitlane HQ",
-      desc: "Compara gratis dos vueltas de iRacing: velocidad, acelerador, freno, marcha, volante y la diferencia de tiempo a lo largo de la vuelta, el mapa, los sectores y las frenadas.",
+      path: "/es/comparar-vueltas-iracing", title: "Comparar vueltas de iRacing: velocidad y pedales · Pitlane HQ",
+      desc: "Compara gratis dos vueltas de iRacing: velocidad, acelerador, freno, marcha, volante y la diferencia de tiempo, con el mapa, los sectores y las frenadas.",
       h1: "Compara dos vueltas de iRacing",
       lead: "Pon dos vueltas una al lado de la otra: dos tuyas, una de otra sesión, el récord del coche y circuito o una vuelta de la clasificación. Pitlane HQ te enseña dónde gana una y pierde la otra, metro a metro.",
       secs: [
@@ -94,8 +94,8 @@ export const TOPICS = [
       ],
     },
     pt: {
-      path: "/pt/comparar-voltas-iracing", title: "Comparar voltas do iRacing: velocidade, pedais e diferença · Pitlane HQ",
-      desc: "Compare grátis duas voltas do iRacing: velocidade, acelerador, freio, marcha, volante e a diferença de tempo ao longo da volta, o mapa, os setores e as frenagens.",
+      path: "/pt/comparar-voltas-iracing", title: "Comparar voltas do iRacing: velocidade e pedais · Pitlane HQ",
+      desc: "Compare grátis duas voltas do iRacing: velocidade, acelerador, freio, marcha, volante e a diferença de tempo, com o mapa, os setores e as frenagens.",
       h1: "Compare duas voltas do iRacing",
       lead: "Coloque duas voltas lado a lado: duas suas, uma de outra sessão, o recorde do carro e pista ou uma volta da classificação. O Pitlane HQ mostra onde uma ganha e a outra perde, metro a metro.",
       secs: [
@@ -132,7 +132,7 @@ export const TOPICS = [
     },
     es: {
       path: "/es/puntos-de-frenada-iracing", title: "Puntos de frenada en iRacing: dónde y cuánto frenar · Pitlane HQ",
-      desc: "Encuentra tus puntos de frenada en iRacing: Pitlane HQ muestra dónde frenas frente a una vuelta más rápida, en el mapa, en las gráficas y en pista con marcas de frenada.",
+      desc: "Tus puntos de frenada en iRacing: Pitlane HQ muestra dónde frenas frente a una vuelta más rápida, en el mapa, en las gráficas y en pista.",
       h1: "Puntos de frenada para iRacing",
       lead: "La mayor parte del tiempo se gana o se pierde frenando. Pitlane HQ muestra dónde frenas, cuánto y durante cuánto, junto a una vuelta más rápida del mismo coche, y marca los puntos en pista mientras conduces.",
       secs: [
@@ -149,7 +149,7 @@ export const TOPICS = [
     },
     pt: {
       path: "/pt/pontos-de-frenagem-iracing", title: "Pontos de frenagem no iRacing: onde e quanto frear · Pitlane HQ",
-      desc: "Encontre seus pontos de frenagem no iRacing: o Pitlane HQ mostra onde você freia contra uma volta mais rápida, no mapa, nos gráficos e na pista com marcas de frenagem.",
+      desc: "Seus pontos de frenagem no iRacing: o Pitlane HQ mostra onde você freia contra uma volta mais rápida, no mapa, nos gráficos e na pista.",
       h1: "Pontos de frenagem para iRacing",
       lead: "A maior parte do tempo se ganha ou se perde na frenagem. O Pitlane HQ mostra onde você freia, quanto e por quanto tempo, ao lado de uma volta mais rápida do mesmo carro, e marca os pontos na pista enquanto você pilota.",
       secs: [
@@ -169,7 +169,7 @@ export const TOPICS = [
     id: "line",
     en: {
       path: "/iracing-racing-line", title: "iRacing racing line: compare your line with a faster lap · Pitlane HQ",
-      desc: "See your racing line in iRacing next to a faster lap: Pitlane HQ draws both lines on the track map and says where you were inside or outside at turn-in, apex and exit.",
+      desc: "Your iRacing racing line next to a faster lap: Pitlane HQ draws both on the map and says where you were inside or outside at turn-in, apex and exit.",
       h1: "Your racing line in iRacing",
       lead: "Two laps with the same braking point can still be seconds apart because of the line. Pitlane HQ draws your line next to a faster one and measures how far to one side you were, every 5 metres.",
       secs: [
@@ -184,8 +184,8 @@ export const TOPICS = [
       ],
     },
     es: {
-      path: "/es/trazada-iracing", title: "Trazada en iRacing: compara tu línea con una vuelta más rápida · Pitlane HQ",
-      desc: "Mira tu trazada en iRacing junto a una vuelta más rápida: Pitlane HQ dibuja las dos líneas en el mapa y dice dónde ibas por dentro o por fuera al entrar, en el vértice y a la salida.",
+      path: "/es/trazada-iracing", title: "Trazada en iRacing: compara tu línea con otra vuelta · Pitlane HQ",
+      desc: "Tu trazada en iRacing junto a una vuelta más rápida: Pitlane HQ dibuja las dos en el mapa y dice si ibas por dentro o por fuera en cada curva.",
       h1: "Tu trazada en iRacing",
       lead: "Dos vueltas con el mismo punto de frenada pueden estar a segundos por la trazada. Pitlane HQ dibuja tu línea junto a una más rápida y mide cuánto ibas hacia un lado, cada 5 metros.",
       secs: [
@@ -200,8 +200,8 @@ export const TOPICS = [
       ],
     },
     pt: {
-      path: "/pt/tracado-iracing", title: "Traçado no iRacing: compare sua linha com uma volta mais rápida · Pitlane HQ",
-      desc: "Veja seu traçado no iRacing ao lado de uma volta mais rápida: o Pitlane HQ desenha as duas linhas no mapa e diz onde você estava por dentro ou por fora na entrada, no ápice e na saída.",
+      path: "/pt/tracado-iracing", title: "Traçado no iRacing: compare sua linha com outra volta · Pitlane HQ",
+      desc: "Seu traçado no iRacing ao lado de uma volta mais rápida: o Pitlane HQ desenha os dois no mapa e diz se você estava por dentro ou por fora em cada curva.",
       h1: "Seu traçado no iRacing",
       lead: "Duas voltas com o mesmo ponto de frenagem podem estar a segundos por causa do traçado. O Pitlane HQ desenha sua linha ao lado de uma mais rápida e mede o quanto você estava para um lado, a cada 5 metros.",
       secs: [
@@ -271,7 +271,7 @@ export const TOPICS = [
     id: "shift",
     en: {
       path: "/iracing-shift-beep", title: "iRacing shift beep: a beep at the RPM you choose · Pitlane HQ",
-      desc: "A shift beep for iRacing: Pitlane HQ beeps to change up at the revs you choose for each car, one RPM for every gear or one per gear, or at iRacing's shift lights.",
+      desc: "A shift beep for iRacing: Pitlane HQ beeps to change up at the revs you choose for each car, one RPM for all gears, one per gear or the shift lights.",
       h1: "A shift beep for iRacing",
       lead: "Eyes on the track, ears on the engine: Pitlane HQ beeps when it is time to change up, at the revs you choose for each car, a moment early to make up for your reaction time.",
       secs: [
@@ -286,8 +286,8 @@ export const TOPICS = [
       ],
     },
     es: {
-      path: "/es/pitido-cambio-marcha-iracing", title: "Pitido de cambio de marcha para iRacing a las RPM que elijas · Pitlane HQ",
-      desc: "Un pitido de cambio para iRacing: Pitlane HQ pita para subir de marcha a las revoluciones que elijas en cada coche, unas RPM para todas las marchas o unas por marcha, o en las luces de iRacing.",
+      path: "/es/pitido-cambio-marcha-iracing", title: "Pitido de cambio de marcha para iRacing · Pitlane HQ",
+      desc: "Pitido de cambio para iRacing: Pitlane HQ pita para subir de marcha a las RPM que elijas en cada coche, para todas las marchas o una por marcha.",
       h1: "Un pitido de cambio de marcha para iRacing",
       lead: "Los ojos en la pista y el oído en el motor: Pitlane HQ pita cuando toca subir de marcha, a las revoluciones que elijas para cada coche, un instante antes para compensar tu tiempo de reacción.",
       secs: [
@@ -302,8 +302,8 @@ export const TOPICS = [
       ],
     },
     pt: {
-      path: "/pt/bipe-troca-de-marcha-iracing", title: "Bipe de troca de marcha para iRacing no RPM que você escolher · Pitlane HQ",
-      desc: "Um bipe de troca para iRacing: o Pitlane HQ apita para subir de marcha nos giros que você escolher em cada carro, um RPM para todas as marchas ou um por marcha, ou nas luzes do iRacing.",
+      path: "/pt/bipe-troca-de-marcha-iracing", title: "Bipe de troca de marcha para iRacing · Pitlane HQ",
+      desc: "Bipe de troca para iRacing: o Pitlane HQ apita para subir de marcha no RPM que você escolher em cada carro, para todas as marchas ou um por marcha.",
       h1: "Um bipe de troca de marcha para iRacing",
       lead: "Olhos na pista e ouvido no motor: o Pitlane HQ apita quando é hora de subir de marcha, nos giros que você escolher para cada carro, um instante antes para compensar o seu tempo de reação.",
       secs: [
@@ -322,7 +322,7 @@ export const TOPICS = [
     id: "phone",
     en: {
       path: "/iracing-telemetry-on-phone", title: "iRacing telemetry on your phone or tablet, live · Pitlane HQ",
-      desc: "Watch your iRacing telemetry live on your phone, tablet or a browser: position, delta, fuel, the relative and the track map, from anywhere. Free, Android and web.",
+      desc: "Your iRacing telemetry live on your phone, tablet or browser: position, delta, fuel, the relative and the track map, from anywhere. Free, Android and web.",
       h1: "Your iRacing telemetry on the phone",
       lead: "Put the phone or a tablet next to the wheel and see your race live: position, delta, last lap, fuel, the relative and the map. It works over Wi-Fi or mobile data, from anywhere.",
       secs: [
@@ -338,7 +338,7 @@ export const TOPICS = [
     },
     es: {
       path: "/es/telemetria-iracing-en-el-movil", title: "Telemetría de iRacing en el móvil o la tablet, en vivo · Pitlane HQ",
-      desc: "Mira tu telemetría de iRacing en vivo en el móvil, la tablet o un navegador: posición, delta, combustible, el relative y el mapa, desde cualquier sitio. Gratis, Android y web.",
+      desc: "Tu telemetría de iRacing en vivo en el móvil, la tablet o el navegador: posición, delta, combustible, el relative y el mapa. Gratis, Android y web.",
       h1: "Tu telemetría de iRacing en el móvil",
       lead: "Pon el móvil o una tablet junto al volante y sigue tu carrera en vivo: posición, delta, última vuelta, combustible, el relative y el mapa. Funciona con Wi-Fi o datos, desde cualquier sitio.",
       secs: [
@@ -354,7 +354,7 @@ export const TOPICS = [
     },
     pt: {
       path: "/pt/telemetria-iracing-no-celular", title: "Telemetria do iRacing no celular ou tablet, ao vivo · Pitlane HQ",
-      desc: "Veja sua telemetria do iRacing ao vivo no celular, tablet ou navegador: posição, delta, combustível, o relative e o mapa, de qualquer lugar. Grátis, Android e web.",
+      desc: "Sua telemetria do iRacing ao vivo no celular, tablet ou navegador: posição, delta, combustível, o relative e o mapa, de qualquer lugar. Grátis e web.",
       h1: "Sua telemetria do iRacing no celular",
       lead: "Coloque o celular ou um tablet ao lado do volante e acompanhe sua corrida ao vivo: posição, delta, última volta, combustível, o relative e o mapa. Funciona com Wi-Fi ou dados, de qualquer lugar.",
       secs: [
@@ -373,7 +373,7 @@ export const TOPICS = [
     id: "free",
     en: {
       path: "/free-iracing-telemetry", title: "Free iRacing telemetry, coach and overlays in one app · Pitlane HQ",
-      desc: "Free iRacing telemetry software: lap analysis, a coach with real laps, leaderboards, overlays and live telemetry on your phone, in one app for Windows, Android and the web.",
+      desc: "Free iRacing telemetry software: lap analysis, a coach with real laps, leaderboards, overlays and live telemetry, for Windows, Android and the web.",
       h1: "Free iRacing telemetry, coach and overlays",
       lead: "Pitlane HQ puts in one free app what usually takes several: lap telemetry and analysis, a coach that compares you with real faster laps, overlays on top of the game, leaderboards and your race summaries.",
       secs: [
@@ -390,7 +390,7 @@ export const TOPICS = [
     },
     es: {
       path: "/es/telemetria-iracing-gratis", title: "Telemetría de iRacing gratis, coach y overlays en una app · Pitlane HQ",
-      desc: "Programa de telemetría de iRacing gratis: análisis de vueltas, un coach con vueltas reales, clasificaciones, overlays y telemetría en vivo en el móvil, en una app para Windows, Android y web.",
+      desc: "Telemetría de iRacing gratis: análisis de vueltas, un coach con vueltas reales, clasificaciones, overlays y telemetría en vivo, en Windows, Android y web.",
       h1: "Telemetría de iRacing gratis, coach y overlays",
       lead: "Pitlane HQ reúne en una app gratis lo que suele necesitar varias: telemetría y análisis de vueltas, un coach que te compara con vueltas reales más rápidas, overlays sobre el juego, clasificaciones y tus resúmenes de carrera.",
       secs: [
@@ -407,7 +407,7 @@ export const TOPICS = [
     },
     pt: {
       path: "/pt/telemetria-iracing-gratis", title: "Telemetria do iRacing grátis, coach e overlays num só app · Pitlane HQ",
-      desc: "Programa de telemetria do iRacing grátis: análise de voltas, um coach com voltas reais, classificações, overlays e telemetria ao vivo no celular, num app para Windows, Android e web.",
+      desc: "Telemetria do iRacing grátis: análise de voltas, um coach com voltas reais, classificações, overlays e telemetria ao vivo, em Windows, Android e web.",
       h1: "Telemetria do iRacing grátis, coach e overlays",
       lead: "O Pitlane HQ junta num app grátis o que costuma precisar de vários: telemetria e análise de voltas, um coach que compara você com voltas reais mais rápidas, overlays sobre o jogo, classificações e seus resumos de corrida.",
       secs: [
