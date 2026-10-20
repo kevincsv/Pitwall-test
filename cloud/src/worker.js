@@ -10,6 +10,7 @@ import { lemonWebhook } from "./lemon.js";
 import { news } from "./news.js";
 import { sealData, openData } from "./crypt.js";
 import { gameOf } from "./games.js";
+import { noteCar } from "./carfamily.js";
 import VIEWER from "./viewer.html";
 import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
@@ -110,6 +111,8 @@ async function api(req, env, url, ctx) {
     let e = await upsertSession(env, body.session, me.name);
     // this session brings the real iRacing ids: what was shared under provisional ids of the same track and car moves over
     if (!e && posInt(body.session.trackId) && posInt(body.session.carId)) await reconcileIds(env, gameOf(body.session.game), str(body.session.track), str(body.session.trackConfig), str(body.session.car), posInt(body.session.trackId), posInt(body.session.carId)).catch(() => {});
+    // a badge of a car family (NASCAR's, the Supercars', the SF23's) joins it the first time it is seen
+    if (!e && posInt(body.session.carId)) await noteCar(env, gameOf(body.session.game), posInt(body.session.carId), str(body.session.car)).catch(() => {});
     if (role === "member" || role === "account") body.laps = (body.laps || []).map((l) => ({ ...l, id: (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + l.id).slice(0, 80) }));
     if (e) return err(e, 400);
     for (const l of (body.laps || []).slice(0, 50)) {

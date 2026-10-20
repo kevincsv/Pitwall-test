@@ -49,7 +49,7 @@ async function countUpload(env, u) {
 }
 
 import { gameOf } from "./games.js";
-import { famId, famIds, famName } from "./carfamily.js";
+import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
@@ -85,7 +85,7 @@ export function shortDriverName(v) {
 }
 
 async function keepBestLap(env, uid, x) {
-  x = { ...x, carId: famId(x.game, x.carId) }; // one board for the brands of one car (carfamily.js)
+  x = { ...x, carId: await noteCar(env, x.game, x.carId, x.car) }; // one board for the brands of one car (carfamily.js)
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
@@ -191,7 +191,7 @@ export async function reshareSession(env, accountId, sid) {
     return { uid: row.id, anon: false, shown: "nick" };
   };
   // a share that came from a lap of this session which is somebody else's now goes
-  const mine = (await env.DB.prepare("SELECT c.id, c.user_id, c.time, u.alias FROM community_laps c JOIN community_users u ON u.id=c.user_id WHERE c.car_id=?1 AND c.track_id=?2 AND (c.user_id=?3 OR (u.owner=?3 AND u.id LIKE 'guest-%'))").bind(famId(g, carId), trackId, accountId).all()).results || [];
+  const mine = (await env.DB.prepare("SELECT c.id, c.user_id, c.time, u.alias FROM community_laps c JOIN community_users u ON u.id=c.user_id WHERE c.car_id=?1 AND c.track_id=?2 AND (c.user_id=?3 OR (u.owner=?3 AND u.id LIKE 'guest-%'))").bind(await famId(env, g, carId), trackId, accountId).all()).results || [];
   for (const c of mine) {
     const k = c.user_id === accountId ? "" : key(c.alias);
     if (here.some((l) => Math.abs(l.time - c.time) < 0.0015 && key(l.drv) !== k)) await env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(c.id).run();
@@ -242,12 +242,13 @@ export async function community(req, env, url, ctx) {
     ).bind(game).all();
     // each car and track in its discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road): the leaderboards by discipline
     const cm = game === "iracing" ? await catMap(env) : { tc: {}, c: {} };
-    return json({ combos: (r.results || []).map(({ hint, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), cat: game === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car" })) });
+    const fams = await famGroups(env, game); // a family's board lists its badges, so the apps know which of your cars it is
+    return json({ combos: (r.results || []).map(({ hint, ...x }) => ({ ...x, ...(fams.has(x.carId) ? { ids: [...fams.get(x.carId)] } : {}), car: famName(game, x.carId, x.car), cat: game === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car" })) });
   }
   // the model, learnt on the server from every real lap it knows (shared or not, rivals of races): only
   // what it learnt goes out (the record and the next-level laps), never anyone's laps as such
   if (p === "/model" && m === "GET") {
-    const t = +url.searchParams.get("trackId"), c = famId(game, url.searchParams.get("carId"));
+    const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
     const md = await getModel(env, game, t, c);
     const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
@@ -257,7 +258,7 @@ export async function community(req, env, url, ctx) {
   // the card of a car alone (the phone apps): its hardest braking, the speeds the fast drivers shift up
   // at, its top speed, learnt from its laps on every track; {} when it has no laps yet
   if (p === "/car" && m === "GET") {
-    const c = famId(game, url.searchParams.get("carId"));
+    const c = await famId(env, game, url.searchParams.get("carId"));
     if (!c) return err("carId", 400);
     return json((await getCarCard(env, game, c).catch(() => null)) || {});
   }
@@ -313,7 +314,7 @@ export async function community(req, env, url, ctx) {
     });
   }
   if (p === "/laps" && m === "GET") {
-    const t = +url.searchParams.get("trackId"), c = famId(game, url.searchParams.get("carId"));
+    const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
     // signed in: your own laps are marked as yours (also the anonymous ones; only you see that)
     const who = await me(req, env).catch(() => null);
@@ -341,7 +342,7 @@ export async function community(req, env, url, ctx) {
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
-    const fam = c ? famIds(game, c) : [0];
+    const fam = c ? await famIds(env, game, c) : [0];
     const r = await env.DB.prepare(
       `SELECT r.id, r.user_id AS uid, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
        COALESCE(r.field, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.field') END) AS field,
@@ -960,7 +961,7 @@ export async function community(req, env, url, ctx) {
       const hit = await env.DB.prepare(
         `SELECT DISTINCT u.id FROM community_laps l JOIN community_users u ON u.id=l.user_id
          WHERE l.car_id=?1 AND l.track_id=?2 AND abs(l.time-?3)<0.0006 AND u.id LIKE 'o:%' AND (u.alias='Anonymous' OR u.alias=?5) AND u.owner=?4`
-      ).bind(famId(gameOf(x && x.game), carId), trackId, time, u.id, short).all();
+      ).bind(await famId(env, gameOf(x && x.game), carId), trackId, time, u.id, short).all();
       const ids = (hit.results || []).map((r) => r.id);
       if (ids.length !== 1) continue; // two unnamed rivals with the very same lap: no guessing
       await env.DB.batch([

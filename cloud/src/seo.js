@@ -245,7 +245,7 @@ ${list.length ? `<table><thead><tr><th>${esc(W.track)}</th><th>${esc(W.car)}</th
 }
 
 async function recordsCombo(env, l, t, c, asked) {
-  c = famId("iracing", c); // the brands of one car have one page (an old address of another brand goes there)
+  c = await famId(env, "iracing", c); // the brands of one car have one page (an old address of another brand goes there)
   // the names as the sitemap and the index have them (one address per car and track); any other spelling of
   // the address goes there for good (301), so search engines see one page, not several
   const nm = await env.DB.prepare("SELECT MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game='iracing'").bind(t, c).first().catch(() => null);

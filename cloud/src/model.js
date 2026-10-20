@@ -87,7 +87,7 @@ async function learnNewLaps(env, game, trackId, carId) {
   const known = new Set(((await env.DB.prepare("SELECT k FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).all()).results || []).map((x) => x.k));
   const a = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
-     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${famSql(game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
+     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${await famSql(env, game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
        AND LOWER(COALESCE(s.kind,'')) NOT LIKE '%test%' AND (COALESCE(s.official,1)<>0 OR s.ai=1)
      ORDER BY a.time LIMIT 3000`).bind(trackId, carId, game).all();
   const c = await env.DB.prepare(
@@ -97,7 +97,7 @@ async function learnNewLaps(env, game, trackId, carId) {
   // whose people are real drivers) leaves its memory
   const out = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time FROM laps a JOIN sessions s ON s.id=a.session_id
-     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${famSql(game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
+     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${await famSql(env, game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
        AND (LOWER(COALESCE(s.kind,'')) LIKE '%test%' OR (s.official=0 AND COALESCE(s.ai,0)=0)) LIMIT 3000`).bind(trackId, carId, game).all();
   for (const x of out.results || []) {
     const k = await sha(x.up + ":" + x.time.toFixed(3));
@@ -129,7 +129,7 @@ async function lapPath(env, game, trackId, carId, time) {
   for (const row of c.results || []) { const p = await open(row); if (p) return p; }
   const a = await env.DB.prepare(
     `SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
-     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${famSql(game, carId)})) AND s.game=?3 AND abs(a.time-?4)<0.0006 AND a.trace IS NOT NULL LIMIT 3`).bind(trackId, carId, game, time).all();
+     WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${await famSql(env, game, carId)})) AND s.game=?3 AND abs(a.time-?4)<0.0006 AND a.trace IS NOT NULL LIMIT 3`).bind(trackId, carId, game, time).all();
   for (const row of a.results || []) { const p = await open(row); if (p) return p; }
   return null;
 }
@@ -166,7 +166,7 @@ async function candidates(env, game, trackId, carId) {
 }
 
 export async function buildModel(env, game, trackId, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   const { laps: raw, drivers, more, added } = await candidates(env, game, trackId, carId);
   if (added) await markCar(env, game, carId); // its memory of this car grew: the car card learns again
   const shared = await env.DB.prepare(
@@ -298,7 +298,7 @@ export function cardOf(laps) {
   };
 }
 export async function buildCarCard(env, game, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   const all = (await env.DB.prepare("SELECT track_id, drv, time, data FROM model_laps WHERE game=?1 AND car_id=?2 ORDER BY time LIMIT 4000").bind(game, carId).all()).results || [];
   // the best few laps of each driver on each track, and the tracks with most laps first: no track and no
   // driver speaks for the car alone
@@ -329,7 +329,7 @@ export async function buildCarCard(env, game, carId) {
   return card;
 }
 export async function markCar(env, game, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   if (!carId) return;
   await env.DB.prepare(
     `INSERT INTO car_cards (game, car_id, dirty, built, data) VALUES (?1,?2,1,0,NULL)
@@ -337,7 +337,7 @@ export async function markCar(env, game, carId) {
 }
 // what the apps ask for: the card of a car, rebuilt when its laps changed; null when it has no laps
 export async function getCarCard(env, game, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   if (!carId) return null;
   const row = await env.DB.prepare("SELECT dirty, data FROM car_cards WHERE game=?1 AND car_id=?2").bind(game, carId).first().catch(() => null);
   if (row && row.data && !row.dirty) {
@@ -401,7 +401,7 @@ export async function moveDriver(env, fromUp, toUp) {
 }
 
 export async function markModel(env, game, trackId, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   if (!trackId || !carId) return;
   await env.DB.prepare(
     `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data) VALUES (?1,?2,?3,1,0,NULL)
@@ -420,7 +420,7 @@ async function rebuild(env, game, trackId, carId) {
 
 // what the apps ask for: the model of a car and track, rebuilt when new laps came in
 export async function getModel(env, game, trackId, carId) {
-  carId = famId(game, carId); // one model for a car under every badge (carfamily.js)
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   const row = await env.DB.prepare("SELECT dirty, built, data FROM model_cache WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).first();
   if (row && row.data && !row.dirty) {
     const m = JSON.parse(await gunz(row.data));

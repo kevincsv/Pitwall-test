@@ -139,7 +139,7 @@ async function combos(env, q, n) {
 async function comboOf(env, v) {
   const m = /^(\d+)-(\d+)$/.exec(String(v || ""));
   if (m) {
-    const c = famId("iracing", m[2]);
+    const c = await famId(env, "iracing", m[2]);
     const r = await env.DB.prepare("SELECT MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game='iracing'").bind(+m[1], c).first();
     if (r && r.track) return { t: +m[1], c, track: r.track, car: famName("iracing", c, r.car) };
   }

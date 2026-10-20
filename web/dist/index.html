@@ -5973,10 +5973,11 @@ async function buildPartialRace(r){if(!r||!r.partial||r._built)return r;try{cons
   const valid=r.laps.filter(l=>l.t>0&&!l.pit&&!l.cut);r.best=valid.length?Math.min(...valid.map(l=>l.t)):0;r.inc=r.laps.reduce((a,l)=>a+(l.i||0),0);r.pits=r.laps.filter(l=>l.pit).length;
   const clean=valid.filter(l=>l.n>1&&!l.i);if(clean.length){const m=clean.reduce((a,l)=>a+l.t,0)/clean.length;r.avg=+m.toFixed(3);r.consistency=+Math.sqrt(clean.reduce((a,l)=>a+(l.t-m)**2,0)/clean.length).toFixed(3)}
   r.fuelUsed=+r.laps.reduce((a,l)=>a+(l.f||0),0).toFixed(1);r._built=1;delete r._fixed}catch(e){}return r}
-/* the brands of one car are one car on the boards and in the model (cloud/src/carfamily.js): the SF23's Toyota and Honda */
-const CAR_FAM={"iracing:172":171},famCar=(g,c)=>CAR_FAM[(g||"iracing")+":"+c]||c;
-const famTB=list=>{const by=new Map();for(const e of list){const x={...e,carId:famCar(e.game,e.carId)},k=x.trackId+"|"+x.carId,o=by.get(k);if(!o||(x.best>0&&!(o.best>0&&o.best<=x.best)))by.set(k,x)}return[...by.values()]};
-async function loadTB(){if(MODE==="bridge"){try{TB=famTB(((await jget("/api/trackbook")).entries||[]).filter(gameMatch))}catch(e){TB=TB||[]}}else if(!TB)TB=[];return TB}
+async function loadTB(){if(MODE==="bridge"){try{TB=((await jget("/api/trackbook")).entries||[]).filter(gameMatch)}catch(e){TB=TB||[]}}else if(!TB)TB=[];return TB}
+/* one board for every badge of a car (cloud/src/carfamily.js: the SF23's, NASCAR's, the Supercars'): a board lists its
+   badges in ids, so your own best of any of them is yours there */
+const onBoard=(e,b)=>e.trackId===b.trackId&&(e.carId===b.carId||(b.ids||[]).includes(e.carId));
+const myBoardBest=b=>{let t=0;for(const e of TB||[])if(onBoard(e,b)&&e.best>0&&(!t||e.best<t))t=e.best;return t||undefined};
 async function loadNotes(){if(MODE==="bridge"){try{NOTES=(await jget("/api/notes")).notes||{}}catch(e){}}return NOTES}
 async function saveNotes(n){if(MODE==="bridge"){NOTES=(await jpost("/api/notes",n)).notes||NOTES}else{if(!n.general&&!(n.corners||[]).length)delete NOTES[String(n.trackId)];else NOTES[String(n.trackId)]=n;store.set("pw.notesDemo",NOTES)}}
 async function loadSetupsCache(){if(SETUPS_CACHE)return SETUPS_CACHE;if(MODE==="bridge"){try{SETUPS_CACHE=await jget("/api/setups")}catch(e){SETUPS_CACHE={cars:[]}}}else SETUPS_CACHE=SETUPS_DEMO;return SETUPS_CACHE}
@@ -6712,7 +6713,7 @@ function drawDrinks(p){const c=drinksNow(),sfx=p.closest("#aboutPanel")?"A":"";
 /* leaderboard filters: search, track, car, and only the combinations you drove */
 const CMF={q:"",mine:false,cat:"",lic:""};
 function commFilters(all,again){const q=$("#cmQ"),ts=$("#cmTrk"),cs=$("#cmCar");if(!q)return;
-  const fill=init=>{const qq=CMF.q.toLowerCase().trim(),list=all.filter(x=>(!CMF.cat||x.cat===CMF.cat)&&(!CMF.mine||x.mine||(TB||[]).some(e=>e.trackId===x.trackId&&e.carId===x.carId))&&(!qq||(x.track+" "+(x.car||"")).toLowerCase().includes(qq)));
+  const fill=init=>{const qq=CMF.q.toLowerCase().trim(),list=all.filter(x=>(!CMF.cat||x.cat===CMF.cat)&&(!CMF.mine||x.mine||(TB||[]).some(e=>onBoard(e,x)))&&(!qq||(x.track+" "+(x.car||"")).toLowerCase().includes(qq)));
     const tracks=[];list.forEach(x=>{let t=tracks.find(y=>y.id===x.trackId);if(!t)tracks.push(t={id:x.trackId,name:x.track||"#"+x.trackId,n:0});t.n+=x.laps||0});tracks.sort((a,b)=>a.name.localeCompare(b.name));
     $("#cmCount").textContent=all.length?Tx(`${tracks.length} tracks`,`${tracks.length} circuitos`,`${tracks.length} Strecken`,`${tracks.length} pistas`):"";
     if(!tracks.length){ts.innerHTML="";cs.innerHTML="";ts.disabled=cs.disabled=true;COMMSEL=null;
@@ -6737,7 +6738,7 @@ async function renderCommLaps(){const box=$("#cmLaps"),rb=$("#cmReps");if(!box||
   try{reps=(await cget(`/api/community/reports?trackId=${s.trackId}&carId=${s.carId}`)).reports||[]}catch(e){}
   const best=laps[0]&&laps[0].time;laps.forEach((l,i)=>l.pos=i+1);
   const all0=laps.length;
-  const myBest=((TB||[]).find(e=>e.trackId===s.trackId&&e.carId===s.carId)||{}).best;
+  const myBest=myBoardBest(s);
   if(laps.length)box.innerHTML=`<div style="overflow:auto;max-height:460px"><table class="rtable"><thead><tr><th>#</th><th>${esc(Tx("Driver","Piloto"))}</th><th>${esc(Tx("Time","Tiempo"))}</th><th>S1</th><th>S2</th><th>S3</th><th></th></tr></thead><tbody>
     ${myBest&&!laps.some(l=>l.mine)?`<tr class="me"><td>–</td><td><b>${esc(Tx("You","Tú"))}</b><small>${esc(Tx("your best, not shared","tu mejor, sin compartir","deine Bestzeit, nicht geteilt","sua melhor, não compartilhada"))}</small></td><td class="mono">${fmtT(myBest)}${best?`<small>${sgn(myBest-best,3)}</small>`:""}</td><td colspan="4"></td></tr>`:""}
     ${laps.map((l,i)=>{const nm=esc(l.alias==="Anonymous"?Tx("Anonymous","Anónimo","Anonym","Anônimo"):l.alias),nb=l.prof?`<button type="button" class="lb-name" data-prof="${esc(l.id)}" title="${esc(Tx("See the profile","Ver el perfil","Profil ansehen","Ver o perfil"))}">${l.mine?`<b>${nm}</b>`:nm}</button>`:l.mine?`<b>${nm}</b>`:nm;return`<tr class="${l.mine?"me":""}${l.id===COMM_HL?" hl":""}"><td class="mono">${l.pos}</td><td>${nb}${l.sup?" "+supTag():""}${l.mine?` <span class="pill acc" style="font-size:10px">${esc(Tx("you","tú","du","você"))}</span>`:""}<small>${esc(new Date(l.created).toLocaleDateString(locale()))}</small></td><td class="mono">${fmtT(l.time)}${l.pos>1?`<small>${sgn(l.time-best,3)}</small>`:""}</td>${[0,1,2].map(k=>`<td class="mono">${l.sectors&&l.sectors[k]!=null?(+l.sectors[k]).toFixed(2):"–"}</td>`).join("")}<td style="white-space:nowrap">${l.hasTrace?`<button type="button" class="btn small" data-cmp="${esc(l.id)}">${esc(Tx("Compare","Comparar"))}</button>`:`<small class="muted" style="display:inline" title="${esc(NO_TRACE())}">${esc(Tx("telemetry not shared","telemetría no compartida","Telemetrie nicht geteilt","telemetria não compartilhada"))}</small>`} ${admDel("laps",l.id)}</td></tr>`}).join("")}</tbody></table></div>`;
