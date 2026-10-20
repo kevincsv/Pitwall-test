@@ -1,6 +1,27 @@
 {
   "versions": [
     {
+      "v": "0.4.2",
+      "en": [
+        "One leaderboard for one car: the SF23's Honda and Toyota, NASCAR's and the Supercars' badges share one board, record and coach.",
+        "Track notes on the phone: read and write your notes on each track's page.",
+        "Driver profiles show their leaderboards, records and top 3 places at a glance.",
+        "Overlays can no longer be made too small to read."
+      ],
+      "es": [
+        "Una clasificación por coche: el Honda y el Toyota del SF23 y las marcas de NASCAR y Supercars comparten clasificación, récord y coach.",
+        "Notas de circuito en el móvil: lee y escribe tus notas en la página de cada circuito.",
+        "Los perfiles muestran sus clasificaciones, récords y top 3 de un vistazo.",
+        "Los overlays ya no se pueden hacer tan pequeños que no se lean."
+      ],
+      "pt": [
+        "Uma classificação por carro: o Honda e o Toyota do SF23 e as marcas da NASCAR e dos Supercars dividem classificação, recorde e coach.",
+        "Notas de pista no celular: leia e escreva suas notas na página de cada pista.",
+        "Os perfis mostram suas classificações, recordes e top 3 de relance.",
+        "Os overlays não podem mais ficar pequenos demais para ler."
+      ]
+    },
+    {
       "v": "0.4.1",
       "en": [
         "Telemetry from every lap, in your account on the PC, the web and the phone.",

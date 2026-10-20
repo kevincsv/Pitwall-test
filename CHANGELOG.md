@@ -4,6 +4,17 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.2 beta
+
+- **One leaderboard for one car**: cars that are the same under different badges (the Super Formula SF23's Honda
+  and Toyota, NASCAR's Chevrolet, Ford and Toyota, the Supercars) share one leaderboard, one record and one coach.
+- **Track notes on the phone**: your notes on each track, on the track page of the phone apps, and you can write
+  them there too.
+- **Driver profiles**: leaderboards, records and top 3 places at a glance, and every recent record opens its
+  driver's profile on the phone.
+- **Overlays** can no longer be made too small to read.
+- Fixes and improvements.
+
 ## 0.4.1 beta
 
 - **Telemetry from every lap**: Pitlane HQ Agent records every lap you drive in iRacing, with nothing to set up, and

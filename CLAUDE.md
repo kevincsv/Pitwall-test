@@ -228,6 +228,10 @@
   default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
   "+ Session" lap B is only the laps of the other session (and the references). The window's title
   and its × stay at the top while it scrolls. "MY BEST" goes after the time.
+- Track notes (`notes.json` in the account, `/api/notes`, `NOTES`/`saveNotes` in index.html): your own notes on a track,
+  a general note and notes per corner (`n`, `dist`, `name`, `note`). The track page shows them and writes the general
+  note (`trackNotesBox` on the web and the PC; `TrackNotesPanel` on the phones, which write the account's bundle like
+  driver notes), and the phones list them all in Account → Track notes.
 - Driver notes (like RaceLab's): your own marks on other drivers, one tag (dangerous, careful, clean, friend, our own
   icons: a red triangle, an amber circle, a green tick, a blue star) and a note only you see (`drivers.json` in the
   account, `drivers.go`, `/api/drivers`). A driver is known by the community's opaque key (`driverKey`, the races keep
