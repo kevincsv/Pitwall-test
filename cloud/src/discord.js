@@ -9,6 +9,7 @@
 import PLANS from "../../license_plans.json";
 import { isAdmin, sha256 } from "./accounts.js";
 import { getModel } from "./model.js";
+import { famId, famName } from "./carfamily.js";
 import { CATS, licOf } from "./categories.js";
 
 const SITE = "https://pitlanehq.app";
@@ -132,14 +133,15 @@ async function combos(env, q, n) {
        FROM community_laps l WHERE l.game='iracing' AND l.track_id>0 AND l.car_id>0 AND ${NOT_MODEL} ${where}
       GROUP BY l.track_id, l.car_id ORDER BY drivers DESC, best LIMIT ?1`
   ).bind(n, ...words.map((w) => "%" + w + "%")).all();
-  return r.results || [];
+  return (r.results || []).map((x) => ({ ...x, car: famName("iracing", x.c, x.car) }));
 }
 // what was picked in the list ("t-c"), or the most driven car and track with every word typed
 async function comboOf(env, v) {
   const m = /^(\d+)-(\d+)$/.exec(String(v || ""));
   if (m) {
-    const r = await env.DB.prepare("SELECT MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game='iracing'").bind(+m[1], +m[2]).first();
-    if (r && r.track) return { t: +m[1], c: +m[2], track: r.track, car: r.car };
+    const c = famId("iracing", m[2]);
+    const r = await env.DB.prepare("SELECT MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game='iracing'").bind(+m[1], c).first();
+    if (r && r.track) return { t: +m[1], c, track: r.track, car: famName("iracing", c, r.car) };
   }
   return (await combos(env, v, 1))[0] || null;
 }

@@ -49,6 +49,7 @@ async function countUpload(env, u) {
 }
 
 import { gameOf } from "./games.js";
+import { famId, famIds, famName } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
@@ -84,6 +85,7 @@ export function shortDriverName(v) {
 }
 
 async function keepBestLap(env, uid, x) {
+  x = { ...x, carId: famId(x.game, x.carId) }; // one board for the brands of one car (carfamily.js)
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
@@ -189,7 +191,7 @@ export async function reshareSession(env, accountId, sid) {
     return { uid: row.id, anon: false, shown: "nick" };
   };
   // a share that came from a lap of this session which is somebody else's now goes
-  const mine = (await env.DB.prepare("SELECT c.id, c.user_id, c.time, u.alias FROM community_laps c JOIN community_users u ON u.id=c.user_id WHERE c.car_id=?1 AND c.track_id=?2 AND (c.user_id=?3 OR (u.owner=?3 AND u.id LIKE 'guest-%'))").bind(carId, trackId, accountId).all()).results || [];
+  const mine = (await env.DB.prepare("SELECT c.id, c.user_id, c.time, u.alias FROM community_laps c JOIN community_users u ON u.id=c.user_id WHERE c.car_id=?1 AND c.track_id=?2 AND (c.user_id=?3 OR (u.owner=?3 AND u.id LIKE 'guest-%'))").bind(famId(g, carId), trackId, accountId).all()).results || [];
   for (const c of mine) {
     const k = c.user_id === accountId ? "" : key(c.alias);
     if (here.some((l) => Math.abs(l.time - c.time) < 0.0015 && key(l.drv) !== k)) await env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(c.id).run();
@@ -240,12 +242,12 @@ export async function community(req, env, url, ctx) {
     ).bind(game).all();
     // each car and track in its discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road): the leaderboards by discipline
     const cm = game === "iracing" ? await catMap(env) : { tc: {}, c: {} };
-    return json({ combos: (r.results || []).map(({ hint, ...x }) => ({ ...x, cat: game === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car" })) });
+    return json({ combos: (r.results || []).map(({ hint, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), cat: game === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car" })) });
   }
   // the model, learnt on the server from every real lap it knows (shared or not, rivals of races): only
   // what it learnt goes out (the record and the next-level laps), never anyone's laps as such
   if (p === "/model" && m === "GET") {
-    const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
+    const t = +url.searchParams.get("trackId"), c = famId(game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
     const md = await getModel(env, game, t, c);
     const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
@@ -255,7 +257,7 @@ export async function community(req, env, url, ctx) {
   // the card of a car alone (the phone apps): its hardest braking, the speeds the fast drivers shift up
   // at, its top speed, learnt from its laps on every track; {} when it has no laps yet
   if (p === "/car" && m === "GET") {
-    const c = +url.searchParams.get("carId");
+    const c = famId(game, url.searchParams.get("carId"));
     if (!c) return err("carId", 400);
     return json((await getCarCard(env, game, c).catch(() => null)) || {});
   }
@@ -277,7 +279,7 @@ export async function community(req, env, url, ctx) {
        WHERE l.rk=1 ORDER BY l.created DESC LIMIT ?2`
     ).bind(game, lim).all();
     const cm = game === "iracing" ? await catMap(env) : null;
-    return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, cat: cm ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
+    return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), cat: cm ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
   }
   // one track: its layout and official turns, how many drivers and laps it has, and the record of every car on it
   // (the track page, in development)
@@ -307,11 +309,11 @@ export async function community(req, env, url, ctx) {
       trackId: t, game, track: name, drivers: (tot && tot.drivers) || 0, laps: (tot && tot.laps) || 0,
       layout: pts && pts.x && pts.x.length > 10 ? { n: lay.n, len: lay.len, x: pts.x, y: pts.y } : null,
       turns: tu && tu.turns ? JSON.parse(tu.turns) : [],
-      cars: (r.results || []).map(({ uid, hint, ...x }) => ({ ...x, track: x.track || name, trackId: t, cat: cm ? catOf(cm, t, x.carId, hint, x.track || name, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:") })),
+      cars: (r.results || []).map(({ uid, hint, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), track: x.track || name, trackId: t, cat: cm ? catOf(cm, t, x.carId, hint, x.track || name, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:") })),
     });
   }
   if (p === "/laps" && m === "GET") {
-    const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
+    const t = +url.searchParams.get("trackId"), c = famId(game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
     // signed in: your own laps are marked as yours (also the anonymous ones; only you see that)
     const who = await me(req, env).catch(() => null);
@@ -339,11 +341,12 @@ export async function community(req, env, url, ctx) {
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
+    const fam = c ? famIds(game, c) : [0];
     const r = await env.DB.prepare(
       `SELECT r.id, r.user_id AS uid, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, r.car, r.track, r.created, COALESCE(r.finish, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.finish') END) AS finish,
        COALESCE(r.field, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.field') END) AS field,
        COALESCE(r.best, CASE WHEN substr(r.data,1,4)='enc:' THEN NULL ELSE json_extract(r.data,'$.best') END) AS best
-       FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id=?2) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
+       FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id IN (${fam.map((n) => +n || 0).join(",")})) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
     ).bind(t || 0, c || 0, game).all();
     const who = await me(req, env).catch(() => null);
     return json({ reports: (r.results || []).map(({ uid, ...x }) => ({ ...x, mine: !!who && uid === who.id })) });
@@ -765,7 +768,7 @@ export async function community(req, env, url, ctx) {
       discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days,
-      laps: laps.map((x) => ({ ...x, anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
+      laps: laps.map((x) => ({ ...x, car: famName(x.game, x.carId, x.car), anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
     });
   }
   const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
@@ -957,7 +960,7 @@ export async function community(req, env, url, ctx) {
       const hit = await env.DB.prepare(
         `SELECT DISTINCT u.id FROM community_laps l JOIN community_users u ON u.id=l.user_id
          WHERE l.car_id=?1 AND l.track_id=?2 AND abs(l.time-?3)<0.0006 AND u.id LIKE 'o:%' AND (u.alias='Anonymous' OR u.alias=?5) AND u.owner=?4`
-      ).bind(carId, trackId, time, u.id, short).all();
+      ).bind(famId(gameOf(x && x.game), carId), trackId, time, u.id, short).all();
       const ids = (hit.results || []).map((r) => r.id);
       if (ids.length !== 1) continue; // two unnamed rivals with the very same lap: no guessing
       await env.DB.batch([

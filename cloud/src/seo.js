@@ -4,6 +4,7 @@
 // Leaderboards show the accounts' nicknames (never their iRacing names) and race rivals by their whole name as the game
 // shows it; anonymous laps are "Anonymous".
 import { catMap, catOf } from "./categories.js";
+import { famId, famName } from "./carfamily.js";
 import { TOPICS, GUIDES } from "./seo-topics.js";
 
 const SITE = "https://pitlanehq.app";
@@ -205,7 +206,7 @@ async function topCombos(env, n) {
   const r = await env.DB.prepare(
     "SELECT track_id AS t, MAX(track) AS track, car_id AS c, MAX(car) AS car, COUNT(DISTINCT user_id) AS drivers, MIN(time) AS best, MAX(cat) AS hint, MAX(created) AS upd FROM community_laps WHERE game='iracing' AND track_id>0 AND car_id>0 AND COALESCE(shown,'')<>'model' GROUP BY track_id, car_id ORDER BY drivers DESC, best LIMIT ?1"
   ).bind(n).all().catch(() => ({ results: [] }));
-  return r.results || [];
+  return (r.results || []).map((x) => ({ ...x, car: famName("iracing", x.c, x.car) }));
 }
 const recPath = (l, x) => `${PRE[l]}/records/${x.t}-${x.c}/${slug(fix(x.track) + " " + fix(x.car))}`;
 const recAlts = (x) => ({ en: recPath("en", x), es: recPath("es", x), pt: recPath("pt", x) });
@@ -244,10 +245,12 @@ ${list.length ? `<table><thead><tr><th>${esc(W.track)}</th><th>${esc(W.car)}</th
 }
 
 async function recordsCombo(env, l, t, c, asked) {
+  c = famId("iracing", c); // the brands of one car have one page (an old address of another brand goes there)
   // the names as the sitemap and the index have them (one address per car and track); any other spelling of
   // the address goes there for good (301), so search engines see one page, not several
   const nm = await env.DB.prepare("SELECT MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game='iracing'").bind(t, c).first().catch(() => null);
   if (!nm || !nm.track) return null;
+  nm.car = famName("iracing", c, nm.car);
   const canon = recPath(l, { t, c, track: nm.track, car: nm.car });
   if (asked !== canon) return Response.redirect(SITE + canon, 301);
   const r = await env.DB.prepare(
@@ -333,7 +336,7 @@ export async function indexNow(env) {
   const urls = [];
   if (!last) urls.push("/", ...Object.values(LAND_ALTS), ...Object.values(OVL_ALTS), ...TOPICS.flatMap((x) => Object.values(topicAlts(x))), "/records", "/es/records", "/pt/records", "/downloads", "/changelog");
   else if ((fresh.results || []).length) urls.push("/records", "/es/records", "/pt/records");
-  for (const x of fresh.results || []) urls.push(...Object.values(recAlts(x)));
+  for (const x of fresh.results || []) urls.push(...Object.values(recAlts({ ...x, car: famName("iracing", x.c, x.car) })));
   if (urls.length) {
     const r = await fetch("https://api.indexnow.org/indexnow", { method: "POST", headers: { "content-type": "application/json; charset=utf-8" },
       body: JSON.stringify({ host: "pitlanehq.app", key: INDEXNOW_KEY, keyLocation: `${SITE}/${INDEXNOW_KEY}.txt`, urlList: urls.slice(0, 10000).map((u) => SITE + u) }) }).catch(() => null);

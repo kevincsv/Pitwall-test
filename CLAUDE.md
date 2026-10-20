@@ -202,6 +202,10 @@
 - Wherever other drivers show (the relative and the standings in the overlays, the app and Pitlane HQ Desktop; the race
   summary on the PC, web and phones), the cars a lap or more up or down on you carry a red "+1L" pill (they lap you,
   or finished laps ahead) or a blue "−1L". The Community car list shows no counts.
+- One car under several badges is one car (`cloud/src/carfamily.js`, `CAR_FAM` in index.html; migration 0044): the
+  Super Formula SF23's Toyota (171) and Honda (172) share one leaderboard, record, track page row, public page, Discord
+  board and coach model under 171, each driver keeping their faster lap of the two; the sessions keep their real car.
+  Different layouts of a track (Spa's Grand Prix and Historic Grand Prix) stay apart. A new family goes in both lists.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own

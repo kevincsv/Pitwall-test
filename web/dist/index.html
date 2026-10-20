@@ -5973,7 +5973,10 @@ async function buildPartialRace(r){if(!r||!r.partial||r._built)return r;try{cons
   const valid=r.laps.filter(l=>l.t>0&&!l.pit&&!l.cut);r.best=valid.length?Math.min(...valid.map(l=>l.t)):0;r.inc=r.laps.reduce((a,l)=>a+(l.i||0),0);r.pits=r.laps.filter(l=>l.pit).length;
   const clean=valid.filter(l=>l.n>1&&!l.i);if(clean.length){const m=clean.reduce((a,l)=>a+l.t,0)/clean.length;r.avg=+m.toFixed(3);r.consistency=+Math.sqrt(clean.reduce((a,l)=>a+(l.t-m)**2,0)/clean.length).toFixed(3)}
   r.fuelUsed=+r.laps.reduce((a,l)=>a+(l.f||0),0).toFixed(1);r._built=1;delete r._fixed}catch(e){}return r}
-async function loadTB(){if(MODE==="bridge"){try{TB=((await jget("/api/trackbook")).entries||[]).filter(gameMatch)}catch(e){TB=TB||[]}}else if(!TB)TB=[];return TB}
+/* the brands of one car are one car on the boards and in the model (cloud/src/carfamily.js): the SF23's Toyota and Honda */
+const CAR_FAM={"iracing:172":171},famCar=(g,c)=>CAR_FAM[(g||"iracing")+":"+c]||c;
+const famTB=list=>{const by=new Map();for(const e of list){const x={...e,carId:famCar(e.game,e.carId)},k=x.trackId+"|"+x.carId,o=by.get(k);if(!o||(x.best>0&&!(o.best>0&&o.best<=x.best)))by.set(k,x)}return[...by.values()]};
+async function loadTB(){if(MODE==="bridge"){try{TB=famTB(((await jget("/api/trackbook")).entries||[]).filter(gameMatch))}catch(e){TB=TB||[]}}else if(!TB)TB=[];return TB}
 async function loadNotes(){if(MODE==="bridge"){try{NOTES=(await jget("/api/notes")).notes||{}}catch(e){}}return NOTES}
 async function saveNotes(n){if(MODE==="bridge"){NOTES=(await jpost("/api/notes",n)).notes||NOTES}else{if(!n.general&&!(n.corners||[]).length)delete NOTES[String(n.trackId)];else NOTES[String(n.trackId)]=n;store.set("pw.notesDemo",NOTES)}}
 async function loadSetupsCache(){if(SETUPS_CACHE)return SETUPS_CACHE;if(MODE==="bridge"){try{SETUPS_CACHE=await jget("/api/setups")}catch(e){SETUPS_CACHE={cars:[]}}}else SETUPS_CACHE=SETUPS_DEMO;return SETUPS_CACHE}
