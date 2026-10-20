@@ -16,7 +16,8 @@
   lifetime offer (`lifetime` in license_plans.json: 12 € during the beta, 24 € after, paid once) bought with Lemon
   Squeezy (`lifetime.buy` is the checkout link; the checkout carries the account id; POST `/lemonsqueezy/webhook`
   signed with LEMONSQUEEZY_WEBHOOK_SECRET; a buyer without an account gets it when they sign up with that email) or
-  given by hand on the admin page. Patreon donations are still welcome beside it (Account → Pitlane HQ Pro).
+  given by hand on the admin page. Patreon donations are still welcome beside it (Account → Pitlane HQ Pro). The Account card is hidden for now
+  (`PRO_CARD_ON` false in index.html) until the owner says otherwise.
   Pro limits only the PC (its overlays and what opens by itself); the web and the phones only receive and always have
   everything. Pro lives on one PC at a time (`pcid.go`: a hash of Windows' MachineGuid, sent as `?pc=` on `/community/pro`
   and `/account/me`; `pro_pc` on the account, `proHere` in lemon.js): the first PC that asks takes it, another PC of the
