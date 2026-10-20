@@ -1,5 +1,6 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
+import { voiceIce } from "./voiceice.js";
 import { downloads } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
 import { autoShare, reshareSession } from "./community.js";
@@ -416,6 +417,7 @@ async function handle(req, env, ctx) {
     if (url.pathname === "/patreon/webhook" && req.method === "POST") return patreonWebhook(req, env);
     // Lemon Squeezy tells the server about purchases: Pitlane HQ Pro on the account
     if (url.pathname === "/lemonsqueezy/webhook" && req.method === "POST") return lemonWebhook(req, env);
+    if (url.pathname === "/voice/ice" && req.method === "GET") return voiceIce(env);
     // the admin page: the app opened on it (only the admins see anything there)
     if (url.pathname === "/admin" && req.method === "GET") return Response.redirect(url.origin + "/app#admin", 302);
     if (url.pathname.startsWith("/api/")) {

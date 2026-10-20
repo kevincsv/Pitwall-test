@@ -151,6 +151,13 @@ public partial class MainWindow : Window
             Web.CoreWebView2.NewWindowRequested += OnNewWindow;
             Web.CoreWebView2.NavigationStarting += OnNavigating;
             Web.CoreWebView2.WebMessageReceived += OnWebMessage;
+            // the voice chat (admins): the app's own page may use the microphone without asking every time; no other site may
+            Web.CoreWebView2.PermissionRequested += (_, e) =>
+            {
+                if (e.PermissionKind == CoreWebView2PermissionKind.Microphone && Uri.TryCreate(e.Uri, UriKind.Absolute, out var u)
+                    && Uri.TryCreate(_engine.Url, UriKind.Absolute, out var mine) && u.Host == mine.Host && u.Port == mine.Port)
+                    e.State = CoreWebView2PermissionState.Allow;
+            };
             // the app's header works as the title bar (window.pwWin, as in the agent's own window) and links to other
             // sites open in the browser (window.pwOpen)
             await Web.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(HostScript);

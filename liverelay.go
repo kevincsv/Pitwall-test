@@ -577,6 +577,14 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 			if err != nil {
 				continue
 			}
+			if ev == "voice" { // the engineer's voice chat (admins only, voice.go)
+				room := "own"
+				if share != nil {
+					room = "share"
+				}
+				voiceFromViewer(room, data)
+				continue
+			}
 			if share != nil && ev != "want" { // with a code you only watch
 				continue
 			}
@@ -652,6 +660,12 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 	lastDrinks := ""
 	var idx []int
 	_, noticeSeen := noticesSince(-1)
+	voiceRoom := "own"
+	if share != nil {
+		voiceRoom = "share"
+	}
+	_, voiceSeen := voiceSince(voiceRoom, -1)
+	voiceWas := false
 	for {
 		select {
 		case <-done:
@@ -734,6 +748,17 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 				}
 			}
 			noticeSeen = seq
+		}
+		// the voice chat: whether it is there (an admin's account), and the page's answers for this room
+		if on := voiceOn(); on != voiceWas || rs {
+			out("voice", map[string]any{"t": "avail", "on": on})
+			voiceWas = on
+		}
+		if vs, seq := voiceSince(voiceRoom, voiceSeen); seq != voiceSeen {
+			for _, v := range vs {
+				out("voice", v)
+			}
+			voiceSeen = seq
 		}
 		// your share code, so the phone shows it (and knows whether you share)
 		if rs && share == nil {

@@ -121,7 +121,15 @@
   a moment early for the reaction time, pitch and volume, "Beeps in this screen" (the PC by default). No braking beeps
   any more (they did not work well): the Braking markers widget and overlay only show where to brake. There is no voice
   engineer, spotter, radio or audio packs anywhere any more (the owner's choice, 0.9.12): the PC never speaks and the only
-  sound of the app is the rev beep; the share code lets a friend watch, never "an engineer". Their braking
+  sound it makes by itself is the rev beep. The one exception is the voice chat, for admins only (`voice.go`, `VOICE`/
+  `voiceIn` in index.html, `/voice/ice` in voiceice.js): a person talking to the driver, never a computer voice. A WebRTC
+  call (Opus, no extra jitter buffer, echo and noise cancelled) between the driver's PC (the app's page; it answers by
+  itself, the driver is driving) and whoever watches it live (a device of the account the PC accepted, or anyone with its
+  share code): "Talk to the driver" shows for them only while the PC is live and its account is an admin's. The call's
+  messages go through the live room sealed like the telemetry (the agent passes them between the room and the page, and
+  one window of the PC answers each call); the voice goes straight between the two. STUN by default, Cloudflare TURN
+  when the server has TURN_KEY_ID and TURN_KEY_TOKEN; none in local mode. The bar (who, time, Mute, Hang up) stays above
+  every window; Pitlane HQ Desktop lets the app's page use the microphone. Web and PC for now (phone browsers too). Their braking
   points come from the model (the next level for your best lap of the session; your own best lap while the model has
   none or you are its fastest), each marker moves with your speed against that lap and with a car close ahead or
   alongside, and they name their corners by the official turns (`turnNo`, `turnName`), like the coach: "T7", never "C7".

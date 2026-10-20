@@ -262,6 +262,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	schemaVer, sessionVer, configVer := -1, -1, -1
 	prefsVer := int64(-1)
 	_, noticeSeen := noticesSince(-1)
+	_, voiceSeen := voiceSince("", -1)
 	var lastTick int32 = -1
 	var want []int
 	var lastStatus statusMsg
@@ -298,6 +299,15 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			noticeSeen = seq
+		}
+		// the voice chat's messages from a viewer, for the app's page (voice.go)
+		if vs, seq := voiceSince("", voiceSeen); seq != voiceSeen {
+			for _, v := range vs {
+				if !send("voice", v) {
+					return
+				}
+			}
+			voiceSeen = seq
 		}
 		// DRINKS mode: who is at the wheel, so the overlays and the app compare each driver with their own laps
 		if first || time.Since(drvAt) > time.Second {
@@ -627,6 +637,7 @@ func main() {
 	registerLicenseRoutes(mux)
 	registerCommunityRoutes(mux)
 	registerPLRoutes(mux)
+	registerVoiceRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

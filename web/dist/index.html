@@ -304,6 +304,10 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 .wpanel[data-w=dash] .bars{margin-right:30px}
 .btn.small{padding:6px 9px;font-size:12px}
 #mapLayers{margin-bottom:8px}
+.voicebar{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:101;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 32px);background:var(--panel,#1a1f29);border:1px solid var(--line,#2a3140);border-radius:10px;padding:8px 10px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.voicebar b{display:inline-flex;align-items:center;gap:5px}.voicebar svg{vertical-align:-3px}
+.vcdot{width:9px;height:9px;border-radius:50%;background:var(--muted,#888)}.vcdot.on{background:#3ecf6e;box-shadow:0 0 0 3px rgba(62,207,110,.2)}
+@media (max-width:640px){.voicebar{right:16px;left:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));justify-content:center}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:6px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:calc(100% - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%)}
 html.ov body{padding:0}
@@ -2047,7 +2051,7 @@ async function cpLiveOpen(m){const b=cpUnb64(m.slice(2));const z=await crypto.su
 function cpLiveWant(){if(CPLIVE.mode==="own"&&CPLIVE.ask!=="ok")return;cpLiveSend("want",{vars:wantAll?[]:streamVars(),all:wantAll})}
 /* hello to your PC: it asks you there (Accept / Decline); again every 20 s while connected, so it knows you still watch */
 function cpLiveHello(fresh){if(CPLIVE.mode!=="own")return;if(fresh){CPLIVE.ask="wait";CPLIVE.askAt=Date.now();setTimeout(()=>{if(CPLIVE.ask==="wait"&&$("#pcBody")&&!$("#v-pc").hidden)renderPC()},61000)}cpLiveSend("hello",{id:LIVE_DEV.id,name:LIVE_DEV.name,again:!!fresh});if(fresh)CPLIVE.declined=0}
-function cpLiveSet(on){if(on===CPLIVE.on)return;if(on&&CPLIVE.mode==="idle")return;CPLIVE.on=on;if(!on){STATUS={connected:false,companion:true}}renderConn();
+function cpLiveSet(on){if(on===CPLIVE.on)return;if(on&&CPLIVE.mode==="idle")return;CPLIVE.on=on;if(!on)VOICE.avail=false;setTimeout(voiceUI,0);if(!on){STATUS={connected:false,companion:true}}renderConn();
   if(typeof CUR_VIEW==="string"&&CUR_VIEW&&groupOf(CUR_VIEW)==="race"){show.back=true;show(CUR_VIEW)}if(typeof renderPC==="function"&&$("#pcBody")&&!$("#v-pc").hidden)renderPC()}
 async function cpLive(){await cpReady;if(!COMPANION||!CP.server||CPLIVE.ws||CPLIVE.paused)return;const mode=CPLIVE.mode;if(mode!=="code"&&!CP.acc)return;
   let q0="";try{if(mode==="code"){if(!CPLIVE.codeKey)CPLIVE.codeKey=await liveCodeKey(CPLIVE.code);CPLIVE.key=CPLIVE.codeKey;q0="&share="+await liveCodeRoom(CPLIVE.code)}
@@ -2069,9 +2073,81 @@ async function cpLive(){await cpReady;if(!COMPANION||!CP.server||CPLIVE.ws||CPLI
       if(ev==="ok"||ev==="no"){if(CPLIVE.mode!=="own"||!d||d.id!==LIVE_DEV.id)return;if(ev==="no"){liveMode("idle");CPLIVE.declined=Date.now();if(typeof renderPC==="function")renderPC();return}
         if(CPLIVE.ask!=="ok"){CPLIVE.ask="ok";CPLIVE.gotFields=false;cpLiveSet(true);cpLiveWant();setTimeout(()=>{if(CPLIVE.ws===ws&&CPLIVE.on&&!CPLIVE.gotFields)cpLiveWant()},3000);if($("#pcBody")&&!$("#v-pc").hidden)renderPC()}return}
       if(CPLIVE.mode==="own"&&CPLIVE.ask!=="ok")return; // what the PC sends another device you accepted
+      if(ev==="voice"){voiceIn(d);return}
       if(ev==="share"){CPLIVE.myCode=(d&&d.code)||"";if($("#pcBody")&&!$("#v-pc").hidden)renderPC();return}if(!CPLIVE.on){try{cpLiveSet(true)}catch(err){console.warn(err)}}if(ev==="status")d={...d,relay:true};
       try{onStream(ev,d)}catch(err){console.warn("live",ev,err)}if(ev==="fields")CPLIVE.gotFields=true}).catch(()=>{})};
   ws.onclose=()=>{clearInterval(CPLIVE.ping);if(CPLIVE.ws!==ws)return;clearInterval(CPLIVE.hello);if(CPLIVE.ask==="ok")CPLIVE.ask="";CPLIVE.ws=null;cpLiveSet(false);CPLIVE.pcOnline=false;if((CP.acc||CPLIVE.mode==="code")&&!CPLIVE.paused){setTimeout(cpLive,CPLIVE.wait);CPLIVE.wait=Math.min(CPLIVE.wait*2,60000)}}}
+/* ---------- the engineer's voice chat (admins only; voice.go on the PC): a WebRTC call, the lowest delay there is,
+   between the driver's PC (it answers by itself: the driver is driving) and a browser watching it live (your device
+   you accepted, or anyone with your share code). The call's messages go through the live room sealed like the
+   telemetry; the voice goes straight between the two. ---------- */
+const vRid=()=>[...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const VOICE={avail:false,pc:null,call:"",peer:"",name:"",mic:null,muted:false,state:"",audio:null,pend:[],at:0,page:vRid(),timer:0,tick:0};
+async function voiceIce(){try{const r=await fetch(COMPANION?CP.server+"/voice/ice":"/api/voice/ice",{cache:"no-store"});const j=await r.json();return Array.isArray(j.iceServers)?j.iceServers:[]}catch(e){return[]}}
+// the microphone for speech: echo and noise taken out, one channel
+const voiceMic=()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+// play what arrives at once: no extra buffer on top of what the network needs
+function voiceLowDelay(pc){pc.getReceivers().forEach(r=>{try{r.jitterBufferTarget=0}catch(e){}try{r.playoutDelayHint=0}catch(e){}})}
+function voicePlay(st){let a=VOICE.audio;if(!a){a=VOICE.audio=document.createElement("audio");a.autoplay=true;a.setAttribute("playsinline","");document.body.appendChild(a)}a.srcObject=st;a.play().catch(()=>{})}
+// the engineer sends through the live room; the driver's page through the agent
+function voiceSend(d){if(COMPANION)return cpLiveSend("voice",Object.assign({id:LIVE_DEV.id},d));
+  return fetch("/api/voice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({to:VOICE.peer,page:VOICE.page},d))}).then(r=>r.ok)}
+function voiceNew(ice){const pc=new RTCPeerConnection({iceServers:ice,bundlePolicy:"max-bundle"});
+  pc.onicecandidate=e=>{if(e.candidate&&VOICE.pc===pc)voiceSend({t:"ice",call:VOICE.call,c:e.candidate.toJSON()})};
+  pc.ontrack=e=>{voicePlay(e.streams[0]||new MediaStream([e.track]));voiceLowDelay(pc)};
+  pc.onconnectionstatechange=()=>{if(VOICE.pc!==pc)return;const s=pc.connectionState;
+    if(s==="connected"){VOICE.state="on";VOICE.at=VOICE.at||Date.now();clearTimeout(VOICE.timer);voiceLowDelay(pc)}
+    else if(s==="failed"){toast(Tx("The voice call could not connect.","No se pudo conectar la llamada de voz.","The voice call could not connect.","Não foi possível conectar a chamada de voz."));voiceEnd(true)}
+    else if(s==="disconnected"){clearTimeout(VOICE.timer);VOICE.timer=setTimeout(()=>{if(VOICE.pc===pc&&pc.connectionState!=="connected")voiceEnd(true)},10000)}
+    voiceUI()};
+  return pc}
+async function voiceCand(c){const pc=VOICE.pc;if(!pc||!c)return;if(!pc.remoteDescription){VOICE.pend.push(c);return}try{await pc.addIceCandidate(c)}catch(e){}}
+async function voiceFlush(){const l=VOICE.pend;VOICE.pend=[];for(const c of l)await voiceCand(c)}
+function voiceEnd(tell){if(tell&&VOICE.call)try{voiceSend({t:"bye",call:VOICE.call})}catch(e){}
+  clearTimeout(VOICE.timer);try{VOICE.pc&&VOICE.pc.close()}catch(e){}if(VOICE.mic)VOICE.mic.getTracks().forEach(t=>t.stop());
+  if(VOICE.audio)VOICE.audio.srcObject=null;Object.assign(VOICE,{pc:null,mic:null,call:"",peer:"",name:"",state:"",muted:false,pend:[],at:0});voiceUI()}
+function voiceMute(){VOICE.muted=!VOICE.muted;if(VOICE.mic)VOICE.mic.getAudioTracks().forEach(t=>t.enabled=!VOICE.muted);voiceUI()}
+// the engineer calls the driver
+async function voiceCall(){if(VOICE.pc||!COMPANION)return;VOICE.call=vRid();VOICE.state="calling";VOICE.name="";voiceUI();
+  try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Allow the microphone to talk to the driver.","Permite el micrófono para hablar con el piloto.","Allow the microphone to talk to the driver.","Permita o microfone para falar com o piloto."));voiceEnd(false);return}
+  const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
+  const o=await pc.createOffer();await pc.setLocalDescription(o);
+  voiceSend({t:"offer",call:VOICE.call,name:(CP.acc&&CP.acc.display)||LIVE_DEV.name,sdp:o.sdp});
+  VOICE.timer=setTimeout(()=>{if(VOICE.state==="calling"){toast(Tx("The driver's PC did not answer.","El PC del piloto no contestó.","The driver's PC did not answer.","O PC do piloto não atendeu."));voiceEnd(true)}},20000)}
+// the driver's PC answers by itself (an admin's account only)
+async function voiceAnswer(d){if(VOICE.pc){if(d.call!==VOICE.call)voiceSendTo(d.id,{t:"busy",call:d.call});return}
+  VOICE.peer=d.id;VOICE.call=d.call;VOICE.name=String(d.name||"").slice(0,40);VOICE.state="calling";voiceUI();
+  try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Pitlane HQ needs the microphone for the voice chat.","Pitlane HQ necesita el micrófono para el chat de voz.","Pitlane HQ needs the microphone for the voice chat.","O Pitlane HQ precisa do microfone para o chat de voz."));voiceEnd(true);return}
+  const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
+  try{await pc.setRemoteDescription({type:"offer",sdp:d.sdp});const a=await pc.createAnswer();await pc.setLocalDescription(a);
+    if(!await voiceSend({t:"answer",call:VOICE.call,sdp:a.sdp})){voiceEnd(false);return} // another window of this PC has the call
+    await voiceFlush();toast(Tx(`Voice chat: ${VOICE.name||"your engineer"} is on.`,`Chat de voz: ${VOICE.name||"tu ingeniero"} está conectado.`,`Voice chat: ${VOICE.name||"your engineer"} is on.`,`Chat de voz: ${VOICE.name||"seu engenheiro"} está conectado.`))}catch(e){voiceEnd(true)}}
+function voiceSendTo(id,d){const p=VOICE.peer;VOICE.peer=id;voiceSend(d);VOICE.peer=p}
+// a call's message from the other side
+function voiceIn(d){if(!d||typeof d!=="object")return;
+  if(d.t==="avail"){VOICE.avail=!!d.on;if(!VOICE.avail&&VOICE.pc)voiceEnd(false);voiceUI();return}
+  if(COMPANION){if(d.to!==LIVE_DEV.id||d.call!==VOICE.call||!VOICE.pc)return;
+    if(d.t==="answer"&&!VOICE.pc.remoteDescription){VOICE.pc.setRemoteDescription({type:"answer",sdp:d.sdp}).then(voiceFlush).catch(()=>voiceEnd(true))}
+    else if(d.t==="ice")voiceCand(d.c);
+    else if(d.t==="busy"){toast(Tx("The driver is already talking to someone.","El piloto ya está hablando con alguien.","The driver is already talking to someone.","O piloto já está falando com alguém."));voiceEnd(false)}
+    else if(d.t==="bye")voiceEnd(false);return}
+  if(!realAdmin())return;
+  if(d.t==="offer")voiceAnswer(d);
+  else if(d.call===VOICE.call&&d.id===VOICE.peer){if(d.t==="ice")voiceCand(d.c);else if(d.t==="bye")voiceEnd(false)}}
+// the bar: "Talk to the driver" for the engineer while the PC is live, the call (who, time, mute, hang up) on both sides
+function voiceUI(){let b=$("#voiceBar");const show=VOICE.pc||(COMPANION&&VOICE.avail&&CPLIVE.on);
+  if(!show){if(b)b.remove();clearInterval(VOICE.tick);return}
+  if(!b){b=document.createElement("div");b.id="voiceBar";b.className="voicebar";b.setAttribute("role","region");b.setAttribute("aria-label",Tx("Voice chat","Chat de voz","Voice chat","Chat de voz"));document.body.appendChild(b)}
+  const T=Tx,mic=`<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>`;
+  if(!VOICE.pc){b.innerHTML=`<button type="button" class="btn primary" id="vcCall">${mic} ${esc(T("Talk to the driver","Hablar con el piloto","Talk to the driver","Falar com o piloto"))}</button>`;$("#vcCall").onclick=voiceCall;return}
+  const secs=VOICE.at?Math.floor((Date.now()-VOICE.at)/1000):0,tm=VOICE.at?` · ${Math.floor(secs/60)}:${String(secs%60).padStart(2,"0")}`:"";
+  const who=COMPANION?T("Driver","Piloto","Driver","Piloto"):(VOICE.name||T("Engineer","Ingeniero","Engineer","Engenheiro"));
+  b.innerHTML=`<span class="vcdot${VOICE.state==="on"?" on":""}"></span><b>${mic} ${esc(who)}</b><span class="muted">${VOICE.state==="on"?esc(T("Voice chat","Chat de voz","Voice chat","Chat de voz"))+tm:esc(T("Connecting…","Conectando…","Connecting…","Conectando…"))}</span>
+    <button type="button" class="btn small" id="vcMute" aria-pressed="${VOICE.muted}">${esc(VOICE.muted?T("Unmute","Activar micro","Unmute","Ativar microfone"):T("Mute","Silenciar","Mute","Silenciar"))}</button>
+    <button type="button" class="btn small danger" id="vcEnd">${esc(T("Hang up","Colgar","Hang up","Desligar"))}</button>`;
+  $("#vcMute").onclick=voiceMute;$("#vcEnd").onclick=()=>voiceEnd(true);
+  clearInterval(VOICE.tick);if(VOICE.at)VOICE.tick=setInterval(()=>{if(VOICE.pc&&VOICE.at)voiceUI()},1000)}
+
 if(COMPANION){
   // nobody watching a hidden tab: the PC stops sending
   document.addEventListener("visibilitychange",()=>{if(document.hidden){CPLIVE.paused=true;if(CPLIVE.ws)CPLIVE.ws.close()}else{CPLIVE.paused=false;cpLive()}})}
@@ -2223,6 +2299,7 @@ function onStream(ev,d){
   else if(ev==="config"){try{profileEvent(d);applyServerCfg(d.config)}catch(err){}}
   else if(ev==="drinks")onDrinks(d)
   else if(ev==="driver")DRIVING={on:!!(d&&d.on),name:(d&&d.name)||""}
+  else if(ev==="voice"){if(!COMPANION)voiceIn(d)}
   else if(ev==="notice"){try{if(d.kind==="race"&&!OV.on)onRaceReport(d.data);if(d.kind==="liveask")liveAskShow()}catch(err){}}
   else if(ev==="t"){const o=wantAll?{...T}:{};STREAM_FIELDS.forEach((n,i)=>o[n]=d.v[i]);onFrame(o)}}
 const streamVars=()=>[...new Set([...LIVE_VARS.split(","),...TYRE_VARS,...ui("tel").vars])];
@@ -2233,7 +2310,7 @@ function connectBridge(){
   const all=wantAll&&!OV.on,hz=OV.on?60:30;
   const url=all?"/api/stream?vars=*&hz="+hz:"/api/stream?vars="+streamVars().join(",")+"&hz="+hz;
   es=new EventSource(url);
-  ["status","schema","fields","session","config","notice","driver","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
+  ["status","schema","fields","session","config","notice","driver","voice","t"].forEach(n=>es.addEventListener(n,e=>{let d;try{d=JSON.parse(e.data)}catch(err){return}onStream(n,d)}));
   es.onerror=()=>{STATUS={...STATUS,connected:false,source:"",offline:true};renderConn()};
   es.onopen=()=>{if(STATUS.offline){STATUS.offline=false;renderConn()}};
 }
