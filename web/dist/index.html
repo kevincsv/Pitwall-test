@@ -2088,6 +2088,10 @@ async function voiceIce(){try{const r=await fetch(COMPANION?CP.server+"/voice/ic
 const voiceMic=()=>navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
 // play what arrives at once: no extra buffer on top of what the network needs
 function voiceLowDelay(pc){pc.getReceivers().forEach(r=>{try{r.jitterBufferTarget=0}catch(e){}try{r.playoutDelayHint=0}catch(e){}})}
+// Opus for speech: nothing sent while nobody talks (DTX), error correction in the packets and 32 kbps at most, so a
+// call relayed by TURN costs little; none of it adds delay
+function voiceSdp(sdp){const m=/a=rtpmap:(\d+) opus\/48000/i.exec(sdp);if(!m)return sdp;const pt=m[1];
+  return sdp.replace(new RegExp("a=fmtp:"+pt+" ([^\\r\\n]*)"),(x,p)=>{const o={};p.split(";").forEach(kv=>{const[k,v]=kv.split("=");if(k)o[k.trim()]=v});Object.assign(o,{usedtx:"1",useinbandfec:"1",stereo:"0",maxaveragebitrate:"32000"});return"a=fmtp:"+pt+" "+Object.entries(o).map(([k,v])=>k+"="+v).join(";")})}
 function voicePlay(st){let a=VOICE.audio;if(!a){a=VOICE.audio=document.createElement("audio");a.autoplay=true;a.setAttribute("playsinline","");document.body.appendChild(a)}a.srcObject=st;a.play().catch(()=>{})}
 // the engineer sends through the live room; the driver's page through the agent
 function voiceSend(d){if(COMPANION)return cpLiveSend("voice",Object.assign({id:LIVE_DEV.id},d));
@@ -2111,7 +2115,7 @@ function voiceMute(){VOICE.muted=!VOICE.muted;if(VOICE.mic)VOICE.mic.getAudioTra
 async function voiceCall(){if(VOICE.pc||!COMPANION)return;VOICE.call=vRid();VOICE.state="calling";VOICE.name="";voiceUI();
   try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Allow the microphone to talk to the driver.","Permite el micrófono para hablar con el piloto.","Allow the microphone to talk to the driver.","Permita o microfone para falar com o piloto."));voiceEnd(false);return}
   const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
-  const o=await pc.createOffer();await pc.setLocalDescription(o);
+  const o=await pc.createOffer();o.sdp=voiceSdp(o.sdp);await pc.setLocalDescription(o);
   voiceSend({t:"offer",call:VOICE.call,name:(CP.acc&&CP.acc.display)||LIVE_DEV.name,sdp:o.sdp});
   VOICE.timer=setTimeout(()=>{if(VOICE.state==="calling"){toast(Tx("The driver's PC did not answer.","El PC del piloto no contestó.","The driver's PC did not answer.","O PC do piloto não atendeu."));voiceEnd(true)}},20000)}
 // the driver's PC answers by itself (an admin's account only)
@@ -2119,7 +2123,7 @@ async function voiceAnswer(d){if(VOICE.pc){if(d.call!==VOICE.call)voiceSendTo(d.
   VOICE.peer=d.id;VOICE.call=d.call;VOICE.name=String(d.name||"").slice(0,40);VOICE.state="calling";voiceUI();
   try{VOICE.mic=await voiceMic()}catch(e){toast(Tx("Pitlane HQ needs the microphone for the voice chat.","Pitlane HQ necesita el micrófono para el chat de voz.","Pitlane HQ needs the microphone for the voice chat.","O Pitlane HQ precisa do microfone para o chat de voz."));voiceEnd(true);return}
   const pc=VOICE.pc=voiceNew(await voiceIce());VOICE.mic.getTracks().forEach(t=>pc.addTrack(t,VOICE.mic));
-  try{await pc.setRemoteDescription({type:"offer",sdp:d.sdp});const a=await pc.createAnswer();await pc.setLocalDescription(a);
+  try{await pc.setRemoteDescription({type:"offer",sdp:d.sdp});const a=await pc.createAnswer();a.sdp=voiceSdp(a.sdp);await pc.setLocalDescription(a);
     if(!await voiceSend({t:"answer",call:VOICE.call,sdp:a.sdp})){voiceEnd(false);return} // another window of this PC has the call
     await voiceFlush();toast(Tx(`Voice chat: ${VOICE.name||"your engineer"} is on.`,`Chat de voz: ${VOICE.name||"tu ingeniero"} está conectado.`,`Voice chat: ${VOICE.name||"your engineer"} is on.`,`Chat de voz: ${VOICE.name||"seu engenheiro"} está conectado.`))}catch(e){voiceEnd(true)}}
 function voiceSendTo(id,d){const p=VOICE.peer;VOICE.peer=id;voiceSend(d);VOICE.peer=p}

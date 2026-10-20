@@ -123,7 +123,8 @@
   engineer, spotter, radio or audio packs anywhere any more (the owner's choice, 0.9.12): the PC never speaks and the only
   sound it makes by itself is the rev beep. The one exception is the voice chat, for admins only (`voice.go`, `VOICE`/
   `voiceIn` in index.html, `/voice/ice` in voiceice.js): a person talking to the driver, never a computer voice. A WebRTC
-  call (Opus, no extra jitter buffer, echo and noise cancelled) between the driver's PC (the app's page; it answers by
+  call (Opus at 32 kbps at most, nothing sent while nobody talks (DTX, `voiceSdp`), no extra jitter buffer, echo and
+  noise cancelled; TURN only when the two cannot reach each other directly) between the driver's PC (the app's page; it answers by
   itself, the driver is driving) and whoever watches it live (a device of the account the PC accepted, or anyone with its
   share code): "Talk to the driver" shows for them only while the PC is live and its account is an admin's. The call's
   messages go through the live room sealed like the telemetry (the agent passes them between the room and the page, and
