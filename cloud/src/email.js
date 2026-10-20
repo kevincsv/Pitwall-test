@@ -1,10 +1,7 @@
-// Emails (verify the address, reset the password), two ways (Resend first when it has its key; the
-// mailbox over SMTP when Resend is not set up or says no):
-//  - your own mailbox over SMTP (Proton Mail's SMTP submission): secret SMTP_TOKEN + EMAIL_FROM (smtp.js)
-//  - or Resend (resend.com): secret RESEND_API_KEY + EMAIL_FROM, with the domain verified there
-// EMAIL_FROM looks like "Pitlane HQ <support@pitlanehq.app>".
-import { smtpReady, smtpSend } from "./smtp.js";
-export const mailReady = (env) => !!env.EMAIL_FROM && (smtpReady(env) || !!env.RESEND_API_KEY);
+// Emails (verify the address, reset the password) go out through Resend (resend.com): secret RESEND_API_KEY +
+// EMAIL_FROM, with the domain verified there. EMAIL_FROM looks like "Pitlane HQ <support@pitlanehq.app>".
+// What people write to support@ (and the replies to our emails) arrives by Cloudflare Email Routing (the MX).
+export const mailReady = (env) => !!env.EMAIL_FROM && !!env.RESEND_API_KEY;
 // where people write to us; the answers to our emails land there too (Reply-To)
 export const SUPPORT = "support@pitlanehq.app";
 
@@ -74,8 +71,8 @@ async function logSent(env, to, subject, via, id) {
     .bind(JSON.stringify(l.slice(0, 10)), Date.now()).run().catch(() => {});
 }
 // ---------- the sender's domain: are its mail records right? ----------
-// Proton (and any mailbox) only reaches inboxes when the domain says it may send: one SPF record that
-// includes the sender, the DKIM keys, a DMARC policy. Read here from Cloudflare's DNS, for the admins.
+// Resend's emails reach inboxes when the domain has its DKIM key and the send. records, one SPF record and a DMARC
+// policy; support@ receives when the MX are Cloudflare Email Routing's. Read here from Cloudflare's DNS, for the admins.
 async function dns(name, type) {
   try {
     const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, { headers: { accept: "application/dns-json" } });
@@ -86,33 +83,22 @@ async function dns(name, type) {
 export async function mailDomain(env) {
   const from = (/<([^>]+)>/.exec(env.EMAIL_FROM || "") || [null, env.EMAIL_FROM || ""])[1].trim(), dom = from.split("@")[1] || "";
   if (!dom) return { domain: "", checks: [] };
-  const proton = smtpReady(env) && !env.SMTP_HOST, resend = !!env.RESEND_API_KEY;
-  const [txt, mx, dmarc, k1, k2, k3, rk, smx, stxt] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
-    dns("protonmail._domainkey." + dom, "CNAME"), dns("protonmail2._domainkey." + dom, "CNAME"), dns("protonmail3._domainkey." + dom, "CNAME"),
-    dns("resend._domainkey." + dom, "TXT"), dns("send." + dom, "MX"), dns("send." + dom, "TXT")]);
-  const bimi = await dns("default._bimi." + dom, "TXT");
+  const [txt, mx, dmarc, rk, smx, stxt, bimi] = await Promise.all([dns(dom, "TXT"), dns(dom, "MX"), dns("_dmarc." + dom, "TXT"),
+    dns("resend._domainkey." + dom, "TXT"), dns("send." + dom, "MX"), dns("send." + dom, "TXT"), dns("default._bimi." + dom, "TXT")]);
   const spf = (txt || []).filter((x) => /^v=spf1/i.test(x)), checks = [];
-  checks.push({ k: "spf", ok: spf.length === 1 && (!proton || /_spf\.protonmail\.ch/.test(spf[0])), got: spf.join(" | ") || "—",
-    want: spf.length > 1 ? "one SPF record only (there are " + spf.length + ": join them)" : proton ? "v=spf1 include:_spf.protonmail.ch ~all" : "an SPF record that includes your sender" });
-  if (proton) {
-    checks.push({ k: "verify", ok: (txt || []).some((x) => /^protonmail-verification=/.test(x)), got: (txt || []).find((x) => /protonmail-verification/.test(x)) || "—", want: "the protonmail-verification=… record from Proton → Domain names" });
-    const keys = [k1, k2, k3].map((x) => (x && x[0]) || "");
-    checks.push({ k: "dkim", ok: keys.every((x) => /protonmail/.test(x)), got: keys.map((x, i) => `protonmail${i ? i + 1 : ""}: ${x || "—"}`).join(" | "), want: "the three CNAME records protonmail._domainkey, protonmail2._domainkey, protonmail3._domainkey from Proton" });
-    checks.push({ k: "mx", ok: (mx || []).some((x) => /protonmail\.ch/.test(x)) && !(mx || []).some((x) => /mx\.cloudflare\.net/.test(x)), got: (mx || []).join(" | ") || "—",
-      want: (mx || []).some((x) => /mx\.cloudflare\.net/.test(x)) ? "Proton's MX (mail.protonmail.ch, mailsec.protonmail.ch) instead of Cloudflare Email Routing" : "10 mail.protonmail.ch and 20 mailsec.protonmail.ch" });
-  }
-  if (resend) for (let i = 0; i < checks.length; i++) checks[i].opt = true; // Proton: receiving and the fallback
-  if (resend) {
-    checks.push({ k: "resend-dkim", ok: (rk || []).some((x) => /^p=/.test(x)), got: (rk || []).join(" | ").slice(0, 60) || "—", want: "TXT resend._domainkey: the p=… value from Resend → Domains" });
-    checks.push({ k: "resend-spf", ok: (smx || []).some((x) => /amazonses\.com/.test(x)) && (stxt || []).some((x) => /include:amazonses\.com/.test(x)), got: [...(smx || []), ...(stxt || [])].join(" | ") || "—",
-      want: "on send: MX 10 feedback-smtp.us-east-1.amazonses.com and TXT v=spf1 include:amazonses.com ~all" });
-  }
+  checks.push({ k: "resend-dkim", ok: (rk || []).some((x) => /^p=/.test(x)), got: (rk || []).join(" | ").slice(0, 60) || "—", want: "TXT resend._domainkey: the p=… value from Resend → Domains" });
+  checks.push({ k: "resend-spf", ok: (smx || []).some((x) => /amazonses\.com/.test(x)) && (stxt || []).some((x) => /include:amazonses\.com/.test(x)), got: [...(smx || []), ...(stxt || [])].join(" | ") || "—",
+    want: "on send: MX 10 feedback-smtp.us-east-1.amazonses.com and TXT v=spf1 include:amazonses.com ~all" });
+  checks.push({ k: "spf", ok: spf.length === 1 && !/protonmail/i.test(spf[0]), got: spf.join(" | ") || "—",
+    want: spf.length > 1 ? "one SPF record only (there are " + spf.length + ": join them)" : "v=spf1 include:_spf.mx.cloudflare.net ~all (Email Routing's), or v=spf1 -all" });
+  checks.push({ k: "mx", opt: true, ok: (mx || []).some((x) => /mx\.cloudflare\.net/.test(x)) && !(mx || []).some((x) => /protonmail/.test(x)), got: (mx || []).join(" | ") || "—",
+    want: "Cloudflare Email Routing's MX (route1/2/3.mx.cloudflare.net): Cloudflare → Email → Email Routing" });
   checks.push({ k: "dmarc", ok: (dmarc || []).some((x) => /^v=DMARC1/i.test(x)), got: (dmarc || []).join(" | ") || "—", want: "_dmarc: v=DMARC1; p=quarantine" });
   // BIMI: the logo next to the sender in the inbox (instead of a letter); it needs DMARC at quarantine or reject
   const strict = (dmarc || []).some((x) => /p=(quarantine|reject)/i.test(x) && !/pct=(?!100)\d+/i.test(x));
   checks.push({ k: "bimi", ok: strict && (bimi || []).some((x) => /^v=BIMI1/i.test(x) && /l=https:\/\//i.test(x)), got: (bimi || []).join(" | ") || "—",
     want: (strict ? "" : "DMARC at p=quarantine (now: " + ((dmarc || [])[0] || "none") + "), and ") + "TXT default._bimi: v=BIMI1; l=" + "https://" + dom + "/bimi.svg;" });
-  return { domain: dom, via: resend ? (proton ? "resend+proton" : "resend") : proton ? "proton" : "smtp", checks, dnsOk: txt !== null };
+  return { domain: dom, via: "resend", checks, dnsOk: txt !== null };
 }
 /** For the admins: the last emails and, for Resend's, what happened to them (delivered, bounced, complained…). */
 export async function mailLog(env) {
@@ -131,7 +117,7 @@ export async function mailLog(env) {
   return l;
 }
 async function send(env, to, subject, text, link, button, l) {
-  if (!mailReady(env)) { lastError = { at: Date.now(), message: "emails are not set up: EMAIL_FROM and SMTP_TOKEN (or RESEND_API_KEY) are missing" }; await note(env, false); return false; }
+  if (!mailReady(env)) { lastError = { at: Date.now(), message: "emails are not set up: EMAIL_FROM or RESEND_API_KEY is missing" }; await note(env, false); return false; }
   try { return await send1(env, to, subject, text, link, button, l); }
   catch (e) { lastError = { at: Date.now(), message: String((e && e.message) || e) }; await note(env, false); return false; }
 }
@@ -151,21 +137,11 @@ async function send1(env, to, subject, text, link, button, l) {
       await note(env, true);
       return true;
     }
-    // Resend said no: keep the reason. The mailbox is not tried then: the domain's own records are Resend's,
-    // so Gmail and others bounce what Proton sends as pitlanehq.app (SPF and DKIM do not pass)
+    // Resend said no: keep the reason
     lastError = { at: Date.now(), via: "resend", status: r.status, body: (await r.text().catch(() => "")).slice(0, 500), from: env.EMAIL_FROM };
     console.error("email not sent by Resend", lastError);
     await note(env, false);
     return false;
-  }
-  if (smtpReady(env)) {
-    const r = await smtpSend(env, { to, subject, text: plain, html, replyTo });
-    if (!r.ok) {
-      lastError = { at: Date.now(), via: "smtp", ...r.error, from: env.EMAIL_FROM };
-      console.error("email not sent", lastError);
-    } else { lastError = null; await logSent(env, to, subject, "smtp", ""); }
-    await note(env, r.ok);
-    return r.ok;
   }
   await note(env, false);
   return false;
@@ -175,7 +151,7 @@ export const mailLastError = () => lastError;
 /** For the admins: sends a test email and answers with Resend's status and reason. */
 export async function sendTest(env, to, l) {
   const ok = await send(env, to, "Pitlane HQ: " + (lang(l) === "es" ? "email de prueba" : "test email"), lang(l) === "es" ? "Si lees esto, los emails del servidor funcionan." : "If you read this, the server's emails work.", "https://pitlanehq.app/", "Pitlane HQ", l);
-  return { ok, via: env.RESEND_API_KEY ? "resend" : "smtp", from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
+  return { ok, via: env.RESEND_API_KEY ? "resend" : "", from: env.EMAIL_FROM, replyTo: env.EMAIL_REPLY_TO || SUPPORT, error: ok ? null : lastError };
 }
 
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);

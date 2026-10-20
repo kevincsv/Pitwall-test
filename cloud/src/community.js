@@ -4,7 +4,6 @@
 // server with the variable COMMUNITY = "1".
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
 import { mailReady, mailLog, mailDomain } from "./email.js";
-import { smtpReady } from "./smtp.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, getCarCard, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
@@ -429,7 +428,7 @@ export async function community(req, env, url, ctx) {
       (SELECT COUNT(*) FROM patreon_patrons WHERE active=1) AS patrons, (SELECT MAX(updated) FROM patreon_patrons) AS patreonLast,
       (SELECT COUNT(*) FROM auth_fails) AS authFails`).bind(d7, d30, d1).first().catch((x) => ({ error: String(x && x.message || x) }));
     return json({
-      mail: { ready: mailReady(env), via: env.RESEND_API_KEY ? (smtpReady(env) ? "resend, smtp" : "resend") : smtpReady(env) ? "smtp" : "", from: env.EMAIL_FROM || "", lastOk: ok ? ok.at : 0, lastError: e && (!ok || e.at > ok.at) ? { at: e.at, ...JSON.parse(e.v || "{}") } : null },
+      mail: { ready: mailReady(env), via: env.RESEND_API_KEY ? "resend" : "", from: env.EMAIL_FROM || "", lastOk: ok ? ok.at : 0, lastError: e && (!ok || e.at > ok.at) ? { at: e.at, ...JSON.parse(e.v || "{}") } : null },
       counts,
       config: { patreon: !!env.PATREON_WEBHOOK_SECRET, leaguesOpen: env.LEAGUES_OPEN === "1", community: env.COMMUNITY !== "0", dataKey: !!env.DATA_KEY, pepper: !!env.EMAIL_PEPPER, admins: String(env.ADMINS || env.SEASON_UPLOADERS || "").split(",").filter(Boolean).length },
     });

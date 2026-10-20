@@ -275,10 +275,10 @@
   is protected, where the password goes or what the server can see: no "How your data is protected" list, no privacy
   panel, no password note. Only the notes the driver needs to act ("your data does not need to be uploaded again",
   what deleting the account removes, the PC uploading again after a new password).
-- Emails go through Resend (domain pitlanehq.app, secret RESEND_API_KEY); Proton Mail's SMTP (`smtp.js`,
-  bodies in base64) only when Resend is not set up, never after Resend refuses one (Proton's mail as pitlanehq.app
-  fails SPF and DKIM, so Gmail bounces it); Admin → Server shows the last
-  emails (Resend's delivery state) and checks the domain's SPF, Proton verification, DKIM, MX, DMARC and BIMI
+- Emails go through Resend only (domain pitlanehq.app, its records on `send.` and `resend._domainkey`, secret
+  RESEND_API_KEY; no SMTP or Proton any more). What people write to support@ (the Reply-To of every email) arrives by
+  Cloudflare Email Routing (its MX). Admin → Server shows the last emails (Resend's delivery state) and checks the
+  domain's Resend DKIM, send. records, SPF (one, no Proton), the Email Routing MX, DMARC and BIMI
   (`web/dist/bimi.svg`, the logo in SVG Tiny PS, needs DMARC at quarantine).
 - The logo is the rev gauge with a kerb in the rev limit (`assets/logo.svg`, the master; `web/dist/logo.svg`).
   Its PNGs and ICOs (web/dist icons, assets/pitlanehq.ico and -1024.png, the phone apps' launcher icons)

@@ -131,9 +131,7 @@ Everyone reads it from `GET /community/season`; if it is not there yet, the apps
 
 ## Emails: confirm the address and reset the password
 
-**With your own mailbox (Proton Mail, no DNS changes):** Proton Mail → Settings → IMAP/SMTP → *SMTP submission* (Mail Professional / Business plans) → generate a token for `support@pitlanehq.app`. In GitHub → Settings → Secrets and variables → Actions: secret `SMTP_TOKEN` with the token, variable `EMAIL_FROM` = `Pitlane HQ <support@pitlanehq.app>` (secret `SMTP_USER` only if the login is not that address). Run the "Pitlane HQ Cloud" workflow. Admins have a *Send test email* button in Account that shows the mail server's answer when it fails.
-
-**Or with Resend** (any mailbox, needs the domain verified there):
+Emails go out through **Resend** (it needs the domain verified there):
 
 Pitlane HQ sends two emails: one to confirm the address after creating an account, and one with a link to choose a new password ("Forgot your password?" in the app and on the website). The address is still not stored: the email goes to the address typed at that moment.
 
@@ -142,5 +140,6 @@ Pitlane HQ sends two emails: one to confirm the address after creating an accoun
 3. In Resend → **API Keys**, create a key with "Sending access".
 4. In GitHub → Settings → Secrets and variables → Actions: add the secret `RESEND_API_KEY` with that key, and the variable `EMAIL_FROM`, for example `Pitlane HQ <support@pitlanehq.app>` (the replies land at support@pitlanehq.app too; set `EMAIL_REPLY_TO` to use another address).
 5. Run the "Pitlane HQ Cloud (web version)" workflow again.
+6. To **receive** what people write to support@ (and the replies to these emails): Cloudflare → your domain → **Email → Email Routing**, enable it (it adds its MX and SPF records) and route `support@` to your own inbox.
 
 Resetting the password keeps the account, name, laps and setups. The synced copy was encrypted with the old password, so it is replaced: the next time you sign in on your PC with the new password, the PC uploads your data again.
