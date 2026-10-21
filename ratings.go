@@ -45,7 +45,7 @@ func loadRatings() {
 // The licence is only the one the game showed in a session: a race gives none, so the one seen before stays, and a
 // class letter alone is no licence.
 func noteRating(disc string, ir int, lic, src string, at int64) bool {
-	if !ratingDiscs[disc] || ir <= 0 {
+	if !ratingDiscs[disc] || !realIR(ir) {
 		return false
 	}
 	r := ratings[disc]
@@ -77,13 +77,18 @@ func ratingsFromRaces() {
 			writeJSONFile(journalFile("ratings.json"), ratings)
 		}
 	}()
-	for _, d := range ratings {
-		if d != nil && d.Lic != "" && !strings.Contains(d.Lic, " ") {
+	for k, d := range ratings {
+		if d == nil || !realIR(d.IR) { // an offline session's placeholder ("1", "R 0.01") left by older versions
+			delete(ratings, k)
+			changed = true
+			continue
+		}
+		if d.Lic != "" && !strings.Contains(d.Lic, " ") {
 			d.Lic, changed = "", true
 		}
 	}
 	for _, r := range rs {
-		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") || r.IR <= 0 {
+		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") || !realIR(r.IR) {
 			continue
 		}
 		ir := r.IR + r.IRChange // the estimate until the real change comes: closer than the iRating before the race
@@ -93,9 +98,17 @@ func ratingsFromRaces() {
 	}
 }
 
-// sessionRating: the iRating and licence the game shows for you in this session
+// realIR: an iRating the game really gave. An offline session (against the AI, or alone) shows 1 and "R 0.01" in
+// every discipline, which is nobody's rating.
+func realIR(ir int) bool { return ir > 1 }
+
+// sessionRating: the iRating and licence the game shows for you in this session (none offline: the game's
+// placeholder there is not your rating)
 func sessionRating(y string) {
 	meta := currentCarTrack(y)
+	if meta.Subsession == 0 && hasAI(y) {
+		return
+	}
 	d := driverBlock(y, yamlField(y, "DriverCarIdx"))
 	if d == "" {
 		return
@@ -130,7 +143,7 @@ func ratingChanges() (chg, n map[string]int) {
 	sort.SliceStable(rs, func(i, j int) bool { return rs[i].When > rs[j].When })
 	chg, n = map[string]int{}, map[string]int{}
 	for _, r := range rs {
-		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") { // a race against the AI gives none
+		if r == nil || r.AI || (r.Game != "" && r.Game != "iracing") || !realIR(r.IR) { // a race against the AI gives none
 			continue
 		}
 		d := discipline(r.Cat, r.Car)

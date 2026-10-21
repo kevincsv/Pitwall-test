@@ -580,7 +580,7 @@ func raceWatcher() {
 			id = fmt.Sprintf("t-%s-%d", meta.Track, sn)
 		}
 		if id != irSeen {
-			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); myIR > 0 {
+			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); realIR(myIR) {
 				irSeen = id
 				applyRealIR(myIR, meta.Subsession, meta.Cat, meta.Car)
 				sessionRating(y) // your iRating and licence of this discipline, for every discipline's card

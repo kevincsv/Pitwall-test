@@ -6844,8 +6844,8 @@ function raceDisc(cat,car){const c=String(cat||"").toLowerCase().replace(/[ _-]/
 /* each discipline's iRating: the newest of what the PC saw in a session (ratings.json) and what your last race of it left you;
    the licence is only the one the game showed in a session ("B 3.21"): a race gives none, and a class letter alone is none */
 const licFull=v=>{const t=String(v||"").trim();return t.includes(" ")?t:""};
-function discRatings(){const out={};Object.entries(RATINGS||{}).forEach(([k,r])=>{if(r&&r.ir>0)out[k]={ir:r.ir,lic:licFull(r.lic),at:r.at||0}});
-  (RACES||[]).forEach(r=>{if(!r||isAIRace(r)||(r.game&&r.game!=="iracing")||!(r.ir>0))return;const k=raceDisc(r.cat,r.car);if(!k)return;const ir=r.ir+(r.irChange||0),at=r.when||0;
+function discRatings(){const out={};Object.entries(RATINGS||{}).forEach(([k,r])=>{if(r&&r.ir>1)out[k]={ir:r.ir,lic:licFull(r.lic),at:r.at||0}});
+  (RACES||[]).forEach(r=>{if(!r||isAIRace(r)||(r.game&&r.game!=="iracing")||!(r.ir>1))return;const k=raceDisc(r.cat,r.car);if(!k)return;const ir=r.ir+(r.irChange||0),at=r.when||0;
     const cur=out[k];if(!cur||cur.at<at)out[k]={ir,lic:cur?cur.lic:"",at}});return out}
 /* Home's licence summary: one card per discipline (its own iRating, never mixed with another's), the change its last
    races gave and how many; then the races' counts. iRacing's data API is off, so it comes from the PC (see the note) */
