@@ -34,15 +34,18 @@
   PitlaneHQ.exe is for development only and has no button in the app. The one exception is the web's visitor
   (`web/dist/pitwall-tour.js`, COMPANION and not signed in): the landing. The sign-in stays at the top of the page
   (the "me" view as it is) and under it (`#tour` after `#meBody`, mounted by `signWall` while the wall is up) one page
-  like a product site (never a slideshow): a tagline, then every feature as a section with a sample that draws itself
-  as it scrolls into view (IntersectionObserver, `tr-rv` reveals), "And also" cards (driver notes, rev beeps, overlays
-  in VR; never "one account everywhere") and the calls to action. The samples of the lap, the comparison, the coach
-  and the board are real laps from the leaderboards (`loadReal`: the record of the most driven car and track with ≥ 2
-  laps and the lap behind it, with their traces; a car and track whose laps cannot be read is skipped; the names as
-  the public pages show them, Anonymous included; the tag says "Real laps from the leaderboards · car · track"), the
-  invented data only when the server has none ("Sample data · invented laps"); the live relative and the race summary
-  are always a sample. No "Try it with sample data" (the owner's choice: a visitor never enters the app on invented
-  data; `sampleOn()` is always false); "Create account" scrolls to the form at the top. Never on the PC app.
+  like a product site in the "clean data" design (never a slideshow): the tagline and the calls to action, the app in a
+  Windows 11 window (its icon and name, minimise, maximise, close; never a browser bar or an address), "What Pitlane HQ
+  does" as rows (a title, one short sentence, a screenshot of the app in that window), "Overlays over iRacing" (the
+  overlays moving over a dark scene: one lap played in a loop with the relative, delta bar, the agent's own radar
+  (`drawRadarOv`: no box, 20 m, grey/amber/red cars, the red side bar, trails, the nearest distance), dash, pedals,
+  map and fuel, labelled only "● LIVE", each frame writing only the overlays' boxes; then the overlays as the agent
+  draws them, `landing/ov-*.png` from `ovSavePNG`), "Also on your phone" (the phone apps' own screenshots,
+  `landing/m-*.png` from the phones' screenshot job, shown once they are there), "And also" (driver notes, rev beeps,
+  overlays in VR; never "one account everywhere") and "Start in two minutes". The screenshots (`landing/*.jpg`) are
+  the app with its demo data, in Spanish, without the demo badge and with plausible names (never the owner's).
+  "Create account" scrolls to the form at the top; a visitor never enters the app on invented data (`sampleOn()` is
+  always false). Never on the PC app.
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0. The numbering
   started again at 0.4.1 (the owner's choice): the changelogs and What's new begin there, the releases of a higher number
   are deleted by the builds, and the phones announce an update when the server's number differs from theirs (not only

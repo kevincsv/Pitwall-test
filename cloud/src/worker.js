@@ -435,7 +435,7 @@ async function handle(req, env, ctx) {
     }
     // one address for the app: /index.html is "/"
     if (url.pathname === "/index.html") { const to = new URL(req.url); to.pathname = "/"; return Response.redirect(to.href, 301); }
-    const isAppFile = /^\/(fonts\.css|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og\.png|robots\.txt)$/.test(url.pathname);
+    const isAppFile = /^\/(fonts\.css|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og\.png|robots\.txt|landing\/[a-z0-9-]+\.(?:jpg|png))$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       // a local server (wrangler dev --var LOCAL:1, tools/local.cmd): the app served by it uses it, not pitlanehq.app
