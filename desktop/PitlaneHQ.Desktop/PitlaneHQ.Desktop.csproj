@@ -10,7 +10,7 @@
     <RootNamespace>PitlaneHQ.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\assets\pitlanehq.ico</ApplicationIcon>
-    <Version>0.4.6</Version>
+    <Version>0.4.7</Version>
     <Company>Pitlane HQ</Company>
     <Product>Pitlane HQ</Product>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

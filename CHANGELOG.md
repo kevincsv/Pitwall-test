@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.7 beta
+
+- **A new Home**: your last race with its position lap by lap, the recent sessions with their tags (Race, Qualifying,
+  Practice, vs AI), every discipline's licence and iRating with its line, and the days you drove.
+- **Leagues**: the most active leagues found on Discord and Reddit are in the list with the posted ones.
+- Fixes and improvements.
+
 ## 0.4.6 beta
 
 - **Compare on the same track**: Compare in Community needs a session of yours on that track with a valid lap, and

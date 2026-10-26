@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.4.7",
+      "en": [
+        "A new Home: your last race lap by lap, the recent sessions with their tags, every discipline's licence and iRating, and the days you drove.",
+        "The most active leagues found on Discord and Reddit are in the leagues list."
+      ],
+      "es": [
+        "Un Inicio nuevo: tu última carrera vuelta a vuelta, las sesiones recientes con sus etiquetas, la licencia y el iRating de cada disciplina, y los días que has corrido.",
+        "Las ligas más activas encontradas en Discord y Reddit están en la lista de ligas."
+      ],
+      "pt": [
+        "Um novo Início: sua última corrida volta a volta, as sessões recentes com suas etiquetas, a licença e o iRating de cada disciplina, e os dias em que correu.",
+        "As ligas mais ativas encontradas no Discord e no Reddit estão na lista de ligas."
+      ]
+    },
+    {
       "v": "0.4.6",
       "en": [
         "Compare in Community only on a track where you have a valid lap, and the comparator opens on that track."
