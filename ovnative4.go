@@ -1392,6 +1392,29 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		if z.lift && ph[0].k == "brake" { // a corner taken without braking has no braking phase to speak of
 			ph[0].k = "entry"
 		}
+		// how the throttle is opened after the apex: metres from picking it up (5 %) to full (95 %), and the wheel's corrections
+		ramp := func(sx []*lapPt, from, to int) (float64, bool) {
+			a := -1
+			for k := from; k <= to && k < len(sx); k++ {
+				if sx[k] == nil {
+					continue
+				}
+				if a < 0 && sx[k][2] > .05 {
+					a = k
+				}
+				if a >= 0 && sx[k][2] > .95 {
+					return float64(k-a) * ovLapBin, true
+				}
+			}
+			return 0, false
+		}
+		rampA, okRA := 0.0, false
+		if hasM {
+			rampA, okRA = ramp(sa, za[mi].imin, i1)
+		}
+		rampB, okRB := ramp(sb, z.imin, i1)
+		revA, _ := reversals(sa, i0, i1)
+		revB, _ := reversals(sb, i0, i1)
 		var en, es string
 		if hasM && dd > 6 && dmin < -2 {
 			// braking later than the reference and arriving slower at the apex is one mistake, whatever phase pays for it
@@ -1438,6 +1461,10 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 				switch {
 				case hasLate && late >= 8:
 					en, es = fmt.Sprintf("Get on the throttle %d m earlier", r(late)), fmt.Sprintf("Acelera %d m antes", r(late))
+				case okRA && okRB && rampB-rampA >= 15 && hasM && (lifts(sa, za[mi].imin, i1) > lifts(sb, z.imin, i1) || revA > revB+1):
+					en, es = fmt.Sprintf("You open the throttle faster than the reference and then have to correct. Open it more progressively (%d m to full vs %d m)", r(rampA), r(rampB)), fmt.Sprintf("Abres el gas más rápido que la referencia y luego tienes que corregir. Ábrelo más progresivo (%d m hasta el fondo frente a %d m)", r(rampA), r(rampB))
+				case okRA && okRB && rampA-rampB >= 15:
+					en, es = fmt.Sprintf("You take %d m to reach full throttle (reference %d m). Squeeze it to full sooner", r(rampA), r(rampB)), fmt.Sprintf("Tardas %d m en llegar a fondo (referencia %d m). Llega al 100 %% antes", r(rampA), r(rampB))
 				case coastA-coastB >= 10:
 					en, es = "Do not wait between the brake and the throttle", "No esperes entre el freno y el acelerador"
 				case hasLate && late <= -8 && hasM && dmin < -1:

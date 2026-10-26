@@ -595,7 +595,7 @@ public partial class MainWindow : Window
         ("compare","Lap comparison","Comparación de vueltas"),("boost","DRS & push-to-pass","DRS y push-to-pass"),("inputs","Inputs","Pedales"),("fuel","Fuel","Combustible"),
         ("engine","Engine & track","Motor y pista"),("tyres","Tyres","Neumáticos"),("telemetry","Telemetry","Telemetría"),("gg","G-force circle","Círculo de fuerzas g"),
         ("stats","Driving stats","Estadísticas de conducción"),("pit","Pit stop calculator","Calculadora de parada"),("sectors","Mini-sectors","Mini-sectores"),("gaps","Gap graph","Gráfica de gaps"),
-        ("incidents","Incident log","Registro de incidentes"),("coach","Braking coach","Coach de frenada"),("brakes","Braking markers","Marcas de frenada"),
+        ("incidents","Incident log","Registro de incidentes"),("coach","Coach","Coach"),("brakes","Braking markers","Marcas de frenada"),
         ("weather","Weather","Tiempo"),("controls","Car controls","Ajustes del coche"),("trackbar","Track position bar","Barra de posición"),("system","Performance","Rendimiento"),
     };
     private static readonly (string Id, string En, string Es, string[] W)[] BuiltIn =
