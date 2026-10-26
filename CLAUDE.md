@@ -211,7 +211,8 @@
   leaderboard, record, track page row, public page, Discord board and coach model under the first badge the server saw
   (`car_families`, migration 0045; the SF23 under 171 by 0044). A new badge joins by itself the first time a session or
   a lap brings it (`noteCar`), its laps going under the family's number, each driver keeping their faster lap; the
-  sessions keep their real car, and a board lists its badges (`ids` in /combos, `onBoard` in index.html). Different
+  sessions keep their real car but every list of cars (the session picker's filter) shows the family without the brand
+  (`carFam`/`CAR_FAMS` in index.html, the same as `CAR_FAMILIES`), and a board lists its badges (`ids` in /combos, `onBoard` in index.html). Different
   layouts of a track (Spa's Grand Prix and Historic Grand Prix) stay apart. A new family is one line in `CAR_FAMILIES`.
 - Leaderboards are by lap time, per discipline (Oval, Sports Car, Formula Car, Dirt Oval, Dirt Road),
   without license classes. The fastest lap of each car and track in an account is shared by itself
