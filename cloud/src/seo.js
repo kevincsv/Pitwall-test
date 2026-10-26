@@ -204,36 +204,94 @@ function overlaysPage(l) {
 }
 
 // ---------- the leagues ----------
-// the most active iRacing leagues (the same list as Community → Leagues in the app), who is on their Discord now
+// iRacing leagues for people who search "iRacing leagues", "ligas de iRacing"…: the leagues posted on Pitlane HQ (their
+// race days and start time) and the most active leagues found on Reddit (who is on their Discord now), all of them and
+// one page per discipline
+const LG_CAT = { en: { oval: "oval", sports_car: "sports-car", formula_car: "formula", dirt_oval: "dirt-oval", dirt_road: "dirt-road" },
+  es: { oval: "ovalo", sports_car: "sports-car", formula_car: "formula", dirt_oval: "ovalo-de-tierra", dirt_road: "tierra" },
+  pt: { oval: "oval", sports_car: "sports-car", formula_car: "formula", dirt_oval: "oval-de-terra", dirt_road: "terra" } };
+const LG_DAYS = { en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], es: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], pt: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] };
 const LEAG = {
-  en: { path: "/iracing-leagues", title: "iRacing leagues with an active Discord · Pitlane HQ",
-    desc: "Find an iRacing league to race in. The most active leagues, how many drivers are on their Discord right now and how to join.",
-    h1: "iRacing leagues", lead: "The most active iRacing leagues, sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free in Pitlane HQ.",
-    post: "Post your league for free", join: "Join the Discord", online: "online", members: "members", any: "iRacing league", none: "No leagues yet.", upd: "Updated",
-    faq: [["How are these leagues chosen?", "They are leagues posted on r/iRacing and r/iRacingLeagues with a Discord invite, and leagues added by hand. Every few hours Pitlane HQ reads how many members each Discord has and how many are online, and the most active come first."], ["Can I add my league?", "Yes. Create a free Pitlane HQ account and post it in Community → Leagues with its race days, its Discord or its website."]] },
-  es: { path: "/es/ligas-iracing", title: "Ligas de iRacing con Discord activo · Pitlane HQ",
-    desc: "Encuentra una liga de iRacing en la que correr. Las ligas más activas, cuántos pilotos hay ahora en su Discord y cómo unirte.",
-    h1: "Ligas de iRacing", lead: "Las ligas de iRacing más activas, ordenadas por cuántos pilotos hay ahora mismo en su Discord. Únete a una con un clic, o publica tu liga gratis en Pitlane HQ.",
-    post: "Publica tu liga gratis", join: "Unirse al Discord", online: "conectados", members: "miembros", any: "Liga de iRacing", none: "Aún no hay ligas.", upd: "Actualizado",
-    faq: [["¿Cómo se eligen estas ligas?", "Son ligas publicadas en r/iRacing y r/iRacingLeagues con una invitación de Discord, y ligas añadidas a mano. Cada pocas horas Pitlane HQ lee cuántos miembros tiene cada Discord y cuántos están conectados, y las más activas salen primero."], ["¿Puedo añadir mi liga?", "Sí. Crea una cuenta gratis de Pitlane HQ y publícala en Comunidad → Ligas con sus días de carrera, su Discord o su web."]] },
-  pt: { path: "/pt/ligas-iracing", title: "Ligas de iRacing com Discord ativo · Pitlane HQ",
-    desc: "Encontre uma liga de iRacing para correr. As ligas mais ativas, quantos pilotos estão no Discord delas agora e como entrar.",
-    h1: "Ligas de iRacing", lead: "As ligas de iRacing mais ativas, ordenadas por quantos pilotos estão no Discord delas agora. Entre numa com um clique, ou publique sua liga de graça no Pitlane HQ.",
-    post: "Publique sua liga de graça", join: "Entrar no Discord", online: "online", members: "membros", any: "Liga de iRacing", none: "Ainda não há ligas.", upd: "Atualizado",
-    faq: [["Como essas ligas são escolhidas?", "São ligas publicadas no r/iRacing e no r/iRacingLeagues com um convite do Discord, e ligas adicionadas à mão. A cada poucas horas o Pitlane HQ lê quantos membros cada Discord tem e quantos estão online, e as mais ativas aparecem primeiro."], ["Posso adicionar minha liga?", "Sim. Crie uma conta grátis no Pitlane HQ e publique em Comunidade → Ligas com os dias de corrida, o Discord ou o site."]] },
+  en: { path: "/iracing-leagues", title: "iRacing leagues to join, with their Discord · Pitlane HQ", catT: (c) => `iRacing ${c} leagues to join · Pitlane HQ`,
+    desc: "Find an iRacing league to race in. Leagues that are looking for drivers, the days they race, and the most active iRacing leagues with how many drivers are on their Discord right now.",
+    catD: (c) => `${c} leagues on iRacing that you can join. The days they race, their Discord and how many drivers are online now.`,
+    h1: "iRacing leagues", catH: (c) => `iRacing ${c} leagues`, lead: "Leagues to race in on iRacing, posted by their organisers on Pitlane HQ, and the most active leagues sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free.",
+    posted: "Leagues posted on Pitlane HQ", active: "The most active iRacing leagues", byCat: "By discipline", all: "All",
+    post: "Post your league for free", join: "Join the Discord", site: "Website", online: "online", members: "members", any: "iRacing league", none: "No leagues yet.", upd: "Updated",
+    open: "Looking for drivers", races: "Races", cars: "Cars", lang: "Language", see: "See it in Pitlane HQ",
+    faq: [["How do I join an iRacing league?", "Pick a league here and join its Discord or its website. The organisers say there when the league races, which cars and tracks it uses and how to sign up."],
+      ["Do iRacing leagues cost anything?", "Most leagues are free to join. You need an iRacing subscription and the cars and tracks the league races with."],
+      ["How are these leagues chosen?", "Some are posted by their organisers on Pitlane HQ. The others are leagues posted on r/iRacing and r/iRacingLeagues with a Discord invite, and every few hours Pitlane HQ reads how many members each Discord has and how many are online."],
+      ["Can I add my league?", "Yes. Create a free Pitlane HQ account and post it in Community → Leagues with its race days, its start time, its Discord or its website."]] },
+  es: { path: "/es/ligas-iracing", title: "Ligas de iRacing para unirte, con su Discord · Pitlane HQ", catT: (c) => `Ligas de ${c} de iRacing para unirte · Pitlane HQ`,
+    desc: "Encuentra una liga de iRacing en la que correr. Ligas que buscan pilotos, los días que corren, y las ligas de iRacing más activas con cuántos pilotos hay ahora en su Discord.",
+    catD: (c) => `Ligas de ${c} en iRacing a las que puedes unirte. Los días que corren, su Discord y cuántos pilotos hay conectados ahora.`,
+    h1: "Ligas de iRacing", catH: (c) => `Ligas de ${c} de iRacing`, lead: "Ligas en las que correr en iRacing, publicadas por sus organizadores en Pitlane HQ, y las ligas más activas ordenadas por cuántos pilotos hay ahora mismo en su Discord. Únete a una con un clic, o publica tu liga gratis.",
+    posted: "Ligas publicadas en Pitlane HQ", active: "Las ligas de iRacing más activas", byCat: "Por disciplina", all: "Todas",
+    post: "Publica tu liga gratis", join: "Unirse al Discord", site: "Web", online: "conectados", members: "miembros", any: "Liga de iRacing", none: "Aún no hay ligas.", upd: "Actualizado",
+    open: "Busca pilotos", races: "Corre", cars: "Coches", lang: "Idioma", see: "Verla en Pitlane HQ",
+    faq: [["¿Cómo me uno a una liga de iRacing?", "Elige una liga aquí y entra en su Discord o en su web. Los organizadores cuentan ahí cuándo corre la liga, con qué coches y circuitos, y cómo apuntarte."],
+      ["¿Cuestan algo las ligas de iRacing?", "La mayoría de las ligas son gratis. Necesitas una suscripción de iRacing y los coches y circuitos con los que corre la liga."],
+      ["¿Cómo se eligen estas ligas?", "Unas las publican sus organizadores en Pitlane HQ. Las demás son ligas publicadas en r/iRacing y r/iRacingLeagues con una invitación de Discord, y cada pocas horas Pitlane HQ lee cuántos miembros tiene cada Discord y cuántos están conectados."],
+      ["¿Puedo añadir mi liga?", "Sí. Crea una cuenta gratis de Pitlane HQ y publícala en Comunidad → Ligas con sus días de carrera, su hora de inicio, su Discord o su web."]] },
+  pt: { path: "/pt/ligas-iracing", title: "Ligas de iRacing para entrar, com o Discord delas · Pitlane HQ", catT: (c) => `Ligas de ${c} do iRacing para entrar · Pitlane HQ`,
+    desc: "Encontre uma liga de iRacing para correr. Ligas que procuram pilotos, os dias em que correm, e as ligas de iRacing mais ativas com quantos pilotos estão no Discord delas agora.",
+    catD: (c) => `Ligas de ${c} no iRacing em que você pode entrar. Os dias em que correm, o Discord e quantos pilotos estão online agora.`,
+    h1: "Ligas de iRacing", catH: (c) => `Ligas de ${c} do iRacing`, lead: "Ligas para correr no iRacing, publicadas pelos organizadores no Pitlane HQ, e as ligas mais ativas ordenadas por quantos pilotos estão no Discord delas agora. Entre numa com um clique, ou publique sua liga de graça.",
+    posted: "Ligas publicadas no Pitlane HQ", active: "As ligas de iRacing mais ativas", byCat: "Por disciplina", all: "Todas",
+    post: "Publique sua liga de graça", join: "Entrar no Discord", site: "Site", online: "online", members: "membros", any: "Liga de iRacing", none: "Ainda não há ligas.", upd: "Atualizado",
+    open: "Procura pilotos", races: "Corre", cars: "Carros", lang: "Idioma", see: "Ver no Pitlane HQ",
+    faq: [["Como entro numa liga de iRacing?", "Escolha uma liga aqui e entre no Discord ou no site dela. Os organizadores contam lá quando a liga corre, com quais carros e pistas e como se inscrever."],
+      ["As ligas de iRacing custam algo?", "A maioria das ligas é grátis. Você precisa de uma assinatura do iRacing e dos carros e pistas com que a liga corre."],
+      ["Como essas ligas são escolhidas?", "Algumas são publicadas pelos organizadores no Pitlane HQ. As outras são ligas publicadas no r/iRacing e no r/iRacingLeagues com um convite do Discord, e a cada poucas horas o Pitlane HQ lê quantos membros cada Discord tem e quantos estão online."],
+      ["Posso adicionar minha liga?", "Sim. Crie uma conta grátis no Pitlane HQ e publique em Comunidade → Ligas com os dias de corrida, a hora de início, o Discord ou o site."]] },
 };
 const LEAG_ALTS = { en: LEAG.en.path, es: LEAG.es.path, pt: LEAG.pt.path };
-async function leaguesPage(env, l) {
-  const G = LEAG[l], F = await foundLeagues(env, false).catch(() => ({ leagues: [] })), list = (F.leagues || []).slice(0, 40);
-  const num = (n) => Number(n || 0).toLocaleString(l === "pt" ? "pt-BR" : l);
-  const body = `<h1>${esc(G.h1)}</h1><p class="lead">${esc(G.lead)}</p>
+const lgPath = (l, cat) => LEAG[l].path + (cat ? "/" + LG_CAT[l][cat] : "");
+const lgAlts = (cat) => ({ en: lgPath("en", cat), es: lgPath("es", cat), pt: lgPath("pt", cat) });
+const LG_CN = { en: { oval: "oval", sports_car: "sports car", formula_car: "formula", dirt_oval: "dirt oval", dirt_road: "dirt road" },
+  es: { oval: "óvalo", sports_car: "Sports Car", formula_car: "fórmula", dirt_oval: "óvalo de tierra", dirt_road: "tierra" },
+  pt: { oval: "oval", sports_car: "Sports Car", formula_car: "fórmula", dirt_oval: "oval de terra", dirt_road: "terra" } };
+const lgCatName = (l, cat) => LG_CN[l][cat];
+// the leagues posted in the hub, newest first
+async function postedLeagues(env) {
+  const r = await env.DB.prepare("SELECT id, name, about, cats, days, time, tz, open, discord, web, cars, lang, updated FROM leagues ORDER BY open DESC, updated DESC LIMIT 100").all().catch(() => ({ results: [] }));
+  const lst = (v) => { try { return JSON.parse(v || "[]") || []; } catch (e) { return []; } };
+  return (r.results || []).map((x) => ({ ...x, cats: lst(x.cats), days: lst(x.days).map(Number).filter((d) => d >= 0 && d <= 6) }));
+}
+async function leaguesData(env) {
+  const [posted, F] = await Promise.all([postedLeagues(env), foundLeagues(env, false).catch(() => ({ leagues: [] }))]);
+  return { posted, found: F.leagues || [], updated: F.updated || 0 };
+}
+async function leaguesPage(env, l, cat) {
+  const G = LEAG[l], D = await leaguesData(env), has = (x) => !cat || (x.cats || []).includes(cat);
+  const posted = D.posted.filter(has), found = D.found.filter(has).slice(0, 40);
+  if (cat && !posted.length && !found.length) return notFound(l);
+  const cn = cat ? lgCatName(l, cat) : "", path = lgPath(l, cat), num = (n) => Number(n || 0).toLocaleString(l === "pt" ? "pt-BR" : l);
+  const cats = Object.keys(CAT.en).filter((k) => D.posted.concat(D.found).some((x) => (x.cats || []).includes(k)));
+  const catsOf = (x) => (x.cats || []).map((c) => CAT[l][c] || c).join(" · ") || G.any;
+  const ext = (u) => /^https:\/\//.test(String(u || "")) ? esc(u) : "";
+  const postedHTML = posted.map((x) => `<section class="c lg"><h3 style="font-size:22px;margin:0 0 4px">${esc(fix(x.name))}</h3><p class="m" style="margin:0 0 8px">${esc(catsOf(x))}${x.open ? ` · <b style="color:#38c97c">${esc(G.open)}</b>` : ""}</p>
+${x.days.length ? `<p style="margin:0 0 4px">${esc(G.races)} ${esc(x.days.map((d) => LG_DAYS[l][d]).join(", "))}${x.time ? ` · ${esc(x.time)}${x.tz ? ` (${esc(x.tz)})` : ""}` : ""}</p>` : ""}${x.cars ? `<p class="m" style="margin:0 0 4px">${esc(G.cars)} ${esc(fix(x.cars))}</p>` : ""}${x.lang ? `<p class="m" style="margin:0 0 4px">${esc(G.lang)} ${esc(x.lang)}</p>` : ""}${x.about ? `<p class="m" style="font-size:14px;margin:6px 0 10px">${esc(fix(x.about).slice(0, 400))}</p>` : ""}
+<p style="margin:8px 0 0">${ext(x.discord) ? `<a class="btn" href="${ext(x.discord)}" rel="nofollow noopener" target="_blank">${esc(G.join)}</a> ` : ""}${ext(x.web) ? `<a class="btn" href="${ext(x.web)}" rel="nofollow noopener" target="_blank">${esc(G.site)}</a> ` : ""}<a href="/?league=${encodeURIComponent(x.id)}">${esc(G.see)}</a></p></section>`).join("");
+  const foundHTML = found.map((x) => `<section class="c lg">${x.icon ? `<img src="${esc(x.icon)}" alt="" width="44" height="44" loading="lazy">` : ""}<h3 style="font-size:22px;margin:0 0 4px">${esc(fix(x.name))}</h3><p class="m" style="margin:0 0 8px">${esc(catsOf(x))}</p><p style="margin:0 0 6px"><b style="color:#38c97c">${num(x.online)}</b> ${esc(G.online)} · <b>${num(x.members)}</b> ${esc(G.members)}</p>${x.title ? `<p class="m" style="font-size:14px;margin:0 0 10px">${esc(fix(x.title))}</p>` : ""}<a class="btn" href="${esc(x.invite)}" rel="nofollow noopener" target="_blank">${esc(G.join)}</a></section>`).join("");
+  const body = `<h1>${esc(cat ? G.catH(cn) : G.h1)}</h1><p class="lead">${esc(G.lead)}</p>
 <div class="cta"><a class="btn p" href="/?league-post=1">${esc(G.post)}</a><a class="btn" href="${LAND[l].path}">${esc(T[l].tel)}</a></div>
-${list.length ? `<div class="g">${list.map((x) => `<section class="c lg">${x.icon ? `<img src="${esc(x.icon)}" alt="" width="44" height="44" loading="lazy">` : ""}<h2 style="font-size:22px;margin:0 0 4px">${esc(fix(x.name))}</h2><p class="m" style="margin:0 0 8px">${esc((x.cats || []).map((c) => CAT[l][c] || c).join(" · ") || G.any)}</p><p style="margin:0 0 6px"><b style="color:#38c97c">${num(x.online)}</b> ${esc(G.online)} · <b>${num(x.members)}</b> ${esc(G.members)}</p>${x.title ? `<p class="m" style="font-size:14px;margin:0 0 10px">${esc(fix(x.title))}</p>` : ""}<a class="btn" href="${esc(x.invite)}" rel="nofollow noopener" target="_blank">${esc(G.join)}</a></section>`).join("")}</div>${F.updated ? `<p class="m" style="font-size:14px">${esc(G.upd)} ${new Date(F.updated).toISOString().slice(0, 10)}</p>` : ""}` : `<p class="m">${esc(G.none)}</p>`}
+${cats.length ? `<div class="cats" aria-label="${esc(G.byCat)}"><a href="${lgPath(l)}"${cat ? "" : ' class="on"'}>${esc(G.all)}</a>${cats.map((k) => `<a href="${lgPath(l, k)}"${k === cat ? ' class="on"' : ""}>${esc(CAT[l][k])}</a>`).join("")}</div>` : ""}
+${posted.length ? `<h2>${esc(G.posted)}</h2><div class="g">${postedHTML}</div>` : ""}
+${found.length ? `<h2>${esc(G.active)}</h2><div class="g">${foundHTML}</div>${D.updated ? `<p class="m" style="font-size:14px">${esc(G.upd)} ${new Date(D.updated).toISOString().slice(0, 10)}</p>` : ""}` : ""}
+${!posted.length && !found.length ? `<p class="m">${esc(G.none)}</p>` : ""}
 <h2>${esc(LAND[l].faqT)}</h2>${G.faq.map(([q, a]) => `<details open><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}`;
-  const ld = [crumbs([["Pitlane HQ", LAND[l].path], [G.h1, G.path]]),
-    { "@context": "https://schema.org", "@type": "ItemList", name: G.h1, itemListElement: list.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: fix(x.name), url: x.invite })) },
+  const items = posted.map((x) => ({ name: fix(x.name), url: SITE + "/?league=" + encodeURIComponent(x.id) })).concat(found.map((x) => ({ name: fix(x.name), url: x.invite })));
+  const ld = [crumbs(cat ? [["Pitlane HQ", LAND[l].path], [G.h1, G.path], [CAT[l][cat], path]] : [["Pitlane HQ", LAND[l].path], [G.h1, G.path]]),
+    { "@context": "https://schema.org", "@type": "ItemList", name: cat ? G.catH(cn) : G.h1, itemListElement: items.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: x.name, url: x.url })) },
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: G.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
-  return html(page(l, { title: G.title, desc: G.desc, path: G.path, alts: LEAG_ALTS, body, ld }), 1800);
+  return html(page(l, { title: cat ? G.catT(cn) : G.title, desc: cat ? G.catD(cn) : G.desc, path, alts: lgAlts(cat), body, ld }), 1800);
+}
+// the disciplines with leagues, for the sitemap
+async function leagueCats(env) {
+  const D = await leaguesData(env);
+  return Object.keys(CAT.en).filter((k) => D.posted.concat(D.found).some((x) => (x.cats || []).includes(k)));
 }
 
 async function topCombos(env, n) {
@@ -250,7 +308,7 @@ async function landing(env, l) {
   const body = `<h1>${esc(L.h1)}</h1><p class="lead">${esc(L.lead)}</p>
 <div class="cta"><a class="btn p" href="/dl/PitlaneHQ-Setup.exe">${esc(L.dl)}</a><a class="btn" href="/">${esc(L.app)}</a></div>
 <div class="g">${L.cards.map(([h, p]) => `<section class="c"><h3>${esc(h)}</h3><p>${esc(p)}</p></section>`).join("")}</div>
-<h2>${esc(GUIDES[l])}</h2><div class="g">${[...TOPICS.map((x) => x[l]), OVL[l]].map((x) => `<a class="c" href="${x.path}" style="text-decoration:none;color:inherit"><h3>${esc(x.h1)} →</h3><p>${esc(x.desc)}</p></a>`).join("")}</div>
+<h2>${esc(GUIDES[l])}</h2><div class="g">${[...TOPICS.map((x) => x[l]), OVL[l], LEAG[l]].map((x) => `<a class="c" href="${x.path}" style="text-decoration:none;color:inherit"><h3>${esc(x.h1)} →</h3><p>${esc(x.desc)}</p></a>`).join("")}</div>
 ${combos.length ? `<h2>${esc(L.recs)}</h2><p class="m">${esc(L.recsLead)}</p><table><tbody>${combos.map((x) => `<tr><td><a href="${recPath(l, x)}">${esc(fix(x.track))}</a></td><td class="m">${esc(fix(x.car))}</td><td class="t">${fmt(x.best)}</td></tr>`).join("")}</tbody></table><p><a href="${PRE[l]}/records">${esc(T[l].rec)} →</a></p>` : ""}
 <h2>${esc(L.faqT)}</h2>${L.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}`;
   const ld = [
@@ -340,6 +398,7 @@ async function sitemap(env) {
   for (const k of LANGS) s.push(u(LAND_ALTS[k], "weekly", k === "en" ? "0.9" : "0.8", LAND_ALTS, newest));
   for (const k of LANGS) s.push(u(OVL_ALTS[k], "weekly", k === "en" ? "0.8" : "0.7", OVL_ALTS));
   for (const k of LANGS) s.push(u(LEAG_ALTS[k], "daily", k === "en" ? "0.8" : "0.7", LEAG_ALTS));
+  for (const c of await leagueCats(env)) { const a = lgAlts(c); for (const k of LANGS) s.push(u(a[k], "daily", k === "en" ? "0.7" : "0.6", a)); }
   for (const x of TOPICS) { const a = topicAlts(x); for (const k of LANGS) s.push(u(a[k], "monthly", k === "en" ? "0.8" : "0.7", a)); }
   for (const k of LANGS) s.push(u(recAll[k], "daily", k === "en" ? "0.8" : "0.7", recAll, newest));
   s.push(u("/downloads", "weekly", "0.7"), u("/changelog", "weekly", "0.4"));
@@ -351,7 +410,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "8";
+const SEO_VER = "9";
 export async function indexNow(env) {
   if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
@@ -412,6 +471,9 @@ export async function seoPage(req, env, url) {
   if (p === "/iracing-leagues" || p === "/leagues") return at("/iracing-leagues", () => leaguesPage(env, "en"));
   if (p === "/es/ligas-iracing" || p === "/es/ligas") return at("/es/ligas-iracing", () => leaguesPage(env, "es"));
   if (p === "/pt/ligas-iracing" || p === "/pt/ligas") return at("/pt/ligas-iracing", () => leaguesPage(env, "pt"));
+  { const lm = /^(?:\/(es|pt))?\/(?:iracing-leagues|ligas-iracing)\/([a-z-]+)$/.exec(p);
+    if (lm) { const l = lm[1] || "en", cat = Object.keys(LG_CAT[l]).find((k) => LG_CAT[l][k] === lm[2]);
+      if (cat && LEAG[l].path === p.slice(0, p.lastIndexOf("/"))) return at(p, () => leaguesPage(env, l, cat)); return notFound(l); } }
   { const tp = TOPIC_AT.get(p); if (tp) return at(p, () => topicPage(tp[0], tp[1])); }
   const dsc = url.searchParams.get("d"), cat = CAT.en[dsc] ? dsc : "";
   if (p === "/records") return at(p, () => recordsIndex(env, "en", cat));

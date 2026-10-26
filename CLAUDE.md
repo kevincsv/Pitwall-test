@@ -359,7 +359,9 @@
   `/community/leagues/found` needs no account): Home's "Private leagues for you" (`homeLeagHTML`, three of the discipline you
   race most), the landing's "Find your league" (six cards, "See every league", "Post your league for free" and a line
   under the hero buttons, which lead to creating the account and then the hub's form) and the public pages
-  /iracing-leagues, /es/ligas-iracing and /pt/ligas-iracing (`leaguesPage` in seo.js, in the sitemap and the footers).
+  /iracing-leagues, /es/ligas-iracing and /pt/ligas-iracing (`leaguesPage` in seo.js: the leagues posted in the hub with
+  their days and start, then the most active ones; one page per discipline, /iracing-leagues/oval, /es/ligas-iracing/ovalo…,
+  only for a discipline with leagues; in the sitemap, the footers, the landings' guides and the app's <noscript>).
   Never iRacing's members site (its terms forbid scraping) nor another
   directory's data without its permission. Up to 3 leagues per driver, 10 for a supporter (Patreon or by hand; `LEAGUES_FREE`/`LEAGUES_SUPPORTER`,
   `limit` in the list): under "Post the league" the form says how many you have posted and, to the rest, that supporters
