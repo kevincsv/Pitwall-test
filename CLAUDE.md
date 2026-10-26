@@ -409,7 +409,22 @@
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
   upload, migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job).
-- The model (`cloud/src/model.js`, MODEL_VERSION 7) learns clean traces only (a speed jump over 10 m/s between two
+- The coach learns from what happens after its tips (`cloud/src/coachtips.js`, migration 0051 `coach_tips`; never an LLM
+  and never an outside API). Every tip has a kind (`kind` in `coachCompare`, the same names as the phones' `tip_*` keys:
+  brake_later, trail, coast, apex_speed, line_apex…) and every corner a speed class (`cls`: slow, medium, fast at the
+  reference's slowest point). When the coach shows a lap (web and PC, `coachReport`), its tips go to the account once per
+  lap and reference (POST `/community/coach/tips`) with the time the session's best lap spent in every corner (`tbest`);
+  the driver's next session on that car and track answers them (`outcome`, seconds gained in the same corner, matched by
+  its slowest point within 60 m). Every tip card has 👍/👎 (web, PC and phones, POST `/community/coach/rate`, `TIPRATE` on
+  the web, `tipRatings` on the phones). The drivers see none of the counts. The admin panel's Coach tab shows the buckets
+  (kind × speed, cases, how many gained, the thumbs). From 30 answered cases a bucket's share of gains reorders the plan
+  (`w` from GET `/community/coach/weights`, `tipWeight` in `coachPlan`, 0.7 to 1.3, and 15 % less for a kind the drivers
+  mostly thumb down); the tips' texts never change by themselves and no lap is made of this. The corner card
+  (`cornerCard` in model.js, `corners` in the model, MODEL_VERSION 8): for every braking zone of the record lap, the range
+  of braking points and of speeds at the slowest point among the fastest drivers here (one lap each, the fastest 30 %, 3 to
+  12), shown under the tip as one line ("The fast drivers here brake between 312 and 328 m and pass the apex at
+  112–118 km/h (6 drivers)", `cornerHint` in pitwall-model.js, `CornerCard` on the phones): a hint, never a reference lap.
+- The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.
 - In development (shown with "In development", usable only by admins, on every device): the

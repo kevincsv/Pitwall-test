@@ -50,6 +50,7 @@ async function countUpload(env, u) {
 import { gameOf } from "./games.js";
 import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
+import { coachTipRoutes } from "./coachtips.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
@@ -255,6 +256,7 @@ export async function community(req, env, url, ctx) {
   { const pr = await proRoutes(req, env, p, m, body); if (pr) return pr; } // Pitlane HQ Pro: the offer, the beta switch
   // every list is for one game: laps and analyses of different games are never mixed
   const game = gameOf(url.searchParams.get("game") || body.game);
+  { const ct = await coachTipRoutes(req, env, p, m, body, game); if (ct) return ct; } // the coach learns from its tips: coachtips.js
   if (p === "/combos" && m === "GET") {
     const r = await env.DB.prepare(
       "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best, MAX(cat) AS hint FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model' GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"

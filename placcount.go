@@ -720,7 +720,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		// admins may also mark the laps of a session valid again (POST .../validate)
 		// and your profile: the summary of your recent races, hiding your supporter badge, your license classes
 		post := r.Method == http.MethodPost && ((strings.HasPrefix(p, "/api/sessions/") && (strings.HasSuffix(p, "/validate") || strings.HasSuffix(p, "/incidents"))) || (strings.HasPrefix(p, "/api/laps/") && strings.HasSuffix(p, "/valid")) ||
-			p == "/community/profile/races" || p == "/community/profile/badge" || p == "/community/pro/pc" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/") ||
+			p == "/community/profile/races" || p == "/community/profile/badge" || strings.HasPrefix(p, "/community/coach/") || p == "/community/pro/pc" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/") ||
 			strings.HasPrefix(p, "/community/admin/")) // the admin panel (the server checks the account is an admin)
 		// and the admin panel deletes shared items and accounts
 		del := r.Method == http.MethodDelete && strings.HasPrefix(p, "/community/admin/")

@@ -44,7 +44,7 @@ function buildModel(c){
       const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
       if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
       MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
-        times:r.times||[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y}))}}
+        times:r.times||[],corners:Array.isArray(r.corners)?r.corners:[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y}))}}
     catch(e){MODEL.err=e.message}
     MODEL.busy=false;return MODEL.data})();
   return MODEL.p}
@@ -70,6 +70,10 @@ function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
 /* the references of a lap: the record (unless this lap is it) and the next level (when someone is ahead) */
 function refsFor(m,A){if(!m||!A)return{rec:null,level:null};const rec=idealLap(m),lv=levelLap(m,A.time);
   return{rec:rec&&Math.abs(rec.time-A.time)>=0.002?rec:null,level:lv&&lv.time<A.time-0.001?lv:null}}
+
+/* the corner card of a corner of lap A (by its slowest point, within 60 m): where the fastest drivers here brake and how
+   fast they pass the slowest point, as the server learnt it (a range of real laps); null without a model or that corner */
+function cornerHint(A,apex){const m=current(A);if(!m||!m.corners.length||!(apex>=0))return null;let b=null;for(const c of m.corners){const g=Math.abs(c.apex-apex);if(g<=60&&(!b||g<Math.abs(b.apex-apex)))b=c}return b}
 
 /* ---------- the car card: what this car does on other tracks ---------- */
 /* one lap's facts, as the server reads them: its hardest braking (m/s², the top 5 % of its braking), the
@@ -123,5 +127,5 @@ if(typeof origCoach==="function")window.renderCoach=function(){const r=origCoach
     // the car card the same way: once it is here, the coach renders once more
     cardFor(A).then(c=>{const k=(c?c.carId+":"+c.built:"none")+"|"+A.time;if(k===cardKey)return;cardKey=k;if(c)window.renderCoach()}).catch(()=>{})}catch(e){console.warn(e)}return r};
 const st=document.createElement("style");st.textContent=`.pb,.pb-t{color:var(--pb)!important;font-weight:700}tr.lap-invalid td{opacity:.5;text-decoration:line-through}tr.lap-invalid td:last-child .pill{text-decoration:none}`;document.head.appendChild(st);
-window.PW_MODEL={buildModel,modelFor,current,loading,error,idealLap,levelLap,refsFor,rankOf,comboOf,carCard,cardFor,lapFacts};
+window.PW_MODEL={buildModel,modelFor,current,loading,error,idealLap,levelLap,refsFor,rankOf,comboOf,carCard,cardFor,lapFacts,cornerHint};
 })();

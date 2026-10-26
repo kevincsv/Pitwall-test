@@ -12,7 +12,7 @@ import { famId, famSql } from "./carfamily.js";
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 7; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals
+export const MODEL_VERSION = 8; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card
 export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -165,6 +165,47 @@ async function candidates(env, game, trackId, carId) {
   return { laps, drivers, more: learnt.more, added: learnt.added };
 }
 
+// ---------- the corner card: where the fastest drivers here brake and how fast they take every corner ----------
+// For every braking zone of the record lap, the range of braking points and of speeds at the slowest point among the
+// fastest drivers of this car and track (one lap each, their best; the fastest 30 %, 3 at least, 12 at most). A hint
+// beside the coach's tips on every device, as a range of real laps, never one lap to compare with.
+const CORNER_FAST = 0.3, CORNER_MIN = 3, CORNER_MAX = 12, SAME_ZONE = 20; // the same corner: its braking point within 20 bins (100 m)
+// the braking zones of a lap, like the apps' brakeZones: the brake pressed (over 12 %) after being off, to the slowest
+// point before the throttle is back; bins [speed m/s, time s, throttle, brake, gear, steering] every 5 m
+function brakeZones(bins, n) {
+  const out = [];
+  for (let i = 1; i < n; i++) {
+    const a = bins[i], b = bins[i - 1];
+    if (!a || !b) continue;
+    if (a[3] > 0.12 && b[3] <= 0.12) {
+      let k = i, vmin = a[0], imin = i;
+      while (k < n && k < i + 120 && bins[k] && !(bins[k][2] > 0.6 && bins[k][3] < 0.05)) { if (bins[k][0] < vmin) { vmin = bins[k][0]; imin = k; } k++; }
+      if (a[0] - vmin > 4) out.push({ i, vmin, imin });
+      i = k;
+    }
+  }
+  return out;
+}
+export function cornerCard(sorted, fastest, n) {
+  const seen = new Set(), fast = [];
+  for (const l of sorted) { if (seen.has(l.up)) continue; seen.add(l.up); fast.push(l); }
+  const pick = fast.slice(0, Math.min(CORNER_MAX, Math.max(CORNER_MIN, Math.round(fast.length * CORNER_FAST))));
+  if (pick.length < CORNER_MIN) return [];
+  const zones = pick.map((l) => brakeZones(l.bins, n)), out = [];
+  for (const z of brakeZones(fastest.bins, n)) {
+    const bp = [], va = [];
+    for (const zs of zones) {
+      const m = zs.filter((q) => Math.abs(q.i - z.i) <= SAME_ZONE).sort((p, q) => Math.abs(p.i - z.i) - Math.abs(q.i - z.i))[0];
+      if (m) { bp.push(m.i * 5); va.push(m.vmin); }
+    }
+    if (bp.length < CORNER_MIN) continue;
+    bp.sort((a, b) => a - b);
+    va.sort((a, b) => a - b);
+    out.push({ d: z.i * 5, apex: z.imin * 5, b0: bp[0], b1: bp[bp.length - 1], v0: r(va[0], 10), v1: r(va[va.length - 1], 10), n: bp.length });
+  }
+  return out;
+}
+
 export async function buildModel(env, game, trackId, carId) {
   carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   const { laps: raw, drivers, more, added } = await candidates(env, game, trackId, carId);
@@ -215,6 +256,7 @@ export async function buildModel(env, game, trackId, carId) {
   // closest one), kept small (one bin in two); the same lap serves a stretch of paces
   const compact = (l) => { const out = []; for (let i = 0; i < n; i += LEVEL_BIN) { const b = l.bins[i]; out.push([r(b[0], 10), r(b[1], 1000), r(b[2], 100), r(b[3], 100), Math.round(b[4] || 0)]); } return out; };
   const sorted = laps.slice().sort((a, b) => a.time - b.time);
+  const corners = cornerCard(sorted, fastest, n); // where the fastest drivers brake and how fast they take each corner: a hint, not a lap
   const ladder = [];
   for (let j = 0; j * LADDER_STEP <= LADDER_SPAN; j++) {
     const t = fastest.time * (1 + j * LADDER_STEP);
@@ -249,7 +291,7 @@ export async function buildModel(env, game, trackId, carId) {
   }
   return {
     ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times, lineXY,
-    ideal: record, idealField: !!fastest.field,
+    ideal: record, idealField: !!fastest.field, corners,
     idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)) } : null,
     ladder: out,
   };
