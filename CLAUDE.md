@@ -458,7 +458,9 @@
   lap against the reference from the braking zone to the exit, `liveDelta`) and the lap's corners as dots (green gained,
   red lost). The tips are computed once per lap (`compareLaps` with every corner, cached by `key`). It is set before the
   session in the overlay's settings on the web (Overlays → Coach → configure, `UI_DEFAULTS.coach`, `CONFIGURABLE.coach`):
-  the reference (the next level or your best lap), what it shows (the next corner, the plan as rows, one line), which
+  the reference (the next level or your best lap), its style (the card, the column with a bar filling to the braking point,
+  the corner drawn with your path, the reference's line and both braking points, big letters for VR with the tip in two
+  or three words, `coachCue`; the preview in its settings draws the chosen style, `coachStyleHTML`), which
   corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
   from how far it speaks. The settings travel with the account like every overlay's.
 - The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two

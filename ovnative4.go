@@ -1117,6 +1117,40 @@ type coachTip struct {
 	apex   float64 // the corner's slowest point (m from the line): its official turn
 	lost   float64
 	en, es string
+	cueEn  string // two or three words for the big style ("BRAKE EARLIER")
+	cueEs  string
+	dd     float64 // metres A brakes after the reference (negative: before), when hasDd
+	hasDd  bool
+}
+
+// coachCue: the tip in two or three words, for the big style of the coach overlay (read in a glance, in VR too)
+func coachCue(en string) (string, string) {
+	has := func(x string) bool { return strings.Contains(en, x) }
+	switch {
+	case strings.HasPrefix(en, "You brake ") && has("later than the reference"), has("too late"):
+		return "BRAKE EARLIER", "FRENA ANTES"
+	case strings.HasPrefix(en, "Brake ") && has("m later"):
+		return "BRAKE LATER", "FRENA MÁS TARDE"
+	case has("Brake harder"), has("Brake hard at once"):
+		return "BRAKE HARDER", "FRENA MÁS FUERTE"
+	case has("trail braking"), has("release the brake"):
+		return "EASE OFF THE BRAKE", "SUELTA SUAVE"
+	case has("coast"), has("Do not wait"):
+		return "NO COASTING", "SIN ESPERAR"
+	case has("inside"), has("outside"), has("line"):
+		return "WATCH THE LINE", "OJO A LA TRAZADA"
+	case has("gear"):
+		return "OTHER GEAR", "OTRA MARCHA"
+	case has("throttle") && (has("earlier") || has("sooner")):
+		return "THROTTLE SOONER", "GAS ANTES"
+	case has("throttle"):
+		return "SMOOTH THROTTLE", "GAS SUAVE"
+	case has("apex"), has("speed"):
+		return "MORE SPEED", "MÁS VELOCIDAD"
+	case has("steering"):
+		return "ONE SMOOTH TURN", "GIRA SUAVE"
+	}
+	return "", ""
 }
 
 // cornerZone: a corner of the reference lap for the coach (cornerZones)
@@ -1515,7 +1549,8 @@ func (st *ovState) compareLaps(A, R *ovLap, max int) []coachTip {
 		if z.turn >= 0 {
 			cn = z.turn + 1
 		}
-		out = append(out, coachTip{n: cn, d: float64(z.i) * ovLapBin, apex: float64(z.imin) * ovLapBin, lost: lost, en: en, es: es})
+		ce, cs := coachCue(en)
+		out = append(out, coachTip{n: cn, d: float64(z.i) * ovLapBin, apex: float64(z.imin) * ovLapBin, lost: lost, en: en, es: es, cueEn: ce, cueEs: cs, dd: dd, hasDd: hasM})
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].lost > out[b].lost })
 	if len(out) > max {
@@ -1560,6 +1595,7 @@ type ovCoachState struct {
 	tips    []coachTip // every corner of the reference, in lap order
 	ref     string
 	refLap  *ovLap
+	lapA    *ovLap // the lap the tips judge (your last one): its path for the curve style
 	lap     int
 	dots    map[int]float64 // this lap's corners: seconds against the reference (negative: gained)
 	watch   int             // the corner under way (its index in tips), -1 none
@@ -1617,7 +1653,7 @@ func (st *ovState) coachTick(cfg map[string]any) {
 	}
 	key := fmt.Sprintf("%d|%.3f|%.3f|%s", len(E.laps), A.time, R.time, E.driver)
 	if C.key != key {
-		C.key, C.ref, C.refLap = key, name, R
+		C.key, C.ref, C.refLap, C.lapA = key, name, R, A
 		C.tips = st.compareLaps(A, R, 1000)
 		sort.Slice(C.tips, func(i, j int) bool { return C.tips[i].d < C.tips[j].d })
 		C.watch = -1
@@ -1743,7 +1779,7 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	st.coachTick(cfg)
 	C := &st.ext.coach
 	mode := uiStr(cfg, "mode", "next")
-	nf, cf, vf, pf := ovFace(fkBody, 13.5*z), ovFace(fkDisplayB, 22*z), ovFace(fkDataB, 20*z), ovFace(fkDataB, 11*z)
+	nf, cf, pf := ovFace(fkBody, 13.5*z), ovFace(fkDisplayB, 22*z), ovFace(fkDataB, 11*z)
 	hint := func(t *coachTip) string { // the fast drivers' range for this corner (the model's corner card)
 		if !uiBool(cfg, "hint", true) {
 			return ""
@@ -1821,74 +1857,13 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	lead := uiNum(cfg, "lead", 300)
 	vsecs := uiNum(cfg, "verdict", 4)
 	verdict := C.verdict != nil && vsecs > 0 && time.Since(C.verdict.at) < time.Duration(vsecs*float64(time.Second))
-	if mode == "line" {
-		H := pad + 34*z + pad - 4*z
-		panel(c, H, z)
-		y := pad
-		if verdict {
-			v := C.verdict
-			col := uint32(colGood)
-			if v.gain > 0 {
-				col = colBad
-			}
-			c.rect(pad, y, 3*z, 34*z, col, 1)
-			pw := pill(pad+9*z, y+2*z, 30*z, "T"+strconv.Itoa(v.n))
-			c.text(vf, signed(-v.gain, 2), pad+pw+18*z, y+17*z, col, 1, 0)
-			c.text(nf, st.T("against the reference in this corner", "frente a la referencia en esta curva"), pad+pw+18*z+textW(vf, signed(-v.gain, 2))+10*z, y+17*z, colMuted, 1, 0)
-		} else if next != nil {
-			pw := pill(pad, y+2*z, 30*z, "T"+strconv.Itoa(next.n))
-			ms := fmt.Sprintf("%d m", int(math.Max(0, dTo)))
-			c.text(vf, ms, pad+pw+10*z, y+17*z, colText, 1, 0)
-			x := pad + pw + 10*z + textW(vf, ms) + 12*z
-			ls := signed(next.lost, 2)
-			lw := textW(pf, ls)
-			c.text(nf, ellipsis(nf, tipText(next), W-pad-x-lw-10*z), x, y+17*z, colText, 1, 0)
-			c.text(pf, ls, W-pad, y+17*z, colBad, 1, 1)
-		}
-		return int(math.Ceil(H))
-	}
-	if mode == "plan" {
-		rows := []coachTip{}
-		for _, t := range C.tips {
-			if st.coachPicked(cfg, t) {
-				rows = append(rows, t)
-			}
-		}
-		sort.Slice(rows, func(i, j int) bool { return rows[i].lost > rows[j].lost })
-		if len(rows) > 4 {
-			rows = rows[:4]
-		}
-		rowH := 36 * z
-		H := pad + 18*z + float64(len(rows))*rowH + 22*z + pad - 4*z
-		panel(c, H, z)
-		c.label(z, st.T("Coach · the plan", "Coach · el plan"), pad, pad+6*z, 0)
-		c.labelFit(z, C.ref, W/2, pad+6*z, W/2-pad)
-		y := pad + 18*z
-		for k, t := range rows {
-			if k > 0 {
-				c.rect(pad, y, W-2*pad, 1, colLine, 1)
-			}
-			on := next != nil && next.n == t.n
-			if on {
-				c.roundRect(pad-4*z, y+2*z, W-2*pad+8*z, rowH-4*z, 6*z, colAmber, 0.12, 0, 0, 0)
-			}
-			pw := pill(pad, y+rowH/2-14*z, 28*z, "T"+strconv.Itoa(t.n))
-			right := signed(t.lost, 2)
-			col := uint32(colBad)
-			if g, ok := C.dots[t.n]; ok {
-				right = signed(g, 2)
-				if g < -.02 {
-					right, col = right+" ✓", colGood
-				}
-			}
-			rw := textW(pf, right)
-			c.text(pf, right, W-pad, y+rowH/2, col, 1, 1)
-			c.text(nf, ellipsis(nf, tipText(&t), W-2*pad-pw-rw-20*z), pad+pw+10*z, y+rowH/2, colText, 1, 0)
-			y += rowH
-		}
-		y += 8 * z
-		dots(y)
-		return int(math.Ceil(H))
+	switch mode {
+	case "column":
+		return drawCoachColumn(c, st, z, next, dTo, lead, verdict)
+	case "curve":
+		return drawCoachCurve(c, st, z, next, dTo, lead, verdict, tipText)
+	case "big":
+		return drawCoachBig(c, st, z, next, dTo, lead, verdict)
 	}
 	// "next": the corner coming, or the verdict of the one just taken
 	tf := ovFace(fkBodyB, 14*z)
@@ -1920,12 +1895,12 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 		pw := pill(pad, y+8*z, 40*z, "T"+strconv.Itoa(v.n))
 		big := ovFace(fkDataB, 28*z)
-		c.text(big, signed(-v.gain, 2)+" s", pad+pw+14*z, y+20*z, col, 1, 0)
+		c.text(big, signed(v.gain, 2)+" s", pad+pw+14*z, y+20*z, col, 1, 0)
 		what := st.T("Better than the reference", "Mejor que la referencia")
 		if v.gain > 0 {
 			what = st.T("Slower than the reference", "Más lento que la referencia")
 		}
-		c.text(tf, what, pad+pw+14*z+textW(big, signed(-v.gain, 2)+" s")+12*z, y+20*z, col, 1, 0)
+		c.text(tf, what, pad+pw+14*z+textW(big, signed(v.gain, 2)+" s")+12*z, y+20*z, col, 1, 0)
 		c.text(nf, ellipsis(nf, st.T("Measured from the braking zone to the exit", "Medido desde la frenada hasta la salida"), W-2*pad), pad, y+46*z, colMuted, 1, 0)
 		y += 56*z + 24*z + 10*z
 	} else if next != nil {
@@ -1961,5 +1936,236 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		y += 56*z + 10*z
 	}
 	dots(y)
+	return int(math.Ceil(H))
+}
+
+// coachVerdictCol: green for a corner gained against the reference, red for one lost
+func coachVerdictCol(g float64) uint32 {
+	if g > 0 {
+		return colBad
+	}
+	return colGood
+}
+
+// drawCoachColumn: style 3, a narrow column in the middle of the window: the turn, a bar that fills as the car comes to
+// the reference's braking point (amber in the last 100 m) and the metres; after the corner a tick or a cross and the time
+func drawCoachColumn(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead float64, verdict bool) int {
+	W := float64(c.w)
+	cw := 112 * z
+	x0 := math.Round((W - cw) / 2)
+	H := 250 * z
+	c.roundRect(x0+0.5, 0.5, cw-1, H-1, 10*z, colPanel, 0.94, colLine, 1, 1)
+	cx := x0 + cw/2
+	c.text(ovFace(fkData, 10*z), strings.ToUpper(st.T("Coach", "Coach")), cx, 18*z, colMuted, 1, 2)
+	C := &st.ext.coach
+	cf := ovFace(fkDisplayB, 24*z)
+	turn := func(n int) {
+		name := "T" + strconv.Itoa(n)
+		w := textW(cf, name) + 22*z
+		c.roundRect(cx-w/2, 32*z, w, 38*z, 7*z, 0x222b37, 1, colLine, 1, 1)
+		c.text(cf, name, cx, 51*z, colText, 1, 2)
+	}
+	switch {
+	case verdict:
+		v := C.verdict
+		col := coachVerdictCol(v.gain)
+		turn(v.n)
+		c.roundRect(cx-22*z, 92*z, 44*z, 44*z, 22*z, col, 0.12, col, 1, 2*z)
+		mark := "✓"
+		if v.gain > 0 {
+			mark = "✗"
+		}
+		c.text(ovFace(fkBodyB, 20*z), mark, cx, 114*z, col, 1, 2)
+		c.text(ovFace(fkDataB, 20*z), signed(v.gain, 2), cx, 162*z, col, 1, 2)
+		c.text(ovFace(fkBody, 11*z), st.T("vs ref", "vs ref"), cx, 184*z, colMuted, 1, 2)
+	case next != nil:
+		turn(next.n)
+		bx, by, bw, bh := cx-9*z, 84*z, 18*z, 118*z
+		c.roundRect(bx, by, bw, bh, 9*z, 0x222b37, 1, 0, 0, 0)
+		fr := 0.0
+		if dTo <= lead {
+			fr = 1 - math.Max(0, math.Min(1, dTo/lead))
+		}
+		fh := math.Max(bw, bh*fr)
+		c.roundRect(bx, by+bh-fh, bw, fh, 9*z, colAmber, 1, 0, 0, 0)
+		col := uint32(colText)
+		if dTo <= 100 {
+			col = colAmber
+		}
+		c.text(ovFace(fkDataB, 20*z), strconv.Itoa(int(math.Max(0, dTo))), cx, 224*z, col, 1, 2)
+	default:
+		c.text(ovFace(fkBody, 11*z), st.T("No tip yet", "Sin consejo"), cx, 120*z, colMuted, 1, 2)
+	}
+	return int(math.Ceil(H))
+}
+
+// pathAt: the points of a lap's path between two distances of the lap (every 5 m)
+func pathAt(l *ovLap, d0, d1 float64) (xs, ys []float64) {
+	if l == nil || len(l.x) < 4 || len(l.x) != len(l.y) {
+		return nil, nil
+	}
+	for d := d0; d <= d1; d += 5 {
+		i := int(math.Round(d / 5))
+		if i < 0 || i >= len(l.x) {
+			continue
+		}
+		xs, ys = append(xs, l.x[i]), append(ys, l.y[i])
+	}
+	return xs, ys
+}
+
+// drawCoachCurve: style 4, the corner drawn (your last lap's path as the road, the reference's line dashed when it has
+// one, both braking points) beside the turn, the metres and the tip; after it the corner in green or red and the time
+func drawCoachCurve(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead float64, verdict bool, tipText func(*coachTip) string) int {
+	W := float64(c.w)
+	pad := 14 * z
+	C := &st.ext.coach
+	H := 140 * z
+	panel(c, H, z)
+	var t *coachTip
+	if verdict {
+		for i := range C.tips {
+			if C.tips[i].n == C.verdict.n {
+				t = &C.tips[i]
+			}
+		}
+	} else if next != nil {
+		t = next
+	}
+	nf, tf := ovFace(fkBody, 12*z), ovFace(fkBodyB, 13.5*z)
+	if t == nil {
+		c.text(nf, ellipsis(nf, st.T("No tip yet", "Sin consejo todavía"), W-2*pad), pad, H/2, colMuted, 1, 0)
+		return int(math.Ceil(H))
+	}
+	// the corner's piece of the track, fitted into a box on the left
+	bx, by, bs := pad, pad, H-2*pad
+	ax, ay := pathAt(C.lapA, t.d-80, t.apex+150)
+	rx, ry := pathAt(C.refLap, t.d-80, t.apex+150)
+	if len(ax) >= 2 {
+		minX, maxX, minY, maxY := ax[0], ax[0], ay[0], ay[0]
+		for i := range ax {
+			minX, maxX, minY, maxY = math.Min(minX, ax[i]), math.Max(maxX, ax[i]), math.Min(minY, ay[i]), math.Max(maxY, ay[i])
+		}
+		span := math.Max(maxX-minX, maxY-minY) + 20
+		k := (bs - 16*z) / span
+		mx, my := (minX+maxX)/2, (minY+maxY)/2
+		P := func(x, y float64) (float64, float64) { return bx + bs/2 + (x-mx)*k, by + bs/2 - (y-my)*k }
+		poly := func(xs, ys []float64, w float64, col uint32, a float64, dash bool) {
+			for i := 1; i < len(xs); i++ {
+				if dash && i%3 == 0 {
+					continue
+				}
+				x0, y0 := P(xs[i-1], ys[i-1])
+				x1, y1 := P(xs[i], ys[i])
+				c.line(x0, y0, x1, y1, w, col, a)
+			}
+		}
+		poly(ax, ay, 14*z, 0x2b3542, 1, false)
+		lineCol := uint32(colAmber)
+		if verdict {
+			lineCol = coachVerdictCol(C.verdict.gain)
+		}
+		if len(rx) >= 2 {
+			poly(rx, ry, 2*z, colText, 0.9, true)
+		}
+		poly(ax, ay, 2.5*z, lineCol, 1, false)
+		mark := func(l *ovLap, d float64, col uint32) { // a short bar across the road at a braking point
+			xs, ys := pathAt(l, d, d+5)
+			if len(xs) < 2 {
+				return
+			}
+			x0, y0 := P(xs[0], ys[0])
+			x1, y1 := P(xs[1], ys[1])
+			dx, dy := x1-x0, y1-y0
+			n := math.Hypot(dx, dy)
+			if n == 0 {
+				return
+			}
+			nx, ny := -dy/n*8*z, dx/n*8*z
+			c.line(x0-nx, y0-ny, x0+nx, y0+ny, 2.5*z, col, 1)
+		}
+		if !verdict {
+			src := C.refLap
+			if len(rx) < 2 {
+				src = C.lapA
+			}
+			mark(src, t.d, colText)
+			if t.hasDd {
+				mark(C.lapA, t.d+t.dd, colAmber)
+			}
+			if d, ok := st.num("LapDist"); ok && d >= t.d-80 && d <= t.apex+150 {
+				if xs, ys := pathAt(C.lapA, d, d); len(xs) == 1 {
+					x, y := P(xs[0], ys[0])
+					c.roundRect(x-5*z, y-5*z, 10*z, 10*z, 5*z, colAmber, 1, 0x0f1216, 1, 2*z)
+				}
+			}
+		}
+	} else {
+		c.roundRect(bx, by, bs, bs, 8*z, 0x222b37, 0.5, 0, 0, 0)
+	}
+	// the text on the right
+	x := bx + bs + 14*z
+	cf := ovFace(fkDisplayB, 18*z)
+	name := "T" + strconv.Itoa(t.n)
+	pw := textW(cf, name) + 14*z
+	c.roundRect(x, pad, pw, 28*z, 6*z, 0x222b37, 1, colLine, 1, 1)
+	c.text(cf, name, x+pw/2, pad+14*z, colText, 1, 2)
+	big := ovFace(fkDataB, 20*z)
+	if verdict {
+		g := C.verdict.gain
+		c.text(big, signed(g, 2), x+pw+10*z, pad+14*z, coachVerdictCol(g), 1, 0)
+		what := st.T("Better than the reference", "Mejor que la referencia")
+		if g > 0 {
+			what = st.T("Slower than the reference", "Más lento que la referencia")
+		}
+		c.text(tf, ellipsis(tf, what, W-pad-x), x, pad+48*z, colText, 1, 0)
+		return int(math.Ceil(H))
+	}
+	ms := st.T("next", "próxima")
+	if dTo <= lead {
+		ms = fmt.Sprintf("%d m", int(math.Max(0, dTo)))
+	}
+	c.text(big, ms, x+pw+10*z, pad+14*z, colText, 1, 0)
+	lines := wrapLines(tf, tipText(t), W-pad-x, 3)
+	for k, ln := range lines {
+		c.text(tf, ln, x, pad+46*z+float64(k)*18*z, colText, 1, 0)
+	}
+	legend := st.T("white the reference, amber you", "blanca la referencia, amarilla tú")
+	c.text(nf, ellipsis(nf, legend, W-pad-x), x, H-pad-4*z, colMuted, 1, 0)
+	return int(math.Ceil(H))
+}
+
+// drawCoachBig: style 8, big letters and few words for VR: the turn, the metres and the tip in two or three words;
+// after the corner the turn and the time
+func drawCoachBig(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead float64, verdict bool) int {
+	W := float64(c.w)
+	pad := 18 * z
+	C := &st.ext.coach
+	H := 96 * z
+	panel(c, H, z)
+	tf := ovFace(fkDisplayB, 52*z)
+	switch {
+	case verdict:
+		name := "T" + strconv.Itoa(C.verdict.n)
+		c.text(tf, name, pad, H/2, colText, 1, 0)
+		c.text(ovFace(fkDataB, 44*z), signed(C.verdict.gain, 2), pad+textW(tf, name)+20*z, H/2, coachVerdictCol(C.verdict.gain), 1, 0)
+	case next != nil:
+		name := "T" + strconv.Itoa(next.n)
+		c.text(tf, name, pad, H/2, colText, 1, 0)
+		x := pad + textW(tf, name) + 20*z
+		cue := st.T(next.cueEn, next.cueEs)
+		if dTo > lead {
+			c.text(ovFace(fkDataB, 30*z), fmt.Sprintf("%d m", int(dTo)), x, H/2, colMuted, 1, 0)
+			break
+		}
+		c.text(ovFace(fkDataB, 38*z), strconv.Itoa(int(math.Max(0, dTo))), x, H/2-12*z, colText, 1, 0)
+		if cue == "" {
+			cue = st.T("BRAKE", "FRENA")
+		}
+		cf := ovFace(fkDisplayB, 20*z)
+		c.text(cf, ellipsis(cf, cue, W-pad-x), x, H/2+22*z, colAmber, 1, 0)
+	default:
+		c.text(ovFace(fkBody, 14*z), st.T("No tip yet", "Sin consejo todavía"), pad, H/2, colMuted, 1, 0)
+	}
 	return int(math.Ceil(H))
 }
