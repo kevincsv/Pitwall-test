@@ -4,6 +4,10 @@
 - The apps' languages are English, Spanish and Portuguese (Brazil) only (`LANGS` in index.html, `uiLang` in Go, `lang` in
   email.js): no German and no bilingual "EN + ES"; a German or bilingual choice from before reads English or Spanish.
 - Push only when the owner says so ("súbelo", "sube todo"…). Never create pull requests unless asked.
+- Changes are released in big batches, never one by one: people should not get a stream of small updates. Every
+  change is committed and pushed to the working branch only (never master), tested together, and goes to master in
+  one push when the owner asks for the batch ("sube todo", "súbelo a producción"). A fix that cannot wait (the app
+  broken for people) is the one exception, and only when the owner says so.
 - The notices the apps show in their inbox (`web/dist/app-news.json`, every device reads it from the server) are
   never added or changed without asking the owner first, one by one, even when they say "sube todo" for everything
   else: show the text and wait for their yes before it goes in.
