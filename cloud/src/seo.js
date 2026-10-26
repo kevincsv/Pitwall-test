@@ -6,6 +6,7 @@
 import { catMap, catOf } from "./categories.js";
 import { famId, famName } from "./carfamily.js";
 import { TOPICS, GUIDES } from "./seo-topics.js";
+import { foundLeagues } from "./leaguescan.js";
 
 const SITE = "https://pitlanehq.app";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -56,7 +57,7 @@ table{width:100%;border-collapse:collapse;font-size:15px}th,td{text-align:left;p
 td.t{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--acc)}tr:first-child td.t{font-weight:700}.n{width:44px;color:var(--mut)}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:8px 0}summary{cursor:pointer;font-weight:600}
 footer{border-top:1px solid var(--line);margin-top:50px;padding:22px 0;color:var(--mut);font-size:14px}.cats{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
-.cats a{padding:6px 12px;border:1px solid var(--line);border-radius:20px;color:var(--fg);text-decoration:none;font-size:14px}.cats a.on{border-color:var(--acc);color:var(--acc)}
+.cats a{padding:6px 12px;border:1px solid var(--line);border-radius:20px;color:var(--fg);text-decoration:none;font-size:14px}.cats a.on{border-color:var(--acc);color:var(--acc)}.lg img{width:44px;height:44px;border-radius:10px;float:right;margin-left:10px}
 @media(max-width:600px){h1{font-size:36px}.lead{font-size:17px}th:nth-child(4),td:nth-child(4){display:none}}`;
 
 function page(l, { title, desc, path, alts, body, ld, noindex }) {
@@ -71,9 +72,9 @@ ${hl}
 <meta name="theme-color" content="#11151b"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>${CSS}</style>${ld ? `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>` : ""}</head><body>
-<header><div class="w"><a class="b" href="/">${LOGO}Pitlane HQ</a><nav><a href="${links.tel}">${esc(t.tel)}</a><a href="${links.ov}">Overlays</a><a href="${links.rec}">${esc(t.rec)}</a><a href="/downloads">${esc(t.dl)}</a><a href="/">${esc(t.app)}</a>${others}</nav></div></header>
+<header><div class="w"><a class="b" href="/">${LOGO}Pitlane HQ</a><nav><a href="${links.tel}">${esc(t.tel)}</a><a href="${links.ov}">Overlays</a><a href="${LEAG[l].path}">${esc(LEAG[l].h1)}</a><a href="${links.rec}">${esc(t.rec)}</a><a href="/downloads">${esc(t.dl)}</a><a href="/">${esc(t.app)}</a>${others}</nav></div></header>
 <main class="w">${body}</main>
-<footer><div class="w"><p class="m">${esc(GUIDES[l])}: ${TOPICS.map((x) => `<a href="${x[l].path}">${esc(x[l].h1)}</a>`).join(" · ")} · <a href="${OVL[l].path}">${esc(OVL[l].h1)}</a></p>Pitlane HQ · ${esc(t.free)} · <a href="/downloads">${esc(t.dl)}</a> · <a href="${links.rec}">${esc(t.rec)}</a> · <a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a> · ${LANGS.map((k) => `<a href="${LAND[k].path}" hreflang="${k}">${NAME[k]}</a>`).join(" · ")}</div></footer></body></html>`;
+<footer><div class="w"><p class="m">${esc(GUIDES[l])}: ${TOPICS.map((x) => `<a href="${x[l].path}">${esc(x[l].h1)}</a>`).join(" · ")} · <a href="${OVL[l].path}">${esc(OVL[l].h1)}</a> · <a href="${LEAG[l].path}">${esc(LEAG[l].h1)}</a></p>Pitlane HQ · ${esc(t.free)} · <a href="/downloads">${esc(t.dl)}</a> · <a href="${links.rec}">${esc(t.rec)}</a> · <a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a> · ${LANGS.map((k) => `<a href="${LAND[k].path}" hreflang="${k}">${NAME[k]}</a>`).join(" · ")}</div></footer></body></html>`;
 }
 // the breadcrumb search engines show under the result: Pitlane HQ › Records › the page
 const crumbs = (items) => ({ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items.map(([name, path], i) => ({ "@type": "ListItem", position: i + 1, name, item: SITE + path })) });
@@ -202,6 +203,39 @@ function overlaysPage(l) {
   return html(page(l, { title: O.title, desc: O.desc, path: O.path, alts: OVL_ALTS, body, ld }));
 }
 
+// ---------- the leagues ----------
+// the most active iRacing leagues (the same list as Community → Leagues in the app), who is on their Discord now
+const LEAG = {
+  en: { path: "/iracing-leagues", title: "iRacing leagues with an active Discord · Pitlane HQ",
+    desc: "Find an iRacing league to race in. The most active leagues, how many drivers are on their Discord right now and how to join.",
+    h1: "iRacing leagues", lead: "The most active iRacing leagues, sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free in Pitlane HQ.",
+    post: "Post your league for free", join: "Join the Discord", online: "online", members: "members", any: "iRacing league", none: "No leagues yet.", upd: "Updated",
+    faq: [["How are these leagues chosen?", "They are leagues posted on r/iRacing and r/iRacingLeagues with a Discord invite, and leagues added by hand. Every few hours Pitlane HQ reads how many members each Discord has and how many are online, and the most active come first."], ["Can I add my league?", "Yes. Create a free Pitlane HQ account and post it in Community → Leagues with its race days, its Discord or its website."]] },
+  es: { path: "/es/ligas-iracing", title: "Ligas de iRacing con Discord activo · Pitlane HQ",
+    desc: "Encuentra una liga de iRacing en la que correr. Las ligas más activas, cuántos pilotos hay ahora en su Discord y cómo unirte.",
+    h1: "Ligas de iRacing", lead: "Las ligas de iRacing más activas, ordenadas por cuántos pilotos hay ahora mismo en su Discord. Únete a una con un clic, o publica tu liga gratis en Pitlane HQ.",
+    post: "Publica tu liga gratis", join: "Unirse al Discord", online: "conectados", members: "miembros", any: "Liga de iRacing", none: "Aún no hay ligas.", upd: "Actualizado",
+    faq: [["¿Cómo se eligen estas ligas?", "Son ligas publicadas en r/iRacing y r/iRacingLeagues con una invitación de Discord, y ligas añadidas a mano. Cada pocas horas Pitlane HQ lee cuántos miembros tiene cada Discord y cuántos están conectados, y las más activas salen primero."], ["¿Puedo añadir mi liga?", "Sí. Crea una cuenta gratis de Pitlane HQ y publícala en Comunidad → Ligas con sus días de carrera, su Discord o su web."]] },
+  pt: { path: "/pt/ligas-iracing", title: "Ligas de iRacing com Discord ativo · Pitlane HQ",
+    desc: "Encontre uma liga de iRacing para correr. As ligas mais ativas, quantos pilotos estão no Discord delas agora e como entrar.",
+    h1: "Ligas de iRacing", lead: "As ligas de iRacing mais ativas, ordenadas por quantos pilotos estão no Discord delas agora. Entre numa com um clique, ou publique sua liga de graça no Pitlane HQ.",
+    post: "Publique sua liga de graça", join: "Entrar no Discord", online: "online", members: "membros", any: "Liga de iRacing", none: "Ainda não há ligas.", upd: "Atualizado",
+    faq: [["Como essas ligas são escolhidas?", "São ligas publicadas no r/iRacing e no r/iRacingLeagues com um convite do Discord, e ligas adicionadas à mão. A cada poucas horas o Pitlane HQ lê quantos membros cada Discord tem e quantos estão online, e as mais ativas aparecem primeiro."], ["Posso adicionar minha liga?", "Sim. Crie uma conta grátis no Pitlane HQ e publique em Comunidade → Ligas com os dias de corrida, o Discord ou o site."]] },
+};
+const LEAG_ALTS = { en: LEAG.en.path, es: LEAG.es.path, pt: LEAG.pt.path };
+async function leaguesPage(env, l) {
+  const G = LEAG[l], F = await foundLeagues(env, false).catch(() => ({ leagues: [] })), list = (F.leagues || []).slice(0, 40);
+  const num = (n) => Number(n || 0).toLocaleString(l === "pt" ? "pt-BR" : l);
+  const body = `<h1>${esc(G.h1)}</h1><p class="lead">${esc(G.lead)}</p>
+<div class="cta"><a class="btn p" href="/?league-post=1">${esc(G.post)}</a><a class="btn" href="${LAND[l].path}">${esc(T[l].tel)}</a></div>
+${list.length ? `<div class="g">${list.map((x) => `<section class="c lg">${x.icon ? `<img src="${esc(x.icon)}" alt="" width="44" height="44" loading="lazy">` : ""}<h2 style="font-size:22px;margin:0 0 4px">${esc(fix(x.name))}</h2><p class="m" style="margin:0 0 8px">${esc((x.cats || []).map((c) => CAT[l][c] || c).join(" · ") || G.any)}</p><p style="margin:0 0 6px"><b style="color:#38c97c">${num(x.online)}</b> ${esc(G.online)} · <b>${num(x.members)}</b> ${esc(G.members)}</p>${x.title ? `<p class="m" style="font-size:14px;margin:0 0 10px">${esc(fix(x.title))}</p>` : ""}<a class="btn" href="${esc(x.invite)}" rel="nofollow noopener" target="_blank">${esc(G.join)}</a></section>`).join("")}</div>${F.updated ? `<p class="m" style="font-size:14px">${esc(G.upd)} ${new Date(F.updated).toISOString().slice(0, 10)}</p>` : ""}` : `<p class="m">${esc(G.none)}</p>`}
+<h2>${esc(LAND[l].faqT)}</h2>${G.faq.map(([q, a]) => `<details open><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}`;
+  const ld = [crumbs([["Pitlane HQ", LAND[l].path], [G.h1, G.path]]),
+    { "@context": "https://schema.org", "@type": "ItemList", name: G.h1, itemListElement: list.map((x, i) => ({ "@type": "ListItem", position: i + 1, name: fix(x.name), url: x.invite })) },
+    { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: G.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }];
+  return html(page(l, { title: G.title, desc: G.desc, path: G.path, alts: LEAG_ALTS, body, ld }), 1800);
+}
+
 async function topCombos(env, n) {
   const r = await env.DB.prepare(
     "SELECT track_id AS t, MAX(track) AS track, car_id AS c, MAX(car) AS car, COUNT(DISTINCT user_id) AS drivers, MIN(time) AS best, MAX(cat) AS hint, MAX(created) AS upd FROM community_laps WHERE game='iracing' AND track_id>0 AND car_id>0 AND COALESCE(shown,'')<>'model' GROUP BY track_id, car_id ORDER BY drivers DESC, best LIMIT ?1"
@@ -305,6 +339,7 @@ async function sitemap(env) {
   const s = [u("/", "weekly", "1.0", null, newest)];
   for (const k of LANGS) s.push(u(LAND_ALTS[k], "weekly", k === "en" ? "0.9" : "0.8", LAND_ALTS, newest));
   for (const k of LANGS) s.push(u(OVL_ALTS[k], "weekly", k === "en" ? "0.8" : "0.7", OVL_ALTS));
+  for (const k of LANGS) s.push(u(LEAG_ALTS[k], "daily", k === "en" ? "0.8" : "0.7", LEAG_ALTS));
   for (const x of TOPICS) { const a = topicAlts(x); for (const k of LANGS) s.push(u(a[k], "monthly", k === "en" ? "0.8" : "0.7", a)); }
   for (const k of LANGS) s.push(u(recAll[k], "daily", k === "en" ? "0.8" : "0.7", recAll, newest));
   s.push(u("/downloads", "weekly", "0.7"), u("/changelog", "weekly", "0.4"));
@@ -316,7 +351,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "7";
+const SEO_VER = "8";
 export async function indexNow(env) {
   if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);
@@ -334,7 +369,7 @@ export async function indexNow(env) {
     "SELECT track_id AS t, MAX(track) AS track, car_id AS c, MAX(car) AS car FROM community_laps WHERE game='iracing' AND track_id>0 AND car_id>0 AND created>?1 GROUP BY track_id, car_id LIMIT 4000"
   ).bind(last).all().catch(() => ({ results: [] }));
   const urls = [];
-  if (!last) urls.push("/", ...Object.values(LAND_ALTS), ...Object.values(OVL_ALTS), ...TOPICS.flatMap((x) => Object.values(topicAlts(x))), "/records", "/es/records", "/pt/records", "/downloads", "/changelog");
+  if (!last) urls.push("/", ...Object.values(LAND_ALTS), ...Object.values(OVL_ALTS), ...Object.values(LEAG_ALTS), ...TOPICS.flatMap((x) => Object.values(topicAlts(x))), "/records", "/es/records", "/pt/records", "/downloads", "/changelog");
   else if ((fresh.results || []).length) urls.push("/records", "/es/records", "/pt/records");
   for (const x of fresh.results || []) urls.push(...Object.values(recAlts({ ...x, car: famName("iracing", x.c, x.car) })));
   if (urls.length) {
@@ -374,6 +409,9 @@ export async function seoPage(req, env, url) {
   if (p === "/iracing-overlays" || p === "/overlays") return at("/iracing-overlays", () => overlaysPage("en"));
   if (p === "/es/overlays-iracing" || p === "/es/overlays") return at("/es/overlays-iracing", () => overlaysPage("es"));
   if (p === "/pt/overlays-iracing" || p === "/pt/overlays") return at("/pt/overlays-iracing", () => overlaysPage("pt"));
+  if (p === "/iracing-leagues" || p === "/leagues") return at("/iracing-leagues", () => leaguesPage(env, "en"));
+  if (p === "/es/ligas-iracing" || p === "/es/ligas") return at("/es/ligas-iracing", () => leaguesPage(env, "es"));
+  if (p === "/pt/ligas-iracing" || p === "/pt/ligas") return at("/pt/ligas-iracing", () => leaguesPage(env, "pt"));
   { const tp = TOPIC_AT.get(p); if (tp) return at(p, () => topicPage(tp[0], tp[1])); }
   const dsc = url.searchParams.get("d"), cat = CAT.en[dsc] ? dsc : "";
   if (p === "/records") return at(p, () => recordsIndex(env, "en", cat));

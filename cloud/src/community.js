@@ -357,7 +357,7 @@ export async function community(req, env, url, ctx) {
       const a = await env.DB.prepare(`SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id WHERE ${ACCT_TRACE_WHERE} LIMIT 1`).bind(l.user_id, l.time, l.game).first();
       if (a) trace = a.trace;
     }
-    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: l.car, track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(await openData(env, trace)) : null });
+    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: famName(l.game, l.car_id, l.car), track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(await openData(env, trace)) : null });
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");
@@ -369,7 +369,7 @@ export async function community(req, env, url, ctx) {
        FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE (?1=0 OR r.track_id=?1) AND (?2=0 OR r.car_id IN (${fam.map((n) => +n || 0).join(",")})) AND r.game=?3 ORDER BY r.created DESC LIMIT 100`
     ).bind(t || 0, c || 0, game).all();
     const who = await me(req, env).catch(() => null);
-    return json({ reports: (r.results || []).map(({ uid, ...x }) => ({ ...x, mine: !!who && uid === who.id })) });
+    return json({ reports: (r.results || []).map(({ uid, ...x }) => ({ ...x, car: famName(game, c, x.car), mine: !!who && uid === who.id })) });
   }
   // track outlines (from clean best laps): anyone can read them
   if (p === "/trackmaps" && m === "GET") {
@@ -654,8 +654,10 @@ export async function community(req, env, url, ctx) {
   // LEAGUES_OPEN is "1"; the owner of a league (or an admin) edits or removes it
   if (p === "/leagues" || p.startsWith("/leagues/")) {
     const who = await sessionAccount(req, env).catch(() => null), admin = !!who && isAdmin(env, who.id);
-    if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
     const parts = p.slice(9).split("/").filter(Boolean), lid = parts[0] || "", sub = parts[1] || "";
+    // the most active leagues are public (the landing, the public leagues page): anyone reads them, signed in or not
+    if (lid === "found" && !sub && m === "GET") return json(await foundLeagues(env, admin));
+    if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
     // the most active leagues found in public posts (r/iRacing, r/iRacingLeagues) with their Discord; admins hide
     // one, edit its name, text and disciplines, or read the feeds again now
     if (lid === "found") {

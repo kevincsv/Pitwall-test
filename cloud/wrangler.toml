@@ -30,6 +30,8 @@ migrations_dir = "migrations"
 [vars]
 # accounts, end-to-end encrypted sync, community and shared setups on this server
 COMMUNITY = "1"
+# the leagues hub is open to everyone (posts, the most active leagues); "0" puts it back in development
+LEAGUES_OPEN = "1"
 # your Pitlane HQ account id(s), separated by commas, to publish the season schedule
 SEASON_UPLOADERS = "3e224233fde0e11f670d2d97"
 # admin account id(s): they see Connections (iRacing, Garage 61, own site, Discord) in the app; empty = the SEASON_UPLOADERS

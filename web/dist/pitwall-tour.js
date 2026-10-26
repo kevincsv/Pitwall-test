@@ -100,14 +100,26 @@
   ];
   const btns = () => `<div class="tr-cta"><button type="button" class="btn primary" data-tr="create">${esc(t("Create account", "Crear cuenta", "Criar conta"))}</button><a class="btn" href="/dl/PitlaneHQ-Setup.exe">${esc(t("Download for Windows", "Descargar para Windows", "Baixar para Windows"))}</a><a class="btn" href="/dl/PitlaneHQ-Android.apk">${esc(t("Download for Android", "Descargar para Android", "Baixar para Android"))}</a></div>`;
 
+  const LEAGP = () => ({ es: "/es/ligas-iracing", pt: "/pt/ligas-iracing" })[L()] || "/iracing-leagues";
+  const DISC = { oval: ["Oval", "Óvalo", "Oval"], sports_car: ["Sports Car", "Sports Car", "Sports Car"], formula_car: ["Formula Car", "Fórmula", "Fórmula"], dirt_oval: ["Dirt Oval", "Óvalo de tierra", "Oval de terra"], dirt_road: ["Dirt Road", "Tierra", "Terra"] };
+  // the most active leagues (the same list as Community → Leagues), read from the server: the section shows once they are there
+  async function leagues() {
+    const sec = S.el && S.el.querySelector(".tr-leag"); if (!sec) return;
+    let F = null; try { const r = await fetch("/community/leagues/found"); if (r.ok) F = await r.json(); } catch (e) {}
+    const list = ((F && F.leagues) || []).slice(0, 6); if (!list.length || !S.el || !S.el.contains(sec)) return;
+    const num = (n) => Number(n || 0).toLocaleString(L() === "en" ? "en" : L());
+    sec.querySelector(".tr-lgrid").innerHTML = list.map((x) => `<article class="tr-lg tr-rv">${x.icon ? `<img src="${esc(x.icon)}" alt="" width="44" height="44" loading="lazy">` : `<span class="tr-lgi" aria-hidden="true">${esc((x.name || "?").slice(0, 1))}</span>`}<div class="tr-lgt"><b>${esc(x.name)}</b><small>${esc((x.cats || []).map((c) => t(...(DISC[c] || [c, c, c]))).join(" · ") || t("iRacing league", "Liga de iRacing", "Liga de iRacing"))}</small></div><div class="tr-lgn"><span><b class="on">${num(x.online)}</b> ${esc(t("online", "conectados", "online"))}</span><span><b>${num(x.members)}</b> ${esc(t("members", "miembros", "membros"))}</span></div><a class="btn small" href="${esc(x.invite)}" target="_blank" rel="noopener">${esc(t("Join the Discord", "Unirse al Discord", "Entrar no Discord"))}</a></article>`).join("");
+    sec.hidden = false; if (S.obs) S.obs.observe(sec);
+  }
   const S = { el: null, live: { on: false, raf: 0 }, obs: null, phones: false };
   function pageHTML() {
     const feats = FEATS().map(([img, h, p]) => `<section class="tr-row"><div class="tr-txt tr-rv"><h3>${esc(h)}</h3><p>${esc(p)}</p></div><div class="tr-rv" style="transition-delay:120ms">${win(img, h)}</div></section>`).join("");
     const ovs = OVS().map(([n, c]) => `<figure class="tr-ov tr-rv"><div><img src="${IMG()}ov-${n}.png" alt="${esc(c)}" loading="lazy" decoding="async"></div><figcaption>${esc(c)}</figcaption></figure>`).join("");
     const more = MORE().map(([h, p]) => `<div class="tr-more-i tr-rv"><b>${esc(h)}</b><p>${esc(p)}</p></div>`).join("");
-    return `<header class="tr-hero"><div class="tr-htop"><div><h1 class="tr-rv">${esc(t("iRacing telemetry, a coach for your laps and overlays", "Telemetría para iRacing, un coach para tus vueltas y overlays", "Telemetria para iRacing, um coach para suas voltas e overlays"))}</h1><div class="tr-rv" style="transition-delay:100ms">${btns()}</div></div><div class="tr-auth"></div></div><div class="tr-rv tr-hshot" style="transition-delay:200ms">${win("coach.jpg", "Coach")}</div></header>
+    return `<header class="tr-hero"><div class="tr-htop"><div><h1 class="tr-rv">${esc(t("iRacing telemetry, a coach for your laps and overlays", "Telemetría para iRacing, un coach para tus vueltas y overlays", "Telemetria para iRacing, um coach para suas voltas e overlays"))}</h1><div class="tr-rv" style="transition-delay:100ms">${btns()}<p class="tr-org">${esc(t("Run an iRacing league?", "¿Organizas una liga de iRacing?", "Organiza uma liga de iRacing?"))} <button type="button" data-tr="league">${esc(t("Post it for free", "Publícala gratis", "Publique de graça"))} →</button></p></div></div><div class="tr-auth"></div></div><div class="tr-rv tr-hshot" style="transition-delay:200ms">${win("coach.jpg", "Coach")}</div></header>
 <main><h2 class="tr-kick">${esc(t("What Pitlane HQ does", "Qué hace Pitlane HQ", "O que o Pitlane HQ faz"))}</h2>${feats}
 <section class="tr-blk" data-live="1"><h2 class="tr-rv">${esc(t("Overlays over iRacing", "Overlays sobre iRacing", "Overlays sobre o iRacing"))}</h2><p class="tr-sub tr-rv">${esc(t("This is how they look on your screen, drawn by Pitlane HQ Agent.", "Así se ven en tu pantalla, dibujados por Pitlane HQ Agent.", "É assim que aparecem na sua tela, desenhados pelo Pitlane HQ Agent."))}</p><div class="tr-live">${liveHTML()}</div><div class="tr-ovs">${ovs}</div></section>
+<section class="tr-blk tr-leag" hidden><h2 class="tr-rv">${esc(t("Find your league", "Encuentra tu liga", "Encontre sua liga"))}</h2><p class="tr-sub tr-rv">${esc(t("The most active iRacing leagues, with who is on their Discord right now.", "Las ligas de iRacing más activas, con quién está en su Discord ahora mismo.", "As ligas de iRacing mais ativas, com quem está no Discord delas agora."))}</p><div class="tr-lgrid"></div><div class="tr-cta tr-rv"><a class="btn" href="${LEAGP()}">${esc(t("See every league", "Ver todas las ligas", "Ver todas as ligas"))}</a><button type="button" class="btn primary" data-tr="league">${esc(t("Post your league for free", "Publica tu liga gratis", "Publique sua liga de graça"))}</button></div></section>
 <section class="tr-blk tr-phones" hidden><h2 class="tr-rv">${esc(t("Also on your phone", "También en el móvil", "Também no celular"))}</h2><div class="tr-pgrid">${PHONES().map(([i, c]) => phone(i, c)).join("")}</div></section>
 <section class="tr-blk"><h2 class="tr-small tr-rv">${esc(t("And also", "Y además", "E também"))}</h2><div class="tr-more">${more}</div></section>
 <section class="tr-blk tr-end"><h2 class="tr-rv">${esc(t("Start in two minutes", "Empieza en dos minutos", "Comece em dois minutos"))}</h2><div class="tr-rv">${btns()}</div></section></main>
@@ -147,12 +159,13 @@
     // the sign-in panel lives in the hero: take it back to the "me" view before the page is drawn again, or it goes with it
     const me = document.getElementById("meBody"), pn = S.el.querySelector(".tr-auth .me-auth"); if (me && pn) me.appendChild(pn);
     S.el.innerHTML = pageHTML();
-    observe(); phones(); auth(); topNav();
+    observe(); phones(); leagues(); auth(); topNav();
   }
   function unmount() {
     if (!S.el) return;
     document.documentElement.classList.remove("tour-on"); document.querySelectorAll("header.top .tr-nav").forEach((x) => x.remove()); if (S.mo) S.mo.disconnect(); const me = document.getElementById("meBody"), pn = S.el.querySelector(".tr-auth .me-auth"); if (me && pn) me.appendChild(pn);
     liveStop(S.live); if (S.obs) S.obs.disconnect(); clearInterval(S.langT); S.el.remove(); S.el = null;
+    try { if (sessionStorage.getItem("pw.goLeagues")) { sessionStorage.removeItem("pw.goLeagues"); setTimeout(() => { try { LEAG.tab = "post"; show("leagues"); } catch (e) {} }, 1500); } } catch (e) {}
   }
   function mount() {
     if (S.el) return;
@@ -163,8 +176,12 @@
     S.mo = new MutationObserver(auth); S.mo.observe(me, { childList: true }); auth();
     // the language window sits over the page: once chosen, the page says it in that language
     S.lang = L(); S.langT = setInterval(() => { if (!S.el) { clearInterval(S.langT); return; } if (L() !== S.lang) { S.lang = L(); render(); } }, 400);
+    // from the public leagues page ("Post your league for free"): the form to create an account, then the hub
+    if (new URLSearchParams(location.search).has("league-post")) setTimeout(() => { const b = el.querySelector("[data-tr=league]"); if (b) b.click(); }, 600);
     el.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-tr]"); if (!b) return;
+      // posting a league needs an account: the form to create it, then the leagues hub once signed in
+      if (b.dataset.tr === "league") { try { sessionStorage.setItem("pw.goLeagues", "1"); } catch (e) {} b.dataset.tr = "create"; b.click(); b.dataset.tr = "league"; return; }
       if (b.dataset.tr === "create") {
         scrollTo({ top: 0, behavior: "smooth" });
         setTimeout(() => { const btn = document.getElementById("meToReg"); if (btn) btn.click(); setTimeout(() => { const f = document.querySelector(".tr-auth input"); if (f) f.focus({ preventScroll: true }); }, 80); }, 450);
@@ -222,6 +239,14 @@ html.tour-on #v-me>.vhead,html.tour-on #meBody>.me-welcome,html.tour-on #meBody>
 #tour .lv-fu{display:flex;gap:18px;margin-top:4px}#tour .lv-fu b{display:block;font:700 22px var(--f-data);white-space:nowrap}#tour .lv-fu b em{font:500 11px var(--f-body);font-style:normal;color:#8a97a9}#tour .lv-fu small{display:block;font-size:10px;line-height:1.3;color:#8a97a9}#tour .lv-fuel p{margin:6px 0 0;font-size:11px;color:#4fe09a}
 #tour .tr-ovs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:22px}
 #tour .tr-ov{margin:0}#tour .tr-ov>div{height:150px;display:flex;align-items:center;justify-content:center;background:#0d1116;border:1px solid var(--line);border-radius:12px;padding:12px}#tour .tr-ov img{max-width:100%;max-height:126px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.55)}#tour .tr-ov figcaption{margin-top:8px;font-size:12px;color:var(--muted)}
+#tour .tr-org{margin:14px 0 0;font-size:14px;color:var(--muted)}#tour .tr-org button{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+#tour .tr-lgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0}
+#tour .tr-lg{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px 12px;align-items:center;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+#tour .tr-lg img,#tour .tr-lgi{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:var(--line);font-weight:700}
+#tour .tr-lgt{display:flex;flex-direction:column;min-width:0}#tour .tr-lgt b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tour .tr-lgt small{color:var(--muted);font-size:12px}
+#tour .tr-lgn{grid-column:1/-1;display:flex;gap:16px;font-size:13px;color:var(--muted)}#tour .tr-lgn b{color:var(--fg);font-family:var(--f-data)}#tour .tr-lgn b.on{color:var(--good,#3ecf8e)}
+#tour .tr-lg .btn{grid-column:1/-1;justify-self:start;text-decoration:none;font:700 13px/1.2 var(--f-body);letter-spacing:0;text-transform:none;border-radius:8px;padding:8px 14px}
+@media(max-width:900px){#tour .tr-lgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){#tour .tr-lgrid{grid-template-columns:minmax(0,1fr)}}
 #tour .tr-pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:18px}
 #tour .tr-phone{margin:0}#tour .tr-phone>div{border:6px solid #2a313c;border-radius:34px;overflow:hidden;background:#11151b;box-shadow:0 18px 50px rgba(0,0,0,.45)}#tour .tr-phone img{display:block;width:100%;height:auto}#tour .tr-phone figcaption{margin-top:8px;font-size:12px;color:var(--muted);text-align:center}
 #tour .tr-more{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px;margin-top:14px}#tour .tr-more-i{border-top:2px solid var(--accent);padding-top:10px}#tour .tr-more-i b{font-size:15px;font-weight:600}#tour .tr-more-i p{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}

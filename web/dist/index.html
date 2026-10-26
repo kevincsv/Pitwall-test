@@ -1201,12 +1201,13 @@ html .cl-you{margin-top:16px;border-top:1px solid var(--line)}html .cl-rdet{top:
 html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .hl-lic:last-child,html .cl-list>.cl-rrow:last-child{border-bottom:0}
 @media(max-width:700px){html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{padding:12px 14px}html .hl-kpis,html .cl-kpis{gap:10px}}
 .lgf-cats{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 10px}#lgfF .lgf-cats label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;white-space:nowrap}#lgfF .lgf-cats input{width:auto;margin:0}.lgf-act{flex-wrap:wrap}.lgf-act .btn{white-space:nowrap}#lgfT{width:100%;resize:vertical}
+.hl-lg{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none}.hl-lg:last-child{border-bottom:0}.hl-lg img,.hl-lg .lgf-ic{width:32px;height:32px;border-radius:8px}.hl-lg .inf{display:flex;flex-direction:column;min-width:0}.hl-lg .nm{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hl-lg .sub{font-size:12px;color:var(--muted)}.hl-lgn{font-size:12px;color:var(--muted);white-space:nowrap}.hl-lg:hover .nm{color:var(--accent)}
 </style>
 
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
 <h1>Pitlane HQ (PitlaneHQ) · iRacing and sim racing telemetry, a coach for your laps and overlays</h1>
 <p>Free iRacing telemetry: Pitlane HQ Agent records every lap you drive on your Windows PC, and the coach shows where you lose time against your best lap, the record and the driver just ahead of you in the same car. On Windows, Android and the web.</p>
-<p><a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/iracing-overlays">iRacing overlays</a> · <a href="/records">iRacing records by car and track</a> · <a href="/downloads">Download</a> · <a href="/es/telemetria-iracing">Telemetría para iRacing (Español)</a> · <a href="/pt/telemetria-iracing">Telemetria para iRacing (Português)</a></p>
+<p><a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/iracing-overlays">iRacing overlays</a> · <a href="/iracing-leagues">iRacing leagues</a> · <a href="/records">iRacing records by car and track</a> · <a href="/downloads">Download</a> · <a href="/es/telemetria-iracing">Telemetría para iRacing (Español)</a> · <a href="/pt/telemetria-iracing">Telemetria para iRacing (Português)</a></p>
 <p>Guides: <a href="/iracing-coach">iRacing coach</a> · <a href="/iracing-lap-comparison">Compare iRacing laps</a> · <a href="/iracing-braking-points">iRacing braking points</a> · <a href="/iracing-racing-line">iRacing racing line</a> · <a href="/iracing-irating-tracker">iRating and licence tracker</a> · <a href="/iracing-shift-beep">iRacing shift beep</a> · <a href="/iracing-telemetry-on-phone">iRacing telemetry on your phone</a> · <a href="/free-iracing-telemetry">Free iRacing telemetry</a> · <a href="/es/coach-iracing">Coach de iRacing</a> · <a href="/es/telemetria-iracing-gratis">Telemetría de iRacing gratis</a> · <a href="/pt/coach-iracing">Coach de iRacing (PT)</a> · <a href="/pt/telemetria-iracing-gratis">Telemetria do iRacing grátis</a></p>
 <p>The app needs JavaScript.</p></main></noscript>
 <div id="splash" role="status" aria-label="Pitlane HQ"><div class="sp-logo"><span class="sp-flag" aria-hidden="true"></span>PITLANE HQ</div><div class="sp-bar"><i></i></div></div>
@@ -2727,7 +2728,8 @@ function openSessPicker(px){const ss=(CLOUD.sessions||[]).slice().sort((a,b)=>(b
 const supTag=()=>`<span class="sup" title="${esc(Tx("Supports Pitlane HQ","Apoya a Pitlane HQ","Unterstützt Pitlane HQ","Apoia o Pitlane HQ"))}">♥ Supporter</span>`;
 /* a driver's profile: their nickname (never their iRacing name), license classes, recent races and laps on the leaderboards.
    Opened from one of their laps ({lap}) or yours ({me:1}). An anonymous driver has none; their anonymous laps never show. */
-async function profGet(q){const path="/community/profile?"+(q.me?"me=1":q.id?"id="+encodeURIComponent(q.id):"lap="+encodeURIComponent(q.lap))+"&tz="+new Date().getTimezoneOffset();if(COMPANION&&CP.acc||!COMPANION&&PCACC)return cloudGet(path);if(COMPANION)return cpCall("GET",path,null,false);throw new Error(Tx("Sign in with your Pitlane HQ account to see the profiles.","Inicia sesión con tu cuenta de Pitlane HQ para ver los perfiles.","Melde dich mit deinem Pitlane-HQ-Konto an, um die Profile zu sehen.","Entre com sua conta Pitlane HQ para ver os perfis."))}
+async function profGet(q){return famCars(await profGet0(q))}
+async function profGet0(q){const path="/community/profile?"+(q.me?"me=1":q.id?"id="+encodeURIComponent(q.id):"lap="+encodeURIComponent(q.lap))+"&tz="+new Date().getTimezoneOffset();if(COMPANION&&CP.acc||!COMPANION&&PCACC)return cloudGet(path);if(COMPANION)return cpCall("GET",path,null,false);throw new Error(Tx("Sign in with your Pitlane HQ account to see the profiles.","Inicia sesión con tu cuenta de Pitlane HQ para ver los perfiles.","Melde dich mit deinem Pitlane-HQ-Konto an, um die Profile zu sehen.","Entre com sua conta Pitlane HQ para ver os perfis."))}
 async function openProfile(q){let m=$("#profDlg");if(!m){m=document.createElement("div");m.id="profDlg";m.className="uidlg";document.body.appendChild(m)}
   const close=()=>{m.hidden=true;m.innerHTML=""};m.hidden=false;
   m.innerHTML=`<div class="bg"></div><div class="pn" role="dialog" aria-modal="true"><p class="note">${esc(Tx("Loading…","Cargando…","Lädt…","Carregando…"))}</p></div>`;m.querySelector(".bg").onclick=close;
@@ -6714,7 +6716,10 @@ async function sendMyLics(){try{const m=COMPANION?cpSnap("member/info"):null;if(
     Object.values(m.licenses).forEach(l=>{const g=String(l.group_name||""),k=l.category==="road"?"sports_car":l.category;const c=/^pro/i.test(g)?"P":/rookie/i.test(g)?"R":(g.match(/class\s*([A-D])/i)||[])[1];if(k&&c)out[k]=c.toUpperCase()});
     const key=JSON.stringify(out);if(!Object.keys(out).length||key===LICS_SENT)return;LICS_SENT=key;await cpCall("POST","/community/lics",{lics:out})}catch(e){}}
 let COMM=null,COMMSEL=null,SHARED_REPORTS={};
-async function cget(p){if(/^\/api\/community\/(combos|laps|reports|setups|model|records|track)/.test(p))p=withGame(p);if(MODE==="bridge")return jget(p);const u=new URL(p,location.href),t=+u.searchParams.get("trackId"),c=+u.searchParams.get("carId"),id=u.searchParams.get("id");
+/* Community never shows a brand of a car family (the SF23's Honda, NASCAR's Toyota): every car name it gets is the family's */
+const famCars=o=>{if(Array.isArray(o))o.forEach(famCars);else if(o&&typeof o==="object")for(const k in o){const v=o[k];if(k==="car"&&typeof v==="string")o[k]=carFam(v);else if(v&&typeof v==="object")famCars(v)}return o};
+async function cget(p){return famCars(await cget0(p))}
+async function cget0(p){if(/^\/api\/community\/(combos|laps|reports|setups|model|records|track)/.test(p))p=withGame(p);if(MODE==="bridge")return jget(p);const u=new URL(p,location.href),t=+u.searchParams.get("trackId"),c=+u.searchParams.get("carId"),id=u.searchParams.get("id");
   return u.pathname.endsWith("/combos")?{combos:[]}:u.pathname.endsWith("/reports")?{reports:[]}:{laps:[]}}
 async function loadComm(){if(MODE==="bridge"){try{COMM=await jget("/api/community")}catch(e){COMM={ready:false,error:e.message}}}else COMM=COMM||{ready:false};return COMM}
 const DEL_OPTS=[["","Keep it","Conservarla","Behalten","Manter"],["now","Right away","Inmediatamente","Sofort","Imediatamente"],["1d","After 1 day","Tras 1 día","Nach 1 Tag","Após 1 dia"],["2d","After 2 days","Tras 2 días","Nach 2 Tagen","Após 2 dias"],["7d","After 1 week","Tras 1 semana","Nach 1 Woche","Após 1 semana"]];
@@ -7116,6 +7121,16 @@ const hlSg=v=>(v>0?"+":v<0?"−":"±")+Math.abs(v);
 function hlLine(a,w,h,inv){if(!a||a.length<2)return"";const mn=Math.min(...a),mx=Math.max(...a),r=mx-mn||1;return a.map((v,i)=>(i*w/(a.length-1)).toFixed(1)+","+(inv?2+(v-mn)/r*(h-4):h-2-(v-mn)/r*(h-4)).toFixed(1)).join(" ")}
 function hlKindTag(k){const t={race:Tx("Race","Carrera","Rennen","Corrida"),qual:Tx("Qualifying","Clasificación","Qualifying","Classificação"),prac:Tx("Practice","Práctica","Training","Treino"),test:Tx("Test drive","Prueba","Testfahrt","Teste")}[k];return t?`<span class="hl-tag k-${k}">${esc(t)}</span>`:""}
 function hlRaceDisc(r){return raceDisc(r.cat,r.car)}
+/* Home's "Leagues for you": the most active leagues of the discipline you race most (else the most active of all),
+   who is on their Discord now and a button to join it */
+function homeLeagHTML(d){const F=LEAG_FOUND,none=`<section class="hl-sec" id="hlLeag" hidden></section>`;
+  if(!F){if(!homeLeagHTML.ld){homeLeagHTML.ld=1;loadLeagFound().then(()=>{const el=$("#hlLeag");if(el)el.outerHTML=homeLeagHTML(d)})}return none}
+  const all=(F.leagues||[]).filter(x=>!x.hidden);if(!all.length)return none;
+  let list=d?all.filter(x=>(x.cats||[]).includes(d)):[];if(list.length<3)list=list.concat(all.filter(x=>!list.includes(x)));list=list.slice(0,3);
+  const num=n=>Number(n||0).toLocaleString(locale());
+  return`<section class="hl-sec" id="hlLeag"><div class="cl-h"><h2>${esc(Tx("Leagues for you","Ligas para ti","Ligen für dich","Ligas para você"))}</h2><button type="button" class="cl-link" data-hlleag="1">${esc(Tx("See all","Ver todas","Alle ansehen","Ver todas"))}</button></div>
+    ${list.map(x=>`<a class="hl-lg" href="${esc(x.invite)}" target="_blank" rel="noopener">${x.icon?`<img src="${esc(x.icon)}" alt="" width="32" height="32" loading="lazy">`:`<span class="lgf-ic" aria-hidden="true">${esc((x.name||"?").slice(0,1))}</span>`}<span class="inf"><span class="nm">${esc(x.name)}</span><span class="sub">${(x.cats||[]).map(c=>esc(discName(c))).join(" · ")||esc(Tx("iRacing league","Liga de iRacing","iRacing-Liga","Liga de iRacing"))}</span></span><span class="hl-lgn"><b class="good">${num(x.online)}</b> ${esc(Tx("online","conectados","online","online"))}</span></a>`).join("")}</section>`}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-hlleag]");if(b)show("leagues")});
 function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   const loc=locale(),races=(RACES||[]).filter(r=>r&&!r.partial),R=discRatings(),hr=new Date().getHours(),name=(COMPANION?CP.acc&&CP.acc.display:ME&&ME.display)||"";
   const hi=hr<6||hr>=21?Tx("Good evening","Buenas noches","Guten Abend","Boa noite"):hr<13?Tx("Good morning","Buenos días","Guten Morgen","Bom dia"):Tx("Good afternoon","Buenas tardes","Guten Tag","Boa tarde");
@@ -7152,6 +7167,7 @@ function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   const hist=HOME.dk?real.filter(x=>hlRaceDisc(x)===HOME.dk&&x.ir>1).slice(0,30).reverse().map(x=>x.ir+(x.irChange||0)):[];if(HOME.dk&&R[HOME.dk]&&(!hist.length||hist[hist.length-1]!==R[HOME.dk].ir))hist.push(R[HOME.dk].ir);
   let right=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
   const by=homeActivity(),cal=calGrid(k=>{const v=by.get(k);return v?v.ses.length+v.races.length:0},true);
+  right+=homeLeagHTML(main);
   right+=`<section class="hl-sec hl-days"><div class="cl-h"><h2>${esc(Tx("Days you drove","Días que has corrido","Gefahrene Tage","Dias em que correu"))}</h2><span>${cal.driven} ${esc(Tx("days in 6 months","días en 6 meses","Tage in 6 Monaten","dias em 6 meses"))}</span></div>${cal.html}</section>`;
   return h+`<div class="hl-two"><div class="hl-col">${left}</div><div class="hl-col">${right}</div></div>`}
 function renderHome(fromLoad){const box=$("#homeBox");if(!box)return;if(!fromLoad&&!HOME.busy&&(!SER||(!ACCSUM&&!(MODE==="bridge"&&ACC.loggedIn&&ACCDATA))||(MODE==="bridge"&&ACC.loggedIn&&!HOME.acct)))homeLoad();
@@ -7500,6 +7516,8 @@ function chooseLanguage(first){let m=$("#langPick");if(!m){m=document.createElem
   m.hidden=false;m.querySelectorAll("[data-lp]").forEach(b=>b.onclick=()=>{LANG=b.dataset.lp;store.set("pw.lang",LANG);m.hidden=true;applyI18n();
     const langSel=$("#langSeg");if(langSel)langSel.value=LANG;if(first)setTimeout(askShare,400)});
   const f=m.querySelector("button");if(f)f.focus()}
+// "Post your league for free" from the public leagues page, already signed in: the hub's form
+setTimeout(()=>{try{if(new URLSearchParams(location.search).has("league-post")&&!document.documentElement.classList.contains("signwall")){LEAG.tab="post";show("leagues")}}catch(e){}},2500);
 function langChosen(){try{return localStorage.getItem("pw.lang")!=null}catch(e){return true}}
 if(!OV.on)setTimeout(()=>{if(!langChosen())chooseLanguage(true);else askShare()},1200);
 /* first start on the PC: share telemetry with the community? (asked once; changed later in Community) */
