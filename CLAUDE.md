@@ -437,6 +437,21 @@
   of braking points and of speeds at the slowest point among the fastest drivers here (one lap each, the fastest 30 %, 3 to
   12), shown under the tip as one line ("The fast drivers here brake between 312 and 328 m and pass the apex at
   112–118 km/h (6 drivers)", `cornerHint` in pitwall-model.js, `CornerCard` on the phones): a hint, never a reference lap.
+  How the coach keeps learning (migration 0053), all of it counts over real laps, never an LLM: the metres a braking tip
+  asks for are what the drivers who gained really moved their braking by (`dd`/`ddn` on the tips, `ask` per bucket from 10
+  gains, `tipAsk` on the web, never more than the gap seen); the driver's own memory (`/community/coach/me`: the kinds that
+  repeat on 3 or more of their tracks are habits, shown first in the plan and on the phones, and their own buckets weigh
+  from 10 cases, `COACH_ME`); the step to the next level (`levelStep` in model.js, `step` on every ladder entry: the
+  corners where the laps just slower than that reference lose to it, "the drivers at your pace make the step in T4 and
+  T9" under the Next level card); each corner's difficulty (`spread` of the drivers' corner times, weighing the plan with
+  `dif`); laps in traffic (a car within a second ahead for a fifth of the lap, `traffic` in `Trace.f`, the agent checks
+  twice a second) or on cold tyres (the first lap of a run, `cold`) are tagged on the web, never the coach's default lap
+  A and never the model's (`goodLap`); a corner taken differently every lap (its spread over twice its loss) hears
+  "the same braking point every lap" first (kind `cons`); the corner card by track temperature band (cold under 25 °C,
+  hot over 35, `bands`, `model_laps.temp`) when a band has enough laps, and the fast drivers' line at the apex against
+  the record's (`lineRanges`, `line` on the corner, a range never a composite); a tip may say how many drivers it helped
+  on corners like it only when the admin turns it on (Coach tab, `coach_confidence`); an admin turns a kind off for
+  corners of one speed (`coach_off`, `off` in /coach/weights: web, PC and phones say the phase's plain tip instead).
 - The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.

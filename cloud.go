@@ -74,6 +74,7 @@ type lapTrace struct {
 	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
 	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated)
+	F    []string     `json:"f,omitempty"`    // what this lap was driven in: "traffic" (a car within a second ahead for a fifth of the lap), "cold" (the first lap of a run, tyres cold); the coach and the model leave such laps aside
 }
 
 type cloudItem struct {
@@ -326,7 +327,7 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
 	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
-	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon"}
+	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon", "PlayerCarIdx"}
 
 const lapBin = 5 // metres
 
@@ -348,15 +349,19 @@ type lapRec struct {
 	hasPos, posBad bool
 	geo            bool
 	org            [2]float64 // the [lat, lon] of x=0, y=0 when the path comes from the game's position
-	incPrev        float64    // the incident count at the previous sample
-	incAt          []float64  // [distance, points] of every incident on this lap
-	incK           []string   // the kind of each incident
-	besideAt       time.Time  // the last moment another car was right beside you
-	pitB           []bool     // the 5 m points on the pit road (pitlane.go)
-	lastPitB       int
-	drv            map[string]int // DRINKS mode: who was at the wheel, sampled once a second ("" you)
-	drvAt          time.Time
-	driver         string // who drove most of the lap, set when it ends
+	// the lap's company: how often a car was within a second ahead (checked twice a second), and whether it is the
+	// first lap of a run (out of the pits or the session's start: cold tyres)
+	trafficN, trafficS int
+	cold               bool
+	incPrev            float64   // the incident count at the previous sample
+	incAt              []float64 // [distance, points] of every incident on this lap
+	incK               []string  // the kind of each incident
+	besideAt           time.Time // the last moment another car was right beside you
+	pitB               []bool    // the 5 m points on the pit road (pitlane.go)
+	lastPitB           int
+	drv                map[string]int // DRINKS mode: who was at the wheel, sampled once a second ("" you)
+	drvAt              time.Time
+	driver             string // who drove most of the lap, set when it ends
 }
 
 // noteDriver counts who is driving (DRINKS mode), once a second: the lap is theirs who drove most of it, so a
@@ -487,6 +492,7 @@ func lapRecorder() {
 	lastBase := 0  // the lap offset of the session's current run (sessionrun.go)
 	lastLL := -1.0 // LapLastLapTime one sample before, to tell when iRacing updates it
 	t := time.NewTicker(time.Second / 30)
+	tick := 0
 	for range t.C {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
@@ -546,9 +552,32 @@ func lapRecorder() {
 					finishLap(done, s, fuelNow, lt)
 				}()
 			}
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1}
+			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit}
 		}
 		cur.noteDriver(now)
+		// twice a second: a car within one second ahead (by its place on the lap) is traffic
+		if tick++; tick%15 == 0 && speed > 5 && pct > 0.02 && dist > 0 {
+			if arr := telArrays([]string{"CarIdxLapDistPct", "CarIdxOnPitRoad"}); len(arr[0]) > 0 {
+				L, me, near := dist/pct, int(v[25]), false
+				for i, p := range arr[0] {
+					if i == me || p < 0 || (len(arr[1]) > i && arr[1][i] > 0) {
+						continue
+					}
+					gap := p - pct
+					if gap < 0 {
+						gap++
+					}
+					if g := gap * L; g > 0 && g < speed*1.0 {
+						near = true
+						break
+					}
+				}
+				cur.trafficS++
+				if near {
+					cur.trafficN++
+				}
+			}
+		}
 		if pct < 0 || dist < 0 {
 			continue
 		}
@@ -694,6 +723,12 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		if r.geo {
 			l.Trace.G = []float64{r.org[0], r.org[1]}
 		}
+	}
+	if r.trafficS >= 10 && float64(r.trafficN) > 0.2*float64(r.trafficS) {
+		l.Trace.F = append(l.Trace.F, "traffic")
+	}
+	if r.cold {
+		l.Trace.F = append(l.Trace.F, "cold")
 	}
 	if len(r.incAt) > 0 {
 		l.Trace.Inc, l.Trace.IncK = r.incAt, r.incK

@@ -9,6 +9,7 @@
 // be open): the upload marks the car and track, the next request rebuilds it, and a cron
 // every 10 minutes rebuilds whatever is still marked.
 import { famId, famSql } from "./carfamily.js";
+import { lineOffsets, sameFrame, insideSign } from "./trackgeo.js";
 import { openData } from "./crypt.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
@@ -37,6 +38,8 @@ function segTimes(l, M, n) {
 // a lap is only used when its telemetry is whole and believable
 function goodLap(time, tr) {
   if (!tr || !Array.isArray(tr.d) || tr.d.length < 60) return null;
+  // a lap driven behind another car (its flags say traffic) teaches braking points and lines that are not the driver's
+  if (Array.isArray(tr.f) && tr.f.includes("traffic")) return null;
   const bins = tr.d.map((x) => [+x[0], +x[5], Math.min(1, Math.max(0, +x[1] || 0)), Math.min(1, Math.max(0, +x[2] || 0)), +x[3], +x[4]]);
   let back = 0, jumps = 0, prev = -1, prevV = null;
   for (const b of bins) {
@@ -86,12 +89,12 @@ async function adoptOldSessions(env, game, trackId, carId) {
 async function learnNewLaps(env, game, trackId, carId) {
   const known = new Set(((await env.DB.prepare("SELECT k FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).all()).results || []).map((x) => x.k));
   const a = await env.DB.prepare(
-    `SELECT s.uploader AS up, a.time, a.trace FROM laps a JOIN sessions s ON s.id=a.session_id
+    `SELECT s.uploader AS up, a.time, a.trace, s.track_temp AS temp FROM laps a JOIN sessions s ON s.id=a.session_id
      WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${await famSql(env, game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
        AND LOWER(COALESCE(s.kind,'')) NOT LIKE '%test%' AND (COALESCE(s.official,1)<>0 OR s.ai=1)
      ORDER BY a.time LIMIT 3000`).bind(trackId, carId, game).all();
   const c = await env.DB.prepare(
-    `SELECT 'acct:'||user_id AS up, time, trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL AND (COALESCE(official,1)<>0 OR ai=1) ORDER BY time LIMIT 800`
+    `SELECT 'acct:'||user_id AS up, time, trace, NULL AS temp FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND trace IS NOT NULL AND (COALESCE(official,1)<>0 OR ai=1) ORDER BY time LIMIT 800`
   ).bind(trackId, carId, game).all();
   // what it learnt before from a test drive or a session outside the official series (other than one against the AI,
   // whose people are real drivers) leaves its memory
@@ -114,8 +117,8 @@ async function learnNewLaps(env, game, trackId, carId) {
     let tr = null;
     try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
     if (!goodLap(x.time, tr)) continue;
-    await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8) ON CONFLICT DO NOTHING")
-      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" ? { d: tr.d, src: "field" } : tr.d)), Date.now()).run();
+    await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created, temp) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT DO NOTHING")
+      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" ? { d: tr.d, src: "field" } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null).run();
     added++;
   }
   return { added, more: false };
@@ -142,7 +145,7 @@ const memTrace = (v) => (Array.isArray(v) ? { d: v } : { d: v.d, src: v.src });
 async function candidates(env, game, trackId, carId) {
   await adoptOldSessions(env, game, trackId, carId);
   const learnt = await learnNewLaps(env, game, trackId, carId);
-  const all = await env.DB.prepare("SELECT drv, time, data FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all();
+  const all = await env.DB.prepare("SELECT drv, time, data, temp FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all();
   // the best 3 laps of each driver; with fewer than 3 drivers (one driver's Garage 61 history, say) up to 10
   // of theirs, so the ideal lap settles on the median of many laps instead of three
   const drivers = new Set((all.results || []).map((x) => x.drv)).size;
@@ -161,7 +164,7 @@ async function candidates(env, game, trackId, carId) {
   for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS) pick.push(x);
   const laps = [];
   for (const x of pick) {
-    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) { g.up = x.drv; laps.push(g); } } catch (e) {}
+    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) { g.up = x.drv; g.temp = typeof x.temp === "number" ? x.temp : null; laps.push(g); } } catch (e) {}
   }
   return { laps, drivers, more: learnt.more, added: learnt.added };
 }
@@ -187,22 +190,86 @@ function brakeZones(bins, n) {
   }
   return out;
 }
-export function cornerCard(sorted, fastest, n) {
+// the track temperature band of a lap: cold under 25 °C, hot over 35, mild between; null without a temperature
+const BANDS = ["cold", "mild", "hot"], bandOf = (t) => (typeof t === "number" && isFinite(t) ? (t < 25 ? "cold" : t > 35 ? "hot" : "mild") : null);
+// the time a lap spends in a corner's window (from 50 m before the braking to 150 m after the slowest point), like the coach's
+const cornerTime = (bins, z, n) => { const i0 = Math.max(0, z.i - 10), i1 = Math.min(n - 1, z.imin + 30); return bins[i0] && bins[i1] ? bins[i1][1] - bins[i0][1] : null; };
+const sd = (a) => { if (a.length < 3) return null; const mu = a.reduce((p, q) => p + q, 0) / a.length; return Math.sqrt(a.reduce((p, q) => p + (q - mu) * (q - mu), 0) / a.length); };
+// the fastest drivers here: one lap each (their best), the fastest 30 %, 3 at least and 12 at most
+export function fastPicks(sorted) {
   const seen = new Set(), fast = [];
   for (const l of sorted) { if (seen.has(l.up)) continue; seen.add(l.up); fast.push(l); }
-  const pick = fast.slice(0, Math.min(CORNER_MAX, Math.max(CORNER_MIN, Math.round(fast.length * CORNER_FAST))));
+  return fast.slice(0, Math.min(CORNER_MAX, Math.max(CORNER_MIN, Math.round(fast.length * CORNER_FAST))));
+}
+export function cornerCard(sorted, fastest, n) {
+  const pick = fastPicks(sorted);
   if (pick.length < CORNER_MIN) return [];
   const zones = pick.map((l) => brakeZones(l.bins, n)), out = [];
-  for (const z of brakeZones(fastest.bins, n)) {
+  // the range of braking points and slowest speeds among a set of laps' zones matched to the record's zone z
+  const range = (ls, zs, z) => {
     const bp = [], va = [];
-    for (const zs of zones) {
-      const m = zs.filter((q) => Math.abs(q.i - z.i) <= SAME_ZONE).sort((p, q) => Math.abs(p.i - z.i) - Math.abs(q.i - z.i))[0];
-      if (m) { bp.push(m.i * 5); va.push(m.vmin); }
-    }
-    if (bp.length < CORNER_MIN) continue;
+    zs.forEach((q, k) => { if (!ls[k]) return; const m = q.filter((x) => Math.abs(x.i - z.i) <= SAME_ZONE).sort((p, w) => Math.abs(p.i - z.i) - Math.abs(w.i - z.i))[0]; if (m) { bp.push(m.i * 5); va.push(m.vmin); } });
+    if (bp.length < CORNER_MIN) return null;
     bp.sort((a, b) => a - b);
     va.sort((a, b) => a - b);
-    out.push({ d: z.i * 5, apex: z.imin * 5, b0: bp[0], b1: bp[bp.length - 1], v0: r(va[0], 10), v1: r(va[va.length - 1], 10), n: bp.length });
+    return { b0: bp[0], b1: bp[bp.length - 1], v0: r(va[0], 10), v1: r(va[va.length - 1], 10), n: bp.length };
+  };
+  for (const z of brakeZones(fastest.bins, n)) {
+    const all = range(pick.map(() => true), zones, z);
+    if (!all) continue;
+    const c = { d: z.i * 5, apex: z.imin * 5, ...all };
+    // by track temperature, when a band has enough of the fast laps: the braking of a hot afternoon is not a cold morning's
+    const bands = {};
+    for (const b of BANDS) { const rg = range(pick.map((l) => bandOf(l.temp) === b), zones, z); if (rg) bands[b] = rg; }
+    if (Object.keys(bands).length) c.bands = bands;
+    // how much the drivers' times spread in this corner over every lap the model knows: the harder corners, where a tip is worth more
+    const ts = sorted.map((l) => cornerTime(l.bins, z, n)).filter((t) => t != null);
+    const spread = sd(ts);
+    if (spread != null) c.spread = r(spread, 1000);
+    out.push(c);
+  }
+  return out;
+}
+
+// the step to the next level: for a reference lap of the ladder, the corners where the laps just slower than it (up to
+// 3 %) lose the most to it, the median over those laps: "the drivers who go from your pace to the next make the step in
+// T4 and T9"; [{apex, gain}] the three biggest, empty with fewer than two such laps
+export function levelStep(pick, laps, zones, n) {
+  const G = laps.filter((l) => l !== pick && l.time > pick.time && l.time <= pick.time * 1.03);
+  if (G.length < 2) return [];
+  const out = [];
+  for (const z of zones) {
+    const tp = cornerTime(pick.bins, z, n);
+    if (tp == null) continue;
+    const d = G.map((l) => cornerTime(l.bins, z, n)).filter((t) => t != null).map((t) => t - tp).sort((a, b) => a - b);
+    if (d.length < 2) continue;
+    const gain = d[d.length >> 1];
+    if (gain > 0.03) out.push({ apex: z.imin * 5, gain: r(gain, 1000) });
+  }
+  return out.sort((a, b) => b.gain - a.gain).slice(0, 3);
+}
+
+// the line the fast drivers take through each corner against the record's path: how far to the inside (+) or the outside
+// (−) of it they are at the turn-in, the apex and the exit, as a range over their laps; [{apex, in:[lo,hi], apex:[lo,hi], out:[lo,hi], n}]
+export function lineRanges(record, recPath, picks, zones, n) {
+  if (!recPath || recPath.x.length < n) return [];
+  const offs = [];
+  for (const { lap, path } of picks) {
+    if (lap === record) continue;
+    const p = sameFrame(recPath, path);
+    if (!p || p.x.length < n) continue;
+    const o = lineOffsets(p.x.slice(0, n), p.y.slice(0, n), recPath.x.slice(0, n), recPath.y.slice(0, n));
+    if (o) offs.push(o);
+  }
+  if (offs.length < CORNER_MIN) return [];
+  const out = [];
+  for (const z of zones) {
+    const sg = insideSign(recPath.x, recPath.y, z.imin);
+    if (!sg) continue;
+    const at = (i) => { const v = []; for (const o of offs) { let s = 0, c = 0; for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (!isNaN(o[k])) { s += o[k]; c++; } if (c) v.push((s / c) * sg); } return v; };
+    const rg = (v) => { if (v.length < CORNER_MIN) return null; v.sort((a, b) => a - b); return [r(v[0], 10), r(v[v.length - 1], 10)]; };
+    const a = rg(at(z.i)), b = rg(at(z.imin)), c = rg(at(Math.min(n - 1, z.imin + 16)));
+    if (a && b && c) out.push({ apex: z.imin * 5, in: a, at: b, out: c, n: offs.length });
   }
   return out;
 }
@@ -258,6 +325,7 @@ export async function buildModel(env, game, trackId, carId) {
   const compact = (l) => { const out = []; for (let i = 0; i < n; i += LEVEL_BIN) { const b = l.bins[i]; out.push([r(b[0], 10), r(b[1], 1000), r(b[2], 100), r(b[3], 100), Math.round(b[4] || 0)]); } return out; };
   const sorted = laps.slice().sort((a, b) => a.time - b.time);
   const corners = cornerCard(sorted, fastest, n); // where the fastest drivers brake and how fast they take each corner: a hint, not a lap
+  const zr = brakeZones(fastest.bins, n); // the record's corners: the windows the step to the next level and the line ranges are measured in
   const ladder = [];
   for (let j = 0; j * LADDER_STEP <= LADDER_SPAN; j++) {
     const t = fastest.time * (1 + j * LADDER_STEP);
@@ -279,7 +347,14 @@ export async function buildModel(env, game, trackId, carId) {
   for (const { lap, ...x } of ladder) {
     const p = await pathFor(lap), e = { ...x, upTo: r(x.upTo, 1000) };
     if (p && p.x.length >= n) { e.x = []; e.y = []; for (let i = 0; i < n; i += LEVEL_BIN) { e.x.push(r(p.x[i], 10)); e.y.push(r(p.y[i], 10)); } if (p.g) e.g = p.g; }
+    e.step = levelStep(lap, laps, zr, n); // the corners where the drivers just slower than this reference lose to it
     out.push(e);
+  }
+  // the line of the fastest drivers through each corner against the record's path (a range, never a composite line)
+  if (fp && fp.x.length >= n) {
+    const pp = [];
+    for (const l of fastPicks(sorted)) { const p = await pathFor(l); if (p) pp.push({ lap: l, path: p }); }
+    for (const q of lineRanges(fastest, fp, pp, zr, n)) { const c = corners.find((x) => x.apex === q.apex); if (c) c.line = { in: q.in, at: q.at, out: q.out, n: q.n }; }
   }
   // the references are often rivals' laps (from their place on track: no path): the coach then measures your line
   // against the fastest lap of this car and track whose path is known (yours, or another Pitlane HQ driver's)

@@ -44,7 +44,7 @@ function buildModel(c){
       const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
       if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
       MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
-        times:r.times||[],corners:Array.isArray(r.corners)?r.corners:[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y,rg:x.g||null}))}}
+        times:r.times||[],corners:withSpreadMax(Array.isArray(r.corners)?r.corners:[]),ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y,rg:x.g||null,step:Array.isArray(x.step)?x.step:null}))}}
     catch(e){MODEL.err=e.message}
     MODEL.busy=false;return MODEL.data})();
   return MODEL.p}
@@ -66,14 +66,18 @@ function refFor(m,t){const L=(m&&m.ladder)||[];if(!L.length)return null;let i=L.
   while(i>0&&!(L[i].time<t*0.997))i--; // the driver just ahead is really ahead (not this very lap)
   const x=L[i];if(!x.bins){x.bins=up(x.raw).slice(0,m.nb);x.xy=upXY(x.rx,x.ry,m.nb,x.rg)}return x}
 function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
-  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,xy:x.xy||m.lineXY||null,comm:true,model:"level"}}
+  return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,xy:x.xy||m.lineXY||null,comm:true,model:"level",step:x.step||null}}
 /* the references of a lap: the record (unless this lap is it) and the next level (when someone is ahead) */
 function refsFor(m,A){if(!m||!A)return{rec:null,level:null};const rec=idealLap(m),lv=levelLap(m,A.time);
   return{rec:rec&&Math.abs(rec.time-A.time)>=0.002?rec:null,level:lv&&lv.time<A.time-0.001?lv:null}}
 
 /* the corner card of a corner of lap A (by its slowest point, within 60 m): where the fastest drivers here brake and how
-   fast they pass the slowest point, as the server learnt it (a range of real laps); null without a model or that corner */
-function cornerHint(A,apex){const m=current(A);if(!m||!m.corners.length||!(apex>=0))return null;let b=null;for(const c of m.corners){const g=Math.abs(c.apex-apex);if(g<=60&&(!b||g<Math.abs(b.apex-apex)))b=c}return b}
+   fast they pass the slowest point, as the server learnt it (a range of real laps); with the track temperature, the band
+   of today's track when the card has it (cold under 25 °C, hot over 35); null without a model or that corner */
+const withSpreadMax=cs=>{const mx=Math.max(0,...cs.map(c=>c.spread||0));cs.forEach(c=>{c.spreadMax=mx});return cs}; // every corner knows the hardest one's spread, to weigh itself
+const bandOf=t=>typeof t==="number"&&isFinite(t)?(t<25?"cold":t>35?"hot":"mild"):null;
+function cornerHint(A,apex,temp){const m=current(A);if(!m||!m.corners.length||!(apex>=0))return null;let b=null;for(const c of m.corners){const g=Math.abs(c.apex-apex);if(g<=60&&(!b||g<Math.abs(b.apex-apex)))b=c}
+  if(!b)return null;const bd=bandOf(temp);return bd&&b.bands&&b.bands[bd]?{...b,...b.bands[bd],band:bd}:b}
 
 /* ---------- the car card: what this car does on other tracks ---------- */
 /* one lap's facts, as the server reads them: its hardest braking (m/s², the top 5 % of its braking), the

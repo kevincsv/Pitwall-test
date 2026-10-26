@@ -73,3 +73,44 @@ export function turnsFromPath(x, y) {
   const n = Math.min(x.length, y.length);
   return cornersOf(x, y).map((c) => Math.round((c.i / n) * 1e5) / 1e5);
 }
+
+// ---------- the racing line between two paths ----------
+// How far path A was to one side of path B at every point (m, + to B's left), like the apps' lineOffsets: both paths on
+// the same 5 m grid and in one frame; the slow drift of dead reckoning taken out with a ±400 m moving average; NaN where
+// the two do not line up. Null when the paths are not the same track.
+export function lineOffsets(ax, ay, bx, by) {
+  const n = Math.min(ax.length, ay.length, bx.length, by.length);
+  if (n < 60) return null;
+  const lat = new Array(n), lon = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const i0 = Math.max(0, i - 2), i1 = Math.min(n - 1, i + 2);
+    let tx = bx[i1] - bx[i0], ty = by[i1] - by[i0];
+    const tm = Math.hypot(tx, ty) || 1;
+    tx /= tm; ty /= tm;
+    const dx = ax[i] - bx[i], dy = ay[i] - by[i];
+    lat[i] = -ty * dx + tx * dy;
+    lon[i] = tx * dx + ty * dy;
+  }
+  const W = 80, sm = (v) => { const pre = [0]; v.forEach((x, i) => pre.push(pre[i] + x)); return v.map((x, i) => { const lo = Math.max(0, i - W), hi = Math.min(n - 1, i + W); return x - (pre[hi + 1] - pre[lo]) / (hi - lo + 1); }); };
+  const lc = sm(lat), oc = sm(lon), ab = oc.map(Math.abs).sort((p, q) => p - q);
+  if (ab[n >> 1] > 6) return null;
+  return lc.map((v, i) => (Math.abs(oc[i]) > 20 || Math.abs(v) > 25 ? NaN : v));
+}
+
+// path B moved into path A's frame: both from the game's position (with their origins g) or both without; null when one is each
+export function sameFrame(a, b) {
+  if (!a || !b || !!a.g !== !!b.g) return null;
+  if (!a.g || (a.g[0] === b.g[0] && a.g[1] === b.g[1])) return b;
+  const dx = (b.g[1] - a.g[1]) * 111320 * Math.cos((a.g[0] * Math.PI) / 180), dy = (b.g[0] - a.g[0]) * 110540;
+  return { ...b, x: b.x.map((v) => v + dx), y: b.y.map((v) => v + dy) };
+}
+
+// which side is the inside of path B's corner at its apex point: +1 when B's left is the inside, -1 when its right
+export function insideSign(bx, by, apex) {
+  const n = Math.min(bx.length, by.length);
+  if (apex <= 0 || apex >= n - 1) return 0;
+  const tan = (i) => { const i0 = Math.max(0, i - 2), i1 = Math.min(n - 1, i + 2), tx = bx[i1] - bx[i0], ty = by[i1] - by[i0], m = Math.hypot(tx, ty) || 1; return [tx / m, ty / m]; };
+  const t1 = tan(Math.max(0, apex - 8)), t2 = tan(Math.min(n - 1, apex + 8)), cr = t1[0] * t2[1] - t1[1] * t2[0];
+  if (Math.abs(cr) < 0.05) return 0;
+  return cr < 0 ? -1 : 1;
+}
