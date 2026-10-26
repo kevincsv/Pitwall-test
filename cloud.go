@@ -582,13 +582,17 @@ func waitLastLap(r *lapRec, prev float64) float64 {
 	return -1
 }
 
+// fullLap: the car went round the whole circuit, at least 90 % of the lap's points seen on track (a few lost samples
+// are filled in; a lap that skipped part of the track is not)
+func fullLap(seen, bins int) bool { return bins > 0 && float64(seen) >= 0.9*float64(bins) }
+
 func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	if lt <= 0 || len(r.bins) < 40 {
 		return
 	}
 	// fill gaps from neighbours so the trace is continuous; a hole longer
 	// than 40 m means part of the lap was not recorded
-	gap, maxGap := 0, 0
+	gap, maxGap, seen := 0, 0, 0
 	for i := range r.bins {
 		if r.bins[i][0] < 0 {
 			gap++
@@ -597,7 +601,13 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 			}
 		} else {
 			gap = 0
+			seen++
 		}
+	}
+	// a lap goes round the whole circuit: one that drove only part of it (a reset or a tow to the pits, laps
+	// counted in the pit lane) is no valid lap, whatever its time
+	if !fullLap(seen, len(r.bins)) {
+		r.bad = true
 	}
 	// holes (lost samples) are filled in a straight line between the points around them
 	prev := -1

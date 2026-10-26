@@ -77,16 +77,18 @@ const SESSION_SUMS = `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE 
        best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL) WHERE id=?1`;
 
 // a lap that cannot be a racing lap is never a best, a share or the model's: one through the pit lane (the PC says
-// so), one driven at pit-lane speed (its top speed under 40 % of the session's fastest lap's) or one far quicker
+// so), one that did not go round the whole circuit (no sector times where the session's other laps have them: it
+// never crossed the sector lines; newer PCs check the whole lap themselves), one driven at pit-lane speed (its top speed under 40 % of the session's fastest lap's) or one far quicker
 // than anybody's laps of this car and track (under 70 % of their average). Older PCs did not mark the pit lane.
 async function dropImpossibleLaps(env, sid) {
   const r = await env.DB.batch([
     env.DB.prepare("UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND vmax>0 AND vmax < 0.4*(SELECT MAX(vmax) FROM laps WHERE session_id=?1)").bind(sid),
+    env.DB.prepare("UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND COALESCE(sectors,'[]')='[]' AND EXISTS (SELECT 1 FROM laps WHERE session_id=?1 AND COALESCE(sectors,'[]')<>'[]')").bind(sid),
     env.DB.prepare(`UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND time < 0.7*(SELECT AVG(l.time) FROM laps l JOIN sessions s ON s.id=l.session_id JOIN sessions me ON me.id=?1
        WHERE l.valid=1 AND l.session_id<>?1 AND s.track=me.track AND COALESCE(s.track_config,'')=COALESCE(me.track_config,'') AND s.car=me.car AND COALESCE(s.game,'iracing')=COALESCE(me.game,'iracing'))`).bind(sid),
     env.DB.prepare(SESSION_SUMS).bind(sid),
   ]);
-  return (r[0].meta.changes || 0) + (r[1].meta.changes || 0);
+  return (r[0].meta.changes || 0) + (r[1].meta.changes || 0) + (r[2].meta.changes || 0);
 }
 
 async function addLap(env, sessionId, l) {

@@ -364,8 +364,10 @@
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
 - A lap that cannot be a racing lap is never a best, a share or the model's (`dropImpossibleLaps` on every upload,
-  migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job): a lap through the pit lane (the PC's
-  `pit`), one driven at pit-lane speed (top speed under 40 % of its session's fastest) or one under 70 % of the
+  migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job). A lap goes round the whole circuit:
+  the PC marks one that did not (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow) not
+  valid, and the server one without sector times where its session's other laps have them. Nor a lap through the pit
+  lane (the PC's `pit`), one driven at pit-lane speed (top speed under 40 % of its session's fastest) or one under 70 % of the
   average of everybody's laps of that car and track.
 - The model (`cloud/src/model.js`, MODEL_VERSION 7) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a

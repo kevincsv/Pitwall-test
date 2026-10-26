@@ -15,3 +15,10 @@ func TestOfflinePlaceholderRating(t *testing.T) {
 		t.Fatal("a real rating was not kept")
 	}
 }
+
+// A lap counts only when it went round the whole circuit.
+func TestFullLap(t *testing.T) {
+	if fullLap(90, 620) || !fullLap(600, 620) || fullLap(0, 0) {
+		t.Fatal("fullLap")
+	}
+}
