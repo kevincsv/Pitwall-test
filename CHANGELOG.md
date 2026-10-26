@@ -4,6 +4,18 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.5.0 beta
+
+- The coach learns from what happens after its tips, puts the ones that help most first, lets you rate them with 👍
+  or 👎 and remembers your habits across tracks.
+- Under each tip you see where the fast drivers brake and how fast they take the apex.
+- New throttle tips for when you open it too fast or take too long to reach full throttle.
+- Each lap's line comes from the game's real position, and the corners are numbered by the track's shape.
+- The Coach overlay works live and tells you about the next corner while you drive, with four styles to pick before
+  you go out (card, column, corner drawn or big for VR), and it says "Next turn (T7)" or however you prefer.
+- Overlays can no longer be made smaller than their normal size.
+- Fixes and improvements.
+
 ## 0.4.7 beta
 
 - Home is new. You see your last race with your position lap by lap, your recent sessions tagged as Race,

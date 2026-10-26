@@ -1,6 +1,33 @@
 {
   "versions": [
     {
+      "v": "0.5.0",
+      "en": [
+        "The coach learns from what happens after its tips, puts the ones that help most first, lets you rate them with 👍 or 👎 and remembers your habits across tracks.",
+        "Under each tip you see where the fast drivers brake and how fast they take the apex.",
+        "New throttle tips for when you open it too fast or take too long to reach full throttle.",
+        "Each lap's line comes from the game's real position, and the corners are numbered by the track's shape.",
+        "The Coach overlay works live and tells you about the next corner while you drive, with four styles to pick before you go out (card, column, corner drawn or big for VR), and it says \"Next turn (T7)\" or however you prefer.",
+        "Overlays can no longer be made smaller than their normal size."
+      ],
+      "es": [
+        "El coach aprende de lo que pasa después de sus consejos, pone primero los que más ayudan, puedes valorarlos con 👍 o 👎 y recuerda tus hábitos en varios circuitos.",
+        "Debajo de cada consejo verás dónde frenan los pilotos rápidos y a qué velocidad pasan el vértice.",
+        "Nuevos consejos sobre el acelerador, cuando lo abres demasiado rápido o tardas en llegar a fondo.",
+        "El trazado de cada vuelta sale de la posición real del juego, y las curvas se numeran por la forma del circuito.",
+        "El overlay del Coach funciona en vivo y te avisa de la próxima curva mientras conduces, con cuatro estilos para elegir antes de salir (tarjeta, columna, curva dibujada o grande para VR), y dice \"Próxima curva (T7)\" o como prefieras.",
+        "Los overlays ya no se pueden hacer más pequeños que su tamaño normal."
+      ],
+      "pt": [
+        "O coach aprende com o que acontece depois das dicas, coloca primeiro as que mais ajudam, você pode avaliá-las com 👍 ou 👎 e ele lembra seus hábitos em várias pistas.",
+        "Embaixo de cada dica você vê onde os pilotos rápidos freiam e a que velocidade passam pelo ápice.",
+        "Novas dicas sobre o acelerador, quando você abre rápido demais ou demora para chegar ao fundo.",
+        "O traçado de cada volta vem da posição real do jogo, e as curvas são numeradas pela forma da pista.",
+        "O overlay do Coach funciona ao vivo e avisa da próxima curva enquanto você pilota, com quatro estilos para escolher antes de sair (cartão, coluna, curva desenhada ou grande para VR), e diz \"Próxima curva (T7)\" ou como preferir.",
+        "Os overlays não podem mais ficar menores que o tamanho normal."
+      ]
+    },
+    {
       "v": "0.4.7",
       "en": [
         "Home is new. You see your last race lap by lap, your recent sessions, the iRating and licence of each discipline and the days you drove.",
