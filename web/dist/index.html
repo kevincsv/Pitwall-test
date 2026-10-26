@@ -6733,6 +6733,9 @@ async function renderCommunity(){const box=$("#commBody");if(!box)return;await P
   $("#commSub").innerHTML="";
   let combos=[];if(c.ready){try{combos=(await cget("/api/community/combos")).combos||[]}catch(e){}}
   const mine=(TB||[]).map(e=>({trackId:e.trackId,track:e.track,carId:e.carId,car:e.car,mine:true}));const wi=S.WeekendInfo||{},md=myDriver();if(wi.TrackID&&md.CarID&&liveGame()===aGame())mine.unshift({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),carId:md.CarID,car:md.CarScreenName});
+  // one car under several badges is one board: your own best of a badge (the SF23's Honda) goes to its family's board
+  const famOf=x=>combos.find(y=>y.trackId===x.trackId&&(y.carId===x.carId||(y.ids||[]).includes(x.carId)||carFam(y.car)===carFam(x.car)));
+  mine.forEach(x=>{const f=famOf(x);if(f){x.carId=f.carId;x.car=f.car}else x.car=carFam(x.car)});
   const all=[];[...mine,...combos].forEach(x=>{if(!x.trackId||!x.carId)return;const y=all.find(y=>y.trackId===x.trackId&&y.carId===x.carId);if(!y)all.push({...x});else{if(x.cat&&!y.cat)y.cat=x.cat;if(x.laps)y.laps=x.laps}});if(COMM_GO){CMF.cat=COMM_GO.cat&&all.some(x=>x.cat===COMM_GO.cat)?COMM_GO.cat:"";CMF.q="";CMF.mine=false;COMMSEL=all.find(x=>x.trackId===COMM_GO.trackId&&x.carId===COMM_GO.carId)||{trackId:COMM_GO.trackId,carId:COMM_GO.carId};COMM_GO=null}
   if(!COMMSEL&&all.length)COMMSEL=all[0];sendMyLics();COMM_ALL=all;
   // the leaderboards by discipline (iRacing): how many cars and tracks and laps each has
