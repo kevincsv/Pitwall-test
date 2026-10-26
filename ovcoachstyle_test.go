@@ -8,7 +8,16 @@ import (
 
 // the coach overlay's styles (card, column, curve, big) draw the corner coming and the verdict of the one just taken
 func TestCoachOverlayStyles(t *testing.T) {
-	st := ovTestState(t, nil)
+	for _, name := range []string{"both", "words", "num"} {
+		coachStyles(t, name)
+	}
+}
+
+func coachStyles(t *testing.T, turnName string) {
+	st := ovTestState(t, map[string]any{"coach": map[string]any{"turnName": turnName}})
+	if got := coachTurnLabel(st, 7, false); (turnName == "num") != (got == "T7") {
+		t.Fatalf("%s: label %q", turnName, got)
+	}
 	// a corner: a straight, a right-hand bend, a straight, a path every 5 m
 	path := func(off float64) *ovLap {
 		l := &ovLap{}
@@ -57,7 +66,7 @@ func TestCoachOverlayStyles(t *testing.T) {
 			if painted == 0 || h < 60 || h > 400 {
 				t.Fatalf("%s: painted %d, height %d", mode, painted, h)
 			}
-			name := "coach-" + mode
+			name := "coach-" + mode + "-" + turnName
 			if v {
 				name += "-verdict"
 			}

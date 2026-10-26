@@ -1799,9 +1799,13 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		return st.T("Nothing to fix here", "Nada que corregir aquí")
 	}
 	pill := func(x, y, h float64, name string) float64 { // the turn's pill, returns its width
-		w := textW(cf, name) + 16*z
+		f := cf
+		if len([]rune(name)) > 4 {
+			f = ovFace(fkDisplayB, 17*z)
+		}
+		w := textW(f, name) + 16*z
 		c.roundRect(x, y, w, h, 7*z, 0x222b37, 1, colLine, 1, 1)
-		c.text(cf, name, x+w/2, y+h/2, colText, 1, 2)
+		c.text(f, name, x+w/2, y+h/2, colText, 1, 2)
 		return w
 	}
 	dots := func(y float64) float64 { // this lap's corners against the reference, in lap order
@@ -1893,7 +1897,7 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		if v.gain > 0 {
 			col = colBad
 		}
-		pw := pill(pad, y+8*z, 40*z, "T"+strconv.Itoa(v.n))
+		pw := pill(pad, y+8*z, 40*z, coachTurnLabel(st, v.n, true))
 		big := ovFace(fkDataB, 28*z)
 		c.text(big, signed(v.gain, 2)+" s", pad+pw+14*z, y+20*z, col, 1, 0)
 		what := st.T("Better than the reference", "Mejor que la referencia")
@@ -1904,7 +1908,7 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		c.text(nf, ellipsis(nf, st.T("Measured from the braking zone to the exit", "Medido desde la frenada hasta la salida"), W-2*pad), pad, y+46*z, colMuted, 1, 0)
 		y += 56*z + 24*z + 10*z
 	} else if next != nil {
-		pw := pill(pad, y+8*z, 40*z, "T"+strconv.Itoa(next.n))
+		pw := pill(pad, y+8*z, 40*z, coachTurnLabel(st, next.n, false))
 		c.text(pf, signed(next.lost, 2)+" s", pad+pw/2, y+56*z, colBad, 1, 2)
 		x := pad + pw + 16*z
 		if dTo <= lead {
@@ -1939,6 +1943,35 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	return int(math.Ceil(H))
 }
 
+// coachTurn: how the coach overlay names a corner (its settings, "turnName"): "both" says "Next turn (T7)" (the
+// default, for drivers who do not know the numbers), "words" only "Next turn", "num" only "T7". words is the part in
+// words ("" for "num"), num the turn's number ("" for "words"); done names the corner just taken
+func coachTurn(st *ovState, n int, done bool) (words, num string) {
+	style := uiStr(st.uiMap("coach"), "turnName", "both")
+	if style != "words" {
+		num = "T" + strconv.Itoa(n)
+	}
+	if style != "num" {
+		words = st.T("Next turn", "Próxima curva")
+		if done {
+			words = st.T("This turn", "Esta curva")
+		}
+	}
+	return
+}
+
+// coachTurnLabel: the corner's name in one piece ("Next turn (T7)", "Next turn" or "T7")
+func coachTurnLabel(st *ovState, n int, done bool) string {
+	w, num := coachTurn(st, n, done)
+	switch {
+	case w == "":
+		return num
+	case num == "":
+		return w
+	}
+	return w + " (" + num + ")"
+}
+
 // coachVerdictCol: green for a corner gained against the reference, red for one lost
 func coachVerdictCol(g float64) uint32 {
 	if g > 0 {
@@ -1956,11 +1989,25 @@ func drawCoachColumn(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, l
 	H := 250 * z
 	c.roundRect(x0+0.5, 0.5, cw-1, H-1, 10*z, colPanel, 0.94, colLine, 1, 1)
 	cx := x0 + cw/2
-	c.text(ovFace(fkData, 10*z), strings.ToUpper(st.T("Coach", "Coach")), cx, 18*z, colMuted, 1, 2)
 	C := &st.ext.coach
+	head := st.T("Coach", "Coach")
+	if verdict || next != nil {
+		n := C.verdict.n
+		if !verdict {
+			n = next.n
+		}
+		if w, _ := coachTurn(st, n, verdict); w != "" {
+			head = w
+		}
+	}
+	hf := ovFace(fkData, 10*z)
+	c.text(hf, ellipsis(hf, strings.ToUpper(head), cw-12*z), cx, 18*z, colMuted, 1, 2)
 	cf := ovFace(fkDisplayB, 24*z)
 	turn := func(n int) {
-		name := "T" + strconv.Itoa(n)
+		_, name := coachTurn(st, n, verdict)
+		if name == "" { // only the words: they are the column's title
+			return
+		}
 		w := textW(cf, name) + 22*z
 		c.roundRect(cx-w/2, 32*z, w, 38*z, 7*z, 0x222b37, 1, colLine, 1, 1)
 		c.text(cf, name, cx, 51*z, colText, 1, 2)
@@ -2106,7 +2153,10 @@ func drawCoachCurve(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, le
 	// the text on the right
 	x := bx + bs + 14*z
 	cf := ovFace(fkDisplayB, 18*z)
-	name := "T" + strconv.Itoa(t.n)
+	name := coachTurnLabel(st, t.n, verdict)
+	if len([]rune(name)) > 4 {
+		cf = ovFace(fkDisplayB, 15*z)
+	}
 	pw := textW(cf, name) + 14*z
 	c.roundRect(x, pad, pw, 28*z, 6*z, 0x222b37, 1, colLine, 1, 1)
 	c.text(cf, name, x+pw/2, pad+14*z, colText, 1, 2)
@@ -2141,31 +2191,48 @@ func drawCoachBig(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead
 	W := float64(c.w)
 	pad := 18 * z
 	C := &st.ext.coach
-	H := 96 * z
-	panel(c, H, z)
-	tf := ovFace(fkDisplayB, 52*z)
+	n := 0
 	switch {
 	case verdict:
-		name := "T" + strconv.Itoa(C.verdict.n)
-		c.text(tf, name, pad, H/2, colText, 1, 0)
-		c.text(ovFace(fkDataB, 44*z), signed(C.verdict.gain, 2), pad+textW(tf, name)+20*z, H/2, coachVerdictCol(C.verdict.gain), 1, 0)
+		n = C.verdict.n
 	case next != nil:
-		name := "T" + strconv.Itoa(next.n)
-		c.text(tf, name, pad, H/2, colText, 1, 0)
-		x := pad + textW(tf, name) + 20*z
+		n = next.n
+	}
+	words, num := "", ""
+	if n > 0 {
+		words, num = coachTurn(st, n, verdict)
+	}
+	H, cy := 96*z, 48*z
+	if words != "" { // the words over the row, in capitals: "NEXT TURN"
+		H, cy = 120*z, 72*z
+	}
+	panel(c, H, z)
+	if words != "" {
+		c.text(ovFace(fkDisplayB, 22*z), strings.ToUpper(words), pad, 26*z, colMuted, 1, 0)
+	}
+	tf := ovFace(fkDisplayB, 52*z)
+	x := pad
+	if num != "" {
+		c.text(tf, num, pad, cy, colText, 1, 0)
+		x += textW(tf, num) + 20*z
+	}
+	switch {
+	case verdict:
+		c.text(ovFace(fkDataB, 44*z), signed(C.verdict.gain, 2), x, cy, coachVerdictCol(C.verdict.gain), 1, 0)
+	case next != nil:
 		cue := st.T(next.cueEn, next.cueEs)
 		if dTo > lead {
-			c.text(ovFace(fkDataB, 30*z), fmt.Sprintf("%d m", int(dTo)), x, H/2, colMuted, 1, 0)
+			c.text(ovFace(fkDataB, 30*z), fmt.Sprintf("%d m", int(dTo)), x, cy, colMuted, 1, 0)
 			break
 		}
-		c.text(ovFace(fkDataB, 38*z), strconv.Itoa(int(math.Max(0, dTo))), x, H/2-12*z, colText, 1, 0)
+		c.text(ovFace(fkDataB, 38*z), strconv.Itoa(int(math.Max(0, dTo))), x, cy-12*z, colText, 1, 0)
 		if cue == "" {
 			cue = st.T("BRAKE", "FRENA")
 		}
 		cf := ovFace(fkDisplayB, 20*z)
-		c.text(cf, ellipsis(cf, cue, W-pad-x), x, H/2+22*z, colAmber, 1, 0)
+		c.text(cf, ellipsis(cf, cue, W-pad-x), x, cy+22*z, colAmber, 1, 0)
 	default:
-		c.text(ovFace(fkBody, 14*z), st.T("No tip yet", "Sin consejo todavía"), pad, H/2, colMuted, 1, 0)
+		c.text(ovFace(fkBody, 14*z), st.T("No tip yet", "Sin consejo todavía"), pad, cy, colMuted, 1, 0)
 	}
 	return int(math.Ceil(H))
 }
