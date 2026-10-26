@@ -3,7 +3,8 @@
 - Reply to the owner in Spanish.
 - The apps' languages are English, Spanish and Portuguese (Brazil) only (`LANGS` in index.html, `uiLang` in Go, `lang` in
   email.js): no German and no bilingual "EN + ES"; a German or bilingual choice from before reads English or Spanish.
-- Push only when the owner says so ("súbelo", "sube todo"…). Never create pull requests unless asked.
+- Push only when the owner says so ("súbelo", "sube todo"…). Never create pull requests unless asked. When they say
+  so, push every pending change (designs and small fixes included), never only part of it.
 - Changes are released in big batches, never one by one: people should not get a stream of small updates. Every
   change is committed and pushed to the working branch only (never master), tested together, and goes to master in
   one push when the owner asks for the batch ("sube todo", "súbelo a producción"). A fix that cannot wait (the app
@@ -235,7 +236,8 @@
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
   (`DISC_IC`), never copied; the same discipline cards are in Community and in "Choose a session".
-  Community on the web and the PC is three parts (`CMV`, `cl-*` in index.html, the "clean data" design): Summary
+  Sharing is never optional (no switches to keep the times, the traces, the rivals' laps or the live link to
+  yourself): only the public name and Anonymous are chosen. Community on the web and the PC is three parts (`CMV`, `cl-*` in index.html, the "clean data" design): Summary
   (your numbers, your leaderboards with the record of each and how your best came down over your last sessions:
   `rec` and `trend` on /profile?me=1; the latest records; you in the community), Leaderboards (the table with the
   sectors and the track map coloured by sector against your lap, or the record when you have none: the shape and
@@ -283,7 +285,17 @@
   "Live" any more ("Telemetry → …"). Telemetry → Phone & sharing on the PC: your phone or tablet (pitlanehq.app or
   the app, same account, Telemetry → Connect, accept on the PC; a QR to the web app and the Android download) and
   sharing with a code; no Wi-Fi addresses, PIN or local links (`renderPhoneHow`).
-- The Telemetry screen shows only the essentials (`LIVE_ESSENTIAL`: flags, the top card with position, delta, last
+- Telemetry has three modes (`LIVE_MODE`, `liveModeBar`): Basic (the essentials below), Full (every basic widget, the
+  experimental ones too when switched on, and the lap's traces of speed, throttle/brake, delta and gear, `drawLiveTraces`)
+  and Compare laps, live (`renderLiveCmp`/`tickLiveCmp`: the lap now against B, "My best" in purple, the last lap, other
+  laps, and "▲ Next level" / "★ Record" only when the model has a full-telemetry lap of someone else, corner by corner by
+  the official turns). Standings: gap to the leader or interval, the class filter only when several classes race, your
+  position lap by lap (`renderStandings`, `drawPosHistory`); Tyres show their wear. The rev beep page is a list of cars
+  and the chosen car's mode as three cards (iRacing lights, My laps, My RPM with one number or one per gear) and its
+  sound (early, pitch, volume, test). Overlays is one list (`renderOverlaysTab`, `.ov-row`): each overlay with its "when I
+  get in the car" switch, Open/Closed and Configure, the presets and the buttons on top, "Place on the screen" shows
+  the screen editor. The PC app never zooms (Ctrl+wheel and Ctrl +/− blocked, `IsZoomControlEnabled` off).
+- In Basic, the Telemetry screen shows only the essentials (`LIVE_ESSENTIAL`: flags, the top card with position, delta, last
   lap and fuel beside the cars ahead and behind, incidents and what is left, the delta bar, the map, the relative,
   fuel and incidents); every other widget is one click away in Layout ("Essentials" puts them back). The live map is
   the coach maps' road with depth, its start/finish line, the direction arrow and the official turns; it has no
@@ -364,9 +376,7 @@
   day, open and search. A post opened counts a view and its Discord or website a click, once per viewer and day
   (`league_hits`, the account or a hash of network and browser), never the creator's own; only the creator (and the
   admins) see the counts and the last 14 days (`league_days`). A post has a link (pitlanehq.app/app?league=id,
-  opened on arrival) and, on the web, an .ics of its weekly race. In development: the server opens the hub to
-  everyone with LEAGUES_OPEN=1; until then it answers "in development" and every app shows the card for it (admins
-  see the hub). The hub's "Most active leagues" (`cloud/src/leaguescan.js`, migration 0047, `/community/leagues/found`,
+  opened on arrival) and, on the web, an .ics of its weekly race. The hub is released, never labelled "in development". The hub's "Most active leagues" (`cloud/src/leaguescan.js`, migration 0047, `/community/leagues/found`,
   `drawLeagFound`): every six hours the server reads the public feeds of r/iRacing and r/iRacingLeagues (two requests,
   Reddit's application-only OAuth when REDDIT_CLIENT_ID/SECRET are set), keeps the posts of leagues with a Discord
   invite and asks Discord's public invite counts how many members each has and how many are online; the most active
@@ -468,7 +478,7 @@
   lap with real pedals, and `idealField` says when the record is a rival's.
 - In development (shown with "In development", usable only by admins, on every device): the
   Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
-  NASCAR 26, team mode, leagues and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
+  NASCAR 26, team mode and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
   Full telemetry view is gone everywhere.
   Switched off for now: setups, per-car settings, the Data view and sharing race analyses. Hidden from everyone
   on the PC (admins too) until the owner says otherwise: profiles (no button, no Settings section, the PC keeps its

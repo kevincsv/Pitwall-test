@@ -458,6 +458,13 @@ html.ov.ovwin #dbTrend{position:absolute;top:50%;left:calc(50% + 52px);transform
 .rb-mode{display:flex;flex-direction:column;gap:6px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:16px;color:var(--fg);cursor:pointer;min-height:44px}.rb-mode.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}.rb-n{font-size:30px;font-weight:700}
 .rb-mine{display:flex;flex-direction:column;gap:12px}.rb-gears{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}.rb-gears label{display:flex;flex-direction:column;gap:4px}.rb-all{width:130px;font-size:18px}
 .rb-sound{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--line)}.rb-sound label,.rb-sound>div{display:flex;flex-direction:column;gap:6px}.rb-sound input[type=range]{min-width:160px}.dim{opacity:.45}
+.ov-top{display:flex;justify-content:flex-end}.ov-list{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 18px;overflow:auto}
+.ov-row{display:grid;grid-template-columns:minmax(0,1fr) 170px 130px 120px;gap:10px;align-items:center;border-top:1px solid var(--line);padding:5px 0}.ov-row.ov-h{border-top:0;padding:10px 0;font:700 12px var(--f-display);letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.ov-n{display:flex;gap:8px;align-items:center;min-width:0}.ov-swb{background:none;border:0;min-height:44px;text-align:left;cursor:pointer}.ov-sw{display:inline-block;width:46px;height:26px;border-radius:13px;position:relative;background:var(--surface2,#222b37);border:1px solid var(--line);vertical-align:middle}.ov-sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--muted)}.ov-sw.on{background:var(--accent);border-color:var(--accent)}.ov-sw.on i{left:23px;background:#11151b}
+.ov-st{font-size:13px;font-weight:600;border-radius:999px;padding:7px 14px;min-height:36px;background:none;color:var(--muted);border:1px solid var(--line);cursor:pointer}.ov-st.on{background:var(--good);color:#0f1216;border-color:var(--good)}
+.ov-foot{margin-top:12px;gap:14px;align-items:center;flex-wrap:wrap}
+.ov-list{scrollbar-width:thin;scrollbar-color:#3a4350 transparent}.ov-list::-webkit-scrollbar{width:10px}.ov-list::-webkit-scrollbar-thumb{background:#3a4350;border-radius:6px;border:2px solid var(--surface)}
+@media (max-width:760px){.ov-row{grid-template-columns:minmax(0,1fr) 60px 90px;}.ov-row>:nth-child(4){grid-column:1/-1}.ov-row.ov-h>:nth-child(4){display:none}}
 .std-bar{gap:10px;margin:0 0 10px;flex-wrap:wrap}#stdPos{margin-top:12px}#stdPos canvas{width:100%;display:block;margin-top:8px}
 #liveTraces canvas,#liveCmp canvas{width:100%;display:block}.trc-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;flex-wrap:wrap}.trc-leg{font-size:12px;display:flex;gap:12px;flex-wrap:wrap}.trc-leg .acc{color:var(--accent)}
 #liveCmp{display:grid;gap:12px}#liveCmp[hidden]{display:none}.lcmp-pick .frow{margin-top:6px;flex-wrap:wrap}.lcmp-pick .chip[aria-pressed=true]{background:var(--chipc,var(--accent));border-color:var(--chipc,var(--accent));color:#11151b}
@@ -1425,7 +1432,7 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
   <div class="callout" id="ovCallout"></div>
   <div class="panel" id="ovGlobal"></div>
   <div class="panel" id="ovScreenPanel" style="margin-top:10px"><h2 data-i18n="yourScreen"></h2><p class="note" id="ovScreenNote"></p><div class="screen" id="ovScreen"></div></div>
-  <div class="ovcards" id="ovCards"></div>
+  <div id="ovCards" style="margin-top:10px"></div>
 </section>
 
 <!-- BRAKING COACH -->
@@ -2363,7 +2370,7 @@ function devWords(r){if(typeof r!=="string")return r;try{if(WEBAPP)r=DEV_WORDS.r
 const Tx=(en,es,de,pt)=>devWords(TxRaw(en,es,de,pt));
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as Pitlane HQ Agent (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.5.0",APP_STAGE="beta";
+const WEB_VERSION="0.5.1",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -4292,20 +4299,21 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   if(proGated()){
     WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>{OV_OPEN.delete(w);fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{})})}
   const ovPB=$("#pwOverlayPresets");
-  $("#ovGlobal").innerHTML=`<h2>${L("ovGlobal")}</h2>
-    <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}</div>
-    <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="oOpenSel"${dis}>${L("openSel",true)}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div>
-    <div class="frow" style="margin-top:12px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select></div>
-    <div class="frow" style="margin-top:12px">${chk("oExp",ovExp,esc(Tx("Show the experimental overlays (lap comparison, DRS, G-force, stats, mini-sectors, gaps, telemetry, performance)","Mostrar los overlays experimentales (comparación de vueltas, DRS, fuerzas g, estadísticas, minisectores, gaps, telemetría, rendimiento)","Experimentelle Overlays anzeigen (Rundenvergleich, DRS, G-Kräfte, Statistik, Minisektoren, Abstände, Telemetrie, Leistung)","Mostrar os overlays experimentais (comparação de voltas, DRS, forças g, estatísticas, minissetores, gaps, telemetria, desempenho)")))}</div>
-    <details style="margin-top:10px"><summary class="label">${L("experimental",true)}</summary><div class="frow" style="margin:8px 0"><label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="flex:1;max-width:260px"></div><div class="frow">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details>`;
+  // Overlays as one list (design A): the buttons and the presets on top, every overlay as a row (opens when you get in
+  // the car, open now, configure), how they behave at the foot; the screen where you place them only while placing
+  $("#ovGlobal").innerHTML=`<div class="ov-top"><div class="frow"><button type="button" class="btn primary" id="oOpenSel"${dis}>${esc(Tx("Open now","Abrir ahora","Jetzt öffnen","Abrir agora"))}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button>
+      <button type="button" class="btn${CFG.edit?" primary":""}" id="oEdit" aria-pressed="${!!CFG.edit}">${esc(CFG.edit?Tx("Done placing","Terminar de colocar","Platzieren beenden","Terminar de posicionar"):Tx("Place on the screen","Colocar en la pantalla","Auf dem Bildschirm platzieren","Posicionar na tela"))}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div></div>`;
   if(ovPB)$("#ovGlobal").appendChild(ovPB); // the presets bar goes back at once, never gone for a moment
-  box.innerHTML=list.map(w=>`<div class="ovcard${auto.has(w)?" on":""}">
-    <div class="top"><div><div class="nm">${L("w."+w)}</div><div class="sub">${L("d."+w)}</div></div>
-      <button type="button" class="chip" data-auto="${w}" aria-pressed="${auto.has(w)}">${L("auto",true)}</button></div>
-    <div class="frow">${remote?`<button type="button" class="pin" data-open="${w}">${L("open",true)}</button><button type="button" class="pin" data-close="${w}">${L("close",true)}</button>`:MODE==="bridge"?`<button type="button" class="pin" data-view="${w}">${L("openHere",true)}</button>`:""}
-      ${CONFIGURABLE[w]?`<button type="button" class="pin" data-cfg="${w}">${L("configure",true)}</button>`:""}
-      <button type="button" class="pin" data-show="${w}" aria-pressed="${!HIDDEN.has(w)}">${L("showHere",true)}: ${esc(HIDDEN.has(w)?Tx("off","no"):Tx("on","sí"))}</button></div>
-</div>`).join("");
+  const sw=on=>`<span class="ov-sw${on?" on":""}"><i></i></span>`;
+  box.innerHTML=`<div class="ov-list"><div class="ov-row ov-h"><span>${esc(Tx("Overlay","Overlay"))}</span><span>${esc(Tx("When I get in the car","Al entrar al coche","Beim Einsteigen","Ao entrar no carro"))}</span><span>${esc(Tx("Now","Ahora","Jetzt","Agora"))}</span><span></span></div>
+    ${list.map(w=>{const op=OV_OPEN.has(w);return`<div class="ov-row" data-ovw="${w}"><span class="ov-n"><b>${L("w."+w)}</b>${OV_BASIC.includes(w)?"":`<span class="pill">${esc(Tx("Experimental","Experimental"))}</span>`}</span>
+      <button type="button" class="ov-swb" data-auto="${w}" aria-pressed="${auto.has(w)}" aria-label="${esc(L("w."+w)+" · "+Tx("when I get in the car","al entrar al coche"))}">${sw(auto.has(w))}</button>
+      ${remote?`<button type="button" class="ov-st${op?" on":""}" data-ovt="${w}">${esc(op?Tx("Open","Abierto","Offen","Aberto"):Tx("Closed","Cerrado","Geschlossen","Fechado"))}</button>`:MODE==="bridge"?`<button type="button" class="ov-st" data-view="${w}">${L("openHere",true)}</button>`:`<span></span>`}
+      ${CONFIGURABLE[w]?`<button type="button" class="btn small" data-cfg="${w}">${L("configure",true)}</button>`:"<span></span>"}</div>`}).join("")}</div>
+    <div class="ov-foot frow" style="margin-top:12px;align-items:center">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oExp",ovExp,esc(Tx("Show the experimental ones","Mostrar los experimentales","Experimentelle anzeigen","Mostrar os experimentais")))}
+      <details><summary class="label">${esc(Tx("More","Más","Mehr","Mais"))}</summary><div class="frow" style="margin-top:8px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select>
+        <label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="max-width:220px">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details></div>`;
+  $("#ovScreenPanel").hidden=!CFG.edit;
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
   {const e=q("#oExp");if(e)e.onclick=()=>{if(proGated()&&!ovExpOn()){proDialog(Tx("The experimental overlays need Pro.","Los overlays experimentales necesitan Pro.","The experimental overlays need Pro.","Os overlays experimentais precisam do Pro."));renderOverlaysTab();return}const on=!ovExpOn();store.set("pw.ovExp",on);if(!on){CFG.autoWidgets=(CFG.autoWidgets||[]).filter(w=>OV_BASIC.includes(w));saveCfg();WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}))}renderOverlaysTab()}}
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
@@ -4315,8 +4323,9 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   q("#oCloseAll").onclick=()=>{[...OV_OPEN].forEach(backToLive);OV_OPEN.clear();markOvOpen();fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))};
   q("#oReset").onclick=()=>fetch("/api/overlay/reset",{method:"POST"}).then(()=>toast(Tx("Positions reset. Reopen overlays to apply.","Posiciones restablecidas. Vuelve a abrir los overlays.")));
   box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
-  box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const w=b.dataset.open;if(OV_OPEN.has(w))return;await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600)});
-  box.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const w=b.dataset.close;OV_OPEN.delete(w);backToLive(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
+  box.querySelectorAll("[data-ovt]").forEach(b=>b.onclick=async()=>{const w=b.dataset.ovt;
+    if(!OV_OPEN.has(w)){await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600);return}
+    OV_OPEN.delete(w);backToLive(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
   markOvOpen();markGameGaps();refreshScreenRects(); // what is really open on the PC, at once
   box.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>window.open(`/?overlay=${b.dataset.view}`,"_blank"));
   box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg)});
@@ -4787,13 +4796,15 @@ async function renderProCard(){const box=$("#mePro");if(!box)return;if(!PRO_CARD
       ${PRO.beta&&L.full>L.price?`<span class="note"><s>${esc(proMoney(L.full))}</s> ${esc(T("half price while Pitlane HQ is in beta, paid once","mitad de precio mientras Pitlane HQ está en beta, un solo pago","half price while Pitlane HQ is in beta, paid once","metade do preço enquanto o Pitlane HQ está em beta, pagamento único"))}</span>`:`<span class="note">${esc(T("paid once","un solo pago","paid once","pagamento único"))}</span>`}</div>`:""}
     <p class="note" style="margin:10px 0 0">${esc(T("Or support Pitlane HQ with a donation:","O apoya Pitlane HQ con una donación:","Or support Pitlane HQ with a donation:","Ou apoie o Pitlane HQ com uma doação:"))} <a href="${PATREON_URL}" target="_blank" rel="noopener">♥ Patreon</a></p>`;
   const b=$("#meProBuy");if(b)b.onclick=proOpenBuy;const mv=$("#meProMove");if(mv)mv.onclick=proMoveHere}
-function markOvOpen(){document.querySelectorAll("#ovCards [data-open]").forEach(b=>{const on=OV_OPEN.has(b.dataset.open);b.setAttribute("aria-pressed",on);b.textContent=on?"● "+Tx("Open","Abierto","Offen","Aberto"):L("open",true);const c=b.closest(".ovcard");if(c)c.classList.toggle("live",on);const x=c&&c.querySelector("[data-close]");if(x)x.disabled=!on})}
+function markOvOpen(){document.querySelectorAll("#ovCards [data-ovt]").forEach(b=>{const on=OV_OPEN.has(b.dataset.ovt);b.classList.toggle("on",on);b.textContent=on?Tx("Open","Abierto","Offen","Aberto"):Tx("Closed","Cerrado","Geschlossen","Fechado")})}
 /* ---------- live preview while configuring ---------- */
 let PREVIEW_TIMER=0;
 function startPreview(w){clearInterval(PREVIEW_TIMER);const pv=$("#cfgPreview");if(!pv)return;
   if(!REMOTE){if(!pv.querySelector("iframe")){const sz=OVSZ[w]||[460,260];pv.innerHTML=`<iframe title="preview" src="${MODE==="bridge"?"/":""}?overlay=${w}&preview=1" style="height:${Math.min(sz[1],420)}px"></iframe>`}return}
   const draw=()=>{if(w==="relative")renderRelative(pv);else if(w==="standings")renderStandingsWidget(pv);else pv.innerHTML=`<p class="note">${Lp("The preview appears here when the app runs in Pitlane HQ Agent; the block in Telemetry already shows your changes.","La vista previa aparece aquí con Pitlane HQ Agent; el bloque en Telemetría ya muestra tus cambios.")}</p>`};draw();PREVIEW_TIMER=setInterval(draw,500)}
 
+/* the PC app never rescales with Ctrl + wheel or Ctrl + +/−/0 (the Desktop shell also turns the zoom off) */
+{const pc=()=>MODE==="bridge"&&!OV.on&&!COMPANION;addEventListener("wheel",e=>{if(e.ctrlKey&&pc())e.preventDefault()},{passive:false});addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&pc()&&["+","-","=","0","Add","Subtract"].includes(e.key))e.preventDefault()},true)}
 /* ---------- Telemetry's modes: Basic (your layout), Full (every widget and the live traces) and Lap compare (this lap,
    live, against the lap you pick: your best in purple, your last or another of your laps, and the next level and the record
    only when the model knows another driver's lap with its whole telemetry, never a rival's estimated pedals) ---------- */
@@ -5014,7 +5025,7 @@ function gameMissing(needs){if(!STATUS.connected||STATUS.demo)return"";const g=S
 const colLacks=k=>gameMissing(COL_NEEDS[k]);
 function markGameGaps(){document.querySelectorAll(".wpanel[data-w]").forEach(p=>{const m=gameMissing(WIDGET_NEEDS[p.dataset.w]);p.classList.toggle("nodata",!!m);let b=p.querySelector(":scope>.ndban");
     if(m){if(!b){b=document.createElement("div");b.className="ndban";b.setAttribute("role","note");p.appendChild(b)}b.textContent="ⓘ "+m}else if(b)b.remove()});
-  document.querySelectorAll("#ovCards .ovcard").forEach(c=>{const w=c.querySelector("[data-auto]");const m=w?gameMissing(WIDGET_NEEDS[w.dataset.auto]):"";c.classList.toggle("nodata",!!m);c.title=m})}
+  document.querySelectorAll("#ovCards .ov-row[data-ovw]").forEach(c=>{const w=c.querySelector("[data-auto]");const m=w?gameMissing(WIDGET_NEEDS[w.dataset.auto]):"";c.classList.toggle("nodata",!!m);c.title=m})}
 /* which sim Pitlane HQ reads: iRacing, Le Mans Ultimate, or whichever is running */
 const GAME_NAMES={iracing:"iRacing",lmu:"Le Mans Ultimate",acc:"Assetto Corsa Competizione",ac:"Assetto Corsa"},GAME_SHORT={iracing:"iRacing",lmu:"LMU",acc:"ACC",ac:"AC"};
 const GAMES={auto:["Automatic","Automático","Automatisch","Automático"],...Object.fromEntries(Object.entries(GAME_NAMES).map(([k,v])=>[k,[v,v,v,v]]))};
@@ -6863,7 +6874,7 @@ async function leagOpen(id){const x=(LEAG.list||[]).find(l=>l.id===id);if(!x)ret
 async function renderLeagues(force){const box=$("#leagBody"),sec=$("#v-leagues"),sub=$("#leagSub");if(!LEAG.urlDone){LEAG.urlDone=true;const lq=new URLSearchParams(location.search).get("league");if(lq&&/^[A-Za-z0-9]{6,40}$/.test(lq))LEAG.openId=lq}if(sub)sub.textContent=Tx("Find a league to race in, or post yours: the days it races, its Discord or website.","Encuentra una liga en la que correr, o publica la tuya: los días que corre, su Discord o su web.","Finde eine Liga zum Fahren oder stelle deine vor: die Renntage, ihr Discord oder ihre Website.","Encontre uma liga para correr ou publique a sua: os dias em que corre, seu Discord ou site.");if(!box)return;
   if(LEAG.list===null||force){box.innerHTML=`<p class="note">${esc(Tx("Loading…","Cargando…","Lädt…","Carregando…"))}</p>`;await Promise.all([leagLoad(),loadLeagFound()])}
   if(LEAG.closed&&!wipOk()){wipView("leagues","leagues");box.innerHTML="";return}
-  if(sec){sec.classList.remove("wip");const c=sec.querySelector(".wip-card");if(c)c.remove();if(wipOk())wipView("leagues","leagues")}
+  if(sec){sec.classList.remove("wip");const c=sec.querySelector(".wip-card");if(c)c.remove();if(wipOk()&&LEAG.closed)wipView("leagues","leagues")}
   const L=LEAG.list||[],mine=L.filter(x=>x.mine);
   const tabs=[["explore",Tx("Explore leagues","Explorar ligas","Ligen entdecken","Explorar ligas")],["post",LEAG.edit?Tx("Edit league","Editar liga","Liga bearbeiten","Editar liga"):Tx("Post your league","Publicar tu liga","Deine Liga vorstellen","Publicar sua liga")],["mine",Tx("My leagues","Mis ligas","Meine Ligen","Minhas ligas")+(mine.length?` (${mine.length})`:"")]];
   let body="";

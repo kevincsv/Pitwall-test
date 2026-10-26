@@ -14,6 +14,15 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - The Coach overlay works live and tells you about the next corner while you drive, with four styles to pick before
   you go out (card, column, corner drawn or big for VR), and it says "Next turn (T7)" or however you prefer.
 - Overlays can no longer be made smaller than their normal size.
+- Telemetry has a Basic and a Full mode with the speed, throttle, brake, delta and gear traces, and Compare laps live
+  against your best, your last lap, the next level or the record.
+- Standings show the gap to the leader or the interval, a class filter when several classes race and your position lap
+  by lap, and Tyres show their wear.
+- Rev beep is simpler, pick the car, how it beeps (iRacing lights, your laps or your own RPM, one for every gear or
+  each gear) and its pitch and volume.
+- Overlays are one list where you open each one now or when you get in the car, with the presets and its settings at
+  hand.
+- Leagues are open to everyone, and the PC app no longer zooms with Ctrl and the mouse wheel.
 - Fixes and improvements.
 
 ## 0.4.7 beta

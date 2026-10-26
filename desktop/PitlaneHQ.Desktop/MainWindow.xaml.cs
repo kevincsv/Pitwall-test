@@ -148,6 +148,7 @@ public partial class MainWindow : Window
             await Web.EnsureCoreWebView2Async(env);
             Web.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
             Web.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            Web.CoreWebView2.Settings.IsZoomControlEnabled = false; // Ctrl + wheel or Ctrl + +/- never rescale the app
             Web.CoreWebView2.NewWindowRequested += OnNewWindow;
             Web.CoreWebView2.NavigationStarting += OnNavigating;
             Web.CoreWebView2.WebMessageReceived += OnWebMessage;

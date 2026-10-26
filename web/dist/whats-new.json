@@ -8,7 +8,12 @@
         "New throttle tips for when you open it too fast or take too long to reach full throttle.",
         "Each lap's line comes from the game's real position, and the corners are numbered by the track's shape.",
         "The Coach overlay works live and tells you about the next corner while you drive, with four styles to pick before you go out (card, column, corner drawn or big for VR), and it says \"Next turn (T7)\" or however you prefer.",
-        "Overlays can no longer be made smaller than their normal size."
+        "Overlays can no longer be made smaller than their normal size.",
+        "Telemetry has a Basic and a Full mode with the speed, throttle, brake, delta and gear traces, and Compare laps live against your best, your last lap, the next level or the record.",
+        "Standings show the gap to the leader or the interval, a class filter when several classes race and your position lap by lap, and Tyres show their wear.",
+        "Rev beep is simpler, pick the car, how it beeps (iRacing lights, your laps or your own RPM, one for every gear or each gear) and its pitch and volume.",
+        "Overlays are one list where you open each one now or when you get in the car, with the presets and its settings at hand.",
+        "Leagues are open to everyone, and the PC app no longer zooms with Ctrl and the mouse wheel."
       ],
       "es": [
         "El coach aprende de lo que pasa después de sus consejos, pone primero los que más ayudan, puedes valorarlos con 👍 o 👎 y recuerda tus hábitos en varios circuitos.",
@@ -16,7 +21,12 @@
         "Nuevos consejos sobre el acelerador, cuando lo abres demasiado rápido o tardas en llegar a fondo.",
         "El trazado de cada vuelta sale de la posición real del juego, y las curvas se numeran por la forma del circuito.",
         "El overlay del Coach funciona en vivo y te avisa de la próxima curva mientras conduces, con cuatro estilos para elegir antes de salir (tarjeta, columna, curva dibujada o grande para VR), y dice \"Próxima curva (T7)\" o como prefieras.",
-        "Los overlays ya no se pueden hacer más pequeños que su tamaño normal."
+        "Los overlays ya no se pueden hacer más pequeños que su tamaño normal.",
+        "Telemetría tiene un modo Básico y uno Completo con las trazas de velocidad, acelerador, freno, delta y marcha, y Comparar vueltas en vivo contra tu mejor vuelta, la última, el siguiente nivel o el récord.",
+        "Posiciones muestra el gap al líder o el intervalo, un filtro de clase cuando corren varias clases y tu posición vuelta a vuelta, y Neumáticos muestra su desgaste.",
+        "El rev beep es más sencillo, eliges el coche, cómo pita (luces de iRacing, tus vueltas o tus propias RPM, una para todas las marchas o por marcha) y su tono y volumen.",
+        "Los overlays son una lista donde abres cada uno ahora o al entrar al coche, con los presets y sus ajustes a mano.",
+        "Las ligas están abiertas para todos, y la app del PC ya no hace zoom con Ctrl y la rueda del ratón."
       ],
       "pt": [
         "O coach aprende com o que acontece depois das dicas, coloca primeiro as que mais ajudam, você pode avaliá-las com 👍 ou 👎 e ele lembra seus hábitos em várias pistas.",
@@ -24,7 +34,12 @@
         "Novas dicas sobre o acelerador, quando você abre rápido demais ou demora para chegar ao fundo.",
         "O traçado de cada volta vem da posição real do jogo, e as curvas são numeradas pela forma da pista.",
         "O overlay do Coach funciona ao vivo e avisa da próxima curva enquanto você pilota, com quatro estilos para escolher antes de sair (cartão, coluna, curva desenhada ou grande para VR), e diz \"Próxima curva (T7)\" ou como preferir.",
-        "Os overlays não podem mais ficar menores que o tamanho normal."
+        "Os overlays não podem mais ficar menores que o tamanho normal.",
+        "A Telemetria tem um modo Básico e um Completo com os traços de velocidade, acelerador, freio, delta e marcha, e Comparar voltas ao vivo contra sua melhor volta, a última, o próximo nível ou o recorde.",
+        "As Posições mostram o gap para o líder ou o intervalo, um filtro de classe quando correm várias classes e sua posição volta a volta, e os Pneus mostram o desgaste.",
+        "O rev beep ficou mais simples, você escolhe o carro, como ele apita (luzes do iRacing, suas voltas ou suas próprias RPM, uma para todas as marchas ou por marcha) e o tom e o volume.",
+        "Os overlays são uma lista onde você abre cada um agora ou ao entrar no carro, com os presets e os ajustes à mão.",
+        "As ligas estão abertas para todos, e o app do PC não faz mais zoom com Ctrl e a roda do mouse."
       ]
     },
     {
