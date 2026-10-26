@@ -1,6 +1,18 @@
 {
   "versions": [
     {
+      "v": "0.4.6",
+      "en": [
+        "Compare in Community only on a track where you have a valid lap, and the comparator opens on that track."
+      ],
+      "es": [
+        "Comparar en Comunidad solo en un circuito donde tienes una vuelta válida, y el comparador se abre en ese circuito."
+      ],
+      "pt": [
+        "Comparar na Comunidade só numa pista onde você tem uma volta válida, e o comparador abre nessa pista."
+      ]
+    },
+    {
       "v": "0.4.5",
       "en": [
         "A new Community: Summary with your leaderboards and how your best came down, Leaderboards with a track map that colours each sector where a driver is faster or slower than you, and Recent records."

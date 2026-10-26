@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.6 beta
+
+- **Compare on the same track**: Compare in Community needs a session of yours on that track with a valid lap, and
+  opens the comparator on that track; a lap of another track is never lap B.
+- **Recent records**: the list scrolls with the page and the record you choose stays in view.
+- Fixes and improvements.
+
 ## 0.4.5 beta
 
 - **A new Community**: Summary (your leaderboards with how your best came down, the latest records), Leaderboards
