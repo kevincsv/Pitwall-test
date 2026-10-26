@@ -64,7 +64,12 @@ DriverInfo:
 `
 
 func ovTestState(t *testing.T, ui map[string]any) *ovState {
-	st := newOvState("es")
+	// OV_LANG draws the pictures (OV_PNG_DIR) in another language, for the landing page
+	lang := os.Getenv("OV_LANG")
+	if lang == "" {
+		lang = "es"
+	}
+	st := newOvState(lang)
 	st.ses = parseOvSession(ovTestYAML)
 	set := func(k string, v any) {
 		b, _ := json.Marshal(v)

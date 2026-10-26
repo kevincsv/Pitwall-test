@@ -13,11 +13,12 @@
   const t = (en, es, pt) => ({ en, es, pt })[L()] || en;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const IMG = "landing/";
+  const IMG = () => "landing/" + L() + "/"; // the pictures in the page's language
 
+  const CAPS = `<i><svg viewBox="0 0 10 10"><path d="M0 5.5h10"/></svg></i><i><svg viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.2"/></svg></i><i><svg viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9"/></svg></i>`;
   // ---------- a screenshot in a Windows 11 window (the app's icon and name, minimise, maximise, close) ----------
-  const win = (img, alt) => `<figure class="tr-win"><div class="tr-wbar"><img src="icon-192.png" alt=""><span>Pitlane HQ</span><i>&#8212;</i><i>&#9633;</i><i>&#10005;</i></div><img class="tr-shot" src="${IMG}${img}" alt="${esc(alt)}" loading="lazy" decoding="async"></figure>`;
-  const phone = (img, cap) => `<figure class="tr-phone"><div><img src="${IMG}${img}" alt="${esc(cap)}" loading="lazy" decoding="async"></div><figcaption>${esc(cap)}</figcaption></figure>`;
+  const win = (img, alt) => `<figure class="tr-win"><div class="tr-wbar"><img src="icon-192.png" alt=""><span>Pitlane HQ</span>${CAPS}</div><img class="tr-shot" src="${IMG()}${img}" alt="${esc(alt)}" loading="lazy" decoding="async"></figure>`;
+  const phone = (img, cap) => `<figure class="tr-phone"><div><img src="${IMG()}${img}" alt="${esc(cap)}" loading="lazy" decoding="async"></div><figcaption>${esc(cap)}</figcaption></figure>`;
 
   // ---------- the overlays, live: one lap played in a loop, drawn as the agent draws them ----------
   const LAP = 66, CORN = [0.08, 0.2, 0.31, 0.47, 0.58, 0.7, 0.83];
@@ -102,9 +103,9 @@
   const S = { el: null, live: { on: false, raf: 0 }, obs: null, phones: false };
   function pageHTML() {
     const feats = FEATS().map(([img, h, p]) => `<section class="tr-row"><div class="tr-txt tr-rv"><h3>${esc(h)}</h3><p>${esc(p)}</p></div><div class="tr-rv" style="transition-delay:120ms">${win(img, h)}</div></section>`).join("");
-    const ovs = OVS().map(([n, c]) => `<figure class="tr-ov tr-rv"><div><img src="${IMG}ov-${n}.png" alt="${esc(c)}" loading="lazy" decoding="async"></div><figcaption>${esc(c)}</figcaption></figure>`).join("");
+    const ovs = OVS().map(([n, c]) => `<figure class="tr-ov tr-rv"><div><img src="${IMG()}ov-${n}.png" alt="${esc(c)}" loading="lazy" decoding="async"></div><figcaption>${esc(c)}</figcaption></figure>`).join("");
     const more = MORE().map(([h, p]) => `<div class="tr-more-i tr-rv"><b>${esc(h)}</b><p>${esc(p)}</p></div>`).join("");
-    return `<header class="tr-hero"><h1 class="tr-rv">${esc(t("iRacing telemetry, a coach for your laps and overlays", "Telemetría para iRacing, un coach para tus vueltas y overlays", "Telemetria para iRacing, um coach para suas voltas e overlays"))}</h1><div class="tr-rv" style="transition-delay:100ms">${btns()}</div><div class="tr-rv tr-hshot" style="transition-delay:200ms">${win("coach.jpg", "Coach")}</div></header>
+    return `<header class="tr-hero"><div class="tr-htop"><div><h1 class="tr-rv">${esc(t("iRacing telemetry, a coach for your laps and overlays", "Telemetría para iRacing, un coach para tus vueltas y overlays", "Telemetria para iRacing, um coach para suas voltas e overlays"))}</h1><div class="tr-rv" style="transition-delay:100ms">${btns()}</div></div><div class="tr-auth"></div></div><div class="tr-rv tr-hshot" style="transition-delay:200ms">${win("coach.jpg", "Coach")}</div></header>
 <main><h2 class="tr-kick">${esc(t("What Pitlane HQ does", "Qué hace Pitlane HQ", "O que o Pitlane HQ faz"))}</h2>${feats}
 <section class="tr-blk" data-live="1"><h2 class="tr-rv">${esc(t("Overlays over iRacing", "Overlays sobre iRacing", "Overlays sobre o iRacing"))}</h2><p class="tr-sub tr-rv">${esc(t("This is how they look on your screen, drawn by Pitlane HQ Agent.", "Así se ven en tu pantalla, dibujados por Pitlane HQ Agent.", "É assim que aparecem na sua tela, desenhados pelo Pitlane HQ Agent."))}</p><div class="tr-live">${liveHTML()}</div><div class="tr-ovs">${ovs}</div></section>
 <section class="tr-blk tr-phones" hidden><h2 class="tr-rv">${esc(t("Also on your phone", "También en el móvil", "Também no celular"))}</h2><div class="tr-pgrid">${PHONES().map(([i, c]) => phone(i, c)).join("")}</div></section>
@@ -128,13 +129,27 @@
     const imgs = [...sec.querySelectorAll("img")]; let ok = 0;
     imgs.forEach((im) => { const done = () => { if (++ok === imgs.length && imgs.every((i) => i.naturalWidth)) { sec.hidden = false; S.obs && S.obs.observe(sec); } }; if (im.complete) done(); else { im.addEventListener("load", done); im.addEventListener("error", () => {}); } im.loading = "eager"; });
   }
+  // the app header carries the design's top bar: Downloads, Records and the language
+  function topNav() {
+    const h = document.querySelector("header.top"); if (!h) return;
+    let n = h.querySelector(".tr-nav"); if (!n) { n = document.createElement("div"); n.className = "tr-nav"; h.appendChild(n); }
+    n.innerHTML = `<a href="/downloads">${esc(t("Downloads", "Descargas", "Downloads"))}</a><a href="/records">${esc(t("Records", "Récords", "Recordes"))}</a><button type="button" data-tr="lang">${L().toUpperCase()} ▾</button>`;
+    n.querySelector("[data-tr=lang]").onclick = () => { try { chooseLanguage(); } catch (e) {} };
+  }
+  // the sign-in (or create account) panel of the "me" view sits in the hero, beside the tagline, as in the design
+  function auth() {
+    const me = document.getElementById("meBody"), slot = S.el && S.el.querySelector(".tr-auth"), pn = me && me.querySelector(".me-auth");
+    if (slot && pn) { slot.querySelectorAll(".me-auth").forEach((x) => x !== pn && x.remove()); slot.appendChild(pn); }
+    const reg = document.getElementById("meToReg"); if (reg) reg.textContent = t("Create account", "Crear cuenta", "Criar conta");
+  }
   function render() {
     liveStop(S.live);
     S.el.innerHTML = pageHTML();
-    observe(); phones();
+    observe(); phones(); auth(); topNav();
   }
   function unmount() {
     if (!S.el) return;
+    document.documentElement.classList.remove("tour-on"); document.querySelectorAll("header.top .tr-nav").forEach((x) => x.remove()); if (S.mo) S.mo.disconnect(); const me = document.getElementById("meBody"), pn = S.el.querySelector(".tr-auth .me-auth"); if (me && pn) me.appendChild(pn);
     liveStop(S.live); if (S.obs) S.obs.disconnect(); clearInterval(S.langT); S.el.remove(); S.el = null;
   }
   function mount() {
@@ -142,13 +157,15 @@
     const me = document.getElementById("meBody"); if (!me) return;
     const el = document.createElement("div"); el.id = "tour";
     me.insertAdjacentElement("afterend", el); S.el = el; render();
+    document.documentElement.classList.add("tour-on");
+    S.mo = new MutationObserver(auth); S.mo.observe(me, { childList: true }); auth();
     // the language window sits over the page: once chosen, the page says it in that language
     S.lang = L(); S.langT = setInterval(() => { if (!S.el) { clearInterval(S.langT); return; } if (L() !== S.lang) { S.lang = L(); render(); } }, 400);
     el.addEventListener("click", (ev) => {
       const b = ev.target.closest("[data-tr]"); if (!b) return;
       if (b.dataset.tr === "create") {
         scrollTo({ top: 0, behavior: "smooth" });
-        setTimeout(() => { const btn = [...me.querySelectorAll("button, a")].find((x) => /crear|create|criar/i.test(x.textContent || "")); if (btn) btn.click(); const f = me.querySelector("input"); if (f) f.focus({ preventScroll: true }); }, 450);
+        setTimeout(() => { const btn = document.getElementById("meToReg"); if (btn) btn.click(); setTimeout(() => { const f = document.querySelector(".tr-auth input"); if (f) f.focus({ preventScroll: true }); }, 80); }, 450);
       }
     });
   }
@@ -157,8 +174,22 @@
 
   const st = document.createElement("style");
   st.textContent = `#tour{margin-top:34px;color:var(--fg)}
-#tour .tr-hero{max-width:1120px;margin:0 auto;padding:34px 0 10px;border-top:1px solid var(--line)}
-#tour h1{font:600 44px/1.12 var(--f-body);letter-spacing:0;text-transform:none;margin:0 0 20px;max-width:760px}
+#tour .tr-hero{max-width:1120px;margin:0 auto;padding:34px 0 10px}
+html.tour-on header.top .iconbtn,html.tour-on header.top .conn{display:none!important}
+header.top .tr-nav{margin-left:auto;display:flex;align-items:center;gap:20px;font:400 13px var(--f-body)}header.top .tr-nav a{color:var(--accent);text-decoration:none}header.top .tr-nav a:hover{text-decoration:underline}header.top .tr-nav button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;padding:4px}
+#tour .tr-cta .btn,#tour .tr-auth .btn{font:700 14px/1.2 var(--f-body);letter-spacing:0;text-transform:none;border-radius:8px;padding:11px 18px}
+#tour .tr-auth .me-auth{display:grid;grid-template-columns:1fr 1fr;column-gap:10px;padding:24px;border-radius:0;background:transparent;border:1px solid var(--line)}
+#tour .tr-auth .me-auth>h2{grid-column:1/-1;font:600 18px var(--f-body);letter-spacing:0;text-transform:none;margin:0 0 14px;color:var(--fg)}
+#tour .tr-auth .me-form{display:contents}#tour .tr-auth .me-form>*{grid-column:1/-1}
+#tour .tr-auth label{display:block;margin-bottom:10px}#tour .tr-auth .label{font:400 12px var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted)}#tour .tr-auth input{margin-top:4px;border-radius:8px}
+#tour .tr-auth .me-form>button[type=submit]{grid-column:1;order:5;margin-top:6px}
+#tour .tr-auth .me-switch{display:contents}#tour .tr-auth .me-switch>span{display:none}#tour .tr-auth .me-switch>.btn{grid-column:2;order:5;margin-top:6px}
+#tour .tr-auth .me-form>.note{order:6;margin-top:12px!important;font-size:12px}#tour .tr-auth .me-form>.note:last-child{display:none}#tour .tr-auth .me-form>.err:empty{display:none}
+#tour .tr-auth #meReg .me-strength,#tour .tr-auth #meReg>div{grid-column:1/-1}
+html.tour-on #v-me>.vhead,html.tour-on #meBody>.me-welcome,html.tour-on #meBody>.me-dl{display:none!important}html.tour-on #tour{margin-top:0}
+#tour .tr-htop{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:64px;align-items:center}
+#tour .tr-auth .me-auth{max-width:none;margin:0}
+#tour h1{font:600 46px/1.12 var(--f-body);letter-spacing:0;text-transform:none;margin:0 0 22px}
 #tour .tr-cta{display:flex;flex-wrap:wrap;gap:10px}#tour .tr-cta .btn{text-decoration:none}
 #tour .tr-hshot{margin-top:34px}
 #tour main{max-width:1120px;margin:0 auto}
@@ -168,7 +199,7 @@
 #tour h3{font:600 24px/1.2 var(--f-body);margin:0 0 8px}#tour .tr-txt p,#tour .tr-sub{color:var(--muted);font-size:15px;line-height:1.55;margin:0}
 #tour .tr-win{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#11151b;box-shadow:0 18px 50px rgba(0,0,0,.45)}
 #tour .tr-wbar{display:flex;align-items:center;height:30px;padding-left:10px;background:#0d1116;border-bottom:1px solid var(--line);font:400 12px 'Segoe UI',system-ui,sans-serif}
-#tour .tr-wbar img{width:14px;height:14px;border-radius:3px}#tour .tr-wbar span{margin-left:8px;flex:1}#tour .tr-wbar i{width:40px;text-align:center;font-style:normal;color:var(--muted)}
+#tour .tr-wbar img{width:14px;height:14px;border-radius:3px}#tour .tr-wbar span{margin-left:8px;flex:1}#tour .tr-wbar i{width:46px;height:30px;display:flex;align-items:center;justify-content:center}#tour .tr-wbar svg{width:10px;height:10px;fill:none;stroke:#c9d1da;stroke-width:1}
 #tour .tr-shot{display:block;width:100%;height:auto}
 #tour .tr-blk{padding:40px 0;border-top:1px solid var(--line)}#tour .tr-blk h2{font:600 24px/1.2 var(--f-body);letter-spacing:0;text-transform:none;margin:0 0 6px}#tour .tr-blk h2.tr-small{font-size:15px;color:var(--muted)}
 #tour .tr-live{margin-top:18px}
@@ -197,9 +228,11 @@
 #tour .tr-rv{opacity:0;transform:translateY(16px);transition:opacity .55s ease,transform .55s ease}#tour .tr-rv.in{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){#tour .tr-rv{opacity:1;transform:none;transition:none}}
 @media(max-width:980px){#tour .lv{grid-template-columns:minmax(0,1fr) 230px;grid-template-areas:"delta delta" "rel radar" "rel map" "fuel map" "dash dash" "pedals pedals"}#tour .tr-ovs,#tour .tr-pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){header.top .tr-nav a{display:none}}
+@media(max-width:900px){#tour .tr-htop{grid-template-columns:minmax(0,1fr);gap:22px}#tour .tr-auth{order:-1}}
 @media(max-width:760px){#tour h1{font-size:28px}#tour .tr-row{grid-template-columns:minmax(0,1fr);gap:14px;padding:26px 0}#tour h3{font-size:20px}
 #tour .lv{grid-template-columns:minmax(0,1fr);grid-template-areas:"delta" "rel" "radar" "map" "dash" "pedals" "fuel";padding:44px 12px 12px;gap:10px}#tour .lv-radar{width:190px}
-#tour .tr-ovs{grid-template-columns:minmax(0,1fr)}#tour .tr-more{grid-template-columns:minmax(0,1fr);gap:16px}#tour .tr-cta .btn{flex:1 1 45%;text-align:center}#tour .tr-wbar i{width:30px}}`;
+#tour .tr-ovs{grid-template-columns:minmax(0,1fr)}#tour .tr-more{grid-template-columns:minmax(0,1fr);gap:16px}#tour .tr-cta .btn{flex:1 1 45%;text-align:center}#tour .tr-wbar i{width:34px}}`;
   document.head.appendChild(st);
   window.PITLANE_TOUR = { mount, unmount, maybeOpen };
 })();

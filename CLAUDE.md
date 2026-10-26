@@ -32,8 +32,9 @@
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
   PitlaneHQ.exe is for development only and has no button in the app. The one exception is the web's visitor
-  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): the landing. The sign-in stays at the top of the page
-  (the "me" view as it is) and under it (`#tour` after `#meBody`, mounted by `signWall` while the wall is up) one page
+  (`web/dist/pitwall-tour.js`, COMPANION and not signed in): the landing. The app header carries Downloads, Records
+  and the language; the "me" view's own sign-in (or create account) panel moves into the hero beside the tagline (styled
+  as the design: sentence-case buttons, Sign in and Create account side by side), its title and welcome hidden; and under it (`#tour` after `#meBody`, mounted by `signWall` while the wall is up) one page
   like a product site in the "clean data" design (never a slideshow): the tagline and the calls to action, the app in a
   Windows 11 window (its icon and name, minimise, maximise, close; never a browser bar or an address), "What Pitlane HQ
   does" as rows (a title, one short sentence, a screenshot of the app in that window), "Overlays over iRacing" (the
