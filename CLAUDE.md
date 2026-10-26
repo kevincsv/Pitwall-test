@@ -600,7 +600,8 @@
   agent is not detected (no presence from your PC on the account) with "Download for Windows" and a ×, closed for that
   tab (`agentBar`); never on the PC app nor the phones.
 - This repository is only the PC app (PitlaneHQ.exe, Go) and the web (`cloud/`, Cloudflare).
-  The Android and iOS apps live in their own repository.
+  The Android and iOS apps live in their own repository. Android and iOS are always the same app: a change asked
+  for one of them goes to both.
 - One app everywhere: `web/dist` is the PC app and the web app at `/app` (computers and phones).
   Web scripts are loaded with relative paths.
 - `master` is the main branch the builds come from (Windows and the server).
