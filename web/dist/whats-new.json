@@ -3,118 +3,118 @@
     {
       "v": "0.4.7",
       "en": [
-        "A new Home: your last race lap by lap, the recent sessions with their tags, every discipline's licence and iRating, and the days you drove.",
-        "The most active leagues found on Discord and Reddit are in the leagues list."
+        "Home is new. You see your last race lap by lap, your recent sessions, the iRating and licence of each discipline and the days you drove.",
+        "The leagues list now also shows the most active leagues on Discord and Reddit."
       ],
       "es": [
-        "Un Inicio nuevo: tu última carrera vuelta a vuelta, las sesiones recientes con sus etiquetas, la licencia y el iRating de cada disciplina, y los días que has corrido.",
-        "Las ligas más activas encontradas en Discord y Reddit están en la lista de ligas."
+        "Inicio es nuevo. Ves tu última carrera vuelta a vuelta, tus sesiones recientes, el iRating y la licencia de cada disciplina y los días que corriste.",
+        "En la lista de ligas salen también las más activas de Discord y Reddit."
       ],
       "pt": [
-        "Um novo Início: sua última corrida volta a volta, as sessões recentes com suas etiquetas, a licença e o iRating de cada disciplina, e os dias em que correu.",
-        "As ligas mais ativas encontradas no Discord e no Reddit estão na lista de ligas."
+        "O Início é novo. Você vê sua última corrida volta a volta, suas sessões recentes, o iRating e a licença de cada disciplina e os dias em que correu.",
+        "A lista de ligas agora mostra também as mais ativas do Discord e do Reddit."
       ]
     },
     {
       "v": "0.4.6",
       "en": [
-        "Compare in Community only on a track where you have a valid lap, and the comparator opens on that track."
+        "Compare in Community now opens on the same track, and only if you have a valid lap there."
       ],
       "es": [
-        "Comparar en Comunidad solo en un circuito donde tienes una vuelta válida, y el comparador se abre en ese circuito."
+        "Comparar en Comunidad ahora abre en el mismo circuito, y solo si tienes una vuelta válida ahí."
       ],
       "pt": [
-        "Comparar na Comunidade só numa pista onde você tem uma volta válida, e o comparador abre nessa pista."
+        "Comparar na Comunidade agora abre na mesma pista, e só se você tiver uma volta válida nela."
       ]
     },
     {
       "v": "0.4.5",
       "en": [
-        "A new Community: Summary with your leaderboards and how your best came down, Leaderboards with a track map that colours each sector where a driver is faster or slower than you, and Recent records."
+        "Community is all new. Summary shows your leaderboards and how much your best lap has come down. Leaderboards has a map that shows in which sectors each driver is faster or slower than you. Recent records shows the latest ones."
       ],
       "es": [
-        "Una Comunidad nueva: Resumen con tus clasificaciones y cómo ha bajado tu mejor vuelta, Clasificaciones con un mapa del circuito que colorea cada sector donde un piloto es más rápido o más lento que tú, y Récords recientes."
+        "Comunidad cambia por completo. En Resumen ves tus clasificaciones y cuánto ha bajado tu mejor vuelta. En Clasificaciones hay un mapa que te enseña en qué sectores cada piloto es más rápido o más lento que tú. Y en Récords recientes salen los últimos."
       ],
       "pt": [
-        "Uma nova Comunidade: Resumo com suas classificações e como sua melhor volta caiu, Classificações com um mapa da pista que colore cada setor onde um piloto é mais rápido ou mais lento que você, e Recordes recentes."
+        "A Comunidade mudou por completo. No Resumo você vê suas classificações e quanto sua melhor volta baixou. Em Classificações há um mapa que mostra em quais setores cada piloto é mais rápido ou mais lento que você. E em Recordes recentes aparecem os últimos."
       ]
     },
     {
       "v": "0.4.4",
       "en": [
-        "Valid laps as in iRacing: only an Off Track or a lost connection makes a lap invalid; a lap through the pit lane is valid.",
-        "Incidents are named as in iRacing: Off Track, Loss of Control, Car Contact."
+        "A lap is only invalid if you leave the track or lose the connection, just like in iRacing. Going through the pit lane no longer ruins it.",
+        "Incidents now have the same names as in iRacing."
       ],
       "es": [
-        "Vueltas válidas como en iRacing: solo una salida de pista o una conexión perdida invalidan una vuelta; una vuelta por el pit lane es válida.",
-        "Los incidentes se llaman como en iRacing: salida de pista, pérdida de control, contacto con otro coche."
+        "Una vuelta solo deja de ser válida si te sales de la pista o pierdes la conexión, igual que en iRacing. Pasar por el pit lane ya no la invalida.",
+        "Los incidentes se llaman igual que en iRacing."
       ],
       "pt": [
-        "Voltas válidas como no iRacing: só uma saída de pista ou uma conexão perdida invalidam uma volta; uma volta pelo pit lane é válida.",
-        "Os incidentes têm os nomes do iRacing: saída de pista, perda de controle, contato com outro carro."
+        "Uma volta só fica inválida se você sair da pista ou perder a conexão, igual ao iRacing. Passar pelo pit lane não a invalida mais.",
+        "Os incidentes têm os mesmos nomes do iRacing."
       ]
     },
     {
       "v": "0.4.3",
       "en": [
-        "A new look on the phone: your last race on Home, your iRating as a line you read with your finger, and a coach that starts with what to work on first.",
-        "The licence summary no longer shows an offline session against the AI as your licence.",
-        "Only whole laps count: a lap that did not go round the whole circuit is never a best lap or a record."
+        "The phone app looks new. Home starts with your last race, you can run your finger along your iRating and the coach tells you first what to work on.",
+        "An offline race against the AI no longer shows up as your licence.",
+        "Laps cut short by a reset or a tow never count as a best lap or a record."
       ],
       "es": [
-        "Un nuevo aspecto en el móvil: tu última carrera en Inicio, tu iRating como una línea que lees con el dedo y un coach que empieza por lo que tienes que trabajar primero.",
-        "El resumen de licencias ya no muestra una sesión offline contra la IA como tu licencia.",
-        "Solo cuentan las vueltas completas: una vuelta que no recorrió todo el circuito nunca es tu mejor vuelta ni un récord."
+        "La app del móvil se ve nueva. Inicio empieza con tu última carrera, puedes recorrer tu iRating con el dedo y el coach te dice primero en qué trabajar.",
+        "Una carrera offline contra la IA ya no aparece como tu licencia.",
+        "Las vueltas que se quedan a medias por un reset o una grúa ya no cuentan como mejor vuelta ni como récord."
       ],
       "pt": [
-        "Um novo visual no celular: sua última corrida no Início, seu iRating como uma linha que você lê com o dedo e um coach que começa pelo que trabalhar primeiro.",
-        "O resumo de licenças não mostra mais uma sessão offline contra a IA como a sua licença.",
-        "Só voltas completas contam: uma volta que não percorreu o circuito inteiro nunca é sua melhor volta nem um recorde."
+        "O app do celular está com cara nova. O Início começa pela sua última corrida, você pode percorrer seu iRating com o dedo e o coach diz primeiro no que trabalhar.",
+        "Uma corrida offline contra a IA não aparece mais como sua licença.",
+        "Voltas que ficam pela metade por um reset ou um reboque não contam mais como melhor volta nem como recorde."
       ]
     },
     {
       "v": "0.4.2",
       "en": [
-        "One leaderboard for one car: the SF23's Honda and Toyota, NASCAR's and the Supercars' badges share one board, record and coach.",
-        "Track notes on the phone: read and write your notes on each track's page.",
-        "Driver profiles show their leaderboards, records and top 3 places at a glance.",
-        "Overlays can no longer be made too small to read."
+        "The same car under different badges now shares one leaderboard, record and coach. That goes for the SF23's Honda and Toyota, NASCAR and the Supercars.",
+        "You can read and write your track notes from the phone, on each track's page.",
+        "Driver profiles show their leaderboards, records and top 3 finishes at a glance.",
+        "You can no longer shrink an overlay until it's unreadable."
       ],
       "es": [
-        "Una clasificación por coche: el Honda y el Toyota del SF23 y las marcas de NASCAR y Supercars comparten clasificación, récord y coach.",
-        "Notas de circuito en el móvil: lee y escribe tus notas en la página de cada circuito.",
-        "Los perfiles muestran sus clasificaciones, récords y top 3 de un vistazo.",
-        "Los overlays ya no se pueden hacer tan pequeños que no se lean."
+        "Un mismo coche con distintas marcas comparte ahora clasificación, récord y coach. Pasa con el Honda y el Toyota del SF23, NASCAR y los Supercars.",
+        "Ya puedes leer y escribir tus notas de circuito desde el móvil, en la página de cada circuito.",
+        "Los perfiles de piloto enseñan sus clasificaciones, récords y top 3 de un vistazo.",
+        "Ya no puedes encoger un overlay hasta que no se lea."
       ],
       "pt": [
-        "Uma classificação por carro: o Honda e o Toyota do SF23 e as marcas da NASCAR e dos Supercars dividem classificação, recorde e coach.",
-        "Notas de pista no celular: leia e escreva suas notas na página de cada pista.",
-        "Os perfis mostram suas classificações, recordes e top 3 de relance.",
-        "Os overlays não podem mais ficar pequenos demais para ler."
+        "O mesmo carro com marcas diferentes agora divide classificação, recorde e coach. Vale para o Honda e o Toyota do SF23, a NASCAR e os Supercars.",
+        "Você já pode ler e escrever suas notas de pista no celular, na página de cada pista.",
+        "Os perfis de piloto mostram suas classificações, recordes e top 3 de relance.",
+        "Não dá mais para encolher um overlay até ele ficar ilegível."
       ]
     },
     {
       "v": "0.4.1",
       "en": [
-        "Telemetry from every lap, in your account on the PC, the web and the phone.",
-        "Lap analysis and a coach: any two laps compared, and the corners that cost the most against real faster laps.",
-        "Overlays on top of the game: relative, standings, radar, delta bar, track map, braking markers and more, also in VR.",
-        "Leaderboards, records, race summaries and your iRating of every discipline.",
-        "Rev beep: a beep to change up at the revs you choose, in Telemetry → Rev beep."
+        "Every lap you drive is recorded and saved to your account, and you can open it on the PC, the web or your phone.",
+        "Compare any two laps, and the coach shows you the corners where you lose the most against real faster laps.",
+        "Overlays over the game with the relative, standings, radar, delta bar, map, braking markers and more. They work in VR too.",
+        "Leaderboards, records, race summaries and your iRating in every discipline.",
+        "A rev beep tells you when to shift up at the revs you pick. You'll find it in Telemetry → Rev beep."
       ],
       "es": [
-        "Telemetría de cada vuelta, en tu cuenta en el PC, la web y el móvil.",
-        "Análisis de vueltas y un coach: dos vueltas cualesquiera comparadas, y las curvas que más te cuestan frente a vueltas reales más rápidas.",
-        "Overlays sobre el juego: relative, clasificación, radar, barra de delta, mapa, marcas de frenada y más, también en VR.",
-        "Clasificaciones, récords, resúmenes de carrera y tu iRating de cada disciplina.",
-        "Pitido de revoluciones: un pitido para subir de marcha a las revoluciones que elijas, en Telemetría → Pitido de revoluciones."
+        "Cada vuelta que das se graba y se guarda en tu cuenta, y la abres en el PC, en la web o en el móvil.",
+        "Compara dos vueltas cualesquiera, y el coach te enseña las curvas donde más pierdes frente a vueltas reales más rápidas.",
+        "Overlays sobre el juego con el relative, la clasificación, el radar, la barra de delta, el mapa, las marcas de frenada y más. También funcionan en VR.",
+        "Clasificaciones, récords, resúmenes de carrera y tu iRating en cada disciplina.",
+        "Un pitido te avisa de cuándo subir de marcha a las revoluciones que elijas. Lo tienes en Telemetría → Pitido de revoluciones."
       ],
       "pt": [
-        "Telemetria de cada volta, na sua conta no PC, na web e no celular.",
-        "Análise de voltas e um coach: duas voltas quaisquer comparadas, e as curvas que mais custam contra voltas reais mais rápidas.",
-        "Overlays sobre o jogo: relative, classificação, radar, barra de delta, mapa, marcas de frenagem e mais, também em VR.",
-        "Classificações, recordes, resumos de corrida e seu iRating de cada disciplina.",
-        "Bipe de giros: um bipe para subir de marcha nos giros que você escolher, em Telemetria → Bipe de giros."
+        "Cada volta que você dá é gravada e salva na sua conta, e você a abre no PC, na web ou no celular.",
+        "Compare duas voltas quaisquer, e o coach mostra as curvas onde você mais perde contra voltas reais mais rápidas.",
+        "Overlays sobre o jogo com o relative, a classificação, o radar, a barra de delta, o mapa, as marcas de frenagem e mais. Também funcionam em VR.",
+        "Classificações, recordes, resumos de corrida e seu iRating em cada disciplina.",
+        "Um bipe avisa quando subir de marcha nos giros que você escolher. Fica em Telemetria → Bipe de giros."
       ]
     }
   ]

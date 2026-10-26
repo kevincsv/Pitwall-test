@@ -55,7 +55,8 @@
   test). Raise it rarely: a MINOR version for a big set of features; fixes and small changes go into the current
   version (or a PATCH only when a fix must reach PCs that already have it), never one version per build.
   CHANGELOG.md (newest first), the phones' and whats-new.json list only the big versions and only what users notice;
-  internal, server and small fixes are one "Fixes and improvements" line. A version gets a GitHub release.
+  internal, server and small fixes are one "Fixes and improvements" line. These notes read as a person wrote them, in plain short sentences: no "Title: text" headings and never a
+  ";" or a ":". A version gets a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps. Equivalent screens show the same information under the
   same names on every device (the phones' sub-tabs and labels are the PC's, never shortened versions; the web's
   phone-width layout is checked with `tools/ui-sweep.js`, a Playwright sweep of every view at 1300 and 390 px: no page
