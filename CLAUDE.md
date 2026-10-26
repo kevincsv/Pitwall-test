@@ -356,7 +356,7 @@
   show (online now, then members, at least 5 online, a post in the last 60 days) with the post's link and when it was
   last read; admins hide one, edit its name, text and disciplines (`editFound`, `edit` on the row, migration 0050: the six-hourly read never undoes it, "Put back" returns to the post's), read now or add a league by its Discord invite (`addFound`, sub "manual": never
   expires, shows whoever is online; FSRS by migration 0048). The hub is open to everyone (`LEAGUES_OPEN = "1"` in wrangler.toml) and the most active leagues are public (GET
-  `/community/leagues/found` needs no account): Home's "Leagues for you" (`homeLeagHTML`, three of the discipline you
+  `/community/leagues/found` needs no account): Home's "Private leagues for you" (`homeLeagHTML`, three of the discipline you
   race most), the landing's "Find your league" (six cards, "See every league", "Post your league for free" and a line
   under the hero buttons, which lead to creating the account and then the hub's form) and the public pages
   /iracing-leagues, /es/ligas-iracing and /pt/ligas-iracing (`leaguesPage` in seo.js, in the sitemap and the footers).
