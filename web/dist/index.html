@@ -5514,7 +5514,9 @@ const CLOUD={sessions:null,sid:"",bid:"",laps:[],lapsB:[],busy:false,err:"",game
 /* demo data for testing (admins only, Settings → About): pitwall-demo.js answers the reads of your laps,
    races and the community; nothing is uploaded and a banner shows on every screen */
 // the sample a visitor of the web looks at before signing in (pitwall-tour.js): the same invented data, nothing uploaded
-const sampleOn=()=>{try{return !!window.PITLANE_DEMO&&COMPANION&&!(typeof CP!=="undefined"&&CP.acc)&&localStorage.getItem("pw.sample")==="1"}catch(e){return false}};
+// the landing's "try it with sample data" is gone: a visitor who had it on goes back to the sign-in
+try{localStorage.removeItem("pw.sample")}catch(e){}
+const sampleOn=()=>false;
 function demoOn(){try{return !!window.PITLANE_DEMO&&localStorage.getItem("pw.demo")==="1"&&isAdmin()||sampleOn()}catch(e){return false}}
 /* demo data on and no real telemetry: Live (and the overlays' data) runs an invented race at 30 frames a second, never uploaded */
 var DEMOLIVE=null;

@@ -41,9 +41,8 @@
   laps and the lap behind it, with their traces; a car and track whose laps cannot be read is skipped; the names as
   the public pages show them, Anonymous included; the tag says "Real laps from the leaderboards · car · track"), the
   invented data only when the server has none ("Sample data · invented laps"); the live relative and the race summary
-  are always a sample. "Try it with sample data" (`pw.sample`, `sampleOn()`: the app itself on the invented data, the
-  sign wall down, a "SAMPLE DATA" banner with "Sign in to see your own", nothing uploaded); "Create account" scrolls
-  to the form at the top. Never on the PC app.
+  are always a sample. No "Try it with sample data" (the owner's choice: a visitor never enters the app on invented
+  data; `sampleOn()` is always false); "Create account" scrolls to the form at the top. Never on the PC app.
 - One version number for PitlaneHQ.exe, the web and the phone apps, shown with "beta" until 1.0.0. The numbering
   started again at 0.4.1 (the owner's choice): the changelogs and What's new begin there, the releases of a higher number
   are deleted by the builds, and the phones announce an update when the server's number differs from theirs (not only
