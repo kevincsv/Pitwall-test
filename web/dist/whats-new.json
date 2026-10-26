@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.4.4",
+      "en": [
+        "Valid laps as in iRacing: only an Off Track or a lost connection makes a lap invalid; a lap through the pit lane is valid.",
+        "Incidents are named as in iRacing: Off Track, Loss of Control, Car Contact."
+      ],
+      "es": [
+        "Vueltas válidas como en iRacing: solo una salida de pista o una conexión perdida invalidan una vuelta; una vuelta por el pit lane es válida.",
+        "Los incidentes se llaman como en iRacing: salida de pista, pérdida de control, contacto con otro coche."
+      ],
+      "pt": [
+        "Voltas válidas como no iRacing: só uma saída de pista ou uma conexão perdida invalidam uma volta; uma volta pelo pit lane é válida.",
+        "Os incidentes têm os nomes do iRacing: saída de pista, perda de controle, contato com outro carro."
+      ]
+    },
+    {
       "v": "0.4.3",
       "en": [
         "A new look on the phone: your last race on Home, your iRating as a line you read with your finger, and a coach that starts with what to work on first.",

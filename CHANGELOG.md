@@ -4,6 +4,14 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.4 beta
+
+- **Valid laps as in iRacing**: only leaving the track (an Off Track) or losing the connection makes a lap invalid; a
+  Loss of Control or a Car Contact counts only when it takes you off the track, and a lap through the pit lane is
+  valid.
+- **Incidents named as in iRacing**: Off Track, Loss of Control, Car Contact.
+- Fixes and improvements.
+
 ## 0.4.3 beta
 
 - **A new look on the phone**: the pit wall, with your last race on Home, your iRating as a line you read with your
