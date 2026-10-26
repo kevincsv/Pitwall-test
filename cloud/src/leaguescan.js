@@ -5,6 +5,7 @@
 const FEEDS = [
   ["iRacing", "https://www.reddit.com/r/iRacing/new/.rss?limit=100"],
   ["iRacingLeagues", "https://www.reddit.com/r/iRacingLeagues/new/.rss?limit=100"],
+  ["simracing", "https://www.reddit.com/r/simracing/new/.rss?limit=100"],
 ];
 const UA = "web:app.pitlanehq.leagues:v1.0 (+https://pitlanehq.app)"; // the form Reddit asks automated clients to use
 const EVERY = 6 * 3600e3, RETRY = 30 * 60e3, STUCK = 24 * 3600e3, KEEP = 60 * 86400e3, RECHECK = 6 * 3600e3, MIN_ONLINE = 5;
@@ -72,9 +73,10 @@ export async function scanLeagues(env, force) {
     await save(sub, { ok: now }); okAny = true;
     for (const { id, title, body, at, link } of posts) {
       read++;
-      if (!id || now - at > KEEP) continue;
+      if (!id) continue;
       const m = (title + " " + body).match(INVITE);
       if (!m || !LEAGUE.test(title + " " + body.slice(0, 1500)) || NOT.test(title)) continue;
+      if (sub === "simracing" && !/iracing/i.test(title + " " + body)) continue;
       const seen = await env.DB.prepare("SELECT 1 FROM league_found_posts WHERE id=?1").bind(id).first();
       if (seen) continue;
       const code = m[1], known = await env.DB.prepare("SELECT guild FROM league_found WHERE code=?1").bind(code).first();
@@ -95,7 +97,7 @@ export async function scanLeagues(env, force) {
     }
   }
   // how active each league is now: its Discord's members and who is online (the ones read longest ago first)
-  const stale = (await env.DB.prepare("SELECT guild, code FROM league_found WHERE dead=0 AND (sub='manual' OR posted>?1) AND (checked IS NULL OR checked<?2) ORDER BY COALESCE(checked,0) ASC LIMIT 40").bind(now - KEEP, now - RECHECK).all()).results || [];
+  const stale = (await env.DB.prepare("SELECT guild, code FROM league_found WHERE dead=0 AND (checked IS NULL OR checked<?1) ORDER BY COALESCE(checked,0) ASC LIMIT 40").bind(now - RECHECK).all()).results || [];
   for (const x of stale) {
     const info = await invite(x.code).catch(() => null);
     if (!info) continue;
@@ -127,8 +129,8 @@ export async function addFound(env, link) {
 export async function foundLeagues(env, admin) {
   const now = Date.now();
   const st = await env.DB.prepare("SELECT v, at FROM app_state WHERE k='leagues_scan'").first().catch(() => null);
-  const rows = (await env.DB.prepare(`SELECT * FROM league_found WHERE dead=0 AND (sub='manual' OR (posted>?1 AND online>=?2)) ${admin ? "" : "AND hidden=0"}
-    ORDER BY online DESC, members DESC LIMIT 24`).bind(now - KEEP, MIN_ONLINE).all()).results || [];
+  const rows = (await env.DB.prepare(`SELECT * FROM league_found WHERE dead=0 AND (sub='manual' OR online>=?1) ${admin ? "" : "AND hidden=0"}
+    ORDER BY online DESC, members DESC LIMIT 60`).bind(MIN_ONLINE).all()).results || [];
   let info = {};
   try { info = JSON.parse((st && st.v) || "{}"); } catch (e) {}
   // the admins only hear of a feed that has not been read for a day
