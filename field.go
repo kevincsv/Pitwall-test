@@ -139,16 +139,12 @@ func fieldWatcher() {
 				c = &carLapProf{lap: -1}
 				fieldCars[i] = c
 			}
-			pit := a[3] != nil && i < len(a[3]) && a[3][i] > 0
 			lap := int(a[1][i])
 			if lap != c.lap {
 				if c.lap >= 0 && c.valid && coverage(c.v) > 0.85 {
 					c.pendV, c.pendAt = c.v, t
 				}
-				c.lap, c.v, c.valid = lap, make([]float32, nb), !pit
-			}
-			if pit {
-				c.valid = false
+				c.lap, c.v, c.valid = lap, make([]float32, nb), true // a lap through the pit lane counts too
 			}
 			// the last lap time arrives a moment after the line
 			if c.pendV != nil && t-c.pendAt > 2 {

@@ -337,7 +337,8 @@
   post up to 10, with a small "♥ Support on Patreon" link.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
-  the leagues, the latest sessions (any driver's; "See the laps" opens its laps one by one with their top speed and
+  the leagues, the latest sessions (any driver's, a private one too: an admin opens every account's profile from the
+  leaderboards, and the profile lists its sessions for admins; "See the laps" opens its laps one by one with their top speed and
   sectors, and an admin marks a lap not valid or valid again: `admSessionLaps`, `/api/laps/:id/valid`; the session's
   best, the driver's share and the model follow), the server's emails and the tools (rebuild the coach models; the
   blocked sign-ins one by one, by email or all; per account: confirm its email, turn off its two-step
@@ -363,6 +364,10 @@
   no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
+- What makes a lap not valid, and only that (`invalid()` in cloud.go, the same verdict for the race summary's laps):
+  leaving the track (all four wheels out for a third of a second), a 2x spin (loss of control), or lost connection (a
+  hole of more than 40 m in its telemetry, or not the whole circuit). A 4x contact, a lap through the pit lane or
+  any other incident does not; a rival's lap through the pits counts too (field.go).
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every

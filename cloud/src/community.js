@@ -290,7 +290,7 @@ export async function community(req, env, url, ctx) {
          FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model')
        SELECT l.id, l.user_id AS uid, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n,
          CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
-         (l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
+         (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
          (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
          p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE CASE WHEN p.anon=1 THEN 'Anonymous' WHEN p.shown='iracing' AND COALESCE(pu.iracing,'')<>'' THEN pu.iracing ELSE pu.alias END END AS prevAlias
        FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
@@ -314,7 +314,7 @@ export async function community(req, env, url, ctx) {
            FROM community_laps WHERE game=?1 AND track_id=?2 AND COALESCE(shown,'')<>'model')
          SELECT l.id, l.user_id AS uid, l.car_id AS carId, l.car, l.track, l.cat AS hint, l.time, l.created, l.n,
            CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
-           (l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
+           (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
            (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace
          FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
          WHERE l.rk=1 ORDER BY l.n DESC, l.time`
@@ -341,7 +341,7 @@ export async function community(req, env, url, ctx) {
     const r = await env.DB.prepare(
       `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track,
          COALESCE(json_extract(u.lics, '$.' || ?4), l.lic) AS lic,
-         (l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup
+         (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup
        FROM community_laps l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
        WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 200`
     ).bind(t, c, game, cat).all();
@@ -782,11 +782,13 @@ export async function community(req, env, url, ctx) {
     }
     // their Discord, when they chose to show it (Account → Discord) so other drivers can find them there
     const dc = await env.DB.prepare("SELECT discord_id, handle FROM discord_links WHERE account_id=?1 AND shown=1").bind(a.id).first().catch(() => null);
+    // admins: the driver's latest sessions, to open their laps one by one (a private account too)
+    const sessions = admin ? (((await env.DB.prepare("SELECT id, started, track, track_config AS trackConfig, car, kind, laps, best FROM sessions WHERE uploader=?1 ORDER BY started DESC LIMIT 30").bind("acct:" + a.id).all()).results) || []) : undefined;
     return json({
       name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
       discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
-      lics, races, days,
+      lics, races, days, sessions,
       laps: laps.map((x) => ({ ...x, car: famName(x.game, x.carId, x.car), anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
     });
   }
