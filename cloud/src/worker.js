@@ -3,7 +3,7 @@
 import { voiceIce } from "./voiceice.js";
 import { downloads } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
-import { autoShare, reshareSession } from "./community.js";
+import { autoShare, reshareSession, unshareInvalid } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
 import { patreonWebhook } from "./patreon.js";
 import { lemonWebhook } from "./lemon.js";
@@ -76,6 +76,19 @@ const lapDrv = (l) => (typeof l.drv === "string" && l.drv.trim() ? l.drv.trim().
 const SESSION_SUMS = `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
        best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL) WHERE id=?1`;
 
+// a lap that cannot be a racing lap is never a best, a share or the model's: one through the pit lane (the PC says
+// so), one driven at pit-lane speed (its top speed under 40 % of the session's fastest lap's) or one far quicker
+// than anybody's laps of this car and track (under 70 % of their average). Older PCs did not mark the pit lane.
+async function dropImpossibleLaps(env, sid) {
+  const r = await env.DB.batch([
+    env.DB.prepare("UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND vmax>0 AND vmax < 0.4*(SELECT MAX(vmax) FROM laps WHERE session_id=?1)").bind(sid),
+    env.DB.prepare(`UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND time < 0.7*(SELECT AVG(l.time) FROM laps l JOIN sessions s ON s.id=l.session_id JOIN sessions me ON me.id=?1
+       WHERE l.valid=1 AND l.session_id<>?1 AND s.track=me.track AND COALESCE(s.track_config,'')=COALESCE(me.track_config,'') AND s.car=me.car AND COALESCE(s.game,'iracing')=COALESCE(me.game,'iracing'))`).bind(sid),
+    env.DB.prepare(SESSION_SUMS).bind(sid),
+  ]);
+  return (r[0].meta.changes || 0) + (r[1].meta.changes || 0);
+}
+
 async function addLap(env, sessionId, l) {
   if (!idOk(sessionId) || !idOk(l.id) || !num(l.n) || !num(l.time) || l.time <= 0 || l.time > 3600) return "lap needs id, n and time";
   const plain = l.trace ? JSON.stringify(l.trace) : null;
@@ -86,7 +99,7 @@ async function addLap(env, sessionId, l) {
     env.DB.prepare(
       `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc, drv) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
        ON CONFLICT(id) DO NOTHING`
-    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0)), lapDrv(l)),
+    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false || l.pit === true ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0)), lapDrv(l)),
     env.DB.prepare(SESSION_SUMS).bind(sessionId),
   ]);
   return null;
@@ -100,7 +113,11 @@ async function api(req, env, url, ctx) {
   const m = req.method;
 
   if (p === "/api/me") return json({ role, name: me.name, display: me.display });
-  const own = role === "account" ? me.name : null; // accounts only ever see their own laps
+  // accounts only ever see their own laps; the admins of this server read anybody's (to check a lap)
+  const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const admin = role === "account" && admins.includes(me.name.replace(/^acct:/, ""));
+  const own = role === "account" ? me.name : null;
+  const ownRead = admin ? null : own; // one session or lap, read by id
 
   if (p === "/api/upload" && m === "POST") {
     if (role === "viewer") return err("this key can only read", 403);
@@ -119,6 +136,9 @@ async function api(req, env, url, ctx) {
       e = await addLap(env, body.session.id, l);
       if (e) return err(e, 400);
     }
+    // a pit-lane or impossible lap is no best; a share made from one before goes (unshareInvalid)
+    const dropped = await dropImpossibleLaps(env, body.session.id).catch(() => 0);
+    if (dropped && role === "account") await unshareInvalid(env, me.name.slice(5), body.session.id).catch(() => {});
     // a valid lap with telemetry: the community model learns it (works with only the PC open)
     if ((body.laps || []).some((l) => l.valid !== false && l.trace)) await markModel(env, gameOf(body.session.game), posInt(body.session.trackId), posInt(body.session.carId));
     // the fastest lap of each car and track goes to the leaderboard by itself once it is in the account
@@ -247,7 +267,7 @@ async function api(req, env, url, ctx) {
     }
     const sid = decodeURIComponent(mm[1]);
     const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1").bind(sid).first();
-    if (!s || (own && s.uploader !== own)) return err("not found", 404);
+    if (!s || (ownRead && s.uploader !== ownRead)) return err("not found", 404);
     // ?traces=1: every lap with its telemetry in one answer (the app's analyzer), instead of one call per lap
     const withTraces = url.searchParams.get("traces") === "1";
     const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc, drv${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
@@ -292,11 +312,28 @@ async function api(req, env, url, ctx) {
     return json({ ok: true });
   }
 
+  // admins: a lap valid or not (an impossible lap the checks missed, or one they caught wrongly); its session's best,
+  // the account's shares and the model follow
+  mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)\/valid$/);
+  if (mm && m === "POST") {
+    if (!admin) return err("only the admins of this server can do this", 403);
+    const b = await req.json().catch(() => ({}));
+    const l = await env.DB.prepare("SELECT l.session_id, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(decodeURIComponent(mm[1])).first();
+    if (!l) return err("not found", 404);
+    await env.DB.batch([env.DB.prepare("UPDATE laps SET valid=?2 WHERE id=?1").bind(decodeURIComponent(mm[1]), b.valid ? 1 : 0), env.DB.prepare(SESSION_SUMS).bind(l.session_id)]);
+    if (String(l.uploader).startsWith("acct:")) {
+      const uid = String(l.uploader).slice(5);
+      if (b.valid) await reshareSession(env, uid, l.session_id).catch(() => {});
+      else await unshareInvalid(env, uid, l.session_id).catch(() => {});
+    }
+    return json({ ok: true });
+  }
+
   mm = p.match(/^\/api\/laps\/([A-Za-z0-9_.:-]+)$/);
   if (mm && m === "GET") {
     const lid = decodeURIComponent(mm[1]);
     const l = await env.DB.prepare("SELECT l.*, s.track, s.car, s.started, s.driver, s.uploader FROM laps l JOIN sessions s ON s.id=l.session_id WHERE l.id=?1").bind(lid).first();
-    if (!l || (own && l.uploader !== own)) return err("not found", 404);
+    if (!l || (ownRead && l.uploader !== ownRead)) return err("not found", 404);
     return json({ ...l, trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null, sectors: l.sectors ? JSON.parse(l.sectors) : null });
   }
 
@@ -316,6 +353,15 @@ export function traceLapTime(t) {
   if (!p || !(p[5] > 0) || !(p[0] > 1)) return null;
   return p[5] + ((d.length - k) * bin) / p[0];
 }
+// a share made from a lap that is not valid any more (an impossible lap: migration 0046, dropImpossibleLaps) goes and
+// the account's best of the car and track is shared again from its valid laps; a few each run
+async function repairImpossibleShares(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT c.user_id AS uid, l.session_id AS sid FROM community_laps c JOIN sessions s ON s.uploader='acct:'||c.user_id
+       JOIN laps l ON l.session_id=s.id AND l.valid=0 AND abs(l.time-c.time)<0.0006 AND l.drv IS NULL LIMIT 5`).all();
+  for (const r of results || []) await unshareInvalid(env, r.uid, r.sid).catch(() => {});
+}
+
 async function fixLapTimes(env) {
   const { results } = await env.DB.prepare(
     `SELECT a.id, a.session_id AS sid, a.time, a.trace, s.game, s.track_id AS tid, s.car_id AS cid FROM laps a
@@ -349,7 +395,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

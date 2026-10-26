@@ -5,7 +5,7 @@
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
 import { mailReady, mailLog, mailDomain } from "./email.js";
 import { sealData, openData } from "./crypt.js";
-import { getModel, getCarCard, markModel, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { getModel, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -138,8 +138,10 @@ async function comboIds(env, s, name, g, uid, body) {
 // (with its telemetry when it has some), when it beats what the account already shares for that car and track;
 // under the account's public name, or as Anonymous when the account chose so
 export async function autoShare(env, accountId, sessionId, laps, hint, ctx) {
-  // a friend's lap in DRINKS mode (drv) is shared by the PC under the friend's own name, never as the account's
-  const best = (laps || []).filter((l) => l && l.valid !== false && !(typeof l.drv === "string" && l.drv.trim()) && num(l.time) > 10 && l.time < 3600)
+  // a friend's lap in DRINKS mode (drv) is shared by the PC under the friend's own name, never as the account's;
+  // only a lap the server keeps as valid (a pit-lane or impossible lap is not, dropImpossibleLaps)
+  const ok = new Set((((await env.DB.prepare("SELECT id FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL").bind(sessionId).all()).results) || []).map((r) => String(r.id)));
+  const best = (laps || []).filter((l) => l && ok.has(String(l.id)) && !(typeof l.drv === "string" && l.drv.trim()) && num(l.time) > 10 && l.time < 3600)
     .sort((a, b) => a.time - b.time || (b.trace ? 1 : 0) - (a.trace ? 1 : 0))[0];
   if (!best) return null;
   const acc = await env.DB.prepare("SELECT a.anon, a.name_kind FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(accountId).first();
@@ -151,6 +153,23 @@ export async function autoShare(env, accountId, sessionId, laps, hint, ctx) {
   // the license class of this discipline is the account's current one (kept per discipline)
   if (g === "iracing" && licOf(hint && hint.lic)) await rememberLic(env, accountId, catOf(await catMap(env), trackId, carId, hint && hint.cat, name, s.car), hint.lic).catch(() => {});
   return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1, ctx });
+}
+
+// laps of a session that are no longer valid (an impossible lap, or an admin's call): a share made from one goes,
+// the model forgets it, and the account's best of the car and track is shared again from its valid laps
+export async function unshareInvalid(env, accountId, sid) {
+  const s = await env.DB.prepare("SELECT * FROM sessions WHERE id=?1 AND uploader=?2").bind(sid, "acct:" + accountId).first();
+  if (!s) return;
+  const bad = (await env.DB.prepare("SELECT time FROM laps WHERE session_id=?1 AND valid=0 AND time>0").bind(sid).all()).results || [];
+  const g = s.game || "iracing", name = s.track + (s.track_config ? " · " + s.track_config : "");
+  const { trackId, carId } = await comboIds(env, s, name, g, accountId, null);
+  if (!trackId || !carId) return;
+  const fam = await famId(env, g, carId);
+  for (const b of bad) {
+    await env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3 AND game=?4 AND abs(time-?5)<0.0006").bind(accountId, fam, trackId, g, b.time).run();
+    await forgetLap(env, g, trackId, carId, "acct:" + accountId, b.time);
+  }
+  await reshareSession(env, accountId, sid);
 }
 
 // after who drove a lap changes (DRINKS mode: a lap given to a friend, or back to you): every driver's shared best

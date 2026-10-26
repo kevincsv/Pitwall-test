@@ -400,6 +400,14 @@ export async function moveDriver(env, fromUp, toUp) {
   return rows.length;
 }
 
+// a lap that is no longer valid (an impossible lap, or an admin's call) leaves the model's memory
+export async function forgetLap(env, game, trackId, carId, uploader, time) {
+  carId = await famId(env, game, carId);
+  if (!trackId || !carId) return;
+  await env.DB.prepare("DELETE FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4").bind(game, trackId, carId, await sha(uploader + ":" + Number(time).toFixed(3))).run();
+  await markModel(env, game, trackId, carId);
+}
+
 export async function markModel(env, game, trackId, carId) {
   carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
   if (!trackId || !carId) return;
