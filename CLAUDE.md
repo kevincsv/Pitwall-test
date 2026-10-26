@@ -337,7 +337,9 @@
   post up to 10, with a small "♥ Support on Patreon" link.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
   account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
-  the leagues, the latest sessions, the server's emails and the tools (rebuild the coach models; the
+  the leagues, the latest sessions (any driver's; "See the laps" opens its laps one by one with their top speed and
+  sectors, and an admin marks a lap not valid or valid again: `admSessionLaps`, `/api/laps/:id/valid`; the session's
+  best, the driver's share and the model follow), the server's emails and the tools (rebuild the coach models; the
   blocked sign-ins one by one, by email or all; per account: confirm its email, turn off its two-step
   sign-in, sign it out everywhere, rename it, join a DRINKS driver to it or undo it; `/admin/guests` lists every
   DRINKS driver on the platform for the chooser). Networks are only ever a hash of their address. An admin
@@ -361,6 +363,10 @@
   no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
+- A lap that cannot be a racing lap is never a best, a share or the model's (`dropImpossibleLaps` on every upload,
+  migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job): a lap through the pit lane (the PC's
+  `pit`), one driven at pit-lane speed (top speed under 40 % of its session's fastest) or one under 70 % of the
+  average of everybody's laps of that car and track.
 - The model (`cloud/src/model.js`, MODEL_VERSION 7) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.
