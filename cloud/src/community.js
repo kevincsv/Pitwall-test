@@ -759,7 +759,7 @@ export async function community(req, env, url, ctx) {
       const l = await env.DB.prepare("SELECT user_id, anon FROM community_laps WHERE id=?1").bind(String(url.searchParams.get("lap") || "")).first();
       if (l) { uid = l.user_id; fromAnon = l.anon === 1; }
     }
-    const a = uid ? await env.DB.prepare("SELECT a.id, a.anon, a.created, a.member_since, a.supporter, a.supporter_hidden, u.alias, u.lics FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(uid).first() : null;
+    const a = uid ? await env.DB.prepare("SELECT a.id, a.anon, a.name_kind, a.created, a.member_since, a.supporter, a.supporter_hidden, u.alias, u.lics FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.id=?1").bind(uid).first() : null;
     const mine = !!a && !!viewer && viewer.id === a.id;
     if (!a || ((fromAnon || a.anon) && !admin && !mine)) return err("this driver is anonymous", 404);
     const laps = (await env.DB.prepare(
@@ -786,6 +786,7 @@ export async function community(req, env, url, ctx) {
     const sessions = admin ? (((await env.DB.prepare("SELECT id, started, track, track_config AS trackConfig, car, kind, laps, best FROM sessions WHERE uploader=?1 ORDER BY started DESC LIMIT 30").bind("acct:" + a.id).all()).results) || []) : undefined;
     return json({
       name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
+      shownAs: admin || mine ? (a.anon ? "anonymous" : a.name_kind === "iracing" ? "iracing" : "nick") : undefined, // how the account shows itself
       discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days, sessions,
