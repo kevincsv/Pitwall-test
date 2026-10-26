@@ -691,6 +691,12 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .rec-list{display:flex;flex-direction:column}.rec-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);min-width:0}.rec-row:first-child{border-top:0;padding-top:0}.rec-row .lb-ic{width:30px;height:30px}.rec-row .lb-ic svg{width:16px;height:16px}
 .rec-main{flex:1;min-width:0}.rec-main small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rec-act{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:820px){.rec-row{flex-wrap:wrap}.rec-act{width:100%;justify-content:flex-start;padding-left:40px}}
+.lgf{margin:0 0 18px}.lgf-h{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px}.lgf-h h2{margin:0}.lgf-up{white-space:nowrap}
+.lgf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}.lgf-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}.lgf-card.hid{opacity:.45}
+.lgf-top{display:flex;gap:10px;align-items:center;min-width:0}.lgf-top img,.lgf-ic{width:40px;height:40px;border-radius:12px;flex:none}.lgf-ic{display:grid;place-items:center;background:var(--surface2);font-weight:700}
+.lgf-nm{min-width:0}.lgf-nm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lgf-nm small{color:var(--muted);font-size:12px}
+.lgf-n{display:flex;gap:14px;font-size:13px;color:var(--muted)}.lgf-n b{font:600 15px var(--f-data);color:var(--fg)}.lgf-n b.good{color:var(--good)}
+.lgf-post{font-size:13px;color:var(--fg);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.lgf-post:hover{text-decoration:underline}.lgf-act{display:flex;gap:6px;margin-top:auto}.lgf-act a{text-decoration:none}
 /* Community, clean data: no boxes, hairlines between rows, one small line per leaderboard */
 .cl-head{display:flex;align-items:baseline;gap:30px;flex-wrap:wrap}.cl-head h1{margin:0}
 .cl-tabs{display:flex;gap:24px;flex-wrap:wrap}.cl-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 0;font:400 14px/1.2 var(--f-body);color:var(--muted);cursor:pointer}
@@ -6530,6 +6536,26 @@ function leagLimitNote(){const L=LEAG.limits||{free:3,supporter:10},n=(LEAG.list
   const used=Tx(`${n} of ${lim} leagues posted`,`${n} de ${lim} ligas publicadas`,`${n} von ${lim} Ligen veröffentlicht`,`${n} de ${lim} ligas publicadas`);
   if(LEAG.supporter)return`<p class="note lg-limit">${esc(used)} <span class="sup">♥ Supporter</span></p>`;
   return`<p class="note lg-limit">${esc(used)}. ${esc(Tx(`Supporters on Patreon can post up to ${L.supporter}.`,`Los supporters de Patreon pueden publicar hasta ${L.supporter}.`,`Unterstützer auf Patreon können bis zu ${L.supporter} veröffentlichen.`,`Apoiadores no Patreon podem publicar até ${L.supporter}.`))}${PATREON_URL?` <a class="lg-don" href="${esc(PATREON_URL)}" target="_blank" rel="noopener">♥ ${esc(Tx("Support on Patreon","Apoyar en Patreon","Auf Patreon unterstützen","Apoiar no Patreon"))}</a>`:""}</p>`}
+/* the most active leagues found in public posts (r/iRacing, r/iRacingLeagues) with a Discord invite: who is online
+   on their Discord now and how many members it has (Discord's public counts), read again every six hours */
+let LEAG_FOUND=null,LEAG_FOUND_T=0;
+async function drawLeagFound(force){const box=$("#lgFound");if(!box)return;
+  if(force||!LEAG_FOUND||Date.now()-LEAG_FOUND_T>10*60e3){try{LEAG_FOUND=force?await leagFetch("/community/leagues/found",{scan:1}):await leagFetch("/community/leagues/found");LEAG_FOUND_T=Date.now()}catch(e){if(!LEAG_FOUND){box.innerHTML="";return}}}
+  const F=LEAG_FOUND||{},list=(F.leagues||[]).filter(x=>!LEAG.cat||(x.cats||[]).includes(LEAG.cat)),adm=LEAG.admin,show=list.slice(0,LEAG.foundAll?24:6);
+  if(!F.updated&&!adm){box.innerHTML="";return}
+  const num=n=>Number(n||0).toLocaleString(locale());
+  box.innerHTML=`<div class="lgf-h"><div><h2>${esc(Tx("Most active leagues","Ligas más activas","Aktivste Ligen","Ligas mais ativas"))}</h2><small class="muted">${esc(Tx("Leagues looking for drivers on r/iRacing and r/iRacingLeagues, by who is online on their Discord now","Ligas que buscan pilotos en r/iRacing y r/iRacingLeagues, por la gente conectada ahora en su Discord","Ligen, die auf r/iRacing und r/iRacingLeagues Fahrer suchen, nach den gerade Online-Mitgliedern ihres Discords","Ligas procurando pilotos no r/iRacing e r/iRacingLeagues, pelas pessoas online agora no Discord delas"))}</small></div>
+      <small class="muted lgf-up">${F.updated?esc(Tx("Updated","Actualizado","Aktualisiert","Atualizado"))+" "+esc(agoTxt(F.updated)):esc(Tx("Not read yet","Aún sin leer","Noch nicht gelesen","Ainda não lido"))}${adm?` · <button type="button" class="cl-link" id="lgfScan">${esc(Tx("Read now","Leer ahora","Jetzt lesen","Ler agora"))}</button>`:""}</small></div>
+    ${adm&&F.errs&&F.errs.length?`<p class="note err">${esc(F.errs.join(" · "))}</p>`:""}
+    ${show.length?`<div class="lgf-grid">${show.map(x=>`<article class="lgf-card${x.hidden?" hid":""}"><div class="lgf-top">${x.icon?`<img src="${esc(x.icon)}" alt="" width="40" height="40" loading="lazy">`:`<span class="lgf-ic" aria-hidden="true">${esc((x.name||"?").slice(0,1))}</span>`}<div class="lgf-nm"><b>${esc(x.name)}</b><small>${(x.cats||[]).map(c=>discDot(c)+esc(discName(c))).join(" · ")||esc(Tx("iRacing league","Liga de iRacing","iRacing-Liga","Liga de iRacing"))}</small></div></div>
+        <div class="lgf-n"><span><b class="good">${num(x.online)}</b> ${esc(Tx("online","conectados","online","online"))}</span><span><b>${num(x.members)}</b> ${esc(Tx("members","miembros","Mitglieder","membros"))}</span></div>
+        <a class="lgf-post" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(unMojibake(x.title))}</a><small class="muted">r/${esc(x.sub)} · ${esc(agoTxt(x.posted))}${x.posts>1?" · "+esc(Tx(`${x.posts} posts`,`${x.posts} publicaciones`,`${x.posts} Beiträge`,`${x.posts} publicações`)):""}</small>
+        <div class="lgf-act"><a class="btn small primary" href="${esc(x.invite)}" target="_blank" rel="noopener">${esc(Tx("Join the Discord","Unirse al Discord","Discord beitreten","Entrar no Discord"))}</a>${adm?`<button type="button" class="btn small" data-lgfhide="${esc(x.guild)}" data-h="${x.hidden?0:1}">${esc(x.hidden?Tx("Show","Mostrar","Zeigen","Mostrar"):Tx("Hide","Ocultar","Ausblenden","Ocultar"))}</button>`:""}</div></article>`).join("")}</div>
+      ${list.length>6?`<button type="button" class="cl-link" id="lgfAll">${esc(LEAG.foundAll?Tx("Fewer","Menos","Weniger","Menos"):Tx(`See all ${list.length}`,`Ver las ${list.length}`,`Alle ${list.length}`,`Ver as ${list.length}`))}</button>`:""}`
+      :`<p class="note">${esc(Tx("No active league found right now.","Ahora mismo no hay ninguna liga activa encontrada.","Gerade keine aktive Liga gefunden.","Nenhuma liga ativa encontrada agora."))}</p>`}`;
+  const a=$("#lgfAll");if(a)a.onclick=()=>{LEAG.foundAll=!LEAG.foundAll;drawLeagFound()};
+  const sc=$("#lgfScan");if(sc)sc.onclick=async()=>{sc.textContent="…";await drawLeagFound(true)};
+  box.querySelectorAll("[data-lgfhide]").forEach(b=>b.onclick=async()=>{try{await leagFetch("/community/leagues/found/"+encodeURIComponent(b.dataset.lgfhide),{hidden:b.dataset.h==="1"});LEAG_FOUND=null;drawLeagFound()}catch(e){toast(e.message)}})}
 async function leagLoad(){try{const r=await leagFetch("/community/leagues");LEAG.admin=!!r.admin&&!asUser();LEAG.closed=false;LEAG.limit=+r.limit||3;LEAG.supporter=!!r.supporter;LEAG.limits=r.limits||{free:3,supporter:10};LEAG.list=(r.leagues||[]).map(x=>({...x,name:unMojibake(x.name),about:unMojibake(x.about),cars:unMojibake(x.cars)}));LEAG.err=""}
   catch(e){if(/in development/i.test(e.message||"")){LEAG.closed=true;LEAG.list=[];LEAG.err="";return}LEAG.list=LEAG.list||[];LEAG.err=e.message}}
 function leagHit(id,kind){const x=(LEAG.list||[]).find(l=>l.id===id);if(x&&x.mine)return;leagFetch("/community/leagues/"+encodeURIComponent(id)+"/hit",{kind}).catch(()=>{})}
@@ -6568,7 +6594,7 @@ async function renderLeagues(force){const box=$("#leagBody"),sec=$("#v-leagues")
     let list=L.filter(x=>(!LEAG.cat||leagDiscs(x).includes(LEAG.cat))&&(LEAG.day<0||(x.days||[]).includes(LEAG.day))&&(!LEAG.open||x.open)&&(!q||[x.name,x.about,x.cars,x.lang,x.by].join(" ").toLowerCase().includes(q)));
     const now=Date.now();if(LEAG.sort==="next")list=list.map(x=>({x,n:leagNext(x,now)})).sort((a,b)=>(a.n===null)-(b.n===null)||(a.n||0)-(b.n||0)||(b.x.updated||0)-(a.x.updated||0)).map(o=>o.x);else list=list.slice().sort((a,b)=>(b.created||0)-(a.created||0));
     const nL=n=>Tx(`${n} ${n===1?"league":"leagues"}`,`${n} ${n===1?"liga":"ligas"}`,`${n} ${n===1?"Liga":"Ligen"}`,`${n} ${n===1?"liga":"ligas"}`);
-    body=`${discCards(LEAG.cat,k=>{const n=L.filter(x=>leagDiscs(x).includes(k)).length;return{n,text:nL(n)}},true,nL(L.length))}
+    body=`<section id="lgFound" class="lgf" aria-label="${esc(Tx("Most active leagues","Ligas más activas","Aktivste Ligen","Ligas mais ativas"))}"></section>${discCards(LEAG.cat,k=>{const n=L.filter(x=>leagDiscs(x).includes(k)).length;return{n,text:nL(n)}},true,nL(L.length))}
       <div class="lg-filters"><span class="lg-days">${[-1,0,1,2,3,4,5,6].map(d=>`<button type="button" class="chip" data-lgday="${d}" aria-pressed="${LEAG.day===d}">${esc(d<0?Tx("Any day","Cualquier día","Jeder Tag","Qualquer dia"):wdName(d))}</button>`).join("")}</span>
         <button type="button" class="chip" id="lgOpen" aria-pressed="${LEAG.open}">${esc(Tx("Looking for drivers","Busca pilotos","Sucht Fahrer","Procura pilotos"))}</button>
         <span class="lg-sort"><button type="button" class="chip" data-lgsort="next" aria-pressed="${LEAG.sort==="next"}">${esc(Tx("Next race","Próxima carrera","Nächstes Rennen","Próxima corrida"))}</button><button type="button" class="chip" data-lgsort="new" aria-pressed="${LEAG.sort==="new"}">${esc(Tx("Newest","Más nuevas","Neueste","Mais novas"))}</button></span></div>
@@ -6608,6 +6634,7 @@ async function renderLeagues(force){const box=$("#leagBody"),sec=$("#v-leagues")
   // a post opens on a click or Enter; its Discord and website open as they are and count a click
   box.querySelectorAll("[data-lgopen]").forEach(c=>{c.onclick=e=>{if(e.target.closest("a,button"))return;leagOpen(c.dataset.lgopen)};c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();leagOpen(c.dataset.lgopen)}}});
   box.querySelectorAll("[data-lghit]").forEach(a=>a.addEventListener("click",()=>leagHit(a.dataset.lg,a.dataset.lghit)));
+  if(LEAG.tab==="explore")drawLeagFound();
   if(LEAG.openId){const id=LEAG.openId;LEAG.openId=null;leagOpen(id)}}
 /* leaderboards by discipline, like iRacing splits its licenses, and the license class badges (R, D, C, B, A, Pro) */
 const LB_DISC=[["oval",["Oval","Óvalo","Oval","Oval"]],["sports_car",["Sports Car","Sports Car","Sportwagen","Sports Car"]],["formula_car",["Formula Car","Fórmula","Formelwagen","Fórmula"]],["dirt_oval",["Dirt Oval","Óvalo de tierra","Dirt Oval","Oval de terra"]],["dirt_road",["Dirt Road","Tierra","Dirt Road","Terra"]]];

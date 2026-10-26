@@ -340,7 +340,13 @@
   admins) see the counts and the last 14 days (`league_days`). A post has a link (pitlanehq.app/app?league=id,
   opened on arrival) and, on the web, an .ics of its weekly race. In development: the server opens the hub to
   everyone with LEAGUES_OPEN=1; until then it answers "in development" and every app shows the card for it (admins
-  see the hub). Up to 3 leagues per driver, 10 for a supporter (Patreon or by hand; `LEAGUES_FREE`/`LEAGUES_SUPPORTER`,
+  see the hub). The hub's "Most active leagues" (`cloud/src/leaguescan.js`, migration 0047, `/community/leagues/found`,
+  `drawLeagFound`): every six hours the server reads the public feeds of r/iRacing and r/iRacingLeagues (two requests,
+  Reddit's application-only OAuth when REDDIT_CLIENT_ID/SECRET are set), keeps the posts of leagues with a Discord
+  invite and asks Discord's public invite counts how many members each has and how many are online; the most active
+  show (online now, then members, at least 5 online, a post in the last 60 days) with the post's link and when it was
+  last read; admins hide one or read now. Never iRacing's members site (its terms forbid scraping) nor another
+  directory's data without its permission. Up to 3 leagues per driver, 10 for a supporter (Patreon or by hand; `LEAGUES_FREE`/`LEAGUES_SUPPORTER`,
   `limit` in the list): under "Post the league" the form says how many you have posted and, to the rest, that supporters
   post up to 10, with a small "♥ Support on Patreon" link.
 - Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every

@@ -17,6 +17,7 @@ import { accounts, sessionAccount } from "./accounts.js";
 import { live } from "./live.js";
 import { seoPage, indexNow, notFound } from "./seo.js";
 import { discordInteraction, discordOAuth } from "./discord.js";
+import { scanLeagues } from "./leaguescan.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -393,7 +394,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

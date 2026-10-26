@@ -51,6 +51,7 @@ import { gameOf } from "./games.js";
 import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
+import { foundLeagues, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
@@ -655,6 +656,15 @@ export async function community(req, env, url, ctx) {
     const who = await sessionAccount(req, env).catch(() => null), admin = !!who && isAdmin(env, who.id);
     if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
     const parts = p.slice(9).split("/").filter(Boolean), lid = parts[0] || "", sub = parts[1] || "";
+    // the most active leagues found in public posts (r/iRacing, r/iRacingLeagues) with their Discord; admins hide
+    // one, or read the feeds again now
+    if (lid === "found") {
+      if (m === "GET") return json(await foundLeagues(env, admin));
+      if (m !== "POST" || !admin) return err("only the admins can do this", 403);
+      if (sub) { await env.DB.prepare("UPDATE league_found SET hidden=?2 WHERE guild=?1").bind(sub, body.hidden ? 1 : 0).run(); return json({ ok: true }); }
+      await scanLeagues(env, true);
+      return json(await foundLeagues(env, admin));
+    }
     const lst = (v) => { try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
     const row = (x) => {
       const cats = lst(x.cats).filter((c) => CATS.includes(c));
