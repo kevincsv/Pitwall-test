@@ -2561,7 +2561,7 @@ async function pickCommLapCloud(){
       try{
         const full=await cget(`/api/community/laps?id=${encodeURIComponent(l.id)}`),tr=full.trace;
         if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
-        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,xy:traceXY(tr),comm:true,cid:l.id,sectors:full.sectors||l.sectors||null,track:full.track||l.track,car:full.car||l.car};
+        const ref={n:"⟡ "+(full.alias||l.alias||""),time:full.time||l.time,bins:tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]),maxBin:tr.d.length-1,xy:traceXY(tr),comm:true,cid:l.id,sectors:full.sectors||l.sectors||null,track:full.track||l.track,car:full.car||l.car,tid:+full.trackId||+hit.trackId||0,tn:normTrk(full.track||l.track)};
         CREF.push(ref);COMM_LOADED=COMM_LOADED.filter(x=>x.cid!==l.id);COMM_LOADED.push(ref);if(COMM_LOADED.length>6)COMM_LOADED.shift();
         close();renderLaps();renderCoach();
         const sel=$("#lapB"),refIdx=CREF.length-1;
@@ -2757,7 +2757,7 @@ function lapCloudBar(px="lap"){cloudDemoSync();let sel=$("#"+px+"Sess"),selB=$("
   const lastOkA=(()=>{for(let i=LP.length-1;i>=0;i--)if(LP[i]&&LP[i].valid!==false)return i;return LP.length-1})();
   const pa=selFind(A,ANASEL.a,lapOf)||pa0;A.value=pa!==""&&LP[pa]?pa:lastOkA;
   const extra=cloud&&LAPF.extra; // another session is the reference: the laps of session A are not in B
-  B.innerHTML=(extra?bopts:bopts0)+CREF.map((l,i)=>l&&!l.stale?`<option value="c${i}">B · ${esc(l.model?l.n:(l.alias||lapName(l)))} · ${fmtT(l.time)}</option>`:"").join("");
+  B.innerHTML=(extra?bopts:bopts0)+CREF.map((l,i)=>l&&!l.stale&&refFits(l)?`<option value="c${i}">B · ${esc(l.model?l.n:(l.alias||lapName(l)))} · ${fmtT(l.time)}</option>`:"").join("");
   window.__lapBdef=()=>{if(extra)return CLOUD.lapsB.length?"b"+Math.max(0,CLOUD.lapsB.indexOf(bestB)):"";const li=CREF.findIndex(x=>x&&!x.stale&&x.model==="level");if(li>=0)return"c"+li;const bi=LP.indexOf(best);return bi>=0&&String(bi)!==String(A.value)?String(bi):""};
   const pb=ANASEL.bu?selFind(B,ANASEL.b,lapOf):"";
   B.value=pb!==""&&lapOf(pb)?pb:(window.__lapBdef()||(!extra&&LP.length>1?(A.value==="0"?"1":"0"):""));
@@ -5689,7 +5689,7 @@ function openInCoach(){const a=$("#lapA").value,b=$("#lapB").value;if(!lapOf(a)|
 function renderCoach(){const LP=coachLaps(),best=markAnalysisBest(LP),bestEx=x=>LP.reduce((a,b)=>b!==x&&(!a||b.time<a.time)?b:a,null);coachCloudBar();const cc=$("#coachComm");if(cc){cc.textContent=Tx("Compare with the community","Comparar con la comunidad");cc.removeAttribute("onclick");cc.onclick=pickCommLap;}const box=$("#coachBody");if(!box)return;
   const sub=$("#coachSub");if(sub)sub.textContent=Tx("Your lap against a reference: what to work on first and where, and your pace among the drivers of this car and track.","Tu vuelta frente a una referencia: qué trabajar primero y dónde, y tu ritmo entre los pilotos de este coche y circuito.","Deine Runde gegen eine Referenz: woran zuerst arbeiten und wo, und dein Tempo unter den Fahrern dieses Autos und dieser Strecke.","Sua volta contra uma referência: o que trabalhar primeiro e onde, e seu ritmo entre os pilotos deste carro e pista.");
   if(LP.length<2&&!G61REF&&!(LP.length&&coachCloudOn()&&LAPF.extra&&(CLOUD.lapsB||[]).length)){box.innerHTML=`<div class="panel empty">${coachCloudOn()?esc(CLOUD.busy?Tx("Loading your laps…","Cargando tus vueltas…","Deine Runden werden geladen…","Carregando suas voltas…"):CLOUD.err||(CLOUD.sessions&&!CLOUD.sessions.length?Tx("No laps in your account yet. On the PC: Account → keep my laps in my account, and drive.","Aún no hay vueltas en tu cuenta. En el PC: Cuenta → guardar mis vueltas en mi cuenta, y da unas vueltas.","Noch keine Runden in deinem Konto. Am PC: Konto → Runden im Konto behalten, und fahre.","Ainda não há voltas na sua conta. No PC: Conta → guardar minhas voltas na conta, e dê umas voltas."):Tx("Choose a session with two or more laps.","Elige una sesión con dos o más vueltas.","Wähle eine Sitzung mit zwei oder mehr Runden.","Escolha uma sessão com duas ou mais voltas."))):Lp("Drive two laps and the coach compares them corner by corner.","Da dos vueltas y el coach las compara curva a curva.")}</div>`;return}
-  const CL=COMM_LOADED.filter(x=>x!==G61REF),LB=coachCloudOn()&&LAPF.extra?(CLOUD.lapsB||[]):[],bestB=analysisBest(LB),sesB=(CLOUD.sessions||[]).find(x=>x.id===CLOUD.bid);
+  if(G61REF&&!refFits(G61REF))G61REF=null;const CL=COMM_LOADED.filter(x=>x!==G61REF&&refFits(x)),LB=coachCloudOn()&&LAPF.extra?(CLOUD.lapsB||[]):[],bestB=analysisBest(LB),sesB=(CLOUD.sessions||[]).find(x=>x.id===CLOUD.bid);
   const PM=window.PW_MODEL||null;let MR={rec:null,level:null},m=null;
   const lapOf=v=>v==="m:level"?MR.level:v==="m:ideal"?MR.rec:/^c\d+$/.test(v)?CL[+v.slice(1)]:/^b\d+$/.test(v)?LB[+v.slice(1)]:LP[v];
   const sel=$("#coachLap"),rsel=$("#coachRef"),pa0=sel.value;let pr=rsel.value;sel.innerHTML=LP.map((l,i)=>`<option value="${i}">A · ${esc(lapOptText(l,best))}</option>`).join("")+CL.map((l,i)=>`<option value="c${i}">A · ${esc(lapName(l))} · ${fmtT(l.time)}</option>`).join("");const lastOk=(()=>{for(let i=LP.length-1;i>=0;i--)if(LP[i]&&LP[i].valid!==false)return i;return LP.length-1})();const pa=selFind(sel,ANASEL.a,lapOf)||pa0;if(pa!==""&&lapOf(pa))sel.value=pa;else sel.value=LP.length?lastOk:CL.length?"c"+(CL.length-1):"";
@@ -6913,11 +6913,30 @@ async function renderCommLaps(){const box=$("#cmLaps");if(!box||!COMMSEL)return;
   drawCommMap(s,laps)}
 let COMM_LOADED=[];
 const NO_TRACE=()=>Tx("This driver shared the time but not the telemetry of this lap.","Este piloto compartió el tiempo pero no la telemetría de esta vuelta.","Dieser Fahrer hat die Zeit geteilt, aber nicht die Telemetrie dieser Runde.","Este piloto compartilhou o tempo, mas não a telemetria desta volta.");
-async function loadCommLap(id,btn){if(btn)btn.textContent="…";try{const l=await cget(`/api/community/laps?id=${encodeURIComponent(id)}`),tr=l.trace;if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
-    const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);G61REF={n:"COM",name:Tx("Community · ","Comunidad · ")+(l.alias||"")+(tr.src==="field"?" · "+Tx("pedals estimated","pedales estimados","Pedale geschätzt","pedais estimados"):""),time:l.time,bins,maxBin:bins.length-1,xy:traceXY(tr),cid:l.id,field:tr.src==="field"};
+/* a community lap is compared only with your own laps of the same track: without a session of yours there with a
+   valid lap it says so; with one, the comparator opens on that track (your newest session there) */
+const normTrk=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"");
+const sesTid=x=>+(x&&(x.trackId||x.track_id))||0;
+function sesOnTrack(tid,tname){const n=normTrk(tname);return(CLOUD.sessions||[]).filter(x=>(x.game||"iracing")===aGame()&&x.best>0&&(tid&&sesTid(x)?sesTid(x)===tid:!!n&&normTrk(sessTn(x))===n)).sort((a,b)=>(b.started||0)-(a.started||0))}
+function uiNotice(msg){const d=document.createElement("div");d.className="uidlg";d.innerHTML=`<div class="bg"></div><div class="pn" role="dialog" aria-modal="true"><div class="uidlg-t">Pitlane HQ</div><p></p><div class="uidlg-b"><button type="button" class="btn primary"></button></div></div>`;
+  d.querySelector("p").textContent=msg;const ok=d.querySelector(".btn");ok.textContent="OK";const close=()=>d.remove();ok.onclick=close;d.querySelector(".bg").onclick=close;document.body.appendChild(d);ok.focus()}
+// the track of the session being compared (your account's session, else the one live on this PC); 0 when unknown
+function curCmpTrack(){if(coachCloudOn()){const x=(CLOUD.sessions||[]).find(y=>y.id===CLOUD.sid);return x?{tid:sesTid(x),n:normTrk(sessTn(x))}:null}const wi=S.WeekendInfo||{};return wi.TrackID?{tid:+wi.TrackID,n:normTrk((wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""))}:null}
+const refFits=r=>{if(!r||!(r.tid||r.tn))return true;const c=curCmpTrack();if(!c)return true;return r.tid&&c.tid?r.tid===c.tid:!!r.tn&&r.tn===c.n};
+async function loadCommLap(id,btn){const bt=btn?btn.textContent:"";if(btn)btn.textContent="…";try{const l=await cget(`/api/community/laps?id=${encodeURIComponent(id)}`),tr=l.trace;if(!tr||!tr.d||!tr.d.length)throw new Error(NO_TRACE());
+    const tid=+l.trackId||0,tname=unMojibake(l.track||"");
+    if(!(COMPANION?CP.acc:PCACC)&&!demoOn())throw new Error(Tx("Sign in with your Pitlane HQ account to compare your laps with the community.","Inicia sesión con tu cuenta de Pitlane HQ para comparar tus vueltas con la comunidad.","Melde dich mit deinem Pitlane-HQ-Konto an, um deine Runden mit der Community zu vergleichen.","Entre com sua conta Pitlane HQ para comparar suas voltas com a comunidade."));
+    for(let i=0;i<60&&CLOUD.busy;i++)await new Promise(r=>setTimeout(r,100));
+    if(CLOUD.sessions===null||CLOUD.game!==aGame())await cloudLoadSessions(true);
+    const mine=sesOnTrack(tid,tname);
+    if(!mine.length){if(btn)btn.textContent=bt;uiNotice(Tx(`You have no session with a valid lap on ${tname||"this track"}. Drive a valid lap there with Pitlane HQ Agent open and you can compare yourself with this lap.`,`No tienes ninguna sesión válida en ${tname||"este circuito"}. Da una vuelta válida allí con Pitlane HQ Agent abierto y podrás compararte con esta vuelta.`,`Du hast keine Sitzung mit einer gültigen Runde auf ${tname||"dieser Strecke"}. Fahre dort eine gültige Runde mit dem Pitlane HQ Agent und du kannst dich mit dieser Runde vergleichen.`,`Você não tem nenhuma sessão com uma volta válida em ${tname||"esta pista"}. Dê uma volta válida lá com o Pitlane HQ Agent aberto e poderá se comparar com esta volta.`));return}
+    const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);G61REF={n:"COM",name:Tx("Community · ","Comunidad · ")+(l.alias||"")+(tr.src==="field"?" · "+Tx("pedals estimated","pedales estimados","Pedale geschätzt","pedais estimados"):""),time:l.time,bins,maxBin:bins.length-1,xy:traceXY(tr),cid:l.id,field:tr.src==="field",tid,tn:normTrk(tname)};
     // the community laps you opened: on the web (no laps of your own here) two of them can be compared
     COMM_LOADED=COMM_LOADED.filter(x=>x.cid!==l.id);COMM_LOADED.push(G61REF);if(COMM_LOADED.length>6)COMM_LOADED.shift();
-    toast(Tx(`Reference: ${l.alias} ${fmtT(l.time)}`,`Referencia: ${l.alias} ${fmtT(l.time)}`,`Referenz: ${l.alias} ${fmtT(l.time)}`,`Referência: ${l.alias} ${fmtT(l.time)}`));BM.key=null;show("coach")}catch(e){toast(e.message);if(btn)btn.textContent=Tx("Compare","Comparar")}}
+    // the comparator only on this track: the session filter is the track, and A is your newest session there
+    LAPF.track=sessTrk(mine[0]);LAPF.car=LAPF.cat=LAPF.kind=LAPF.day="";LAPF.extra=false;if(pcPick())setPcSrc("acct");
+    if(!mine.some(x=>x.id===CLOUD.sid)){CLOUD.bid="";CLOUD.lapsB=[];CLOUD.sid=mine[0].id;cloudLoadSession(mine[0].id)}
+    toast(Tx(`Reference: ${l.alias} ${fmtT(l.time)}`,`Referencia: ${l.alias} ${fmtT(l.time)}`,`Referenz: ${l.alias} ${fmtT(l.time)}`,`Referência: ${l.alias} ${fmtT(l.time)}`));BM.key=null;show("coach")}catch(e){toast(e.message);if(btn)btn.textContent=bt||Tx("Compare","Comparar")}}
 
 
 /* ===================== home: the phone app's dashboard ===================== */

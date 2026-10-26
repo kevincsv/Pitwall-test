@@ -230,7 +230,10 @@
   filters. The phone apps filter their session list the same way. Laps A and B are one choice for the
   lap analyzer and the coach (`ANASEL`, a lap known by itself, not by its place in a list), with the same
   default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
-  "+ Session" lap B is only the laps of the other session (and the references). The window's title
+  "+ Session" lap B is only the laps of the other session (and the references). A community lap is compared only with
+  your own laps of the same track: Compare in Community needs a session of yours there with a valid lap (else it says
+  you have none, `sesOnTrack`/`uiNotice`) and opens the comparator filtered to that track on your newest session there;
+  a community reference of another track never shows as lap B (`refFits`). The window's title
   and its × stay at the top while it scrolls. "MY BEST" goes after the time.
 - Track notes (`notes.json` in the account, `/api/notes`, `NOTES`/`saveNotes` in index.html): your own notes on a track,
   a general note and notes per corner (`n`, `dist`, `name`, `note`). The track page shows them and writes the general
