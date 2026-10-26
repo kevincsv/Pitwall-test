@@ -4,6 +4,13 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.5 beta
+
+- **A new Community**: Summary (your leaderboards with how your best came down, the latest records), Leaderboards
+  (the sector times and a track map that colours each sector where a driver is faster or slower than you) and Recent
+  records (the list and the record you choose).
+- Fixes and improvements.
+
 ## 0.4.4 beta
 
 - **Valid laps as in iRacing**: only leaving the track (an Off Track) or losing the connection makes a lap invalid; a

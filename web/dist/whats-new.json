@@ -1,6 +1,18 @@
 {
   "versions": [
     {
+      "v": "0.4.5",
+      "en": [
+        "A new Community: Summary with your leaderboards and how your best came down, Leaderboards with a track map that colours each sector where a driver is faster or slower than you, and Recent records."
+      ],
+      "es": [
+        "Una Comunidad nueva: Resumen con tus clasificaciones y cómo ha bajado tu mejor vuelta, Clasificaciones con un mapa del circuito que colorea cada sector donde un piloto es más rápido o más lento que tú, y Récords recientes."
+      ],
+      "pt": [
+        "Uma nova Comunidade: Resumo com suas classificações e como sua melhor volta caiu, Classificações com um mapa da pista que colore cada setor onde um piloto é mais rápido ou mais lento que você, e Recordes recentes."
+      ]
+    },
+    {
       "v": "0.4.4",
       "en": [
         "Valid laps as in iRacing: only an Off Track or a lost connection makes a lap invalid; a lap through the pit lane is valid.",

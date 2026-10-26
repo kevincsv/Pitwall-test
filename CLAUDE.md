@@ -212,6 +212,11 @@
   without license classes. The fastest lap of each car and track in an account is shared by itself
   (no "share" button), under the public name or as Anonymous. The discipline symbols are our own
   (`DISC_IC`), never copied; the same discipline cards are in Community and in "Choose a session".
+  Community on the web and the PC is three parts (`CMV`, `cl-*` in index.html, the "clean data" design): Summary
+  (your numbers, your leaderboards with the record of each and how your best came down over your last sessions:
+  `rec` and `trend` on /profile?me=1; the latest records; you in the community), Leaderboards (the table with the
+  sectors and the track map coloured by sector against your lap, or the record when you have none: the shape and
+  where each sector ends from a lap of the board with its telemetry, `commMapGeo`) and Recent records.
   Community's "Recent records" (PC, web, Pitlane HQ Desktop, phones; `/community/records`): the fastest lap of every
   car and track, the newest first, with the lap it beat ("beat Juan by 0.312 s", or "the first lap here"), filtered
   by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page.

@@ -765,7 +765,8 @@ export async function community(req, env, url, ctx) {
     const laps = (await env.DB.prepare(
       `SELECT id, track, car, track_id AS trackId, car_id AS carId, time, created, anon, game, cat, lic,
          (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model' AND o.time<l.time)+1 AS pos,
-         (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model') AS "of"
+         (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model') AS "of",
+         (SELECT MIN(o.time) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model') AS rec
        FROM community_laps l WHERE user_id=?1 AND COALESCE(shown,'')<>'model' ${admin || mine ? "" : "AND anon=0"} ORDER BY created DESC LIMIT 60`
     ).bind(a.id).all()).results || [];
     const cm = await catMap(env).catch(() => ({ tc: {}, c: {} }));
@@ -784,13 +785,31 @@ export async function community(req, env, url, ctx) {
     const dc = await env.DB.prepare("SELECT discord_id, handle FROM discord_links WHERE account_id=?1 AND shown=1").bind(a.id).first().catch(() => null);
     // admins: the driver's latest sessions, to open their laps one by one (a private account too)
     const sessions = admin ? (((await env.DB.prepare("SELECT id, started, track, track_config AS trackConfig, car, kind, laps, best FROM sessions WHERE uploader=?1 ORDER BY started DESC LIMIT 30").bind("acct:" + a.id).all()).results) || []) : undefined;
+    // your own profile: how your best came down over your last sessions of each car and track (the best so far after
+    // each of them, oldest first), for the line beside each of your leaderboards in Community
+    const trend = {};
+    if (mine) {
+      const fam = new Map();
+      for (const x of (((await env.DB.prepare("SELECT game, car_id, fam_id FROM car_families").all().catch(() => null)) || {}).results || [])) fam.set((x.game || "iracing") + ":" + x.car_id, x.fam_id);
+      const by = new Map();
+      for (const x of ((await env.DB.prepare("SELECT game, track_id, car_id, best FROM sessions WHERE uploader=?1 AND best>0 AND track_id>0 AND car_id>0 ORDER BY started ASC LIMIT 5000").bind("acct:" + a.id).all()).results) || []) {
+        const g = x.game || "iracing", k = g + ":" + x.track_id + ":" + (fam.get(g + ":" + x.car_id) || x.car_id);
+        if (!by.has(k)) by.set(k, []);
+        by.get(k).push(x.best);
+      }
+      for (const [k, list] of by) {
+        let b = Infinity;
+        const run = list.map((v) => (b = Math.min(b, v)));
+        if (run.length > 1) trend[k] = run.slice(-8).map((v) => Math.round(v * 1000) / 1000);
+      }
+    }
     return json({
       name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
       shownAs: admin || mine ? (a.anon ? "anonymous" : a.name_kind === "iracing" ? "iracing" : "nick") : undefined, // how the account shows itself
       discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days, sessions,
-      laps: laps.map((x) => ({ ...x, car: famName(x.game, x.carId, x.car), anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
+      laps: laps.map((x) => ({ ...x, trend: trend[(x.game || "iracing") + ":" + x.trackId + ":" + x.carId], car: famName(x.game, x.carId, x.car), anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
     });
   }
   const am = p.match(/^\/admin\/(laps|reports|setups|trackmaps)\/([A-Za-z0-9_.:-]{1,64})$/);
