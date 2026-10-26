@@ -95,7 +95,7 @@ export async function scanLeagues(env, force) {
     }
   }
   // how active each league is now: its Discord's members and who is online (the ones read longest ago first)
-  const stale = (await env.DB.prepare("SELECT guild, code FROM league_found WHERE dead=0 AND posted>?1 AND (checked IS NULL OR checked<?2) ORDER BY COALESCE(checked,0) ASC LIMIT 40").bind(now - KEEP, now - RECHECK).all()).results || [];
+  const stale = (await env.DB.prepare("SELECT guild, code FROM league_found WHERE dead=0 AND (sub='manual' OR posted>?1) AND (checked IS NULL OR checked<?2) ORDER BY COALESCE(checked,0) ASC LIMIT 40").bind(now - KEEP, now - RECHECK).all()).results || [];
   for (const x of stale) {
     const info = await invite(x.code).catch(() => null);
     if (!info) continue;
@@ -108,11 +108,26 @@ export async function scanLeagues(env, force) {
     .bind(JSON.stringify({ read, found, checked: stale.length }), now).run();
 }
 
+// a league an admin adds by its Discord invite (sub "manual"): never expires and shows whoever is online
+export async function addFound(env, link) {
+  const m = String(link || "").match(INVITE) || String(link || "").match(/^([A-Za-z0-9-]{2,32})$/);
+  if (!m) return { error: "not a Discord invite" };
+  const info = await invite(m[1]).catch(() => null);
+  if (!info) return { error: "Discord did not answer, try again" };
+  if (info.dead) return { error: "this invite does not work" };
+  const now = Date.now();
+  await env.DB.prepare(`INSERT INTO league_found (guild, code, name, icon, title, url, sub, posted, first, posts, members, online, cats, checked, dead, hidden)
+    VALUES (?1, ?2, ?3, ?4, '', '', 'manual', ?5, ?5, 0, ?6, ?7, '[]', ?5, 0, 0)
+    ON CONFLICT(guild) DO UPDATE SET code=?2, name=?3, icon=?4, sub='manual', members=?6, online=?7, checked=?5, dead=0, hidden=0`)
+    .bind(info.guild, m[1], info.name, info.icon, now, info.members, info.online).run();
+  return { ok: true, name: info.name };
+}
+
 // the most active leagues found: posted about in the last 60 days, an invite that still works, people online
 export async function foundLeagues(env, admin) {
   const now = Date.now();
   const st = await env.DB.prepare("SELECT v, at FROM app_state WHERE k='leagues_scan'").first().catch(() => null);
-  const rows = (await env.DB.prepare(`SELECT * FROM league_found WHERE dead=0 AND posted>?1 AND online>=?2 ${admin ? "" : "AND hidden=0"}
+  const rows = (await env.DB.prepare(`SELECT * FROM league_found WHERE dead=0 AND (sub='manual' OR (posted>?1 AND online>=?2)) ${admin ? "" : "AND hidden=0"}
     ORDER BY online DESC, members DESC LIMIT 24`).bind(now - KEEP, MIN_ONLINE).all()).results || [];
   let info = {};
   try { info = JSON.parse((st && st.v) || "{}"); } catch (e) {}

@@ -51,7 +51,7 @@ import { gameOf } from "./games.js";
 import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
-import { foundLeagues, scanLeagues } from "./leaguescan.js";
+import { addFound, foundLeagues, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
@@ -662,6 +662,7 @@ export async function community(req, env, url, ctx) {
       if (m === "GET") return json(await foundLeagues(env, admin));
       if (m !== "POST" || !admin) return err("only the admins can do this", 403);
       if (sub) { await env.DB.prepare("UPDATE league_found SET hidden=?2 WHERE guild=?1").bind(sub, body.hidden ? 1 : 0).run(); return json({ ok: true }); }
+      if (body.invite) { const r = await addFound(env, body.invite); if (r.error) return err(r.error, 400); return json(await foundLeagues(env, admin)); }
       await scanLeagues(env, true);
       return json(await foundLeagues(env, admin));
     }
