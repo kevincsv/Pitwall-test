@@ -2896,12 +2896,14 @@ async function lapTrackId(A,B){let id=A.trackId||B.trackId;if(id)return id;const
   const hit=list.find(e=>e.trackId&&commNorm(e.track)===tc)||list.find(e=>e.trackId&&commNorm(e.track)===tn)||list.find(e=>e.trackId&&tn&&(commNorm(e.track).includes(tn)||tn.includes(commNorm(e.track))));
   return hit?hit.trackId:null}
 /* the shape of a lap Pitlane HQ recorded with the car's position: a track map without anyone else's help */
-const lapShape=l=>l&&l.xy&&l.xy.x.length>10?{x:l.xy.x,y:l.xy.y,N:l.xy.x.length,lap:true}:null;
+const lapShape=l=>l&&l.xy&&l.xy.x.length>10?{x:l.xy.x,y:l.xy.y,N:l.xy.x.length,g:l.xy.g||null,lap:true}:null;
+/* two paths in one frame: both from the game's position (b moved to a's origin) or both dead reckoning; null when one is each (they never line up) */
+function sameFrame(a,b){if(!a||!b||!!a.g!==!!b.g)return null;if(!a.g||(a.g[0]===b.g[0]&&a.g[1]===b.g[1]))return b;const dx=(b.g[1]-a.g[1])*111320*Math.cos(a.g[0]*Math.PI/180),dy=(b.g[0]-a.g[0])*110540;return{...b,x:b.x.map(v=>v+dx),y:b.y.map(v=>v+dy)}}
 /* the racing line (racingline.go does the same): where lap A's car was across the track against lap B's, every 5 m.
    Both paths share their orientation (the game's heading), so at the same lap distance A's point along B's normal
    is how far A was to one side of B; the slow drift of the dead reckoning goes with a ±400 m moving average. Null
    when either lap has no path or the two paths are not the same track; NaN where they do not line up. */
-function lineOffsets(A,B){const a=lapShape(A),b=lapShape(B);if(!a||!b)return null;const n=Math.min(a.N,b.N);if(n<60)return null;
+function lineOffsets(A,B){const a=lapShape(A),b=sameFrame(a,lapShape(B));if(!a||!b)return null;const n=Math.min(a.N,b.N);if(n<60)return null;
   const lat=new Array(n),lon=new Array(n);
   for(let i=0;i<n;i++){const i0=Math.max(0,i-2),i1=Math.min(n-1,i+2);let tx=b.x[i1]-b.x[i0],ty=b.y[i1]-b.y[i0];const tm=Math.hypot(tx,ty)||1;tx/=tm;ty/=tm;const dx=a.x[i]-b.x[i],dy=a.y[i]-b.y[i];lat[i]=-ty*dx+tx*dy;lon[i]=tx*dx+ty*dy}
   const W=80,sm=v=>{const pre=[0];v.forEach((x,i)=>pre.push(pre[i]+x));return v.map((x,i)=>{const lo=Math.max(0,i-W),hi=Math.min(n-1,i+W);return x-(pre[hi+1]-pre[lo])/(hi-lo+1)})};
@@ -3534,7 +3536,8 @@ async function mapSession(){const k=mapKey();if(!k||k===MAP.key)return;MAP.key=k
   if(MODE==="bridge"){try{const r=await fetch("/api/map?key="+k);if(r.ok){const d=await r.json();if(!MAP.data||(d.laps||0)>=(MAP.data.laps||0))MAP.data=d}}catch(e){}}
   MAP.commTime=null;const tid=(S.WeekendInfo||{}).TrackID;
   if(MODE==="bridge"&&!STATUS.demo&&liveGame()==="iracing"&&tid){try{const r=await fetch("/api/trackmap?trackId="+tid+"&game=iracing");if(r.ok){const c=await r.json();MAP.commTime=c.time||null;
-    if(MAP.key===k&&(!MAP.data||!(MAP.data.laps>0))&&Array.isArray(c.x)&&c.x.length===c.n){MAP.data={key:k,name:c.track||(S.WeekendInfo||{}).TrackDisplayName||"",N:c.n,src:"dr",geo:null,len:c.len||trackLenM(),laps:0,x:c.x,y:c.y,community:true,commTime:c.time}}}}catch(e){}}
+    MAP.commGeo=Array.isArray(c.g)&&c.g.length===2;
+    if(MAP.key===k&&(!MAP.data||!(MAP.data.laps>0))&&Array.isArray(c.x)&&c.x.length===c.n){MAP.data={key:k,name:c.track||(S.WeekendInfo||{}).TrackDisplayName||"",N:c.n,src:MAP.commGeo?"geo":"dr",geo:MAP.commGeo?c.g:null,len:c.len||trackLenM(),laps:0,x:c.x,y:c.y,community:true,commTime:c.time}}}}catch(e){}}
   drawMapSoon()}
 const wrapA=a=>((a+3*Math.PI)%(2*Math.PI))-Math.PI;
 function mapSample(){
@@ -3559,10 +3562,12 @@ function finishLap(c){const pts=c.pts;if(c.bad||pts.length<200||pts[0][0]>.03||p
   const N=Math.max(400,Math.min(3000,Math.round(trackLenM()/5)));const lap=resampleLap(pts,N,c.src==="dr");lap.n=c.lap;lap.N=N;lap.time=pts.at(-1)[6];
   setTimeout(()=>{if(T.LapLastLapTime>0&&Math.abs(T.LapLastLapTime-lap.time)<2)lap.time=T.LapLastLapTime;lap.brakes=brakePts(lap);MAP.laps.push(lap);if(MAP.laps.length>30)MAP.laps.shift();updateMapData(lap,c.src);if(clean)shareTrackMap(lap,c.src)},500)}
 /* iRacing: the outline of the fastest lap without incidents goes to the community, so
-   everyone gets the real track; only the shape (no speed, braking or other telemetry) */
-function shareTrackMap(lap,src){const wi=S.WeekendInfo||{};if(MODE!=="bridge"||OV.on||REMOTE||STATUS.demo||liveGame()!=="iracing"||src!=="dr"||!wi.TrackID||!(lap.time>10))return;
-  if(MAP.sentBest&&MAP.sentBest<=lap.time)return;if(MAP.commTime&&MAP.commTime<=lap.time)return;MAP.sentBest=lap.time;
-  fetch("/api/trackmap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),time:lap.time,n:lap.N,len:trackLenM(),x:lap.x,y:lap.y,clean:true})}).catch(()=>{})}
+   everyone gets the real track; only the shape (no speed, braking or other telemetry). A lap placed by the game's
+   position (exact, with its origin g) goes up even when the community's layout came from a faster lap by dead reckoning */
+function shareTrackMap(lap,src){const wi=S.WeekendInfo||{};if(MODE!=="bridge"||OV.on||REMOTE||STATUS.demo||liveGame()!=="iracing"||(src!=="dr"&&src!=="geo")||!wi.TrackID||!(lap.time>10))return;
+  const g=src==="geo"?((MAP.data&&MAP.data.geo)||MAP.geo):null;if(src==="geo"&&!g)return;
+  if(MAP.sentBest&&MAP.sentBest<=lap.time)return;if(MAP.commTime&&MAP.commTime<=lap.time&&(src!=="geo"||MAP.commGeo))return;MAP.sentBest=lap.time;
+  fetch("/api/trackmap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),time:lap.time,n:lap.N,len:trackLenM(),x:lap.x,y:lap.y,clean:true,...(g?{g}:{})})}).then(r=>{if(r&&r.ok&&src==="geo")MAP.commGeo=true}).catch(()=>{})}
 function brakePts(L){const out=[],N=L.b.length;let i=1;while(i<N){if(L.b[i]>.12&&L.b[i-1]<=.12){let k=i,vmin=L.v[i];while(k<N&&k<i+400&&!(L.th[k]>.6&&L.b[k]<.05)){vmin=Math.min(vmin,L.v[k]);k++}out.push({i,v:L.v[i],vmin});i=k+1}else i++}return out}
 function updateMapData(lap,src){const k=MAP.key;if(!k)return;let d=MAP.data;
   if(d&&d.community&&d.N===lap.N&&d.src===src){d.laps=0;d.ownLaps=(d.ownLaps||0)+1}
@@ -5562,7 +5567,17 @@ function turnNo(id,d,L,fb){const t=id?turnsFor(id):null;if(!t||!t.length||!(L>0)
 const COACH_GEN=["brake_generic","entry_speed","apex_line","full_throttle","brake_same","entry_before","apex_longer"];
 /* a corner's speed at the reference's slowest point (m/s): the coach's tips are counted by it (coachtips.js) */
 const cornerClass=v=>v<22?"slow":v<42?"medium":"fast";
-function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=brakeZones(sa),n=Math.min(sa.length,sb.length),lat=lineOffsets(A,B);
+/* the corners of the reference lap for the coach: its braking zones, each named by the track's turn (the official ones, or
+   the ones the layout's geometry gives through /community/turns) so two brake applications in one corner are one corner, plus
+   the turns the reference takes without braking (a lift, a fast corner) as corners of their own; without turns, the braking
+   zones as they are. The same rule in the PC's overlays (cornerZones in ovnative4.go) and the phones (cornerZones in LapMath) */
+function cornerZones(sb,n,tid){const zb=brakeZones(sb),t=tid?turnsFor(tid):null;if(!t||!t.length||!(n>0))return zb;
+  const ap=t.map(f=>Math.round(f*n)).filter(i=>i>0&&i<n-1),near=i=>{let b=-1,bd=1e9;ap.forEach((a,k)=>{const d=Math.abs(a-i);if(d<bd){bd=d;b=k}});return bd<=30?b:-1}; // the turn whose apex is within 150 m
+  const by=new Map();zb.forEach(z=>{const k=near(z.imin);if(k<0){by.set("z"+z.i,z);return}const o=by.get(k);if(!o)by.set(k,{...z,turn:k});else{if(z.vmin<o.vmin){o.vmin=z.vmin;o.imin=z.imin}o.i=Math.min(o.i,z.i);o.v=Math.max(o.v,z.v)}});
+  // a turn the reference takes without braking: from where it lifts (its last full throttle before the apex, or 100 m before) to its slowest point, when it really slows
+  ap.forEach((a,k)=>{if(by.has(k))return;let i0=Math.max(0,a-20);for(let i=a;i>Math.max(0,a-40);i--)if(sb[i]&&sb[i][2]>.9){i0=i;break}let imin=a,vmin=sb[a]?sb[a][0]:0;for(let i=i0;i<Math.min(n,a+10);i++)if(sb[i]&&sb[i][0]<vmin){vmin=sb[i][0];imin=i}const v=sb[i0]?sb[i0][0]:vmin;if(v-vmin>2)by.set(k,{i:i0,v,vmin,imin,turn:k,lift:true})});
+  return[...by.values()].sort((a,b)=>a.i-b.i)}
+function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),n=Math.min(sa.length,sb.length),tid=A.trackId||B.trackId||TURN_TID,zb=cornerZones(sb,n,tid),za=brakeZones(sa),lat=lineOffsets(A,B);
   const T=(s,i)=>s[i]&&s[i][1],seg=(x,y)=>x<y&&sa[x]&&sa[y]&&sb[x]&&sb[y]?(T(sa,y)-T(sa,x))-(T(sb,y)-T(sb,x)):0;
   const peak=(s,x,y)=>{let p=0,ip=x;for(let k=x;k<=y&&k<s.length;k++)if(s[k]&&s[k][3]>p){p=s[k][3];ip=k}return[p,ip]};
   const release=(s,from,to)=>{for(let k=from;k<=to&&k<s.length;k++)if(s[k]&&s[k][3]<.05)return k;return to};
@@ -5584,7 +5599,7 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
     const lifts=(s,from,to)=>{let n=0,prev=-1;for(let k=from;k<=to&&k<s.length;k++){if(!s[k])continue;const t=s[k][2];if(prev>=0&&prev>.8&&t<.5)n++;prev=t}return n},lA=lifts(sa,apexA,i1),lB=lifts(sb,z.imin,i1);
     const revs=(s,from,to)=>{let n=0,prevD=0,last=null,has=false;for(let k=from;k<=to&&k<s.length;k++){if(!s[k]||!isFinite(s[k][5]))continue;const v=s[k][5];if(v!==0)has=true;if(last!=null){const d=v-last;if(Math.abs(d)>.004){if(prevD!==0&&Math.sign(d)!==Math.sign(prevD))n++;prevD=d}}last=v}return[n,has]},[rA,hasA]=revs(sa,i0,i1),[rB,hasB]=revs(sb,i0,i1);
     let en="",es="",phase=null,kind="";const say=(k,a,b)=>{kind=k;en=a;es=b};
-    if(lost>.03){phase=worst[0];const r=Math.round;
+    if(lost>.03){phase=worst[0];if(z.lift&&phase==="brake")phase="entry";const r=Math.round; // a corner taken without braking has no braking phase to speak of
       // braking later than the reference and arriving slower at the apex is one mistake, whatever phase pays for it
       if(m&&dd!=null&&dd>6&&dmin!=null&&dmin<-2)say("brake_late_apex",`You brake ${r(dd)} m later than the reference and lose ${r(-dmin)} ${spdU()} at the apex. Brake a little earlier and carry the speed`,`Frenas ${r(dd)} m más tarde que la referencia y pierdes ${r(-dmin)} ${spdU()} en el vértice. Frena un poco antes y conserva la velocidad`);
       else if(phase==="brake"){if(dd!=null&&dd<-6)say("brake_later",`Brake ${r(-dd)} m later`,`Frena ${r(-dd)} m más tarde`);
@@ -5611,7 +5626,7 @@ function coachCompare(A,B){const sa=serOf(A),sb=serOf(B),zb=brakeZones(sb),za=br
       if(generic||(phase==="brake"&&m&&Math.abs(dd)<=6)){en=lt[0];es=lt[1];kind=lt[2]}else{en+=". "+lt[0];es+=". "+lt[1]}}
     // the corner's own times (what the lap and the reference spent from the braking zone to the exit): the coach learns from them
     const ta=sa[i1][1]-sa[i0][1],tb=sb[i1][1]-sb[i0][1];
-    return{n:turnNo(A.trackId||B.trackId||TURN_TID,z.imin*BIN,n*BIN,k+1),d:z.i*BIN,apex:z.imin*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es],kind,cls:cornerClass(z.vmin),ta,tb}}).filter(Boolean)}
+    return{n:z.turn!=null?z.turn+1:turnNo(tid,z.imin*BIN,n*BIN,k+1),d:z.i*BIN,apex:z.imin*BIN,dd,ve:m?spd(m.v):null,vr:spd(z.v),vmin:m?spd(m.vmin):null,vminr:spd(z.vmin),lost,ph,phase,coastA,coastB,trailA,trailB,late,line,tip:[en,es],kind,cls:cornerClass(z.vmin),ta,tb}}).filter(Boolean)}
 /* where the lap loses time, phase by phase, how much it coasts, and the least steady corners */
 function coachPhasesHTML(cs,A,R,LP){const tot={brake:0,entry:0,apex:0,exit:0};cs.forEach(c=>Object.keys(tot).forEach(k=>{tot[k]+=Math.max(0,c.ph[k]||0)}));
   const worst=Object.entries(tot).sort((a,b)=>b[1]-a[1])[0],cA=cs.reduce((a,c)=>a+c.coastA,0),cB=cs.reduce((a,c)=>a+c.coastB,0);
@@ -5682,7 +5697,7 @@ async function cloudDel(path){await cpReady;if(demoOn())return{ok:true};
   const r=await cpOrigFetch(acc.server+path,{method:"DELETE",headers:{Authorization:"Bearer "+acc.token}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
 async function cloudGet(path){await cpReady;if(demoOn()){const d=window.PITLANE_DEMO.get(path);if(d!==undefined)return JSON.parse(JSON.stringify(d))}if(!COMPANION&&PCACC)return jget("/api/sync/get?p="+encodeURIComponent(path));const acc=CP.acc&&CP.server?{server:CP.server,token:CP.acc.token}:null;if(!acc)throw new Error(Tx("Sign in with your Pitlane HQ account","Inicia sesión con tu cuenta de Pitlane HQ","Melde dich mit deinem PitlaneHQ-Konto an","Entre com sua conta Pitlane HQ"));
   const r=await cpOrigFetch(acc.server+path,{headers:{Authorization:"Bearer "+acc.token},cache:"no-store"});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
-const traceXY=tr=>tr&&Array.isArray(tr.x)&&Array.isArray(tr.y)&&tr.x.length>10&&tr.x.length===tr.y.length?{x:tr.x,y:tr.y}:null;
+const traceXY=tr=>tr&&Array.isArray(tr.x)&&Array.isArray(tr.y)&&tr.x.length>10&&tr.x.length===tr.y.length?{x:tr.x,y:tr.y,g:Array.isArray(tr.g)&&tr.g.length===2?tr.g:null}:null; // g: the origin [lat, lon] when the path comes from the game's position
 const traceBins=tr=>{const bins=tr.d.map(x=>[x[0],x[5],x[1],x[2],x[3],x[4],null]);return{bins,maxBin:bins.length-1,xy:traceXY(tr)}};
 const unMojibake=v=>fixTxt(v);
 /* the account's sessions were loaded with demo data on or off: when that changes (admin rights arrive a moment after the page,

@@ -33,7 +33,7 @@ const keyOf=c=>game()+":"+c.trackId+":"+c.carId;
 /* ---------- the model of one car and track, as the server learnt it ---------- */
 /* the record lap, the next level at every pace (real laps, one bin in two) and the pace of every driver it knows */
 /* a reference's line kept one point in two: back to every 5 m, like up() does with its bins */
-const upXY=(x,y,nb)=>{if(!Array.isArray(x)||!Array.isArray(y)||x.length<6)return null;const ox=[],oy=[];x.forEach((v,i)=>{const nx=i+1<x.length?i+1:i;ox.push(v,(v+x[nx])/2);oy.push(y[i],(y[i]+y[nx])/2)});return{x:ox.slice(0,nb),y:oy.slice(0,nb)}};
+const upXY=(x,y,nb,g)=>{if(!Array.isArray(x)||!Array.isArray(y)||x.length<6)return null;const ox=[],oy=[];x.forEach((v,i)=>{const nx=i+1<x.length?i+1:i;ox.push(v,(v+x[nx])/2);oy.push(y[i],(y[i]+y[nx])/2)});return{x:ox.slice(0,nb),y:oy.slice(0,nb),g:Array.isArray(g)&&g.length===2?g:null}}; // g: the path's origin when it comes from the game's position
 const up=bins=>{const out=[];bins.forEach((b,i)=>{const nx=bins[i+1];out.push([b[0],b[1],b[2],b[3],b[4],0,null]);out.push(nx?[(b[0]+nx[0])/2,(b[1]+nx[1])/2,b[2],b[3],b[4],0,null]:[b[0],b[1],b[2],b[3],b[4],0,null])});return out};
 function buildModel(c){
   const key=keyOf(c);
@@ -44,7 +44,7 @@ function buildModel(c){
       const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
       if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
       MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
-        times:r.times||[],corners:Array.isArray(r.corners)?r.corners:[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y}))}}
+        times:r.times||[],corners:Array.isArray(r.corners)?r.corners:[],ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y,rg:x.g||null}))}}
     catch(e){MODEL.err=e.message}
     MODEL.busy=false;return MODEL.data})();
   return MODEL.p}
@@ -64,7 +64,7 @@ function rankOf(m,t){const T=(m&&m.times)||[];if(!T.length||!(t>0))return null;r
 /* the next level for a lap time: the real lap of the driver just ahead (0.3–3 % faster) */
 function refFor(m,t){const L=(m&&m.ladder)||[];if(!L.length)return null;let i=L.findIndex(x=>t<=x.upTo);if(i<0)i=L.length-1;
   while(i>0&&!(L[i].time<t*0.997))i--; // the driver just ahead is really ahead (not this very lap)
-  const x=L[i];if(!x.bins){x.bins=up(x.raw).slice(0,m.nb);x.xy=upXY(x.rx,x.ry,m.nb)}return x}
+  const x=L[i];if(!x.bins){x.bins=up(x.raw).slice(0,m.nb);x.xy=upXY(x.rx,x.ry,m.nb,x.rg)}return x}
 function levelLap(m,t){const x=refFor(m,t);if(!x)return null;
   return{n:"▲ "+TX("Next level","Siguiente nivel","Nächstes Level","Próximo nível"),alias:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),name:TX("Next level (the driver just ahead)","Siguiente nivel (el piloto justo por delante)","Nächstes Level (der Fahrer knapp vor dir)","Próximo nível (o piloto logo à frente)"),time:x.time,bins:x.bins,maxBin:x.bins.length-1,xy:x.xy||m.lineXY||null,comm:true,model:"level"}}
 /* the references of a lap: the record (unless this lap is it) and the next level (when someone is ahead) */

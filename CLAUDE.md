@@ -150,8 +150,21 @@
   discipline even with races of others after it). iRacing says "Road" for sports and formula cars alike, so the car
   tells which (`discipline` in journal.go). A race left on the estimate takes the real change from your next race of
   the same discipline (`chainRealIR`); races spoiled by another category go back to the estimate (`repairRealIR`).
+- The lap's path (Trace.x/y every 5 m) comes from the game's own position when it gives it (iRacing's Lat/Lon; AC and LMU
+  make them from the car's position): exact, x east and y north of an origin `g` [lat, lon] (the first position seen on
+  the track, rounded to 0.01°, one per track while the program runs; `place`/`geoBase` in cloud.go), carried as `Trace.g`.
+  Without it, dead reckoning from the heading and speed as before (no `g`, the loop closed by spreading the drift). Two
+  paths line up only in one frame (`sameFrame` on the web and the phones: both with `g`, B moved to A's origin, or both
+  without); a layout from the game's position (`track_maps.geo`, migration 0052, `g` on `/community/trackmaps`) replaces
+  one by dead reckoning whatever the lap time and is never replaced by one (the agent's `shareLayout`, the web's
+  `shareTrackMap`). A track's corners come from the geometry of its layout (`cloud/src/trackgeo.js`: a bend tighter than
+  300 m of radius for 20 m or more, bends the same way closer than 60 m are one corner, the apex where it bends most),
+  served by `/community/turns` as `auto: true` until an admin places the official turns, so every device numbers the same
+  corners. The coach's corners (`cornerZones` on the web, in ovnative4.go and in the phones' LapMath/Models) are the
+  reference's braking zones named by those turns (two brake applications in one corner are one corner) plus the turns the
+  reference takes without braking (a lift, from its last full throttle before the apex), whose tips never speak of braking.
 - The racing line (`racingline.go`, `lineOffsets`/`cornerLine`/`lineTip` in index.html and the phones' LapMath): both laps'
-  paths (Trace.x/y, dead reckoning, same orientation) give how far A was to one side of B at every 5 m (drift out with a
+  paths (Trace.x/y, same frame) give how far A was to one side of B at every 5 m (drift out with a
   ±400 m moving average); the coach turns it into inside/outside at B's turn-in, apex and exit (1.5 m or more) and says
   it first when you brake at the reference's point on the wrong part of the track. The model's record and next levels
   carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,

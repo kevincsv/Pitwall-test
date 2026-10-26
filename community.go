@@ -1172,6 +1172,7 @@ func handleTrackMap(w http.ResponseWriter, r *http.Request) {
 // commLayoutBest: the lap time of the layout the community already has per track (-1: none), so a
 // slower lap is never sent; filled the first time a track is seen in this run.
 var commLayoutBest = map[int]float64{}
+var commLayoutGeo = map[int]bool{} // whether that layout comes from the game's position
 
 // shareLayout sends the outline of a valid lap (only its x/y points) to the community when it is
 // faster than the layout everyone already has. iRacing only, and never when sharing layouts is off:
@@ -1194,29 +1195,37 @@ func shareLayout(l cloudLap, s cloudSession) {
 	n := len(l.Trace.X)
 	body := map[string]any{"game": "iracing", "clean": true, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "n": n,
 		"len": trackLengthM(y), "x": l.Trace.X, "y": l.Trace.Y}
+	geo := len(l.Trace.G) == 2 // the path comes from the game's position: exact, with the origin of its frame
+	if geo {
+		body["g"] = l.Trace.G
+	}
 	go func() {
 		commMu.Lock()
 		best, known := commLayoutBest[c.TrackID]
+		commGeo := commLayoutGeo[c.TrackID]
 		commMu.Unlock()
 		if !known {
 			best = -1
 			if b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(c.TrackID)+"&game=iracing", nil, false); err == nil {
 				var m struct {
-					Time float64 `json:"time"`
+					Time float64   `json:"time"`
+					G    []float64 `json:"g"`
 				}
 				if json.Unmarshal(b, &m) == nil && m.Time > 0 {
-					best = m.Time
+					best, commGeo = m.Time, len(m.G) == 2
 				}
 			}
 		}
-		if best > 0 && best <= l.Time {
+		// a faster lap already drew this track: nothing to send, unless ours comes from the game's position and the
+		// community's does not (the exact shape replaces dead reckoning whatever the time)
+		if best > 0 && best <= l.Time && (!geo || commGeo) {
 			commMu.Lock()
-			commLayoutBest[c.TrackID] = best
+			commLayoutBest[c.TrackID], commLayoutGeo[c.TrackID] = best, commGeo
 			commMu.Unlock()
 			return
 		}
 		commMu.Lock()
-		commLayoutBest[c.TrackID] = l.Time
+		commLayoutBest[c.TrackID], commLayoutGeo[c.TrackID] = l.Time, geo
 		commMu.Unlock()
 		if err := ensureRegistered(); err != nil {
 			commNote(err)

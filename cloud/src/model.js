@@ -124,7 +124,8 @@ async function learnNewLaps(env, game, trackId, carId) {
 // the path a lap's car drove (Trace.x/y), found by its time among the shared laps and the accounts' laps
 async function lapPath(env, game, trackId, carId, time) {
   const ok = (tr) => tr && Array.isArray(tr.x) && Array.isArray(tr.y) && tr.x.length > 10 && tr.x.length === tr.y.length;
-  const open = async (row) => { if (!row || !row.trace) return null; try { const tr = JSON.parse(await openData(env, row.trace)); return ok(tr) ? { x: tr.x, y: tr.y } : null; } catch (e) { return null; } };
+  // g: the origin [lat, lon] of the path when it comes from the game's position (the apps put two paths in one frame by it)
+  const open = async (row) => { if (!row || !row.trace) return null; try { const tr = JSON.parse(await openData(env, row.trace)); return ok(tr) ? { x: tr.x, y: tr.y, g: Array.isArray(tr.g) && tr.g.length === 2 ? tr.g : null } : null; } catch (e) { return null; } };
   const c = await env.DB.prepare("SELECT trace FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND abs(time-?4)<0.0006 AND trace IS NOT NULL LIMIT 3").bind(trackId, carId, game, time).all();
   for (const row of c.results || []) { const p = await open(row); if (p) return p; }
   const a = await env.DB.prepare(
@@ -277,7 +278,7 @@ export async function buildModel(env, game, trackId, carId) {
   const out = [];
   for (const { lap, ...x } of ladder) {
     const p = await pathFor(lap), e = { ...x, upTo: r(x.upTo, 1000) };
-    if (p && p.x.length >= n) { e.x = []; e.y = []; for (let i = 0; i < n; i += LEVEL_BIN) { e.x.push(r(p.x[i], 10)); e.y.push(r(p.y[i], 10)); } }
+    if (p && p.x.length >= n) { e.x = []; e.y = []; for (let i = 0; i < n; i += LEVEL_BIN) { e.x.push(r(p.x[i], 10)); e.y.push(r(p.y[i], 10)); } if (p.g) e.g = p.g; }
     out.push(e);
   }
   // the references are often rivals' laps (from their place on track: no path): the coach then measures your line
@@ -286,13 +287,13 @@ export async function buildModel(env, game, trackId, carId) {
   if (!(fp && fp.x.length >= n)) {
     for (const l of sorted.slice(0, 40)) {
       const p = await pathFor(l);
-      if (p && p.x.length >= n) { lineXY = { time: r(l.time, 1000), x: p.x.slice(0, n).map((v) => r(v, 10)), y: p.y.slice(0, n).map((v) => r(v, 10)) }; break; }
+      if (p && p.x.length >= n) { lineXY = { time: r(l.time, 1000), x: p.x.slice(0, n).map((v) => r(v, 10)), y: p.y.slice(0, n).map((v) => r(v, 10)), ...(p.g ? { g: p.g } : {}) }; break; }
     }
   }
   return {
     ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times, lineXY,
     ideal: record, idealField: !!fastest.field, corners,
-    idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)) } : null,
+    idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)), ...(fp.g ? { g: fp.g } : {}) } : null,
     ladder: out,
   };
 }

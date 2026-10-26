@@ -68,8 +68,9 @@ type cloudLap struct {
 type lapTrace struct {
 	Bin  int          `json:"bin"`
 	D    [][6]float64 `json:"d"`           // speed m/s, throttle, brake, gear, steering rad, lap time s
-	X    []float64    `json:"x,omitempty"` // where the car was at each point (m, dead reckoning): the track's shape
+	X    []float64    `json:"x,omitempty"` // where the car was at each point (m): the track's shape, from the game's position (G set) or dead reckoning
 	Y    []float64    `json:"y,omitempty"`
+	G    []float64    `json:"g,omitempty"`    // the origin of X/Y when they come from the game's position: [lat, lon] of x=0, y=0 (x east, y north)
 	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
 	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated)
@@ -325,7 +326,7 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
 	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
-	"Yaw", "VelocityX", "VelocityY", "CarLeftRight"}
+	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon"}
 
 const lapBin = 5 // metres
 
@@ -338,18 +339,20 @@ type lapRec struct {
 	off                  int // samples with the car off the track (cutting a corner)
 	hasLast              bool
 	lastD, lastT, lastSp float64
-	// where the car was at every 5 m point, from its heading and speed (dead reckoning):
-	// the shape of the track, drawn by the app from the lap itself
+	// where the car was at every 5 m point: from the game's position (Lat/Lon, exact, geo set) or, without it, from
+	// its heading and speed (dead reckoning); the shape of the track, drawn by the app from the lap itself
 	xy             [][2]float64
 	pos, lastPos   [2]float64
 	pyaw, pvx, pvy float64
 	pt             float64
 	hasPos, posBad bool
-	incPrev        float64   // the incident count at the previous sample
-	incAt          []float64 // [distance, points] of every incident on this lap
-	incK           []string  // the kind of each incident
-	besideAt       time.Time // the last moment another car was right beside you
-	pitB           []bool    // the 5 m points on the pit road (pitlane.go)
+	geo            bool
+	org            [2]float64 // the [lat, lon] of x=0, y=0 when the path comes from the game's position
+	incPrev        float64    // the incident count at the previous sample
+	incAt          []float64  // [distance, points] of every incident on this lap
+	incK           []string   // the kind of each incident
+	besideAt       time.Time  // the last moment another car was right beside you
+	pitB           []bool     // the 5 m points on the pit road (pitlane.go)
 	lastPitB       int
 	drv            map[string]int // DRINKS mode: who was at the wheel, sampled once a second ("" you)
 	drvAt          time.Time
@@ -402,6 +405,40 @@ func (r *lapRec) move(t, yaw, vx, vy float64) {
 		}
 	}
 	r.hasPos, r.pt, r.pyaw, r.pvx, r.pvy = true, t, yaw, vx, vy
+}
+
+// geoOrigin: the point x=0, y=0 of every lap's path on this track while the program runs (the first position seen,
+// rounded to 0.01°, so every lap of the session shares its frame); the apps put two laps with different origins
+// together by their G
+var (
+	geoMu  sync.Mutex
+	geoKey string
+	geoOrg [2]float64
+)
+
+func geoBase(key string, lat, lon float64) [2]float64 {
+	geoMu.Lock()
+	defer geoMu.Unlock()
+	if geoKey != key {
+		geoKey, geoOrg = key, [2]float64{math.Round(lat*100) / 100, math.Round(lon*100) / 100}
+	}
+	return geoOrg
+}
+
+// geoXY: metres east and north of the origin for a latitude and longitude
+func geoXY(org [2]float64, lat, lon float64) (float64, float64) {
+	return (lon - org[1]) * 111320 * math.Cos(org[0]*math.Pi/180), (lat - org[0]) * 110540
+}
+
+// place puts the car where the game says it is (its latitude and longitude): no drift, every lap in the same frame
+func (r *lapRec) place(t float64, org [2]float64, lat, lon float64) {
+	x, y := geoXY(org, lat, lon)
+	if r.hasPos && r.geo {
+		if dx, dy := x-r.pos[0], y-r.pos[1]; math.Hypot(dx, dy) > 400 { // a jump: a reset or a tow, not the lap's shape
+			r.posBad = true
+		}
+	}
+	r.pos, r.hasPos, r.geo, r.org, r.pt = [2]float64{x, y}, true, true, org, t
 }
 
 // add records one telemetry sample at lap distance d (m) and lap time t (s).
@@ -458,6 +495,7 @@ func lapRecorder() {
 		}
 		v := telNums(lapVars)
 		hasYaw := telHas("Yaw") && telHas("VelocityX")
+		hasGeo := telHas("Lat") && telHas("Lon") && math.Abs(v[23]) > 0.001 && math.Abs(v[24]) > 0.001
 		prevLL := lastLL
 		lastLL = v[8]
 		lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
@@ -514,7 +552,9 @@ func lapRecorder() {
 		if pct < 0 || dist < 0 {
 			continue
 		}
-		if hasYaw {
+		if hasGeo { // the game's own position: the exact shape of the track, the same frame for every lap
+			cur.place(v[14], geoBase(sessKey, v[23], v[24]), v[23], v[24])
+		} else if hasYaw {
 			cur.move(v[14], v[19], v[20], v[21])
 		}
 		if v[22] > 1 { // a car beside you
@@ -651,6 +691,9 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		Fuel: round(r.fuel0-fuelNow, 3), Vmax: round(r.vmax, 2), Drv: r.driver, Trace: &lapTrace{Bin: lapBin, D: r.bins}}
 	if x, y := r.shape(maxGap); x != nil {
 		l.Trace.X, l.Trace.Y = x, y
+		if r.geo {
+			l.Trace.G = []float64{r.org[0], r.org[1]}
+		}
 	}
 	if len(r.incAt) > 0 {
 		l.Trace.Inc, l.Trace.IncK = r.incAt, r.incK
@@ -718,10 +761,17 @@ func (r *lapRec) shape(maxGap int) ([]float64, []float64) {
 	for k := prev + 1; k < n; k++ {
 		x[k], y[k] = x[prev], y[prev]
 	}
-	// a lap is a loop: the gap between where it ended and where it started is drift
+	// a lap is a loop: the gap between where it ended and where it started is drift (dead reckoning), or a lap that was
+	// not a loop (a partial lap or a reset)
 	ex, ey := x[n-1]-x[0], y[n-1]-y[0]
-	if math.Hypot(ex, ey) > 150 { // not a loop (a partial lap or a reset): no shape
+	if math.Hypot(ex, ey) > 150 {
 		return nil, nil
+	}
+	if r.geo { // the game's position has no drift: the points stay where the car was
+		for i := range x {
+			x[i], y[i] = round(x[i], 1), round(y[i], 1)
+		}
+		return x, y
 	}
 	for i := range x {
 		f := float64(i) / float64(n-1)

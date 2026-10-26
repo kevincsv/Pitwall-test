@@ -51,6 +51,7 @@ import { gameOf } from "./games.js";
 import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { coachTipRoutes } from "./coachtips.js";
+import { turnsFromPath } from "./trackgeo.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
@@ -377,17 +378,28 @@ export async function community(req, env, url, ctx) {
   if (p === "/trackmaps" && m === "GET") {
     const t = +url.searchParams.get("trackId");
     if (!t) return err("trackId", 400);
-    const r = await env.DB.prepare("SELECT track, n, len, pts, time, created FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first();
+    const r = await env.DB.prepare("SELECT track, n, len, pts, time, created, geo FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first();
     if (!r) return err("no layout for this track yet", 404);
     const pts = JSON.parse(r.pts);
-    return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
+    // g: the origin [lat, lon] of x=0, y=0 when the layout comes from the game's position (the apps put their own laps in the same frame)
+    let g = null;
+    try { g = r.geo ? JSON.parse(r.geo) : null; } catch (e) { g = null; }
+    return new Response(JSON.stringify({ trackId: t, game, track: r.track, n: r.n, len: r.len, x: pts.x, y: pts.y, g, time: r.time, updated: r.created }), { headers: { ...JSONH, "cache-control": "public, max-age=3600" } });
   }
   // the official turn numbers of a track (placed by an admin on its map): anyone reads them, only admins change them
   if (p === "/turns" && m === "GET") {
     const t = +url.searchParams.get("trackId");
     if (!t) return err("trackId", 400);
     const r = await env.DB.prepare("SELECT turns, updated FROM track_turns WHERE game=?1 AND track_id=?2").bind(game, t).first();
-    return new Response(JSON.stringify({ trackId: t, game, turns: r ? JSON.parse(r.turns) : [], updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
+    let turns = [], auto = false;
+    try { turns = r ? JSON.parse(r.turns) : []; } catch (e) { turns = []; }
+    // no official turns placed yet: the corners come from the geometry of the track's layout (trackgeo.js), the same on
+    // every device, until an admin places them
+    if (!turns.length) {
+      const lay = await env.DB.prepare("SELECT pts FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first();
+      if (lay) { try { const p = JSON.parse(lay.pts); turns = turnsFromPath(p.x, p.y); auto = true; } catch (e) { turns = []; } }
+    }
+    return new Response(JSON.stringify({ trackId: t, game, turns, auto, updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
   }
   // the pit lane of a track, from laps through the pits: [point of the lap (5 m), metres to the left of the track]
   if (p === "/pitlane" && m === "GET") {
@@ -1157,14 +1169,18 @@ export async function community(req, env, url, ctx) {
     if (!(n >= 100 && n <= 3000) || !Array.isArray(x) || !Array.isArray(y) || x.length !== n || y.length !== n) return err("layout points missing", 400);
     const ok = (v) => typeof v === "number" && isFinite(v) && Math.abs(v) < 30000;
     if (!x.every(ok) || !y.every(ok)) return err("layout points out of range", 400);
+    // g: the layout comes from the game's own position (exact), with the origin [lat, lon] of its x=0, y=0
+    const g = Array.isArray(body.g) && body.g.length === 2 && body.g.every((v) => typeof v === "number" && isFinite(v)) && Math.abs(body.g[0]) <= 90 && Math.abs(body.g[1]) <= 180 ? body.g.map((v) => Math.round(v * 1e5) / 1e5) : null;
     const r2 = (v) => Math.round(v * 10) / 10;
-    const old = await env.DB.prepare("SELECT time FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, trackId).first();
-    if (old && old.time <= time) return json({ kept: "a faster clean lap already drew this track" });
+    const old = await env.DB.prepare("SELECT time, geo FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, trackId).first();
+    // a layout from the game's position replaces one by dead reckoning whatever the lap time, and is never replaced by one
+    if (old && old.geo && !g) return json({ kept: "a layout from the game's position already draws this track" });
+    if (old && old.time <= time && !(g && !old.geo)) return json({ kept: "a faster clean lap already drew this track" });
     if (!(await countUpload(env, u))) return err("too many uploads today", 429);
     await env.DB.prepare(
-      `INSERT INTO track_maps (game, track_id, track, n, len, pts, time, user_id, created) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
-       ON CONFLICT(game, track_id) DO UPDATE SET track=excluded.track, n=excluded.n, len=excluded.len, pts=excluded.pts, time=excluded.time, user_id=excluded.user_id, created=excluded.created`
-    ).bind(game, trackId, str(body.track), n, num(body.len), JSON.stringify({ x: x.map(r2), y: y.map(r2) }), time, u.id, Date.now()).run();
+      `INSERT INTO track_maps (game, track_id, track, n, len, pts, time, user_id, created, geo) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
+       ON CONFLICT(game, track_id) DO UPDATE SET track=excluded.track, n=excluded.n, len=excluded.len, pts=excluded.pts, time=excluded.time, user_id=excluded.user_id, created=excluded.created, geo=excluded.geo`
+    ).bind(game, trackId, str(body.track), n, num(body.len), JSON.stringify({ x: x.map(r2), y: y.map(r2) }), time, u.id, Date.now(), g ? JSON.stringify(g) : null).run();
     return json({ shared: true });
   }
   if (p === "/pitlane" && m === "POST") {
