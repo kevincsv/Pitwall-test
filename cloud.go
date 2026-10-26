@@ -335,8 +335,7 @@ type lapRec struct {
 	fuel0, vmax          float64
 	inc0                 float64
 	pit, bad             bool
-	spin                 bool // a 2x loss of control (a spin) on this lap
-	off                  int  // samples with the car off the track (cutting a corner)
+	off                  int // samples with the car off the track (cutting a corner)
 	hasLast              bool
 	lastD, lastT, lastSp float64
 	// where the car was at every 5 m point, from its heading and speed (dead reckoning):
@@ -496,8 +495,8 @@ func lapRecorder() {
 		now := time.Now()
 		if cur == nil || lap != cur.n {
 			if cur != nil && lap == cur.n+1 {
-				setLapCut(sn, cur.n, cur.invalid()) // the race report reads the same verdict
-				setLapIncs(sn, cur.n, cur.incAt, cur.incK)       // and the same incidents
+				setLapCut(sn, cur.n, cur.invalid())        // the race report reads the same verdict
+				setLapIncs(sn, cur.n, cur.incAt, cur.incK) // and the same incidents
 				cur.driver = cur.topDriver()
 				setLapDriver(sn, cur.n, cur.driver) // and the same driver
 				done, s := cur, sess
@@ -524,15 +523,17 @@ func lapRecorder() {
 		if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap, how many points and what it was
 			pts := v[11] - cur.incPrev
 			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), pts)
+			// the kind iRacing gives each incident by its points: 1x Off Track, 2x Loss of Control, 4x Car Contact
+			// (a 0x Light Contact adds nothing to the count, so it is never seen here)
 			k := "off"
 			switch {
 			case pts >= 4:
 				k = "contact"
-			case pts == 2 && !cur.besideAt.IsZero() && time.Since(cur.besideAt) < 2*time.Second:
-				k = "light"
-			case pts == 2:
+			case pts >= 2:
 				k = "loss"
-				cur.spin = true // a spin makes the lap invalid (a 4x contact alone does not)
+			}
+			if int(pts)%2 == 1 { // an Off Track (1x, alone or with another incident) makes the lap invalid
+				cur.bad = true
 			}
 			cur.incK = append(cur.incK, k)
 		}
@@ -588,11 +589,11 @@ func waitLastLap(r *lapRec, prev float64) float64 {
 // are filled in; a lap that skipped part of the track is not)
 func fullLap(seen, bins int) bool { return bins > 0 && float64(seen) >= 0.9*float64(bins) }
 
-// invalid: what makes a lap not valid, and only that: leaving the track (all four wheels out for a third of a
-// second), a 2x spin, or lost connection (a hole in its telemetry, or not the whole circuit). A 4x contact, an
-// incident of another kind or a lap through the pit lane does not.
+// invalid: what makes a lap not valid, and only that: leaving the track (an Off Track, or all four wheels out for a
+// third of a second) or lost connection (a hole in its telemetry, or not the whole circuit). A Loss of Control or a
+// Car Contact counts only when it takes the car off the track; a lap through the pit lane is valid.
 func (r *lapRec) invalid() bool {
-	return r.bad || r.spin || r.off >= offTrackSamples
+	return r.bad || r.off >= offTrackSamples
 }
 
 func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
@@ -666,7 +667,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	if l.Fuel < 0 {
 		l.Fuel = 0
 	}
-	best := l.Valid // a lap through the pit lane counts like any other
+	best := l.Valid          // a lap through the pit lane counts like any other
 	if best && l.Drv == "" { // a friend's lap (DRINKS) is never your best
 		recordSetupLap(l.Time)
 	}
