@@ -452,6 +452,15 @@
   the record's (`lineRanges`, `line` on the corner, a range never a composite); a tip may say how many drivers it helped
   on corners like it only when the admin turns it on (Coach tab, `coach_confidence`); an admin turns a kind off for
   corners of one speed (`coach_off`, `off` in /coach/weights: web, PC and phones say the phase's plain tip instead).
+- The coach overlay is live (`drawCoachOv`, `coachTick` in ovnative4.go, design A): as the car comes to a corner with a
+  tip it shows the turn, the metres to the reference's braking point with a bar, the last lap's loss there, the tip and
+  the fast drivers' range (the model's corner card, `modelCor`); after the corner, for a few seconds, the verdict (this
+  lap against the reference from the braking zone to the exit, `liveDelta`) and the lap's corners as dots (green gained,
+  red lost). The tips are computed once per lap (`compareLaps` with every corner, cached by `key`). It is set before the
+  session in the overlay's settings on the web (Overlays → Coach → configure, `UI_DEFAULTS.coach`, `CONFIGURABLE.coach`):
+  the reference (the next level or your best lap), what it shows (the next corner, the plan as rows, one line), which
+  corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
+  from how far it speaks. The settings travel with the account like every overlay's.
 - The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.

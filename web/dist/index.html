@@ -3868,7 +3868,7 @@ function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(
 
 /* ===================== layout & overlays ===================== */
 const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","engine","tyres","standings","telemetry","weather","controls","trackbar","system"];
-const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps"};
+const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",coach:"coach"};
 /* the Telemetry screen shows what matters while you drive, nothing more: the flags, where you are, the delta and the
    lap times, the cars around you, the map, the fuel and the incidents (the tyres and the standings have their own
    tabs). Every other widget stays one click away in Layout */
@@ -4204,6 +4204,14 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
 </div>`;
   else if(k==="pit")body=`<div class="panel">${num("loss","pitLoss",5,180)}<p class="note">${Lp("Time lost driving through the pit lane and stopping, compared with staying out. Depends on the track: about 20–35 s on most road courses.","Tiempo que pierdes al pasar por boxes y parar, frente a seguir en pista. Depende del circuito: unos 20–35 s en la mayoría de circuitos.")}</p></div>`;
   else if(k==="gaps")body=`<div class="panel">${num("mins","gapMins",1,30)}${num("cars","gapCars",1,5)}</div>`;
+  // the coach overlay before the session: the reference, what it shows, which corners, the fast drivers' hint, the verdict, how far ahead it speaks
+  else if(k==="coach"){const chip=(f,v,t)=>`<button type="button" class="chip" data-cch="${f}:${v}" aria-pressed="${String(c[f])===String(v)}">${esc(t)}</button>`,tid=(S.WeekendInfo||{}).TrackID,turns=tid?turnsFor(tid):null,tn=turns&&turns.length?turns.length:0;
+    body=`<div class="panel"><div class="label">${esc(Tx("Reference","Referencia"))}</div><div class="frow" style="margin:6px 0 12px">${chip("ref","level","▲ "+Tx("Next level","Siguiente nivel"))}${chip("ref","best",Tx("My best lap","Mi mejor vuelta"))}</div>
+      <div class="label">${esc(Tx("What it shows","Qué muestra"))}</div><div class="frow" style="margin:6px 0 12px">${chip("mode","next",Tx("Next corner","Próxima curva"))}${chip("mode","plan",Tx("The plan","El plan"))}${chip("mode","line",Tx("One line","Una línea"))}</div>
+      <div class="label">${esc(Tx("Corners","Curvas"))}</div><div class="frow" style="margin:6px 0 12px"><button type="button" class="chip" data-cturn="" aria-pressed="${!(c.turns||[]).length}">${esc(Tx("The 3 that cost the most","Las 3 que más cuestan"))}</button>${tn?Array.from({length:tn},(_,i)=>`<button type="button" class="chip" data-cturn="T${i+1}" aria-pressed="${(c.turns||[]).includes("T"+(i+1))}">T${i+1}</button>`).join(""):`<span class="note">${esc(Tx("The track's corners appear here when the game is open on a track the community knows.","Las curvas del circuito aparecen aquí cuando el juego está en un circuito que la comunidad conoce."))}</span>`}</div>
+      <div class="frow" style="margin:6px 0 12px">${chk("cHint",c.hint!==false,esc(Tx("The fast drivers' braking and apex speed","La frenada y el vértice de los rápidos")))}</div>
+      <div class="label">${esc(Tx("Verdict after each corner","Veredicto tras cada curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("verdict",0,Tx("Off","Apagado"))}${chip("verdict",4,"4 s")}${chip("verdict",8,"8 s")}</div>
+      <div class="label">${esc(Tx("Speaks from","Avisa desde"))}</div><div class="frow" style="margin:6px 0 0">${chip("lead",200,"200 m")}${chip("lead",300,"300 m")}${chip("lead",500,"500 m")}</div></div>`}
   const keepPv=$("#cfgPreview")&&$("#cfgPreview").dataset.w===w&&!$("#drawer").hidden;
   if(keepPv)$("#cfgForm").innerHTML=body;
   else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="cfgsplit"><div class="cfgpv"><div class="label" style="margin:0 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div></div><div id="cfgForm">${body}</div></div>`;startPreview(w)}
@@ -4216,6 +4224,9 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
   ["gear","speed","wheel","wheelDeg","values","abs","trace"].forEach(f=>{const e=$("#in-"+f);if(e)e.onclick=()=>upd({[f]:!c[f]})});
   document.querySelectorAll("#dBody [data-arr]").forEach(b=>b.onclick=()=>{const[f,v]=b.dataset.arr.split(":"),a=c[f].includes(v)?c[f].filter(x=>x!==v):[...c[f],v];upd({[f]:a})});
   document.querySelectorAll("#dBody [data-bdir]").forEach(b=>b.onclick=()=>upd({barDir:b.dataset.bdir}));
+  document.querySelectorAll("#dBody [data-cch]").forEach(b=>b.onclick=()=>{const[f,v]=b.dataset.cch.split(":");upd({[f]:isNaN(+v)?v:+v})});
+  document.querySelectorAll("#dBody [data-cturn]").forEach(b=>b.onclick=()=>{const t=b.dataset.cturn,cur=c.turns||[];upd({turns:t?(cur.includes(t)?cur.filter(x=>x!==t):[...cur,t]):[]})});
+  if($("#cHint"))$("#cHint").onclick=()=>upd({hint:c.hint===false});
   document.querySelectorAll("#dBody [data-dsrc]").forEach(b=>b.onclick=()=>upd({src:b.dataset.dsrc}));document.querySelectorAll("#dBody [data-drng]").forEach(b=>b.onclick=()=>upd({range:+b.dataset.drng}));
   if($("#cMyClass"))$("#cMyClass").onclick=()=>upd({myClass:!c.myClass});if($("#cPred"))$("#cPred").onclick=()=>upd({predict:c.predict===false});if($("#cAH"))$("#cAH").onclick=()=>upd({autohide:!c.autohide});
   if($("#drawer").hidden){$("#drawer").hidden=false}}
@@ -6030,6 +6041,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
    PC itself (not the phone, not overlay windows), so they are not heard twice. */
 Object.assign(I18N,{"w.brakes":["Braking markers","Marcas de frenada"],"d.brakes":["Where to brake in the next corner, from your best lap, with beeps; brakes earlier with a car just ahead","Dónde frenar en la próxima curva según tu mejor vuelta, con pitidos; frena antes con un coche justo delante"]});
 UI_DEFAULTS.brakes={on:true,beeps:"count",traffic:true,vol:.7};
+UI_DEFAULTS.coach={mode:"next",ref:"level",turns:[],hint:true,verdict:4,lead:300}; // the coach overlay (drawCoachOv in ovnative4.go): what it shows and which corners, chosen before the session
 function beepHere(){if(OV.on)return false;const v=store.get("pw.beepHere",null);if(v!=null)return v;return MODE==="local"||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
 let ACTX=null;
 function beep(freq,ms,vol){try{ACTX=ACTX||new(window.AudioContext||window.webkitAudioContext)();if(ACTX.state==="suspended")ACTX.resume();

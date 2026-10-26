@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/image/font"
 )
 
 func lapOverlay(name string) bool {
@@ -78,6 +80,8 @@ type ovExtra struct {
 	modelKey string
 	modelRef *ovLap
 	modelAt  time.Time
+	modelCor []ovCorner // the model's corner card: where the fastest drivers brake and how fast they take each corner
+	coach    ovCoachState
 	bm       bmState
 	drinks   bool   // DRINKS mode is on (the PC's "driver" event)
 	driver   string // who drives now ("" the owner)
@@ -384,10 +388,14 @@ func (st *ovState) loadModelRef() {
 				UpTo float64     `json:"upTo"`
 				Bins [][]float64 `json:"bins"`
 			} `json:"ladder"`
+			Corners []ovCorner `json:"corners"`
 		}
 		if !st.fetchJSON(fmt.Sprintf("/api/community/model?trackId=%d&carId=%d&game=iracing", tid, car), &m) || len(m.Ladder) == 0 {
 			return
 		}
+		st.mu.Lock()
+		st.ext.modelCor = m.Corners
+		st.mu.Unlock()
 		t := best
 		if t <= 0 {
 			t = math.Inf(1)
@@ -1502,46 +1510,429 @@ func coachGeneric(en string) bool {
 	return false
 }
 
+// ---------- the coach overlay, live ----------
+// The overlay follows the lap (design A): as the car comes to a corner with a tip it shows the corner, the metres to the
+// reference's braking point, the tip and the fast drivers' range; after the corner, for a few seconds, the verdict (what
+// this lap did there against the reference); and the lap's corners as dots. "The plan" shows the chosen corners as rows,
+// "one line" the next corner alone. Everything is chosen in the overlay's settings on the web (UI_DEFAULTS.coach): the
+// reference, what it shows, which corners, the hint, the verdict's seconds, how far ahead it speaks.
+
+type ovCorner struct {
+	Apex, B0, B1, V0, V1 float64
+	N                    int
+}
+
+type coachVerdict struct {
+	n    int
+	gain float64 // seconds against the reference in that corner (negative: gained)
+	at   time.Time
+}
+
+type ovCoachState struct {
+	key     string
+	tips    []coachTip // every corner of the reference, in lap order
+	ref     string
+	refLap  *ovLap
+	lap     int
+	dots    map[int]float64 // this lap's corners: seconds against the reference (negative: gained)
+	watch   int             // the corner under way (its index in tips), -1 none
+	watchD0 float64
+	verdict *coachVerdict
+}
+
+// coachRef: the reference the overlay measures against: the model's next level when it is faster than your best and the
+// settings allow it, else your own best lap of the session (the lap to judge, A, is your last one)
+func (st *ovState) coachRef(pref string) (A, R *ovLap, name string) {
+	E := &st.ext
+	if len(E.laps) < 1 {
+		return nil, nil, ""
+	}
+	A = E.laps[len(E.laps)-1]
+	R = st.bestLap(nil)
+	if R == A {
+		R = st.bestLap(A)
+	}
+	st.loadModelRef()
+	name = st.T("vs your best lap", "vs tu mejor vuelta")
+	if pref != "best" {
+		if m := E.modelRef; m != nil && m.time < A.time-0.001 && (R == nil || m.time < R.time-0.001) {
+			R, name = m, st.T("vs the driver just ahead", "vs el piloto justo por delante")
+		}
+	}
+	if R == nil || R == A {
+		return A, nil, ""
+	}
+	return A, R, name
+}
+
+// liveDelta: the current lap against a reference lap at the same point of the lap
+func (st *ovState) liveDelta(R *ovLap) (float64, bool) {
+	d, ok1 := st.num("LapDist")
+	t, ok2 := st.num("LapCurrentLapTime")
+	if R == nil || !ok1 || !ok2 || d < 20 {
+		return 0, false
+	}
+	r, ok := timeAt(R.series(), d)
+	if !ok {
+		return 0, false
+	}
+	return t - r, true
+}
+
+// coachTick: the tips of the last lap (once per lap), which corner comes next, and the verdict of the corner just taken
+func (st *ovState) coachTick(cfg map[string]any) {
+	E := &st.ext
+	C := &E.coach
+	A, R, name := st.coachRef(uiStr(cfg, "ref", "level"))
+	if A == nil || R == nil {
+		C.tips, C.ref, C.refLap = nil, "", nil
+		return
+	}
+	key := fmt.Sprintf("%d|%.3f|%.3f|%s", len(E.laps), A.time, R.time, E.driver)
+	if C.key != key {
+		C.key, C.ref, C.refLap = key, name, R
+		C.tips = st.compareLaps(A, R, 1000)
+		sort.Slice(C.tips, func(i, j int) bool { return C.tips[i].d < C.tips[j].d })
+		C.watch = -1
+	}
+	f := func(n string) float64 { v, _ := st.num(n); return v }
+	lap := int(f("LapCompleted"))
+	if lap != C.lap || C.dots == nil {
+		C.lap, C.dots, C.watch = lap, map[int]float64{}, -1
+	}
+	if f("IsOnTrack") == 0 || f("OnPitRoad") != 0 {
+		C.watch = -1
+		return
+	}
+	d, ok := st.num("LapDist")
+	if !ok {
+		return
+	}
+	// the corner under way: its window from 50 m before the braking to 150 m after the slowest point, like the coach's lost
+	for i, t := range C.tips {
+		if !st.coachPicked(cfg, t) {
+			continue
+		}
+		i0, i1 := t.d-50, t.apex+150
+		if C.watch != i && d >= i0 && d < i0+30 {
+			if dl, ok := st.liveDelta(R); ok {
+				C.watch, C.watchD0 = i, dl
+			}
+		}
+		if C.watch == i && d >= i1 && d < i1+200 {
+			if dl, ok := st.liveDelta(R); ok {
+				g := dl - C.watchD0
+				C.dots[t.n] = g
+				C.verdict = &coachVerdict{n: t.n, gain: g, at: time.Now()}
+			}
+			C.watch = -1
+		}
+	}
+}
+
+// coachPicked: whether the settings want this corner: the chosen turns ("T4"), else the three that cost the most
+func (st *ovState) coachPicked(cfg map[string]any, t coachTip) bool {
+	turns := uiList(cfg, "turns", nil)
+	if len(turns) > 0 {
+		for _, x := range turns {
+			if x == "T"+strconv.Itoa(t.n) {
+				return true
+			}
+		}
+		return false
+	}
+	C := &st.ext.coach
+	if t.lost <= .03 {
+		return false
+	}
+	worse := 0
+	for _, o := range C.tips {
+		if o.lost > t.lost {
+			worse++
+		}
+	}
+	return worse < 3
+}
+
+// coachNext: the next chosen corner ahead of the car and the metres to its braking point (round the lap)
+func (st *ovState) coachNext(cfg map[string]any) (*coachTip, float64) {
+	C := &st.ext.coach
+	d, ok := st.num("LapDist")
+	if !ok || len(C.tips) == 0 {
+		return nil, 0
+	}
+	L := 4000.0
+	if st.ses != nil && st.ses.TrackLen > 0 {
+		L = st.ses.TrackLen
+	}
+	var first *coachTip
+	for i := range C.tips {
+		t := &C.tips[i]
+		if !st.coachPicked(cfg, *t) {
+			continue
+		}
+		if first == nil {
+			first = t
+		}
+		if t.apex+150 > d {
+			return t, t.d - d
+		}
+	}
+	if first == nil {
+		return nil, 0
+	}
+	return first, first.d - d + L
+}
+
+// wrapLines cuts a text into lines of at most w pixels, up to max lines (the last one with "…")
+func wrapLines(f font.Face, s string, w float64, max int) []string {
+	words := strings.Fields(s)
+	var out []string
+	cur := ""
+	for _, wd := range words {
+		try := strings.TrimSpace(cur + " " + wd)
+		if cur != "" && textW(f, try) > w {
+			out = append(out, cur)
+			cur = wd
+			if len(out) == max-1 {
+				rest := strings.Join(words[len(strings.Fields(strings.Join(out, " "))):], " ")
+				out = append(out, ellipsis(f, rest, w))
+				return out
+			}
+			continue
+		}
+		cur = try
+	}
+	if cur != "" {
+		out = append(out, cur)
+	}
+	return out
+}
+
 func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
-	tips, ref := st.coachTips()
-	rowH := 34 * z
-	rows := len(tips)
-	if rows == 0 {
-		rows = 1
-	}
-	H := pad + 18*z + float64(rows)*rowH + pad - 4*z
-	panel(c, H, z)
-	c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
-	if ref != "" {
-		c.labelFit(z, ref, W/2, pad+6*z, W/2-pad)
-	}
-	y := pad + 18*z
-	nf := ovFace(fkBody, 13.5*z)
-	if len(tips) == 0 {
-		msg := st.T("Your last lap loses nothing clear against the reference: keep it up.", "Tu última vuelta no pierde nada claro frente a la referencia: sigue así.")
-		if ref == "" {
-			msg = st.T("Tips appear after your second lap (or your first, once the model knows a faster driver).", "Los consejos aparecen tras tu segunda vuelta (o la primera, si el modelo conoce a un piloto más rápido).")
+	cfg := st.uiMap("coach")
+	st.coachTick(cfg)
+	C := &st.ext.coach
+	mode := uiStr(cfg, "mode", "next")
+	nf, cf, vf, pf := ovFace(fkBody, 13.5*z), ovFace(fkDisplayB, 22*z), ovFace(fkDataB, 20*z), ovFace(fkDataB, 11*z)
+	hint := func(t *coachTip) string { // the fast drivers' range for this corner (the model's corner card)
+		if !uiBool(cfg, "hint", true) {
+			return ""
 		}
-		c.text(nf, ellipsis(nf, msg, W-2*pad), pad, y+rowH/2, colMuted, 1, 0)
+		for _, k := range st.ext.modelCor {
+			if math.Abs(k.Apex-t.apex) <= 60 && k.N >= 3 {
+				return st.T(fmt.Sprintf("The fast drivers brake between %d and %d m and pass the apex at %d–%d %s", int(k.B0), int(k.B1), int(st.spd(k.V0)), int(st.spd(k.V1)), st.spdU()),
+					fmt.Sprintf("Los rápidos frenan entre %d y %d m y pasan el vértice a %d–%d %s", int(k.B0), int(k.B1), int(st.spd(k.V0)), int(st.spd(k.V1)), st.spdU()))
+			}
+		}
+		return ""
+	}
+	tipText := func(t *coachTip) string {
+		if t.lost > .03 && t.en != "" {
+			return st.T(t.en, t.es)
+		}
+		return st.T("Nothing to fix here", "Nada que corregir aquí")
+	}
+	pill := func(x, y, h float64, name string) float64 { // the turn's pill, returns its width
+		w := textW(cf, name) + 16*z
+		c.roundRect(x, y, w, h, 7*z, 0x222b37, 1, colLine, 1, 1)
+		c.text(cf, name, x+w/2, y+h/2, colText, 1, 2)
+		return w
+	}
+	dots := func(y float64) float64 { // this lap's corners against the reference, in lap order
+		if len(C.tips) == 0 {
+			return 0
+		}
+		x, r := pad, 5*z
+		for _, t := range C.tips {
+			g, ok := C.dots[t.n]
+			col, a := uint32(0x222b37), 1.0
+			if ok {
+				col = uint32(colMuted)
+				if g < -.02 {
+					col = colGood
+				} else if g > .02 {
+					col = colBad
+				}
+			}
+			c.roundRect(x, y, 2*r, 2*r, r, col, a, colLine, 1, 1)
+			x += 2*r + 6*z
+			if x > W-pad {
+				break
+			}
+		}
+		sum, n, m := 0.0, 0, 0
+		for _, g := range C.dots {
+			sum += g
+			if g < -.02 {
+				n++
+			} else if g > .02 {
+				m++
+			}
+		}
+		if len(C.dots) > 0 {
+			col := uint32(colGood)
+			if sum > 0 {
+				col = colBad
+			}
+			c.text(pf, fmt.Sprintf("%d ▲ · %d ▼ · %s s", n, m, signed(sum, 2)), W-pad, y+r, col, 1, 1)
+		}
+		return 2*r + 10*z
+	}
+	// nothing to measure yet
+	if len(C.tips) == 0 {
+		H := pad + 18*z + 34*z + pad - 4*z
+		panel(c, H, z)
+		c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+		msg := st.T("Tips appear after your second lap (or your first, once the model knows a faster driver).", "Los consejos aparecen tras tu segunda vuelta (o la primera, si el modelo conoce a un piloto más rápido).")
+		c.text(nf, ellipsis(nf, msg, W-2*pad), pad, pad+18*z+17*z, colMuted, 1, 0)
 		return int(math.Ceil(H))
 	}
-	cf, vf := ovFace(fkDataB, 11*z), ovFace(fkData, 13.5*z)
-	for k, t := range tips {
-		if k > 0 {
-			c.rect(pad, y, W-2*pad, 1, colLine, 1)
+	next, dTo := st.coachNext(cfg)
+	lead := uiNum(cfg, "lead", 300)
+	vsecs := uiNum(cfg, "verdict", 4)
+	verdict := C.verdict != nil && vsecs > 0 && time.Since(C.verdict.at) < time.Duration(vsecs*float64(time.Second))
+	if mode == "line" {
+		H := pad + 34*z + pad - 4*z
+		panel(c, H, z)
+		y := pad
+		if verdict {
+			v := C.verdict
+			col := uint32(colGood)
+			if v.gain > 0 {
+				col = colBad
+			}
+			c.rect(pad, y, 3*z, 34*z, col, 1)
+			pw := pill(pad+9*z, y+2*z, 30*z, "T"+strconv.Itoa(v.n))
+			c.text(vf, signed(-v.gain, 2), pad+pw+18*z, y+17*z, col, 1, 0)
+			c.text(nf, st.T("against the reference in this corner", "frente a la referencia en esta curva"), pad+pw+18*z+textW(vf, signed(-v.gain, 2))+10*z, y+17*z, colMuted, 1, 0)
+		} else if next != nil {
+			pw := pill(pad, y+2*z, 30*z, "T"+strconv.Itoa(next.n))
+			ms := fmt.Sprintf("%d m", int(math.Max(0, dTo)))
+			c.text(vf, ms, pad+pw+10*z, y+17*z, colText, 1, 0)
+			x := pad + pw + 10*z + textW(vf, ms) + 12*z
+			ls := signed(next.lost, 2)
+			lw := textW(pf, ls)
+			c.text(nf, ellipsis(nf, tipText(next), W-pad-x-lw-10*z), x, y+17*z, colText, 1, 0)
+			c.text(pf, ls, W-pad, y+17*z, colBad, 1, 1)
 		}
-		cn := st.turnName(t.apex, t.n)
-		cw := textW(cf, cn) + 12*z
-		c.roundRect(pad, y+rowH/2-10*z, cw, 20*z, 5*z, colSurf2, 1, colLine, 1, 1)
-		c.text(cf, cn, pad+cw/2, y+rowH/2, colText, 1, 2)
-		ls := signed(t.lost, 2)
-		lw := textW(vf, ls)
-		c.text(vf, ls, W-pad, y+rowH/2, colBad, 1, 1)
-		tip := st.T(t.en, t.es)
-		c.text(nf, ellipsis(nf, tip, W-2*pad-cw-lw-24*z), pad+cw+10*z, y+rowH/2, colText, 1, 0)
-		y += rowH
+		return int(math.Ceil(H))
 	}
+	if mode == "plan" {
+		rows := []coachTip{}
+		for _, t := range C.tips {
+			if st.coachPicked(cfg, t) {
+				rows = append(rows, t)
+			}
+		}
+		sort.Slice(rows, func(i, j int) bool { return rows[i].lost > rows[j].lost })
+		if len(rows) > 4 {
+			rows = rows[:4]
+		}
+		rowH := 36 * z
+		H := pad + 18*z + float64(len(rows))*rowH + 22*z + pad - 4*z
+		panel(c, H, z)
+		c.label(z, st.T("Coach · the plan", "Coach · el plan"), pad, pad+6*z, 0)
+		c.labelFit(z, C.ref, W/2, pad+6*z, W/2-pad)
+		y := pad + 18*z
+		for k, t := range rows {
+			if k > 0 {
+				c.rect(pad, y, W-2*pad, 1, colLine, 1)
+			}
+			on := next != nil && next.n == t.n
+			if on {
+				c.roundRect(pad-4*z, y+2*z, W-2*pad+8*z, rowH-4*z, 6*z, colAmber, 0.12, 0, 0, 0)
+			}
+			pw := pill(pad, y+rowH/2-14*z, 28*z, "T"+strconv.Itoa(t.n))
+			right := signed(t.lost, 2)
+			col := uint32(colBad)
+			if g, ok := C.dots[t.n]; ok {
+				right = signed(g, 2)
+				if g < -.02 {
+					right, col = right+" ✓", colGood
+				}
+			}
+			rw := textW(pf, right)
+			c.text(pf, right, W-pad, y+rowH/2, col, 1, 1)
+			c.text(nf, ellipsis(nf, tipText(&t), W-2*pad-pw-rw-20*z), pad+pw+10*z, y+rowH/2, colText, 1, 0)
+			y += rowH
+		}
+		y += 8 * z
+		dots(y)
+		return int(math.Ceil(H))
+	}
+	// "next": the corner coming, or the verdict of the one just taken
+	tf := ovFace(fkBodyB, 14*z)
+	lines := []string{}
+	hl := ""
+	if !verdict && next != nil && dTo <= lead {
+		lines = wrapLines(tf, tipText(next), W-2*pad-10*z, 2)
+		hl = hint(next)
+	}
+	H := pad + 18*z + 56*z + 10*z
+	if verdict {
+		H += 24 * z
+	} else if next != nil && dTo <= lead {
+		H += float64(len(lines))*19*z + 10*z
+		if hl != "" {
+			H += 16 * z
+		}
+	}
+	H += 18*z + pad - 4*z
+	panel(c, H, z)
+	c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+	c.labelFit(z, C.ref, W/2, pad+6*z, W/2-pad)
+	y := pad + 18*z
+	if verdict {
+		v := C.verdict
+		col := uint32(colGood)
+		if v.gain > 0 {
+			col = colBad
+		}
+		pw := pill(pad, y+8*z, 40*z, "T"+strconv.Itoa(v.n))
+		big := ovFace(fkDataB, 28*z)
+		c.text(big, signed(-v.gain, 2)+" s", pad+pw+14*z, y+20*z, col, 1, 0)
+		what := st.T("Better than the reference", "Mejor que la referencia")
+		if v.gain > 0 {
+			what = st.T("Slower than the reference", "Más lento que la referencia")
+		}
+		c.text(tf, what, pad+pw+14*z+textW(big, signed(-v.gain, 2)+" s")+12*z, y+20*z, col, 1, 0)
+		c.text(nf, ellipsis(nf, st.T("Measured from the braking zone to the exit", "Medido desde la frenada hasta la salida"), W-2*pad), pad, y+46*z, colMuted, 1, 0)
+		y += 56*z + 24*z + 10*z
+	} else if next != nil {
+		pw := pill(pad, y+8*z, 40*z, "T"+strconv.Itoa(next.n))
+		c.text(pf, signed(next.lost, 2)+" s", pad+pw/2, y+56*z, colBad, 1, 2)
+		x := pad + pw + 16*z
+		if dTo <= lead {
+			c.label(z, st.T("Brake in", "Frena en"), x, y+6*z, 0)
+			ms := fmt.Sprintf("%d m", int(math.Max(0, dTo)))
+			c.text(ovFace(fkDataB, 24*z), ms, x+textW(ovFace(fkData, 11*z), strings.ToUpper(st.T("Brake in", "Frena en")))*1.1+10*z, y+8*z, colText, 1, 0)
+			// the bar: the car coming to the braking point
+			bx, bw := x, W-pad-x
+			c.roundRect(bx, y+30*z, bw, 8*z, 4*z, 0x222b37, 1, 0, 0, 0)
+			fr := 1 - math.Max(0, math.Min(1, dTo/lead))
+			c.roundRect(bx, y+30*z, math.Max(8*z, bw*fr), 8*z, 4*z, colAmber, 1, 0, 0, 0)
+			c.text(pf, st.T(fmt.Sprintf("The reference brakes %d m from the line", int(next.d)), fmt.Sprintf("La referencia frena a %d m de la línea", int(next.d))), x, y+48*z, colMuted, 1, 0)
+			y += 56*z + 10*z
+			c.rect(pad, y, 4*z, float64(len(lines))*19*z, colAmber, 1)
+			for k, ln := range lines {
+				c.text(tf, ln, pad+12*z, y+9*z+float64(k)*19*z, colText, 1, 0)
+			}
+			y += float64(len(lines))*19*z + 10*z
+			if hl != "" {
+				c.text(pf, ellipsis(pf, hl, W-2*pad), pad, y+6*z, colMuted, 1, 0)
+				y += 16 * z
+			}
+		} else {
+			c.text(nf, ellipsis(nf, st.T(fmt.Sprintf("Next in %d m", int(dTo)), fmt.Sprintf("Siguiente en %d m", int(dTo))), W-pad-x), x, y+28*z, colMuted, 1, 0)
+			y += 56*z + 10*z
+		}
+	} else {
+		c.text(nf, ellipsis(nf, st.T("Your last lap loses nothing clear against the reference. Keep it up", "Tu última vuelta no pierde nada claro frente a la referencia. Sigue así"), W-2*pad), pad, y+28*z, colMuted, 1, 0)
+		y += 56*z + 10*z
+	}
+	dots(y)
 	return int(math.Ceil(H))
 }
