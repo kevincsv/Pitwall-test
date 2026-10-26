@@ -4,6 +4,15 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number: `0.MINOR.PATCH`. A MINOR version is a set of new features; fixes ride along as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.4.3 beta
+
+- **A new look on the phone**: the pit wall, with your last race on Home, your iRating as a line you read with your
+  finger, and a coach that starts with the gap and what to work on first.
+- **Licence summary**: an offline session against the AI no longer shows as your licence ("1 · R 0.01").
+- **Only whole laps count**: a lap that did not go round the whole circuit (a reset or a tow to the pits) is never a
+  best lap or a record; a lap through the pit lane still counts.
+- Fixes and improvements.
+
 ## 0.4.2 beta
 
 - **One leaderboard for one car**: cars that are the same under different badges (the Super Formula SF23's Honda

@@ -1,6 +1,24 @@
 {
   "versions": [
     {
+      "v": "0.4.3",
+      "en": [
+        "A new look on the phone: your last race on Home, your iRating as a line you read with your finger, and a coach that starts with what to work on first.",
+        "The licence summary no longer shows an offline session against the AI as your licence.",
+        "Only whole laps count: a lap that did not go round the whole circuit is never a best lap or a record."
+      ],
+      "es": [
+        "Un nuevo aspecto en el móvil: tu última carrera en Inicio, tu iRating como una línea que lees con el dedo y un coach que empieza por lo que tienes que trabajar primero.",
+        "El resumen de licencias ya no muestra una sesión offline contra la IA como tu licencia.",
+        "Solo cuentan las vueltas completas: una vuelta que no recorrió todo el circuito nunca es tu mejor vuelta ni un récord."
+      ],
+      "pt": [
+        "Um novo visual no celular: sua última corrida no Início, seu iRating como uma linha que você lê com o dedo e um coach que começa pelo que trabalhar primeiro.",
+        "O resumo de licenças não mostra mais uma sessão offline contra a IA como a sua licença.",
+        "Só voltas completas contam: uma volta que não percorreu o circuito inteiro nunca é sua melhor volta nem um recorde."
+      ]
+    },
+    {
       "v": "0.4.2",
       "en": [
         "One leaderboard for one car: the SF23's Honda and Toyota, NASCAR's and the Supercars' badges share one board, record and coach.",
