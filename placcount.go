@@ -248,7 +248,7 @@ func applyPrefs(b []byte) {
 	}
 	commMu.Lock()
 	c := &commCfg
-	c.ShareTimes, c.ShareTraces, c.ShareReports, c.NoMaps, c.NoLive, c.NoField, c.DeleteAfter, c.Asked = p.ShareTimes, p.ShareTraces && p.ShareTimes, p.ShareReports, !p.ShareMaps, !p.LiveWeb, !p.ShareField, p.DeleteAfter, p.Asked
+	c.ShareReports, c.DeleteAfter, c.Asked = p.ShareReports, p.DeleteAfter, p.Asked // the laps, rivals, layouts and live always go (loadCommunity)
 	saveCommLocked()
 	commMu.Unlock()
 	plMu.Lock()

@@ -71,6 +71,9 @@ func loadCommunity() {
 	if b, err := readSecret(commPath()); err == nil {
 		json.Unmarshal(b, &c)
 	}
+	// the laps, their telemetry, the layouts, the race rivals' best laps and the live link always go, as on the web: there
+	// is no switch to leave them out (the race analyses keep their own setting)
+	c.ShareTimes, c.ShareTraces, c.NoField, c.NoMaps, c.NoLive = true, true, false, false, false
 	commMu.Lock()
 	commCfg = c
 	commMu.Unlock()
@@ -480,7 +483,7 @@ func shareLap(l cloudLap, s cloudSession) {
 // driver, so a later faster lap replaces the earlier one.
 func shareFieldTop(r *raceReport) {
 	commMu.Lock()
-	on := commCfg.ShareTimes && !commCfg.NoField
+	on := commCfg.ShareTimes
 	commMu.Unlock()
 	if !on || tel.isDemo() || (r.Game != "" && r.Game != "iracing") || !accountSignedIn() {
 		return
