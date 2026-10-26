@@ -497,6 +497,11 @@
   else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
 - Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
   installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
+- Home, clean data (`homeCleanHTML`, signed in): the greeting and the PC's state, four numbers (the iRating and licence
+  of the discipline you race most, the races this month and the best result), your last race (its place against the
+  start, its position lap by lap, the iRating, incidents and best lap; Race summary and Analyse my laps), the recent
+  sessions (races and the other sessions together, tagged Race, Qualifying, Practice, Test drive, vs AI and DRINKS), the
+  licence summary (each discipline; the chosen one draws its iRating over your races) and the days you drove. No boxes.
 - Analysis's sub-tabs: Laps, Coach, My sessions (`cloudlaps`, every session in the account) and My races (`races`, the
   race summaries with the driver notes); Home's "See all" opens My races. The phone apps have the same four (and
   Telemetry, Standings and Tyres under Telemetry). A finished race shows no notice on the PC
