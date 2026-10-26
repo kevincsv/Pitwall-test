@@ -4673,6 +4673,8 @@ $("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.e
 const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200],weather:[360,250],controls:[340,300],trackbar:[700,70],system:[320,230]};
 let SCREEN=null,SCREEN_DRAG=false;
 async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
+/* the smallest each overlay may be (overlayMinSize in overlay.go: its default width; the map, the radar and the g-force their default height too) */
+const OV_MINW={flag:520,dash:560,timing:440,map:440,relative:600,fuel:420,engine:320,tyres:420,inputs:560,standings:720,radar:260,boost:360,telemetry:420,compare:680,gg:280,deltabar:520,stats:420,pit:440,sectors:560,gaps:560,incidents:380,coach:520,brakes:480,weather:360,controls:340,trackbar:700,system:320},OV_MINH={map:480,radar:300,gg:300};
 async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
   const pos=CFG.positions||{},names=[...new Set([...(CFG.autoWidgets||[]),...OV_OPEN])].filter(n=>OVSZ[n]);
   const inside=([x,y,w,h])=>{w=Math.min(w,vw);h=Math.min(h,vh);return[Math.max(vx,Math.min(vx+vw-w,x)),Math.max(vy,Math.min(vy+vh-h,y)),w,h]};
@@ -4684,7 +4686,7 @@ async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRA
     let[x,y,w,h]=rect(n,names.indexOf(n));const sx=e.clientX,sy=e.clientY,x0=x,y0=y,w0=w,h0=h;let t=0;
     const send=()=>{CFG.positions=Object.assign({},CFG.positions,{[n]:[x,y,w,h]});if(pcOverlays())fetch(`/api/overlay/move?w=${n}&x=${x}&y=${y}&width=${w}&height=${h}`,{method:"POST"}).catch(()=>{});else if(MODE==="local")store.set("pw.cfg",CFG)};
     el.onpointermove=ev=>{const dx=(ev.clientX-sx)*k,dy=(ev.clientY-sy)*k,snap=v=>Math.round(v/5)*5;
-      if(resize){w=Math.max(120,Math.min(vx+vw-x,snap(w0+dx)));h=Math.max(60,Math.min(vy+vh-y,snap(h0+dy)))}else{x=Math.max(vx,Math.min(vx+vw-w,snap(x0+dx)));y=Math.max(vy,Math.min(vy+vh-h,snap(y0+dy)))}
+      if(resize){const mw=OV_MINW[n]||200,mh=OV_MINH[n]||40;w=Math.max(mw,Math.min(vx+vw-x,snap(w0+dx)));h=Math.max(mh,Math.min(vy+vh-y,snap(h0+dy)))}else{x=Math.max(vx,Math.min(vx+vw-w,snap(x0+dx)));y=Math.max(vy,Math.min(vy+vh-h,snap(y0+dy)))}
       el.style.left=(x-vx)/vw*100+"%";el.style.top=(y-vy)/vh*100+"%";el.style.width=w/vw*100+"%";el.style.height=h/vh*100+"%";const now=performance.now();if(now-t>120){t=now;send()}};
     el.onpointerup=()=>{el.onpointermove=null;el.onpointerup=null;SCREEN_DRAG=false;send()}}})}
 

@@ -10,7 +10,7 @@ func TestOverlayMinSize(t *testing.T) {
 			t.Fatalf("%s: min %dx%d for default %v", n, w, h, d)
 		}
 	}
-	if w, _ := overlayMinSize("dash"); w != 392 {
+	if w, _ := overlayMinSize("dash"); w != 560 {
 		t.Fatalf("dash min width %d", w)
 	}
 }

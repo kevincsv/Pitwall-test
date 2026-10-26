@@ -161,6 +161,11 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 			r.Bottom = r.Top + int32(mh)
 		}
 		return 1
+	case 0x0024: // WM_GETMINMAXINFO: the frame never goes below the smallest it can be read at, not even while dragging
+		mw, mh := overlayMinSize(nat.name)
+		mi := (*[10]int32)(unsafe.Pointer(lp)) // ptReserved, ptMaxSize, ptMaxPosition, ptMinTrackSize, ptMaxTrackSize
+		mi[6], mi[7] = int32(mw), int32(mh)
+		return 0
 	case 0x0021: // WM_MOUSEACTIVATE: a click never takes the focus from the game
 		return 3 // MA_NOACTIVATE
 	case 0x0231: // WM_ENTERSIZEMOVE
