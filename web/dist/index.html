@@ -2070,6 +2070,8 @@ const cpReady=COMPANION?(async()=>{try{const s=await (await cpLocal("server.json
   try{const own=localStorage.getItem("pw.server");if(own)CP.server=own}catch(e){}
   // served by a Pitlane HQ server itself (https://…/app/): that server
   if(location.protocol==="https:"&&location.pathname.startsWith("/app/"))CP.server=location.origin;
+  // served over https by the server itself and server.json did not answer (a blip): this server, never the old account page
+  if(!CP.server&&location.protocol==="https:")CP.server=location.origin;
   try{const a=await cpSecret.get("account");if(a)CP.acc=JSON.parse(a)}catch(e){}
   if(CP.acc){try{const c=await cpIdbGet("bundle");if(c&&c.blob){CP.files=cpDecode(await cpGunz(await cpOpen(cpUnhex(CP.acc.dataKey),c.blob)));CP.ver=c.v;CP.lastSync=c.t||0}}catch(e){}}})():Promise.resolve();
 if(COMPANION){window.fetch=async(input,init={})=>{const url=typeof input==="string"?input:input.url;if(!/^\/api\//.test(url))return /^[a-z]+:/i.test(url)?cpOrigFetch(input,init):cpLocal(url);

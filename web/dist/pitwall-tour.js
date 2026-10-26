@@ -156,7 +156,7 @@
   }
   function mount() {
     if (S.el) return;
-    const me = document.getElementById("meBody"); if (!me) return;
+    const me = document.getElementById("meBody"); if (!me) { setTimeout(() => { if (document.documentElement.classList.contains("signwall")) mount(); }, 200); return; }
     const el = document.createElement("div"); el.id = "tour";
     me.insertAdjacentElement("afterend", el); S.el = el; render();
     document.documentElement.classList.add("tour-on");
@@ -237,4 +237,6 @@ html.tour-on #v-me>.vhead,html.tour-on #meBody>.me-welcome,html.tour-on #meBody>
 #tour .tr-ovs{grid-template-columns:minmax(0,1fr)}#tour .tr-more{grid-template-columns:minmax(0,1fr);gap:16px}#tour .tr-cta .btn{flex:1 1 45%;text-align:center}#tour .tr-wbar i{width:34px}}`;
   document.head.appendChild(st);
   window.PITLANE_TOUR = { mount, unmount, maybeOpen };
+  // the sign wall can go up before this script has loaded: open the page then too
+  if (document.documentElement.classList.contains("signwall")) mount();
 })();
