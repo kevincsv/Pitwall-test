@@ -403,6 +403,11 @@ export default {
 async function handle(req, env, ctx) {
     const url = new URL(req.url);
     // www.pitlanehq.app is the same site: one address for people and search engines (301 to pitlanehq.app)
+    // http:// is the same page as https://: people and search engines go to the secure one (never the local server on the PC)
+    if (url.protocol === "http:" && env.LOCAL !== "1" && !/^(localhost|127\.|\[::1\])/.test(url.hostname) && (req.method === "GET" || req.method === "HEAD")) {
+      url.protocol = "https:"; if (url.hostname.startsWith("www.")) url.hostname = url.hostname.slice(4);
+      return Response.redirect(url.toString(), 301);
+    }
     if (url.hostname.startsWith("www.")) {
       url.hostname = url.hostname.slice(4);
       return Response.redirect(url.toString(), 301);
