@@ -4258,6 +4258,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   // with the account, so the PC with Pro keeps it): the agent opens only the first basic ones (proAutoList in pcid.go)
   if(proGated()){
     WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>{OV_OPEN.delete(w);fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{})})}
+  const ovPB=$("#pwOverlayPresets");
   $("#ovGlobal").innerHTML=`<h2>${L("ovGlobal")}</h2>
     <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}</div>
     <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="oOpenSel"${dis}>${L("openSel",true)}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div>
@@ -4265,6 +4266,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     <div class="frow" style="margin-top:12px"><span class="label">${esc(Tx("Look","Estilo"))}</span><span class="seg3" id="oLook">${[["glass","Glass","Cristal"],["carbon","Carbon","Carbono"],["minimal","Minimal","Mínimo"]].map(x=>`<button type="button" data-look="${x[0]}" aria-pressed="${(((CFG.ui||{}).ovlook||{}).t||"glass")===x[0]}">${esc(Tx(x[1],x[2]))}</button>`).join("")}</span></div>
     <div class="frow" style="margin-top:12px">${chk("oExp",ovExp,esc(Tx("Show the experimental overlays (lap comparison, DRS, G-force, stats, mini-sectors, gaps, telemetry, performance)","Mostrar los overlays experimentales (comparación de vueltas, DRS, fuerzas g, estadísticas, minisectores, gaps, telemetría, rendimiento)","Experimentelle Overlays anzeigen (Rundenvergleich, DRS, G-Kräfte, Statistik, Minisektoren, Abstände, Telemetrie, Leistung)","Mostrar os overlays experimentais (comparação de voltas, DRS, forças g, estatísticas, minissetores, gaps, telemetria, desempenho)")))}</div>
     <details style="margin-top:10px"><summary class="label">${L("experimental",true)}</summary><div class="frow" style="margin:8px 0"><label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="flex:1;max-width:260px"></div><div class="frow">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details>`;
+  if(ovPB)$("#ovGlobal").appendChild(ovPB); // the presets bar goes back at once, never gone for a moment
   box.innerHTML=list.map(w=>`<div class="ovcard${auto.has(w)?" on":""}">
     <div class="top"><div><div class="nm">${L("w."+w)}</div><div class="sub">${L("d."+w)}</div></div>
       <button type="button" class="chip" data-auto="${w}" aria-pressed="${auto.has(w)}">${L("auto",true)}</button></div>
