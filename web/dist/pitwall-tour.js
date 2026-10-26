@@ -144,6 +144,8 @@
   }
   function render() {
     liveStop(S.live);
+    // the sign-in panel lives in the hero: take it back to the "me" view before the page is drawn again, or it goes with it
+    const me = document.getElementById("meBody"), pn = S.el.querySelector(".tr-auth .me-auth"); if (me && pn) me.appendChild(pn);
     S.el.innerHTML = pageHTML();
     observe(); phones(); auth(); topNav();
   }
