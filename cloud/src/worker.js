@@ -150,7 +150,7 @@ async function api(req, env, url, ctx) {
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
-    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0 AND l.drv IS NULL) AS best, (SELECT group_concat(DISTINCT l.drv) FROM laps l WHERE l.session_id=sessions.id AND l.drv IS NOT NULL) AS drvs FROM sessions";
+    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0 AND l.drv IS NULL) AS best, (SELECT group_concat(DISTINCT l.drv) FROM laps l WHERE l.session_id=sessions.id AND l.drv IS NOT NULL) AS drvs, (SELECT SUM(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.time>0 AND l.time<3600) AS secs FROM sessions";
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
