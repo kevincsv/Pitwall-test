@@ -278,6 +278,9 @@
   end-to-end encrypted with the password's key, the server cannot read it; the laps' telemetry is stored sealed on the
   server (DATA_KEY), which opens it to teach the model and share the fastest laps; live telemetry with a code is
   end-to-end. The analysis of your laps runs on your device.
+- No text that explains what something is (the owner's choice): no subtitle under a title, no line saying what a chart
+  or a list shows; the title and the data say it. Only the notes the driver needs to act. A text never joins two
+  phrases with a colon ("No records yet: the first lap…"); it is one sentence, or two.
 - No text anywhere (PC, web, Pitlane HQ Desktop, phones, the server's pages, the landing) about encryption, how the data
   is protected, where the password goes or what the server can see: no "How your data is protected" list, no privacy
   panel, no password note. Only the notes the driver needs to act ("your data does not need to be uploaded again",

@@ -7,7 +7,7 @@ const FEEDS = [
   ["iRacingLeagues", "https://www.reddit.com/r/iRacingLeagues/new/.rss?limit=100"],
 ];
 const UA = "web:app.pitlanehq.leagues:v1.0 (+https://pitlanehq.app)"; // the form Reddit asks automated clients to use
-const EVERY = 6 * 3600e3, KEEP = 60 * 86400e3, RECHECK = 6 * 3600e3, MIN_ONLINE = 5;
+const EVERY = 6 * 3600e3, RETRY = 30 * 60e3, STUCK = 24 * 3600e3, KEEP = 60 * 86400e3, RECHECK = 6 * 3600e3, MIN_ONLINE = 5;
 const INVITE = /(?:discord\.gg|discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]{2,32})/i;
 // a league or a series looking for drivers (not a driver looking for a league, not a service selling to leagues)
 const LEAGUE = /\b(leagues?|series|season|championship|endurance|cup|drivers? wanted|recruit\w*|looking for (?:new |more )?(?:drivers|racers)|join us|sign[- ]?ups?|open to all|all welcome)\b/i;
@@ -55,16 +55,21 @@ async function invite(code) {
 
 export async function scanLeagues(env, force) {
   if (env.LOCAL === "1") return; // local mode: nothing leaves the PC
-  const last = await env.DB.prepare("SELECT at FROM app_state WHERE k='leagues_scan'").first().catch(() => null);
-  if (!force && last && Date.now() - last.at < EVERY) return;
-  await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('leagues_scan', '', ?1) ON CONFLICT(k) DO UPDATE SET at=?1").bind(Date.now()).run();
-  const now = Date.now();
-  let read = 0, found = 0, errs = [];
-  const token = await redditToken(env).catch(() => "");
-  for (const [sub, url] of FEEDS) {
+  // each feed keeps its own clock: read every six hours, and a feed Reddit refused (429, a shared address) is
+  // tried again half an hour later, not six hours later
+  const now = Date.now(), st = async (sub) => { try { const r = await env.DB.prepare("SELECT v FROM app_state WHERE k=?1").bind("lg_feed_" + sub).first(); return JSON.parse((r && r.v) || "{}"); } catch (e) { return {}; } };
+  const save = (sub, o) => env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES (?1, ?2, ?3) ON CONFLICT(k) DO UPDATE SET v=?2, at=?3").bind("lg_feed_" + sub, JSON.stringify(o), now).run();
+  const due = [];
+  for (const [sub, url] of FEEDS) { const f = await st(sub); if (force || (now - (f.ok || 0) >= EVERY && now - (f.fail || 0) >= RETRY)) due.push([sub, url, f]); }
+  const lastScan = await env.DB.prepare("SELECT at FROM app_state WHERE k='leagues_scan'").first().catch(() => null);
+  if (!due.length && !force && lastScan && now - lastScan.at < EVERY) return;
+  let read = 0, found = 0, okAny = false;
+  const token = due.length ? await redditToken(env).catch(() => "") : "";
+  for (const [sub, url, f] of due) {
     if (read) await new Promise((r) => setTimeout(r, 2000)); // one request at a time, a moment apart
     let posts = [];
-    try { posts = await readFeed(sub, url, token); } catch (e) { errs.push(sub + " " + e.message); continue; }
+    try { posts = await readFeed(sub, url, token); } catch (e) { await save(sub, { ...f, fail: now, err: e.message, since: f.since || now }); continue; }
+    await save(sub, { ok: now }); okAny = true;
     for (const { id, title, body, at, link } of posts) {
       read++;
       if (!id || now - at > KEEP) continue;
@@ -98,8 +103,9 @@ export async function scanLeagues(env, force) {
     else await env.DB.prepare("UPDATE league_found SET name=?2, icon=?3, members=?4, online=?5, checked=?6 WHERE guild=?1").bind(x.guild, info.name, info.icon, info.members, info.online, now).run();
   }
   await env.DB.prepare("DELETE FROM league_found_posts WHERE at<?1").bind(now - 2 * KEEP).run();
-  await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('leagues_scan', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v=?1, at=?2")
-    .bind(JSON.stringify({ read, found, checked: stale.length, errs }), now).run();
+  // "updated" is the last time the leagues were read again (a feed, or Discord's counts)
+  if (okAny || stale.length || !lastScan) await env.DB.prepare("INSERT INTO app_state (k, v, at) VALUES ('leagues_scan', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v=?1, at=?2")
+    .bind(JSON.stringify({ read, found, checked: stale.length }), now).run();
 }
 
 // the most active leagues found: posted about in the last 60 days, an invite that still works, people online
@@ -110,8 +116,11 @@ export async function foundLeagues(env, admin) {
     ORDER BY online DESC, members DESC LIMIT 24`).bind(now - KEEP, MIN_ONLINE).all()).results || [];
   let info = {};
   try { info = JSON.parse((st && st.v) || "{}"); } catch (e) {}
+  // the admins only hear of a feed that has not been read for a day
+  const errs = [];
+  if (admin) for (const [sub] of FEEDS) { const r = await env.DB.prepare("SELECT v FROM app_state WHERE k=?1").bind("lg_feed_" + sub).first().catch(() => null); let f = {}; try { f = JSON.parse((r && r.v) || "{}"); } catch (e) {} if (f.fail && now - (f.since || f.fail) > STUCK) errs.push(`r/${sub} ${f.err || ""}`.trim()); }
   return {
-    updated: st ? st.at : 0, read: info.read || 0, errs: admin ? info.errs || [] : undefined,
+    updated: st ? st.at : 0, read: info.read || 0, errs: admin ? errs : undefined,
     leagues: rows.map((x) => ({ guild: x.guild, name: x.name || "", icon: x.icon || "", invite: "https://discord.gg/" + x.code, title: x.title || "", url: x.url || "",
       sub: x.sub || "", posted: x.posted, posts: x.posts, members: x.members || 0, online: x.online || 0, cats: (() => { try { return JSON.parse(x.cats || "[]"); } catch (e) { return []; } })(),
       checked: x.checked, hidden: admin ? !!x.hidden : undefined })),
