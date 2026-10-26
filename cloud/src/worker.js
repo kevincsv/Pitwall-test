@@ -76,19 +76,15 @@ const lapDrv = (l) => (typeof l.drv === "string" && l.drv.trim() ? l.drv.trim().
 const SESSION_SUMS = `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
        best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL) WHERE id=?1`;
 
-// a lap that cannot be a racing lap is never a best, a share or the model's: one through the pit lane (the PC says
-// so), one that did not go round the whole circuit (no sector times where the session's other laps have them: it
-// never crossed the sector lines; newer PCs check the whole lap themselves), one driven at pit-lane speed (its top speed under 40 % of the session's fastest lap's) or one far quicker
-// than anybody's laps of this car and track (under 70 % of their average). Older PCs did not mark the pit lane.
+// a lap goes round the whole circuit, through the pit lane too: one that did not is never a best, a share or the
+// model's. A lap without sector times where the session's other laps have them never crossed the sector lines (a
+// reset or a tow counted as a lap); newer PCs check the whole lap themselves (fullLap)
 async function dropImpossibleLaps(env, sid) {
   const r = await env.DB.batch([
-    env.DB.prepare("UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND vmax>0 AND vmax < 0.4*(SELECT MAX(vmax) FROM laps WHERE session_id=?1)").bind(sid),
     env.DB.prepare("UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND COALESCE(sectors,'[]')='[]' AND EXISTS (SELECT 1 FROM laps WHERE session_id=?1 AND COALESCE(sectors,'[]')<>'[]')").bind(sid),
-    env.DB.prepare(`UPDATE laps SET valid=0 WHERE session_id=?1 AND valid=1 AND time < 0.7*(SELECT AVG(l.time) FROM laps l JOIN sessions s ON s.id=l.session_id JOIN sessions me ON me.id=?1
-       WHERE l.valid=1 AND l.session_id<>?1 AND s.track=me.track AND COALESCE(s.track_config,'')=COALESCE(me.track_config,'') AND s.car=me.car AND COALESCE(s.game,'iracing')=COALESCE(me.game,'iracing'))`).bind(sid),
     env.DB.prepare(SESSION_SUMS).bind(sid),
   ]);
-  return (r[0].meta.changes || 0) + (r[1].meta.changes || 0) + (r[2].meta.changes || 0);
+  return r[0].meta.changes || 0;
 }
 
 async function addLap(env, sessionId, l) {
@@ -101,7 +97,7 @@ async function addLap(env, sessionId, l) {
     env.DB.prepare(
       `INSERT INTO laps (id, session_id, n, time, valid, fuel, vmax, sectors, trace, created, inc, drv) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
        ON CONFLICT(id) DO NOTHING`
-    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false || l.pit === true ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0)), lapDrv(l)),
+    ).bind(l.id, sessionId, Math.round(l.n), l.time, l.valid === false ? 0 : 1, num(l.fuel), num(l.vmax), sectors, trace, Date.now(), Math.max(0, Math.round(num(l.inc) || 0)), lapDrv(l)),
     env.DB.prepare(SESSION_SUMS).bind(sessionId),
   ]);
   return null;
@@ -138,7 +134,7 @@ async function api(req, env, url, ctx) {
       e = await addLap(env, body.session.id, l);
       if (e) return err(e, 400);
     }
-    // a pit-lane or impossible lap is no best; a share made from one before goes (unshareInvalid)
+    // a lap that did not go round the whole circuit is no best; a share made from one before goes (unshareInvalid)
     const dropped = await dropImpossibleLaps(env, body.session.id).catch(() => 0);
     if (dropped && role === "account") await unshareInvalid(env, me.name.slice(5), body.session.id).catch(() => {});
     // a valid lap with telemetry: the community model learns it (works with only the PC open)
