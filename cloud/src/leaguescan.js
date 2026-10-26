@@ -125,6 +125,22 @@ export async function addFound(env, link) {
   return { ok: true, name: info.name };
 }
 
+const editOf = (x) => { try { return JSON.parse(x.edit || "{}") || {}; } catch (e) { return {}; } };
+export const FOUND_CATS = ["oval", "sports_car", "formula_car", "dirt_oval", "dirt_road"];
+// an admin's name, text and disciplines for a found league (null puts back what the posts say)
+export async function editFound(env, guild, e) {
+  let v = null;
+  if (e) {
+    const o = {}, name = String(e.name || "").trim().slice(0, 80), title = e.title == null ? null : String(e.title).trim().slice(0, 240);
+    if (name) o.name = name;
+    if (title != null) o.title = title;
+    if (Array.isArray(e.cats)) o.cats = [...new Set(e.cats.filter((c) => FOUND_CATS.includes(c)))];
+    v = JSON.stringify(o);
+  }
+  const r = await env.DB.prepare("UPDATE league_found SET edit=?2 WHERE guild=?1").bind(guild, v).run();
+  return !!(r.meta && r.meta.changes);
+}
+
 // the most active leagues found: posted about in the last 60 days, an invite that still works, people online
 export async function foundLeagues(env, admin) {
   const now = Date.now();
@@ -138,8 +154,11 @@ export async function foundLeagues(env, admin) {
   if (admin) for (const [sub] of FEEDS) { const r = await env.DB.prepare("SELECT v FROM app_state WHERE k=?1").bind("lg_feed_" + sub).first().catch(() => null); let f = {}; try { f = JSON.parse((r && r.v) || "{}"); } catch (e) {} if (f.fail && now - (f.since || f.fail) > STUCK) errs.push(`r/${sub} ${f.err || ""}`.trim()); }
   return {
     updated: st ? st.at : 0, read: info.read || 0, errs: admin ? errs : undefined,
-    leagues: rows.map((x) => ({ guild: x.guild, name: x.name || "", icon: x.icon || "", invite: "https://discord.gg/" + x.code, title: x.title || "", url: x.url || "",
-      sub: x.sub || "", posted: x.posted, posts: x.posts, members: x.members || 0, online: x.online || 0, cats: (() => { try { return JSON.parse(x.cats || "[]"); } catch (e) { return []; } })(),
-      checked: x.checked, hidden: admin ? !!x.hidden : undefined })),
+    leagues: rows.map((x) => {
+      const e = editOf(x), cats = (() => { try { return JSON.parse(x.cats || "[]"); } catch (er) { return []; } })();
+      return { guild: x.guild, name: e.name || x.name || "", icon: x.icon || "", invite: "https://discord.gg/" + x.code, title: e.title != null ? e.title : x.title || "", url: x.url || "",
+        sub: x.sub || "", posted: x.posted, posts: x.posts, members: x.members || 0, online: x.online || 0, cats: e.cats || cats,
+        checked: x.checked, hidden: admin ? !!x.hidden : undefined, edited: admin ? !!x.edit : undefined };
+    }),
   };
 }

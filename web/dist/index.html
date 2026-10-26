@@ -1200,6 +1200,7 @@ html .hl-kpis,html .cl-kpis{gap:12px}html .hl-two,html .cl-two{gap:16px}html .hl
 html .cl-you{margin-top:16px;border-top:1px solid var(--line)}html .cl-rdet{top:76px}
 html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .hl-lic:last-child,html .cl-list>.cl-rrow:last-child{border-bottom:0}
 @media(max-width:700px){html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{padding:12px 14px}html .hl-kpis,html .cl-kpis{gap:10px}}
+.lgf-cats{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 10px}#lgfF .lgf-cats label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;white-space:nowrap}#lgfF .lgf-cats input{width:auto;margin:0}.lgf-act{flex-wrap:wrap}.lgf-act .btn{white-space:nowrap}#lgfT{width:100%;resize:vertical}
 </style>
 
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
@@ -6575,8 +6576,20 @@ function leagLimitNote(){const L=LEAG.limits||{free:3,supporter:10},n=(LEAG.list
 let LEAG_FOUND=null,LEAG_FOUND_T=0;
 const lgfCard=(x,adm)=>{const num=n=>Number(n||0).toLocaleString(locale());return `<article class="lgf-card${x.hidden?" hid":""}"><div class="lgf-top">${x.icon?`<img src="${esc(x.icon)}" alt="" width="40" height="40" loading="lazy">`:`<span class="lgf-ic" aria-hidden="true">${esc((x.name||"?").slice(0,1))}</span>`}<div class="lgf-nm"><b>${esc(x.name)}</b><small>${(x.cats||[]).map(c=>discDot(c)+esc(discName(c))).join(" · ")||esc(Tx("iRacing league","Liga de iRacing","iRacing-Liga","Liga de iRacing"))}</small></div></div>
         <div class="lgf-n"><span><b class="good">${num(x.online)}</b> ${esc(Tx("online","conectados","online","online"))}</span><span><b>${num(x.members)}</b> ${esc(Tx("members","miembros","Mitglieder","membros"))}</span></div>
-        ${x.url?`<a class="lgf-post" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(unMojibake(x.title))}</a><small class="muted">r/${esc(x.sub)} · ${esc(agoTxt(x.posted))}${x.posts>1?" · "+esc(Tx(`${x.posts} posts`,`${x.posts} publicaciones`,`${x.posts} Beiträge`,`${x.posts} publicações`)):""}</small>`:""}
-        <div class="lgf-act"><a class="btn small primary" href="${esc(x.invite)}" target="_blank" rel="noopener">${esc(Tx("Join the Discord","Unirse al Discord","Discord beitreten","Entrar no Discord"))}</a>${adm?`<button type="button" class="btn small" data-lgfhide="${esc(x.guild)}" data-h="${x.hidden?0:1}">${esc(x.hidden?Tx("Show","Mostrar","Zeigen","Mostrar"):Tx("Hide","Ocultar","Ausblenden","Ocultar"))}</button>`:""}</div></article>`};
+        ${x.url?`<a class="lgf-post" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(unMojibake(x.title))}</a><small class="muted">r/${esc(x.sub)} · ${esc(agoTxt(x.posted))}${x.posts>1?" · "+esc(Tx(`${x.posts} posts`,`${x.posts} publicaciones`,`${x.posts} Beiträge`,`${x.posts} publicações`)):""}</small>`:x.title?`<p class="lgf-post">${esc(unMojibake(x.title))}</p>`:""}
+        <div class="lgf-act"><a class="btn small primary" href="${esc(x.invite)}" target="_blank" rel="noopener">${esc(Tx("Join the Discord","Unirse al Discord","Discord beitreten","Entrar no Discord"))}</a>${adm?`<button type="button" class="btn small" data-lgfedit="${esc(x.guild)}">${esc(Tx("Edit","Editar","Bearbeiten","Editar"))}</button><button type="button" class="btn small" data-lgfhide="${esc(x.guild)}" data-h="${x.hidden?0:1}">${esc(x.hidden?Tx("Show","Mostrar","Zeigen","Mostrar"):Tx("Hide","Ocultar","Ausblenden","Ocultar"))}</button>`:""}</div></article>`};
+// an admin's name, text and disciplines for a found league; "Put back" returns to what the posts say
+async function lgfEdit(guild){const x=((LEAG_FOUND||{}).leagues||[]).find(l=>l.guild===guild);if(!x)return;
+  const r=await uiPanel(`<h2 style="margin:6px 0 10px">${esc(Tx("Edit league","Editar liga","Liga bearbeiten","Editar liga"))}</h2><form id="lgfF" class="me-form">
+    <label><span class="label">${esc(Tx("Name","Nombre","Name","Nome"))}</span><input type="text" id="lgfN" maxlength="80" value="${esc(x.name)}"></label>
+    <label><span class="label">${esc(Tx("Text","Texto","Text","Texto"))}</span><textarea id="lgfT" maxlength="240" rows="3">${esc(unMojibake(x.title||""))}</textarea></label>
+    <div class="label">${esc(Tx("Disciplines","Disciplinas","Disziplinen","Disciplinas"))}</div><div class="lgf-cats">${LB_DISC.map(([k])=>`<label><input type="checkbox" value="${k}"${(x.cats||[]).includes(k)?" checked":""}> ${esc(discName(k))}</label>`).join("")}</div>
+    <p class="note err" id="lgfE" style="margin:0"></p>
+    <div class="uidlg-b">${x.edited?`<button type="button" class="btn" id="lgfR">${esc(Tx("Put back","Restaurar","Zurücksetzen","Restaurar"))}</button>`:""}<button type="button" class="btn" id="lgfX">${esc(Tx("Cancel","Cancelar","Abbrechen","Cancelar"))}</button><button class="btn primary" type="submit">${esc(Tx("Save","Guardar","Speichern","Salvar"))}</button></div></form>`,(d,done)=>{
+    const send=async(edit)=>{try{LEAG_FOUND=await leagFetch("/community/leagues/found/"+encodeURIComponent(guild),{edit});LEAG_FOUND_T=Date.now();done(true)}catch(e){d.querySelector("#lgfE").textContent=e.message}};
+    d.querySelector("#lgfX").onclick=()=>done(null);const rb=d.querySelector("#lgfR");if(rb)rb.onclick=()=>send(null);
+    d.querySelector("#lgfF").onsubmit=ev=>{ev.preventDefault();send({name:d.querySelector("#lgfN").value,title:d.querySelector("#lgfT").value,cats:[...d.querySelectorAll(".lgf-cats input:checked")].map(i=>i.value)})};d.querySelector("#lgfN").focus()});
+  if(r){toast(Tx("League saved","Liga guardada","Liga gespeichert","Liga salva"));renderLeagues()}}
 async function loadLeagFound(force){if(force||!LEAG_FOUND||Date.now()-LEAG_FOUND_T>10*60e3){try{LEAG_FOUND=force?await leagFetch("/community/leagues/found",{scan:1}):await leagFetch("/community/leagues/found");LEAG_FOUND_T=Date.now()}catch(e){}}return LEAG_FOUND||{}}
 // a found league in the hub's filters: its disciplines, its name and post, recruiting (no fixed days)
 const foundIn=(x,q)=>(!LEAG.cat||(x.cats||[]).includes(LEAG.cat))&&LEAG.day<0&&(!q||[x.name,x.title].join(" ").toLowerCase().includes(q));
@@ -6591,6 +6604,7 @@ async function drawLeagFound(force){const box=$("#lgFound");if(!box)return;
     `;
   const sc=$("#lgfScan");if(sc)sc.onclick=async()=>{sc.textContent="…";await loadLeagFound(true);renderLeagues()};
   const ad=$("#lgfAdd");if(ad)ad.onclick=async()=>{const v=($("#lgfInv")||{}).value||"";if(!v.trim())return;ad.disabled=true;try{LEAG_FOUND=await leagFetch("/community/leagues/found",{invite:v.trim()});LEAG_FOUND_T=Date.now();toast(Tx("League added","Liga añadida","Liga hinzugefügt","Liga adicionada"));renderLeagues()}catch(e){toast(e.message);ad.disabled=false}};
+  ($("#leagBody")||box).querySelectorAll("[data-lgfedit]").forEach(b=>b.onclick=()=>lgfEdit(b.dataset.lgfedit));
   ($("#leagBody")||box).querySelectorAll("[data-lgfhide]").forEach(b=>b.onclick=async()=>{try{await leagFetch("/community/leagues/found/"+encodeURIComponent(b.dataset.lgfhide),{hidden:b.dataset.h==="1"});LEAG_FOUND=null;renderLeagues()}catch(e){toast(e.message)}})}
 async function leagLoad(){try{const r=await leagFetch("/community/leagues");LEAG.admin=!!r.admin&&!asUser();LEAG.closed=false;LEAG.limit=+r.limit||3;LEAG.supporter=!!r.supporter;LEAG.limits=r.limits||{free:3,supporter:10};LEAG.list=(r.leagues||[]).map(x=>({...x,name:unMojibake(x.name),about:unMojibake(x.about),cars:unMojibake(x.cars)}));LEAG.err=""}
   catch(e){if(/in development/i.test(e.message||"")){LEAG.closed=true;LEAG.list=[];LEAG.err="";return}LEAG.list=LEAG.list||[];LEAG.err=e.message}}
