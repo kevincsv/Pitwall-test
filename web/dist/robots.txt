@@ -4,5 +4,18 @@ Disallow: /api/
 Disallow: /live
 Disallow: /dl/
 Disallow: /account/
+Disallow: /community/
+Disallow: /voice/
+Disallow: /discord/
+Disallow: /admin
+Disallow: /sync
+Disallow: /laps
+Disallow: /reports
+Disallow: /sessions
+Disallow: /setups
+Disallow: /share-lap
+Disallow: /rival-names
+Disallow: /lemonsqueezy/
+Disallow: /patreon/
 
 Sitemap: https://pitlanehq.app/sitemap.xml
