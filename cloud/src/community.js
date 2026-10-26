@@ -52,6 +52,7 @@ import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, scanLeagues } from "./leaguescan.js";
+import { coachAsk } from "./coachask.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
@@ -255,6 +256,13 @@ export async function community(req, env, url, ctx) {
   { const pr = await proRoutes(req, env, p, m, body); if (pr) return pr; } // Pitlane HQ Pro: the offer, the beta switch
   // every list is for one game: laps and analyses of different games are never mixed
   const game = gameOf(url.searchParams.get("game") || body.game);
+  // "Ask the coach": a small model on Cloudflare answers from the coach's facts of a lap (admins while it is tried)
+  if (p === "/coach/ask" && m === "POST") {
+    const who = await sessionAccount(req, env).catch(() => null);
+    if (!who || !isAdmin(env, who.id)) return err("only the admins can do this for now", 403);
+    const r = await coachAsk(env, who.id, body || {});
+    return r.error ? err(r.error, r.status) : json(r);
+  }
   if (p === "/combos" && m === "GET") {
     const r = await env.DB.prepare(
       "SELECT track_id AS trackId, MAX(track) AS track, car_id AS carId, MAX(car) AS car, COUNT(*) AS laps, MIN(time) AS best, MAX(cat) AS hint FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model' GROUP BY track_id, car_id ORDER BY laps DESC LIMIT 500"

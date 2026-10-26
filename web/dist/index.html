@@ -1202,6 +1202,7 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
 @media(max-width:700px){html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{padding:12px 14px}html .hl-kpis,html .cl-kpis{gap:10px}}
 .lgf-cats{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 10px}#lgfF .lgf-cats label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;white-space:nowrap}#lgfF .lgf-cats input{width:auto;margin:0}.lgf-act{flex-wrap:wrap}.lgf-act .btn{white-space:nowrap}#lgfT{width:100%;resize:vertical}
 .hl-lg{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none}.hl-lg:last-child{border-bottom:0}.hl-lg img,.hl-lg .lgf-ic{width:32px;height:32px;border-radius:8px}.hl-lg .inf{display:flex;flex-direction:column;min-width:0}.hl-lg .nm{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hl-lg .sub{font-size:12px;color:var(--muted)}.hl-lgn{font-size:12px;color:var(--muted);white-space:nowrap}.hl-lg:hover .nm{color:var(--accent)}
+#coachAsk{margin-top:14px}#coachAsk .ca-sug{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}#coachAsk .ca-f{display:flex;gap:8px}#coachAsk .ca-f input{flex:1;min-width:0}#coachAsk .ca-a{margin-top:12px;line-height:1.55}#coachAsk .ca-q{color:var(--muted);font-size:13px;margin:0 0 6px}
 </style>
 
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
@@ -5797,6 +5798,25 @@ function renderCoach(){const LP=coachLaps(),best=markAnalysisBest(LP),bestEx=x=>
   renderCmpMap(A,R,$("#coachMap"));
   box.querySelectorAll("[data-cref]").forEach(b=>b.onclick=()=>{rsel.value=b.dataset.cref;rsel.dataset.user="1";renderCoach()});
   const ac=$("#coachAllC");if(ac)ac.onclick=()=>{COACH_ALLC=!COACH_ALLC;renderCoach()}}
+/* "Ask the coach" (admins while it is tried): a question about lap A against B, answered on the server by a small model
+   that only has what the coach measured here (the corners, their phases and speeds, the plan), never the telemetry */
+function coachFacts(A,R){let c;try{c=coachPlan(A,R,coachLaps())}catch(e){return null}const tipOf=x=>Array.isArray(x)?(LANG==="es"?x[1]:x[0]):x;
+  const r=v=>v==null||!isFinite(v)?undefined:Math.round(v*100)/100;
+  return{track:[A.track||"",A.track_config||""].filter(Boolean).join(" · "),car:carFam(A.car||""),unit:spdU(),lapA:fmtT(A.time),lapB:(R.name||lapName(R)||"B")+" "+fmtT(R.time),gap:r(c.lapD),
+    lostInCorners:r(c.lost),gainedInCorners:r(c.gained),straights:r(c.straight),focus:c.focus?(typeof phaseName==="function"?phaseName(c.focus[0]):String(c.focus[0])):"",
+    corners:c.cs.slice().sort((a,b)=>b.lost-a.lost).slice(0,10).map(x=>({turn:"T"+x.n,lost:r(x.lost),phase:x.phase?phaseName(x.phase):"",brakePointDiffM:r(x.dd),entrySpeed:[r(x.ve),r(x.vr)],apexSpeed:[r(x.vmin),r(x.vminr)],line:typeof x.line==="string"?x.line:"",tip:tipOf(x.tip)})),
+    plan:(c.plan||[]).slice(0,5).map(p=>p.t)}}
+function coachAskMount(){const box=$("#coachBody");if(!box||!isAdmin()||asUser()||!window.COACH_A||!window.COACH_R||window.COACH_A===window.COACH_R)return;
+  let el=$("#coachAsk");if(!el){el=document.createElement("section");el.id="coachAsk";el.className="panel";box.appendChild(el)}
+  const sug=[Tx("Where do I lose the most time?","¿Dónde pierdo más tiempo?","","Onde perco mais tempo?"),Tx("What should I change first?","¿Qué cambio primero?","","O que mudo primeiro?"),Tx("Explain my braking","Explícame mis frenadas","","Explique minhas freadas")];
+  el.innerHTML=`<h3 style="margin:0 0 8px">${esc(Tx("Ask the coach","Pregunta al coach","Frag den Coach","Pergunte ao coach"))} <span class="pill">${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}</span></h3>
+    <div class="ca-sug">${sug.map(q=>`<button type="button" class="chip" data-ca="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+    <form id="caF" class="ca-f"><input type="text" id="caQ" maxlength="400" placeholder="${esc(Tx("Your question about this lap","Tu pregunta sobre esta vuelta","","Sua pergunta sobre esta volta"))}"><button class="btn primary" type="submit">${esc(Tx("Ask","Preguntar","Fragen","Perguntar"))}</button></form>
+    <div id="caA" class="ca-a" hidden></div>`;
+  const ask=async q=>{q=String(q||"").trim();if(!q)return;const out=el.querySelector("#caA"),facts=coachFacts(window.COACH_A,window.COACH_R);if(!facts)return;out.hidden=false;out.innerHTML=`<p class="muted">…</p>`;
+    try{const r=await cloudPost("/community/coach/ask",{question:q,facts,lang:LANG});out.innerHTML=`<p class="ca-q">${esc(q)}</p><p>${esc(r.answer||"").replace(/\n+/g,"<br>")}</p>`}catch(e){out.innerHTML=`<p class="note err">${esc(e.message)}</p>`}};
+  el.querySelectorAll("[data-ca]").forEach(b=>b.onclick=()=>ask(b.dataset.ca));el.querySelector("#caF").onsubmit=ev=>{ev.preventDefault();const i=el.querySelector("#caQ");ask(i.value);i.value=""}}
+{const rc=renderCoach;renderCoach=function(){const r=rc.apply(this,arguments);try{coachAskMount()}catch(e){}return r}}
 function renderCoachWidget(){const box=$("#coachW");if(!box)return;const tips=coachTips(),LP=analysisLaps(),last=LP.at(-1);
   // no tips: say why (not enough laps yet, or the last lap loses nothing clear against the reference)
   box.innerHTML=tips.length?tips.map(c=>`<div class="tiprow"><span class="cn">${esc(Tx("C","C"))}${c.n}</span><span>${esc(Tx(c.tip[0],c.tip[1]))}</span><span class="mono bad">${sgn(c.lost,2)}</span></div>`).join(""):`<p class="note">${!last||!coachRef(last)||coachRef(last)===last?Lp("Tips appear after your second lap.","Los consejos aparecen tras tu segunda vuelta."):Lp("Your last lap loses nothing clear against the reference: keep it up.","Tu última vuelta no pierde nada claro frente a la referencia: sigue así.")}</p>`}

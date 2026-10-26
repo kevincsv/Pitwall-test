@@ -27,6 +27,10 @@ migrations_dir = "migrations"
 #   DISCORD_PUBLIC_KEY + DISCORD_BOT_TOKEN   the Discord bot (its commands come to /discord/interactions)
 #   DISCORD_APP_ID + DISCORD_CLIENT_SECRET   "Link Discord" in the apps (Discord's sign-in comes back to /discord/oauth)
 
+# Workers AI: the small open model of "Ask the coach" runs on Cloudflare itself (coachask.js), no outside API
+[ai]
+binding = "AI"
+
 [vars]
 # accounts, end-to-end encrypted sync, community and shared setups on this server
 COMMUNITY = "1"

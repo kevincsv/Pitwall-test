@@ -399,6 +399,11 @@
   no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
+- "Ask the coach" (in development, admins only; `coachask.js`, `/community/coach/ask`, `coachFacts`/`coachAskMount` in
+  index.html): a question about lap A against B under the Coach, answered by a small open model run by Cloudflare itself
+  (Workers AI, the `AI` binding; never the Anthropic API or any paid outside API, the owner's choice) from the coach's own
+  facts only (corners, phases, speeds, tips, the plan; never the telemetry), never contradicting a tip; 40 questions a
+  day per account; off in local mode.
 - What makes a lap not valid, and only that (`invalid()` in cloud.go, the same verdict for the race summary's laps):
   leaving the track (an Off Track incident, or all four wheels out for a third of a second) or lost connection (a hole
   of more than 40 m in its telemetry, or not the whole circuit). A Loss of Control (2x) or a Car Contact (4x) counts
