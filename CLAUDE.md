@@ -42,7 +42,7 @@
   (`drawRadarOv`: no box, 20 m, grey/amber/red cars, the red side bar, trails, the nearest distance), dash, pedals,
   map and fuel, labelled only "● LIVE", each frame writing only the overlays' boxes; then the overlays as the agent
   draws them, `landing/ov-*.png` from `ovSavePNG`), "Also on your phone" (the phone apps' own screenshots,
-  `landing/m-*.png` from the phones' screenshot job, shown once they are there), "And also" (driver notes, rev beeps,
+  `landing/<lang>/m-*.png` from the phones' screenshot job: race summary, laps, coach, telemetry), "And also" (driver notes, rev beeps,
   overlays in VR; never "one account everywhere") and "Start in two minutes". The screenshots (`landing/*.jpg`) are
   the app with its demo data, in Spanish, without the demo badge and with plausible names (never the owner's).
   "Create account" scrolls to the form at the top; a visitor never enters the app on invented data (`sampleOn()` is
@@ -506,7 +506,8 @@
   of the discipline you race most, the races this month and the best result), your last race (its place against the
   start, its position lap by lap, the iRating, incidents and best lap; Race summary and Analyse my laps), the recent
   sessions (races and the other sessions together, tagged Race, Qualifying, Practice, Test drive, vs AI and DRINKS), the
-  licence summary (each discipline; the chosen one draws its iRating over your races) and the days you drove. No boxes.
+  licence summary (each discipline with "iRating" over its numbers; the chosen one draws its iRating over your races)
+  and the days you drove. Each block of Home and Community sits on a card (the downloads' surface and border) for depth.
 - Analysis's sub-tabs: Laps, Coach, My sessions (`cloudlaps`, every session in the account) and My races (`races`, the
   race summaries with the driver notes); Home's "See all" opens My races. The phone apps have the same four (and
   Telemetry, Standings and Tyres under Telemetry). A finished race shows no notice on the PC

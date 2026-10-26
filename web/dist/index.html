@@ -717,7 +717,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .hl-row>span:nth-last-child(-n+2){font:500 12px var(--f-data);text-align:right;white-space:nowrap}.hl-row .inc{color:var(--muted)}.hl-row>span:last-child{font-weight:600;font-size:13px}
 .hl-rows:hover .hl-row{opacity:.5}.hl-rows .hl-row:hover{opacity:1}.hl-last:hover .nm,.hl-lic:hover b{color:var(--accent)}
 .hl-lic{display:grid;grid-template-columns:minmax(0,1fr) 72px 70px 52px;gap:10px;align-items:center;width:100%;padding:10px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);font:inherit;text-align:left;cursor:pointer;opacity:.6}
-.hl-lic.on{opacity:1}.hl-lic.none{opacity:.35;cursor:default}.hl-lic>span:first-child{font-size:13px}.hl-lic>span:nth-child(2){text-align:center}.hl-lic b{font:600 14px var(--f-data);text-align:right}.hl-lic em{font:500 12px var(--f-data);font-style:normal;text-align:right}
+.hl-lich{display:grid;grid-template-columns:minmax(0,1fr) 72px 70px 52px;gap:10px;padding:2px 0 4px;font:600 10px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.hl-lich span:nth-child(3){text-align:right}.hl-lic.on{opacity:1}.hl-lic.none{opacity:.35;cursor:default}.hl-lic>span:first-child{font-size:13px}.hl-lic>span:nth-child(2){text-align:center}.hl-lic b{font:600 14px var(--f-data);text-align:right}.hl-lic em{font:500 12px var(--f-data);font-style:normal;text-align:right}
 .hl-irl{display:block;width:100%;height:60px;margin-top:10px}
 .hl-days .hm-card{background:none;border:0;padding:8px 6px 0 0;box-shadow:none}
 @media (max-width:820px){#homeBox.hl{gap:18px}.hl-hi h1{font-size:22px}.hl-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px}.hl-kpis b{font-size:24px}.hl-two{grid-template-columns:minmax(0,1fr);gap:22px}
@@ -1193,6 +1193,13 @@ html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwal
 nav.tabs button[data-g=home]{order:1!important}nav.tabs button[data-g=analysis]{order:2!important}nav.tabs button[data-g=race]{order:3!important}nav.tabs button[data-g=overlays]{order:4!important}nav.tabs button[data-g=community]{order:5!important}nav.tabs button[data-g=account]{order:6!important}nav.tabs button[data-g=season]{order:7!important}nav.tabs button[data-g=overlays]{display:none!important}html.pcapp nav.tabs button[data-g=overlays]{display:inline-flex!important}
 /* a narrow PC window: the main tabs keep only their icons (the name shows on hover), so nothing overlaps the buttons */
 @media (max-width:1440px){html.pcapp nav.tabs button>span{display:none}html.pcapp nav.tabs button{padding-inline:10px}}nav.tabs button[data-g=more]{order:7!important}
+
+/* clean data with depth: each block of Home and Community sits on a card like the downloads' */
+html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+html .hl-kpis,html .cl-kpis{gap:12px}html .hl-two,html .cl-two{gap:16px}html .hl-col{gap:16px}html .cl-board{gap:16px}html .cl-recs{gap:16px}
+html .cl-you{margin-top:16px;border-top:1px solid var(--line)}html .cl-rdet{top:76px}
+html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .hl-lic:last-child,html .cl-list>.cl-rrow:last-child{border-bottom:0}
+@media(max-width:700px){html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{padding:12px 14px}html .hl-kpis,html .cl-kpis{gap:10px}}
 </style>
 
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
@@ -2310,7 +2317,7 @@ const TxRaw=(en,es,de,pt)=>LANG==="es"?es:LANG==="de"||LANG==="pt"?trX(en,es,de,
 // the web version (/app in a browser) is not a phone: "this phone" reads "this device" there
 /* the web version: the same app as the phone, with the downloads for the PC and phones */
 const DL_BASE="https://pitlanehq.app/dl/";
-function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Pitlane HQ Agent · Windows",Tx("Installer; it updates itself","Instalador; se actualiza solo","Installer; aktualisiert sich selbst","Instalador; atualiza-se sozinho")]];
+function dlHTML(){const it=[["PitlaneHQ-Setup.exe","Pitlane HQ Agent · Windows",Tx("Records your laps and uploads them so you can analyse them","Graba tus vueltas y las sube para que las analices","Zeichnet deine Runden auf und lädt sie zur Analyse hoch","Grava suas voltas e as envia para você analisar")]];
   return `<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Download Pitlane HQ","Descargar Pitlane HQ","Pitlane HQ herunterladen","Baixar o Pitlane HQ"))}</h2></div><p class="note" style="margin:0 0 10px">${esc(Tx("Free. The same account on the PC and on this web, also from the phone.","Gratis. La misma cuenta en el PC y en esta web, también desde el móvil.","Kostenlos. Dasselbe Konto am PC und hier im Web, auch vom Handy.","Grátis. A mesma conta no PC e nesta web, também pelo celular."))}</p>
     <div class="dlgrid">${it.map(([f,n,d])=>`<a class="dlc" href="${DL_BASE+f}"><b>${esc(n)}</b><span>${esc(d)}</span></a>`).join("")}${PHONE_DL().map(([u,n,d])=>`<a class="dlc" href="${u}" rel="noopener"><b>${esc(n)}</b><span>${esc(d)}</span></a>`).join("")}</div></section>`}
 /* the phone apps: always the newest release of their repository */
@@ -2318,7 +2325,7 @@ const PHONE_REL="https://pitlanehq.app/downloads";
 // what changed in a version: its entry in the changelog (the release page of the PC app)
 const RELEASE_NOTES=v=>"https://pitlanehq.app/changelog#"+String(v||"").replace(/\./g,"")+"-beta";
 // the phone downloads: Android now (the APK from our storage), iPhone when it reaches the App Store
-const PHONE_DL=()=>[[DL_BASE+"PitlaneHQ-Android.apk","Android",Tx("App (APK); Google Play soon","App (APK); pronto en Google Play","App (APK); bald bei Google Play","App (APK); em breve no Google Play")]];
+const PHONE_DL=()=>[[DL_BASE+"PitlaneHQ-Android.apk","Android",Tx("App (APK). Google Play soon","App (APK). Pronto en Google Play","App (APK). Bald bei Google Play","App (APK). Em breve no Google Play")]];
 const WEBAPP=COMPANION&&!NATIVE_RAW,DEV_WORDS=[[/this phone/g,"this device"],[/This phone/g,"This device"],[/este móvil/g,"este dispositivo"],[/Este móvil/g,"Este dispositivo"],[/diesem Handy/g,"diesem Gerät"],[/dieses Handy/g,"dieses Gerät"],[/neste celular/g,"neste dispositivo"],[/este celular/g,"este dispositivo"]];
 // away from the PC (the web, the phones) "this PC" is the driver's PC, never the device in your hand: "your PC"
 const PC_WORDS=[[/\bthis PC's\b/g,"your PC's"],[/\bthis PC\b/g,"your PC"],[/\bThis PC\b/g,"Your PC"],[/\beste PC\b/g,"tu PC"],[/\bEste PC\b/g,"Tu PC"],
@@ -7126,7 +7133,7 @@ function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   // each discipline's licence; the chosen one draws its iRating over your races
   const lic=LB_DISC.map(([k])=>{const r=R[k],c=chgOf(k);return`<button type="button" class="hl-lic${HOME.dk===k?" on":""}${r?"":" none"}" data-dk="${k}"${r?"":" disabled"}><span><i style="background:${HL_DC[k]}"></i>${esc(discName(k))}</span><span>${r&&r.lic?licPill(r.lic):""}</span><b>${r?r.ir:"–"}</b><em class="${c>0?"good":c<0?"bad":"muted"}">${r&&c?hlSg(c):""}</em></button>`}).join("");
   const hist=HOME.dk?real.filter(x=>hlRaceDisc(x)===HOME.dk&&x.ir>1).slice(0,30).reverse().map(x=>x.ir+(x.irChange||0)):[];if(HOME.dk&&R[HOME.dk]&&(!hist.length||hist[hist.length-1]!==R[HOME.dk].ir))hist.push(R[HOME.dk].ir);
-  let right=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
+  let right=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
   const by=homeActivity(),cal=calGrid(k=>{const v=by.get(k);return v?v.ses.length+v.races.length:0},true);
   right+=`<section class="hl-sec hl-days"><div class="cl-h"><h2>${esc(Tx("Days you drove","Días que has corrido","Gefahrene Tage","Dias em que correu"))}</h2><span>${cal.driven} ${esc(Tx("days in 6 months","días en 6 meses","Tage in 6 Monaten","dias em 6 meses"))}</span></div>${cal.html}</section>`;
   return h+`<div class="hl-two"><div class="hl-col">${left}</div><div class="hl-col">${right}</div></div>`}
