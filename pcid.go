@@ -48,7 +48,7 @@ func pcName() string {
 }
 
 // the basic overlays (OV_BASIC in index.html): without Pro once the beta is over, only these open by themselves (Auto)
-var ovBasic = map[string]bool{"radar": true, "deltabar": true, "relative": true, "standings": true, "flag": true, "dash": true, "timing": true, "map": true, "fuel": true, "tyres": true, "inputs": true, "pit": true, "brakes": true, "coach": true, "incidents": true, "engine": true, "weather": true, "controls": true, "trackbar": true}
+var ovBasic = map[string]bool{"radar": true, "deltabar": true, "relative": true, "standings": true, "flag": true, "dash": true, "timing": true, "map": true, "fuel": true, "tyres": true, "inputs": true, "pit": true, "brakes": true, "coach": true, "incidents": true, "engine": true, "weather": true, "trackbar": true}
 
 // without Pro, this many programs start by themselves (when Pitlane HQ opens or iRacing starts, apps.go)
 const proFreeApps = 3

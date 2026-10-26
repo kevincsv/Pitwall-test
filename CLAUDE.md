@@ -485,8 +485,7 @@
   engine, tyres, inputs, DRS & push-to-pass, telemetry, g-force), `ovnative3.go` (stats, pit stop, mini-sectors,
   gaps, incidents), `ovnative4.go` (track map from `/api/map` or the community's layout, live compare, braking
   markers with the model's next level from `/api/community/model`, coach), `ovnative5.go` (weather: the track's and
-  the air's temperature, the wind against your car with the game's clock, rain and how wet the track is; the car's
-  controls: every in-car adjustment this car has, `controlRows`, lit up for a moment when it changes; the track position
+  the air's temperature, the wind against your car with the game's clock, rain and how wet the track is; the track position
   bar: every car along the lap on one line, class colours, you marked, the two nearest numbers each way; performance:
   frames a second with the last minute, GPU and CPU, the connection's latency and quality) and `ovnative_windows.go` (a
   layered window with alpha per pixel and the overlays' opacity). Only the panel and its content show, the rest is
@@ -544,8 +543,9 @@
   height, each overlay turned to face you), so moving them in Overlays → Edit positions moves them in VR. It joins
   SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
   work through SteamVR as the OpenXR runtime.
+  There is no car controls overlay and no overlay looks (glass, carbon, minimal): one look, the native one.
   The basic overlays, shown without the experimental switch (`OV_BASIC`): radar, delta bar, relative, standings,
-  flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, controls, track bar.
+  flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, track bar.
   Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, system.
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and

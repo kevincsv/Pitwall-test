@@ -41,7 +41,7 @@ var ovDesign = map[string]float64{"radar": 260, "deltabar": 520, "relative": 600
 	"flag": 520, "dash": 560, "timing": 440, "fuel": 420, "engine": 320, "tyres": 420, "inputs": 560, "boost": 360, "telemetry": 420, "gg": 280,
 	"stats": 420, "pit": 440, "sectors": 560, "gaps": 560, "incidents": 380,
 	"map": 440, "compare": 680, "brakes": 480, "coach": 520,
-	"weather": 360, "controls": 340, "trackbar": 700, "system": 320}
+	"weather": 360, "trackbar": 700, "system": 320}
 
 // ---------- the picture ----------
 

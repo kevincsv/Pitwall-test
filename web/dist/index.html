@@ -425,7 +425,6 @@ nav.subtabs button:hover:not([aria-selected="true"]){color:var(--fg)}
 nav.subtabs[hidden]{display:none}
 html.ov nav.subtabs{display:none!important}
 @media (max-width:760px){nav.tabs button{flex-direction:column;gap:3px;font-size:11px}nav.tabs button svg{width:20px;height:20px}}
-/* overlay looks: glass (default), carbon, minimal */
 html.ov .panel{border-radius:10px}
 /* an overlay window is the widget itself: no gap, rounded corners or border showing the window's dark background around it */
 html.ov.ovwin:not(.ovradar),html.ov.ovwin:not(.ovradar) body{background:var(--surface)!important}
@@ -445,14 +444,6 @@ html.ov.ovwin .dbar-track b.bad{background:linear-gradient(90deg,var(--bad),colo
 html.ov.ovwin .dbar-track i{top:5px;bottom:5px;width:2px;margin-left:-1px;border-radius:2px;background:rgba(255,255,255,.55)}
 html.ov.ovwin .dbar-val{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:0;padding:3px 12px;border-radius:999px;background:rgba(9,12,17,.88);border:1px solid rgba(255,255,255,.1);font:700 18px/1.1 var(--f-display);text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 html.ov.ovwin #dbTrend{position:absolute;top:50%;left:calc(50% + 52px);transform:translateY(-50%);font-size:12px}
-html.ov.ovt-glass,html.ov.ovt-glass body,html.ov.ovt-minimal,html.ov.ovt-minimal body{background:transparent!important}
-html.ov.ovt-glass .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--bg) 70%,transparent));backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);border:1px solid color-mix(in srgb,var(--fg) 14%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 color-mix(in srgb,var(--fg) 10%,transparent)}
-html.ov.ovt-glass .panel>.label:first-child,html.ov.ovt-glass .panel .vhead .label{display:flex;align-items:center;gap:6px}
-html.ov.ovt-glass .panel>.label:first-child::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
-html.ov.ovt-carbon .panel{background:repeating-linear-gradient(45deg,var(--surface) 0 3px,color-mix(in srgb,var(--surface) 85%,var(--bg)) 3px 6px);border:1px solid var(--line);border-top:2px solid var(--accent)}
-html.ov.ovt-minimal .panel{background:transparent;border-color:transparent;box-shadow:none}
-html.ov.ovt-minimal .panel *{text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8)}
-html.ov.ovt-minimal .panel>.label:first-child{display:none}
 html.ov .wtable tr.me td{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 html.ov .wtable td{padding-top:4px;padding-bottom:4px}
 html.ov .wtable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--fg) 4%,transparent)}
@@ -656,7 +647,7 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .lgd{display:inline-flex;align-items:center;gap:5px;font-size:13px;margin-right:10px}.dotm,.doto{width:10px;height:10px;border-radius:50%;display:inline-block}.dotm{background:var(--accent)}.dotc{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid var(--pb)}.incx{color:var(--bad);font-weight:700}
 .rbmap .seg{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.rbmap .secdot{fill:var(--muted)}svg.rchart{touch-action:pan-y;cursor:crosshair}svg.rchart .hovl{stroke:var(--fg);stroke-width:1.2;stroke-dasharray:3 3;opacity:.6}svg.rchart circle.on{r:7;stroke:var(--fg);stroke-width:1.5}.rc-tip{position:fixed!important;z-index:60;pointer-events:none}.rbmap .secbar{stroke:var(--fg);stroke-width:2.5;stroke-linecap:round;opacity:.8}.rbmap .sfbar{stroke:var(--fg);stroke-width:4;stroke-dasharray:3 3;stroke-linecap:butt}.rbmap .sec{fill:var(--accent);font:800 11px var(--f-data);letter-spacing:.04em;opacity:.9}.rbmap .hdot{fill:var(--fg);stroke:var(--bg);stroke-width:2}
 .rbmap .coachring{fill:color-mix(in srgb,var(--pb) 18%,transparent);stroke:var(--pb);stroke-width:2.5}.rbmap .incl{fill:var(--bad);font:800 10px var(--f-data);paint-order:stroke;stroke:var(--bg);stroke-width:3px}.rbmap .incmk path{stroke:var(--bad);stroke-width:3;stroke-linecap:round}.rbmap .incmk text{fill:var(--bad);font:700 11px var(--f-data)}
-.note.warn{color:var(--warn,#ffb02e)}.la-corners{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.la-c{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;min-width:46px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);font:inherit;color:inherit;cursor:pointer}.la-c b{font-size:11px}.la-c span{font-size:11px;color:var(--muted)}.la-c i{display:block;width:100%;background:var(--muted);border-radius:2px}.la-c.bad i{background:var(--bad)}.la-c.good i{background:var(--good)}.la-c.bad span{color:var(--bad)}.la-c.good span{color:var(--good)}.la-c.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.la-n.muted{color:var(--muted)}.tiprate{display:inline-flex;gap:2px;margin-left:auto;padding-left:8px;flex:none}.tiprate button{font:inherit;font-size:12px;line-height:1;background:none;border:1px solid var(--line);border-radius:6px;padding:3px 5px;cursor:pointer;color:inherit;opacity:.55}.tiprate button:hover,.tiprate button.on{opacity:1;border-color:var(--accent)}.rb-tipx{display:flex;align-items:flex-start;flex-wrap:wrap}.rb-hint{margin-top:6px;font-size:11px;color:var(--muted);line-height:1.35}.flag.green{background:var(--good);color:#0b1a10}.flag.info{background:#1e2631;color:#fff}.flag.start{background:#0b0d10;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px}.flag.start .lights{display:inline-flex;gap:6px}.flag.start .lights i{width:14px;height:14px;border-radius:50%;border:2px solid #3a4150;display:inline-block}.flag.start .lights i.lit{background:var(--accent);border-color:var(--accent)}.flag.start.go .lights i.lit{background:var(--good);border-color:var(--good)}.flag.start.go span:last-child{color:var(--good)}.ctlrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 4px;border-top:1px solid var(--line);font-size:13px}.ctlrow:first-child{border-top:0}.ctlrow b{font-weight:700}.ctlrow.hot{background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:5px}.ctlrow.hot b,.ctlrow.on b{color:var(--accent)}.ctlrow.off b{color:var(--muted)}.wxwind{display:flex;gap:10px;align-items:center;margin-top:8px}.wxwind svg{flex:none}
+.note.warn{color:var(--warn,#ffb02e)}.la-corners{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.la-c{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;min-width:46px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);font:inherit;color:inherit;cursor:pointer}.la-c b{font-size:11px}.la-c span{font-size:11px;color:var(--muted)}.la-c i{display:block;width:100%;background:var(--muted);border-radius:2px}.la-c.bad i{background:var(--bad)}.la-c.good i{background:var(--good)}.la-c.bad span{color:var(--bad)}.la-c.good span{color:var(--good)}.la-c.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.la-n.muted{color:var(--muted)}.tiprate{display:inline-flex;gap:2px;margin-left:auto;padding-left:8px;flex:none}.tiprate button{font:inherit;font-size:12px;line-height:1;background:none;border:1px solid var(--line);border-radius:6px;padding:3px 5px;cursor:pointer;color:inherit;opacity:.55}.tiprate button:hover,.tiprate button.on{opacity:1;border-color:var(--accent)}.rb-tipx{display:flex;align-items:flex-start;flex-wrap:wrap}.rb-hint{margin-top:6px;font-size:11px;color:var(--muted);line-height:1.35}.flag.green{background:var(--good);color:#0b1a10}.flag.info{background:#1e2631;color:#fff}.flag.start{background:#0b0d10;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px}.flag.start .lights{display:inline-flex;gap:6px}.flag.start .lights i{width:14px;height:14px;border-radius:50%;border:2px solid #3a4150;display:inline-block}.flag.start .lights i.lit{background:var(--accent);border-color:var(--accent)}.flag.start.go .lights i.lit{background:var(--good);border-color:var(--good)}.flag.start.go span:last-child{color:var(--good)}.wxwind{display:flex;gap:10px;align-items:center;margin-top:8px}.wxwind svg{flex:none}
 .inclist{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.rb-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.rb-cmp{display:flex;gap:6px;align-items:center;margin-left:auto;font-size:12px}.rb-cmp select{width:auto;min-width:120px;padding:4px 8px}.rbmap .cn{fill:var(--muted);font:700 10px var(--f-data)}.rbmap .incmk.loss path{stroke:var(--warn,#ffb02e)}.rbmap .incmk.light path{stroke:var(--blue,#5aa9ff)}.rbmap .incmk.contact path{stroke:var(--pb)}.rb-sum{margin:8px 0 0;font-size:13px}.rb-tip{position:fixed;z-index:50;pointer-events:none;min-width:180px;max-width:300px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.35);font:12px/1.45 var(--f-data);color:var(--fg)}.rb-tip .coachtip{margin-top:3px}.rbmap .hovpt{fill:none;stroke:var(--fg);stroke-width:2}.rbmap{touch-action:pan-y}@media (max-width:820px){.rb-tip{position:static;margin-top:6px;max-width:none;box-shadow:none;min-height:40px}}.rb-sum .ik.off{color:var(--bad)}.rb-sum .ik.loss{color:var(--warn,#ffb02e)}.rb-sum .ik.light{color:var(--blue,#5aa9ff)}.rb-sum .ik.contact{color:var(--pb)}.rtable tr.cutrow td{color:var(--muted);opacity:.5;text-decoration:line-through}.rtable tr.cutrow td:last-child{opacity:1;text-decoration:none}.rtable tr.cutrow td.mono:nth-child(2){text-decoration:line-through}.rchart .cut{fill:var(--surface);stroke:var(--fg);stroke-width:2.2;vector-effect:non-scaling-stroke}.dot.cut{background:transparent;box-shadow:inset 0 0 0 2px var(--fg)}
 .co-hero .co-top{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}.co-focus{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:200px}.co-focus b{display:block;font:800 20px var(--f-display);margin:2px 0}.co-focus small{display:block}
 .cmlic{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:12px}.cmlic .lic-chip{padding:3px 6px}.cmlic .lic-chip[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
@@ -1393,10 +1384,6 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
     <div class="panel s4 wpanel" data-w="weather">
       <div class="label" data-i18n="w.weather"></div>
       <div id="wxBox"></div>
-    </div>
-    <div class="panel s4 wpanel" data-w="controls">
-      <div class="label" data-i18n="w.controls"></div>
-      <div id="ctlBox"></div>
     </div>
     <div class="panel s12 wpanel" data-w="trackbar">
       <div class="label" data-i18n="w.trackbar"></div>
@@ -2474,7 +2461,7 @@ function frameTick(){
   if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
   trackSectors();trackIncidents();sampleGaps();shiftTick();estTick();brakeTick();
   if(lv("brakes")&&now-(window._bmT||0)>66){window._bmT=now;renderBrakes()}
-  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(lv("weather"))renderWeather();if(lv("controls"))renderControls();if(lv("system"))renderSystem();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
+  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(lv("weather"))renderWeather();if(lv("system"))renderSystem();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
   if(now-lastMap>66&&(view==="live")&&!HIDDEN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();if(view==="tyres")renderTyres()}
   if(view==="live"){
@@ -3682,7 +3669,7 @@ function saveCfg(){if(REMOTE){store.set("pw.cfg",CFG);cfgChanged();return}const 
     fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>r.json()).then(j=>{if(seq===cfgSeq){cfgPending=false;applyServerCfg(j.config,true)}}).catch(()=>{if(seq===cfgSeq)cfgPending=false})}
     else store.set("pw.cfg",CFG)},250);cfgChanged()}
 function applyServerCfg(c,force){if(!c||(cfgPending&&!force))return;if(REMOTE){const keepUI=store.get("pw.cfg",null);if(keepUI&&keepUI.ui)c=Object.assign({},c,{ui:keepUI.ui})}const before=JSON.stringify((CFG.ui||{}).tel);CFG=Object.assign(CFG,c);if(!CFG.ui)CFG.ui={};cfgChanged();if(before!==JSON.stringify((CFG.ui||{}).tel)&&MODE==="bridge")connectBridge()}
-function cfgChanged(){if(OV.on){const t=((CFG.ui||{}).ovlook||{}).t||"glass";["glass","carbon","minimal"].forEach(x=>document.documentElement.classList.toggle("ovt-"+x,x===t))}if(typeof renderLock==="function")renderLock();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit&&!OV.preview));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
+function cfgChanged(){if(typeof renderLock==="function")renderLock();if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays"&&$("#drawer").hidden)setTimeout(renderOverlaysTab,0);document.documentElement.classList.toggle("edit",!!(OV.on&&CFG.edit&&!OV.preview));if(OV.on)ovChrome();lastRel=0;lastField=0;if(!$("#drawer").hidden&&LAYOUT_VIEW)LAYOUT_VIEW()}
 
 /* ===================== race maths ===================== */
 const BR1=1600/Math.LN2;
@@ -3867,7 +3854,7 @@ function renderTelemetry(){const box=$("#telBox");if(!box||box.closest("[hidden]
 function toggleTelVar(n){const v=ui("tel").vars.slice();const k=v.indexOf(n);if(k>=0)v.splice(k,1);else v.push(n);setUI("tel",{vars:v});if(MODE==="bridge")connectBridge()}
 
 /* ===================== layout & overlays ===================== */
-const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","engine","tyres","standings","telemetry","weather","controls","trackbar","system"];
+const WIDGETS=["flag","dash","timing","deltabar","map","relative","compare","radar","boost","gg","stats","inputs","fuel","pit","sectors","gaps","incidents","coach","brakes","engine","tyres","standings","telemetry","weather","trackbar","system"];
 const CONFIGURABLE={inputs:"inp",deltabar:"delta",timing:"delta",relative:"rel",standings:"std",radar:"radar",telemetry:"tel",boost:"boost",pit:"pit",gaps:"gaps",coach:"coach"};
 /* the Telemetry screen shows what matters while you drive, nothing more: the flags, where you are, the delta and the
    lap times, the cars around you, the map, the fuel and the incidents (the tyres and the standings have their own
@@ -4263,7 +4250,6 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     <div class="frow">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oEdit",CFG.edit,L("editPos",true))}</div>
     <div class="frow" style="margin-top:10px"><button type="button" class="btn primary" id="oOpenSel"${dis}>${L("openSel",true)}</button><button type="button" class="btn" id="oCloseAll"${dis}>${L("closeAll",true)}</button><button type="button" class="btn" id="oReset"${dis}>${L("resetPos",true)}</button></div>
     <div class="frow" style="margin-top:12px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select></div>
-    <div class="frow" style="margin-top:12px"><span class="label">${esc(Tx("Look","Estilo"))}</span><span class="seg3" id="oLook">${[["glass","Glass","Cristal"],["carbon","Carbon","Carbono"],["minimal","Minimal","Mínimo"]].map(x=>`<button type="button" data-look="${x[0]}" aria-pressed="${(((CFG.ui||{}).ovlook||{}).t||"glass")===x[0]}">${esc(Tx(x[1],x[2]))}</button>`).join("")}</span></div>
     <div class="frow" style="margin-top:12px">${chk("oExp",ovExp,esc(Tx("Show the experimental overlays (lap comparison, DRS, G-force, stats, mini-sectors, gaps, telemetry, performance)","Mostrar los overlays experimentales (comparación de vueltas, DRS, fuerzas g, estadísticas, minisectores, gaps, telemetría, rendimiento)","Experimentelle Overlays anzeigen (Rundenvergleich, DRS, G-Kräfte, Statistik, Minisektoren, Abstände, Telemetrie, Leistung)","Mostrar os overlays experimentais (comparação de voltas, DRS, forças g, estatísticas, minissetores, gaps, telemetria, desempenho)")))}</div>
     <details style="margin-top:10px"><summary class="label">${L("experimental",true)}</summary><div class="frow" style="margin:8px 0"><label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="flex:1;max-width:260px"></div><div class="frow">${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details>`;
   if(ovPB)$("#ovGlobal").appendChild(ovPB); // the presets bar goes back at once, never gone for a moment
@@ -4277,7 +4263,6 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
   {const e=q("#oExp");if(e)e.onclick=()=>{if(proGated()&&!ovExpOn()){proDialog(Tx("The experimental overlays need Pro.","Los overlays experimentales necesitan Pro.","The experimental overlays need Pro.","Os overlays experimentais precisam do Pro."));renderOverlaysTab();return}const on=!ovExpOn();store.set("pw.ovExp",on);if(!on){CFG.autoWidgets=(CFG.autoWidgets||[]).filter(w=>OV_BASIC.includes(w));saveCfg();WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}))}renderOverlaysTab()}}
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
-  document.querySelectorAll("#oLook [data-look]").forEach(b=>b.onclick=()=>{CFG.ui=CFG.ui||{};CFG.ui.ovlook={t:b.dataset.look};saveCfg();renderOverlaysTab()});
   q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oAlpha").onchange=e=>{CFG.alpha=+e.target.value;saveCfg()};
   q("#oOpenSel").onclick=async()=>{if(!(CFG.autoWidgets||[]).length){toast(Tx("Mark some overlays with Auto first.","Marca primero algunos overlays con Auto."));return}for(const w of CFG.autoWidgets){await openOverlayOnPC(w)}toast(Tx("Opened on your PC.","Abiertos en tu PC."))};
   const backToLive=w=>{if(HIDDEN.has(w)){HIDDEN.delete(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}}; // a closed overlay comes back to Telemetry
@@ -4670,11 +4655,11 @@ function renderLock(){const b=$("#lockBtn");if(!b)return;const show=(MODE==="bri
 $("#lockBtn").onclick=()=>{CFG.edit=!CFG.edit;saveCfg();renderLock();toast(CFG.edit?Tx("Overlays unlocked: drag them on your screen.","Overlays desbloqueados: arrástralos por la pantalla."):Tx("Overlays locked.","Overlays bloqueados."))};
 
 /* ---------- screen editor: move overlay windows from the app or a phone ---------- */
-const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200],weather:[360,250],controls:[340,300],trackbar:[700,70],system:[320,230]};
+const OVSZ={flag:[520,90],dash:[560,230],timing:[440,190],map:[440,480],relative:[600,380],compare:[680,320],radar:[260,300],boost:[360,170],inputs:[560,210],fuel:[420,220],engine:[320,260],tyres:[420,260],standings:[720,640],telemetry:[420,300],gg:[280,300],deltabar:[520,90],stats:[420,220],pit:[440,260],sectors:[560,150],gaps:[560,260],incidents:[380,300],coach:[520,200],weather:[360,250],trackbar:[700,70],system:[320,230]};
 let SCREEN=null,SCREEN_DRAG=false;
 async function screenInfo(){if(SCREEN)return SCREEN;try{if(MODE==="bridge"&&!REMOTE){SCREEN=await (await fetch("/api/overlay/screen")).json()}}catch(e){}if(!SCREEN)SCREEN={virtual:[0,0,1920,1080],primary:[0,0,1920,1080]};return SCREEN}
 /* the smallest each overlay may be (overlayMinSize in overlay.go: its default width; the map, the radar and the g-force their default height too) */
-const OV_MINW={flag:520,dash:560,timing:440,map:440,relative:600,fuel:420,engine:320,tyres:420,inputs:560,standings:720,radar:260,boost:360,telemetry:420,compare:680,gg:280,deltabar:520,stats:420,pit:440,sectors:560,gaps:560,incidents:380,coach:520,brakes:480,weather:360,controls:340,trackbar:700,system:320},OV_MINH={map:480,radar:300,gg:300};
+const OV_MINW={flag:520,dash:560,timing:440,map:440,relative:600,fuel:420,engine:320,tyres:420,inputs:560,standings:720,radar:260,boost:360,telemetry:420,compare:680,gg:280,deltabar:520,stats:420,pit:440,sectors:560,gaps:560,incidents:380,coach:520,brakes:480,weather:360,trackbar:700,system:320},OV_MINH={map:480,radar:300,gg:300};
 async function renderScreenEditor(){const box=$("#ovScreen");if(!box||SCREEN_DRAG)return;const sc=await screenInfo(),[vx,vy,vw,vh]=sc.virtual;box.style.aspectRatio=vw+" / "+vh;
   const pos=CFG.positions||{},names=[...new Set([...(CFG.autoWidgets||[]),...OV_OPEN])].filter(n=>OVSZ[n]);
   const inside=([x,y,w,h])=>{w=Math.min(w,vw);h=Math.min(h,vh);return[Math.max(vx,Math.min(vx+vw-w,x)),Math.max(vy,Math.min(vy+vh-h,y)),w,h]};
@@ -4713,7 +4698,7 @@ if(OV.on&&OV.win){addEventListener("resize",()=>ovFit());setTimeout(ovFit,300);s
 /* which overlays are open on the PC right now (shown on the Overlays cards) */
 let OV_OPEN=new Set();
 /* the overlays that are ready; the rest stay behind the "experimental" switch */
-const OV_BASIC=["radar","deltabar","relative","standings","flag","dash","timing","map","fuel","tyres","inputs","pit","brakes","coach","incidents","engine","weather","controls","trackbar"];
+const OV_BASIC=["radar","deltabar","relative","standings","flag","dash","timing","map","fuel","tyres","inputs","pit","brakes","coach","incidents","engine","weather","trackbar"];
 function ovExpOn(){return !!store.get("pw.ovExp",false)&&!proGated()}
 /* Pitlane HQ Pro: during the beta everything is free; once the admins end it (the admin page), the experimental overlays
    and more than PRO.freeApps programs starting by themselves need Pro. Admins always have it. */
@@ -5092,7 +5077,7 @@ Object.assign(I18N,{"tab.rig":["Rig","Rig"],profiles:["Profiles","Perfiles"],
  "w.gaps":["Gap graph","Gráfica de gaps"],"d.gaps":["How the gap to nearby cars changes","Cómo cambia el gap con los coches cercanos"],
  "w.incidents":["Incident log","Registro de incidentes"],"d.incidents":["Every incident with lap and place on track","Cada incidente con vuelta y punto de la pista"],
  "w.weather":["Weather","Tiempo"],"d.weather":["Track and air temperature, the wind against your car, rain and how wet the track is","Temperatura de pista y aire, el viento respecto a tu coche, la lluvia y la humedad de la pista"],
- "w.controls":["Car controls","Ajustes del coche"],"d.controls":["Brake bias, TC, ABS, anti-roll bars, diff and maps, lit up as you change them","Reparto de frenada, TC, ABS, barras, diferencial y mapas, iluminados al cambiarlos"],
+
  "w.trackbar":["Track position bar","Barra de posición"],"d.trackbar":["Every car along the lap on one line, yours marked","Cada coche a lo largo de la vuelta en una línea, con el tuyo marcado"],
  "w.system":["Performance","Rendimiento"],"d.system":["Frames a second, GPU and CPU use, latency and connection quality","Fotogramas por segundo, uso de GPU y CPU, latencia y calidad de la conexión"],
  
@@ -5128,7 +5113,7 @@ const CONN_ON=false;
 // profiles are switched off for now: no button, no panel, no window (the PC keeps working with its one profile)
 function renderProfBtn(){const b=$("#profBtn");if(b)b.hidden=true;const r=$("#rigProfiles");if(r)r.hidden=true}
 /* new widgets start hidden once, so an update does not crowd your Live screen */
-(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","coach","weather","controls","trackbar","system"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
+(function(){const seen=new Set(store.get("pw.seenW",[]));let ch=false;WIDGETS.forEach(w=>{if(!seen.has(w)){if(["gaps","incidents","coach","weather","trackbar","system"].includes(w))HIDDEN.add(w);seen.add(w);ch=true}});if(ch){rawSet("pw.hiddenW",[...HIDDEN]);rawSet("pw.seenW",[...seen])}})();
 
 /* ===================== programs that start with Pitlane HQ or iRacing (Settings) ===================== */
 const askOK=async m=>MODE==="local"||await uiConfirm(m);
@@ -5252,7 +5237,7 @@ function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.
     ${lim?`<div class="meter"><b style="width:${Math.min(100,n/lim*100)}%;background:${n>=lim*.75?"var(--bad)":"var(--accent)"}"></b></div>`:""}
     <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
-/* ---------- weather, the car's controls, the track position bar and the PC's performance (the same as the native overlays) ---------- */
+/* ---------- weather, the track position bar and the PC's performance (the same as the native overlays) ---------- */
 const COMPASS=["N","NE","E","SE","S","SW","W","NW"];
 function renderWeather(){const box=$("#wxBox");if(!box)return;const t=v=>v==null?"–":tmp(v).toFixed(1)+tmpU(),trk=T.TrackTempCrew??T.TrackTemp,tod=T.SessionTimeOfDay;
   const clock=tod>=0?`${String(Math.floor(tod/3600)%24).padStart(2,"0")}:${String(Math.floor(tod/60)%60).padStart(2,"0")}`:"";
@@ -5269,18 +5254,6 @@ function renderWeather(){const box=$("#wxBox");if(!box)return;const t=v=>v==null
   box.innerHTML=`<div class="row" style="justify-content:space-between;margin-top:4px"><div><small class="muted">${esc(Tx("Track","Pista"))}</small><div class="big mono">${t(trk)}</div></div><div><small class="muted">${esc(Tx("Air","Aire"))}</small><div class="big mono">${t(T.AirTemp)}</div></div>${clock?`<div class="mono muted">${T.SolarAltitude>0?"☀":"☾"} ${clock}</div>`:""}</div>
     <div class="wxwind"><svg width="48" height="48" viewBox="-24 -24 48 48"><circle r="21" fill="none" stroke="var(--line)" stroke-width="1.5"/><path d="M0,-23 L-4,-16 L4,-16 Z" fill="var(--muted)"/>${rel!=null?`<g transform="rotate(${(rel*180/Math.PI).toFixed(1)})"><line x1="0" y1="-16" x2="0" y2="16" stroke="${wc}" stroke-width="2.2"/><path d="M0,19 L-5,11 L5,11 Z" fill="${wc}"/></g>`:""}</svg><div><b>${esc(wind)}</b><div class="sub">${esc(kind)}</div></div></div>
     <p class="note" style="margin:8px 0 0">${esc(Tx("Sky","Cielo"))}: ${esc(sky)}${esc(hum)}<br>${esc(Tx("Rain","Lluvia"))} ${p==null?"–":p+"%"}${esc(wet)}${T.WeatherDeclaredWet?` <span class="pill bad">${esc(Tx("Declared wet","En mojado"))}</span>`:""}</p>`}
-/* the in-car adjustments this car has (the game only gives the ones it has); a changed one lights up for a moment */
-const CTL_ROWS=[["dcBrakeBias","Brake bias","Reparto de frenada",0,"p"],["dcPeakBrakeBias","Peak brake bias","Reparto de frenada pico",0,"p"],["dcTractionControl","Traction control","Control de tracción",1,"i"],["dcTractionControl2","Traction control 2","Control de tracción 2",1,"i"],["dcTractionControlToggle","TC","TC",0,"b"],["dcABS","ABS","ABS",1,"i"],
-  ["dcAntiRollFront","Anti-roll bar front","Barra delantera",0,"i"],["dcAntiRollRear","Anti-roll bar rear","Barra trasera",0,"i"],["dcDiffEntry","Diff entry","Diferencial entrada",0,"i"],["dcDiffMiddle","Diff middle","Diferencial medio",0,"i"],["dcDiffExit","Diff exit","Diferencial salida",0,"i"],["dcDiffPreload","Diff preload","Precarga del diferencial",0,"i"],
-  ["dcEngineMap","Engine map","Mapa de motor",1,"i"],["dcFuelMixture","Fuel mixture","Mezcla",0,"i"],["dcThrottleShape","Throttle map","Mapa de acelerador",0,"i"],["dcEngineBraking","Engine braking","Freno motor",0,"i"],["dcMGUKDeployMode","Hybrid deploy","Despliegue híbrido",0,"i"],["dcMGUKDeployFixed","Hybrid fixed deploy","Despliegue híbrido fijo",0,"i"],["dcMGUKRegenGain","Hybrid regen","Regeneración híbrida",0,"i"],
-  ["dcWingFront","Front wing","Alerón delantero",0,"f"],["dcWingRear","Rear wing","Alerón trasero",0,"f"],["dcWeightJackerRight","Weight jacker","Weight jacker",0,"f"],["dcPowerSteering","Power steering","Dirección asistida",0,"i"],["dcPitSpeedLimiterToggle","Pit limiter","Limitador de boxes",0,"b"],["dcToggleWindshieldWipers","Wipers","Limpiaparabrisas",0,"b"]];
-const CTL={last:{},at:{}};
-function renderControls(){const box=$("#ctlBox");if(!box)return;const now=Date.now(),rows=[];
-  CTL_ROWS.forEach(([k,en,es,mx,kind])=>{const v=T[k];if(v==null)return;if(CTL.last[k]===undefined)CTL.last[k]=v;else if(CTL.last[k]!==v){CTL.last[k]=v;CTL.at[k]=now}
-    const hot=now-(CTL.at[k]||0)<2500,m=mx&&T[k+"Max"]>0?` / ${Math.round(T[k+"Max"])}`:"";
-    const val=kind==="p"?v.toFixed(1)+" %":kind==="f"?v.toFixed(1):kind==="b"?(v?Tx("On","Sí"):Tx("Off","No")):Math.round(v)+m;
-    rows.push(`<div class="ctlrow${hot?" hot":""}${kind==="b"?(v?" on":" off"):""}"><span>${esc(Tx(en,es))}</span><b class="mono">${esc(val)}</b></div>`)});
-  box.innerHTML=rows.join("")||`<p class="note">${esc(Tx("Nothing adjustable in this car yet","Nada ajustable en este coche aún"))}</p>`}
 function tbRound(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
 /* every car along the lap on one line: class colours, the leader ringed, cars in the pits dimmed, you in amber with the two nearest numbers each way */
 function drawTrackbar(){const cv=$("#tbC");if(!cv||!cv.clientWidth)return;const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=56;if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=h*dpr}

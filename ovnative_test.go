@@ -575,8 +575,8 @@ func TestExtraOverlaysDraw(t *testing.T) {
 	for k, tc := range []struct {
 		name string
 		w    int
-	}{{"weather", 360}, {"controls", 340}, {"trackbar", 700}, {"system", 320}} {
-		for pass := 0; pass < 2; pass++ { // twice: the second draw has memory (a changed control, a frame rate kept)
+	}{{"weather", 360}, {"trackbar", 700}, {"system", 320}} {
+		for pass := 0; pass < 2; pass++ { // twice: the second draw has memory (a frame rate kept)
 			if pass == 1 {
 				set("dcTractionControl", 10+k) // another value than any draw before saw
 				now = now.Add(1100 * time.Millisecond)
@@ -596,16 +596,13 @@ func TestExtraOverlaysDraw(t *testing.T) {
 			ovSavePNG(t, c, h, tc.name)
 		}
 	}
-	// a control that changed lights up; the frame rate history grows
-	if at := st.x5.ctlAt["dcTractionControl"]; at.IsZero() {
-		t.Fatal("the changed control was not noticed")
-	}
+	// the frame rate history grows
 	if len(st.x5.fps) < 2 {
 		t.Fatalf("frame rate history: %d", len(st.x5.fps))
 	}
 	// an empty frame (the game closed) still draws every one
 	st.frame = map[string]json.RawMessage{}
-	for _, n := range []string{"weather", "controls", "trackbar", "system"} {
+	for _, n := range []string{"weather", "trackbar", "system"} {
 		if h := ovDraw(n, newCanvas(400, 600), st, now); h < 30 {
 			t.Fatalf("%s with no data: height %d", n, h)
 		}

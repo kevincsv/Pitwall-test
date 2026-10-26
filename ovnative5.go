@@ -1,7 +1,7 @@
 package main
 
 // Native overlays, fifth part: the weather and the track (temperatures, the wind against your car, rain and how
-// wet the track is), the car's controls (the in-car adjustments, lit up as you change them), the track position
+// wet the track is), the track position
 // bar (every car along the lap on one line) and the PC's performance (frames a second, GPU and CPU, the
 // connection). Like the rest, each asks the PC only for what it shows.
 
@@ -15,7 +15,7 @@ import (
 
 func extraOverlay(name string) bool {
 	switch name {
-	case "weather", "controls", "trackbar", "system":
+	case "weather", "trackbar", "system":
 		return true
 	}
 	return false
@@ -27,15 +27,6 @@ func extraVars(name string) []string {
 	case "weather":
 		return []string{"AirTemp", "TrackTempCrew", "TrackTemp", "WindVel", "WindDir", "YawNorth", "Skies", "RelativeHumidity", "Precipitation",
 			"TrackWetness", "WeatherDeclaredWet", "SessionTimeOfDay", "SolarAltitude"}
-	case "controls":
-		out := []string{}
-		for _, r := range controlRows {
-			out = append(out, r.name)
-			if r.max {
-				out = append(out, r.name+"Max")
-			}
-		}
-		return out
 	case "trackbar":
 		return []string{"CarIdxLapDistPct", "CarIdxOnPitRoad", "CarIdxTrackSurface", "CarIdxPosition", "PlayerCarPosition"}
 	case "system":
@@ -46,9 +37,7 @@ func extraVars(name string) []string {
 
 // ovMem5: what these overlays keep between frames
 type ovMem5 struct {
-	ctl   map[string]float64   // controls: each value as last seen
-	ctlAt map[string]time.Time // and when it changed (its row lights up for a moment)
-	fps   []float64            // performance: one frame rate a second, the last minute
+	fps   []float64 // performance: one frame rate a second, the last minute
 	fpsAt time.Time
 	trk   []dSample // weather: the track's temperature every half minute, the last twenty minutes
 }
@@ -77,47 +66,10 @@ func (st *ovState) trackTrend(v float64, now time.Time) (float64, bool) {
 	return 0, false
 }
 
-// the in-car adjustments the game can give (each car has its own few): shown only when the car has them
-type controlRow struct {
-	name, en, es string
-	max          bool // the game also gives <name>Max: shown as "3 / 12"
-	kind         byte // 'i' a step, 'p' a percentage, 'b' on or off, 'f' a number with a decimal
-}
-
-var controlRows = []controlRow{
-	{"dcBrakeBias", "Brake bias", "Reparto de frenada", false, 'p'},
-	{"dcPeakBrakeBias", "Peak brake bias", "Reparto de frenada pico", false, 'p'},
-	{"dcTractionControl", "Traction control", "Control de tracción", true, 'i'},
-	{"dcTractionControl2", "Traction control 2", "Control de tracción 2", true, 'i'},
-	{"dcTractionControlToggle", "TC", "TC", false, 'b'},
-	{"dcABS", "ABS", "ABS", true, 'i'},
-	{"dcAntiRollFront", "Anti-roll bar front", "Barra delantera", false, 'i'},
-	{"dcAntiRollRear", "Anti-roll bar rear", "Barra trasera", false, 'i'},
-	{"dcDiffEntry", "Diff entry", "Diferencial entrada", false, 'i'},
-	{"dcDiffMiddle", "Diff middle", "Diferencial medio", false, 'i'},
-	{"dcDiffExit", "Diff exit", "Diferencial salida", false, 'i'},
-	{"dcDiffPreload", "Diff preload", "Precarga del diferencial", false, 'i'},
-	{"dcEngineMap", "Engine map", "Mapa de motor", true, 'i'},
-	{"dcFuelMixture", "Fuel mixture", "Mezcla", false, 'i'},
-	{"dcThrottleShape", "Throttle map", "Mapa de acelerador", false, 'i'},
-	{"dcEngineBraking", "Engine braking", "Freno motor", false, 'i'},
-	{"dcMGUKDeployMode", "Hybrid deploy", "Despliegue híbrido", false, 'i'},
-	{"dcMGUKDeployFixed", "Hybrid fixed deploy", "Despliegue híbrido fijo", false, 'i'},
-	{"dcMGUKRegenGain", "Hybrid regen", "Regeneración híbrida", false, 'i'},
-	{"dcWingFront", "Front wing", "Alerón delantero", false, 'f'},
-	{"dcWingRear", "Rear wing", "Alerón trasero", false, 'f'},
-	{"dcWeightJackerRight", "Weight jacker", "Weight jacker", false, 'f'},
-	{"dcPowerSteering", "Power steering", "Dirección asistida", false, 'i'},
-	{"dcPitSpeedLimiterToggle", "Pit limiter", "Limitador de boxes", false, 'b'},
-	{"dcToggleWindshieldWipers", "Wipers", "Limpiaparabrisas", false, 'b'},
-}
-
 func drawExtraOv(name string, c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	switch name {
 	case "weather":
 		return drawWeatherOv(c, st, z, now)
-	case "controls":
-		return drawControlsOv(c, st, z, now)
 	case "trackbar":
 		return drawTrackbarOv(c, st, z)
 	case "system":
@@ -265,90 +217,6 @@ func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		w := textW(pf, s) + 12*z
 		c.roundRect(W-pad-w, y+2*z, w, 17*z, 4*z, colBad, 0.9, 0, 0, 0)
 		c.text(pf, s, W-pad-w/2, y+10*z, 0xffffff, 1, 2)
-	}
-	return int(math.Ceil(H))
-}
-
-// ---------- the car's controls ----------
-
-func drawControlsOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
-	W := float64(c.w)
-	pad := 14 * z
-	rowH := 24 * z
-	m := &st.x5
-	if m.ctl == nil {
-		m.ctl, m.ctlAt = map[string]float64{}, map[string]time.Time{}
-	}
-	type row struct {
-		r     controlRow
-		v, mx float64
-		hasMx bool
-		hot   bool // changed a moment ago
-	}
-	rows := []row{}
-	for _, r := range controlRows {
-		v, ok := st.num(r.name)
-		if !ok {
-			continue
-		}
-		if last, seen := m.ctl[r.name]; !seen {
-			m.ctl[r.name] = v
-		} else if last != v {
-			m.ctl[r.name], m.ctlAt[r.name] = v, now
-		}
-		mx, hasMx := 0.0, false
-		if r.max {
-			mx, hasMx = st.num(r.name + "Max")
-			hasMx = hasMx && mx > 0
-		}
-		at := m.ctlAt[r.name]
-		rows = append(rows, row{r, v, mx, hasMx, !at.IsZero() && now.Sub(at) < 2500*time.Millisecond})
-	}
-	n := len(rows)
-	if n == 0 {
-		n = 1
-	}
-	H := pad + 18*z + float64(n)*rowH + pad - 6*z
-	panel(c, H, z)
-	c.label(z, st.T("Car controls", "Ajustes del coche"), pad, pad+6*z, 0)
-	y := pad + 18*z
-	kf, vf := ovFace(fkBody, 13.5*z), ovFace(fkDataB, 14*z)
-	if len(rows) == 0 {
-		c.labelFit(z, st.T("Nothing adjustable in this car yet", "Nada ajustable en este coche aún"), pad, y+rowH/2, W-2*pad)
-		return int(math.Ceil(H))
-	}
-	for k, r := range rows {
-		if k > 0 {
-			c.rect(pad, y, W-2*pad, 1, colLine, 1)
-		}
-		if r.hot {
-			c.roundRect(pad-6*z, y+2*z, W-2*pad+12*z, rowH-4*z, 5*z, colAmber, 0.14, 0, 0, 0)
-		}
-		col := uint32(colText)
-		var val string
-		switch r.r.kind {
-		case 'p':
-			val = strconv.FormatFloat(r.v, 'f', 1, 64) + " %"
-		case 'f':
-			val = strconv.FormatFloat(r.v, 'f', 1, 64)
-		case 'b':
-			if r.v != 0 {
-				val, col = st.T("On", "Sí"), colAmber
-			} else {
-				val, col = st.T("Off", "No"), colMuted
-			}
-		default:
-			val = strconv.Itoa(int(math.Round(r.v)))
-			if r.hasMx {
-				val += " / " + strconv.Itoa(int(math.Round(r.mx)))
-			}
-		}
-		if r.hot {
-			col = colAmber
-		}
-		c.text(kf, st.T(r.r.en, r.r.es), pad, y+rowH/2, colMuted, 1, 0)
-		c.text(vf, val, W-pad, y+rowH/2, col, 1, 1)
-		y += rowH
 	}
 	return int(math.Ceil(H))
 }
