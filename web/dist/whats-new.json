@@ -1,6 +1,30 @@
 {
   "versions": [
     {
+      "v": "0.6.0",
+      "en": [
+        "Le Mans Ultimate works like iRacing, in beta. Telemetry, overlays, the coach, your laps and the leaderboards, with the official sectors learnt from the game. If something looks wrong, write to support@pitlanehq.app.",
+        "Choose the game you look at at the top of Home, Analysis and Community, even with no game open.",
+        "When the app opens without a game it asks which one you want to see, or opens the last one if you prefer.",
+        "Sign in or create your account with Steam or Discord, and link them in Account.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Le Mans Ultimate funciona como iRacing, en beta. Telemetría, overlays, el coach, tus vueltas y las tablas de tiempos, con los sectores oficiales aprendidos del juego. Si algo no va bien, escríbenos a support@pitlanehq.app.",
+        "Elige el juego que ves arriba en Inicio, Análisis y Comunidad, aunque no tengas ningún juego abierto.",
+        "Cuando la app se abre sin juego te pregunta cuál quieres ver, o abre el último si lo prefieres.",
+        "Inicia sesión o crea tu cuenta con Steam o Discord, y vincúlalos en Cuenta.",
+        "Correcciones y mejoras."
+      ],
+      "pt": [
+        "O Le Mans Ultimate funciona como o iRacing, em beta. Telemetria, overlays, o coach, as suas voltas e as tabelas de tempos, com os setores oficiais aprendidos do jogo. Se algo parecer errado, escreva para support@pitlanehq.app.",
+        "Escolha o jogo que você vê no topo do Início, da Análise e da Comunidade, mesmo sem nenhum jogo aberto.",
+        "Quando o app abre sem jogo, pergunta qual você quer ver, ou abre o último se preferir.",
+        "Entre ou crie sua conta com a Steam ou o Discord, e vincule-os em Conta.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.5.0",
       "en": [
         "The coach learns from what happens after its tips, puts the ones that help most first, lets you rate them with 👍 or 👎 and remembers your habits across tracks.",

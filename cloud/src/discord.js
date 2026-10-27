@@ -11,6 +11,7 @@ import { isAdmin, sha256 } from "./accounts.js";
 import { getModel } from "./model.js";
 import { famId, famName } from "./carfamily.js";
 import { CATS, licOf } from "./categories.js";
+import { goOn, appOf } from "./steam.js";
 
 const SITE = "https://pitlanehq.app";
 const API = "https://discord.com/api/v10";
@@ -511,50 +512,197 @@ export async function discordLapAlert(env, accountId, lap) {
   }
 }
 
-// link one Discord user to one account (either side's older link goes); a relink of the same pair keeps "shown"
-async function linkPair(env, discordId, accountId, handle, guildId) {
-  const was = await env.DB.prepare("SELECT shown FROM discord_links WHERE discord_id=?1 AND account_id=?2").bind(discordId, accountId).first();
+// link one Discord user to one account (either side's older link goes); a relink of the same pair keeps "shown", and
+// "login" (it signs in with Discord) when this link proves it (Discord's sign-in from the account) or the old one did
+async function linkPair(env, discordId, accountId, handle, guildId, login) {
+  const was = await env.DB.prepare("SELECT shown, login FROM discord_links WHERE discord_id=?1 AND account_id=?2").bind(discordId, accountId).first();
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare("DELETE FROM discord_links WHERE discord_id=?1 OR account_id=?2").bind(discordId, accountId),
-    env.DB.prepare("INSERT INTO discord_links (discord_id, account_id, created, handle, shown) VALUES (?1,?2,?3,?4,?5)").bind(discordId, accountId, now, handle || null, was && was.shown ? 1 : 0),
+    env.DB.prepare("INSERT INTO discord_links (discord_id, account_id, created, handle, shown, login) VALUES (?1,?2,?3,?4,?5,?6)").bind(discordId, accountId, now, handle || null, was && was.shown ? 1 : 0, login || (was && was.login) ? 1 : 0),
     ...(guildId ? [env.DB.prepare("INSERT OR REPLACE INTO discord_members (guild_id, discord_id, seen) VALUES (?1,?2,?3)").bind(guildId, discordId, now)] : []),
   ]);
 }
-const OAUTH_BACK = () => SITE + "/discord/oauth";
-const oauthReady = (env) => !!(env.DISCORD_APP_ID && env.DISCORD_CLIENT_SECRET);
 
-// the account side (signed in, /account/discord/…): what is linked, Discord's sign-in to link it from any app,
-// whether the profile shows it, unlinking, and the bot's /link code that the web app confirms
-export async function discordAccount(env, a, p, m, body, url) {
-  const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
-  const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
+// ---------- "Sign in with Discord" and "Link Discord" (Discord's OAuth2, scope identify) ----------
+// Made like "Sign in with Steam" (steam.js): the browser goes to discord.com and comes back to /discord/oauth with a code
+// the server exchanges (DISCORD_APP_ID + DISCORD_CLIENT_SECRET) for who signed in, and the app that started gets a one-use
+// grant: a sign-in (POST /account/login/discord), a sign-up when that Discord has no account yet (discordSid on POST
+// /account/register, linked at once) or a link (POST /account/discord/link/grant). A grant is only good with the code the
+// server gave the app that started (discordStart; the browser never sees it), so a Discord answer or a grant passed on to
+// somebody else signs nobody in and links nothing to anybody. The PC's browser goes on to the PC's own agent
+// (http://127.0.0.1:<port>/discord/done). Discord only says who: the data key still comes from the password.
+// The phone apps (app: 1 on the start, never with port) get it back by their own scheme, pitlanehq://discord?state=<state>&
+// and the same query the web gets (discordLogin=<grant> | discordLogin=0 | discordLogin=0&new=1&sid=&name= |
+// discordLogin=0&relink=1 | discordLink=<grant> | discordLinked=0 | discordLinked=taken); the grant is still good only with
+// the app's code. The phone builds from before this (POST /account/discord/start without auth) link at once (kind
+// "legacy", a link that never signs in) and come back to /?discordLinked=1 as they did.
+const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
+const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
+const hexOf = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+const rid = () => hexOf(crypto.getRandomValues(new Uint8Array(24)));
+const isHex48 = (v) => typeof v === "string" && /^[0-9a-f]{48}$/.test(v);
+const portOf = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 && Number(v) < 65536 ? Number(v) : null);
+const clean32 = (a) => (typeof a === "string" ? a : "").slice(0, 32).replace(/[\u0000-\u001f<>]/g, "").trim();
+// a local server (tools/local.cmd) comes back to itself, never to pitlanehq.app
+const siteOf = (env, url) => (env.LOCAL === "1" && url ? url.origin : SITE);
+const oauthBack = (env, url) => siteOf(env, url) + "/discord/oauth";
+export const oauthReady = (env) => !!(env.DISCORD_APP_ID && env.DISCORD_CLIENT_SECRET);
+const NOT_READY = "Discord sign-in is not set up on this server yet";
+const AGAIN = "this Discord sign-in is not valid any more, sign in with Discord again";
+
+// the address the browser opens, and what only the app that asked keeps: the state (10 minutes, as a hash) and the code
+// its grant is redeemed with. kind "link" (an account linking its Discord) or "login" (a sign-in, or a sign-up when that
+// Discord has no account); port is the PC's agent, which the browser goes on to instead of the web app, app the phone
+// apps (their scheme); one of the two at most ({ error } then)
+export async function discordStart(env, url, kind, accountId, device, port, app) {
+  if (portOf(port) && appOf(app)) return { error: "port or app, not both" };
+  const state = rid(), code = rid(), now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM discord_oauth WHERE expires<?1 OR (account_id IS NOT NULL AND account_id=?2)").bind(now, accountId || ""),
+    env.DB.prepare("INSERT INTO discord_oauth (state_hash, code_hash, account_id, device, kind, port, app, expires) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)")
+      .bind(await sha256("discord-oauth:" + state), await sha256("discord-code:" + code), accountId || null, clean32(device) || null, kind, portOf(port), appOf(app) ? 1 : 0, now + 10 * 60e3),
+  ]);
+  const q = new URLSearchParams({ client_id: env.DISCORD_APP_ID, response_type: "code", scope: "identify", redirect_uri: oauthBack(env, url), state });
+  if (kind === "login") q.set("prompt", "none"); // a driver who already allowed the app goes straight back
+
+  return { url: "https://discord.com/oauth2/authorize?" + q, state, code };
+}
+// a grant carries the state's code hash (and, for a link, its account), so only the app that started can use it
+async function newGrant(env, kind, st, me, ttl) {
+  const g = rid();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM discord_grants WHERE expires<?1").bind(Date.now()),
+    env.DB.prepare("INSERT INTO discord_grants (grant_hash, code_hash, account_id, discord_id, handle, name, device, kind, expires) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)")
+      .bind(await sha256("discord-grant:" + g), st.code_hash, st.account_id || null, me.id, me.handle || null, me.name || null, st.device, kind, Date.now() + ttl),
+  ]);
+  return g;
+}
+// a grant is used once, with the code of the app that started: what Discord proved (the user, the handle, the device that
+// asked, the account that asked to link), or null
+export async function useDiscordGrant(env, g, kind, code) {
+  if (!isHex48(g) || !isHex48(code)) return null;
+  const r = await env.DB.prepare("DELETE FROM discord_grants WHERE grant_hash=?1 AND kind=?2 RETURNING code_hash, account_id, discord_id, handle, name, device, expires").bind(await sha256("discord-grant:" + g), kind).first();
+  return r && r.expires >= Date.now() && r.code_hash === (await sha256("discord-code:" + code)) ? r : null;
+}
+// the account a Discord user signs in to: only a link Discord's own sign-in made (login 1)
+export const discordAccountId = async (env, discordId) => ((await env.DB.prepare("SELECT account_id FROM discord_links WHERE discord_id=?1 AND login=1").bind(discordId).first()) || {}).account_id || null;
+// whether the Discord user is linked to any account (a sign-up with it is not possible then)
+export const discordLinkedAny = async (env, discordId) => !!(await env.DB.prepare("SELECT 1 FROM discord_links WHERE discord_id=?1").bind(discordId).first());
+// the link made with a sign-up or a link grant (it signs in with Discord): "taken" when that Discord is another account's
+export async function linkDiscordLogin(env, g, accountId) {
+  const other = await env.DB.prepare("SELECT account_id FROM discord_links WHERE discord_id=?1").bind(g.discord_id).first();
+  if (other && other.account_id !== accountId) return "taken";
+  await linkPair(env, g.discord_id, accountId, g.handle, null, true);
+  return "ok";
+}
+// who Discord's answer names (pure, so a test can run it): the id, the handle and the name to offer for a new account
+export function discordUser(me) {
+  if (!me || !/^\d{5,25}$/.test(String(me.id || ""))) return null;
+  const handle = String(me.username || "").replace(/[^A-Za-z0-9_.]/g, "").slice(0, 40);
+  return { id: String(me.id), handle, name: clean32(me.global_name) || clean32(handle) };
+}
+
+// Discord comes back here (GET /discord/oauth?code&state, or ?error&state when the driver said no): the state is used
+// once, the code exchanged, and the browser goes on with the grant (goOn in steam.js): to the web app, the PC's own agent
+// or the phone app, which redeems it with its code. Only "identify" is asked: the id, the username and the display name.
+// An unknown state is a sign-in's
+export async function discordOAuth(req, env, url) {
+  const base = siteOf(env, url);
+  const state = url.searchParams.get("state") || "", code = url.searchParams.get("code") || "";
+  if (!isHex48(state)) return Response.redirect(base + "/?discordLogin=0", 302);
+  const st = await env.DB.prepare("DELETE FROM discord_oauth WHERE state_hash=?1 RETURNING code_hash, account_id, device, kind, port, app, expires").bind(await sha256("discord-oauth:" + state)).first();
+  const back = (q) => goOn(base, "discord", st && st.kind !== "legacy" ? st : null, state, q);
+  const fail = () => back(st && st.kind !== "login" ? "discordLinked=0" : "discordLogin=0");
+  if (!st || st.expires < Date.now() || !code || !oauthReady(env)) return fail();
+  // once the state is known an error still goes back to the app that started (its port or its scheme)
+  try {
+    return await discordAnswer(env, url, st, code, back, fail);
+  } catch (e) {
+    return fail();
+  }
+}
+async function discordAnswer(env, url, st, code, back, fail) {
+  let me = null;
+  try {
+    const t = await fetch(API + "/oauth2/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: env.DISCORD_APP_ID, client_secret: env.DISCORD_CLIENT_SECRET, grant_type: "authorization_code", code, redirect_uri: oauthBack(env, url) }),
+    });
+    const tok = t.ok ? await t.json() : null;
+    if (!tok || !tok.access_token) return fail();
+    const u = await fetch(API + "/users/@me", { headers: { authorization: "Bearer " + tok.access_token } });
+    me = discordUser(u.ok ? await u.json() : null);
+  } catch (e) {
+    return fail();
+  }
+  if (!me) return fail();
+  if (st.kind === "legacy") {
+    // the old phone builds: linked at once, a link that never signs in (login 0), and never one that is another account's
+    if (!st.account_id) return fail();
+    const other = await env.DB.prepare("SELECT account_id FROM discord_links WHERE discord_id=?1").bind(me.id).first();
+    if (other && other.account_id !== st.account_id) return back("discordLinked=taken");
+    await linkPair(env, me.id, st.account_id, me.handle, null, false);
+    return back("discordLinked=1");
+  }
+  if (st.kind === "link") {
+    // linked by the app that asked (POST /account/discord/link/grant), never by this browser
+    if (!st.account_id) return fail();
+    return back("discordLink=" + (await newGrant(env, "link", st, me, 5 * 60e3)));
+  }
+  // a sign-in: the app signs in with the grant, or creates the account with the sign-up grant (linked at once). A Discord
+  // linked only by the bot's /link code signs in nowhere: the driver links it again from Account (relink)
+  if (await discordAccountId(env, me.id)) return back("discordLogin=" + (await newGrant(env, "login", st, me, 5 * 60e3)));
+  if (await discordLinkedAny(env, me.id)) return back("discordLogin=0&relink=1");
+  const q = new URLSearchParams({ discordLogin: "0", new: "1", sid: await newGrant(env, "signup", st, me, 30 * 60e3) });
+  if (me.name) q.set("name", me.name);
+  return back(String(q));
+}
+
+// the account side (signed in, /account/discord/…): what is linked, Discord's sign-in to link it from any app, the link
+// with its grant, whether the profile shows it, unlinking, and the bot's /link code that the web app confirms. Linking
+// and unlinking ask the password first (passCheck): a session alone never adds or removes a way into the account
+export async function discordAccount(env, a, p, m, body, url, passCheck) {
   if (p === "/discord" && m === "GET") {
-    const l = await env.DB.prepare("SELECT discord_id, handle, shown FROM discord_links WHERE account_id=?1").bind(a.id).first();
-    return json({ linked: !!l, id: l ? l.discord_id : undefined, handle: l ? l.handle || "" : undefined, shown: !!(l && l.shown), oauth: oauthReady(env) });
+    const l = await env.DB.prepare("SELECT discord_id, handle, shown, login FROM discord_links WHERE account_id=?1").bind(a.id).first();
+    return json({ linked: !!l, id: l ? l.discord_id : undefined, handle: l ? l.handle || "" : undefined, shown: !!(l && l.shown), login: !!(l && l.login), oauth: oauthReady(env) });
   }
   if (p === "/discord/start" && m === "POST") {
-    if (!oauthReady(env)) return json({ error: "Discord sign-in is not set up on this server yet: use /link in Discord" }, 503);
-    const state = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join(""), now = Date.now();
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM discord_oauth WHERE expires<?1 OR account_id=?2").bind(now, a.id),
-      env.DB.prepare("INSERT INTO discord_oauth (state_hash, account_id, expires) VALUES (?1,?2,?3)").bind(await sha256("discord-oauth:" + state), a.id, now + 10 * 60e3),
-    ]);
-    const q = new URLSearchParams({ client_id: env.DISCORD_APP_ID, response_type: "code", scope: "identify", redirect_uri: OAUTH_BACK(), state });
-    return json({ url: "https://discord.com/oauth2/authorize?" + q });
+    if (!oauthReady(env)) return json({ error: NOT_READY + ": use /link in Discord" }, 503);
+    const app = body.app || url.searchParams.get("app");
+    // the phone builds from before Discord's sign-in send no password (nor app or port): their link never signs in
+    if (body.auth == null && !app && !body.port) return json(await discordStart(env, url, "legacy", a.id, body.device));
+    const no = await passCheck();
+    if (no) return no;
+    const r = await discordStart(env, url, "link", a.id, body.device, body.port, app);
+    return json(r, r.error ? 400 : 200);
+  }
+  if (p === "/discord/link/grant" && m === "POST") {
+    const g = await useDiscordGrant(env, body.grant, "link", body.code);
+    if (!g || g.account_id !== a.id) return json({ error: AGAIN }, 400);
+    if ((await linkDiscordLogin(env, g, a.id)) === "taken") return json({ error: "this Discord account is already linked to another account", code: "taken" }, 409);
+    return json({ ok: true, handle: g.handle || "" });
   }
   if (p === "/discord/show" && m === "POST") {
     await env.DB.prepare("UPDATE discord_links SET shown=?2 WHERE account_id=?1").bind(a.id, body.shown ? 1 : 0).run();
     return json({ ok: true, shown: !!body.shown });
   }
   if (p === "/discord/unlink" && m === "POST") {
+    // the phone builds from before unlink without the password: only a link that never signs in (login 0) goes that way
+    const l = await env.DB.prepare("SELECT login FROM discord_links WHERE account_id=?1").bind(a.id).first();
+    if (body.auth != null || (l && l.login)) {
+      const no = await passCheck();
+      if (no) return no;
+    }
     await env.DB.batch([
       env.DB.prepare("DELETE FROM discord_members WHERE discord_id IN (SELECT discord_id FROM discord_links WHERE account_id=?1)").bind(a.id),
       env.DB.prepare("DELETE FROM discord_links WHERE account_id=?1").bind(a.id),
     ]);
     return json({ ok: true });
   }
-  // the bot's /link: its one-use code, confirmed in the web app
+  // the bot's /link: its one-use code, confirmed in the web app with the password. Such a link names the account in
+  // Discord but never signs in with Discord (the code came from Discord, not from this browser)
   const code = String((m === "GET" ? url.searchParams.get("c") : body.code) || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (code.length !== 8) return json({ error: "this link is not valid" }, 400);
   const h = await sha256("discord:" + code);
@@ -562,37 +710,11 @@ export async function discordAccount(env, a, p, m, body, url) {
   if (!c) return json({ error: "this link expired: ask the bot again with /link" }, 404);
   if (p === "/discord/code" && m === "GET") return json({ name: c.discord_name });
   if (p === "/discord/link" && m === "POST") {
-    await linkPair(env, c.discord_id, a.id, c.handle, c.guild_id);
+    const no = await passCheck();
+    if (no) return no;
+    await linkPair(env, c.discord_id, a.id, c.handle, c.guild_id, false);
     await env.DB.prepare("DELETE FROM discord_codes WHERE code_hash=?1").bind(h).run();
     return json({ ok: true, name: c.discord_name });
   }
   return json({ error: "not found" }, 404);
-}
-
-// Discord's sign-in comes back here (GET /discord/oauth?code&state): the user it names is linked to the account that
-// asked, and the browser goes to the web app with the result. Only "identify" is asked: the id and the username.
-export async function discordOAuth(req, env, url) {
-  const back = (ok) => Response.redirect(SITE + "/?discordLinked=" + (ok ? "1" : "0"), 302);
-  const state = url.searchParams.get("state") || "", code = url.searchParams.get("code") || "";
-  if (!oauthReady(env) || !/^[0-9a-f]{48}$/.test(state)) return back(false);
-  const h = await sha256("discord-oauth:" + state);
-  const st = await env.DB.prepare("SELECT account_id FROM discord_oauth WHERE state_hash=?1 AND expires>?2").bind(h, Date.now()).first();
-  await env.DB.prepare("DELETE FROM discord_oauth WHERE state_hash=?1").bind(h).run();
-  if (!st || !code) return back(false);
-  try {
-    const t = await fetch(API + "/oauth2/token", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ client_id: env.DISCORD_APP_ID, client_secret: env.DISCORD_CLIENT_SECRET, grant_type: "authorization_code", code, redirect_uri: OAUTH_BACK() }),
-    });
-    const tok = t.ok ? await t.json() : null;
-    if (!tok || !tok.access_token) return back(false);
-    const u = await fetch(API + "/users/@me", { headers: { authorization: "Bearer " + tok.access_token } });
-    const me = u.ok ? await u.json() : null;
-    if (!me || !/^\d{5,25}$/.test(String(me.id || ""))) return back(false);
-    await linkPair(env, String(me.id), st.account_id, String(me.username || "").slice(0, 40), null);
-    return back(true);
-  } catch (e) {
-    return back(false);
-  }
 }

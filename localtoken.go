@@ -109,7 +109,7 @@ func localWindow(w http.ResponseWriter, r *http.Request) bool {
 // localOpen: what any program on this PC may still ask without a ticket (nothing private):
 // who is here, the pairing flow, and "bring the window to the front" when Pitlane HQ starts twice.
 func localOpen(p string) bool {
-	return p == "/api/info" || p == "/api/pair" || p == "/pair" || p == "/api/show" || p == "/favicon.ico" || strings.HasPrefix(p, "/icon-") || p == "/manifest.webmanifest" || p == "/api/qr" || p == "/steam/done" // the browser back from Steam (placcount.go)
+	return p == "/api/info" || p == "/api/pair" || p == "/pair" || p == "/api/show" || p == "/favicon.ico" || strings.HasPrefix(p, "/icon-") || p == "/manifest.webmanifest" || p == "/api/qr" || p == "/steam/done" || p == "/discord/done" // the browser back from Steam or Discord (placcount.go)
 }
 
 // tlsTransport: every connection to the internet uses TLS 1.2 or newer (and HTTP/2 when offered).

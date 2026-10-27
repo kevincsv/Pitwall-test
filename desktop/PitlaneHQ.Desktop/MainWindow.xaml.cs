@@ -983,14 +983,15 @@ public partial class MainWindow : Window
         AccDiscGo.Visibility = !linked && err == null && Bo(d?["oauth"]) ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private async void OnAccDiscGo(object sender, RoutedEventArgs e)
+    // linking and unlinking Discord ask the password, which this (hidden) screen has no field for: both open Account in the
+    // web app, never the agent's discordStart/discordUnlink without it
+    private void OpenWebAccount()
     {
-        var (d, err) = await _engine.SendAsync("/api/sync", new { action = "discordStart" });
-        var url = S(d?["url"]);
-        if (err != null || !url.StartsWith("https://discord.com/")) { MessageBox.Show(this, err ?? "Discord", "Pitlane HQ"); return; }
-        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+        try { Process.Start(new ProcessStartInfo("https://pitlanehq.app/app#me") { UseShellExecute = true }); } catch { }
         AccDiscV.Text = T("Finish in the browser, then come back here.", "Termina en el navegador y vuelve aquí.");
     }
+
+    private void OnAccDiscGo(object sender, RoutedEventArgs e) => OpenWebAccount();
 
     private async void OnAccDiscShow(object sender, RoutedEventArgs e)
     {
@@ -998,12 +999,7 @@ public partial class MainWindow : Window
         await DiscordAsync();
     }
 
-    private async void OnAccDiscOff(object sender, RoutedEventArgs e)
-    {
-        if (MessageBox.Show(this, T("Unlink your Discord account?", "¿Desvincular tu cuenta de Discord?"), "Pitlane HQ", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        await _engine.SendAsync("/api/sync", new { action = "discordUnlink" });
-        await DiscordAsync();
-    }
+    private void OnAccDiscOff(object sender, RoutedEventArgs e) => OpenWebAccount();
 
     private void ShowAccErr(string? m)
     {

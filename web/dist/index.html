@@ -423,6 +423,9 @@ nav.subtabs button{font:600 14px/1 var(--f-body);background:none;border:0;border
 nav.subtabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 nav.subtabs button:hover:not([aria-selected="true"]){color:var(--fg)}
 nav.subtabs[hidden]{display:none}
+.subbar{display:flex;align-items:flex-end;gap:12px;margin:0 0 14px;border-bottom:1px solid var(--line)}.subbar>nav.subtabs{flex:1 1 auto;min-width:0;margin:0;border-bottom:0}.subbar:has(>nav.subtabs[hidden]){border-bottom:0;margin-bottom:0}.subbar:has(>nav.subtabs[hidden])>.gseg{margin-bottom:0}.subbar:has(>nav.subtabs[hidden]):has(>#gameView[hidden]){display:none}
+.gseg{flex:none;margin:0 0 6px auto}.gseg button{font-size:12px;padding:7px 11px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap}.gseg .live{color:var(--good)}.gseg button[aria-pressed="true"] .live{color:inherit}.gseg button[aria-pressed="true"] .pill{background:none;color:inherit;border-color:currentColor}html.ov #gameView{display:none!important}
+@media (max-width:820px){.subbar{flex-direction:column;align-items:stretch;gap:8px;border-bottom:0;margin:0 0 12px}.subbar>nav.subtabs{margin:0}.gseg{order:-1;align-self:flex-end;margin:0}}
 html.ov nav.subtabs{display:none!important}
 @media (max-width:760px){nav.tabs button{flex-direction:column;gap:3px;font-size:11px}nav.tabs button svg{width:20px;height:20px}}
 html.ov .panel{border-radius:10px}
@@ -736,9 +739,10 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .hl-lic{display:grid;grid-template-columns:minmax(0,1fr) 72px 70px 52px;gap:10px;align-items:center;width:100%;padding:10px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);font:inherit;text-align:left;cursor:pointer;opacity:.6}
 .hl-lich{display:grid;grid-template-columns:minmax(0,1fr) 72px 70px 52px;gap:10px;padding:2px 0 4px;font:600 10px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}.hl-lich span:nth-child(3){text-align:right}.hl-lic.on{opacity:1}.hl-lic.none{opacity:.35;cursor:default}.hl-lic>span:first-child{font-size:13px}.hl-lic>span:nth-child(2){text-align:center}.hl-lic b{font:600 14px var(--f-data);text-align:right}.hl-lic em{font:500 12px var(--f-data);font-style:normal;text-align:right}
 .hl-irl{display:block;width:100%;height:60px;margin-top:10px}
+.hl-row.hl-car{grid-template-columns:minmax(0,1fr) 76px 76px}.ga-l{grid-template-columns:1fr 1fr}.ga-l b{display:flex;align-items:center;flex-wrap:wrap;gap:2px}.ga-l .pill{display:inline-block;flex:none}@media (max-width:520px){.ga-l{grid-template-columns:1fr}}
 .hl-days .hm-card{background:none;border:0;padding:8px 6px 0 0;box-shadow:none}
 @media (max-width:820px){#homeBox.hl{gap:18px}.hl-hi h1{font-size:22px}.hl-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px}.hl-kpis b{font-size:24px}.hl-two{grid-template-columns:minmax(0,1fr);gap:22px}
-  .hl-last{grid-template-columns:88px minmax(0,1fr)}.hl-st{display:none}.hl-row{grid-template-columns:34px minmax(0,1fr) 72px}.hl-row .inc{display:none}.hl-rows .hl-row:nth-child(n+5){display:none}.hl-days{display:none}}
+  .hl-last{grid-template-columns:88px minmax(0,1fr)}.hl-st{display:none}.hl-row{grid-template-columns:34px minmax(0,1fr) 72px}.hl-row .inc{display:none}.hl-row.hl-car{grid-template-columns:minmax(0,1fr) 72px}.hl-rows .hl-row:nth-child(n+5){display:none}.hl-days{display:none}}
 /* Community, clean data: no boxes, hairlines between rows, one small line per leaderboard */
 .cl-head{display:flex;align-items:baseline;gap:30px;flex-wrap:wrap}.cl-head h1{margin:0}
 .cl-tabs{display:flex;gap:24px;flex-wrap:wrap}.cl-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 0;font:400 14px/1.2 var(--f-body);color:var(--muted);cursor:pointer}
@@ -929,7 +933,7 @@ html.companion #lockBtn,html.companion #fsBtn,html.companion #logoutBtn,html.com
 .inbox-it .ic{width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;color:var(--accent)}.inbox-it .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .inbox-it b{display:block;font-size:13px}.inbox-it p{margin:2px 0 0;font-size:12px;color:var(--muted);line-height:1.4}.inbox-it .acts{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .inbox .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}.inbox-empty{padding:14px 8px;color:var(--muted);font-size:13px;text-align:center}
-.me-welcome{text-align:center;margin:8px auto 18px;max-width:560px}.me-brand{font:900 28px var(--f-display);letter-spacing:.08em;margin-bottom:4px}.me-slogan{margin:0 0 8px;font:600 17px var(--f-display);color:var(--accent);letter-spacing:.02em}.me-auth{max-width:440px;margin:0 auto}.me-steam{display:grid;gap:9px;margin:12px 0 0}.me-steam.first{margin:0 0 12px}.me-switch{margin:14px 0 0;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--muted);padding-top:12px;border-top:1px solid var(--line)}.me-dl{max-width:440px;margin:18px auto 0}.me-dlrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 0}.me-dlrow a.btn{position:static;display:inline-flex;align-items:center;text-decoration:none;width:auto}.me-dlrow .note{flex:1;min-width:160px}.me-dl summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:8px}
+.me-welcome{text-align:center;margin:8px auto 18px;max-width:560px}.me-brand{font:900 28px var(--f-display);letter-spacing:.08em;margin-bottom:4px}.me-slogan{margin:0 0 8px;font:600 17px var(--f-display);color:var(--accent);letter-spacing:.02em}.me-auth{max-width:440px;margin:0 auto}.me-steam{display:grid;gap:9px;margin:12px 0 0}.me-steam.first{margin:0 0 12px}.me-oab{display:grid;gap:9px}.me-steam.pair .me-oab{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}.me-oab .btn{min-width:0;white-space:normal}.btn.dc{background:#5865F2;border-color:#5865F2;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn.dc:hover:not(:disabled){background:#4752c4;border-color:#4752c4;color:#fff}.btn.dc svg{flex:none}#tour .tr-auth .me-auth .me-steam{grid-column:1/-1;order:6;margin:12px 0 0}#tour .tr-auth .me-auth .me-steam.first{order:0;margin:0 0 12px}#tour .tr-auth .me-auth .me-form>.note{order:7}#tour .tr-auth .me-auth>.callout{grid-column:1/-1}#tour .tr-auth .me-auth .me-steam .note:empty{display:none}.me-switch{margin:14px 0 0;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--muted);padding-top:12px;border-top:1px solid var(--line)}.me-dl{max-width:440px;margin:18px auto 0}.me-dlrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 0}.me-dlrow a.btn{position:static;display:inline-flex;align-items:center;text-decoration:none;width:auto}.me-dlrow .note{flex:1;min-width:160px}.me-dl summary{cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:8px}
 .uidlg .pn.wide{width:min(620px,calc(100% - 32px));max-height:min(80vh,720px);overflow:auto}.wn section{margin:0 0 14px}.wn h3{margin:0 0 4px;font-size:15px;color:var(--accent)}.wn h3 small{color:var(--muted);font-weight:500;font-size:12px;margin-left:6px}.wn ul{margin:0;padding-left:18px}.wn li{margin:3px 0;line-height:1.45}
 .updpop{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px}.updpop[hidden]{display:none}
 .up-card{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;gap:12px;justify-items:center;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45)}
@@ -1197,7 +1201,7 @@ section.view{min-width:0}
   .agame{gap:6px}.agame .chip{padding:4px 10px;font-size:12px}
 }
 /* the first screen while the app starts: nothing half-drawn behind it */
-html.signwall nav.tabs,html.signwall #subtabs,html.signwall #setBtn,html.signwall #qsBtn,html.signwall .agame,html.signwall #conn{display:none!important}
+html.signwall nav.tabs,html.signwall #subtabs,html.signwall #gameView,html.signwall #setBtn,html.signwall #qsBtn,html.signwall .agame,html.signwall #conn{display:none!important}
 #splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .25s}
 #splash.out{opacity:0;pointer-events:none}
 #splash .sp-logo{font:900 30px/1 system-ui,sans-serif;letter-spacing:.02em;color:var(--fg,#e7ebf1);display:flex;align-items:center;gap:12px}
@@ -1254,7 +1258,7 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
 </header>
 <div class="winedge" id="winEdge" hidden><i data-e="topleft"></i><i data-e="top"></i><i data-e="topright"></i></div>
 
-<nav class="subtabs" id="subtabs" aria-label="Pages"></nav>
+<div class="subbar" id="subbar"><nav class="subtabs" id="subtabs" aria-label="Pages"></nav><div class="seg gseg" id="gameView" role="group" hidden></div></div>
 
 <!-- LIVE -->
 <section class="view" id="v-live">
@@ -1750,8 +1754,9 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
       <div class="label" data-i18n="source"></div>
       <p class="note" id="srcNote" style="margin-top:8px"></p>
       <div class="controls" style="margin-top:10px" id="demoCtl"><button class="btn" id="demoBtn" type="button"></button><button class="btn" id="changePC" type="button" hidden></button></div>
-      <div id="gameBox" hidden><div class="label" style="margin-top:16px" id="gameLbl"></div><div class="seg" id="gameSeg" style="margin-top:8px"></div><p class="note" id="gameNote"></p></div>
     </div>
+    <div class="panel s6" id="gamePanel"><div class="label" id="gameLbl"></div><div id="gameBox" hidden><div class="seg" id="gameSeg" style="margin-top:8px"></div><p class="note" id="gameNote"></p></div>
+      <div class="label" style="margin-top:16px" id="gameOpenLbl"></div><div class="seg" id="gameOpenSeg" style="margin-top:8px"></div><p class="note" id="gameBeta"></p></div>
     <div class="panel s6" id="notifPanel"></div>
     <div class="panel s12" id="startPanel"></div>
     <div class="panel s12" id="vrPanel" hidden></div>
@@ -2059,9 +2064,21 @@ async function cpSignedIn(r,email,wrap,key){if(!key){key=await cpOpen(wrap,r.wra
   CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind,anon:!!r.anon,admin:!!r.admin,verified:!!r.verified,mail:r.mailed!==undefined||!!r.mail,twoFactor:!!r.twoFactor};cpSecret.set("account",JSON.stringify(CP.acc))}
 /* Sign in with Steam on the web: /account/login/steam gives the session without the data key; the password (and the email it was
    made with), asked once on this device by the page (steamKeyAsk) through loginSteamKey, gets the wrapped key from the server
-   (POST /account/key). The code the start gave stays in this tab (steamCode): a grant is only good with it, so a Steam address or a
-   grant passed on to somebody else signs nobody in */
-const steamCode=v=>{try{if(v!==undefined){v===null?sessionStorage.removeItem("pw.steamCode"):sessionStorage.setItem("pw.steamCode",v)}return sessionStorage.getItem("pw.steamCode")||""}catch(e){return""}};
+   (POST /account/key). The code the start gave stays on this device for 10 minutes, kept by its state (pw.oauth.<state>, so a
+   phone browser that comes back in a new tab still has it; the state comes back in the address, oauthBack): a grant is only
+   good with it, so a Steam address or a grant passed on to somebody else signs nobody in. The previous version kept it in the
+   tab (pw.steamCode, pw.discordCode), still read */
+const OAUTH_GOT={};
+function oauthCode(prov,v,state){const K=x=>"pw.oauth."+x,old="pw."+prov+"Code";
+  if(v===null){const g=OAUTH_GOT[prov];delete OAUTH_GOT[prov];try{if(g&&g.state)localStorage.removeItem(K(g.state));sessionStorage.removeItem(old)}catch(e){}return""}
+  if(v!==undefined){if(!state)return v;try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith("pw.oauth.")){const o=JSON.parse(localStorage.getItem(k)||"null");if(!o||!(o.exp>Date.now()))localStorage.removeItem(k)}}
+    localStorage.setItem(K(state),JSON.stringify({code:v,exp:Date.now()+10*60e3}))}catch(e){}return v}
+  const g=OAUTH_GOT[prov];if(g&&g.code)return g.code;try{return sessionStorage.getItem(old)||""}catch(e){return""}}
+// back from Steam or Discord with ?state=: the code kept for it, in memory for this page (the sign-up form may take a while)
+function oauthBack(prov,state){if(!/^[0-9a-f]{48}$/.test(state||""))return;let code="";try{const o=JSON.parse(localStorage.getItem("pw.oauth."+state)||"null");if(o&&o.exp>Date.now())code=String(o.code||"")}catch(e){}if(code)OAUTH_GOT[prov]={state,code}}
+const steamCode=(v,state)=>oauthCode("steam",v,state);
+// Sign in with Discord on the web: the same, with its own code and POST /account/login/discord
+const discordCode=(v,state)=>oauthCode("discord",v,state);
 async function cpSteamGot(r){if(r.twoFactor){CP.pend2fa={pending:r.pending,steam:true,at:Date.now()};return{twoFactor:true}}CP.steamPend=r;return{needKey:true,email:""}}
 async function cpAccount(b){const a=b.action;
   if(a==="login"){const{auth,wrap}=await cpDerive(b.email,b.password);const r=await cpCall("POST","/account/login",{email:b.email.trim().toLowerCase(),auth,device:cpDevice(),lang:b.lang||LANG},false);
@@ -2070,16 +2087,19 @@ async function cpAccount(b){const a=b.action;
   if(a==="register"){if((b.password||"").length<10)throw new Error(Tx("use at least 10 characters for the password","usa al menos 10 caracteres en la contraseña"));
     let name=(b.nick||"").trim().slice(0,32),kind="nick";if(b.nameKind==="iracing"){const m=cpSnap("member/info");if(!m||!m.display_name)throw new Error(Tx("Use a nickname here, or create the account on the PC with iRacing connected.","Usa un apodo aquí, o crea la cuenta en el PC con iRacing conectado."));name=m.display_name;kind="iracing"}
     if(!name)throw new Error(Tx("choose a nickname","elige un apodo"));const{auth,wrap}=await cpDerive(b.email,b.password);const key=crypto.getRandomValues(new Uint8Array(32));
-    const r=await cpCall("POST","/account/register",{email:b.email.trim().toLowerCase(),auth,wrappedKey:await cpSeal(wrap,key),display:name,nameKind:kind,device:cpDevice(),lang:LANG,sid:b.sid||undefined,code:b.sid?steamCode():undefined},false);if(b.sid)steamCode(null);if(r&&r.verifyFirst)throw new Error(r.error||"verify your email first");await cpSignedIn(r,b.email,wrap,key);
+    const r=await cpCall("POST","/account/register",{email:b.email.trim().toLowerCase(),auth,wrappedKey:await cpSeal(wrap,key),display:name,nameKind:kind,device:cpDevice(),lang:LANG,sid:b.sid||undefined,discordSid:b.discordSid||undefined,code:b.sid?steamCode():b.discordSid?discordCode():undefined},false);if(b.sid)steamCode(null);if(b.discordSid)discordCode(null);
+    if(r&&r.discordTaken)setTimeout(()=>toast(Tx("This Discord is linked to another account.","Este Discord está vinculado a otra cuenta.","This Discord is linked to another account.","Este Discord está vinculado a outra conta.")),1500);if(r&&r.verifyFirst)throw new Error(r.error||"verify your email first");await cpSignedIn(r,b.email,wrap,key);
     const loc={};localKeys().filter(syncable).forEach(k=>loc[k]=store.get(k,null));CP.files={"local.json":loc};await cpPush();return cpStatus()}
-  if(a==="steamLoginStart"){const r=await cpCall("POST","/account/steam/login/start",{device:cpDevice()},false);steamCode(r.code||"");return r}
+  if(a==="steamLoginStart"){const r=await cpCall("POST","/account/steam/login/start",{device:cpDevice()},false);steamCode(r.code||"",r.state);return r}
+  if(a==="discordLoginStart"){const r=await cpCall("POST","/account/discord/login/start",{device:cpDevice()},false);discordCode(r.code||"",r.state);return r}
+  if(a==="discordLogin")return cpSteamGot(await cpCall("POST","/account/login/discord",{grant:String(b.grant||""),code:discordCode(),device:cpDevice(),lang:b.lang||LANG},false));
   if(a==="steamLogin")return cpSteamGot(await cpCall("POST","/account/login/steam",{grant:String(b.grant||""),code:steamCode(),device:cpDevice(),lang:b.lang||LANG},false));
-  if(a==="loginSteamKey"){const p=CP.steamPend;if(!p)throw new Error(Tx("Sign in again","Vuelve a iniciar sesión","Melde dich erneut an","Entre de novo"));const{auth,wrap}=await cpDerive(b.email||"",b.password||"");
+  if(a==="loginSteamKey"||a==="discordLoginKey"||a==="loginDiscordKey"){const p=CP.steamPend;if(!p)throw new Error(Tx("Sign in again","Vuelve a iniciar sesión","Melde dich erneut an","Entre de novo"));const{auth,wrap}=await cpDerive(b.email||"",b.password||"");
     let r;try{r=await cpOrigFetch(CP.server+"/account/key",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+p.token},body:JSON.stringify({auth}),cache:"no-store"})}catch(e){throw new Error(Tx("No internet connection","Sin conexión a internet","Keine Internetverbindung","Sem conexão com a internet"))}
     const k=await r.json().catch(()=>({}));if(!r.ok)throw new Error(r.status===401?Tx("Wrong email or password","Email o contraseña incorrectos","Wrong email or password","Email ou senha incorretos"):k.error||("HTTP "+r.status));
     let key;try{key=await cpOpen(wrap,k.wrappedKey)}catch(e){throw new Error(Tx("Wrong email or password","Email o contraseña incorrectos","Wrong email or password","Email ou senha incorretos"))}
-    CP.steamPend=null;steamCode(null);await cpSignedIn({...p,wrappedKey:k.wrappedKey,keyTag:k.keyTag},b.email,wrap,key);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
-  if(a==="steamLoginCancel"){const p=CP.steamPend;CP.steamPend=null;if(p&&p.token)cpOrigFetch(CP.server+"/account/logout",{method:"POST",headers:{Authorization:"Bearer "+p.token}}).catch(()=>{});return cpStatus()}
+    CP.steamPend=null;steamCode(null);discordCode(null);await cpSignedIn({...p,wrappedKey:k.wrappedKey,keyTag:k.keyTag},b.email,wrap,key);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
+  if(a==="steamLoginCancel"||a==="discordLoginCancel"){const p=CP.steamPend;CP.steamPend=null;if(p&&p.token)cpOrigFetch(CP.server+"/account/logout",{method:"POST",headers:{Authorization:"Bearer "+p.token}}).catch(()=>{});return cpStatus()}
   if(!CP.acc)throw new Error(Tx("Sign in first","Inicia sesión primero"));
   if(a==="logout"){cpCall("POST","/account/logout").catch(()=>{});cpForget();return cpStatus()}
   if(a==="verify"){await cpCall("POST","/account/verify/resend",{email:CP.acc.email,lang:LANG});return cpStatus()}
@@ -2094,12 +2114,13 @@ async function cpAccount(b){const a=b.action;
   if(a==="mailtest")return cpCall("POST","/account/mail/test",{email:b.email,lang:LANG});
   if(a==="sessions")return cpCall("GET","/account/sessions");
   if(a==="discord")return cpCall("GET","/account/discord");
-  if(a==="discordStart")return cpCall("POST","/account/discord/start",{});
+  if(a==="discordStart"){const{auth}=await cpDerive(CP.acc.email,b.password||"");const r=await cpCall("POST","/account/discord/start",{auth,device:cpDevice()});discordCode(r.code||"",r.state);return r}
+  if(a==="discordLink"){const r=await cpCall("POST","/account/discord/link/grant",{grant:String(b.grant||""),code:discordCode()});discordCode(null);return r}
   if(a==="discordShow")return cpCall("POST","/account/discord/show",{shown:!!b.on});
-  if(a==="discordUnlink")return cpCall("POST","/account/discord/unlink",{});
+  if(a==="discordUnlink"){const{auth}=await cpDerive(CP.acc.email,b.password||"");return cpCall("POST","/account/discord/unlink",{auth})}
   if(a==="steam")return cpCall("GET","/account/steam");
   // linking and unlinking take the password (auth), like every other change to how the account is entered
-  if(a==="steamStart"){const{auth}=await cpDerive(CP.acc.email,b.password||"");const r=await cpCall("POST","/account/steam/start",{auth,device:cpDevice()});steamCode(r.code||"");return r}
+  if(a==="steamStart"){const{auth}=await cpDerive(CP.acc.email,b.password||"");const r=await cpCall("POST","/account/steam/start",{auth,device:cpDevice()});steamCode(r.code||"",r.state);return r}
   if(a==="steamLink"){const r=await cpCall("POST","/account/steam/link",{grant:String(b.grant||""),code:steamCode()});steamCode(null);return r}
   if(a==="steamShow")return cpCall("POST","/account/steam/shown",{shown:!!b.on});
   if(a==="steamUnlink"){const{auth}=await cpDerive(CP.acc.email,b.password||"");return cpCall("POST","/account/steam/unlink",{auth})}
@@ -2154,12 +2175,14 @@ async function discordLinkAsk(){let c=null;try{c=new URLSearchParams(location.se
   if(!c||discordLinkAsk.busy)return;const drop=()=>{try{sessionStorage.removeItem("pw.discord")}catch(e){}};
   if(!/^[A-Za-z0-9]{8}$/.test(c))return drop();
   if(!CP.acc){if(!discordLinkAsk.told){discordLinkAsk.told=1;toast(Tx("Sign in to link your Discord.","Inicia sesión para vincular tu Discord.","Sign in to link your Discord.","Entre na sua conta para vincular o seu Discord."))}return}
-  discordLinkAsk.busy=1;
+  discordLinkAsk.busy=1;let keep=false; // the code goes once linked, declined or expired; a wrong password asks again
   try{const j=await cpCall("GET","/account/discord/code?c="+encodeURIComponent(c)),n=String(j.name||"?"),me=CP.acc.display||"";
-    if(await uiConfirm(Tx(`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`¿Vincular el usuario de Discord "${n}" a tu cuenta de Pitlane HQ ${me}? El bot mostrará allí tus vueltas y tu perfil.`,`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`Vincular o usuário do Discord "${n}" à sua conta do Pitlane HQ ${me}? O bot vai mostrar lá as suas voltas e o seu perfil.`))){
-      await cpCall("POST","/account/discord/link",{code:c});toast(Tx("Discord linked","Discord vinculado","Discord linked","Discord vinculado"))}}
-  catch(e){toast(/expired/.test(e.message)?Tx("This link expired: ask the bot again with /link.","Este enlace ha caducado: pídeselo otra vez al bot con /link.","This link expired: ask the bot again with /link.","Este link expirou: peça outra vez ao bot com /link."):e.message)}
-  finally{drop();discordLinkAsk.busy=0}}
+    const ask=Tx(`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`¿Vincular el usuario de Discord "${n}" a tu cuenta de Pitlane HQ ${me}? El bot mostrará allí tus vueltas y tu perfil.`,`Link the Discord user "${n}" to your Pitlane HQ account ${me}? The bot will show your laps and profile there.`,`Vincular o usuário do Discord "${n}" à sua conta do Pitlane HQ ${me}? O bot vai mostrar lá as suas voltas e o seu perfil.`);
+    for(let wrong=false;;wrong=true){const pw=await steamPassAsk((wrong?Tx("The password is wrong.","La contraseña no es correcta.","The password is wrong.","A senha está errada.")+" ":"")+ask);if(!pw)break;
+      try{const{auth}=await cpDerive(CP.acc.email,pw);await cpCall("POST","/account/discord/link",{code:c,auth});toast(Tx("Discord linked","Discord vinculado","Discord linked","Discord vinculado"));break}
+      catch(e){if(!/password is wrong/i.test(e.message))throw e}}}
+  catch(e){const gone=/expired|not valid/.test(e.message);keep=!gone;toast(/expired/.test(e.message)?Tx("This link expired. Ask the bot again with /link.","Este enlace ha caducado. Pídeselo otra vez al bot con /link.","This link expired. Ask the bot again with /link.","Este link expirou. Peça outra vez ao bot com /link."):e.message)}
+  finally{if(!keep)drop();discordLinkAsk.busy=0}}
 // the PC app: when its window comes back, the PC reads your account again (name changed on the phone, say) and syncs
 document.addEventListener("visibilitychange",()=>{if(document.hidden||COMPANION||typeof MODE==="undefined"||MODE!=="bridge"||REMOTE||OV.on)return;const was=ME&&ME.display;
   jpost("/api/sync",{action:"refresh"}).then(m=>{if(!m||!ME)return;const changed=m.display!==was;ME=m;if(changed&&typeof rerenderAll==="function")rerenderAll()}).catch(()=>{})});
@@ -2315,7 +2338,7 @@ if(COMPANION){
 
 /* the phone app without the PC only shows the settings that apply to the phone */
 function cpTrimSettings(){const sec=$("#v-settings");if(!sec)return;let keep=true;[...sec.children].forEach(el=>{if(el.classList.contains("sethead"))keep=el.id==="set-general"||el.id==="set-about";if(el.classList.contains("vhead")||el.id==="setAccount")return;if(el.id==="setNav"){el.hidden=true;return}el.hidden=!keep});
-  const g=$("#set-general")&&$("#set-general").nextElementSibling;if(g)[...g.children].forEach((p,i)=>p.hidden=i>0&&p.id!=="notifPanel");const u=$("#updPanel");if(u)u.hidden=true}
+  const g=$("#set-general")&&$("#set-general").nextElementSibling;if(g)[...g.children].forEach((p,i)=>p.hidden=i>0&&p.id!=="notifPanel"&&p.id!=="gamePanel");const u=$("#updPanel");if(u)u.hidden=true}
 /* race reminders and the account, also reachable from Settings (the phone has no Account tab) */
 function renderNotifPanel(){const box=$("#notifPanel");if(!box)return;
   const perm=!NATIVE&&!PCAPP&&"Notification" in window?Notification.permission:"";
@@ -2390,7 +2413,7 @@ function devWords(r){if(typeof r!=="string")return r;try{if(WEBAPP)r=DEV_WORDS.r
 const Tx=(en,es,de,pt)=>devWords(TxRaw(en,es,de,pt));
 const localeTag=()=>({es:"es-ES",de:"de-DE",pt:"pt-BR"})[LANG]||"en-GB";
 // the same number as Pitlane HQ Agent (main.go appVersion): one release for the PC app and the web
-const WEB_VERSION="0.5.2",APP_STAGE="beta";
+const WEB_VERSION="0.6.0",APP_STAGE="beta";
 const verText=v=>v+" "+APP_STAGE;
 function renderVersion(){demoBanner();const el=$("#appVersion");if(!el)return;const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;el.textContent="v"+verText(v);el.title=Tx("Pitlane HQ version "+v,"Versión de Pitlane HQ "+v,"Pitlane HQ Version "+v,"Versão do Pitlane HQ "+v)}
 function applyI18n(){document.documentElement.lang=LANG==="both"?"en":LANG;try{if(MODE==="bridge"&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!OV.on&&applyI18n.sent!==LANG+UNITS){applyI18n.sent=LANG+UNITS;fetch("/api/lang?l="+LANG+"&u="+UNITS,{method:"POST"}).catch(()=>{})}}catch(e){}document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=L(el.dataset.i18n)});
@@ -5019,8 +5042,11 @@ function renderDC(){const box=$("#dcRow");if(!box)return;const it=[],lv=(k,lbl)=
   if(T.VirtualEnergyPct>0)it.push(`<span class="${T.VirtualEnergyPct<.1?"lo":""}"><small>${esc(Tx("Energy","Energía","Energie","Energia"))}</small><b>${Math.round(T.VirtualEnergyPct*100)}</b><i>%</i></span>`);
   if(T.EnergyERSBatteryPct>0)it.push(`<span><small>${esc(Tx("Battery","Batería","Batterie","Bateria"))}</small><b>${Math.round(T.EnergyERSBatteryPct*100)}</b><i>%</i></span>`);
   box.hidden=!it.length;if(it.length)box.innerHTML=it.join("")}
-/* analysis, community and sharing show one game at a time: laps of different games are never compared */
-let AGAME=store.get("pw.agame","");
+/* analysis, community and sharing show one game at a time: laps of different games are never compared.
+   The game you see (the selector over Home, Analysis and Community, pw.viewGame) is only what you look at: the agent
+   reads the game Settings → Game says, and Telemetry and Overlays follow the live game, never the selector */
+const VIEW_GAMES=["iracing","lmu"],GAME_BETA=new Set(["lmu"]),GAME_VIEWS=["home","laps","coach","cloudlaps","races","community"];
+let VGAME=store.get("pw.viewGame","");if(!VIEW_GAMES.includes(VGAME))VGAME="";try{localStorage.removeItem("pw.agame")}catch(e){}
 /* games still in development: shown, but not selectable yet (LMU is read from the game's own shared memory and is out) */
 const GAME_WIP=new Set(["acc","ac"]);
 /* everything in development is closed, except for the admins of the server, who test it */
@@ -5028,15 +5054,40 @@ const wipOk=()=>{try{return isAdmin()}catch(e){return false}};
 const gameLocked=k=>GAME_WIP.has(k)&&!wipOk();
 const wipTitle=()=>Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento");
 const wipPill=()=>`<span class="pill acc" style="font-size:9px;padding:1px 5px;margin-left:4px">${esc(wipTitle())}</span>`;
+const betaPill=()=>`<span class="pill acc" style="font-size:9px;padding:1px 5px;margin-left:4px">Beta</span>`;
+const gamePill=k=>GAME_BETA.has(k)?betaPill():GAME_WIP.has(k)?wipPill():"";
 const liveGame=()=>STATUS.connected&&!STATUS.demo&&GAME_NAMES[STATUS.source]?STATUS.source:"iracing";
-const aGame=()=>GAME_NAMES[AGAME]&&!gameLocked(AGAME)?AGAME:gameLocked(liveGame())?"iracing":liveGame();
+const liveNow=()=>STATUS.connected&&!STATUS.demo&&GAME_NAMES[STATUS.source]?STATUS.source:"";
+const aGame=()=>{const l=liveNow();try{if(l&&["race","overlays"].includes(groupOf(CUR_VIEW)))return l}catch(e){}return vGame()}; // Telemetry and Overlays: the live game
+const vGame=()=>VGAME||(VIEW_GAMES.includes(liveNow())?liveNow():"iracing");
 const gameMatch=x=>((x&&x.game)||"iracing")===aGame();
 function withGame(p,g){if(/[?&](game|id)=/.test(p))return p;return p+(p.includes("?")?"&":"?")+"game="+(g||aGame())}
-const AG_VIEWS=[];if(AGAME){AGAME="";try{localStorage.removeItem("pw.agame")}catch(e){}}
-function renderGameBar(v){const sec=$("#v-"+v);if(!sec)return;let bar=sec.querySelector(".agame");if(!AG_VIEWS.includes(v)){if(bar)bar.remove();return}
-  if(!bar){bar=document.createElement("div");bar.className="agame";const h=sec.querySelector(".vhead");h?h.after(bar):sec.prepend(bar)}
-  const cur=aGame();bar.innerHTML=`<span class="label">${esc(Tx("Game","Juego","Spiel","Jogo"))}</span>${Object.keys(GAME_NAMES).map(k=>gameLocked(k)?`<button type="button" class="chip" disabled title="${esc(GAME_NAMES[k]+" · "+wipTitle())}" style="opacity:.55;cursor:default">${esc(GAME_SHORT[k])}${wipPill()}</button>`:`<button type="button" class="chip" data-ag="${k}" aria-pressed="${k===cur}" title="${esc(GAME_NAMES[k])}">${esc(GAME_SHORT[k])}${GAME_WIP.has(k)?wipPill():""}${k===liveGame()&&STATUS.connected&&!STATUS.demo?" ●":""}</button>`).join("")}`;
-  bar.querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>{AGAME=b.dataset.ag;store.set("pw.agame",AGAME);RACES=null;TB=null;COMMSEL=null;show(CUR_VIEW)})}
+/* the game you see changes: every list of the other game goes, and the screen shows the new one's */
+function setViewGame(g,keep){if(!VIEW_GAMES.includes(g))return;const was=vGame(),prev=VGAME;VGAME=g;if(!keep)store.set("pw.viewGame",g);if(was===g&&prev===g){try{renderGameBar(CUR_VIEW)}catch(e){}return}
+  [()=>{RACES=null;TB=null},()=>{COMMSEL=null},()=>{COMM_COMBOS=null},()=>{COMM_REC=null;COMM_ME=null},()=>{CLOUD.sessions=null;CLOUD.sid="";CLOUD.bid="";CLOUD.laps=[];CLOUD.lapsB=[]},()=>{HOME.al=0;HOME.rt=0;HOME.dk=""}].forEach(f=>{try{f()}catch(e){}});
+  try{if(GAME_VIEWS.includes(CUR_VIEW))show(CUR_VIEW);else renderGameBar(CUR_VIEW)}catch(e){}}
+function renderGameBar(v){const bar=$("#gameView");if(!bar)return;const on=GAME_VIEWS.includes(v)&&!OV.on&&!(typeof signWallOn==="function"&&signWallOn());bar.hidden=!on;if(!on)return;
+  const cur=vGame(),live=liveNow();bar.setAttribute("aria-label",Tx("Game","Juego","Spiel","Jogo"));
+  bar.innerHTML=VIEW_GAMES.map(k=>`<button type="button" data-ag="${k}" aria-pressed="${k===cur}" title="${esc(GAME_NAMES[k])}">${esc(GAME_SHORT[k])}${k===live?'<span class="live"> ●</span>':""}${gamePill(k)}</button>`).join("");
+  bar.querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>setViewGame(b.dataset.ag))}
+/* the live game takes the screen when it starts (a new game on the PC), never while you look at the other one after it */
+let LIVE_SEEN="";function followLiveGame(){const g=liveNow();if(g===LIVE_SEEN)return;LIVE_SEEN=g;const d=$("#gameAsk");if(g&&d)d.remove();if(VIEW_GAMES.includes(g))setViewGame(g);else try{renderGameBar(CUR_VIEW)}catch(e){}}
+/* when the app opens signed in with no game live: "What do you want to see?" (Settings → Game, pw.openPref "ask"),
+   only for an account with sessions of both games; with one game only, that one */
+const dayAgo=t=>{const d0=new Date();d0.setHours(0,0,0,0);const d=Math.floor((+d0-t)/864e5)+1;return t>=+d0?Tx("today","hoy","heute","hoje"):d<=1?Tx("yesterday","ayer","gestern","ontem"):d<7?Tx(`${d} days ago`,`hace ${d} días`,`vor ${d} Tagen`,`há ${d} dias`):new Date(t).toLocaleDateString(locale(),{day:"numeric",month:"short"})};
+async function gameCounts(){const out={};for(const g of VIEW_GAMES){try{const ss=await cloudGet("/api/sessions?limit=200&game="+g);const l=(Array.isArray(ss)?ss:[]).filter(x=>x.laps>0&&(x.game||"iracing")===g);out[g]={n:l.length,last:l.reduce((a,x)=>Math.max(a,x.started||0),0)}}catch(e){out[g]={n:0,last:0}}}return out}
+let GAME_ASKED=false;
+async function gameAskAtOpen(){if(GAME_ASKED)return;if(OV.on||liveNow()){GAME_ASKED=true;return}const signed=COMPANION?!!(CP&&CP.acc):!!PCACC||demoOn();if(!signed||signWallOn())return;GAME_ASKED=true;
+  const c=await gameCounts(),have=VIEW_GAMES.filter(g=>c[g]&&c[g].n>0);if(liveNow())return;
+  if(have.length===1){if(vGame()!==have[0])setViewGame(have[0],true);return}if(have.length<2)return;
+  if(store.get("pw.openPref","ask")!=="ask")return;
+  for(let i=0;i<20&&document.querySelector(".uidlg");i++)await new Promise(z=>setTimeout(z,1000));if(document.querySelector(".uidlg")||liveNow()||signWallOn())return;
+  let pick=vGame();const btnT=g=>Tx(`See ${GAME_NAMES[g]}`,`Ver ${GAME_NAMES[g]}`,`${GAME_NAMES[g]} ansehen`,`Ver ${GAME_NAMES[g]}`);
+  const card=g=>`<label class="shas"><input type="radio" name="gaPick" value="${g}"${g===pick?" checked":""}><span><b>${esc(GAME_NAMES[g])}${gamePill(g)}</b><small>${esc(Tx(`${c[g].n} sessions`,`${c[g].n} sesiones`,`${c[g].n} Sitzungen`,`${c[g].n} sessões`))}${c[g].last?" · "+esc(dayAgo(c[g].last)):""}</small></span></label>`;
+  await uiPanel(`<h2 style="margin:6px 0 2px">${esc(Tx("What do you want to see?","¿Qué quieres ver?","Was möchtest du sehen?","O que você quer ver?"))}</h2><div class="shas-l ga-l">${VIEW_GAMES.map(card).join("")}</div><div class="uidlg-b"><button type="button" class="btn primary" id="gaGo">${esc(btnT(pick))}</button></div>`,(d,done)=>{d.id="gameAsk";
+    const go=d.querySelector("#gaGo");d.querySelectorAll("input[name=gaPick]").forEach(r=>r.onchange=()=>{pick=r.value;go.textContent=btnT(pick)});
+    go.onclick=()=>{done(pick);setViewGame(pick)}})}
+(function gaBoot(n){setTimeout(()=>{try{gameAskAtOpen()}catch(e){}if(!GAME_ASKED&&n<40)gaBoot(n+1)},n?1500:3000)})(0);
 /* what each game does not send: those widgets and columns are dimmed and say why on hover */
 const GAME_NO={lmu:["ir","lic","inc"],acc:["ir","lic","inc","names"],ac:["ir","lic","inc","names","others"]};
 const NO_WHAT={ir:["iRating","iRating","iRating","iRating"],lic:["licences","licencias","Lizenzen","licenças"],inc:["incidents","incidentes","Zwischenfälle","incidentes"],
@@ -5055,9 +5106,14 @@ function markGameGaps(){document.querySelectorAll(".wpanel[data-w]").forEach(p=>
 const GAME_NAMES={iracing:"iRacing",lmu:"Le Mans Ultimate",acc:"Assetto Corsa Competizione",ac:"Assetto Corsa"},GAME_SHORT={iracing:"iRacing",lmu:"LMU",acc:"ACC",ac:"AC"};
 const GAMES={auto:["Automatic","Automático","Automatisch","Automático"],...Object.fromEntries(Object.entries(GAME_NAMES).map(([k,v])=>[k,[v,v,v,v]]))};
 function gameName(){const src=STATUS.connected&&STATUS.source,g=GAME_NAMES[src]?src:(CFG.game||STATUS.game||"auto");return GAME_NAMES[g]||Tx("the game","el juego","das Spiel","o jogo")}
-function renderGameSel(){const box=$("#gameBox");if(!box)return;const on=(MODE==="bridge"&&!REMOTE)||MODE==="local";box.hidden=!on;if(!on)return;const cur=gameLocked(CFG.game)?"auto":(CFG.game||"auto");
-  $("#gameLbl").textContent=Tx("Game","Juego","Spiel","Jogo");
-  $("#gameSeg").innerHTML=Object.entries(GAMES).map(([k,v])=>gameLocked(k)?`<button type="button" disabled title="${esc(wipTitle())}">${esc(Tx(...v))}${wipPill()}</button>`:`<button type="button" data-game="${k}" aria-pressed="${k===cur}">${esc(Tx(...v))}${GAME_WIP.has(k)?wipPill():""}</button>`).join("")+`<button type="button" disabled title="${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}">NASCAR 26 <span class="pill acc" style="font-size:9px;padding:1px 5px">${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}</span></button>`;
+/* Settings → Game: what the agent reads (the PC only) and what the app shows when it opens without a game live */
+function renderGameOpen(){const seg=$("#gameOpenSeg");if(!seg)return;const cur=store.get("pw.openPref","ask")==="last"?"last":"ask";
+  $("#gameLbl").textContent=Tx("Game","Juego","Spiel","Jogo");$("#gameOpenLbl").textContent=Tx("When it opens without a game","Al abrir sin un juego","Beim Öffnen ohne Spiel","Ao abrir sem um jogo");
+  seg.innerHTML=[["ask",Tx("Ask","Preguntar","Fragen","Perguntar")],["last",Tx("The last one I saw","El último que vi","Das zuletzt gesehene","O último que vi")]].map(([k,t])=>`<button type="button" data-gop="${k}" aria-pressed="${k===cur}">${esc(t)}</button>`).join("");
+  seg.querySelectorAll("[data-gop]").forEach(b=>b.onclick=()=>{store.set("pw.openPref",b.dataset.gop);renderGameOpen()});
+  $("#gameBeta").innerHTML=betaPill().replace("margin-left:4px","margin-right:6px")+esc(Tx("Le Mans Ultimate is in beta. If something looks wrong, write to support@pitlanehq.app.","Le Mans Ultimate está en beta. Si algo no se ve bien, escribe a support@pitlanehq.app.","Le Mans Ultimate ist in der Beta. Wenn etwas nicht stimmt, schreib an support@pitlanehq.app.","O Le Mans Ultimate está em beta. Se algo parecer errado, escreva para support@pitlanehq.app."))}
+function renderGameSel(){renderGameOpen();const box=$("#gameBox");if(!box)return;const on=!COMPANION&&((MODE==="bridge"&&!REMOTE)||MODE==="local");box.hidden=!on;$("#gameOpenLbl").style.marginTop=on?"16px":"8px";if(!on)return;const cur=gameLocked(CFG.game)?"auto":(CFG.game||"auto");
+  $("#gameSeg").innerHTML=Object.entries(GAMES).map(([k,v])=>gameLocked(k)?`<button type="button" disabled title="${esc(wipTitle())}">${esc(Tx(...v))}${wipPill()}</button>`:`<button type="button" data-game="${k}" aria-pressed="${k===cur}">${esc(Tx(...v))}${gamePill(k)}</button>`).join("")+`<button type="button" disabled title="${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}">NASCAR 26 <span class="pill acc" style="font-size:9px;padding:1px 5px">${esc(Tx("In development","En desarrollo","In Entwicklung","Em desenvolvimento"))}</span></button>`;
   $("#gameNote").innerHTML=esc(cur==="acc"?Tx("Assetto Corsa Competizione: nothing to set up. Opponents' names and positions are not shared by the game; Pitlane HQ places them on the lap from the track you drive.","Assetto Corsa Competizione: no hay que configurar nada. El juego no comparte nombres ni posiciones de los rivales; Pitlane HQ los sitúa en la vuelta con el circuito que vas recorriendo.","Assetto Corsa Competizione: nichts einzurichten. Namen und Positionen der Gegner teilt das Spiel nicht; Pitlane HQ setzt sie anhand der gefahrenen Strecke auf die Runde.","Assetto Corsa Competizione: nada a configurar. O jogo não compartilha nomes nem posições dos rivais; o Pitlane HQ os situa na volta pelo traçado que você percorre."):cur==="ac"?Tx("Assetto Corsa: nothing to set up. The game only shares your own car, so there is no relative or radar.","Assetto Corsa: no hay que configurar nada. El juego solo comparte tu coche, así que no hay relative ni radar.","Assetto Corsa: nichts einzurichten. Das Spiel teilt nur dein eigenes Auto, daher kein Relative und kein Radar.","Assetto Corsa: nada a configurar. O jogo só compartilha o seu carro, então não há relative nem radar."):cur==="lmu"||cur==="auto"?Tx("Le Mans Ultimate: in the game, Settings → Gameplay → Enable Plugins: ON, then restart it. Nothing else to install.","Le Mans Ultimate: en el juego, Ajustes → Jugabilidad → Activar plugins: SÍ, y reinícialo. No hay que instalar nada más.","Le Mans Ultimate: im Spiel Einstellungen → Gameplay → Plugins aktivieren: AN, dann neu starten. Sonst nichts zu installieren.","Le Mans Ultimate: no jogo, Configurações → Jogabilidade → Ativar plugins: SIM, e reinicie. Nada mais para instalar."):Tx("Automatic reads whichever game is running.","Automático lee el juego que esté abierto.","Automatisch liest das Spiel, das gerade läuft.","Automático lê o jogo que estiver aberto."));
   $("#gameSeg").querySelectorAll("[data-game]").forEach(b=>b.onclick=()=>{CFG.game=b.dataset.game==="auto"?"":b.dataset.game;saveCfg();renderGameSel();renderConn()})}
 function renderConn(){
@@ -5069,7 +5125,7 @@ function renderConn(){
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
   else if(STATUS.connected){cls="live";en=`${gameName()} live`;es=`${gameName()} en vivo`}
   else{cls="wait";en=`Waiting for ${gameName()}`;es=`Esperando ${gameName()}`}
-  c.className="conn "+cls;c.textContent=Tx(en,es);renderSettings();markGameGaps()}
+  c.className="conn "+cls;c.textContent=Tx(en,es);if(STATUS.connected&&!STATUS.demo&&!REMOTE&&GAME_BETA.has(STATUS.source))c.insertAdjacentHTML("beforeend",betaPill());renderSettings();markGameGaps();followLiveGame()}
 /* the badges of your account, next to your name wherever it shows (Admin, and Supporter unless you hid it) */
 const myBadges=me=>!me?"":(me.admin&&!asUser()?' <span class="pill acc" style="font-size:10px">Admin</span>':"")+(me.supporter&&!me.supporterHidden&&typeof supTag==="function"?" "+supTag():"");
 /* your email and account id stay hidden until you show them (one button each) */
@@ -5176,9 +5232,9 @@ var VIEW_HIST=[];
     if(s0.edge&&dx>0){const v=VIEW_HIST.pop();if(v){show.back=true;show(v);scrollTo(0,0)}return}
     if(skip(s0.el))return;const list=(GROUPS[groupOf(CUR_VIEW)]||[]),i=list.indexOf(CUR_VIEW);if(i<0)return;
     const n=list[i+(dx<0?1:-1)];if(n){show(n);scrollTo(0,0)}},{passive:true})})();
-function show(v){document.querySelectorAll("nav.tabs button").forEach(b=>{const t=b.querySelector("span");if(t&&t.textContent)b.title=t.textContent});if(v==="rig")v="settings";if(v==="admin"&&!isAdmin()){ADMIN_WANT=true;v="me"}if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW&&v!==CUR_VIEW&&!OV.on)closeOpenPanels();if(v==="fulltelemetry")v="laps";if(typeof signWallOn==="function"&&signWallOn()&&v!=="me")v="me";if(v==="strategy"&&!FEATURES.strategy)v="live";if(PCAPP&&PC_OFF.includes(v))v="live";if(v==="haptics"&&!PHONE){SET_SEC="set-general";rawSet("pw.setSec","set-general");v="settings"}if(PHONE&&["haptics","rig","cars"].includes(v))v="settings";if(v==="goals"&&!FEATURES.goals)v="calendar";if(!show.back&&VIEW_HIST&&CUR_VIEW&&CUR_VIEW!==v){VIEW_HIST.push(CUR_VIEW);if(VIEW_HIST.length>30)VIEW_HIST.shift()}show.back=false;CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));renderSubtabs(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
+function show(v){document.querySelectorAll("nav.tabs button").forEach(b=>{const t=b.querySelector("span");if(t&&t.textContent)b.title=t.textContent});if(v==="rig")v="settings";if(v==="admin"&&!isAdmin()){ADMIN_WANT=true;v="me"}if(typeof CUR_VIEW!=="undefined"&&CUR_VIEW&&v!==CUR_VIEW&&!OV.on)closeOpenPanels();if(v==="fulltelemetry")v="laps";if(typeof signWallOn==="function"&&signWallOn()&&v!=="me")v="me";if(v==="strategy"&&!FEATURES.strategy)v="live";if(PCAPP&&PC_OFF.includes(v))v="live";if(v==="haptics"&&!PHONE){SET_SEC="set-general";rawSet("pw.setSec","set-general");v="settings"}if(PHONE&&["haptics","rig","cars"].includes(v))v="settings";if(v==="goals"&&!FEATURES.goals)v="calendar";if(!show.back&&VIEW_HIST&&CUR_VIEW&&CUR_VIEW!==v){VIEW_HIST.push(CUR_VIEW);if(VIEW_HIST.length>30)VIEW_HIST.shift()}show.back=false;CUR_VIEW=v;const g=groupOf(v);tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.g===g||(b.dataset.g==="more"&&MORE_G.includes(g))));renderSubtabs(v);renderGameBar(v);$("#setBtn").setAttribute("aria-pressed",v==="settings");
   document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-"+v);if(COMPANION&&(g==="race"&&!CPLIVE.on&&!DEMOLIVE||["haptics","rig","cars"].includes(v))){document.querySelectorAll("section.view").forEach(s=>s.hidden=s.id!=="v-pc");$("#subtabs").hidden=true;renderPC();return}if(!OV.on)store.set("pw.tab",v);setWantAll(true);
-  if(!FEATURES.planner&&(v==="calendar"||v==="series"))plannerWip(v);if(v==="laps"){const sec=$("#v-"+v);if(sec&&sec.querySelector(".wip-card")){sec.classList.remove("wip");sec.querySelector(".wip-card").remove()}}if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings"){renderCodeShare();renderShare();renderNotifPanel()}if(v==="overlays")renderOverlaysTab();if(v==="settings"&&!COMPANION)renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="admin")renderAdminPage();if(v==="revbeep")renderShiftPanel();if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="leagues")renderLeagues();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="share"){renderSettings();renderCodeShare()}if(v==="cloudlaps")renderCloudLaps();if(AG_VIEWS.includes(v))renderGameBar(v);if(v==="races"||v==="share")renderWip();if(v==="settings"){renderSettings();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"){liveSlow();renderRelative()}}
+  if(!FEATURES.planner&&(v==="calendar"||v==="series"))plannerWip(v);if(v==="laps"){const sec=$("#v-"+v);if(sec&&sec.querySelector(".wip-card")){sec.classList.remove("wip");sec.querySelector(".wip-card").remove()}}if(v==="home")renderHome();if(v==="me")renderMe();if(v==="settings"&&!COMPANION)setTimeout(()=>setSection(SET_SEC),0);if(COMPANION&&v==="settings"){cpTrimSettings();setTimeout(cpTrimSettings,0);setTimeout(cpTrimSettings,400)}if(v==="laps")renderLaps();if(v==="account")renderAccount();if(v==="settings"){renderCodeShare();renderShare();renderNotifPanel()}if(v==="overlays")renderOverlaysTab();if(v==="settings"&&!COMPANION)renderRig();if(v==="calendar")renderCalendar();if(v==="haptics")renderHaptics();if(v==="coach")renderCoach();if(v==="admin")renderAdminPage();if(v==="revbeep")renderShiftPanel();if(v==="strategy")renderStrategy();if(v==="goals")renderGoals();if(v==="cars"){renderShiftPanel();renderCars()}if(v==="races")renderRaces();if(v==="community")renderCommunity();if(v==="leagues")renderLeagues();if(v==="plan")renderPlan();if(typeof applyProGate==="function")applyProGate(v);if(v==="news")renderNews();if(v==="tracks")renderTracks();if(v==="setups")renderSetups();if(v==="tyres")renderTyres();if(v==="series")renderSeries();if(v==="field")renderStandings();if(v==="data")renderVarTable();if(v==="share"){renderSettings();renderCodeShare()}if(v==="cloudlaps")renderCloudLaps();if(v==="races"||v==="share")renderWip();if(v==="settings"){renderSettings();renderAccount();renderG61Panel();renderCloudPanel();renderStartPanel();renderAbout();renderDiscordPanel();renderUpdatePanel();renderPairPanel()}if(v==="live"){liveSlow();renderRelative()}}
 /* a main tab always opens on its first sub-tab (where you were last time is not kept) */
 function openGroup(g){show(GROUPS[g][0])}
 tabs.forEach(b=>b.onclick=()=>b.dataset.g==="more"?openMore():openGroup(b.dataset.g));$("#setBtn").onclick=()=>show(CUR_VIEW==="settings"?(VIEW_HIST&&VIEW_HIST.length?VIEW_HIST[VIEW_HIST.length-1]:PHONE?"home":"live"):"settings");
@@ -5693,7 +5749,8 @@ const phaseName=k=>{const p=PHASES.find(x=>x[0]===k);return p?Tx(p[1],p[2],p[3],
    on the server (/api/turns, fractions of the lap from the line): every corner found in a lap takes the number of the
    official turn its apex is nearest to. A track nobody has numbered keeps the corners counted from the laps. */
 var TURNS={},TURNS_T={};
-function turnsFor(id,game){if(!id)return null;const k=(game||aGame()||"iracing")+":"+id;if(Date.now()-(TURNS_T[k]||0)<300000)return TURNS[k]||null;TURNS_T[k]=Date.now();
+function turnsFor(id,game){if(!id)return null;if(!game&&liveNow()&&S.WeekendInfo&&String(S.WeekendInfo.TrackID)===String(id))game=liveNow(); /* the live track is the live game's, whatever game you look at */
+  const k=(game||aGame()||"iracing")+":"+id;if(Date.now()-(TURNS_T[k]||0)<300000)return TURNS[k]||null;TURNS_T[k]=Date.now();
   jget("/api/turns?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||aGame()||"iracing")).then(j=>{const t=j&&Array.isArray(j.turns)?j.turns.filter(x=>x>=0&&x<1):[];
     const ch=JSON.stringify(t)!==JSON.stringify(TURNS[k]||[]);TURNS[k]=t;if(ch)turnsChanged()}).catch(()=>{});return TURNS[k]||null}
 function turnsChanged(){try{if(CUR_VIEW==="coach")renderCoach();else if(CUR_VIEW==="laps")renderLaps();if(RB_OPEN&&typeof RB_OPEN==="function")RB_OPEN()}catch(e){}}
@@ -5868,7 +5925,7 @@ const unMojibake=v=>fixTxt(v);
    or demo data is switched), they are loaded again, so demo and real sessions never mix */
 function cloudDemoSync(){const d=demoOn();if(CLOUD.sessions!==null&&CLOUD.demoMode!==d){CLOUD.sessions=null;CLOUD.sid="";CLOUD.bid="";CLOUD.laps=[];CLOUD.lapsB=[];CLOUD_CACHE.clear();BEST_SES={src:null,ids:new Set()};return true}return false}
 async function cloudLoadSessions(listOnly){if(CLOUD.busy)return;if(!COMPANION&&MODE==="bridge"&&!PCACC&&!demoOn()&&ME&&ME.signedIn)await pcAccLoad();if(CLOUD.busy)return;CLOUD.busy=true;CLOUD.err="";CLOUD.game=aGame();CLOUD.demoMode=demoOn();
-  try{const ss=await cloudGet("/api/sessions?limit=100&game="+aGame());CLOUD.sessions=(Array.isArray(ss)?ss:[]).filter(x=>x.laps>0).map(x=>({...x,track:unMojibake(x.track),track_config:unMojibake(x.track_config),car:unMojibake(x.car)})).concat(ADM_OPEN.filter(x=>!(Array.isArray(ss)&&ss.some(y=>y.id===x.id))));if(!listOnly&&!CLOUD.sid&&CLOUD.sessions.length){const s=CLOUD.sessions.find(x=>x.laps>=2)||CLOUD.sessions[0];CLOUD.busy=false;return cloudLoadSession(s.id)}}
+  try{const ss=await cloudGet("/api/sessions?limit=100&game="+CLOUD.game);const gm=CLOUD.game;CLOUD.sessions=(Array.isArray(ss)?ss:[]).filter(x=>x.laps>0&&(x.game||"iracing")===gm).map(x=>({...x,track:unMojibake(x.track),track_config:unMojibake(x.track_config),car:unMojibake(x.car)})).concat(ADM_OPEN.filter(x=>!(Array.isArray(ss)&&ss.some(y=>y.id===x.id))));if(!listOnly&&!CLOUD.sid&&CLOUD.sessions.length){const s=CLOUD.sessions.find(x=>x.laps>=2)||CLOUD.sessions[0];CLOUD.busy=false;return cloudLoadSession(s.id)}}
   catch(e){CLOUD.err=e.message;if(CLOUD.sessions===null)CLOUD.sessions=[]}CLOUD.busy=false;if(CUR_VIEW==="coach")renderCoach();if(CUR_VIEW==="laps")renderLaps()}
 /* one session's laps with their telemetry: one call (?traces=1), kept for the last sessions you opened;
    a newer request wins, so switching races never leaves the page loading an older one */
@@ -7363,7 +7420,7 @@ function discRatings(){const out={};Object.entries(RATINGS||{}).forEach(([k,r])=
 /* the licence as the game shows it ("B 3.21"), or its class alone from a race; nothing until a session says it */
 function licPill(v){const t=String(v||"").trim(),L=licLetter(t);if(!L)return "";const sr=(t.match(/(\d+\.\d+)/)||[])[1];
   return `<span class="lic ${L} hm-lp" title="${esc(Tx("Licence","Licencia","Lizenz","Licença"))}: ${esc(licName(L))}">${L==="P"?"Pro":L}${sr?` ${sr}`:""}</span>`}
-function licSummaryHTML(){loadRatingsSoon();const R=discRatings(),loc=locale(),all=RACES||[];
+function licSummaryHTML(){if(aGame()!=="iracing")return carsHTML();loadRatingsSoon();const R=discRatings(),loc=locale(),all=RACES||[];
   const cards=LB_DISC.map(([k])=>{const r=R[k],rs=all.filter(x=>x&&!isAIRace(x)&&(!x.game||x.game==="iracing")&&raceDisc(x.cat,x.car)===k).slice(0,5),ch=rs.reduce((a,x)=>a+(x.irChange||0),0);
     return `<div class="lb-cat hm-dc c-${k}${r?"":" none"}"${r?` title="${esc(new Date(r.at).toLocaleDateString(loc))}"`:""}><span class="lb-ic">${DISC_IC[k]}</span><span class="lb-t"><b>${esc(discName(k))}</b>${r?`<span class="hm-dv"><i>${r.ir}</i>${rs.length&&ch?`<em class="${ch>0?"good":"bad"}">${ch>0?"+":""}${ch}</em>`:""}</span>${licPill(r.lic)}`:`<small>–</small>`}</span></div>`}).join("");
   const rec=all.slice(0,10),avgInc=rec.length?rec.reduce((a,r)=>a+(r.inc||0),0)/rec.length:0,m=(l,v)=>`<div class="lap-metric"><small>${esc(l)}</small><b>${v}</b></div>`;
@@ -7389,10 +7446,16 @@ function homeLeagHTML(d){const F=LEAG_FOUND,none=`<section class="hl-sec" id="hl
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-hlleag]");if(b)show("leagues")});
 // "1 lap", "12 laps": the recent sessions' count of laps, for a race as for any session
 const hlLaps=n=>n?n+" "+esc(n===1?Tx("lap","vuelta","Runde","volta"):Tx("laps","vueltas","Runden","voltas")):"–";
+/* Le Mans Ultimate has no iRating or licences: Home shows the cars you drove there instead, with their class and sessions */
+function lmuClass(x){const c=x.cls||x.carClass||x.class||"";if(c)return String(c);const n=String(x.car||"");
+  return /\blmp2\b|oreca 07/i.test(n)?"LMP2":/\blmp3\b|ligier js p3|ginetta g61|duqueine d08/i.test(n)?"LMP3":/\bgte\b|488 gte|vantage amr|911 rsr|c8\.r/i.test(n)?"GTE":/gt3/i.test(n)?"LMGT3":/hypercar|499p|\b963\b|gr010|v-series|9x8|vanwall|scg 007|isotta|a424|valkyrie|m hybrid|bmw m4 lmdh/i.test(n)?"Hypercar":""}
+function carsHTML(){const by=new Map();(CLOUD.sessions||[]).forEach(x=>{const k=x.car||"";if(!k)return;const e=by.get(k)||{car:k,cls:lmuClass(x),n:0,laps:0,best:0,last:0};e.n++;e.laps+=+x.laps||0;if(x.best>0&&(!e.best||x.best<e.best))e.best=x.best;e.last=Math.max(e.last,x.started||0);by.set(k,e)});
+  const list=[...by.values()].sort((a,b)=>b.n-a.n||b.last-a.last).slice(0,8);
+  return`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Your cars","Tus coches","Deine Autos","Seus carros"))}</h2></div>${list.length?`<div class="hl-cars">${list.map(e=>`<button type="button" class="hl-row hl-car" data-go="cloudlaps"><span class="inf"><span class="nm"><span class="t">${esc(e.car)}</span>${e.cls?`<span class="hl-tag">${esc(e.cls)}</span>`:""}</span><span class="sub">${esc(Tx(`${e.n} sessions`,`${e.n} sesiones`,`${e.n} Sitzungen`,`${e.n} sessões`))} · ${esc(dayAgo(e.last))}</span></span><span class="inc">${hlLaps(e.laps)}</span><span class="muted">${e.best?fmtT(e.best):"–"}</span></button>`).join("")}</div>`:`<p class="note">${esc(Tx("No sessions in Le Mans Ultimate yet.","Aún no hay sesiones en Le Mans Ultimate.","Noch keine Sitzungen in Le Mans Ultimate.","Ainda não há sessões no Le Mans Ultimate."))}</p>`}</section>`}
 function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   const loc=locale(),races=(RACES||[]).filter(r=>r&&!r.partial),R=discRatings(),hr=new Date().getHours(),name=(COMPANION?CP.acc&&CP.acc.display:ME&&ME.display)||"";
   const hi=hr<6||hr>=21?Tx("Good evening","Buenas noches","Guten Abend","Boa noite"):hr<13?Tx("Good morning","Buenos días","Guten Morgen","Bom dia"):Tx("Good afternoon","Buenas tardes","Guten Tag","Boa tarde");
-  const pcOn=COMPANION?!!(typeof CPLIVE!=="undefined"&&CPLIVE.pcOnline):true,ses=STATUS.connected?Tx("iRacing in a session","iRacing en sesión","iRacing in einer Sitzung","iRacing em sessão"):Tx("iRacing not in a session","iRacing sin sesión","iRacing ohne Sitzung","iRacing sem sessão");
+  const pcOn=COMPANION?!!(typeof CPLIVE!=="undefined"&&CPLIVE.pcOnline):true,gn0=GAME_NAMES[liveNow()||(STATUS.connected?"iracing":vGame())],ses=STATUS.connected?Tx(`${gn0} in a session`,`${gn0} en sesión`,`${gn0} in einer Sitzung`,`${gn0} em sessão`):Tx(`${gn0} not in a session`,`${gn0} sin sesión`,`${gn0} ohne Sitzung`,`${gn0} sem sessão`);
   const st=COMPANION?(pcOn?`<span class="good">●</span> ${esc(Tx("Your PC online","Tu PC en línea","Dein PC online","Seu PC online"))}`:`<span class="muted">●</span> ${esc(Tx("Your PC offline","Tu PC sin conexión","Dein PC offline","Seu PC offline"))}`):`<span class="${STATUS.connected?"good":"muted"}">●</span> ${esc(ses)}`;
   let h=`<div class="hl-hi"><h1>${esc(name?hi+", "+name:hi)}${name?homeBadges():""}</h1><span>${st}</span></div>`;
   if(STATUS.connected||STATUS.demo)h+=`<button type="button" class="hm-card hm-live" id="hmLive" style="text-align:left;font:inherit;color:inherit;cursor:pointer"><i></i><div><b>${esc(STATUS.demo?Tx("Demo session running","Sesión demo en marcha","Demo-Sitzung läuft","Sessão demo em andamento"):Tx("You are on track","Estás en pista","Du bist auf der Strecke","Você está na pista"))}</b><span>${esc(Tx("Open live telemetry","Abrir la telemetría en vivo","Live-Telemetrie öffnen","Abrir a telemetria ao vivo"))}</span></div><span aria-hidden="true" style="font-size:20px;color:var(--muted)">›</span></button>`;
@@ -7415,19 +7478,19 @@ function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   if(last){const ai=isAIRace(last),ir=ai||!last.irChange?null:last.irChange,gain=(last.start||0)&&last.finish?last.start-last.finish:0,pos=(last.laps||[]).map(l=>l.p).filter(p=>p>0);
     left+=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Your last race","Tu última carrera","Dein letztes Rennen","Sua última corrida"))}</h2><span>${esc(agoTxt(last.when))}</span></div>
       <button type="button" class="hl-last" data-rid="${esc(last.id)}"><div class="hl-pos"><b>${last.dnf?`DNF<small>/${last.field||"–"}</small>`:`P${last.finish||"–"}<small>/${last.field||"–"}</small>`}</b>${gain&&!last.dnf?`<span class="${gain>0?"good":"bad"}">${gain>0?"▲":"▼"} ${Math.abs(gain)} ${esc(Tx("from","desde","von","desde"))} P${last.start}</span>`:""}</div>
-        <div class="hl-what"><div class="nm">${esc(last.track||"")}${hlKindTag("race")}${aiBadge(last)}${drinksBadge(last)}${gameBadge(last)}</div><div class="sub"><i style="background:${HL_DC[hlRaceDisc(last)]||"var(--muted)"}"></i>${esc(last.car||"")}</div>
+        <div class="hl-what"><div class="nm">${esc(last.track||"")}${hlKindTag("race")}${aiBadge(last)}${drinksBadge(last)}${aGame()==="iracing"?gameBadge(last):""}</div><div class="sub"><i style="background:${HL_DC[hlRaceDisc(last)]||"var(--muted)"}"></i>${esc(last.car||"")}</div>
           ${pos.length>1?`<svg viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(pos,200,34,true)}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`:""}</div>
-        <div class="hl-st"><span>iRating</span><span>${esc(Tx("Inc.","Incid.","Vorf.","Incid."))}</span><span>${esc(Tx("Best","Mejor","Beste","Melhor"))}</span><b class="${ir==null?"":ir>=0?"good":"bad"}">${ir==null?"–":hlSg(ir)}</b><b>${last.inc??"–"}x</b><b>${fmtT(last.best)}</b></div></button>
+        ${(last.game||"iracing")!=="iracing"?`<div class="hl-st" style="grid-template-columns:repeat(2,auto)"><span>${esc(Tx("Inc.","Incid.","Vorf.","Incid."))}</span><span>${esc(Tx("Best","Mejor","Beste","Melhor"))}</span><b>`:`<div class="hl-st"><span>iRating</span><span>${esc(Tx("Inc.","Incid.","Vorf.","Incid."))}</span><span>${esc(Tx("Best","Mejor","Beste","Melhor"))}</span><b class="${ir==null?"":ir>=0?"good":"bad"}">${ir==null?"–":hlSg(ir)}</b><b>`}${last.inc??"–"}x</b><b>${fmtT(last.best)}</b></div></button>
       <div class="hl-links"><button type="button" class="cl-link" data-rid="${esc(last.id)}">${esc(Tx("Race summary","Resumen de carrera","Rennzusammenfassung","Resumo da corrida"))}</button><button type="button" class="cl-link" id="hlLaps">${esc(Tx("Analyse my laps","Analizar mis vueltas","Meine Runden analysieren","Analisar minhas voltas"))}</button></div></section>`}
   // recent sessions: the races and the other sessions (practice, qualifying, test drives) together, newest first
   const sx=(CLOUD.sessions||[]).filter(x=>sessKindOf(x)!=="race"),rows=[...races.slice(last?1:0).map(r=>({t:r.when,r})),...sx.map(x=>({t:x.started,x}))].sort((a,b)=>b.t-a.t).slice(0,6);
   if(rows.length)left+=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Recent sessions","Sesiones recientes","Letzte Sitzungen","Sessões recentes"))}</h2><button type="button" class="cl-link" data-go="cloudlaps">${esc(Tx("See all","Ver todas","Alle","Ver todas"))}</button></div><div class="hl-rows">${rows.map(({r,x})=>{
     if(r){const ir=isAIRace(r)||!r.irChange?null:r.irChange;return`<button type="button" class="hl-row" data-rid="${esc(r.id)}"><b${r.dnf?' class="bad"':""}>${r.dnf?"DNF":"P"+(r.finish||"–")}</b><span class="inf"><span class="nm"><span class="t">${esc(r.track||"")}</span>${hlKindTag("race")}${aiBadge(r)}${drinksBadge(r)}</span><span class="sub"><i style="background:${HL_DC[hlRaceDisc(r)]||"var(--muted)"}"></i>${esc(r.car||"")} · ${esc(agoTxt(r.when))}${ir==null?"":` · <b class="${ir>=0?"good":"bad"}">${hlSg(ir)} iR</b>`}</span></span><span class="inc">${hlLaps((r.laps||[]).length)}</span><span class="muted">${fmtT(r.best)}</span></button>`}
-    return`<button type="button" class="hl-row" data-ses="${esc(x.id)}"><b class="muted">–</b><span class="inf"><span class="nm"><span class="t">${esc(x.track||"")}</span>${hlKindTag(sessKindOf(x)||"prac")}${sessIsAI(x)?aiBadge({ai:1}):""}${sessDrkPill(x)}${gameBadge(x)}</span><span class="sub"><i style="background:${HL_DC[x.cat]||"var(--muted)"}"></i>${esc(x.car||"")} · ${esc(agoTxt(x.started))}</span></span><span class="inc">${hlLaps(x.laps||0)}</span><span class="muted">${fmtT(x.best)}</span></button>`}).join("")}</div></section>`;
+    return`<button type="button" class="hl-row" data-ses="${esc(x.id)}"><b class="muted">–</b><span class="inf"><span class="nm"><span class="t">${esc(x.track||"")}</span>${hlKindTag(sessKindOf(x)||"prac")}${sessIsAI(x)?aiBadge({ai:1}):""}${sessDrkPill(x)}${aGame()==="iracing"?gameBadge(x):""}</span><span class="sub"><i style="background:${HL_DC[x.cat]||"var(--muted)"}"></i>${esc(x.car||"")} · ${esc(agoTxt(x.started))}</span></span><span class="inc">${hlLaps(x.laps||0)}</span><span class="muted">${fmtT(x.best)}</span></button>`}).join("")}</div></section>`;
   // each discipline's licence; the chosen one draws its iRating over your races
   const lic=LB_DISC.map(([k])=>{const r=R[k],c=chgOf(k);return`<button type="button" class="hl-lic${HOME.dk===k?" on":""}${r?"":" none"}" data-dk="${k}"${r?"":" disabled"}><span><i style="background:${HL_DC[k]}"></i>${esc(discName(k))}</span><span>${r&&r.lic?licPill(r.lic):""}</span><b>${r?r.ir:"–"}</b><em class="${c>0?"good":c<0?"bad":"muted"}">${r&&c?hlSg(c):""}</em></button>`}).join("");
   const hist=HOME.dk?real.filter(x=>hlRaceDisc(x)===HOME.dk&&x.ir>1).slice(0,30).reverse().map(x=>x.ir+(x.irChange||0)):[];if(HOME.dk&&R[HOME.dk]&&(!hist.length||hist[hist.length-1]!==R[HOME.dk].ir))hist.push(R[HOME.dk].ir);
-  let right=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
+  let right=aGame()!=="iracing"?carsHTML():`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
   const by=homeActivity(),cal=calGrid(k=>{const v=by.get(k);return v?v.ses.length+v.races.length:0},true);
   right+=homeLeagHTML(main);
   right+=`<section class="hl-sec hl-days"><div class="cl-h"><h2>${esc(Tx("Days you drove","Días que has corrido","Gefahrene Tage","Dias em que correu"))}</h2><span>${cal.driven} ${esc(Tx("days in 6 months","días en 6 meses","Tage in 6 Monaten","dias em 6 meses"))}</span></div>${cal.html}</section>`;
@@ -7617,38 +7680,50 @@ const T2=(en,es,de,pt)=>Tx(en,es,de,pt);
 async function login2fa(){return uiPanel(`<h2 style="margin:6px 0 4px">${esc(T2("Two-step sign-in","Inicio de sesión en dos pasos","Zweistufige Anmeldung","Login em duas etapas"))}</h2><p>${esc(T2("Type the 6-digit code of your authenticator app, or one of your recovery codes.","Escribe el código de 6 dígitos de tu app de autenticación, o uno de tus códigos de recuperación.","Gib den 6-stelligen Code deiner Authenticator-App ein, oder einen deiner Wiederherstellungscodes.","Digite o código de 6 dígitos do seu app autenticador, ou um dos seus códigos de recuperação."))}</p>
     <form id="f2" class="me-form"><input type="text" id="f2c" inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" required style="font:600 22px var(--f-mono);letter-spacing:.2em;text-align:center"><p class="note err" id="f2e" style="margin:0"></p><div class="uidlg-b"><button type="button" class="btn" id="f2x">${esc(Tx("Cancel","Cancelar","Abbrechen","Cancelar"))}</button><button class="btn primary" type="submit">${esc(Tx("Sign in","Entrar"))}</button></div></form>`,(d,done)=>{
   const f=d.querySelector("#f2"),e=d.querySelector("#f2e");d.querySelector("#f2x").onclick=()=>done(null);d.querySelector("#f2c").focus();
-  f.onsubmit=async ev=>{ev.preventDefault();e.textContent=Tx("Checking…","Comprobando…");try{const r=await jpost("/api/sync",{action:"login2fa",code:d.querySelector("#f2c").value});done(true);if(r&&(r.needKey||r.new)){await steamGot(r);return}ME=r;toast(Tx("Signed in","Sesión iniciada"));renderMe()}catch(x){e.textContent=x.message}}})}
+  f.onsubmit=async ev=>{ev.preventDefault();e.textContent=Tx("Checking…","Comprobando…");try{const r=await jpost("/api/sync",{action:"login2fa",code:d.querySelector("#f2c").value});done(true);if(r&&(r.needKey||r.new)){await steamGot(r,CP_OAPROV);return}ME=r;toast(Tx("Signed in","Sesión iniciada"));renderMe()}catch(x){e.textContent=x.message}}})}
 /* Sign in with Steam: the button on the sign-in screen (first on a PC installed from Steam). The web goes to Steam and comes back
    with ?steamLogin=…; the PC asks the agent, which opens the browser, and polls it every 2 s (up to 5 minutes) until it is done */
-let STEAM_NEW=null,STEAM_WAIT=null; // the account Steam has none for yet (persona, sid); the PC's sign-in under way (state, url, until)
+let STEAM_NEW=null,STEAM_WAIT=null; // the account Steam (or Discord: prov) has none for yet (persona, sid, prov); the PC's sign-in under way (prov, state, url, until)
 const STEAM_IN=()=>Tx("Sign in with Steam","Iniciar sesión con Steam","Sign in with Steam","Entrar com a Steam");
-function steamBtnHTML(){return `<div class="me-steam${steamApp()?" first":""}"><button type="button" class="btn${steamApp()?" primary":""}" id="mlSteam"${STEAM_WAIT?" disabled":""}>${esc(STEAM_IN())}</button><p class="note" id="mlSteamW" style="margin:0">${steamWaitInner()}</p></div>`}
+const DISC_IN=()=>Tx("Sign in with Discord","Iniciar sesión con Discord","Sign in with Discord","Entrar com o Discord");
+const OA_GO={steam:()=>Tx("Continue with Steam","Continuar con Steam","Weiter mit Steam","Continuar com a Steam"),discord:()=>Tx("Continue with Discord","Continuar con Discord","Weiter mit Discord","Continuar com o Discord")};
+let DISC_OFF=false; // the server has no Discord sign-in set up (503): its button goes
+const DC_IC=`<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M19.6 5.4A17 17 0 0 0 15.4 4l-.5 1a15.6 15.6 0 0 0-5.8 0l-.5-1a17 17 0 0 0-4.2 1.4C1.7 9.4 1 13.3 1.3 17.1a17 17 0 0 0 5.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.8l.4-.3a12.1 12.1 0 0 0 11.4 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.8a17 17 0 0 0 5.2-2.6c.4-4.4-.7-8.3-3.1-11.7ZM8.5 14.8c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Zm7 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1Z"/></svg>`;
+// the sign-in screen's outside sign-ins: Steam first (and on top) under the Steam build, else both side by side under the form
+function steamBtnHTML(){const st=steamApp();return `<div class="me-steam${st?" first":" pair"}"><div class="me-oab"><button type="button" class="btn${st?" primary":""}" id="mlSteam"${STEAM_WAIT?" disabled":""}>${esc(OA_GO.steam())}</button>${DISC_OFF?"":`<button type="button" class="btn dc" id="mlDisc"${STEAM_WAIT?" disabled":""}>${DC_IC}${esc(OA_GO.discord())}</button>`}</div><p class="note" id="mlSteamW" style="margin:0">${steamWaitInner()}</p></div>`}
 function steamWaitInner(){if(!STEAM_WAIT)return"";return `${esc(Tx("Finish in the browser, then come back here.","Termina en el navegador y vuelve aquí.","Finish in the browser, then come back here.","Termine no navegador e volte aqui."))} <a href="#" id="mlSteamAgain">${esc(Tx("Open it again","Abrirlo otra vez","Open it again","Abrir de novo"))}</a> · <a href="#" id="mlSteamStop">${esc(Tx("Cancel","Cancelar","Abbrechen","Cancelar"))}</a>`}
-function steamWaitWire(){const w=$("#mlSteamW");if(!w)return;w.innerHTML=steamWaitInner();const b=$("#mlSteam");if(b)b.disabled=!!STEAM_WAIT;const a=$("#mlSteamAgain");if(a)a.onclick=e=>{e.preventDefault();if(STEAM_WAIT)openOutside(STEAM_WAIT.url)};const x=$("#mlSteamStop");if(x)x.onclick=e=>{e.preventDefault();STEAM_WAIT=null;steamWaitWire()}}
-async function steamLoginGo(){try{const r=await jpost("/api/sync",{action:"steamLoginStart"});if(!r||!r.url)throw new Error("?");
+function steamWaitWire(){const w=$("#mlSteamW");if(!w)return;w.innerHTML=steamWaitInner();["#mlSteam","#mlDisc"].forEach(k=>{const b=$(k);if(b)b.disabled=!!STEAM_WAIT});const a=$("#mlSteamAgain");if(a)a.onclick=e=>{e.preventDefault();if(STEAM_WAIT)openOutside(STEAM_WAIT.url)};const x=$("#mlSteamStop");if(x)x.onclick=e=>{e.preventDefault();STEAM_WAIT=null;steamWaitWire()}}
+// prov: "steam" or "discord" (the agent's and the web's actions are steamLogin… and discordLogin…)
+async function steamLoginGo(prov){prov=prov==="discord"?"discord":"steam";const lbl=prov==="discord"?"Discord":"Steam";try{const r=await jpost("/api/sync",{action:prov+"LoginStart",device:COMPANION?cpDevice():undefined});if(!r||!r.url)throw new Error("?");
     if(COMPANION){location.href=r.url;return}
     // the PC: the agent opened the browser and holds the sign-in; the page asks it how it goes
-    const w=STEAM_WAIT={state:r.state,url:r.url,until:Date.now()+5*60e3};steamWaitWire();
+    if(!r.opened)openOutside(r.url);
+    const w=STEAM_WAIT={prov,state:r.state,url:r.url,until:Date.now()+5*60e3};steamWaitWire();
     while(STEAM_WAIT===w&&Date.now()<w.until){await new Promise(s=>setTimeout(s,2000));if(STEAM_WAIT!==w)return;
-      let p;try{p=await jpost("/api/sync",{action:"steamLoginPoll",state:w.state,lang:LANG})}catch(e){STEAM_WAIT=null;steamWaitWire();toast(e.message);return}
-      if(p&&!p.pending){STEAM_WAIT=null;steamWaitWire();await steamGot(p);return}}
-    if(STEAM_WAIT===w){STEAM_WAIT=null;steamWaitWire();toast(Tx("Steam did not answer in time. Try again.","Steam no respondió a tiempo. Inténtalo de nuevo.","Steam did not answer in time. Try again.","A Steam não respondeu a tempo. Tente de novo."))}}
-  catch(e){toast(e.message)}}
+      let p;try{p=await jpost("/api/sync",{action:prov+"LoginPoll",state:w.state,lang:LANG})}catch(e){STEAM_WAIT=null;steamWaitWire();toast(oaErr(e.message));return}
+      if(p&&!p.pending&&p.status!=="wait"){STEAM_WAIT=null;steamWaitWire();await steamGot(p,prov);return}}
+    if(STEAM_WAIT===w){STEAM_WAIT=null;steamWaitWire();toast(Tx(`${lbl} did not answer in time. Try again.`,`${lbl} no respondió a tiempo. Inténtalo de nuevo.`,`${lbl} did not answer in time. Try again.`,`${lbl} não respondeu a tempo. Tente de novo.`))}}
+  catch(e){if(prov==="discord"&&/not set up/i.test(e.message)){DISC_OFF=true;const b=$("#mlDisc");if(b)b.remove();toast(Tx("Sign in with Discord is not available yet.","Iniciar sesión con Discord aún no está disponible.","Sign in with Discord is not available yet.","Entrar com o Discord ainda não está disponível."));return}
+    toast(/too many/i.test(e.message)?Tx("Too many tries. Wait 15 minutes.","Demasiados intentos. Espera 15 minutos.","Too many tries. Wait 15 minutes.","Tentativas demais. Espere 15 minutos."):oaErr(e.message))}}
+// a Discord linked only with the bot's /link signs in nowhere: the password, then Account → Discord links it again
+const RELINK_TXT=()=>Tx("This Discord was linked with the bot. Sign in with your password and link Discord again in Account.","Este Discord se vinculó con el bot. Entra con tu contraseña y vuelve a vincular Discord en Cuenta.","This Discord was linked with the bot. Sign in with your password and link Discord again in Account.","Este Discord foi vinculado pelo bot. Entre com sua senha e vincule o Discord de novo em Conta.");
+const oaErr=m=>/linked with the bot/i.test(m||"")?RELINK_TXT():m;
 // what the sign-in came back with (the agent's answers and the web's): the 2FA code next, no account yet (new: the form creates
 // one with sid, linked at once), the password once (needKey), or signed in
-async function steamGot(r){if(!r)return;
-  if(r.twoFactor){await login2fa();return}
-  if(r.new){STEAM_NEW={persona:String(r.persona||"").slice(0,32),sid:String(r.sid||"")};ME_TAB="register";show("me");await renderMe();return}
-  if(r.needKey){await steamKeyAsk(r.email||"");return}
+async function steamGot(r,prov){if(!r)return;prov=r.discord||prov==="discord"?"discord":"steam";
+  if(r.twoFactor){CP_OAPROV=prov;await login2fa();return}
+  if(r.new){STEAM_NEW={persona:String(r.persona||r.name||"").slice(0,32),sid:String(r.sid||""),prov};ME_TAB="register";show("me");await renderMe();return}
+  if(r.needKey){await steamKeyAsk(r.email||"",prov);return}
   ME=r;toast(Tx("Signed in","Sesión iniciada","Angemeldet","Sessão iniciada"));renderMe()}
+let CP_OAPROV="steam"; // which outside sign-in the 2FA step goes on with (for the title of the password step)
 // the password (with the email of the account) once on this device, in the app's own window; a wrong one asks again
-function steamKeyAsk(email){return uiPanel(`<h2 style="margin:6px 0 4px">${esc(STEAM_IN())}</h2><p>${esc(Tx("Type your password once on this device.","Escribe tu contraseña una vez en este dispositivo.","Gib dein Passwort einmal auf diesem Gerät ein.","Digite sua senha uma vez neste dispositivo."))}</p>
+function steamKeyAsk(email,prov){prov=prov||CP_OAPROV;return uiPanel(`<h2 style="margin:6px 0 4px">${esc(prov==="discord"?DISC_IN():STEAM_IN())}</h2><p>${esc(Tx("Type your password once on this device.","Escribe tu contraseña una vez en este dispositivo.","Gib dein Passwort einmal auf diesem Gerät ein.","Digite sua senha uma vez neste dispositivo."))}</p>
     <form id="skf" class="me-form"><input type="email" id="ske" required autocomplete="username" placeholder="Email" value="${esc(email||"")}"><input type="password" id="skp" required autocomplete="current-password" placeholder="${esc(Tx("Password","Contraseña","Passwort","Senha"))}"><p class="note err" id="skerr" style="margin:0"></p>
     <div class="uidlg-b"><button type="button" class="btn" id="skx">${esc(Tx("Cancel","Cancelar","Abbrechen","Cancelar"))}</button><button class="btn primary" type="submit">${esc(Tx("Sign in","Entrar","Anmelden","Entrar"))}</button></div></form>`,(d,done)=>{
   const f=d.querySelector("#skf"),er=d.querySelector("#skerr"),busy=on=>f.querySelectorAll("button,input").forEach(x=>x.disabled=on);
-  d.querySelector("#skx").onclick=()=>{jpost("/api/sync",{action:"steamLoginCancel"}).catch(()=>{});done(null)};d.querySelector(email?"#skp":"#ske").focus();
+  d.querySelector("#skx").onclick=()=>{jpost("/api/sync",{action:prov+"LoginCancel"}).catch(()=>{});done(null)};d.querySelector(email?"#skp":"#ske").focus();
   f.onsubmit=async e=>{e.preventDefault();er.textContent=Tx("Checking…","Comprobando…","Prüfe…","Verificando…");busy(true);
-    try{const r=await jpost("/api/sync",{action:"loginSteamKey",email:d.querySelector("#ske").value,password:d.querySelector("#skp").value});done(true);ME=r;toast(Tx("Signed in","Sesión iniciada","Angemeldet","Sessão iniciada"));renderMe()}
+    try{const r=await jpost("/api/sync",{action:prov==="discord"?"discordLoginKey":"loginSteamKey",email:d.querySelector("#ske").value,password:d.querySelector("#skp").value});done(true);ME=r;toast(Tx("Signed in","Sesión iniciada","Angemeldet","Sessão iniciada"));renderMe()}
     catch(x){busy(false);er.textContent=x.message;const p=d.querySelector("#skp");p.value="";p.focus()}}},true)}
 // the password first, for what adds or removes a way into the account (Account → Steam)
 function steamPassAsk(title){return uiPanel(`<h2 style="margin:6px 0 4px">${esc(title)}</h2><form id="spf" class="me-form"><input type="password" id="spp" required autocomplete="current-password" placeholder="${esc(Tx("Password","Contraseña","Passwort","Senha"))}"><div class="uidlg-b"><button type="button" class="btn" id="spx">${esc(Tx("Cancel","Cancelar","Abbrechen","Cancelar"))}</button><button class="btn primary" type="submit">${esc(Tx("Continue","Continuar","Weiter","Continuar"))}</button></div></form>`,(d,done)=>{d.querySelector("#spx").onclick=()=>done(null);d.querySelector("#spp").focus();d.querySelector("#spf").onsubmit=e=>{e.preventDefault();done(d.querySelector("#spp").value)}})}
@@ -7693,7 +7768,7 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
       <button class="btn${steamApp()?"":" primary"}" type="submit">${esc(Tx("Sign in","Entrar"))}</button><p class="note err" id="mlErr" style="margin:0"></p><p class="note" style="margin:0"><a href="#" class="acc" id="mlForgot">${esc(Tx("Forgot your password?","¿Olvidaste tu contraseña?","Passwort vergessen?","Esqueceu a senha?"))}</a></p>
       ${dev?`<p class="note" style="margin:0">${esc(dev)}</p>`:""}</form>${steamApp()?"":steamBtnHTML()}
       <div class="me-switch"><span>${esc(Tx("No account yet?","¿No tienes cuenta?","Noch kein Konto?","Ainda não tem conta?"))}</span><button type="button" class="btn" id="meToReg">${esc(Tx("Create a free account","Crear una cuenta gratis","Kostenloses Konto erstellen","Criar uma conta grátis"))}</button></div></div>`;
-    const register=`<div class="panel me-auth"><h2>${esc(Tx("Create an account","Crear una cuenta"))}</h2>${STEAM_NEW?`<p class="callout" style="margin:0 0 10px">${esc(Tx("No Pitlane HQ account with this Steam yet. Create it here and it is linked.","Aún no hay cuenta de Pitlane HQ con este Steam. Créala aquí y queda vinculada.","No Pitlane HQ account with this Steam yet. Create it here and it is linked.","Ainda não há conta do Pitlane HQ com esta Steam. Crie a sua aqui e ela fica vinculada."))}</p>`:""}<form class="me-form" id="meReg" autocomplete="on">
+    const register=`<div class="panel me-auth"><h2>${esc(Tx("Create an account","Crear una cuenta"))}</h2>${STEAM_NEW?`<p class="callout" style="margin:0 0 10px">${esc(STEAM_NEW.prov==="discord"?Tx("No Pitlane HQ account with this Discord yet. Create it here and it is linked.","Aún no hay cuenta de Pitlane HQ con este Discord. Créala aquí y queda vinculada.","No Pitlane HQ account with this Discord yet. Create it here and it is linked.","Ainda não há conta do Pitlane HQ com este Discord. Crie a sua aqui e ela fica vinculada."):Tx("No Pitlane HQ account with this Steam yet. Create it here and it is linked.","Aún no hay cuenta de Pitlane HQ con este Steam. Créala aquí y queda vinculada.","No Pitlane HQ account with this Steam yet. Create it here and it is linked.","Ainda não há conta do Pitlane HQ com esta Steam. Crie a sua aqui e ela fica vinculada."))}</p>`:""}<form class="me-form" id="meReg" autocomplete="on">
       <label><span class="label">Email</span><input type="email" id="mrE" required autocomplete="email"></label>
       <label><span class="label">${esc(Tx("Password (10+ characters)","Contraseña (10+ caracteres)"))}</span><input type="password" id="mrP" required minlength="10" autocomplete="new-password"></label><div class="me-strength"><b id="mrS" style="width:0"></b></div>
       <label><span class="label">${esc(Tx("Repeat the password","Repite la contraseña"))}</span><input type="password" id="mrP2" required minlength="10" autocomplete="new-password"></label>
@@ -7707,13 +7782,13 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
     if($("#meReg")){wireNameChoice("mr");$("#mrP").oninput=e=>{const sc=pwScore(e.target.value),b=$("#mrS");b.style.width=(sc/4*100)+"%";b.style.background=["var(--bad)","var(--bad)","var(--warn)","var(--good)","var(--good)"][sc]};
     $("#meReg").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,er=$("#mrErr");er.textContent="";if($("#mrP").value!==$("#mrP2").value){er.textContent=Tx("The passwords do not match","Las contraseñas no coinciden");return}
       if(a.demo){toast(Tx("Demo: nothing is sent","Demo: no se envía nada"));return}busy(f,true);er.textContent=Tx("Creating the keys…","Creando las claves…");
-      try{ME=await jpost("/api/sync",{action:"register",email:$("#mrE").value,password:$("#mrP").value,nameKind:nameKindOf("mr"),nick:($("#mrNick")||{}).value||"",lang:LANG,sid:STEAM_NEW?STEAM_NEW.sid:""});STEAM_NEW=null;toast(Tx("Account created","Cuenta creada"));renderMe()}catch(x){busy(f,false);if(VERIFY_RE.test(x.message)){STEAM_NEW=null;const em=$("#mrE").value,pw=$("#mrP").value;er.textContent="";const ok=await verifyPrompt(em,async()=>{ME=await jpost("/api/sync",{action:"login",email:em,password:pw,lang:LANG})});if(ok){toast(Tx("Signed in","Sesión iniciada"));renderMe()}return}er.textContent=x.message}}}
+      try{ME=await jpost("/api/sync",{action:"register",email:$("#mrE").value,password:$("#mrP").value,nameKind:nameKindOf("mr"),nick:($("#mrNick")||{}).value||"",lang:LANG,sid:STEAM_NEW&&STEAM_NEW.prov!=="discord"?STEAM_NEW.sid:"",discordSid:STEAM_NEW&&STEAM_NEW.prov==="discord"?STEAM_NEW.sid:""});STEAM_NEW=null;toast(Tx("Account created","Cuenta creada"));renderMe()}catch(x){busy(f,false);if(VERIFY_RE.test(x.message)){STEAM_NEW=null;const em=$("#mrE").value,pw=$("#mrP").value;er.textContent="";const ok=await verifyPrompt(em,async()=>{ME=await jpost("/api/sync",{action:"login",email:em,password:pw,lang:LANG})});if(ok){toast(Tx("Signed in","Sesión iniciada"));renderMe()}return}er.textContent=/already linked to another account/i.test(x.message)?(/discord/i.test(x.message)?Tx("This Discord account is already linked to another account.","Esta cuenta de Discord ya está vinculada a otra cuenta.","This Discord account is already linked to another account.","Esta conta do Discord já está vinculada a outra conta."):Tx("This Steam account is already linked to another account.","Esta cuenta de Steam ya está vinculada a otra cuenta.","This Steam account is already linked to another account.","Esta conta da Steam já está vinculada a outra conta.")):x.message}}}
     {const fg=$("#mlForgot");if(fg)fg.onclick=e=>{e.preventDefault();openForgot()}}if($("#meLog"))$("#meLog").onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,er=$("#mlErr");er.textContent="";if(a.demo){toast(Tx("Demo: nothing is sent","Demo: no se envía nada"));return}busy(f,true);er.textContent=Tx("Checking…","Comprobando…");
       try{const r=await jpost("/api/sync",{action:"login",email:$("#mlE").value,password:$("#mlP").value,lang:LANG});if(r&&r.twoFactor){busy(f,false);er.textContent="";await login2fa();return}ME=r;toast(Tx("Signed in","Sesión iniciada"));renderMe()}catch(x){busy(f,false);if(VERIFY_RE.test(x.message)){const em=$("#mlE").value,pw=$("#mlP").value;er.textContent="";const ok=await verifyPrompt(em,async()=>{const r=await jpost("/api/sync",{action:"login",email:em,password:pw,lang:LANG});if(r&&r.twoFactor){await login2fa();return}ME=r});if(ok){toast(Tx("Signed in","Sesión iniciada"));renderMe()}return}
         // no account with this email: say it and offer to create it with the same email
         if(/no account with this email/i.test(x.message)){const em=$("#mlE").value;er.innerHTML=`${esc(Tx("There is no account with this email.","No hay ninguna cuenta con este email.","Mit dieser E-Mail gibt es kein Konto.","Não há nenhuma conta com este email."))} <button type="button" class="btn small primary" id="mlToReg">${esc(Tx("Create it","Crearla","Erstellen","Criar"))}</button>`;$("#mlToReg").onclick=()=>{const t=$("#meToReg");if(t)t.click();setTimeout(()=>{const i=$("#mrE");if(i){i.value=em;const p=$("#mrP")||document.querySelector("#meReg input[type=password]");if(p)p.focus()}},50)};return}
         er.textContent=x.message}};
-    {const sb=$("#mlSteam");if(sb)sb.onclick=()=>{if(a.demo){toast(Tx("Demo: nothing is sent","Demo: no se envía nada"));return}steamLoginGo()};steamWaitWire()}
+    [["#mlSteam","steam"],["#mlDisc","discord"]].forEach(([k,pv])=>{const sb=$(k);if(sb)sb.onclick=()=>{if(a.demo){toast(Tx("Demo: nothing is sent","Demo: no se envía nada"));return}steamLoginGo(pv)}});steamWaitWire();
     return}
   // the welcome: the first time this account signs in on this device, until Continue or until you go elsewhere
 
@@ -7756,18 +7831,37 @@ async function loadDiscord(){const b=$("#meDiscB");if(!b)return;let d;try{d=awai
   const note=t=>`<p class="note" style="margin:6px 0 0">${esc(t)}</p>`;
   if(!d.linked){b.innerHTML=`<p class="note" style="margin-top:0">${esc(Tx("Link your Discord account: the Pitlane HQ bot knows you there, and other drivers can find you if you want.","Vincula tu cuenta de Discord: el bot de Pitlane HQ te reconoce allí, y otros pilotos pueden encontrarte si quieres.","Link your Discord account: the Pitlane HQ bot knows you there, and other drivers can find you if you want.","Vincule a sua conta do Discord: o bot do Pitlane HQ reconhece você lá, e outros pilotos podem encontrar você se quiser."))}</p>
       ${d.oauth?`<button type="button" class="btn small primary" id="meDiscGo">${esc(Tx("Link Discord","Vincular Discord","Link Discord","Vincular Discord"))}</button>`:note(Tx("In Discord, write /link to the Pitlane HQ bot.","En Discord, escribe /link al bot de Pitlane HQ.","In Discord, write /link to the Pitlane HQ bot.","No Discord, escreva /link para o bot do Pitlane HQ."))}`;
-    const go=$("#meDiscGo");if(go)go.onclick=async()=>{go.disabled=true;try{const r=await jpost("/api/sync",{action:"discordStart"});if(!r.url)throw new Error("?");
-      // the web goes to Discord and comes back; the PC opens it in the browser and reads it again when its window is back
-      if(COMPANION)location.href=r.url;else{window.open(r.url,"_blank");toast(Tx("Finish in the browser, then come back here.","Termina en el navegador y vuelve aquí.","Finish in the browser, then come back here.","Termine no navegador e volte aqui."))}}catch(e){toast(e.message)}go.disabled=false};return}
+    discWireGo();return}
   b.innerHTML=`<p style="margin:0 0 8px"><b>${esc(d.handle?"@"+d.handle:Tx("Linked","Vinculado","Linked","Vinculado"))}</b> <span class="pill good" style="font-size:10px">${esc(Tx("linked","vinculado","linked","vinculado"))}</span></p>
+    ${!d.login&&d.oauth?`<p class="note" style="margin:0 0 8px">${esc(Tx("Link it again to sign in with Discord.","Vincúlalo otra vez para iniciar sesión con Discord.","Link it again to sign in with Discord.","Vincule de novo para entrar com o Discord."))}</p><div class="me-row" style="margin-bottom:8px"><button type="button" class="btn small primary" id="meDiscGo">${esc(Tx("Link again","Vincular otra vez","Link again","Vincular de novo"))}</button></div>`:""}
     <div class="me-row">${chk("meDiscShow",d.shown,esc(Tx("Show my Discord on my profile","Mostrar mi Discord en mi perfil","Show my Discord on my profile","Mostrar meu Discord no meu perfil")))}</div>
     ${note(Tx("Other drivers see it on your profile and can find you on Discord.","Los demás pilotos lo ven en tu perfil y pueden encontrarte en Discord.","Other drivers see it on your profile and can find you on Discord.","Os outros pilotos veem no seu perfil e podem encontrar você no Discord."))}
     <div class="me-row" style="margin-top:8px"><button type="button" class="btn small" id="meDiscOff">${esc(Tx("Unlink","Desvincular","Unlink","Desvincular"))}</button></div>`;
+  discWireGo();
   $("#meDiscShow").onclick=async()=>{try{await jpost("/api/sync",{action:"discordShow",on:!d.shown})}catch(e){toast(e.message)}loadDiscord()};
-  $("#meDiscOff").onclick=async()=>{if(!(await uiConfirm(Tx("Unlink your Discord account?","¿Desvincular tu cuenta de Discord?","Unlink your Discord account?","Desvincular a sua conta do Discord?"))))return;try{await jpost("/api/sync",{action:"discordUnlink"})}catch(e){toast(e.message)}loadDiscord()}}
-// back from Discord's sign-in (pitlanehq.app/?discordLinked=1|0): say how it went; the PC reads it again when its window comes back
-(()=>{const q=new URLSearchParams(location.search),v=q.get("discordLinked");if(v===null)return;q.delete("discordLinked");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash);
-  setTimeout(()=>toast(v==="1"?Tx("Discord linked","Discord vinculado","Discord linked","Discord vinculado"):Tx("Discord was not linked: try again.","No se vinculó Discord: inténtalo de nuevo.","Discord was not linked: try again.","O Discord não foi vinculado: tente de novo.")),1200)})();
+  $("#meDiscOff").onclick=async()=>{const pw=await steamPassAsk(Tx("Unlink your Discord account?","¿Desvincular tu cuenta de Discord?","Unlink your Discord account?","Desvincular a sua conta do Discord?"));if(!pw)return;try{await jpost("/api/sync",{action:"discordUnlink",password:pw})}catch(e){toast(e.message)}loadDiscord()}}
+// linking takes the password first; the web goes to Discord and comes back (?discordLink=<grant>), the PC's agent opened it in the browser
+function discWireGo(){const go=$("#meDiscGo");if(!go)return;go.onclick=async()=>{const pw=await steamPassAsk(Tx("Link Discord","Vincular Discord","Link Discord","Vincular Discord"));if(!pw)return;go.disabled=true;
+  try{const r=await jpost("/api/sync",{action:"discordStart",password:pw});if(!r||!r.url)throw new Error("?");
+    if(COMPANION){location.href=r.url;return}if(!r.opened)openOutside(r.url);toast(Tx("Finish in the browser, then come back here.","Termina en el navegador y vuelve aquí.","Finish in the browser, then come back here.","Termine no navegador e volte aqui."))}catch(e){toast(e.message)}go.disabled=false}}
+// back from Discord on the web, like Steam's: ?discordLogin=<grant> signs in, ?discordLogin=0 failed (&new=1&sid=&name= when that
+// Discord has no account yet, &relink=1 when it was linked only with the bot), ?discordLogin=pc when the PC started it, ?discordLink=<grant>
+// from Account → Discord, ?discordLinked=1|0|taken. The address is cleaned at once
+(()=>{const q=new URLSearchParams(location.search);if(!q.has("discordLogin")&&!q.has("discordLinked")&&!q.has("discordLink"))return;
+  const g=q.get("discordLogin"),isNew=q.get("new")==="1",relink=q.get("relink")==="1",name=q.get("name")||"",sid=q.get("sid")||"",link=q.get("discordLink")||"",linked=q.get("discordLinked");oauthBack("discord",q.get("state"));
+  ["discordLogin","new","relink","name","sid","discordLink","discordLinked","state"].forEach(k=>q.delete(k));history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash);
+  const TAKEN=()=>Tx("This Discord account is already linked to another account.","Esta cuenta de Discord ya está vinculada a otra cuenta.","This Discord account is already linked to another account.","Esta conta do Discord já está vinculada a outra conta."),
+    LINKED=()=>Tx("Discord linked","Discord vinculado","Discord linked","Discord vinculado");
+  if(linked!==null){setTimeout(()=>toast(linked==="1"?LINKED():linked==="taken"?TAKEN():Tx("Discord was not linked. Try again.","No se vinculó Discord. Inténtalo de nuevo.","Discord was not linked. Try again.","O Discord não foi vinculado. Tente de novo.")),1200);return}
+  if(!COMPANION)return;
+  cpReady.then(async()=>{for(let i=0;i<50&&!(ME&&ME.ready);i++)await new Promise(r=>setTimeout(r,100));
+    if(link){try{const r=await jpost("/api/sync",{action:"discordLink",grant:link});toast(r&&r.handle?LINKED()+" · @"+r.handle:LINKED());if(ME&&ME.signedIn)show("me")}catch(e){toast(/already linked/i.test(e.message)?TAKEN():e.message)}return}
+    if(g==="pc"){toast(Tx("Discord answered. Go back to Pitlane HQ on your PC.","Discord ya respondió. Vuelve a Pitlane HQ en tu PC.","Discord answered. Go back to Pitlane HQ on your PC.","O Discord respondeu. Volte ao Pitlane HQ no seu PC."));return}
+    if(ME&&ME.signedIn)return;
+    if(g==="0"){if(isNew)await steamGot({new:true,discord:true,name,sid},"discord");else if(relink){show("me");await uiAlert0(RELINK_TXT())}else toast(Tx("Discord did not sign you in. Try again.","Discord no inició tu sesión. Inténtalo de nuevo.","Discord did not sign you in. Try again.","O Discord não iniciou sua sessão. Tente de novo."));return}
+    try{await steamGot(await jpost("/api/sync",{action:"discordLogin",grant:g,lang:LANG}),"discord")}catch(e){toast(e.message)}})})();
+// one message in the app's own window, with OK
+function uiAlert0(t){return uiPanel(`<p style="margin:6px 0 10px">${esc(t)}</p><div class="uidlg-b"><button type="button" class="btn primary" id="ua0">OK</button></div>`,(d,done)=>{d.querySelector("#ua0").onclick=()=>done(true)})}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("#meDiscB"))loadDiscord()});
 // Account → Steam: link your Steam account (Steam's own sign-in, in the browser) so Steam signs you in on every device, show it on
 // your public profile if you want (off until you say), or unlink it
@@ -7788,8 +7882,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&$("#meSte
 // ?steamLink=<grant> from Account → Steam on the web, ?steamLogin=pc or ?steamLinked=1|0|taken when the PC started it and its agent has
 // the answer): the address is cleaned at once, then the sign-in goes on here
 (()=>{if(!COMPANION)return;const q=new URLSearchParams(location.search);if(!q.has("steamLogin")&&!q.has("steamLinked")&&!q.has("steamLink")&&!q.has("steam"))return;
-  const g=q.get("steamLogin"),isNew=q.get("new")==="1",persona=q.get("persona")||"",sid=q.get("sid")||"",link=q.get("steamLink")||"",linked=q.get("steamLinked")||(q.get("steam")==="linked"?"1":q.get("steam"));
-  ["steamLogin","new","persona","sid","steamLink","steamLinked","steam"].forEach(k=>q.delete(k));history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash);
+  const g=q.get("steamLogin"),isNew=q.get("new")==="1",persona=q.get("persona")||"",sid=q.get("sid")||"",link=q.get("steamLink")||"",linked=q.get("steamLinked")||(q.get("steam")==="linked"?"1":q.get("steam"));oauthBack("steam",q.get("state"));
+  ["steamLogin","new","persona","sid","steamLink","steamLinked","steam","state"].forEach(k=>q.delete(k));history.replaceState(null,"",location.pathname+(q.toString()?"?"+q:"")+location.hash);
   cpReady.then(async()=>{for(let i=0;i<50&&!(ME&&ME.ready);i++)await new Promise(r=>setTimeout(r,100));
     if(linked!==null){if(linked==="1"){toast(Tx("Steam linked","Steam vinculado","Steam linked","Steam vinculada"));if(ME&&ME.signedIn)show("me")}
       else toast(linked==="taken"?Tx("This Steam account is already linked to another account.","Esta cuenta de Steam ya está vinculada a otra cuenta.","This Steam account is already linked to another account.","Esta conta da Steam já está vinculada a outra conta."):Tx("Steam was not linked. Try again.","No se vinculó Steam. Inténtalo de nuevo.","Steam was not linked. Try again.","A Steam não foi vinculada. Tente de novo."));return}

@@ -481,10 +481,12 @@ async function handle(req, env, ctx) {
         return err("server error", 500);
       }
     }
-    // "Link Discord" in the apps: Discord's sign-in comes back here and the browser goes on to the web app
-    if (url.pathname === "/discord/oauth" && req.method === "GET") return discordOAuth(req, env, url).catch(() => Response.redirect("https://pitlanehq.app/?discordLinked=0", 302));
+    // "Sign in with Discord" and "Link Discord" in the apps: Discord's sign-in comes back here and the browser goes on to the
+    // web app, to the PC's agent when the PC started or to the phone app (discord.js); an error before the state is known is a
+    // sign-in's
+    if (url.pathname === "/discord/oauth" && req.method === "GET") return discordOAuth(req, env, url).catch(() => Response.redirect("https://pitlanehq.app/?discordLogin=0", 302));
     // "Sign in with Steam" and "Link Steam" in the apps: Steam's sign-in comes back here and the browser goes on to the web app
-    if (url.pathname === "/steam/return" && req.method === "GET") return steamReturn(req, env, url).catch(() => Response.redirect("https://pitlanehq.app/?steamLinked=0", 302));
+    if (url.pathname === "/steam/return" && req.method === "GET") return steamReturn(req, env, url).catch(() => Response.redirect("https://pitlanehq.app/?steamLogin=0", 302));
     // Patreon tells the server about memberships: the supporter badge by itself
     if (url.pathname === "/patreon/webhook" && req.method === "POST") return patreonWebhook(req, env);
     // Lemon Squeezy tells the server about purchases: Pitlane HQ Pro on the account

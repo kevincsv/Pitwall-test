@@ -5,6 +5,9 @@
 // POST /account/steam/link). A grant is only good with the code the server gave the app that started (steamStart; the
 // browser never sees it), so a Steam address or a grant passed on to somebody else signs nobody in and links nothing.
 // The PC's browser goes on to the PC's own agent (http://127.0.0.1:<port>/steam/done), never through a server poll.
+// The phone apps (app: 1 on the start, never with port) get it back by their own scheme, pitlanehq://steam?state=<state>&
+// and the same query the web gets (steamLogin=<grant> | steamLogin=0 | steamLogin=0&new=1&sid=&persona= | steamLink=<grant>
+// | steamLinked=0); the grant is still good only with the app's code, so another app that catches the scheme can do nothing.
 // Steam only says who: the data key still comes from the password (POST /account/key), asked once per device.
 // Secrets: STEAM_WEB_API_KEY (the persona name; without it the link has no name), STEAM_APP_ID (the Steamworks session
 // ticket, a later step).
@@ -19,6 +22,7 @@ const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, 
 const rid = (n = 24) => hex(crypto.getRandomValues(new Uint8Array(n)));
 const isHex48 = (v) => typeof v === "string" && /^[0-9a-f]{48}$/.test(v);
 const portOf = (v) => (Number.isInteger(Number(v)) && Number(v) > 0 && Number(v) < 65536 ? Number(v) : null);
+export const appOf = (v) => v === 1 || v === true || v === "1";
 // a local server (tools/local.cmd) comes back to itself, never to pitlanehq.app
 const site = (env, url) => (env.LOCAL === "1" ? url.origin : SITE);
 const returnTo = (base, state) => base + "/steam/return?state=" + state;
@@ -59,13 +63,15 @@ async function personaOf(env, steamid) {
 
 // the address the browser opens, and what only the app that asked keeps: the state (in Steam's return_to, 10 minutes, as
 // a hash) and the code its grant is redeemed with. kind "link" (an account linking its Steam) or "login" (a sign-in, or a
-// sign-up when that Steam has no account); port is the PC's agent, which the browser goes on to instead of the web app
-export async function steamStart(env, url, kind, accountId, device, port) {
+// sign-up when that Steam has no account); port is the PC's agent, which the browser goes on to instead of the web app,
+// app the phone apps (their scheme); one of the two at most ({ error } then)
+export async function steamStart(env, url, kind, accountId, device, port, app) {
+  if (portOf(port) && appOf(app)) return { error: "port or app, not both" };
   const state = rid(), code = rid(), now = Date.now(), base = site(env, url);
   await env.DB.batch([
     env.DB.prepare("DELETE FROM steam_oauth WHERE expires<?1 OR (account_id IS NOT NULL AND account_id=?2)").bind(now, accountId || ""),
-    env.DB.prepare("INSERT INTO steam_oauth (state_hash, code_hash, account_id, device, kind, port, expires) VALUES (?1,?2,?3,?4,?5,?6,?7)")
-      .bind(await sha256("steam-oauth:" + state), await sha256("steam-code:" + code), accountId || null, cleanName(device) || null, kind, portOf(port), now + 10 * 60e3),
+    env.DB.prepare("INSERT INTO steam_oauth (state_hash, code_hash, account_id, device, kind, port, app, expires) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)")
+      .bind(await sha256("steam-oauth:" + state), await sha256("steam-code:" + code), accountId || null, cleanName(device) || null, kind, portOf(port), appOf(app) ? 1 : 0, now + 10 * 60e3),
   ]);
   const q = new URLSearchParams({ "openid.ns": NS, "openid.mode": "checkid_setup", "openid.identity": NS + "/identifier_select", "openid.claimed_id": NS + "/identifier_select", "openid.return_to": returnTo(base, state), "openid.realm": base });
   return { url: OPENID + "?" + q, state, code };
@@ -102,17 +108,34 @@ export async function useSteamGrant(env, g, kind, code) {
 // the account behind a SteamID, for POST /account/login/steam
 export const steamAccountId = async (env, steamid) => ((await env.DB.prepare("SELECT account_id FROM steam_links WHERE steamid=?1").bind(steamid).first()) || {}).account_id || null;
 
+// where the browser goes on with the answer (q), for the state st of the app that started: the PC's agent (port), the
+// phone app's scheme (app) or the web app, each with the state (the web keeps its code by it); an unknown state, the web
+export function goOn(base, prov, st, state, q) {
+  if (!st) return Response.redirect(base + "/?" + q, 302);
+  if (st.port) return Response.redirect("http://127.0.0.1:" + st.port + "/" + prov + "/done?state=" + state + "&" + q, 302);
+  if (st.app) return new Response(null, { status: 302, headers: { location: "pitlanehq://" + prov + "?state=" + state + "&" + q, "cache-control": "no-store" } });
+  return Response.redirect(base + "/?state=" + state + "&" + q, 302);
+}
+
 // Steam comes back here (GET /steam/return?state=…&openid.*): the answer is checked with Steam, the state used once, and
-// the browser goes on with the grant: to the web app (like Discord's /?discordLinked=) or, when the PC started, to the
-// PC's own agent, which redeems it with its code
+// the browser goes on with the grant (goOn): to the web app (like Discord's /?discordLinked=), the PC's own agent or the
+// phone app, which redeems it with its code. An unknown state is a sign-in's
 export async function steamReturn(req, env, url) {
   const base = site(env, url);
   const state = url.searchParams.get("state") || "";
   if (!isHex48(state)) return Response.redirect(base + "/?steamLogin=0", 302);
-  const st = await env.DB.prepare("DELETE FROM steam_oauth WHERE state_hash=?1 RETURNING code_hash, account_id, device, kind, port, expires").bind(await sha256("steam-oauth:" + state)).first();
-  const back = (q) => Response.redirect((st && st.port ? "http://127.0.0.1:" + st.port + "/steam/done?state=" + state + "&" : base + "/?") + q, 302);
+  const st = await env.DB.prepare("DELETE FROM steam_oauth WHERE state_hash=?1 RETURNING code_hash, account_id, device, kind, port, app, expires").bind(await sha256("steam-oauth:" + state)).first();
+  const back = (q) => goOn(base, "steam", st, state, q);
   const fail = () => back(st && st.kind === "link" ? "steamLinked=0" : "steamLogin=0");
   if (!st || st.expires < Date.now()) return fail();
+  // once the state is known an error still goes back to the app that started (its port or its scheme)
+  try {
+    return await steamAnswer(env, url, base, state, st, back, fail);
+  } catch (e) {
+    return fail();
+  }
+}
+async function steamAnswer(env, url, base, state, st, back, fail) {
   const ans = openidAnswer(url.searchParams, returnTo(base, state));
   if (!ans) return fail();
   try {
@@ -145,7 +168,8 @@ export async function steamAccount(env, a, p, m, body, url, passCheck) {
   if (p === "/steam/start" && m === "POST") {
     const no = await passCheck();
     if (no) return no;
-    return json(await steamStart(env, url, "link", a.id, body.device, body.port));
+    const r = await steamStart(env, url, "link", a.id, body.device, body.port, body.app || url.searchParams.get("app"));
+    return json(r, r.error ? 400 : 200);
   }
   if (p === "/steam/link" && m === "POST") {
     const g = await useSteamGrant(env, body.grant, "link", body.code);

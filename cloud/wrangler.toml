@@ -25,7 +25,8 @@ migrations_dir = "migrations"
 #   EMAIL_PEPPER optional, salts the email hashes; set it before the first account is created
 #   RESEND_API_KEY + EMAIL_FROM   emails (see README)
 #   DISCORD_PUBLIC_KEY + DISCORD_BOT_TOKEN   the Discord bot (its commands come to /discord/interactions)
-#   DISCORD_APP_ID + DISCORD_CLIENT_SECRET   "Link Discord" in the apps (Discord's sign-in comes back to /discord/oauth)
+#   DISCORD_APP_ID + DISCORD_CLIENT_SECRET   "Sign in with Discord" and "Link Discord" in the apps (Discord's sign-in
+#                      comes back to /discord/oauth, its one redirect address in the Discord application's OAuth2 page)
 #   STEAM_WEB_API_KEY  optional, "Sign in with Steam" (Steam's sign-in comes back to /steam/return) names the linked
 #                      Steam account; without it the sign-in works and the link has no name
 #   STEAM_APP_ID       the app's id on Steam, for the Steamworks session ticket of the PC (a later step)

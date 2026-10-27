@@ -644,11 +644,12 @@ type plLoginRes struct {
 	Mailed                                   *bool
 }
 
-// a sign-in that passed the password (or Steam, with no key yet) and waits for the authenticator code (5 minutes)
+// a sign-in that passed the password (or Steam or Discord, with no key yet: NoKey) and waits for the authenticator code
+// (5 minutes)
 type pending2faT struct {
 	Pending, Email string
 	Wrap           []byte
-	Steam          bool
+	NoKey          bool
 	At             time.Time
 }
 
@@ -724,7 +725,63 @@ func steamURLOK(u string) bool {
 	return strings.HasPrefix(u, "https://steamcommunity.com/openid/login?")
 }
 
-// the Steam sign-in this PC started and waits for (a sign-in, or Account → Steam's link): the browser comes back to
+// ---------- "Sign in with Discord" ----------
+//
+// The same as Steam's, with Discord's OAuth2 (discord.js): the browser signs in at discord.com, the server sends it on to
+// this PC (http://127.0.0.1:<port>/discord/done) with the grant, redeemed with this PC's code (discordLoginStart,
+// discordLoginPoll, discordLoginKey, discordLoginCancel; Account → Discord's discordStart and discordUnlink ask the
+// password). The waits, the sign-up grant and the sign-in waiting for the password are the ones below, per provider.
+
+// discordURLOK: the browser only ever opens Discord's own sign-in page, whatever the server answered
+func discordURLOK(u string) bool {
+	return strings.HasPrefix(u, "https://discord.com/oauth2/authorize?")
+}
+
+// an outside sign-in (Steam or Discord): its server routes, the parameters the browser comes back with and the page it
+// may open
+type oauthProv struct {
+	Name                                  string // "steam" or "discord": the actions' and the answers' prefix
+	Label                                 string // for the errors ("sign in with Steam again")
+	LoginStart, Login, LinkStart, LinkUse string // the server's routes (under /account)
+	Unlink                                string
+	LinkParam                             string // the link grant in the browser's way back (steamLink=, discordLink=)
+	URLOK                                 func(string) bool
+}
+
+var (
+	steamProv   = oauthProv{Name: "steam", Label: "Steam", LoginStart: "/steam/login/start", Login: "/login/steam", LinkStart: "/steam/start", LinkUse: "/steam/link", Unlink: "/steam/unlink", LinkParam: "steamLink", URLOK: steamURLOK}
+	discordProv = oauthProv{Name: "discord", Label: "Discord", LoginStart: "/discord/login/start", Login: "/login/discord", LinkStart: "/discord/start", LinkUse: "/discord/link/grant", Unlink: "/discord/unlink", LinkParam: "discordLink", URLOK: discordURLOK}
+)
+
+// oauthAction: which outside sign-in an action of the page is for, and what it asks ("steamLoginPoll" → Steam,
+// "LoginPoll"; "discordStart" → Discord, "Start"), or ok false
+func oauthAction(a string) (pv oauthProv, op string, ok bool) {
+	for _, p := range []oauthProv{steamProv, discordProv} {
+		if strings.HasPrefix(a, p.Name) {
+			return p, a[len(p.Name):], true
+		}
+	}
+	return oauthProv{}, "", false
+}
+
+func (p oauthProv) again() error { return errors.New("sign in with " + p.Label + " again") }
+
+// the sign-in of each provider this PC started and waits for, and the sign-up grant it was given (under steamPendingMu)
+func (p oauthProv) wait() **steamWaitT {
+	if p.Name == "discord" {
+		return &discordWait
+	}
+	return &steamWait
+}
+
+func (p oauthProv) newGrant() *struct{ Sid, Code string } {
+	if p.Name == "discord" {
+		return &discordNew
+	}
+	return &steamNew
+}
+
+// the Steam (or Discord) sign-in this PC started and waits for (a sign-in, or Account → Steam's link): the browser comes back to
 // /steam/done with the answer, read by the page (steamLoginPoll) or, for a link, used there at once
 type steamWaitT struct {
 	State, Code string
@@ -743,16 +800,18 @@ type steamPendingT struct {
 var (
 	steamWait      *steamWaitT
 	steamNew       struct{ Sid, Code string } // the sign-up grant and its code, for the account "register" creates
+	discordWait    *steamWaitT
+	discordNew     struct{ Sid, Code string }
 	steamPending   *steamPendingT
 	steamPendingMu sync.Mutex
 )
 
-// steamNewCode: the code of the sign-up grant this PC was given, for "register"
-func steamNewCode(sid string) string {
+// newCode: the code of the sign-up grant this PC was given, for "register"
+func (p oauthProv) newCode(sid string) string {
 	steamPendingMu.Lock()
 	defer steamPendingMu.Unlock()
-	if steamNew.Sid == sid {
-		return steamNew.Code
+	if n := p.newGrant(); sid != "" && n.Sid == sid {
+		return n.Code
 	}
 	return ""
 }
@@ -764,7 +823,7 @@ func plSteamLogin(b []byte) (needKey bool, err error) {
 	var res plLoginRes
 	json.Unmarshal(b, &res)
 	if res.ID == "" || res.Token == "" {
-		return false, errors.New("sign in with Steam again")
+		return false, errors.New("sign in again")
 	}
 	plMu.Lock()
 	if plAcc.ID == res.ID && plAcc.DataKey != "" && plAcc.KeyTag != "" && plAcc.KeyTag == res.KeyTag {
@@ -803,40 +862,68 @@ func plSteamFinish() {
 	}()
 }
 
-// steamDone: the browser comes back from Steam (the server sends it on to http://127.0.0.1:<port>/steam/done?state=…):
-// the answer of the sign-in this PC started waits for the page (steamLoginPoll); the grant of Account → Steam's link is
-// used at once. Then the browser goes on to the web app, which only says to come back here
-func steamDone(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	state := steamStateClean(q.Get("state"))
-	steamPendingMu.Lock()
-	sw := steamWait
-	ok := r.Method == http.MethodGet && state != "" && sw != nil && sw.State == state && !sw.Done && time.Since(sw.At) <= 10*time.Minute
-	if ok {
-		sw.Done, sw.Ans = true, q
-		if sw.Link {
-			steamWait = nil
+// what the browser's way back said about a sign-in (pure, so a test can run it): the sign-in grant, or a new driver's
+// sign-up grant and the name to offer, or a Discord linked only by the bot (Relink); anything else is nothing
+type oauthRes struct {
+	Grant, Sid, Name string
+	Relink           bool
+}
+
+func oauthAnswer(pv oauthProv, q url.Values) oauthRes {
+	if g := steamStateClean(q.Get(pv.Name + "Login")); g != "" {
+		return oauthRes{Grant: g}
+	}
+	if q.Get(pv.Name+"Login") != "0" {
+		return oauthRes{}
+	}
+	if sid := steamStateClean(q.Get("sid")); q.Get("new") == "1" && sid != "" {
+		name := q.Get("persona")
+		if pv.Name == "discord" {
+			name = q.Get("name")
 		}
+		return oauthRes{Sid: sid, Name: cleanText(strings.NewReplacer("<", "", ">", "", "\n", "").Replace(name), 32)}
 	}
-	steamPendingMu.Unlock()
-	if !ok {
-		http.Error(w, "sign in with Steam again", 400)
-		return
-	}
-	back := "steamLogin=pc"
-	if sw.Link {
-		back = "steamLinked=0"
-		if g := steamStateClean(q.Get("steamLink")); g != "" {
-			_, e := plCall("POST", "/steam/link", map[string]any{"grant": g, "code": sw.Code})
-			var he httpErr
-			if e == nil {
-				back = "steamLinked=1"
-			} else if errors.As(e, &he) && he.code == 409 {
-				back = "steamLinked=taken"
+	return oauthRes{Relink: pv.Name == "discord" && q.Get("relink") == "1"}
+}
+
+// oauthDone: the browser comes back from Steam or Discord (the server sends it on to
+// http://127.0.0.1:<port>/steam/done?state=… or /discord/done): the answer of the sign-in this PC started waits for the
+// page (…LoginPoll); the grant of Account → Steam's (or Discord's) link is used at once. Then the browser goes on to the
+// web app, which only says to come back here (?steamLogin=pc, ?steamLinked=1|0|taken; the same with discord…)
+func oauthDone(pv oauthProv) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		state := steamStateClean(q.Get("state"))
+		steamPendingMu.Lock()
+		wp := pv.wait()
+		sw := *wp
+		ok := r.Method == http.MethodGet && state != "" && sw != nil && sw.State == state && !sw.Done && time.Since(sw.At) <= 10*time.Minute
+		if ok {
+			sw.Done, sw.Ans = true, q
+			if sw.Link {
+				*wp = nil
 			}
 		}
+		steamPendingMu.Unlock()
+		if !ok {
+			http.Error(w, "sign in with "+pv.Label+" again", 400)
+			return
+		}
+		back := pv.Name + "Login=pc"
+		if sw.Link {
+			back = pv.Name + "Linked=0"
+			if g := steamStateClean(q.Get(pv.LinkParam)); g != "" {
+				_, e := plCall("POST", pv.LinkUse, map[string]any{"grant": g, "code": sw.Code})
+				var he httpErr
+				if e == nil {
+					back = pv.Name + "Linked=1"
+				} else if errors.As(e, &he) && he.code == 409 {
+					back = pv.Name + "Linked=taken"
+				}
+			}
+		}
+		http.Redirect(w, r, commBase()+"/?"+back, http.StatusFound)
 	}
-	http.Redirect(w, r, commBase()+"/?"+back, http.StatusFound)
 }
 
 func plStatus() map[string]any {
@@ -915,7 +1002,8 @@ func registerPLRoutes(mux *http.ServeMux) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
 	})
-	mux.HandleFunc("/steam/done", steamDone)
+	mux.HandleFunc("/steam/done", oauthDone(steamProv))
+	mux.HandleFunc("/discord/done", oauthDone(discordProv))
 	mux.HandleFunc("/api/sync", func(w http.ResponseWriter, r *http.Request) {
 		loadPL()
 		fail := func(err error) {
@@ -934,7 +1022,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 		if r.Method == http.MethodPost {
 			var in struct {
 				Action, Email, Password, NewPassword, Nick, NameKind, ID, Lang, Code string
-				Device, State, Sid                                                   string // the sign-in with Steam: this device's name, its state, the sign-up grant of a new account
+				Device, State, Sid, DiscordSid                                       string // the sign-in with Steam or Discord: this device's name, its state, the sign-up grant of a new account
 				Anon                                                                 *bool  // share as "Anonymous" (kept with the account)
 				On                                                                   bool
 			}
@@ -965,7 +1053,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 				wrapped, _ := sealAES(wrap, key)
 				reg := map[string]any{"email": normEmail(in.Email), "auth": auth, "wrappedKey": wrapped, "display": name, "nameKind": kind, "device": host, "lang": in.Lang}
 				if sid := steamStateClean(in.Sid); sid != "" { // created from the Steam sign-in: linked to that Steam at once
-					reg["sid"], reg["code"] = sid, steamNewCode(sid)
+					reg["sid"], reg["code"] = sid, steamProv.newCode(sid)
+				} else if sid := steamStateClean(in.DiscordSid); sid != "" { // the same from the Discord sign-in
+					reg["discordSid"], reg["code"] = sid, discordProv.newCode(sid)
 				}
 				b, e := commRequest("POST", "/account/register", reg, "")
 				if e != nil {
@@ -973,7 +1063,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					break
 				}
 				steamPendingMu.Lock()
-				steamNew = struct{ Sid, Code string }{}
+				steamNew, discordNew = struct{ Sid, Code string }{}, struct{ Sid, Code string }{}
 				steamPendingMu.Unlock()
 				var res plLoginRes
 				json.Unmarshal(b, &res)
@@ -1030,7 +1120,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 				pending2faMu.Lock()
 				pending2fa = nil
 				pending2faMu.Unlock()
-				if pd.Steam { // a sign-in with Steam: the key is still to open, unless this PC kept it
+				if pd.NoKey { // a sign-in with Steam or Discord: the key is still to open, unless this PC kept it
 					needKey, e := plSteamLogin(b)
 					if e != nil {
 						err = e
@@ -1044,14 +1134,16 @@ func registerPLRoutes(mux *http.ServeMux) {
 					break
 				}
 				err = plFinishLogin(b, pd.Email, pd.Wrap)
-			case "steamLoginStart":
-				// the sign-in screen: the server gives the address Steam signs in at (and the code only this PC keeps), this
-				// PC opens it in the browser, which comes back to /steam/done; the page asks how it goes (steamLoginPoll)
+			case "steamLoginStart", "discordLoginStart":
+				// the sign-in screen: the server gives the address Steam (or Discord) signs in at (and the code only this PC
+				// keeps), this PC opens it in the browser, which comes back to /steam/done (/discord/done); the page asks how
+				// it goes (steamLoginPoll, discordLoginPoll)
+				pv, _, _ := oauthAction(in.Action)
 				device := cleanText(in.Device, 64)
 				if device == "" {
 					device = host
 				}
-				b, e := commRequest("POST", "/account/steam/login/start", map[string]any{"device": device, "port": listenPort}, "")
+				b, e := commRequest("POST", "/account"+pv.LoginStart, map[string]any{"device": device, "port": listenPort}, "")
 				if e != nil {
 					err = e
 					break
@@ -1059,47 +1151,60 @@ func registerPLRoutes(mux *http.ServeMux) {
 				var st struct{ URL, State, Code string }
 				json.Unmarshal(b, &st)
 				state, code := steamStateClean(st.State), steamStateClean(st.Code)
-				if !steamURLOK(st.URL) || state == "" || code == "" {
-					err = errors.New("sign in with Steam again")
+				if !pv.URLOK(st.URL) || state == "" || code == "" {
+					err = pv.again()
 					break
 				}
 				steamPendingMu.Lock()
-				steamWait = &steamWaitT{State: state, Code: code, At: time.Now()}
+				*pv.wait() = &steamWaitT{State: state, Code: code, At: time.Now()}
 				steamPendingMu.Unlock()
 				openExternal(st.URL)
 				writeJSON(w, map[string]any{"url": st.URL, "state": state, "opened": true})
 				return
-			case "steamLoginPoll":
+			case "steamLoginPoll", "discordLoginPoll":
 				// did the browser come back yet: pending, a new driver (the page creates the account, linked with sid), or the
 				// grant, which signs this PC in; then the authenticator code (login2fa) or the password for the key (needKey)
+				pv, _, _ := oauthAction(in.Action)
 				state := steamStateClean(in.State)
 				steamPendingMu.Lock()
-				sw := steamWait
+				wp := pv.wait()
+				sw := *wp
 				if sw != nil && sw.Done && sw.State == state {
-					steamWait = nil
+					*wp = nil
 				}
 				steamPendingMu.Unlock()
 				if state == "" || sw == nil || sw.State != state || sw.Link || time.Since(sw.At) > 10*time.Minute {
-					err = errors.New("sign in with Steam again")
+					err = pv.again()
 					break
 				}
 				if !sw.Done {
 					writeJSON(w, map[string]any{"status": "wait", "pending": true})
 					return
 				}
-				grant := steamStateClean(sw.Ans.Get("steamLogin"))
-				if grant == "" {
-					if sid := steamStateClean(sw.Ans.Get("sid")); sw.Ans.Get("new") == "1" && sid != "" {
+				res := oauthAnswer(pv, sw.Ans)
+				if res.Grant == "" {
+					if res.Sid != "" {
 						steamPendingMu.Lock()
-						steamNew = struct{ Sid, Code string }{sid, sw.Code}
+						*pv.newGrant() = struct{ Sid, Code string }{res.Sid, sw.Code}
 						steamPendingMu.Unlock()
-						writeJSON(w, map[string]any{"status": "new", "new": true, "persona": cleanText(sw.Ans.Get("persona"), 32), "sid": sid})
+						out := map[string]any{"status": "new", "new": true, "sid": res.Sid, pv.Name: true}
+						if pv.Name == "discord" {
+							out["name"] = res.Name
+						} else {
+							out["persona"] = res.Name
+						}
+						writeJSON(w, out)
 						return
 					}
-					err = errors.New("sign in with Steam again")
+					if res.Relink {
+						err = errors.New("this Discord account was linked with the bot. Sign in with your password and link Discord again in Account")
+						break
+					}
+					err = pv.again()
 					break
 				}
-				b, e := commRequest("POST", "/account/login/steam", map[string]any{"grant": grant, "code": sw.Code, "device": host, "lang": in.Lang}, "")
+				grant := res.Grant
+				b, e := commRequest("POST", "/account"+pv.Login, map[string]any{"grant": grant, "code": sw.Code, "device": host, "lang": in.Lang}, "")
 				if e != nil {
 					err = e
 					break
@@ -1111,7 +1216,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 				json.Unmarshal(b, &step)
 				if step.TwoFactor {
 					pending2faMu.Lock()
-					pending2fa = &pending2faT{Pending: step.Pending, Steam: true, At: time.Now()}
+					pending2fa = &pending2faT{Pending: step.Pending, NoKey: true, At: time.Now()}
 					pending2faMu.Unlock()
 					writeJSON(w, map[string]any{"status": "twoFactor", "twoFactor": true})
 					return
@@ -1126,28 +1231,28 @@ func registerPLRoutes(mux *http.ServeMux) {
 					return
 				}
 				plSteamFinish()
-			case "steamLoginCancel":
+			case "steamLoginCancel", "discordLoginCancel":
 				// the password step closed without the password: the sign-in waits no more and its session is let go
 				steamPendingMu.Lock()
 				sp := steamPending
 				steamPending = nil
 				steamPendingMu.Unlock()
 				pending2faMu.Lock()
-				if pending2fa != nil && pending2fa.Steam {
+				if pending2fa != nil && pending2fa.NoKey {
 					pending2fa = nil
 				}
 				pending2faMu.Unlock()
 				if sp != nil {
 					go commRequest("POST", "/account/logout", nil, sp.Res.Token)
 				}
-			case "steamLoginKey", "loginSteamKey":
-				// the password, once on this PC, for the data key of the account Steam signed in: the server checks it (with
+			case "steamLoginKey", "loginSteamKey", "discordLoginKey", "loginDiscordKey":
+				// the password, once on this PC, for the data key of the account Steam (or Discord) signed in: the server checks it (with
 				// its limit of wrong ones) and answers with the wrapped key, which the password opens here
 				steamPendingMu.Lock()
 				sp := steamPending
 				steamPendingMu.Unlock()
 				if sp == nil || time.Since(sp.At) > 10*time.Minute {
-					err = errors.New("sign in with Steam again")
+					err = errors.New("sign in again")
 					break
 				}
 				email := normEmail(in.Email)
@@ -1184,43 +1289,48 @@ func registerPLRoutes(mux *http.ServeMux) {
 				steamPending = nil
 				steamPendingMu.Unlock()
 				plSteamFinish()
-			case "steam", "steamStart", "steamShow", "steamUnlink":
-				// the Steam account linked to this one (Account → Steam, beside Discord): what is linked, Steam's sign-in to
-				// link it (the password first; this PC opens the address in the browser, which comes back to /steam/done),
-				// shown on the profile or not, and unlink (the password first)
+			case "steam", "steamStart", "steamShow", "steamUnlink", "discord", "discordStart", "discordShow", "discordUnlink":
+				// the Steam (or Discord) account linked to this one (Account → Steam, Account → Discord): what is linked, the
+				// sign-in to link it (the password first; this PC opens the address in the browser, which comes back to
+				// /steam/done or /discord/done), shown on the profile or not, and unlink (the password first)
+				pv, op, _ := oauthAction(in.Action)
 				var b []byte
 				var e error
-				switch in.Action {
-				case "steam":
-					b, e = plCall("GET", "/steam", nil)
-				case "steamStart", "steamUnlink":
+				switch op {
+				case "":
+					b, e = plCall("GET", "/"+pv.Name, nil)
+				case "Start", "Unlink":
 					auth, _, ea := deriveKeys(plEmail(), in.Password)
 					if ea != nil {
 						fail(ea)
 						return
 					}
-					if in.Action == "steamStart" {
-						b, e = plCall("POST", "/steam/start", map[string]any{"device": host, "auth": auth, "port": listenPort})
+					if op == "Start" {
+						b, e = plCall("POST", pv.LinkStart, map[string]any{"device": host, "auth": auth, "port": listenPort})
 					} else {
-						b, e = plCall("POST", "/steam/unlink", map[string]any{"auth": auth})
+						b, e = plCall("POST", pv.Unlink, map[string]any{"auth": auth})
 					}
 				default:
-					b, e = plCall("POST", "/steam/shown", map[string]bool{"shown": in.On})
+					if pv.Name == "discord" {
+						b, e = plCall("POST", "/discord/show", map[string]bool{"shown": in.On})
+					} else {
+						b, e = plCall("POST", "/steam/shown", map[string]bool{"shown": in.On})
+					}
 				}
 				if e != nil {
 					fail(e)
 					return
 				}
-				if in.Action == "steamStart" {
+				if op == "Start" {
 					var st struct{ URL, State, Code string }
 					json.Unmarshal(b, &st)
 					state, code := steamStateClean(st.State), steamStateClean(st.Code)
-					if !steamURLOK(st.URL) || state == "" || code == "" {
-						fail(errors.New("sign in with Steam again"))
+					if !pv.URLOK(st.URL) || state == "" || code == "" {
+						fail(pv.again())
 						return
 					}
 					steamPendingMu.Lock()
-					steamWait = &steamWaitT{State: state, Code: code, Link: true, At: time.Now()}
+					*pv.wait() = &steamWaitT{State: state, Code: code, Link: true, At: time.Now()}
 					steamPendingMu.Unlock()
 					openExternal(st.URL)
 					writeJSON(w, map[string]any{"url": st.URL, "opened": true})
@@ -1364,28 +1474,6 @@ func registerPLRoutes(mux *http.ServeMux) {
 				return
 			case "revoke":
 				_, err = plCall("POST", "/sessions/revoke", map[string]string{"id": in.ID})
-			case "discord", "discordStart", "discordShow", "discordUnlink":
-				// the Discord account linked to this one (Account → Discord): what is linked, Discord's sign-in
-				// to link it (the window opens the address it gives), shown on the profile or not, unlink
-				var b []byte
-				var e error
-				switch in.Action {
-				case "discord":
-					b, e = plCall("GET", "/discord", nil)
-				case "discordStart":
-					b, e = plCall("POST", "/discord/start", map[string]any{})
-				case "discordShow":
-					b, e = plCall("POST", "/discord/show", map[string]bool{"shown": in.On})
-				default:
-					b, e = plCall("POST", "/discord/unlink", map[string]any{})
-				}
-				if e != nil {
-					fail(e)
-					return
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.Write(b)
-				return
 			case "delete":
 				plMu.Lock()
 				email := plAcc.Email

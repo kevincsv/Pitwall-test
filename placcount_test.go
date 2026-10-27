@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAccountKeysAndSealing(t *testing.T) {
@@ -216,4 +218,100 @@ func TestSteamLoginKeepsKey(t *testing.T) {
 	plMu.Lock()
 	plAcc = plAccount{}
 	plMu.Unlock()
+}
+
+// the page's actions name their outside sign-in, and the browser only opens Discord's own sign-in page
+func TestOAuthAction(t *testing.T) {
+	for a, want := range map[string][2]string{"steamLoginPoll": {"steam", "LoginPoll"}, "discordLoginStart": {"discord", "LoginStart"}, "discord": {"discord", ""}, "discordStart": {"discord", "Start"}, "steamUnlink": {"steam", "Unlink"}} {
+		pv, op, ok := oauthAction(a)
+		if !ok || pv.Name != want[0] || op != want[1] {
+			t.Fatalf("%s: %s %s %v", a, pv.Name, op, ok)
+		}
+	}
+	if _, _, ok := oauthAction("login"); ok {
+		t.Fatal("login is no outside sign-in")
+	}
+	if discordProv.LinkUse != "/discord/link/grant" || discordProv.Login != "/login/discord" || steamProv.LinkUse != "/steam/link" {
+		t.Fatal("the server's routes")
+	}
+	if !discordURLOK("https://discord.com/oauth2/authorize?client_id=1") || discordURLOK("http://discord.com/oauth2/authorize?x") || discordURLOK("https://discord.com.evil.net/oauth2/authorize?x") || discordURLOK("https://steamcommunity.com/openid/login?x") || discordURLOK("") {
+		t.Fatal("only Discord's sign-in page is opened")
+	}
+	if !localOpen("/discord/done") || !localOpen("/steam/done") || localOpen("/discord/donex") {
+		t.Fatal("the browser's way back reaches the agent without a ticket")
+	}
+}
+
+// what the browser's way back says: a sign-in grant, a new driver (with the name to offer), a Discord linked only by the
+// bot, or nothing
+func TestOAuthAnswer(t *testing.T) {
+	g := strings.Repeat("ab", 24)
+	q := func(s string) url.Values { v, _ := url.ParseQuery(s); return v }
+	if r := oauthAnswer(discordProv, q("discordLogin="+g)); r.Grant != g || r.Sid != "" {
+		t.Fatalf("a sign-in grant: %+v", r)
+	}
+	if r := oauthAnswer(discordProv, q("steamLogin="+g)); r.Grant != "" {
+		t.Fatal("Steam's grant is not Discord's")
+	}
+	if r := oauthAnswer(discordProv, q("discordLogin=0&new=1&sid="+g+"&name=Ana%3Cb%3E")); r.Grant != "" || r.Sid != g || r.Name == "" || strings.ContainsAny(r.Name, "<>") {
+		t.Fatalf("a new driver: %+v", r)
+	}
+	if r := oauthAnswer(steamProv, q("steamLogin=0&new=1&sid="+g+"&persona=Bo")); r.Sid != g || r.Name != "Bo" {
+		t.Fatalf("a new Steam driver: %+v", r)
+	}
+	if r := oauthAnswer(discordProv, q("discordLogin=0&relink=1")); !r.Relink || r.Sid != "" || r.Grant != "" {
+		t.Fatalf("linked by the bot only: %+v", r)
+	}
+	if r := oauthAnswer(discordProv, q("discordLogin=0&new=1&sid=xyz")); r != (oauthRes{}) {
+		t.Fatalf("a bad sign-up grant is nothing: %+v", r)
+	}
+	if r := oauthAnswer(discordProv, q("discordLogin=1")); r != (oauthRes{}) {
+		t.Fatalf("nothing: %+v", r)
+	}
+}
+
+// the browser comes back to the agent: only the state this PC is waiting for, once, and only for its own provider; the
+// sign-up grant's code is given only for its own grant
+func TestOAuthDone(t *testing.T) {
+	state, g := strings.Repeat("0f", 24), strings.Repeat("ab", 24)
+	steamPendingMu.Lock()
+	discordWait = &steamWaitT{State: state, Code: strings.Repeat("cd", 24), At: time.Now()}
+	steamWait = nil
+	steamPendingMu.Unlock()
+	defer func() {
+		steamPendingMu.Lock()
+		discordWait, steamWait = nil, nil
+		discordNew = struct{ Sid, Code string }{}
+		steamPendingMu.Unlock()
+	}()
+	get := func(h http.HandlerFunc, u string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		h(w, httptest.NewRequest("GET", u, nil))
+		return w
+	}
+	if w := get(oauthDone(steamProv), "/steam/done?state="+state+"&steamLogin="+g); w.Code != 400 {
+		t.Fatal("Steam's way back never answers Discord's sign-in", w.Code)
+	}
+	if w := get(oauthDone(discordProv), "/discord/done?state="+strings.Repeat("1f", 24)+"&discordLogin="+g); w.Code != 400 {
+		t.Fatal("another state is refused", w.Code)
+	}
+	w := get(oauthDone(discordProv), "/discord/done?state="+state+"&discordLogin="+g)
+	if w.Code != http.StatusFound || !strings.HasSuffix(w.Header().Get("Location"), "/?discordLogin=pc") {
+		t.Fatal("the browser goes on to the web app", w.Code, w.Header().Get("Location"))
+	}
+	steamPendingMu.Lock()
+	sw := discordWait
+	steamPendingMu.Unlock()
+	if sw == nil || !sw.Done || oauthAnswer(discordProv, sw.Ans).Grant != g {
+		t.Fatal("the answer waits for the page")
+	}
+	if w := get(oauthDone(discordProv), "/discord/done?state="+state+"&discordLogin="+g); w.Code != 400 {
+		t.Fatal("the way back is used once", w.Code)
+	}
+	steamPendingMu.Lock()
+	discordNew = struct{ Sid, Code string }{g, "c1"}
+	steamPendingMu.Unlock()
+	if discordProv.newCode(g) != "c1" || discordProv.newCode(strings.Repeat("ef", 24)) != "" || discordProv.newCode("") != "" || steamProv.newCode(g) != "" {
+		t.Fatal("the sign-up code goes only with its own grant")
+	}
 }

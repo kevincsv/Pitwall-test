@@ -4,6 +4,15 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.6.0 beta
+
+- Le Mans Ultimate works like iRacing, in beta. Telemetry, overlays, the coach, your laps and the leaderboards, with
+  the official sectors learnt from the game. If something looks wrong, write to support@pitlanehq.app.
+- Choose the game you look at at the top of Home, Analysis and Community, even with no game open.
+- When the app opens without a game it asks which one you want to see, or opens the last one if you prefer.
+- Sign in or create your account with Steam or Discord, and link them in Account.
+- Fixes and improvements.
+
 ## 0.5.0 beta
 
 - The coach learns from what happens after its tips, puts the ones that help most first, lets you rate them with 👍

@@ -476,7 +476,8 @@
 - The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.
-- Le Mans Ultimate is supported like iRacing (PC, web and phones): read from the game's own `LMU_Data` shared memory
+- Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report
+  problems to support@pitlanehq.app): read from the game's own `LMU_Data` shared memory
   (Settings → Gameplay → Enable Plugins, nothing to install), turned into an iRacing-shaped image (`lmu.go`,
   `irimage.go`) so every overlay, the recorder, the journal and the coach work unchanged. Its official sectors are
   learnt from the game's sector changes (`lmuSectors`, kept per track in `lmu-sectors.json`) and written as

@@ -9,7 +9,7 @@ import { pageLang, messagePage, badLinkPage, forgotPage, resetPage } from "./pag
 import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes } from "./crypt.js";
 import { patreonOnRegister } from "./patreon.js";
 import { proOnRegister, proOf, proGate, proHere } from "./lemon.js";
-import { discordAccount } from "./discord.js";
+import { discordAccount, discordStart, useDiscordGrant, discordAccountId, discordLinkedAny, linkDiscordLogin, oauthReady as discordReady } from "./discord.js";
 import { steamAccount, steamStart, useSteamGrant, steamAccountId, linkSteam } from "./steam.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
@@ -115,6 +115,8 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM leagues WHERE owner=?1").bind(id),
   env.DB.prepare("DELETE FROM discord_members WHERE discord_id IN (SELECT discord_id FROM discord_links WHERE account_id=?1)").bind(id),
   env.DB.prepare("DELETE FROM discord_links WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM discord_oauth WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM discord_grants WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM steam_links WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM steam_oauth WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM steam_grants WHERE account_id=?1").bind(id),
@@ -241,11 +243,18 @@ export async function accounts(req, env, url) {
     }
     // created from the Steam sign-in (sid, the sign-up grant, with the code of the app that started): linked to that Steam
     // at once, so the link never waits for the email to be confirmed
-    let steam = null;
+    let steam = null, discord = null;
+    if (body.sid && body.discordSid) return err("sign up with one of the two", 400);
     if (body.sid) {
       steam = await useSteamGrant(env, body.sid, "signup", body.code);
       if (!steam) return err("this Steam sign-in is not valid any more, sign in with Steam again", 400);
       if (await steamAccountId(env, steam.steamid)) return json({ error: "this Steam account is already linked to another account", code: "taken" }, 409);
+    }
+    // the same from the Discord sign-in (discordSid, with the code of the app that started)
+    if (body.discordSid) {
+      discord = await useDiscordGrant(env, body.discordSid, "signup", body.code);
+      if (!discord) return err("this Discord sign-in is not valid any more, sign in with Discord again", 400);
+      if (await discordLinkedAny(env, discord.discord_id)) return json({ error: "this Discord account is already linked to another account", code: "taken" }, 409);
     }
     await fail(env, ["reg:" + ip]); // counts towards the hourly limit too
     const id = rid(), salt = rid(16);
@@ -255,16 +264,18 @@ export async function accounts(req, env, url) {
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
     if (steam) await linkSteam(env, steam.steamid, id, steam.persona);
+    // that Discord was linked to another account in the meantime: the account is made without it, and the page says so
+    const taken = discord && (await linkDiscordLogin(env, discord, id)) === "taken" ? { discordTaken: true } : {};
     await patreonOnRegister(env, id, eh).catch(() => {}); // a patron already: the supporter badge
     await proOnRegister(env, id, eh).catch(() => {}); // bought Pro before having an account
     const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
     // the email went out: confirm it first, then sign in. If it could not be sent, the account
     // still works (signed in) so nobody is locked out while the email service is down.
-    if (mailed) return json({ verifyFirst: true, mailed: true, error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 202);
+    if (mailed) return json({ verifyFirst: true, mailed: true, error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first", ...taken }, 202);
     const token = await newSession(env, id, body.device);
-    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, keyTag: await keyTag(body.wrappedKey), admin: isAdmin(env, id), verified: false, mailed });
+    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, keyTag: await keyTag(body.wrappedKey), admin: isAdmin(env, id), verified: false, mailed, ...taken });
   }
-  // a sign-in with Steam (needKey) gets the session without the wrapped key: the password asks for it (POST /account/key),
+  // a sign-in with Steam or Discord (needKey) gets the session without the wrapped key: the password asks for it (POST /account/key),
   // so Steam alone never hands out what a password could be tried against
   const signedIn = async (a, token, more) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: more && more.needKey ? undefined : a.wrapped_key, keyTag: await keyTag(a.wrapped_key), admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on, ...more });
   // "Sign in with Steam" from the sign-in screen (no session yet): the address the browser opens, answered at /steam/return,
@@ -274,7 +285,17 @@ export async function accounts(req, env, url) {
     if (await tooMany(env, ["steam:" + ip], [30])) return err("too many tries: wait 15 minutes", 429);
     await fail(env, ["steam:" + ip]); // counts the starts of this network
     const q = m === "GET" ? url.searchParams : null;
-    return json(await steamStart(env, url, "login", null, q ? q.get("device") : body.device, q ? q.get("port") : body.port));
+    const r = await steamStart(env, url, "login", null, q ? q.get("device") : body.device, q ? q.get("port") : body.port, body.app || url.searchParams.get("app"));
+    return json(r, r.error ? 400 : 200);
+  }
+  // "Sign in with Discord", the same: answered at /discord/oauth, the PC's browser going on to its agent (port)
+  if (p === "/discord/login/start" && (m === "GET" || m === "POST")) {
+    if (!discordReady(env)) return err("Discord sign-in is not set up on this server yet", 503);
+    if (await tooMany(env, ["discord:" + ip], [30])) return err("too many tries: wait 15 minutes", 429);
+    await fail(env, ["discord:" + ip]); // counts the starts of this network
+    const q = m === "GET" ? url.searchParams : null;
+    const r = await discordStart(env, url, "login", null, q ? q.get("device") : body.device, q ? q.get("port") : body.port, body.app || url.searchParams.get("app"));
+    return json(r, r.error ? 400 : 200);
   }
   if (p === "/login" && m === "POST") {
     if (typeof body.email !== "string" || !isKey(body.auth)) return err("missing email or key", 400);
@@ -309,16 +330,18 @@ export async function accounts(req, env, url) {
   }
   // the sign-in with Steam: the one-use grant /steam/return handed the app, with the code of the app that started, says
   // who. The rest is the password sign-in's (the network's limit, the email to confirm, the authenticator), and the
-  // password is still asked once on the device for the data key (needKey, POST /account/key). Steam never stands for
-  // the password elsewhere (reauth).
-  if (p === "/login/steam" && m === "POST") {
+  // password is still asked once on the device for the data key (needKey, POST /account/key). The sign-in with Discord is
+  // the same, with the grant /discord/oauth handed the app (POST /account/login/discord). Neither ever stands for the
+  // password elsewhere (reauth, passCheck).
+  if ((p === "/login/steam" || p === "/login/discord") && m === "POST") {
     if (await tooMany(env, [ip], [30])) return err("too many tries: wait 15 minutes", 429);
-    const g = await useSteamGrant(env, body.grant, "login", body.code);
-    const aid = g ? await steamAccountId(env, g.steamid) : null;
+    const viaDiscord = p === "/login/discord";
+    const g = viaDiscord ? await useDiscordGrant(env, body.grant, "login", body.code) : await useSteamGrant(env, body.grant, "login", body.code);
+    const aid = g ? (viaDiscord ? await discordAccountId(env, g.discord_id) : await steamAccountId(env, g.steamid)) : null;
     const a = aid ? await env.DB.prepare("SELECT * FROM accounts WHERE id=?1").bind(aid).first() : null;
     if (!a) {
       await fail(env, [ip]);
-      return err("this Steam sign-in is not valid any more, sign in with Steam again", 401);
+      return err(viaDiscord ? "this Discord sign-in is not valid any more, sign in with Discord again" : "this Steam sign-in is not valid any more, sign in with Steam again", 401);
     }
     // the email is not confirmed yet: the link already sent by email (or the password sign-in, which sends a new one)
     if (mustVerify(env, a)) return json({ error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 403);
@@ -327,6 +350,7 @@ export async function accounts(req, env, url) {
       const t = rid(24);
       await env.DB.batch([
         env.DB.prepare("DELETE FROM login_pending WHERE expires<?1").bind(Date.now()),
+        // steam 1: the session comes without the wrapped key (Steam or Discord signed in)
         env.DB.prepare("INSERT INTO login_pending (token_hash, account_id, device, expires, steam) VALUES (?1,?2,?3,?4,1)").bind(await sha256(t), a.id, device, Date.now() + 5 * 60e3),
       ]);
       return json({ twoFactor: true, pending: t, needKey: true });
@@ -360,8 +384,6 @@ export async function accounts(req, env, url) {
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
-  // Discord: the linked account (Account → Discord, Discord's sign-in) and the bot's /link confirmed in the web app
-  if (p === "/discord" || p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
   // the password again (auth), with the sign-in's limit of wrong ones: the answer to give when it is not right
   const passCheck = async () => {
@@ -372,7 +394,10 @@ export async function accounts(req, env, url) {
   };
   // Steam: the linked Steam account (Account → Steam, beside Discord); linking and unlinking ask the password
   if (p === "/steam" || p.startsWith("/steam/")) return steamAccount(env, a, p, m, body, url, passCheck);
-  // the data key, wrapped with the password, to a device that signed in with Steam: the password proves itself here
+  // Discord: the linked account (Account → Discord, Discord's sign-in) and the bot's /link confirmed in the web app; linking
+  // and unlinking ask the password
+  if (p === "/discord" || p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url, passCheck);
+  // the data key, wrapped with the password, to a device that signed in with Steam or Discord: the password proves itself here
   // (never only on the device), with the sign-in's limit of wrong ones
   if (p === "/key" && m === "POST") {
     const no = await passCheck();
