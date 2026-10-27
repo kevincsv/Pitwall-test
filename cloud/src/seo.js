@@ -255,12 +255,12 @@ const LG_CN = { en: { oval: "oval", sports_car: "sports car", formula_car: "form
 const lgCatName = (l, cat) => LG_CN[l][cat];
 // the leagues posted in the hub, newest first
 async function postedLeagues(env) {
-  const r = await env.DB.prepare("SELECT id, name, about, cats, days, time, tz, open, discord, web, cars, lang, updated FROM leagues ORDER BY open DESC, updated DESC LIMIT 100").all().catch(() => ({ results: [] }));
+  const r = await env.DB.prepare("SELECT id, name, about, cats, days, time, tz, open, discord, web, cars, lang, updated FROM leagues WHERE game='iracing' ORDER BY open DESC, updated DESC LIMIT 100").all().catch(() => ({ results: [] }));
   const lst = (v) => { try { return JSON.parse(v || "[]") || []; } catch (e) { return []; } };
   return (r.results || []).map((x) => ({ ...x, cats: lst(x.cats), days: lst(x.days).map(Number).filter((d) => d >= 0 && d <= 6) }));
 }
 async function leaguesData(env) {
-  const [posted, F] = await Promise.all([postedLeagues(env), foundLeagues(env, false).catch(() => ({ leagues: [] }))]);
+  const [posted, F] = await Promise.all([postedLeagues(env), foundLeagues(env, false, "iracing").catch(() => ({ leagues: [] }))]);
   return { posted, found: F.leagues || [], updated: F.updated || 0 };
 }
 async function leaguesPage(env, l, cat) {

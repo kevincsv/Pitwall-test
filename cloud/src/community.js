@@ -53,7 +53,7 @@ import { proRoutes } from "./lemon.js";
 import { coachTipRoutes } from "./coachtips.js";
 import { turnsFromPath } from "./trackgeo.js";
 import { discordLapAlert } from "./discord.js";
-import { addFound, editFound, foundLeagues, scanLeagues } from "./leaguescan.js";
+import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
@@ -669,26 +669,28 @@ export async function community(req, env, url, ctx) {
   if (p === "/leagues" || p.startsWith("/leagues/")) {
     const who = await sessionAccount(req, env).catch(() => null), admin = !!who && isAdmin(env, who.id);
     const parts = p.slice(9).split("/").filter(Boolean), lid = parts[0] || "", sub = parts[1] || "";
+    // the game whose leagues are listed (?game=iracing|lmu, iRacing unless said)
+    const lgGame = leagueGame(url.searchParams.get("game") || (m === "POST" && body && body.game));
     // the most active leagues are public (the landing, the public leagues page): anyone reads them, signed in or not
-    if (lid === "found" && !sub && m === "GET") return json(await foundLeagues(env, admin));
+    if (lid === "found" && !sub && m === "GET") return json(await foundLeagues(env, admin, lgGame));
     if (env.LEAGUES_OPEN !== "1" && !admin) return err("leagues are in development", 403);
-    // the most active leagues found in public posts (r/iRacing, r/iRacingLeagues) with their Discord; admins hide
+    // the most active leagues found in public posts (r/iRacing, r/iRacingLeagues; r/LeMansUltimateWEC for LMU) with their Discord; admins hide
     // one, edit its name, text and disciplines, or read the feeds again now
     if (lid === "found") {
-      if (m === "GET") return json(await foundLeagues(env, admin));
+      if (m === "GET") return json(await foundLeagues(env, admin, lgGame));
       if (m !== "POST" || !admin) return err("only the admins can do this", 403);
-      if (sub && "edit" in body) return (await editFound(env, sub, body.edit)) ? json(await foundLeagues(env, admin)) : err("league not found", 404);
+      if (sub && "edit" in body) return (await editFound(env, sub, body.edit)) ? json(await foundLeagues(env, admin, lgGame)) : err("league not found", 404);
       if (sub) { await env.DB.prepare("UPDATE league_found SET hidden=?2 WHERE guild=?1").bind(sub, body.hidden ? 1 : 0).run(); return json({ ok: true }); }
-      if (body.invite) { const r = await addFound(env, body.invite); if (r.error) return err(r.error, 400); return json(await foundLeagues(env, admin)); }
+      if (body.invite) { const r = await addFound(env, body.invite, body.game); if (r.error) return err(r.error, 400); return json(await foundLeagues(env, admin, lgGame)); }
       await scanLeagues(env, true);
-      return json(await foundLeagues(env, admin));
+      return json(await foundLeagues(env, admin, lgGame));
     }
     const lst = (v) => { try { const a = JSON.parse(v || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
     const row = (x) => {
       const cats = lst(x.cats).filter((c) => CATS.includes(c));
       const o = { id: x.id, name: x.name, about: x.about || "", cat: cats.length === 1 ? cats[0] : null, cats, days: lst(x.days).map(Number).filter((d) => d >= 0 && d <= 6),
         time: x.time || "", tz: x.tz || "", open: !!x.open, discord: x.discord || "", web: x.web || "", schedule: x.schedule || "", cars: x.cars || "", lang: x.lang || "",
-        created: x.created, updated: x.updated, mine: !!who && x.owner === who.id, by: x.alias || "Driver" };
+        created: x.created, updated: x.updated, game: x.game || "iracing", mine: !!who && x.owner === who.id, by: x.alias || "Driver" };
       if (o.mine || admin) { o.views = x.views || 0; o.clicks = x.clicks || 0; }
       return o;
     };
@@ -699,9 +701,11 @@ export async function community(req, env, url, ctx) {
       return a && a.supporter ? LEAGUES_SUPPORTER : LEAGUES_FREE;
     };
     if (m === "GET" && !lid) {
-      const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner ORDER BY l.updated DESC LIMIT 300").all();
+      const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.game=?1 ORDER BY l.updated DESC LIMIT 300").bind(lgGame).all();
       const limit = await leagueLimit();
-      return json({ leagues: (r.results || []).map(row), admin, open: env.LEAGUES_OPEN === "1", limit, supporter: limit === LEAGUES_SUPPORTER, limits: { free: LEAGUES_FREE, supporter: LEAGUES_SUPPORTER } });
+      // the limit counts the driver's leagues of every game together
+      const mineN = who ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first().catch(() => null)) || {}).n || 0 : 0;
+      return json({ game: lgGame, posted: mineN, leagues: (r.results || []).map(row), admin, open: env.LEAGUES_OPEN === "1", limit, supporter: limit === LEAGUES_SUPPORTER, limits: { free: LEAGUES_FREE, supporter: LEAGUES_SUPPORTER } });
     }
     const cur = lid ? await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.id=?1").bind(lid).first() : null;
     if (lid && !cur) return err("league not found", 404);
@@ -760,20 +764,20 @@ export async function community(req, env, url, ctx) {
     let tz = txt(body.tz, 60);
     try { if (tz) new Intl.DateTimeFormat("en", { timeZone: tz }); } catch (e) { tz = ""; }
     const x = { name, about: txt(body.about, 600), cat: cats.length === 1 ? cats[0] : null, cats: JSON.stringify(cats), days: JSON.stringify(days), time, tz: time ? tz : "",
-      open: body.open === undefined ? 1 : body.open ? 1 : 0, discord, web, schedule: txt(body.schedule, 80), cars: txt(body.cars, 120), lang: txt(body.lang, 30) };
+      open: body.open === undefined ? 1 : body.open ? 1 : 0, game: body.game ? leagueGame(body.game) : cur ? leagueGame(cur.game) : "iracing", discord, web, schedule: txt(body.schedule, 80), cars: txt(body.cars, 120), lang: txt(body.lang, 30) };
     const now = Date.now();
     if (cur) {
-      await env.DB.prepare("UPDATE leagues SET name=?2, about=?3, cat=?4, cats=?5, days=?6, time=?7, tz=?8, open=?9, discord=?10, web=?11, schedule=?12, cars=?13, lang=?14, updated=?15 WHERE id=?1")
-        .bind(lid, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
+      await env.DB.prepare("UPDATE leagues SET name=?2, about=?3, cat=?4, cats=?5, days=?6, time=?7, tz=?8, open=?9, discord=?10, web=?11, schedule=?12, cars=?13, lang=?14, updated=?15, game=?16 WHERE id=?1")
+        .bind(lid, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now, x.game).run();
       return json({ ok: true, id: lid });
     }
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first();
     const limit = await leagueLimit();
     if (n && n.n >= limit && !admin) return err(limit === LEAGUES_SUPPORTER ? `you can post up to ${limit} leagues` : `you can post up to ${limit} leagues (${LEAGUES_SUPPORTER} as a supporter)`, 429);
     const id = rid();
-    await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, cats, days, time, tz, open, discord, web, schedule, cars, lang, created, updated) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?16)")
-      .bind(id, who.id, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now).run();
-    return json({ ok: true, id });
+    await env.DB.prepare("INSERT INTO leagues (id, owner, name, about, cat, cats, days, time, tz, open, discord, web, schedule, cars, lang, created, updated, game) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?16,?17)")
+      .bind(id, who.id, x.name, x.about, x.cat, x.cats, x.days, x.time, x.tz, x.open, x.discord, x.web, x.schedule, x.cars, x.lang, now, x.game).run();
+    return json({ ok: true, id, game: x.game });
   }
   // a driver's profile, opened from one of their laps on a leaderboard (or yours, ?me=1): their nickname (never
   // their iRacing name), their license classes, their laps on the leaderboards and their recent races. An
