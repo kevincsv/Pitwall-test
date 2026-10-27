@@ -11,6 +11,7 @@ import { patreonOnRegister } from "./patreon.js";
 import { proOnRegister, proOf, proGate, proHere } from "./lemon.js";
 import { discordAccount, discordStart, useDiscordGrant, discordAccountId, discordLinkedAny, linkDiscordLogin, oauthReady as discordReady } from "./discord.js";
 import { steamAccount, steamStart, useSteamGrant, steamAccountId, linkSteam } from "./steam.js";
+import { notePresence } from "./presence.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -64,7 +65,7 @@ export async function sessionAccount(req, env) {
   const t = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   if (t.length < 40) return null;
   const s = await env.DB.prepare(
-    "SELECT s.id AS sid, s.last_seen, s.created AS session_created, a.* FROM account_sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=?1"
+    "SELECT s.id AS sid, s.last_seen, s.created AS session_created, s.device AS session_device, a.* FROM account_sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=?1"
   ).bind(await sha256(t)).first();
   if (!s) return null;
   if (Date.now() - s.last_seen > SESSION_IDLE || Date.now() - s.session_created > SESSION_MAX) {
@@ -384,6 +385,8 @@ export async function accounts(req, env, url) {
 
   const a = await sessionAccount(req, env);
   if (!a) return err("signed out: sign in again", 401);
+  // the reads every app makes about once a minute say who is online and where (the admin page's Online tab)
+  if (m === "GET" && (p === "/me" || p === "/sync" || p === "/sync/meta")) await notePresence(env, req, a);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
   // the password again (auth), with the sign-in's limit of wrong ones: the answer to give when it is not right
   const passCheck = async () => {

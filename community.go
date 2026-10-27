@@ -57,11 +57,13 @@ type commConfig struct {
 }
 
 var (
-	commMu     sync.Mutex
-	commCfg    commConfig
-	commHTTP   = &http.Client{Transport: tlsTransport(), Timeout: 25 * time.Second}
-	commBest   = map[string]float64{} // carId:trackId → best shared this run
-	commTraced = map[string]bool{}    // … and whether it went with its telemetry
+	commMu   sync.Mutex
+	commCfg  commConfig
+	commHTTP = &http.Client{Transport: tlsTransport(), Timeout: 25 * time.Second}
+	// a session with every lap's telemetry (/api/sessions/:id?traces=1) can take longer than 25 s on a slow line
+	commHTTPLong = &http.Client{Transport: tlsTransport(), Timeout: 3 * time.Minute}
+	commBest     = map[string]float64{} // carId:trackId → best shared this run
+	commTraced   = map[string]bool{}    // … and whether it went with its telemetry
 )
 
 func commPath() string { return filepath.Join(activeDir(), "community.json") }
@@ -130,7 +132,58 @@ func commToken() string {
 	return commCfg.Token
 }
 
+// clientTag tells the server which app asks (the admin page's Online tab): the agent by itself ("pc") or as the engine
+// of the Pitlane HQ window ("desktop"), with the version
+func clientTag() string {
+	if engineMode {
+		return "desktop/" + appVersion
+	}
+	return "pc/" + appVersion
+}
+
+// commMaxAnswer: the biggest answer read from the server (a session with every lap's telemetry is tens of MB); a bigger
+// one is an error, never a cut answer that fails to parse further on
+const commMaxAnswer = 64 << 20
+
+// readCapped reads all of r, or fails when it holds more than max bytes
+func readCapped(r io.Reader, max int64) ([]byte, error) {
+	b, err := io.ReadAll(io.LimitReader(r, max+1))
+	if err != nil {
+		return nil, fmt.Errorf("the server's answer was cut: %w", err)
+	}
+	if int64(len(b)) > max {
+		return nil, fmt.Errorf("the server's answer is bigger than %d MB", max>>20)
+	}
+	return b, nil
+}
+
+// proxyPath: the community server's address for a read-only proxy of the app's page; ?id= becomes the path's last part
+// and every other parameter of the query goes through as it came (limit, game, trackId…). ok is false for a bad id
+func proxyPath(path string, q url.Values) (string, bool) {
+	p := path
+	if id := q.Get("id"); id != "" {
+		if strings.ContainsAny(id, "/?#.") || len(id) > 64 {
+			return "", false
+		}
+		p += "/" + id
+	}
+	rest := url.Values{}
+	for k, v := range q {
+		if k != "id" {
+			rest[k] = v
+		}
+	}
+	if len(rest) > 0 {
+		p += "?" + rest.Encode()
+	}
+	return p, true
+}
+
 func commRequest(method, path string, body any, tok string) ([]byte, error) {
+	return commRequestWith(commHTTP, method, path, body, tok)
+}
+
+func commRequestWith(client *http.Client, method, path string, body any, tok string) ([]byte, error) {
 	base := commBase()
 	if base == "" {
 		return nil, errors.New("the community server is not set up yet")
@@ -142,15 +195,19 @@ func commRequest(method, path string, body any, tok string) ([]byte, error) {
 	}
 	req, _ := http.NewRequest(method, base+path, rd)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Pitlane-Client", clientTag())
 	if tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
-	resp, err := commHTTP.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not reach the Pitlane HQ server: %w", err)
 	}
 	defer resp.Body.Close()
-	b, _ := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+	b, rerr := readCapped(resp.Body, commMaxAnswer)
+	if rerr != nil && resp.StatusCode < 300 {
+		return nil, rerr
+	}
 	if resp.StatusCode >= 300 {
 		var e struct{ Error string }
 		json.Unmarshal(b, &e)
@@ -831,17 +888,10 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	// read-only proxies to the community server
 	proxy := func(path string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			p := path
-			if id := r.URL.Query().Get("id"); id != "" {
-				if strings.ContainsAny(id, "/?#.") || len(id) > 64 {
-					http.Error(w, "bad id", 400)
-					return
-				}
-				p += "/" + id
-			} else if q := r.URL.Query(); q.Get("trackId") != "" || q.Get("carId") != "" {
-				p += "?trackId=" + url.QueryEscape(q.Get("trackId")) + "&carId=" + url.QueryEscape(q.Get("carId")) + "&game=" + url.QueryEscape(q.Get("game"))
-			} else if g := r.URL.Query().Get("game"); g != "" {
-				p += "?game=" + url.QueryEscape(g)
+			p, ok := proxyPath(path, r.URL.Query())
+			if !ok {
+				http.Error(w, "bad id", 400)
+				return
 			}
 			// with your account token when you are signed in: the server then marks your own laps as yours
 			b, err := commRequest("GET", "/community"+p, nil, commToken())
@@ -873,6 +923,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/community/track", proxy("/track"))
 	mux.HandleFunc("/api/community/laps", proxy("/laps"))
 	mux.HandleFunc("/api/community/model", proxy("/model"))
+	mux.HandleFunc("/api/community/car", proxy("/car"))
 	mux.HandleFunc("/api/community/reports", proxy("/reports"))
 	mux.HandleFunc("/api/community/admin", handleCommAdmin)
 }

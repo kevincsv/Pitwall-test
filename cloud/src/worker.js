@@ -19,6 +19,8 @@ import { seoPage, indexNow, notFound } from "./seo.js";
 import { discordInteraction, discordOAuth } from "./discord.js";
 import { steamReturn } from "./steam.js";
 import { scanLeagues } from "./leaguescan.js";
+import { onlineRoute, prunePresence } from "./presence.js";
+import { sessionSummary } from "./sessionsum.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -64,13 +66,25 @@ const offlineAI = (s) => gameOf(s.game) === "iracing" && /(^|:)t-/.test(String(s
 async function upsertSession(env, s, uploader) {
   if (!idOk(s.id) || !num(s.started) || !s.track || !s.car) return "session needs id, started, track and car";
   await env.DB.prepare(
-    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game, track_id, car_id, official, lic, cat, ai)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
+    `INSERT INTO sessions (id, started, track, track_config, car, kind, series, driver, air_temp, track_temp, uploader, game, track_id, car_id, official, lic, cat, ai, pos, field, pos_cls)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)
      ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, air_temp=excluded.air_temp, track_temp=excluded.track_temp, track_id=COALESCE(excluded.track_id, track_id), car_id=COALESCE(excluded.car_id, car_id), official=COALESCE(excluded.official, official), ai=COALESCE(excluded.ai, ai),
-       lic=COALESCE(excluded.lic, lic), cat=COALESCE(excluded.cat, cat)`
-  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId), typeof s.official === "boolean" ? (s.official ? 1 : 0) : null, licOf(s.lic), str(s.cat, 20), s.ai === true || offlineAI(s) ? 1 : null).run();
+       lic=COALESCE(excluded.lic, lic), cat=COALESCE(excluded.cat, cat),
+       pos=COALESCE(excluded.pos, pos), field=CASE WHEN excluded.pos IS NULL THEN field ELSE excluded.field END, pos_cls=CASE WHEN excluded.pos IS NULL THEN pos_cls ELSE excluded.pos_cls END`
+  ).bind(s.id, Math.round(s.started), str(s.track), str(s.trackConfig), str(s.car), str(s.kind, 40), str(s.series), str(s.driver, 80), num(s.airTemp), num(s.trackTemp), uploader, gameOf(s.game), posInt(s.trackId), posInt(s.carId), typeof s.official === "boolean" ? (s.official ? 1 : 0) : null, licOf(s.lic), str(s.cat, 20), s.ai === true || offlineAI(s) ? 1 : null, ...placeOf(s)).run();
   return null;
 }
+
+// the driver's place in the session and its number of cars (the agent's sessionplace.go): later uploads replace it, a
+// session sent without one keeps what it has; cls: the place in the driver's class (a multiclass session)
+function placeOf(s) {
+  const pos = Number.isInteger(s.pos) && s.pos > 0 && s.pos < 1000 ? s.pos : null;
+  if (!pos) return [null, null, null];
+  const field = Number.isInteger(s.field) && s.field >= pos && s.field < 1000 ? s.field : pos;
+  return [pos, field, s.cls === true ? 1 : 0];
+}
+// how the apps read it: pos, field and cls (true when the place is in the class); none on older sessions
+const placeOut = ({ pos_cls, ...x }) => ({ ...x, pos: x.pos || null, field: x.field || null, cls: pos_cls === 1 });
 
 // DRINKS mode: the friend who drove a lap (null: the account's own)
 const lapDrv = (l) => (typeof l.drv === "string" && l.drv.trim() ? l.drv.trim().slice(0, 32) : null);
@@ -151,6 +165,12 @@ async function api(req, env, url, ctx) {
     return json({ ok: true, shared: !!(shared && shared.shared) });
   }
 
+  // Home's four numbers over every session of the account since the device's start of the month (sessionsum.js)
+  if (p === "/api/sessions/summary" && m === "GET") {
+    const q = url.searchParams;
+    return json(await sessionSummary(env.DB, { from: q.get("from"), tz: q.get("tz"), game: q.get("game") ? gameOf(q.get("game")) : null, uploader: own || q.get("who") || null }));
+  }
+
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
@@ -170,7 +190,7 @@ async function api(req, env, url, ctx) {
       const u = await env.DB.prepare("SELECT lics FROM community_users WHERE id=?1").bind(own.slice(5)).first().catch(() => null);
       try { lics = JSON.parse((u && u.lics) || "{}") || {}; } catch (e) {}
     }
-    return json((results || []).map(({ cat, lic, ...x }) => {
+    return json((results || []).map(placeOut).map(({ cat, lic, ...x }) => {
       // the other games race sports cars only (LMU), as /combos and /records say
       const ir = (x.game || "iracing") === "iracing";
       const c = ir ? catOf(cm, x.track_id, x.car_id, cat, x.track + (x.track_config ? " · " + x.track_config : ""), x.car) : "sports_car";
@@ -278,7 +298,7 @@ async function api(req, env, url, ctx) {
     const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc, drv${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
     const laps = [];
     for (const l of results) laps.push({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null } : {}) });
-    return json({ session: s, laps });
+    return json({ session: placeOut(s), laps });
   }
 
   // fastest valid lap of anyone in the team for a track, layout and car
@@ -414,7 +434,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },
@@ -436,6 +456,8 @@ async function handle(req, env, ctx) {
     // the public pages for search engines: what Pitlane HQ does, the records of every car and track, the sitemap
     { const sp = await seoPage(req, env, url).catch(() => null); if (sp) return sp; }
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
+    // the admin page's Online tab: who is on the web, the PC or the phones now (presence.js)
+    if (url.pathname === "/community/admin/online" && req.method === "GET") return onlineRoute(req, env).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
     if (url.pathname.startsWith("/community/")) {
       try {
         return await community(req, env, url, ctx);

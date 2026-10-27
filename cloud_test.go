@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -73,3 +77,51 @@ func TestSessionMetaLMU(t *testing.T) {
 }
 
 var timeZero = time.Unix(0, 0)
+
+// a lap queued while the head of the outbox is on its way never rides on it: the uploader drops that item once sent
+func TestQueueLapWhileUploading(t *testing.T) {
+	started, release := make(chan struct{}), make(chan struct{})
+	var got []cloudItem
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var it cloudItem
+		json.NewDecoder(r.Body).Decode(&it)
+		mu.Lock()
+		got = append(got, it)
+		first := len(got) == 1
+		mu.Unlock()
+		if first {
+			close(started)
+			<-release
+		}
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	cloudMu.Lock()
+	saved, savedCfg := cloudQueue, cloudCfg
+	cloudQueue, cloudCfg = nil, cloudConfig{Enabled: true, URL: srv.URL, Key: "k"}
+	cloudMu.Unlock()
+	defer func() {
+		cloudMu.Lock()
+		cloudQueue, cloudCfg = saved, savedCfg
+		cloudMu.Unlock()
+	}()
+	t.Setenv("PITLANEHQ_DATA", t.TempDir())
+	s := cloudSession{ID: "ir-2-0", Track: "T", Car: "C", Kind: "Race"}
+	queueLap(s, cloudLap{ID: "ir-2-0-1", N: 1, Time: 90})
+	done := make(chan bool)
+	go func() { done <- uploadNext() }()
+	<-started
+	queueLap(s, cloudLap{ID: "ir-2-0-2", N: 2, Time: 91}) // the first item is on its way
+	close(release)
+	<-done
+	for uploadNext() {
+	}
+	n := 0
+	for _, it := range got {
+		n += len(it.Laps)
+	}
+	if n != 2 {
+		t.Fatalf("both laps reach the server: %d sent in %d uploads", n, len(got))
+	}
+}

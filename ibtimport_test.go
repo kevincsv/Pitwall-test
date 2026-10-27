@@ -304,3 +304,109 @@ func TestIBTDedupeDrinksAndNumbers(t *testing.T) {
 		t.Fatalf("by number and time: %v %d", err, len(s.laps))
 	}
 }
+
+// the pacing: three times as long asleep as each batch worked, a quarter of one core at most
+func TestIBTPace(t *testing.T) {
+	for _, work := range []time.Duration{time.Millisecond, 100 * time.Millisecond, 750 * time.Millisecond} {
+		rest := ibtPace(work)
+		if rest != 3*work {
+			t.Fatalf("pace(%v) = %v, want %v", work, rest, 3*work)
+		}
+		if duty := float64(work) / float64(work+rest); math.Abs(duty-0.25) > 1e-9 {
+			t.Fatalf("duty %v, want 0.25", duty)
+		}
+	}
+	if ibtPace(0) != 3*time.Millisecond {
+		t.Fatalf("a batch of no time still rests a moment")
+	}
+	// a stop during a long rest is seen within a second
+	calls := 0
+	t0 := time.Now()
+	if !ibtRestFor(10*time.Second, func() bool { calls++; return calls > 2 }) {
+		t.Fatal("the rest did not stop")
+	}
+	if d := time.Since(t0); d > time.Second {
+		t.Fatalf("stopped after %v", d)
+	}
+}
+
+// the backlog waits for an idle PC (5 minutes without input, no sim) and stops when somebody comes back
+func TestIBTIdleGate(t *testing.T) {
+	old := userIdleFor
+	defer func() { userIdleFor = old }()
+	idle := 4 * time.Minute
+	userIdleFor = func() time.Duration { return idle }
+	if pcIdle() || !userBack() {
+		t.Fatal("4 minutes without input is not idle")
+	}
+	idle = 6 * time.Minute
+	if !pcIdle() || userBack() {
+		t.Fatal("6 minutes without input is idle")
+	}
+	idle = 0
+	if !userBack() {
+		t.Fatal("input again stops the backlog")
+	}
+
+	var s ibtSched
+	now := time.Now()
+	asked := 0
+	no := func() bool { asked++; return false }
+	yes := func() bool { asked++; return true }
+	if s.due(now, false, true, no) {
+		t.Fatal("backlog on a busy PC")
+	}
+	if !s.due(now, false, true, yes) {
+		t.Fatal("backlog on an idle PC")
+	}
+	if s.due(now, true, true, yes) {
+		t.Fatal("backlog while a sim is connected")
+	}
+	s.ran(now, ibtPaused)
+	if s.due(now.Add(30*time.Second), false, true, yes) || !s.due(now.Add(ibtPaused), false, true, yes) {
+		t.Fatal("a stopped backlog goes on after the retry, on an idle PC")
+	}
+	before := asked
+	s.due(now, true, true, yes)
+	if asked != before {
+		t.Fatal("idle asked while the sim runs")
+	}
+}
+
+// after the backlog: a look 2 minutes after the sim closes and once a day, never on a timer of hours
+func TestIBTAfterSim(t *testing.T) {
+	var s ibtSched
+	t0 := time.Now()
+	s.ran(t0, 0) // a round just ended: the next daily look in 24 h
+	never := func() bool { t.Fatal("idle asked after the backlog"); return false }
+	if s.due(t0.Add(4*time.Hour), false, false, never) {
+		t.Fatal("a look after 4 hours")
+	}
+	if s.due(t0.Add(5*time.Hour), true, false, never) {
+		t.Fatal("a look while the sim runs")
+	}
+	gone := t0.Add(5*time.Hour + time.Minute)
+	if s.due(gone, false, false, never) || s.due(gone.Add(ibtAfterSim-time.Second), false, false, never) {
+		t.Fatal("a look before the file is closed")
+	}
+	if !s.due(gone.Add(ibtAfterSim), false, false, never) {
+		t.Fatal("no look 2 minutes after the sim closed")
+	}
+	if s.due(gone.Add(ibtAfterSim+ibtTick), false, false, never) {
+		t.Fatal("the after-sim look runs once")
+	}
+	s.ran(gone.Add(ibtAfterSim), 0)
+	if s.due(gone.Add(ibtAfterSim+23*time.Hour), false, false, never) || !s.due(gone.Add(ibtAfterSim+ibtSafety), false, false, never) {
+		t.Fatal("the daily look")
+	}
+	// a sim that connects and goes away before the daily look still gets its look after 2 minutes, not at once
+	var u ibtSched
+	u.ran(t0, 0)
+	u.due(t0.Add(time.Hour), true, false, never)
+	if u.due(t0.Add(25*time.Hour), false, false, never) {
+		t.Fatal("the daily look waits for the closing file")
+	}
+	if !u.due(t0.Add(25*time.Hour+ibtAfterSim), false, false, never) {
+		t.Fatal("the look after the sim")
+	}
+}

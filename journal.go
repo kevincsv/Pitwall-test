@@ -1053,6 +1053,12 @@ func pushNoticeLocked(kind string, data any) {
 	}
 }
 
+func pushNotice(kind string, data any) {
+	journalMu.Lock()
+	defer journalMu.Unlock()
+	pushNoticeLocked(kind, data)
+}
+
 func noticesSince(seq int) ([]notice, int) {
 	journalMu.Lock()
 	defer journalMu.Unlock()

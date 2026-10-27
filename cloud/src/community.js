@@ -51,6 +51,7 @@ import { gameOf } from "./games.js";
 import { famId, famIds, famName, famGroups, noteCar } from "./carfamily.js";
 import { proRoutes } from "./lemon.js";
 import { coachTipRoutes } from "./coachtips.js";
+import { lmuApiRoutes } from "./lmuapi.js";
 import { turnsFromPath } from "./trackgeo.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
@@ -247,6 +248,7 @@ export async function community(req, env, url, ctx) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
   if (m === "OPTIONS") return new Response(null, { headers: { ...JSONH, "access-control-allow-methods": "GET,POST,DELETE", "access-control-max-age": "86400", "access-control-allow-headers": "authorization,content-type" } });
+  { const la = await lmuApiRoutes(req, env, p, m, url); if (la) return la; } // admins: what LMU's own API answered (lmuapi.js; its body is gzipped)
   const body = m === "POST" ? await req.json().catch(() => ({})) : {};
 
   if (p === "/register" && m === "POST") {

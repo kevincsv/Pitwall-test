@@ -990,7 +990,12 @@ func registerPLRoutes(mux *http.ServeMux) {
 			}
 			body = in
 		}
-		b, err := commRequest(r.Method, p, body, tok)
+		// one session with its laps (and their telemetry with ?traces=1) can be big: it gets the longer timeout
+		client := commHTTP
+		if r.Method == http.MethodGet && strings.HasPrefix(p, "/api/sessions/") {
+			client = commHTTPLong
+		}
+		b, err := commRequestWith(client, r.Method, p, body, tok)
 		if err != nil {
 			w.WriteHeader(502)
 			writeJSON(w, map[string]string{"error": err.Error()})

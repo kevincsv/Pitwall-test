@@ -4,23 +4,29 @@ package main
 // (lmu.go) does not carry them; the game's own UI is a web page served by the game on 127.0.0.1:6397 (an
 // unofficial REST API that community tools read: TinyPedal, irdashies, lmu-pitwall, go-lmu-api). No community tool
 // documents an endpoint with SR or DR yet (the known profile ones, /rest/profile/ and
-// /rest/profile/profileInfo/getProfileInfo, carry name, nick, nationality and language), so the agent discovers it:
-// once per run of the game it reads the game's own API list (/swagger-schema.json), tries the read-only GET paths
-// whose names speak of the profile or a rating, logs once which answered and their top-level keys, and keeps SR and
-// DR from any field named like them, as the game writes them ("Silver 2.45", or whatever the game says). The paths
-// that gave them are read again at most once a minute. Never while the player is on track (in the game's realtime:
-// community tools report freezes when the API is polled while driving), never a POST or PUT, never a value made up.
-// What it finds goes to ratings.json as "lmu" {sr, dr, at}, next to iRacing's disciplines.
+// /rest/profile/profileInfo/getProfileInfo, carry name, nick, nationality and language). On every PC the agent reads
+// one or two paths (those, or the ones an admin's PC found the ratings in, lmu-rating-paths.json): once when the
+// game's menus are reached after the game starts and again only when a session ends (back in the menus), never more
+// than once every 10 minutes, never while the player is in a session (community tools report freezes when the API is
+// polled while driving), never a POST or PUT, never a value made up. What it finds goes to ratings.json as "lmu"
+// {sr, dr, at}, next to iRacing's disciplines. On an admin's PC alone the same worker also reads the whole API once
+// per game version (lmuapi.go).
+//
+// One goroutine for all of it (lmuRestW), started the first time the game is found: it sleeps on the source's
+// events (opened, closed, a session loaded or left) and wakes on a timer only while it has something to do.
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -32,232 +38,352 @@ import (
 // the game's own address: IPv4 first, IPv6 for the builds that refuse it (race-engineer's notes saw both)
 var lmuRestBases = []string{"http://127.0.0.1:6397", "http://[::1]:6397"}
 
-// the profile paths the community found (go-lmu-api, generated from the game's swagger), always tried
+// the profile paths the community found (go-lmu-api, generated from the game's swagger), read while no admin's PC
+// has found where the ratings are
 var lmuRestKnown = []string{"/rest/profile/", "/rest/profile/profileInfo/getProfileInfo"}
 
 const (
-	lmuRestEvery     = time.Minute // at most one round of reads a minute
-	lmuRestMaxProbes = 10          // at most this many paths tried in one discovery
-	lmuRestMaxBody   = 4 << 20
+	lmuRateEvery  = 10 * time.Minute // at most one read of the ratings in this time
+	lmuRateRetry  = 30 * time.Second // the game's API not up yet (loading): the read again after this
+	lmuGameGrace  = time.Minute      // the source closes and opens again every few seconds in the menus: closed longer is the game gone
+	lmuReqTimeout = 5 * time.Second
+	lmuReadCap    = 1 << 20   // never more than this read of one answer
+	lmuKeepCap    = 256 << 10 // what is kept of a bigger one
+	lmuDrainCap   = 64 << 20  // a bigger answer without Content-Length is counted up to this
 )
 
-// paths from the game's API list worth a try (their name speaks of the profile or a rating) …
-var lmuRestWanted = regexp.MustCompile(`(?i)profile|rating|rank|safety|licen[cs]e|competit|career|stat(s|istic)|elo|skill`)
-
-// … and never those that do something or hand out a secret, even as a GET (/rest/multiplayer/join is a GET)
-var lmuRestAvoid = regexp.MustCompile(`(?i)auth|ticket|token|password|join|set|start|exit|delete|remove|reset|command|play|load|save|cancel|take|focus|restart|kick|ban|chat|dlc|steam|eac|devmode|firstrun|vehicle|/cars?\b|track|session|garage|setup|watch|replay|weather|strategy|standings`)
-
-// lmuRestGate: when a round of reads may run (the game in its menus, a minute since the last round)
-type lmuRestGate struct {
-	last time.Time
-}
-
-func (g *lmuRestGate) due(now time.Time, onTrack bool) bool {
-	if onTrack || (!g.last.IsZero() && now.Sub(g.last) < lmuRestEvery) {
-		return false
-	}
-	g.last = now
-	return true
-}
-
-// lmuRest: what one run of the game taught (lmuSource keeps one; reset when the game closes)
-type lmuRest struct {
-	mu         sync.Mutex
-	gate       lmuRestGate
-	base       string   // the address that answered
-	discovered bool     // the discovery ran and was logged
-	paths      []string // the paths that gave SR or DR
-	get        func(ctx context.Context, url string) (int, []byte, error)
-}
-
+// one client for the game's API: one connection kept alive, nothing through a proxy (the game is on this PC)
 var lmuRestHTTP = &http.Client{
-	Timeout: 3 * time.Second,
 	Transport: &http.Transport{
-		Proxy:             nil, // the game is on this PC: never through a proxy
-		DialContext:       localDialContext((&net.Dialer{Timeout: 2 * time.Second}).DialContext),
-		DisableKeepAlives: true,
+		Proxy:               nil,
+		DialContext:         localDialContext((&net.Dialer{Timeout: 2 * time.Second}).DialContext),
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		IdleConnTimeout:     30 * time.Second,
 	},
 }
 
-func lmuRestGet(ctx context.Context, url string) (int, []byte, error) {
+// lmuAnswer: one answer of the game's API
+type lmuAnswer struct {
+	code  int
+	ctype string
+	size  int64  // the whole answer's size (Content-Length, or counted)
+	body  []byte // all of it up to lmuReadCap, else its first lmuKeepCap
+	trunc bool
+	ms    int64
+	err   error
+}
+
+// lmuFetch: one GET, read up to lmuReadCap (a bigger answer keeps its first lmuKeepCap and says its size), the body
+// always read to its end or closed
+func lmuFetch(ctx context.Context, url string) lmuAnswer {
+	t0 := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, lmuReqTimeout)
+	defer cancel()
+	a := lmuAnswer{}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return 0, nil, err
+		a.err = err
+		return a
 	}
 	req.Header.Set("Accept", "application/json")
 	resp, err := lmuRestHTTP.Do(req)
 	if err != nil {
-		return 0, nil, err
+		a.err = err
+		a.ms = time.Since(t0).Milliseconds()
+		return a
 	}
 	defer resp.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(resp.Body, lmuRestMaxBody))
-	return resp.StatusCode, b, err
+	a.code, a.ctype = resp.StatusCode, resp.Header.Get("Content-Type")
+	b, err := io.ReadAll(io.LimitReader(resp.Body, lmuReadCap+1))
+	a.size = int64(len(b))
+	if len(b) > lmuReadCap {
+		n, _ := io.Copy(io.Discard, io.LimitReader(resp.Body, lmuDrainCap))
+		a.size += n
+		if resp.ContentLength > a.size {
+			a.size = resp.ContentLength
+		}
+		b, a.trunc = b[:lmuKeepCap], true
+	} else if err != nil {
+		a.err = err
+	}
+	a.body = b
+	a.ms = time.Since(t0).Milliseconds()
+	return a
 }
 
-// tick: called every few seconds while the game is open; onTrack is the game's realtime (lmuSource.onTrack)
-func (r *lmuRest) tick(onTrack bool) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if !r.gate.due(time.Now(), onTrack) {
-		return
+// lmuRestState: what the LMU source says (lmu.go)
+type lmuRestState struct {
+	open     bool
+	closedAt time.Time
+	inSess   bool // a session loaded (the 3D world)
+	onTrack  bool // the game in its realtime (driving, or in the car in the garage)
+	build    int  // the game's version from the shared memory, 0 unknown
+}
+
+// lmuRestWorker: the ratings for everyone, the whole API on an admin's PC
+type lmuRestWorker struct {
+	mu     sync.Mutex
+	st     lmuRestState
+	fresh  bool               // the game was started again (closed longer than lmuGameGrace)
+	cancel context.CancelFunc // the request in flight: cancelled when a session loads
+	kick   chan struct{}
+
+	// only the worker's goroutine (or a test) touches these
+	gameSeen, wasBusy, pendingRead bool
+	lastRead                       time.Time
+	base                           string
+	exp                            *lmuExplorer
+
+	fetch func(ctx context.Context, url string) lmuAnswer
+	now   func() time.Time
+	admin func() bool // an admin of the server signed in on this PC (the only PCs that read the whole API)
+	dir   string      // "" = dataDir()
+}
+
+func newLMURestWorker() *lmuRestWorker {
+	return &lmuRestWorker{kick: make(chan struct{}, 1), fetch: lmuFetch, now: time.Now, admin: wipAllowed}
+}
+
+// errLMUBusy: a request not made because a session is loaded
+var errLMUBusy = errors.New("in a session")
+
+var (
+	lmuRestW    = newLMURestWorker()
+	lmuRestOnce sync.Once
+)
+
+func (w *lmuRestWorker) poke() {
+	select {
+	case w.kick <- struct{}{}:
+	default:
 	}
-	if r.get == nil {
-		r.get = lmuRestGet
+}
+
+// lmuRestOpened / lmuRestClosed / lmuRestNote: the LMU source's events (the worker starts with the first one)
+func lmuRestOpened() {
+	lmuRestOnce.Do(func() { go lmuRestW.loop() })
+	lmuRestW.opened()
+}
+
+func lmuRestClosed() { lmuRestW.closed() }
+
+func lmuRestNote(inSess, onTrack bool, build int) { lmuRestW.note(inSess, onTrack, build) }
+
+func (w *lmuRestWorker) opened() {
+	w.mu.Lock()
+	if !w.st.open && !w.st.closedAt.IsZero() && w.now().Sub(w.st.closedAt) > lmuGameGrace {
+		w.fresh = true
 	}
-	if r.base == "" && !r.findBase() {
-		return // the game's API is not up yet (loading): next minute
+	w.st.open = true
+	w.mu.Unlock()
+	w.poke()
+}
+
+func (w *lmuRestWorker) closed() {
+	w.mu.Lock()
+	w.st.open, w.st.closedAt, w.st.inSess, w.st.onTrack = false, w.now(), false, false
+	w.mu.Unlock()
+	w.poke()
+}
+
+func (w *lmuRestWorker) note(inSess, onTrack bool, build int) {
+	w.mu.Lock()
+	ch := w.st.inSess != inSess || w.st.onTrack != onTrack || (build != 0 && w.st.build != build)
+	w.st.inSess, w.st.onTrack = inSess, onTrack
+	if build != 0 {
+		w.st.build = build
 	}
+	if (inSess || onTrack) && w.cancel != nil {
+		w.cancel() // a session is loading: the request in flight stops at once
+	}
+	w.mu.Unlock()
+	if ch {
+		w.poke()
+	}
+}
+
+// loop: sleeps until an event, or until the step asked to be woken
+func (w *lmuRestWorker) loop() {
+	for {
+		d := w.step()
+		if d <= 0 {
+			<-w.kick
+			continue
+		}
+		t := time.NewTimer(d)
+		select {
+		case <-w.kick:
+			t.Stop()
+		case <-t.C:
+		}
+	}
+}
+
+// step: at most one request to the game; how long until the next (0: nothing to do until an event)
+func (w *lmuRestWorker) step() time.Duration {
+	now := w.now()
+	w.mu.Lock()
+	st, fresh := w.st, w.fresh
+	w.fresh = false
+	w.mu.Unlock()
+	if fresh { // the game started again: read once in its menus, and its API again if it is a new version
+		w.gameSeen, w.wasBusy, w.exp = false, false, nil
+	}
+	if !st.open && (st.closedAt.IsZero() || now.Sub(st.closedAt) >= lmuGameGrace) {
+		return 0 // the game is not running
+	}
+	if !w.gameSeen {
+		w.gameSeen, w.pendingRead = true, true
+	}
+	if st.inSess || st.onTrack {
+		if !w.wasBusy && w.exp != nil {
+			w.exp.pause()
+		}
+		w.wasBusy = true
+		return 0 // nothing while a session is loaded: the next event wakes the worker
+	}
+	if w.wasBusy { // a session ended: back in the menus
+		w.wasBusy, w.pendingRead = false, true
+	}
+	var wait time.Duration
+	if w.pendingRead {
+		if wait = w.lastRead.Add(lmuRateEvery).Sub(now); w.lastRead.IsZero() || wait <= 0 {
+			switch ok := w.readRatings(); {
+			case ok:
+				w.pendingRead, w.lastRead = false, now
+			case !st.open:
+				w.pendingRead = false // the game is gone
+			default:
+				return lmuRateRetry
+			}
+			return lmuAPIPace
+		}
+	}
+	if st.open && w.admin() { // the whole API: an admin's PC only, with the game surely there
+		if w.exp == nil {
+			w.exp = newLMUExplorer(w.dirOr())
+		}
+		if w.exp.step(w, st, now) {
+			return lmuAPIPace
+		}
+	}
+	if w.pendingRead {
+		return wait
+	}
+	return 0
+}
+
+func (w *lmuRestWorker) dirOr() string {
+	if w.dir != "" {
+		return w.dir
+	}
+	return dataDir()
+}
+
+// get: one GET of the game's API, at the address that answered last (else each in turn); a session loading cancels it
+func (w *lmuRestWorker) get(path string) lmuAnswer {
+	bases := lmuRestBases
+	if w.base != "" {
+		bases = []string{w.base}
+	}
+	var a lmuAnswer
+	for _, b := range bases {
+		ctx, cancel := context.WithCancel(context.Background())
+		w.mu.Lock()
+		busy := w.st.inSess || w.st.onTrack
+		if !busy {
+			w.cancel = cancel
+		}
+		w.mu.Unlock()
+		if busy {
+			cancel()
+			return lmuAnswer{err: errLMUBusy}
+		}
+		a = w.fetch(ctx, b+path)
+		w.mu.Lock()
+		w.cancel = nil
+		w.mu.Unlock()
+		cancel()
+		if a.err == nil {
+			w.base = b
+			return a
+		}
+		if errors.Is(a.err, context.Canceled) {
+			return a
+		}
+	}
+	w.base = ""
+	return a
+}
+
+// readRatings: one or two GETs; true when the game's API answered
+func (w *lmuRestWorker) readRatings() bool {
+	answered := false
 	var sr, dr string
-	if !r.discovered {
-		sr, dr = r.discover()
-	} else {
-		for _, p := range r.paths {
-			code, b, err := r.get(context.Background(), r.base+p)
-			if err != nil || code != 200 {
-				continue
-			}
-			s, d := lmuRatingsFromJSON(b)
-			if sr == "" {
-				sr = s
-			}
-			if dr == "" {
-				dr = d
-			}
+	for _, p := range lmuRatingPaths(w.dirOr()) {
+		a := w.get(p)
+		if a.err != nil {
+			continue
+		}
+		answered = true
+		if a.code != 200 {
+			continue
+		}
+		s, d := lmuRatingsFromJSON(a.body)
+		if sr == "" {
+			sr = s
+		}
+		if dr == "" {
+			dr = d
 		}
 	}
 	if sr != "" || dr != "" {
-		noteLMURating(sr, dr, time.Now().UnixMilli())
+		if noteLMURating(sr, dr, w.now().UnixMilli()) {
+			log.Printf("lmu rest: SR %q DR %q", sr, dr)
+		}
 	}
+	return answered
 }
 
-// findBase: the first address of the game that answers anything over HTTP
-func (r *lmuRest) findBase() bool {
-	for _, b := range lmuRestBases {
-		if _, _, err := r.get(context.Background(), b+lmuRestKnown[0]); err == nil {
-			r.base = b
-			return true
-		}
+// the paths the ratings are read from: those an admin's PC found them in (lmu-rating-paths.json), else the known ones;
+// two at most
+var lmuRatingMu sync.Mutex
+
+func lmuRatingFile(dir string) string { return filepath.Join(dir, "lmu-rating-paths.json") }
+
+func lmuRatingPaths(dir string) []string {
+	lmuRatingMu.Lock()
+	defer lmuRatingMu.Unlock()
+	var ps []string
+	if b, err := os.ReadFile(lmuRatingFile(dir)); err == nil {
+		json.Unmarshal(b, &ps)
 	}
-	return false
+	if len(ps) == 0 {
+		ps = lmuRestKnown
+	}
+	if len(ps) > 2 {
+		ps = ps[:2]
+	}
+	return ps
 }
 
-// discover: the game's API list, then every candidate path once; logs what answered (keys only, never values but
-// SR and DR) and keeps the paths that gave a rating
-func (r *lmuRest) discover() (sr, dr string) {
-	r.discovered = true
-	cands := append([]string(nil), lmuRestKnown...)
-	code, b, err := r.get(context.Background(), r.base+"/swagger-schema.json")
-	if err == nil && code == 200 {
-		ps := lmuSwaggerCandidates(b)
-		log.Printf("lmu rest: the game's API lists %d paths worth a try: %s", len(ps), strings.Join(ps, " "))
-		cands = append(cands, ps...)
-	} else {
-		log.Printf("lmu rest: no API list at /swagger-schema.json (%d %v)", code, err)
+// lmuLearnRatingPath: a path that gave SR or DR goes first in lmu-rating-paths.json
+func lmuLearnRatingPath(dir, p string) {
+	lmuRatingMu.Lock()
+	defer lmuRatingMu.Unlock()
+	var ps []string
+	if b, err := os.ReadFile(lmuRatingFile(dir)); err == nil {
+		json.Unmarshal(b, &ps)
 	}
-	seen := map[string]bool{}
-	n := 0
-	for _, p := range cands {
-		if seen[p] || n >= lmuRestMaxProbes {
-			continue
-		}
-		seen[p] = true
-		n++
-		code, b, err := r.get(context.Background(), r.base+p)
-		if err != nil {
-			log.Printf("lmu rest: %s: %v", p, err)
-			continue
-		}
-		s, d := "", ""
-		if code == 200 {
-			s, d = lmuRatingsFromJSON(b)
-		}
-		log.Printf("lmu rest: %s → %d, %s%s", p, code, lmuJSONKeys(b), lmuFoundTxt(s, d))
-		if s != "" || d != "" {
-			r.paths = append(r.paths, p)
-			if sr == "" {
-				sr = s
-			}
-			if dr == "" {
-				dr = d
-			}
+	out := []string{p}
+	for _, x := range ps {
+		if x != p && len(out) < 2 {
+			out = append(out, x)
 		}
 	}
-	if len(r.paths) == 0 {
-		log.Printf("lmu rest: no Safety Rating or Driver Rating found in %d paths", n)
-	}
-	return sr, dr
-}
-
-func lmuFoundTxt(sr, dr string) string {
-	if sr == "" && dr == "" {
-		return ""
-	}
-	return fmt.Sprintf("; SR %q DR %q", sr, dr)
-}
-
-// lmuSwaggerCandidates: the GET paths of the game's API list (OpenAPI 2.0 "paths") without parameters, whose names
-// speak of the profile or a rating, and none that does something
-func lmuSwaggerCandidates(b []byte) []string {
-	var sw struct {
-		Paths map[string]map[string]struct {
-			Parameters []struct {
-				In       string `json:"in"`
-				Required bool   `json:"required"`
-			} `json:"parameters"`
-		} `json:"paths"`
-	}
-	if json.Unmarshal(b, &sw) != nil {
-		return nil
-	}
-	var out []string
-	for p, ops := range sw.Paths {
-		op, ok := ops["get"]
-		if !ok || strings.ContainsAny(p, "{}*?") || !lmuRestWanted.MatchString(p) || lmuRestAvoid.MatchString(p) {
-			continue
-		}
-		need := false
-		for _, prm := range op.Parameters {
-			if prm.Required || prm.In == "path" {
-				need = true
-			}
-		}
-		if !need {
-			out = append(out, p)
-		}
-	}
-	sort.Strings(out)
-	return out
-}
-
-// lmuJSONKeys: the top-level shape of an answer, for the log ("{a, b, c}", "[3]{a, b}", "text 12 bytes")
-func lmuJSONKeys(b []byte) string {
-	var v any
-	if json.Unmarshal(b, &v) != nil {
-		return fmt.Sprintf("not JSON, %d bytes", len(b))
-	}
-	keys := func(m map[string]any) string {
-		ks := make([]string, 0, len(m))
-		for k := range m {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
-		if len(ks) > 40 {
-			ks = append(ks[:40], "…")
-		}
-		return "{" + strings.Join(ks, ", ") + "}"
-	}
-	switch x := v.(type) {
-	case map[string]any:
-		return keys(x)
-	case []any:
-		if len(x) > 0 {
-			if m, ok := x[0].(map[string]any); ok {
-				return fmt.Sprintf("[%d]%s", len(x), keys(m))
-			}
-		}
-		return fmt.Sprintf("[%d]", len(x))
-	default:
-		return fmt.Sprintf("%T", v)
+	if fmt.Sprint(out) != fmt.Sprint(ps) {
+		writeJSONFile(lmuRatingFile(dir), out)
 	}
 }
 
@@ -414,22 +540,4 @@ func lmuSetRating(sr, dr string, at int64) bool {
 	}
 	ratings["lmu"] = n
 	return true
-}
-
-// lmuRestLoop: the game's API while the game is open (stops with the source)
-func (s *lmuSource) lmuRestLoop(stop chan struct{}) {
-	r := &lmuRest{}
-	t := time.NewTicker(5 * time.Second)
-	defer t.Stop()
-	for {
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			s.mu.Lock()
-			on := s.onTrack
-			s.mu.Unlock()
-			r.tick(on)
-		}
-	}
 }

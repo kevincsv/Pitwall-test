@@ -50,6 +50,11 @@ type cloudSession struct {
 	Official    *bool   `json:"official,omitempty"` // a session of an official series: those teach the model
 	AI          bool    `json:"ai,omitempty"`       // a session with iRacing's AI drivers: its people's laps teach the model too
 	Imported    bool    `json:"imported,omitempty"` // read afterwards from a telemetry file on the PC (ibtimport.go), not driven now
+	// where you finished (or stand) in the session and how many cars it had (sessionplace.go): practice, qualifying and
+	// warmup by the best lap, a race by its order; Cls when it is the place in your class (a multiclass session)
+	Pos   int  `json:"pos,omitempty"`
+	Field int  `json:"field,omitempty"`
+	Cls   bool `json:"cls,omitempty"`
 }
 
 type cloudLap struct {
@@ -87,14 +92,16 @@ type cloudItem struct {
 var cloudDemo bool
 
 var (
-	cloudMu     sync.Mutex
-	cloudCfg    cloudConfig
-	cloudQueue  []cloudItem
-	cloudLast   time.Time
-	cloudErr    string
-	cloudSent   int
-	cloudKick   = make(chan struct{}, 1)
-	cloudClient = &http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}
+	cloudMu    sync.Mutex
+	cloudCfg   cloudConfig
+	cloudQueue []cloudItem
+	cloudLast  time.Time
+	cloudErr   string
+	cloudSent  int
+	cloudKick  = make(chan struct{}, 1)
+	// cloudSending: the head of the outbox is on its way; nothing is added to it (it goes once the server has it)
+	cloudSending bool
+	cloudClient  = &http.Client{Transport: tlsTransport(), Timeout: 20 * time.Second}
 )
 
 func cloudPath() string  { return filepath.Join(activeDir(), "cloud.json") }
@@ -189,47 +196,54 @@ func cloudUploader() {
 		case <-t.C:
 		case <-cloudKick:
 		}
-		for {
-			acct := accountCloud()
-			cloudMu.Lock()
-			c := cloudCfg
-			if !c.Enabled || c.URL == "" || c.Key == "" {
-				c = acct // no own site set up: the laps go to your Pitlane HQ account
-			}
-			if !c.Enabled || c.URL == "" || c.Key == "" || len(cloudQueue) == 0 {
-				cloudMu.Unlock()
-				break
-			}
-			item := cloudQueue[0]
-			cloudMu.Unlock()
-			_, err := cloudCall(c, "POST", "/api/upload", item)
-			cloudMu.Lock()
-			if err != nil {
-				cloudErr = err.Error()
-				var he httpErr
-				if errors.As(err, &he) && he.code >= 400 && he.code < 500 && he.code != 401 && he.code != 403 && he.code != 429 {
-					// rejected for good (bad data): drop it so the queue keeps moving
-					log.Printf("cloud: dropped session %s: %v", item.Session.ID, err)
-					if len(cloudQueue) > 0 {
-						cloudQueue = cloudQueue[1:]
-					}
-					saveOutboxLocked()
-					cloudMu.Unlock()
-					continue
-				}
-				cloudMu.Unlock()
-				break
-			}
-			cloudErr = ""
-			cloudLast = time.Now()
-			cloudSent += len(item.Laps)
+		for uploadNext() {
+		}
+	}
+}
+
+// uploadNext sends the item at the head of the outbox; true when the next one may go at once
+func uploadNext() bool {
+	acct := accountCloud()
+	cloudMu.Lock()
+	c := cloudCfg
+	if !c.Enabled || c.URL == "" || c.Key == "" {
+		c = acct // no own site set up: the laps go to your Pitlane HQ account
+	}
+	if !c.Enabled || c.URL == "" || c.Key == "" || len(cloudQueue) == 0 {
+		cloudMu.Unlock()
+		return false
+	}
+	item := cloudQueue[0]
+	cloudSending = true
+	cloudMu.Unlock()
+	_, err := cloudCall(c, "POST", "/api/upload", item)
+	cloudMu.Lock()
+	defer cloudMu.Unlock()
+	cloudSending = false
+	if err != nil {
+		cloudErr = err.Error()
+		var he httpErr
+		if errors.As(err, &he) && he.code >= 400 && he.code < 500 && he.code != 401 && he.code != 403 && he.code != 429 {
+			// rejected for good (bad data): drop it so the queue keeps moving
+			log.Printf("cloud: dropped session %s: %v", item.Session.ID, err)
 			if len(cloudQueue) > 0 {
 				cloudQueue = cloudQueue[1:]
 			}
 			saveOutboxLocked()
-			cloudMu.Unlock()
+			return true
 		}
+		return false
 	}
+	cloudErr = ""
+	cloudLast = time.Now()
+	cloudSent += len(item.Laps)
+	// the app's page reads the account's sessions again (Home's numbers, My sessions) once a lap is up
+	go pushNotice("cloud", map[string]any{"session": item.Session.ID, "laps": len(item.Laps)})
+	if len(cloudQueue) > 0 {
+		cloudQueue = cloudQueue[1:]
+	}
+	saveOutboxLocked()
+	return true
 }
 
 func kickCloud() {
@@ -248,15 +262,75 @@ func queueLap(s cloudSession, l cloudLap) {
 	if !cloudCfg.Enabled && !acct.Enabled {
 		return
 	}
+	// the session's latest place (the lap may wait a moment for its time while the place moves on)
+	if p, ok := sessPlaces[s.ID]; ok {
+		s.setPlace(p)
+	} else if s.Pos > 0 {
+		notePlaceLocked(s.ID, s.place())
+	}
+	if len(lapsQueued) > 200 {
+		lapsQueued = map[string]bool{}
+	}
+	lapsQueued[s.ID] = true
 	// laps of the same session travel together
-	if n := len(cloudQueue); n > 0 && cloudQueue[n-1].Session.ID == s.ID && len(cloudQueue[n-1].Laps) < 20 {
+	if n := len(cloudQueue); n > 0 && cloudQueue[n-1].Session.ID == s.ID && len(cloudQueue[n-1].Laps) < 20 && (n > 1 || !cloudSending) {
 		cloudQueue[n-1].Laps = append(cloudQueue[n-1].Laps, l)
+		cloudQueue[n-1].Session.setPlace(s.place())
 	} else {
 		cloudQueue = append(cloudQueue, cloudItem{Session: s, Laps: []cloudLap{l}})
 	}
-	if len(cloudQueue) > 500 { // about 10 000 laps waiting: drop the oldest
-		cloudQueue = cloudQueue[len(cloudQueue)-500:]
+	if len(cloudQueue) > 500 { // about 10 000 laps waiting: drop the oldest (never the one on its way)
+		if cloudSending {
+			cloudQueue = append(cloudQueue[:1], cloudQueue[len(cloudQueue)-499:]...)
+		} else {
+			cloudQueue = cloudQueue[len(cloudQueue)-500:]
+		}
 	}
+	saveOutboxLocked()
+	go kickCloud()
+}
+
+// the latest place of each session laps went for (sessionplace.go), and which sessions laps were queued for
+var (
+	sessPlaces = map[string]sessPlace{}
+	lapsQueued = map[string]bool{}
+)
+
+func notePlaceLocked(id string, p sessPlace) {
+	if len(sessPlaces) > 200 {
+		sessPlaces = map[string]sessPlace{}
+	}
+	sessPlaces[id] = p
+}
+
+// notePlace: the session's place now; the laps queued after this carry it
+func notePlace(s cloudSession) {
+	cloudMu.Lock()
+	defer cloudMu.Unlock()
+	notePlaceLocked(s.ID, s.place())
+}
+
+// queueSession: the session's final place once it ends (others may improve after your last lap, the results come a
+// moment after the line): the session goes again without laps, or rides with laps still waiting. Only for a session
+// that has laps in the account.
+func queueSession(s cloudSession) {
+	acct := accountCloud()
+	cloudMu.Lock()
+	defer cloudMu.Unlock()
+	if (!cloudCfg.Enabled && !acct.Enabled) || s.Pos <= 0 {
+		return
+	}
+	notePlaceLocked(s.ID, s.place())
+	if !lapsQueued[s.ID] { // its laps are still waiting for their time: they carry the place
+		return
+	}
+	for i := range cloudQueue {
+		if cloudQueue[i].Session.ID == s.ID {
+			cloudQueue[i].Session.setPlace(s.place())
+		}
+	}
+	// always an item of its own: the one at the head may be on its way already with the place before
+	cloudQueue = append(cloudQueue, cloudItem{Session: s})
 	saveOutboxLocked()
 	go kickCloud()
 }
@@ -516,6 +590,8 @@ type lapEnv interface {
 	meta(y string, sn int) cloudSession                      // the session the laps go to
 	lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLL float64)
 	now() time.Time
+	livePlace() (int, int)       // the game's live place of the player and in its class (0, 0 unknown)
+	sessionEnded(s cloudSession) // the session is over: its final place (sessionplace.go)
 }
 
 // lapStream: the lap recorder's state between two samples
@@ -528,6 +604,13 @@ type lapStream struct {
 	lastBase         int     // the lap offset of the session's current run (sessionrun.go)
 	lastLL           float64 // LapLastLapTime one sample before, to tell when iRacing updates it
 	tick             int
+	// the session's place (sessionplace.go): the YAML of its event as last seen, the game's live place of the player
+	// (sampled once a second), the laps that ended in it and the place they carried
+	sessY            string
+	livePos, liveCls int
+	sessLaps         int
+	sentPlace        sessPlace
+	placeTick        int
 }
 
 func newLapStream(env lapEnv) *lapStream {
@@ -535,7 +618,28 @@ func newLapStream(env lapEnv) *lapStream {
 }
 
 // reset: the game is gone (or not read): the lap under way is dropped
-func (ls *lapStream) reset() { ls.cur, ls.sessNum, ls.sessKey = nil, -1, "" }
+func (ls *lapStream) reset() {
+	ls.endSession()
+	ls.cur, ls.sessNum, ls.sessKey = nil, -1, ""
+}
+
+// place: the session's place now, from the game's results and its live place
+func (ls *lapStream) place(y string, sn int) sessPlace {
+	return sessionPlaceOf(y, sn, ls.sess.Kind, ls.livePos, ls.liveCls)
+}
+
+// endSession: a session with laps is over: its final place goes to the account when it moved since the last lap
+func (ls *lapStream) endSession() {
+	if ls.sessLaps == 0 || ls.sessNum < 0 {
+		ls.sessLaps = 0
+		return
+	}
+	ls.sessLaps = 0
+	if p := ls.place(ls.sessY, ls.sessNum); p.pos > 0 && p != ls.sentPlace {
+		ls.sess.setPlace(p)
+		ls.env.sessionEnded(ls.sess)
+	}
+}
 
 func lapRecorder() {
 	ls := newLapStream(liveLapEnv{})
@@ -566,15 +670,25 @@ func (ls *lapStream) step(v []float64) {
 		ls.sessVer = ver
 		if k := sessionKey(y); k != ls.sessKey {
 			if ls.sessKey != "" {
+				ls.endSession() // with the YAML of its own event
 				ls.sessNum = -1
 			}
 			ls.sessKey = k
+		} else {
+			ls.sessY = y
 		}
 	}
 	if sn != ls.sessNum {
+		ls.endSession()
 		ls.sessNum, ls.cur = sn, nil
 		ls.sess = env.meta(y, sn)
 		ls.sess.AirTemp, ls.sess.TrackTemp = v[15], v[16]
+		ls.sessY, ls.livePos, ls.liveCls, ls.sentPlace = y, 0, 0, sessPlace{}
+	}
+	if ls.placeTick++; ls.placeTick%30 == 1 { // the game's live place, once a second (in the pits too)
+		if p, c := env.livePlace(); p > 0 {
+			ls.livePos, ls.liveCls = p, c
+		}
 	}
 	if !onTrack {
 		ls.cur = nil
@@ -599,6 +713,9 @@ func (ls *lapStream) step(v []float64) {
 	if cur == nil || lap != cur.n {
 		if cur != nil && lap == cur.n+1 {
 			cur.driver = cur.topDriver()
+			ls.sess.setPlace(ls.place(y, sn))
+			ls.sentPlace = ls.sess.place()
+			ls.sessLaps++
 			env.lapEnded(sn, cur, ls.sess, v[9], prevLL)
 		}
 		early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
@@ -684,7 +801,13 @@ func (liveLapEnv) geo(key string, lat, lon float64) [2]float64 { return geoBase(
 func (liveLapEnv) has(name string) bool                        { return telHas(name) }
 func (liveLapEnv) meta(y string, sn int) cloudSession          { return sessionMeta(y, sn, time.Now()) }
 func (liveLapEnv) now() time.Time                              { return time.Now() }
+func (liveLapEnv) livePlace() (int, int) {
+	v := telNums([]string{"PlayerCarPosition", "PlayerCarClassPosition"})
+	return int(v[0]), int(v[1])
+}
+func (liveLapEnv) sessionEnded(s cloudSession) { queueSession(s) }
 func (liveLapEnv) lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLast float64) {
+	notePlace(s)                                  // the laps still waiting for their time carry the newest place
 	setLapCut(sn, done.n, done.invalid())         // the race report reads the same verdict
 	setLapIncs(sn, done.n, done.incAt, done.incK) // and the same incidents
 	setLapDriver(sn, done.n, done.driver)         // and the same driver

@@ -1,11 +1,14 @@
 package main
 
 // The laps already on the PC: iRacing keeps a telemetry file (.ibt) of every session driven with telemetry logging on
-// (Documents\iRacing\telemetry). A few minutes after Pitlane HQ starts, and every few hours after, the agent reads the
-// files it has not read yet, one at a time and slowly, through the same lap recorder as a lap driven now (lapStream
-// in cloud.go): the same lap numbers, verdicts, sectors, paths and tags, and the laps go to the account like any
-// other. Nobody presses anything. Never while a sim runs (it stops and starts again later), never a file still being
-// written, never the same file twice (ibt-imported.json), and never a lap the account already has.
+// (Documents\iRacing\telemetry). The agent reads the files it has not read yet, one at a time and slowly (a quarter of
+// one core at most, ibtPace), through the same lap recorder as a lap driven now (lapStream in cloud.go): the same lap
+// numbers, verdicts, sectors, paths and tags, and the laps go to the account like any other. Nobody presses anything.
+// The old files (the backlog) are read only while the PC is idle (nobody has touched it for 5 minutes and no sim
+// runs, pcIdle); somebody coming back stops it within a second and it goes on later. Once the backlog is read, the
+// folders are looked at again only 2 minutes after the sim closes and once a day (ibtSched). Never while a sim runs
+// (it stops and starts again later), never a file still being written, never the same file twice (ibt-imported.json),
+// and never a lap the account already has.
 
 import (
 	"crypto/sha256"
@@ -93,6 +96,10 @@ func (e *importLapEnv) geo(key string, lat, lon float64) [2]float64 {
 }
 func (e *importLapEnv) has(name string) bool { _, ok := e.x.index[name]; return ok }
 func (e *importLapEnv) now() time.Time       { return e.wall }
+
+// the file's YAML is the one of the session's end: its results give the place (sessionplace.go), the same on every lap
+func (e *importLapEnv) livePlace() (int, int)       { return 0, 0 }
+func (e *importLapEnv) sessionEnded(s cloudSession) {}
 
 func (e *importLapEnv) meta(y string, sn int) cloudSession {
 	s := sessionMetaGame(y, sn, e.wall, "iracing")
@@ -182,8 +189,41 @@ func otherCars(y string) bool {
 	return n > 0
 }
 
+// the import's pacing: it works in batches of about ibtBatchWork and sleeps ibtRest times what each batch took, so it
+// uses 1/(1+ibtRest) of one core at most (a quarter); the process' priority is never touched
+const (
+	ibtBatchWork = 100 * time.Millisecond
+	ibtRest      = 3
+)
+
+// ibtPace: how long to rest after a batch that took work
+func ibtPace(work time.Duration) time.Duration {
+	if work < time.Millisecond {
+		work = time.Millisecond
+	}
+	return ibtRest * work
+}
+
+// ibtRestFor sleeps d in short slices, asking pause between them: true when it stopped the rest (pause said so), so a
+// stop is seen within a quarter of a second even during a long rest
+func ibtRestFor(d time.Duration, pause func() bool) bool {
+	for d > 0 {
+		if pause != nil && pause() {
+			return true
+		}
+		step := d
+		if step > 250*time.Millisecond {
+			step = 250 * time.Millisecond
+		}
+		time.Sleep(step)
+		d -= step
+	}
+	return pause != nil && pause()
+}
+
 // replayIBT reads a telemetry file through the lap recorder and returns its sessions with their laps. pause is asked
-// every few thousand samples: true stops the reading (errImportPaused); slow sleeps a moment between them.
+// after every batch (and during the rests when slow): true stops the reading (errImportPaused); slow paces the
+// reading to a quarter of one core (ibtPace).
 func replayIBT(path, hash string, mtime time.Time, pause func() bool, slow bool) ([]*ibtSession, error) {
 	x, err := openIBT(path)
 	if err != nil {
@@ -209,18 +249,15 @@ func replayIBT(path, hash string, mtime time.Time, pause func() bool, slow bool)
 	}
 	batch := time.Now()
 	for i := 0; rd.next(); i++ {
-		if i%4096 == 4095 {
-			if pause != nil && pause() {
-				return nil, errImportPaused
-			}
-			if slow { // as long asleep as the last batch took: never more than half a core
-				d := time.Since(batch)
-				if d < time.Millisecond {
-					d = time.Millisecond
+		if slow && i%256 == 255 { // a batch is about ibtBatchWork of work, then three times as long asleep
+			if work := time.Since(batch); work >= ibtBatchWork {
+				if ibtRestFor(ibtPace(work), pause) {
+					return nil, errImportPaused
 				}
-				time.Sleep(d)
 				batch = time.Now()
 			}
+		} else if !slow && i%4096 == 4095 && pause != nil && pause() {
+			return nil, errImportPaused
 		}
 		if i%stride != 0 {
 			continue
@@ -257,9 +294,11 @@ type ibtSeen struct {
 	At    int64  `json:"at"`
 }
 
-// ibtMemory: per account (another account on this PC reads the files again for itself), per file
+// ibtMemory: per account (another account on this PC reads the files again for itself), per file; Backlog: when the
+// account's old files were all read (from then on only the new ones are looked for, ibtSched)
 type ibtMemory struct {
 	Accounts map[string]map[string]ibtSeen `json:"accounts"`
+	Backlog  map[string]int64              `json:"backlog,omitempty"`
 }
 
 var ibtMemMu sync.Mutex
@@ -572,13 +611,13 @@ func outboxLen() int {
 }
 
 // waitOutbox: until no lap waits to go (so the account is read with everything sent, and the import never fills the
-// outbox); false after 10 minutes or when a sim starts
-func waitOutbox() bool {
+// outbox); false after 10 minutes, when a sim starts or when stop says so
+func waitOutbox(stop func() bool) bool {
 	for i := 0; i < 600; i++ {
 		if outboxLen() == 0 {
 			return true
 		}
-		if simBusy() {
+		if simBusy() || (stop != nil && stop()) {
 			return false
 		}
 		time.Sleep(time.Second)
@@ -586,18 +625,100 @@ func waitOutbox() bool {
 	return false
 }
 
+// ---------- when ----------
+
+const (
+	ibtIdleNeed = 5 * time.Minute  // nobody touching the PC this long: the backlog may be read
+	ibtAfterSim = 2 * time.Minute  // after the sim closes, so its file is closed
+	ibtSafety   = 24 * time.Hour   // once the backlog is read: a look once a day besides
+	ibtTick     = 5 * time.Second  // how often the importer looks at the PC (cheap: no folder is read)
+	ibtFirst    = 4 * time.Minute  // after Pitlane HQ starts
+	ibtPaused   = 1 * time.Minute  // a round stopped (somebody came back, a sim started): the gate decides again
+	ibtNoAcct   = 15 * time.Minute // not signed in yet
+)
+
+// userIdleFor: how long nobody has touched the PC (systemIdle; tests replace it)
+var userIdleFor = systemIdle
+
+// pcIdle: the PC is idle: no input for ibtIdleNeed and no sim running
+func pcIdle() bool { return userIdleFor() >= ibtIdleNeed && !simBusy() }
+
+// userBack: somebody uses the PC again (or a sim connected): the backlog stops
+func userBack() bool { return currentStatus().Connected || userIdleFor() < ibtIdleNeed }
+
+// ibtSched: when a round runs. While the backlog is read: whenever the PC is idle (not before next). After it: 2
+// minutes after the sim was connected and is gone, and at next (once a day, or a retry the last round asked for).
+type ibtSched struct {
+	next    time.Time
+	simOn   bool      // the sim was connected at the last look
+	simGone time.Time // when it went (zero: nothing waiting)
+}
+
+// due: whether a round starts now; simOn whether a sim is connected now, backlog whether old files are still to be
+// read, idle asked only when it matters
+func (s *ibtSched) due(now time.Time, simOn, backlog bool, idle func() bool) bool {
+	if simOn {
+		s.simOn, s.simGone = true, time.Time{}
+		return false
+	}
+	if s.simOn {
+		s.simOn, s.simGone = false, now
+	}
+	if backlog {
+		return !now.Before(s.next) && idle()
+	}
+	if !s.simGone.IsZero() {
+		if now.Sub(s.simGone) < ibtAfterSim {
+			return false // its file is closing: the after-sim look comes first
+		}
+		s.simGone = time.Time{}
+		return true
+	}
+	return !now.Before(s.next)
+}
+
+// ran: a round ended; retry is when it asked to look again (0: the daily look)
+func (s *ibtSched) ran(now time.Time, retry time.Duration) {
+	if retry <= 0 {
+		retry = ibtSafety
+	}
+	s.next = now.Add(retry)
+}
+
 func ibtImporter() {
-	time.Sleep(4 * time.Minute)
+	time.Sleep(ibtFirst)
+	var s ibtSched
+	backlog := map[string]bool{} // account → its old files are all read (from ibt-imported.json, read once)
 	for {
-		wait := ibtImportRound()
-		time.Sleep(wait)
+		loadPL()
+		plMu.Lock()
+		acct := plAcc.ID
+		plMu.Unlock()
+		done, ok := backlog[acct]
+		if !ok {
+			ibtMemMu.Lock()
+			done = loadIBTMemory().Backlog[acct] > 0
+			ibtMemMu.Unlock()
+			backlog[acct] = done
+		}
+		if s.due(time.Now(), currentStatus().Connected, !done, pcIdle) {
+			stop := func() bool { return currentStatus().Connected }
+			if !done {
+				stop = userBack
+			}
+			retry, _ := ibtImportRound(stop)
+			delete(backlog, acct) // read again: the round may have finished the backlog
+			s.ran(time.Now(), retry)
+		}
+		time.Sleep(ibtTick)
 	}
 }
 
-// ibtImportRound reads the files not read yet and returns when to look again
-func ibtImportRound() time.Duration {
+// ibtImportRound reads the files not read yet; stop (asked during the work) stops it. It returns when to look again
+// (0: nothing to retry) and whether every file was gone through (the backlog is read).
+func ibtImportRound(stop func() bool) (time.Duration, bool) {
 	if currentStatus().Demo {
-		return 6 * time.Hour
+		return 6 * time.Hour, false
 	}
 	c := uploadTarget()
 	loadPL()
@@ -605,24 +726,23 @@ func ibtImportRound() time.Duration {
 	acct := plAcc.ID
 	plMu.Unlock()
 	if c.URL == "" || acct == "" {
-		return 15 * time.Minute // not signed in yet
+		return ibtNoAcct, false // not signed in yet
 	}
 	files := ibtFiles(ibtDirs())
-	if len(files) == 0 {
-		return 4 * time.Hour
-	}
 	ibtMemMu.Lock()
 	defer ibtMemMu.Unlock()
 	mem := loadIBTMemory()
+	retry := time.Duration(0)
 	for _, f := range files {
 		if mem.known(acct, f.path, f.size, f.mtime.UnixMilli(), "") || cloudOnly(f.path) { // a OneDrive placeholder is not downloaded
 			continue
 		}
 		if time.Since(f.mtime) < 2*time.Minute {
-			continue // still being written
+			retry = 2 * time.Minute // still being written: looked at again in a moment
+			continue
 		}
-		if simBusy() {
-			return 20 * time.Minute
+		if simBusy() || (stop != nil && stop()) {
+			return ibtPaused, false
 		}
 		hash, err := fileHash(f.path, f.size)
 		if err != nil {
@@ -635,12 +755,12 @@ func ibtImportRound() time.Duration {
 			saveIBTMemory(mem)
 			continue
 		}
-		n, drinksSkip, err := importIBT(f, hash, c)
+		n, drinksSkip, err := importIBT(f, hash, c, stop)
 		switch {
 		case errors.Is(err, errImportPaused):
-			return 20 * time.Minute
+			return ibtPaused, false
 		case err != nil && n < 0: // could not reach the account: try again later
-			return 30 * time.Minute
+			return 30 * time.Minute, false
 		case errors.Is(err, errBadIBT):
 			log.Printf("ibt import: %s: %v", filepath.Base(f.path), err)
 			seen.State = "bad"
@@ -656,29 +776,39 @@ func ibtImportRound() time.Duration {
 		}
 		mem.mark(acct, f.path, seen)
 		saveIBTMemory(mem)
-		time.Sleep(5 * time.Second)
+		if ibtRestFor(5*time.Second, stop) {
+			return ibtPaused, false
+		}
 	}
-	return 4 * time.Hour
+	if mem.Backlog == nil {
+		mem.Backlog = map[string]int64{}
+	}
+	if mem.Backlog[acct] == 0 { // every old file gone through: from now on only the new ones
+		mem.Backlog[acct] = time.Now().UnixMilli()
+		saveIBTMemory(mem)
+	}
+	return retry, true
 }
 
 // importIBT reads one file and sends its laps: the laps sent (-1 with the error when the account could not be read),
 // and whether a session was left out for its DRINKS laps
-func importIBT(f ibtCand, hash string, c cloudConfig) (int, bool, error) {
-	sessions, err := replayIBT(f.path, hash, f.mtime, func() bool { return currentStatus().Connected }, true)
+func importIBT(f ibtCand, hash string, c cloudConfig, stop func() bool) (int, bool, error) {
+	pause := func() bool { return currentStatus().Connected || (stop != nil && stop()) }
+	sessions, err := replayIBT(f.path, hash, f.mtime, pause, true)
 	if err != nil {
 		return 0, false, err
 	}
 	fetch := func(p string) ([]byte, error) { return cloudCall(c, "GET", p, nil) }
 	sent, drinks := 0, false
 	for _, is := range sessions {
-		if simBusy() {
+		if simBusy() || pause() {
 			return sent, drinks, errImportPaused
 		}
 		if len(is.laps) == 0 {
 			continue
 		}
-		if !waitOutbox() {
-			if simBusy() {
+		if !waitOutbox(pause) {
+			if simBusy() || pause() {
 				return sent, drinks, errImportPaused
 			}
 			return -1, drinks, errors.New("the laps waiting to go do not leave")

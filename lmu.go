@@ -106,7 +106,7 @@ func (s *lmuSource) Open() error {
 		s.img.setConnected(false)
 	}
 	go s.run()
-	go s.lmuRestLoop(s.stop) // the game's own ratings (SR, DR), read only in the menus
+	lmuRestOpened() // the game's own API (lmurest.go): its ratings, read only in the menus
 	return nil
 }
 
@@ -131,6 +131,7 @@ func (s *lmuSource) Close() {
 	if s.stop != nil {
 		close(s.stop)
 		s.stop = nil
+		lmuRestClosed()
 	}
 	s.mu.Lock()
 	if s.view != nil {
@@ -319,6 +320,7 @@ func (s *lmuSource) convert(b []byte) bool {
 	trackLen := lf64(b, si+si_mLapDist)
 	if n <= 0 || n > lmuMaxVehicles || trackLen <= 0 {
 		s.onTrack = false
+		lmuRestNote(false, false, li32(b, lmuOffGameVer))
 		s.img.setConnected(false)
 		return false
 	}
@@ -380,6 +382,7 @@ func (s *lmuSource) convert(b []byte) bool {
 
 	inReal := lu8(b, si+si_mInRealtime) != 0
 	s.onTrack = inReal
+	lmuRestNote(true, inReal, li32(b, lmuOffGameVer))
 	if track != s.sec.track { // another track: its sectors from the file, or none yet
 		s.sec = lmuSectors{track: track, known: s.secStore[track]}
 	}

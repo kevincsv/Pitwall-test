@@ -14,6 +14,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - When the app opens without a game it asks which one you want to see, or opens the last one if you prefer.
 - Sign in or create your account with Steam or Discord, and link them in Account.
 - Leagues for Le Mans Ultimate too, and the phone apps speak Portuguese.
+- Le Mans Ultimate shows its classes, and every session shows your place in it.
+- The PC, the web and the phones show the same numbers.
 - Fixes and improvements.
 
 ## 0.5.0 beta

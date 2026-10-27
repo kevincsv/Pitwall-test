@@ -743,7 +743,7 @@ func liveRunWith(c *wsConn, key []byte, share func() bool) {
 		}
 		if evs, seq := noticesSince(noticeSeen); seq != noticeSeen {
 			for _, e := range evs {
-				if share == nil && e.Kind != "liveask" {
+				if share == nil && e.Kind != "liveask" && e.Kind != "cloud" { // "cloud": a lap went up, for the PC's own page
 					out("notice", e)
 				}
 			}
