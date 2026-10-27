@@ -638,6 +638,7 @@ func main() {
 	registerDiscordRoutes(mux)
 	registerUpdateRoutes(mux)
 	registerLocalRoutes(mux)
+	registerIBTNow(mux)
 	registerNewsRoutes(mux)
 	registerPairRoutes(mux)
 	registerLicenseRoutes(mux)

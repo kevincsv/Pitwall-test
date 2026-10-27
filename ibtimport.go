@@ -776,7 +776,7 @@ func ibtImportRound(stop func() bool) (time.Duration, bool) {
 		}
 		mem.mark(acct, f.path, seen)
 		saveIBTMemory(mem)
-		if ibtRestFor(5*time.Second, stop) {
+		if !ibtIsFast() && ibtRestFor(5*time.Second, stop) {
 			return ibtPaused, false
 		}
 	}
@@ -794,7 +794,7 @@ func ibtImportRound(stop func() bool) (time.Duration, bool) {
 // and whether a session was left out for its DRINKS laps
 func importIBT(f ibtCand, hash string, c cloudConfig, stop func() bool) (int, bool, error) {
 	pause := func() bool { return currentStatus().Connected || (stop != nil && stop()) }
-	sessions, err := replayIBT(f.path, hash, f.mtime, pause, true)
+	sessions, err := replayIBT(f.path, hash, f.mtime, pause, !ibtIsFast()) // by hand (an admin, ibtnow.go): full speed
 	if err != nil {
 		return 0, false, err
 	}
