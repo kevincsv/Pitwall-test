@@ -13,6 +13,7 @@
         "Standings show the gap to the leader or the interval, a class filter when several classes race and your position lap by lap, and Tyres show their wear.",
         "Rev beep is simpler, pick the car, how it beeps (iRacing lights, your laps or your own RPM, one for every gear or each gear) and its pitch and volume.",
         "Overlays are one list where you open each one now or when you get in the car, with the presets and its settings at hand.",
+        "A clean lap no longer comes out as not valid because of the moment the game counts it at the line, and the laps this touched are valid again.",
         "Leagues are open to everyone, and the PC app no longer zooms with Ctrl and the mouse wheel."
       ],
       "es": [
@@ -26,6 +27,7 @@
         "Posiciones muestra el gap al líder o el intervalo, un filtro de clase cuando corren varias clases y tu posición vuelta a vuelta, y Neumáticos muestra su desgaste.",
         "El rev beep es más sencillo, eliges el coche, cómo pita (luces de iRacing, tus vueltas o tus propias RPM, una para todas las marchas o por marcha) y su tono y volumen.",
         "Los overlays son una lista donde abres cada uno ahora o al entrar al coche, con los presets y sus ajustes a mano.",
+        "Una vuelta limpia ya no sale como no válida por el momento en que el juego la cuenta en la meta, y las vueltas a las que les pasó vuelven a ser válidas.",
         "Las ligas están abiertas para todos, y la app del PC ya no hace zoom con Ctrl y la rueda del ratón."
       ],
       "pt": [
@@ -39,6 +41,7 @@
         "As Posições mostram o gap para o líder ou o intervalo, um filtro de classe quando correm várias classes e sua posição volta a volta, e os Pneus mostram o desgaste.",
         "O rev beep ficou mais simples, você escolhe o carro, como ele apita (luzes do iRacing, suas voltas ou suas próprias RPM, uma para todas as marchas ou por marcha) e o tom e o volume.",
         "Os overlays são uma lista onde você abre cada um agora ou ao entrar no carro, com os presets e os ajustes à mão.",
+        "Uma volta limpa não sai mais como inválida pelo momento em que o jogo a conta na linha, e as voltas afetadas voltam a ser válidas.",
         "As ligas estão abertas para todos, e o app do PC não faz mais zoom com Ctrl e a roda do mouse."
       ]
     },

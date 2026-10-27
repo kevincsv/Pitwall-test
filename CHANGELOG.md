@@ -23,6 +23,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - Overlays are one list where you open each one now or when you get in the car, with the presets and its settings at
   hand.
 - Leagues are open to everyone, and the PC app no longer zooms with Ctrl and the mouse wheel.
+- A clean lap no longer comes out as not valid because of the moment the game counts it at the line, and the laps
+  this touched are valid again.
 - Fixes and improvements.
 
 ## 0.4.7 beta
