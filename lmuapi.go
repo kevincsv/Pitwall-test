@@ -46,6 +46,7 @@ const (
 	lmuAPIBatchN   = 150             // items per upload
 	lmuAPISaveN    = 25              // the local copy written every so many answers
 	lmuAPIRetry    = 10 * time.Minute
+	lmuAPICrashMax = 2 // paths the game closed on: after this many the reading ends with what it has and is sent
 )
 
 // words in a path that do something or hand out a secret: the whole word (set, load…) or its start (auth…, token…)
@@ -231,6 +232,7 @@ type lmuAPIRun struct {
 	At      int64        `json:"at"`
 	Done    bool         `json:"done,omitempty"`
 	Sent    bool         `json:"sent,omitempty"`
+	Crashes int          `json:"crashes,omitempty"` // requests the game closed during (never asked again)
 	Items   []lmuAPIItem `json:"items"`
 }
 
@@ -247,7 +249,6 @@ type lmuExplorer struct {
 	valsAt   map[string]map[string][]string // the same, per path
 	unsaved  int
 	calls    int
-	fails    int // the same request failed this many times in a row
 	nextSend time.Time
 	post     func(run *lmuAPIRun, items []lmuAPIItem) error
 }
@@ -294,21 +295,20 @@ func (e *lmuExplorer) step(w *lmuRestWorker, st lmuRestState, now time.Time) boo
 		if e.called[q.Path] {
 			continue
 		}
+		e.markPending(q.Path)
 		a := w.get(q.Path)
 		if errors.Is(a.err, errLMUBusy) || errors.Is(a.err, context.Canceled) {
+			e.clearPending()
 			e.queue = append([]lmuAPIReq{q}, e.queue...) // a session loaded: this one again next time in the menus
 			e.pause()
 			return false
 		}
 		if a.err != nil && !errors.Is(a.err, context.DeadlineExceeded) {
-			// the game went away (or its API restarts): this one again when it answers, a path that keeps failing is noted
-			if e.fails++; e.fails < 3 {
-				e.queue = append([]lmuAPIReq{q}, e.queue...)
-				e.pause()
-				return false
-			}
+			// the game went away during this request: it may be what closed it, so it is never asked again
+			e.crashed(q.Path, a.err.Error())
+			return false
 		}
-		e.fails = 0
+		e.clearPending()
 		e.calls++
 		e.called[q.Path] = true
 		e.add(e.item(q.Path, a))
@@ -392,6 +392,13 @@ func (e *lmuExplorer) start(w *lmuRestWorker, st lmuRestState, now time.Time) bo
 		}
 		log.Printf("lmu api: version %s, reading %d paths (%d with parameters, %d left out)", ver, len(plain), len(filled), len(skipped))
 	}
+	// a request the game closed during last time (the agent saw no answer): never again
+	if pv, pp := e.pending(); pv == ver && pp != "" && !e.called[pp] {
+		e.crashed(pp, "the game closed during this request")
+	}
+	if e.run.Crashes >= lmuAPICrashMax {
+		plain, filled = nil, nil // enough: what was read is sent
+	}
 	for _, p := range plain {
 		if !e.called[p] {
 			e.queue = append(e.queue, lmuAPIReq{Path: p})
@@ -436,6 +443,38 @@ func (e *lmuExplorer) add(it lmuAPIItem) {
 	if e.unsaved++; e.unsaved >= lmuAPISaveN {
 		e.save()
 	}
+}
+
+// markPending/clearPending: the request in flight, on disk, so a request the game closes on is known when it starts again
+func (e *lmuExplorer) pendingPath() string { return filepath.Join(e.dir, "pending.json") }
+
+func (e *lmuExplorer) markPending(p string) {
+	os.MkdirAll(e.dir, 0o700)
+	writeJSONFile(e.pendingPath(), map[string]string{"version": e.run.Version, "path": p})
+}
+
+func (e *lmuExplorer) clearPending() { os.Remove(e.pendingPath()) }
+
+func (e *lmuExplorer) pending() (ver, p string) {
+	var m map[string]string
+	readJSON(e.pendingPath(), &m)
+	return m["version"], m["path"]
+}
+
+// crashed: a path the game stopped answering on, kept as such and never asked again; after lmuAPICrashMax the
+// reading ends and what it has is sent
+func (e *lmuExplorer) crashed(p, why string) {
+	e.clearPending()
+	e.called[p] = true
+	e.calls++
+	e.run.Crashes++
+	e.run.Items = append(e.run.Items, lmuAPIItem{Path: p, Body: "game closed: " + why})
+	log.Printf("lmu api: the game stopped answering on %s, never asked again", p)
+	if e.run.Crashes >= lmuAPICrashMax {
+		e.queue = nil
+		log.Printf("lmu api: version %s, the game closed %d times, what was read goes to the server", e.run.Version, e.run.Crashes)
+	}
+	e.save()
 }
 
 func (e *lmuExplorer) pause() {

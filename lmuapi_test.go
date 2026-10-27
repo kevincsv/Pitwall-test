@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -93,6 +94,7 @@ type lmuFakeGame struct {
 	calls  []string
 	sr     string
 	during func(path string) // runs inside a call (a session loading while it is in flight)
+	crash  map[string]bool   // paths the game closes on
 }
 
 func (g *lmuFakeGame) fetch(ctx context.Context, url string) lmuAnswer {
@@ -109,6 +111,12 @@ func (g *lmuFakeGame) fetch(ctx context.Context, url string) lmuAnswer {
 	}
 	if ctx.Err() != nil {
 		return lmuAnswer{err: ctx.Err()}
+	}
+	g.mu.Lock()
+	crash := g.crash[p]
+	g.mu.Unlock()
+	if crash {
+		return lmuAnswer{err: errors.New("connection reset")}
 	}
 	ans := func(code int, b string) lmuAnswer {
 		return lmuAnswer{code: code, ctype: "application/json", size: int64(len(b)), body: []byte(b), ms: 3}
@@ -440,4 +448,96 @@ func TestLMUAPIUploadGate(t *testing.T) {
 	if got[0]["version"] != "1.2-abcdef01" || got[0]["game"] != "lmu" || auth != "Bearer "+strings.Repeat("t", 48) {
 		t.Fatalf("payload: %v %s", got[0], auth)
 	}
+}
+
+// a path the game closes on is never asked again (the agent saw the error, or it stopped too and only the pending
+// request on disk tells), and after lmuAPICrashMax of them the reading ends and what it has is sent
+func TestLMUExplorerCrash(t *testing.T) {
+	w, g, c := lmuTestWorker(t, true)
+	g.crash = map[string]bool{"/rest/tracks": true}
+	var sent []lmuAPIItem
+	post := func(run *lmuAPIRun, items []lmuAPIItem) error { sent = append(sent, items...); return nil }
+	run := func(n int) []string {
+		var all []string
+		for i := 0; i < n; i++ {
+			c.t = c.t.Add(lmuAPIPace)
+			if w.exp != nil {
+				w.exp.post = post
+			}
+			w.step()
+			all = append(all, g.took()...)
+		}
+		return all
+	}
+	w.opened()
+	w.note(false, false, 14000)
+	for i := 0; i < 40 && (w.exp == nil || w.exp.run == nil || w.exp.run.Crashes == 0); i++ {
+		run(1)
+	}
+	if w.exp.run.Crashes != 1 {
+		t.Fatalf("crashes %d", w.exp.run.Crashes)
+	}
+	// the game starts again: /rest/tracks never again
+	g.crash = map[string]bool{"/rest/sessions/weather?session=RACE": true}
+	lmuTestRestart(w, c)
+	w.note(false, false, 0)
+	calls := run(40)
+	for _, p := range calls {
+		if p == "/rest/tracks" {
+			t.Fatal("asked again for a path the game closed on")
+		}
+	}
+	// the second crash ends it: sent with what it read
+	if w.exp.run.Crashes != 2 || !w.exp.run.Sent {
+		t.Fatalf("crashes %d sent %v", w.exp.run.Crashes, w.exp.run.Sent)
+	}
+	found := 0
+	for _, it := range sent {
+		if (it.Path == "/rest/tracks" || it.Path == "/rest/sessions/weather?session=RACE") && strings.HasPrefix(it.Body, "game closed") {
+			found++
+		}
+	}
+	if found != 2 {
+		t.Fatalf("crashed paths sent: %d of %d", found, len(sent))
+	}
+	if run(5); len(g.took()) != 0 {
+		t.Fatal("asked more after it was sent")
+	}
+}
+
+// the agent stopped with the game: the request on disk is the one the game closed on
+func TestLMUExplorerPendingOnDisk(t *testing.T) {
+	w, g, c := lmuTestWorker(t, true)
+	w.opened()
+	w.note(false, false, 14000)
+	for w.exp == nil || w.exp.run == nil {
+		c.t = c.t.Add(lmuAPIPace)
+		w.step()
+	}
+	ver := w.exp.run.Version
+	w.exp.markPending("/rest/tracks")
+	g.took()
+	lmuTestRestart(w, c) // a new run of the game (and of the agent's explorer)
+	w.note(false, false, 0)
+	for i := 0; i < 40; i++ {
+		c.t = c.t.Add(lmuAPIPace)
+		if w.exp != nil {
+			w.exp.post = func(*lmuAPIRun, []lmuAPIItem) error { return nil }
+		}
+		w.step()
+		for _, p := range g.took() {
+			if p == "/rest/tracks" {
+				t.Fatal("asked again for the pending path")
+			}
+		}
+	}
+	if w.exp.run.Version != ver || w.exp.run.Crashes != 1 {
+		t.Fatalf("run %s crashes %d", w.exp.run.Version, w.exp.run.Crashes)
+	}
+}
+
+func lmuTestRestart(w *lmuRestWorker, c *lmuClock) {
+	w.closed()
+	c.t = c.t.Add(lmuGameGrace + time.Second)
+	w.opened()
 }
