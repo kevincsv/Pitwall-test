@@ -52,6 +52,7 @@ jobs:
       DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
       DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
       DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+      STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
       SEASON_UPLOADERS: ${{ vars.SEASON_UPLOADERS }}
       ADMINS: ${{ vars.ADMINS }}
       # the server's own address (pitlanehq.app); the repository variable CUSTOM_DOMAIN overrides it
@@ -109,6 +110,7 @@ jobs:
           if [ -n "$PATREON_WEBHOOK_SECRET" ]; then printf '%s' "$PATREON_WEBHOOK_SECRET" | npx wrangler secret put PATREON_WEBHOOK_SECRET; fi
           if [ -n "$LEMONSQUEEZY_WEBHOOK_SECRET" ]; then printf '%s' "$LEMONSQUEEZY_WEBHOOK_SECRET" | npx wrangler secret put LEMONSQUEEZY_WEBHOOK_SECRET; fi
           if [ -n "$TURN_KEY_ID" ]; then printf '%s' "$TURN_KEY_ID" | npx wrangler secret put TURN_KEY_ID; fi
+          if [ -n "$STEAM_WEB_API_KEY" ]; then printf '%s' "$STEAM_WEB_API_KEY" | npx wrangler secret put STEAM_WEB_API_KEY; fi
           if [ -n "$TURN_KEY_TOKEN" ]; then printf '%s' "$TURN_KEY_TOKEN" | npx wrangler secret put TURN_KEY_TOKEN; fi
           # the Discord bot: its keys for the Worker, and its slash commands registered with Discord
           if [ -n "$DISCORD_PUBLIC_KEY" ]; then printf '%s' "$DISCORD_PUBLIC_KEY" | npx wrangler secret put DISCORD_PUBLIC_KEY; fi
