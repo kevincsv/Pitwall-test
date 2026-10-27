@@ -361,6 +361,20 @@ async function repairImpossibleShares(env) {
   for (const r of results || []) await unshareInvalid(env, r.uid, r.sid).catch(() => {});
 }
 
+// sessions a migration asked to share again (laps made valid again): a few on every run of the job
+async function resharePending(env) {
+  const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='reshare'").first().catch(() => null);
+  let ids = [];
+  try { ids = JSON.parse((row && row.v) || "[]"); } catch (e) {}
+  if (!ids.length) return;
+  const now = ids.slice(0, 8), rest = ids.slice(8);
+  for (const sid of now) {
+    const s = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(sid).first();
+    if (s && String(s.uploader).startsWith("acct:")) await reshareSession(env, String(s.uploader).slice(5), sid).catch(() => {});
+  }
+  await env.DB.prepare(rest.length ? "UPDATE app_state SET v=?1 WHERE k='reshare'" : "DELETE FROM app_state WHERE k='reshare'").bind(...(rest.length ? [JSON.stringify(rest)] : [])).run();
+}
+
 async function fixLapTimes(env) {
   const { results } = await env.DB.prepare(
     `SELECT a.id, a.session_id AS sid, a.time, a.trace, s.game, s.track_id AS tid, s.car_id AS cid FROM laps a
@@ -394,7 +408,7 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

@@ -353,6 +353,8 @@ type lapRec struct {
 	// first lap of a run (out of the pits or the session's start: cold tyres)
 	trafficN, trafficS int
 	cold               bool
+	lastPct            float64   // where on the lap the last sample was (0–1)
+	early              bool      // started at the line, a moment before iRacing counted the lap
 	incPrev            float64   // the incident count at the previous sample
 	incAt              []float64 // [distance, points] of every incident on this lap
 	incK               []string  // the kind of each incident
@@ -536,6 +538,13 @@ func lapRecorder() {
 			lastBase, cur = base, nil
 		}
 		lap += base
+		// iRacing counts the new lap a moment after the line (a second or more): the samples from the line on already
+		// belong to it, or every lap would start with a hole of tens of metres and never be valid
+		if cur != nil && cur.early && lap == cur.n-1 {
+			lap = cur.n
+		} else if cur != nil && lap == cur.n && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 {
+			lap = cur.n + 1
+		}
 		now := time.Now()
 		if cur == nil || lap != cur.n {
 			if cur != nil && lap == cur.n+1 {
@@ -552,7 +561,8 @@ func lapRecorder() {
 					finishLap(done, s, fuelNow, lt)
 				}()
 			}
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit}
+			early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
+			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early}
 		}
 		cur.noteDriver(now)
 		// twice a second: a car within one second ahead (by its place on the lap) is traffic
@@ -608,6 +618,7 @@ func lapRecorder() {
 		}
 		cur.incPrev = v[11]
 		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
+		cur.lastPct = pct
 		cur.vmax = math.Max(cur.vmax, speed)
 		if v[10] > 0 {
 			cur.pit = true
