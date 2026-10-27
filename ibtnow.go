@@ -16,10 +16,10 @@ var (
 		Running bool   `json:"running"`
 		Started int64  `json:"started,omitempty"`
 		Ended   int64  `json:"ended,omitempty"`
-		Files   int    `json:"files"`   // telemetry files found in the folders
-		Read    int    `json:"read"`    // already read (by any round)
-		Laps    int    `json:"laps"`    // laps sent by every round so far
-		Done    bool   `json:"done"`    // every file was gone through
+		Files   int    `json:"files"` // telemetry files found in the folders
+		Read    int    `json:"read"`  // already read (by any round)
+		Laps    int    `json:"laps"`  // laps sent by every round so far
+		Done    bool   `json:"done"`  // every file was gone through
 		Stopped string `json:"stopped,omitempty"`
 	}
 	ibtFast bool // a round started by hand: no rests between files and batches

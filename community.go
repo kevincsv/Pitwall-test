@@ -681,7 +681,12 @@ func shareReport(r *raceReport) {
 }
 
 // pruneShared removes race analyses already shared with the community from this PC, after the chosen time.
+// Nothing is shared while shareRaceReports is off, so nothing goes: the setting removed every race older than the
+// chosen time from the PC (and through the sync from every device) although none of them had been shared.
 func pruneShared() {
+	if !shareRaceReports {
+		return
+	}
 	commMu.Lock()
 	after, on := commCfg.DeleteAfter, commCfg.ShareReports
 	commMu.Unlock()

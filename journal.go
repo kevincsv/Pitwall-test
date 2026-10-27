@@ -555,7 +555,8 @@ func sessionKind(y string, sn int) string {
 // cross the line after the checkered flag (or leave a race early).
 func raceWatcher() {
 	var cur *raceTrack
-	var irSeen string // the session whose iRating was already compared with the last race
+	var irSeen string           // the session whose iRating was already compared with the last race
+	var offKey, offStamp string // an offline session (no subsession): which one, and when this PC first saw it
 	end := func(dnf bool) {
 		if cur != nil && cur.started && !cur.saved && len(cur.laps) > 0 {
 			cur.saved = true
@@ -566,7 +567,7 @@ func raceWatcher() {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
 			end(cur != nil && cur.state < 5)
-			cur = nil
+			cur, offKey = nil, "" // the next offline session is another race, whatever its track and number
 			continue
 		}
 		v := telNums(raceVars)
@@ -577,7 +578,14 @@ func raceWatcher() {
 		meta := currentCarTrack(y)
 		id := fmt.Sprintf("%d-%d", meta.Subsession, sn)
 		if meta.Subsession == 0 {
-			id = fmt.Sprintf("t-%s-%d", meta.Track, sn)
+			// an offline race has no subsession: its id carries when it was first seen, or every offline race of the
+			// same track and session number (on any day) took the same id and the newest replaced the older ones
+			if k := fmt.Sprintf("%s-%d", meta.Track, sn); k != offKey {
+				offKey, offStamp = k, strconv.FormatInt(time.Now().UnixMilli(), 36)
+			}
+			id = fmt.Sprintf("t-%s-%d-%s", meta.Track, sn, offStamp)
+		} else {
+			offKey = ""
 		}
 		if id != irSeen {
 			if myIR := atoi(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "IRating")); realIR(myIR) {
