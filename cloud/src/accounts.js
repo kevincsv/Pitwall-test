@@ -10,6 +10,7 @@ import { sealData, openData, newTotpSecret, totpOK, otpauthURL, newRecoveryCodes
 import { patreonOnRegister } from "./patreon.js";
 import { proOnRegister, proOf, proGate, proHere } from "./lemon.js";
 import { discordAccount } from "./discord.js";
+import { steamAccount, steamStart, useSteamGrant, steamAccountId, linkSteam } from "./steam.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -30,6 +31,9 @@ const isB64 = (v, max) => typeof v === "string" && v.length > 20 && v.length <= 
 export const cleanName = (a) => (typeof a === "string" ? a : "").slice(0, 32).replace(/[\u0000-\u001f<>]/g, "").trim();
 export const emailHash = (env, e) => sha256("pitlanehq-email:" + (env.EMAIL_PEPPER || "") + ":" + String(e || "").trim().toLowerCase());
 const authHash = (salt, auth) => sha256(salt + ":" + auth);
+// a short name of the account's wrapped key (never the key itself): a device that kept the data key knows whether it is
+// still the account's (a password reset makes a new one) before signing in with Steam without the password
+const keyTag = async (wrapped) => (await sha256("pitlanehq-key:" + String(wrapped || ""))).slice(0, 16);
 const ipOf = (req) => req.headers.get("cf-connecting-ip") || "unknown";
 const CHUNK = 900000; // D1 rows stay well under 2 MB
 const SESSION_IDLE = 180 * 86400e3;
@@ -111,6 +115,9 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM leagues WHERE owner=?1").bind(id),
   env.DB.prepare("DELETE FROM discord_members WHERE discord_id IN (SELECT discord_id FROM discord_links WHERE account_id=?1)").bind(id),
   env.DB.prepare("DELETE FROM discord_links WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM steam_links WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM steam_oauth WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM steam_grants WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
 ];
 
@@ -232,6 +239,14 @@ export async function accounts(req, env, url) {
       await fail(env, ["reg:" + ip]);
       return err("there is already an account with this email", 409);
     }
+    // created from the Steam sign-in (sid, the sign-up grant, with the code of the app that started): linked to that Steam
+    // at once, so the link never waits for the email to be confirmed
+    let steam = null;
+    if (body.sid) {
+      steam = await useSteamGrant(env, body.sid, "signup", body.code);
+      if (!steam) return err("this Steam sign-in is not valid any more, sign in with Steam again", 400);
+      if (await steamAccountId(env, steam.steamid)) return json({ error: "this Steam account is already linked to another account", code: "taken" }, 409);
+    }
     await fail(env, ["reg:" + ip]); // counts towards the hourly limit too
     const id = rid(), salt = rid(16);
     await env.DB.batch([
@@ -239,6 +254,7 @@ export async function accounts(req, env, url) {
         .bind(id, eh, salt, await authHash(salt, body.auth), body.wrappedKey, display, body.nameKind === "iracing" ? "iracing" : "nick", Date.now()),
       env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created) VALUES (?1,?2,?3,?4)").bind(id, "acct:" + id, display, Date.now()),
     ]);
+    if (steam) await linkSteam(env, steam.steamid, id, steam.persona);
     await patreonOnRegister(env, id, eh).catch(() => {}); // a patron already: the supporter badge
     await proOnRegister(env, id, eh).catch(() => {}); // bought Pro before having an account
     const mailed = await mailVerify(env, url, id, body.email.trim(), body.lang).catch(() => false);
@@ -246,9 +262,20 @@ export async function accounts(req, env, url) {
     // still works (signed in) so nobody is locked out while the email service is down.
     if (mailed) return json({ verifyFirst: true, mailed: true, error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 202);
     const token = await newSession(env, id, body.device);
-    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, admin: isAdmin(env, id), verified: false, mailed });
+    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, keyTag: await keyTag(body.wrappedKey), admin: isAdmin(env, id), verified: false, mailed });
   }
-  const signedIn = (a, token) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: a.wrapped_key, admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on });
+  // a sign-in with Steam (needKey) gets the session without the wrapped key: the password asks for it (POST /account/key),
+  // so Steam alone never hands out what a password could be tried against
+  const signedIn = async (a, token, more) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: more && more.needKey ? undefined : a.wrapped_key, keyTag: await keyTag(a.wrapped_key), admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on, ...more });
+  // "Sign in with Steam" from the sign-in screen (no session yet): the address the browser opens, answered at /steam/return,
+  // with the state and the code only this app keeps. The web gets the answer in the browser; the PC's browser goes on to
+  // its agent (port)
+  if (p === "/steam/login/start" && (m === "GET" || m === "POST")) {
+    if (await tooMany(env, ["steam:" + ip], [30])) return err("too many tries: wait 15 minutes", 429);
+    await fail(env, ["steam:" + ip]); // counts the starts of this network
+    const q = m === "GET" ? url.searchParams : null;
+    return json(await steamStart(env, url, "login", null, q ? q.get("device") : body.device, q ? q.get("port") : body.port));
+  }
   if (p === "/login" && m === "POST") {
     if (typeof body.email !== "string" || !isKey(body.auth)) return err("missing email or key", 400);
     const eh = await emailHash(env, body.email), keys = ["login:" + eh, ip];
@@ -280,6 +307,32 @@ export async function accounts(req, env, url) {
     }
     return signedIn(a, await newSession(env, a.id, body.device));
   }
+  // the sign-in with Steam: the one-use grant /steam/return handed the app, with the code of the app that started, says
+  // who. The rest is the password sign-in's (the network's limit, the email to confirm, the authenticator), and the
+  // password is still asked once on the device for the data key (needKey, POST /account/key). Steam never stands for
+  // the password elsewhere (reauth).
+  if (p === "/login/steam" && m === "POST") {
+    if (await tooMany(env, [ip], [30])) return err("too many tries: wait 15 minutes", 429);
+    const g = await useSteamGrant(env, body.grant, "login", body.code);
+    const aid = g ? await steamAccountId(env, g.steamid) : null;
+    const a = aid ? await env.DB.prepare("SELECT * FROM accounts WHERE id=?1").bind(aid).first() : null;
+    if (!a) {
+      await fail(env, [ip]);
+      return err("this Steam sign-in is not valid any more, sign in with Steam again", 401);
+    }
+    // the email is not confirmed yet: the link already sent by email (or the password sign-in, which sends a new one)
+    if (mustVerify(env, a)) return json({ error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first" }, 403);
+    const device = cleanName(body.device) || g.device || "PC";
+    if (a.totp_on) {
+      const t = rid(24);
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM login_pending WHERE expires<?1").bind(Date.now()),
+        env.DB.prepare("INSERT INTO login_pending (token_hash, account_id, device, expires, steam) VALUES (?1,?2,?3,?4,1)").bind(await sha256(t), a.id, device, Date.now() + 5 * 60e3),
+      ]);
+      return json({ twoFactor: true, pending: t, needKey: true });
+    }
+    return signedIn(a, await newSession(env, a.id, device), { needKey: true });
+  }
   // second step of a sign-in: the 6-digit code of the authenticator app, or one recovery code
   if (p === "/login/2fa" && m === "POST") {
     if (typeof body.pending !== "string" || !/^[0-9a-f]{48}$/.test(body.pending)) return err("sign in again", 400);
@@ -302,7 +355,7 @@ export async function accounts(req, env, url) {
       return err("wrong code", 401);
     }
     await env.DB.prepare("DELETE FROM login_pending WHERE token_hash=?1").bind(ph).run();
-    return signedIn(a, await newSession(env, a.id, pend.device));
+    return signedIn(a, await newSession(env, a.id, pend.device), pend.steam ? { needKey: true } : undefined);
   }
 
   const a = await sessionAccount(req, env);
@@ -310,6 +363,22 @@ export async function accounts(req, env, url) {
   // Discord: the linked account (Account → Discord, Discord's sign-in) and the bot's /link confirmed in the web app
   if (p === "/discord" || p.startsWith("/discord/")) return discordAccount(env, a, p, m, body, url);
   const reauth = async () => isKey(body.auth) && same(await authHash(a.auth_salt, body.auth), a.auth_hash);
+  // the password again (auth), with the sign-in's limit of wrong ones: the answer to give when it is not right
+  const passCheck = async () => {
+    if (await tooMany(env, ["login:" + a.email_hash], [5])) return err("too many wrong passwords: wait 15 minutes", 429);
+    if (await reauth()) return null;
+    await fail(env, ["login:" + a.email_hash]);
+    return err("the password is wrong", 401);
+  };
+  // Steam: the linked Steam account (Account → Steam, beside Discord); linking and unlinking ask the password
+  if (p === "/steam" || p.startsWith("/steam/")) return steamAccount(env, a, p, m, body, url, passCheck);
+  // the data key, wrapped with the password, to a device that signed in with Steam: the password proves itself here
+  // (never only on the device), with the sign-in's limit of wrong ones
+  if (p === "/key" && m === "POST") {
+    const no = await passCheck();
+    if (no) return no;
+    return json({ wrappedKey: a.wrapped_key, keyTag: await keyTag(a.wrapped_key) });
+  }
 
   if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, ...proOf(a), ...(await proHere(env, a, url.searchParams)), proGate: await proGate(env), verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
   // two-step sign-in with an authenticator app (Google Authenticator, Authy, 1Password…):

@@ -102,8 +102,9 @@ func TestWriteSecretReplacesWhole(t *testing.T) {
 	}
 }
 
-// the server no longer knows this PC's sign-in: the PC signs out by itself (keeping the email) instead of
-// staying half signed in; a wrong password (also a 401) never signs it out
+// the server no longer knows this PC's sign-in: the PC signs out by itself (keeping the email, the account's id
+// and its data key, so a sign-in with Steam needs no password) instead of staying half signed in; a wrong
+// password (also a 401) never signs it out
 func TestAccountSessionEndedByServer(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
@@ -125,7 +126,7 @@ func TestAccountSessionEndedByServer(t *testing.T) {
 	defer func() { commMu.Lock(); commCfg = old; commMu.Unlock() }()
 	loadPL()
 	plMu.Lock()
-	plAcc = plAccount{Email: "driver@example.com", ID: "a1", Token: "tok-0123456789abcdefghij0123456789abcdefghij"}
+	plAcc = plAccount{Email: "driver@example.com", ID: "a1", Token: "tok-0123456789abcdefghij0123456789abcdefghij", DataKey: strings.Repeat("ab", 32), KeyTag: "k1", Display: "Ana"}
 	plMu.Unlock()
 	if _, err := plCall("POST", "/password", map[string]string{}); err == nil {
 		t.Fatal("the wrong password must fail")
@@ -142,7 +143,77 @@ func TestAccountSessionEndedByServer(t *testing.T) {
 	plMu.Lock()
 	a := plAcc
 	plMu.Unlock()
-	if a.Token != "" || !a.Ended || a.Email != "driver@example.com" || a.ID != "" {
-		t.Fatalf("the PC must be signed out with its email kept: %+v", a)
+	if a.Token != "" || !a.Ended || a.Display != "" || a.Email != "driver@example.com" || a.ID != "a1" || a.DataKey != strings.Repeat("ab", 32) || a.KeyTag != "k1" {
+		t.Fatalf("the PC must be signed out with its email, id and data key kept: %+v", a)
 	}
+}
+
+// a state, a grant or a code is 48 lowercase hex characters, and the browser only opens Steam's own sign-in page
+func TestSteamStateClean(t *testing.T) {
+	state := strings.Repeat("0f", 24)
+	if steamStateClean(state) != state || steamStateClean(strings.ToUpper(state)) != "" || steamStateClean(state[:47]) != "" || steamStateClean(state[:47]+"g") != "" || steamStateClean("") != "" {
+		t.Fatal("a state is 48 lowercase hex characters")
+	}
+	if !steamURLOK("https://steamcommunity.com/openid/login?openid.ns=x") || steamURLOK("http://steamcommunity.com/openid/login?x") || steamURLOK("https://steamcommunity.com.evil.net/openid/login?x") || steamURLOK("C:\\x.exe") || steamURLOK("") {
+		t.Fatal("only Steam's sign-in page is opened")
+	}
+}
+
+// a sign-in with Steam: the account whose data key this PC kept signs in without the password while the key is still
+// the account's (the server's tag); another account, or the same one after a password reset (another tag), waits for
+// the password (needKey) and nothing is kept until it opens the key
+func TestSteamLoginKeepsKey(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("APPDATA", dir)
+	loadPL()
+	key := strings.Repeat("ab", 32)
+	plMu.Lock()
+	plAcc = plAccount{Email: "driver@example.com", ID: "a1", DataKey: key, KeyTag: "k1", Ended: true}
+	plMu.Unlock()
+	steamPendingMu.Lock()
+	steamPending = nil
+	steamPendingMu.Unlock()
+	if _, err := plSteamLogin([]byte(`{"id":"a1"}`)); err == nil {
+		t.Fatal("an answer without a token must fail")
+	}
+	needKey, err := plSteamLogin([]byte(`{"id":"a2","token":"t2","display":"Bo","nameKind":"nick","keyTag":"k1"}`))
+	if err != nil || !needKey {
+		t.Fatal("another account needs the password", err, needKey)
+	}
+	if needKey, err = plSteamLogin([]byte(`{"id":"a1","token":"t3","display":"Ana","nameKind":"nick","keyTag":"k2"}`)); err != nil || !needKey {
+		t.Fatal("the same account with another key (a password reset) needs the password", err, needKey)
+	}
+	plMu.Lock()
+	a := plAcc
+	plMu.Unlock()
+	if a.Token != "" || a.ID != "a1" || a.DataKey != key || !a.Ended {
+		t.Fatalf("nothing changes until the key opens: %+v", a)
+	}
+	if steamKnownEmail("a2") != "" || steamKnownEmail("a1") != "driver@example.com" {
+		t.Fatal("the kept email is only offered to its own account")
+	}
+	steamPendingMu.Lock()
+	sp := steamPending
+	steamPendingMu.Unlock()
+	if sp == nil || sp.Res.ID != "a1" || sp.Res.Token != "t3" {
+		t.Fatal("the last sign-in waits for the password")
+	}
+	needKey, err = plSteamLogin([]byte(`{"id":"a1","token":"t1","display":"Ana","nameKind":"nick","keyTag":"k1","admin":true,"verified":true,"twoFactor":true}`))
+	if err != nil || needKey {
+		t.Fatal("the same account signs in with its kept key", err, needKey)
+	}
+	plMu.Lock()
+	a = plAcc
+	plMu.Unlock()
+	if a.Token != "t1" || a.ID != "a1" || a.DataKey != key || a.KeyTag != "k1" || a.Email != "driver@example.com" || a.Display != "Ana" || !a.Admin || !a.Verified || !a.TwoFactor || a.Ended {
+		t.Fatalf("signed in with the kept key: %+v", a)
+	}
+	if k, err := dataKey(); err != nil || len(k) != 32 {
+		t.Fatal("the data key must open", err)
+	}
+	plMu.Lock()
+	plAcc = plAccount{}
+	plMu.Unlock()
 }

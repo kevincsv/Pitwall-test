@@ -811,6 +811,8 @@ export async function community(req, env, url, ctx) {
     }
     // their Discord, when they chose to show it (Account → Discord) so other drivers can find them there
     const dc = await env.DB.prepare("SELECT discord_id, handle FROM discord_links WHERE account_id=?1 AND shown=1").bind(a.id).first().catch(() => null);
+    // and their Steam (Account → Steam), the same way
+    const sl = await env.DB.prepare("SELECT steamid, persona FROM steam_links WHERE account_id=?1 AND shown=1").bind(a.id).first().catch(() => null);
     // admins: the driver's latest sessions, to open their laps one by one (a private account too)
     const sessions = admin ? (((await env.DB.prepare("SELECT id, started, track, track_config AS trackConfig, car, kind, laps, best FROM sessions WHERE uploader=?1 ORDER BY started DESC LIMIT 30").bind("acct:" + a.id).all()).results) || []) : undefined;
     // your own profile: how your best came down over your last sessions of each car and track (the best so far after
@@ -835,6 +837,7 @@ export async function community(req, env, url, ctx) {
       name: a.alias || "Driver", since: a.member_since || a.created, mine, admin, anonymous: !!a.anon,
       shownAs: admin || mine ? (a.anon ? "anonymous" : a.name_kind === "iracing" ? "iracing" : "nick") : undefined, // how the account shows itself
       discord: dc ? { id: dc.discord_id, handle: dc.handle || "" } : undefined,
+      steam: sl ? { id: sl.steamid, persona: sl.persona || "" } : undefined,
       supporter: sup && (!a.supporter_hidden || mine || admin), supporterHidden: mine || admin ? !!a.supporter_hidden : undefined,
       lics, races, days, sessions,
       laps: laps.map((x) => ({ ...x, trend: trend[(x.game || "iracing") + ":" + x.trackId + ":" + x.carId], car: famName(x.game, x.carId, x.car), anon: !!x.anon, lic: licOf(lics[x.cat]) || licOf(x.lic), cat: (x.game || "iracing") === "iracing" ? catOf(cm, x.trackId, x.carId, x.cat, x.track, x.car) : null })),
