@@ -125,6 +125,15 @@ func (s *lmuSource) run() {
 
 func (s *lmuSource) Mem() []byte { return s.img.mem }
 
+// Alive: the game's program still runs, so in its menus the source stays open instead of closing and opening the
+// mapping every 10 s (a game closed and started again is a new program: the source closes and finds the new mapping)
+func (s *lmuSource) Alive() bool { return lmuRunning() }
+
+func lmuRunning() bool {
+	r := runningProcs()
+	return r["le mans ultimate.exe"] || r["lemansultimate.exe"]
+}
+
 func (s *lmuSource) Wait(d time.Duration) { time.Sleep(d / 2) }
 
 func (s *lmuSource) Close() {

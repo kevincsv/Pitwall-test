@@ -155,7 +155,11 @@ func reader(forceDemo bool) {
 		if !connected {
 			// sim closed or in menus; reopen after a while so a restarted sim is picked up
 			if time.Since(staleSince) > 10*time.Second && src.Name() != "demo" {
-				closeSrc("")
+				if a, ok := src.(interface{ Alive() bool }); ok && a.Alive() {
+					staleSince = time.Now() // the game is still running (its menus): the source stays open
+				} else {
+					closeSrc("")
+				}
 			}
 			time.Sleep(200 * time.Millisecond)
 			continue
