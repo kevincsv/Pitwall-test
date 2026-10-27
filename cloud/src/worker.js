@@ -103,6 +103,14 @@ async function dropImpossibleLaps(env, sid) {
   return r[0].meta.changes || 0;
 }
 
+// laps made valid or not valid by hand: the session's best follows at once, and so do the leaderboards (a share made
+// from a lap no longer valid goes, the account's best of the car and track is shared again from its valid laps)
+async function validityChanged(env, sid) {
+  await env.DB.prepare(SESSION_SUMS).bind(sid).run().catch(() => {});
+  const s = await env.DB.prepare("SELECT uploader FROM sessions WHERE id=?1").bind(sid).first().catch(() => null);
+  if (s && String(s.uploader).startsWith("acct:")) await unshareInvalid(env, String(s.uploader).slice(5), sid).catch(() => {});
+}
+
 async function addLap(env, sessionId, l) {
   if (!idOk(sessionId) || !idOk(l.id) || !num(l.n) || !num(l.time) || l.time <= 0 || l.time > 3600) return "lap needs id, n and time";
   const plain = l.trace ? JSON.stringify(l.trace) : null;
@@ -234,6 +242,7 @@ async function api(req, env, url, ctx) {
     const sid = decodeURIComponent(mm[1]);
     // only the laps without incidents: an incident lap stays as it is
     const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0 AND COALESCE(inc,0)=0").bind(sid).run();
+    await validityChanged(env, sid);
     return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
   }
 
@@ -289,7 +298,10 @@ async function api(req, env, url, ctx) {
     const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (role !== "account" || !admins.includes(me.name.replace(/^acct:/, ""))) return err("only the admins of this server can do this", 403);
     const b = await req.json().catch(() => ({}));
-    const r = await env.DB.prepare("UPDATE laps SET valid=?2 WHERE id=?1").bind(decodeURIComponent(mm[1]), b.valid === false ? 0 : 1).run();
+    const lid = decodeURIComponent(mm[1]);
+    const r = await env.DB.prepare("UPDATE laps SET valid=?2 WHERE id=?1").bind(lid, b.valid === false ? 0 : 1).run();
+    const lr = await env.DB.prepare("SELECT session_id FROM laps WHERE id=?1").bind(lid).first();
+    if (lr) await validityChanged(env, lr.session_id);
     return json({ ok: true, changed: r.meta ? r.meta.changes : undefined, valid: b.valid !== false });
   }
 

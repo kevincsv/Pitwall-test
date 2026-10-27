@@ -442,9 +442,10 @@ type lapRec struct {
 	// first lap of a run (out of the pits or the session's start: cold tyres)
 	trafficN, trafficS int
 	cold               bool
-	lastPct            float64   // where on the lap the last sample was (0–1)
-	early              bool      // started at the line, a moment before iRacing counted the lap
-	st0                float64   // an early lap: the session time it crossed the line (its own clock, SessionTime - st0)
+	lastPct            float64 // where on the lap the last sample was (0–1)
+	early              bool    // started at the line, a moment before iRacing counted the lap
+	st0                float64 // a lap seen crossing the line: the session time it crossed it (its own clock, SessionTime - st0)
+	ownClock           bool
 	incPrev            float64   // the incident count at the previous sample
 	incAt              []float64 // [distance, points] of every incident on this lap
 	incK               []string  // the kind of each incident
@@ -721,15 +722,19 @@ func (ls *lapStream) step(v []float64) {
 			env.lapEnded(sn, cur, ls.sess, v[9], prevLL)
 		}
 		early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
+		// a lap seen crossing the line keeps its own clock from the session's: iRacing restarts its lap clock a moment
+		// after the line (in a race even when it counts the lap at once), and the samples before would carry the lap
+		// before's time and be dropped, a hole at the start of every lap
 		var st0 float64
-		if early {
-			// the moment it crossed the line, between the sample before (at lastPct) and this one (at pct)
+		own := false
+		if cur != nil && lap == cur.n+1 && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 && prevST > 0 && prevST < v[14] {
+			own = true
 			st0 = v[14]
-			if f := (1 - cur.lastPct) + pct; prevST > 0 && prevST < v[14] && f > 0 {
+			if f := (1 - cur.lastPct) + pct; f > 0 { // between the sample before (at lastPct) and this one (at pct)
 				st0 = prevST + (v[14]-prevST)*(1-cur.lastPct)/f
 			}
 		}
-		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0}
+		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own}
 	}
 	ls.cur = cur
 	cur.noteDriver(now, env.driver)
@@ -774,7 +779,7 @@ func (ls *lapStream) step(v []float64) {
 	// the game's lap clock goes on with the lap before for a moment after the line: a lap that started there keeps its
 	// own clock from the session's, or its first metres would be dropped (the hole made every lap not valid)
 	lt := v[17]
-	if cur.early && v[14] >= cur.st0 {
+	if cur.ownClock && v[14] >= cur.st0 {
 		lt = v[14] - cur.st0
 	}
 	cur.add(dist, lt, speed, [4]float64{v[4], v[5], v[6], v[7]})

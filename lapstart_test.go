@@ -31,6 +31,12 @@ func (e *lapTestEnv) sessionEnded(s cloudSession) {}
 // iRacing counts the new lap and starts its lap clock a second after the line: the lap still starts at the line,
 // with no hole at its start, and its clock counts from the line (the hole made every clean lap not valid)
 func TestLapStartsAtLineWithLateClock(t *testing.T) {
+	lapStartCase(t, true)  // practice and qualifying: the lap counted and its clock restarted a second late
+	lapStartCase(t, false) // a race: the lap counted at the line, its clock restarted a second late
+}
+
+func lapStartCase(t *testing.T, lateCount bool) {
+	t.Helper()
 	env := &lapTestEnv{t: time.Unix(1000, 0)}
 	ls := newLapStream(env)
 	const L, sp, hz = 3000.0, 60.0, 30.0 // a 3 km lap at 60 m/s: 50 s
@@ -43,8 +49,11 @@ func TestLapStartsAtLineWithLateClock(t *testing.T) {
 		d := pos - float64(lap)*L
 		inLap := d / sp
 		gameLap, clock := lap, inLap
-		if lap > 0 && inLap < 1.0 { // a second late: the lap before's count and clock
-			gameLap, clock = lap-1, lapT+inLap
+		if lap > 0 && inLap < 1.0 { // a second late: the lap before's clock (and count)
+			clock = lapT + inLap
+			if lateCount {
+				gameLap = lap - 1
+			}
 		}
 		v := make([]float64, len(lapVars))
 		v[0], v[1], v[2], v[3] = float64(gameLap+1), d, d/L, sp
