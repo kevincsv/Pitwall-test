@@ -116,7 +116,7 @@ func updateStatus() map[string]any {
 	avail := updLatest != nil && buildID != "dev" && updLatest.Build != buildID
 	// required: this version is older than the newest one's minimum, so it no longer works properly
 	required := avail && updLatest.Min != "" && versionLess(appVersion, updLatest.Min)
-	on := updateSupported && buildID != "dev" && localServer() == "" // local mode: no updates (the local server has none)
+	on := updateSupported && buildID != "dev" && localServer() == "" && !underSteam() // local mode: no updates (the local server has none); under Steam, Steam updates
 	m := map[string]any{"version": appVersion, "build": buildID, "available": avail, "required": required, "busy": updBusy, "error": updErr, "supported": on,
 		"auto": !loadUpdPrefs().Manual, "autoWorks": on && (!engineMode || desktopNext() != "")}
 	if updLatest != nil {
@@ -133,7 +133,7 @@ func updateStatus() map[string]any {
 // is running (unless you switched that off): Pitlane HQ restarts on the new version with its windows.
 func updateWatcher() {
 	cleanOldFiles()
-	if localServer() != "" { // local mode: nothing to check, no internet
+	if localServer() != "" || underSteam() { // local mode: nothing to check, no internet; under Steam, Steam keeps the files
 		return
 	}
 	if os.Getenv("PITLANE_UPDATED") != "" && buildID != "dev" {
@@ -216,7 +216,7 @@ func cleanOldFiles() {
 // applyUpdate downloads the new version, puts its files next to the running
 // .exe and starts it. The current files are kept as .old until the next start.
 func applyUpdate() error {
-	if !updateSupported || buildID == "dev" || localServer() != "" {
+	if !updateSupported || buildID == "dev" || localServer() != "" || underSteam() {
 		return errors.New("updates work in the Windows app downloaded from the downloads page")
 	}
 	if err := checkUpdate(); err != nil {

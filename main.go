@@ -29,7 +29,7 @@ const appVersion = "0.5.2"
 // appMinVersion: the oldest PitlaneHQ.exe that still works with today's server and files. Raise it
 // only when an older one really breaks (a changed API, a new data format): those PCs are then
 // made to update (the notice has no "later"). Published in version.json as "min".
-const appMinVersion = "0.6.1"
+const appMinVersion = "0.4.1"
 
 // appStage is shown next to the version everywhere until 1.0.0.
 const appStage = "beta"
@@ -549,7 +549,7 @@ func main() {
 			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
 		}
-		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "profile": activeID(), "profileName": activeName()})
+		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "steam": underSteam(), "profile": activeID(), "profileName": activeName()})
 	})
 	// what is on screen right now, for the native desktop window (desktop/): the game and its track and car
 	mux.HandleFunc("/api/now", func(w http.ResponseWriter, r *http.Request) {
