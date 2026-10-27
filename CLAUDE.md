@@ -476,8 +476,18 @@
 - The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.
+- Le Mans Ultimate is supported like iRacing (PC, web and phones): read from the game's own `LMU_Data` shared memory
+  (Settings → Gameplay → Enable Plugins, nothing to install), turned into an iRacing-shaped image (`lmu.go`,
+  `irimage.go`) so every overlay, the recorder, the journal and the coach work unchanged. Its official sectors are
+  learnt from the game's sector changes (`lmuSectors`, kept per track in `lmu-sectors.json`) and written as
+  SplitTimeInfo; start lights, wind and the fuel rate come from the game; it has no iRating, licences or incident
+  count (contacts stand in, `GAME_NO.lmu`). A session is "vs AI" when the game marks AI drivers (`CarIsAI`), an
+  online one counts as official for the model, a test day is "Offline Testing"; the layouts, pit lanes and turns
+  are per game on the server (`track_maps`, `track_pits`, `track_turns` keyed by game and track id, the agent's
+  `/api/trackmap` and `/api/turns` default to the game being read). The map's position is made from the game's
+  world frame (left-handed: north = -z, east = -x, to be confirmed against a real circuit).
 - In development (shown with "In development", usable only by admins, on every device): the
-  Planner (until iRacing switches its data API back on), Le Mans Ultimate, ACC, Assetto Corsa,
+  Planner (until iRacing switches its data API back on), ACC, Assetto Corsa,
   NASCAR 26, team mode and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
   Full telemetry view is gone everywhere.
   Switched off for now: setups, per-car settings, the Data view and sharing race analyses. Hidden from everyone

@@ -252,7 +252,7 @@ func discipline(cat, car string) string {
 		return "dirt_road"
 	case "formulacar":
 		return "formula_car"
-	case "sportscar":
+	case "sportscar", "hypercar", "lmp2", "lmp3", "lmgt3", "gt3", "gte": // LMU's category and its classes
 		return "sports_car"
 	case "road", "":
 		switch {
@@ -586,9 +586,11 @@ func raceWatcher() {
 				sessionRating(y) // your iRating and licence of this discipline, for every discipline's card
 			}
 		}
-		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account
-		if onTrack && gameTag(currentGame()) == "iracing" {
-			linkOwnDriver(yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "UserID"))
+		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account (iRacing
+		// only: LMU's driver ids are the car's slot, not the person). Your own id, never the car's driver block: in
+		// a team race that block names whoever is in the car, and a swap would link a teammate for good
+		if onTrack && currentGame() == "iracing" {
+			linkOwnDriver(yamlField(y, "DriverUserID"))
 		}
 		if !strings.EqualFold(kind, "Race") {
 			end(cur != nil && cur.state < 5)

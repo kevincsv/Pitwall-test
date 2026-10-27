@@ -167,8 +167,10 @@ async function api(req, env, url, ctx) {
       try { lics = JSON.parse((u && u.lics) || "{}") || {}; } catch (e) {}
     }
     return json((results || []).map(({ cat, lic, ...x }) => {
-      const c = (x.game || "iracing") === "iracing" ? catOf(cm, x.track_id, x.car_id, cat, x.track + (x.track_config ? " · " + x.track_config : ""), x.car) : null;
-      return { ...x, cat: c, lic: lic || (c && lics[c]) || null };
+      // the other games race sports cars only (LMU), as /combos and /records say
+      const ir = (x.game || "iracing") === "iracing";
+      const c = ir ? catOf(cm, x.track_id, x.car_id, cat, x.track + (x.track_config ? " · " + x.track_config : ""), x.car) : "sports_car";
+      return { ...x, cat: c, lic: lic || (ir && c && lics[c]) || null }; // the licence is iRacing's: never on another game's session
     }));
   }
 

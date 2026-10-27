@@ -63,4 +63,9 @@ func TestRealIRskipsOtherDiscipline(t *testing.T) {
 	if discipline("DirtOval", "x") != "dirt_oval" || discipline("Oval", "Dallara IR18") != "oval" {
 		t.Fatal("the session's own category wins when it is sure")
 	}
+	for _, c := range []string{"SportsCar", "Hypercar", "LMP2", "LMGT3", "GT3", "GTE", "LMP3"} { // LMU
+		if discipline(c, "Porsche 963") != "sports_car" {
+			t.Fatalf("%s: sports cars", c)
+		}
+	}
 }

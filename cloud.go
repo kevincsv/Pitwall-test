@@ -295,13 +295,21 @@ func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
 		s.Driver = yamlField(d, "UserName")
 		s.Lic = yamlField(d, "LicString")
 	}
-	if s.Game == "" || s.Game == "iracing" {
+	switch s.Game {
+	case "", "iracing":
 		s.Cat = yamlField(y, "Category")
 		if o := yamlField(y, "Official"); o == "0" || o == "1" {
 			off := o == "1"
 			s.Official = &off
 		}
 		s.AI = hasAI(y)
+	case "lmu":
+		// LMU has no official series: an online session counts as official for the model and an offline one (AI
+		// drivers in the field, lmu.go marks them) as a session against the AI, which the model learns from too
+		s.Cat = yamlField(y, "Category")
+		s.AI = hasAI(y)
+		off := !s.AI
+		s.Official = &off
 	}
 	if si := listItem(y, "SessionNum", fmt.Sprint(sessionNum)); si != "" {
 		s.Kind = yamlField(si, "SessionType")

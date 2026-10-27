@@ -102,7 +102,7 @@ const LAND = {
     faq: [
       ["What is Pitlane HQ?", "Pitlane HQ (also written PitlaneHQ) is a free sim racing telemetry app for iRacing: Pitlane HQ Agent records your laps on Windows, and the web and the phone apps show them, with a coach, leaderboards and overlays."],
       ["Is it free?", "Yes. The PC app, the web and the Android app are free."],
-      ["Which sims does it work with?", "iRacing. Le Mans Ultimate, ACC and Assetto Corsa are in development."],
+      ["Which sims does it work with?", "iRacing and Le Mans Ultimate. ACC and Assetto Corsa are in development."],
       ["What do I need?", "A Windows PC where you race in iRacing, to record the laps. To look at them, any browser or the Android app."],
       ["Who sees my laps?", "Your laps are in your account. On the leaderboards only your fastest lap of each car and track appears, under your public name or as Anonymous."],
       ["How is it different from looking at a replay?", "A replay shows what happened; telemetry shows how: where you braked, how much throttle you used and where the time went, metre by metre, next to a faster lap."],
@@ -129,7 +129,7 @@ const LAND = {
     faq: [
       ["¿Qué es Pitlane HQ?", "Pitlane HQ (también escrito PitlaneHQ) es una app gratis de telemetría para sim racing en iRacing: Pitlane HQ Agent graba tus vueltas en Windows, y la web y las apps del móvil te las enseñan, con un coach, leaderboards y overlays."],
       ["¿Es gratis?", "Sí. La app del PC, la web y la app de Android son gratis."],
-      ["¿Con qué simuladores funciona?", "Con iRacing. Le Mans Ultimate, ACC y Assetto Corsa están en desarrollo."],
+      ["¿Con qué simuladores funciona?", "Con iRacing y Le Mans Ultimate. ACC y Assetto Corsa están en desarrollo."],
       ["¿Qué necesito?", "Un PC con Windows donde corras en iRacing, para grabar las vueltas. Para verlas, cualquier navegador o la app de Android."],
       ["¿Quién ve mis vueltas?", "Tus vueltas están en tu cuenta. En las clasificaciones solo aparece tu vuelta más rápida de cada coche y circuito, con tu nombre público o como Anónimo."],
       ["¿En qué se diferencia de ver una repetición?", "La repetición muestra qué pasó; la telemetría muestra cómo: dónde frenaste, cuánto acelerador diste y dónde se fue el tiempo, metro a metro, al lado de una vuelta más rápida."],
@@ -156,7 +156,7 @@ const LAND = {
     faq: [
       ["O que é o Pitlane HQ?", "O Pitlane HQ (também escrito PitlaneHQ) é um app grátis de telemetria para sim racing no iRacing: o Pitlane HQ Agent grava suas voltas no Windows, e a web e os apps de celular mostram, com um coach, leaderboards e overlays."],
       ["É grátis?", "Sim. O app do PC, a web e o app de Android são grátis."],
-      ["Com quais simuladores funciona?", "Com o iRacing. Le Mans Ultimate, ACC e Assetto Corsa estão em desenvolvimento."],
+      ["Com quais simuladores funciona?", "Com o iRacing e o Le Mans Ultimate. ACC e Assetto Corsa estão em desenvolvimento."],
       ["Do que eu preciso?", "Um PC com Windows onde você corre no iRacing, para gravar as voltas. Para vê-las, qualquer navegador ou o app de Android."],
       ["Quem vê as minhas voltas?", "As suas voltas ficam na sua conta. Nos leaderboards aparece só a sua volta mais rápida de cada carro e pista, com o seu nome público ou como Anônimo."],
       ["Qual a diferença para ver um replay?", "O replay mostra o que aconteceu; a telemetria mostra como: onde você freou, quanto acelerador usou e para onde foi o tempo, metro a metro, ao lado de uma volta mais rápida."],
@@ -410,7 +410,7 @@ async function sitemap(env) {
 // public by design (search engines read it at /<key>.txt); it only proves the pings come from this site.
 const INDEXNOW_KEY = "1fbc105af121e0dcfc14e13a8740813a";
 // SEO_VER: raised when the public pages change (new languages, new addresses): every page is sent again once
-const SEO_VER = "9";
+const SEO_VER = "10";
 export async function indexNow(env) {
   if (env.LOCAL === "1") return; // a local server (one PC, tools/local.cmd) tells no search engine anything
   const row = await env.DB.prepare("SELECT v FROM app_state WHERE k='indexnow_at'").first().catch(() => null);

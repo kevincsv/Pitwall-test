@@ -859,7 +859,7 @@ func registerCommunityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/turns", handleTurns)
 	mux.HandleFunc("/api/pitlane", func(w http.ResponseWriter, r *http.Request) {
 		t, _ := strconv.Atoi(r.URL.Query().Get("trackId"))
-		b, err := pitLaneQuery(t)
+		b, err := pitLaneQuery(t, firstNonEmpty(r.URL.Query().Get("game"), "iracing"))
 		if t <= 0 || err != nil {
 			writeJSON(w, map[string]any{"trackId": t, "pts": [][2]float64{}})
 			return
@@ -1129,7 +1129,7 @@ func handleTrackMap(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "trackId", 400)
 			return
 		}
-		b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), "iracing")), nil, false)
+		b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), currentGame())), nil, false)
 		if err != nil {
 			http.Error(w, err.Error(), 404)
 			return
@@ -1154,8 +1154,11 @@ func handleTrackMap(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad layout", 400)
 		return
 	}
-	// only these fields go to the server: the outline and which lap it came from
+	// only these fields go to the server: the outline, its game and which lap it came from
 	out := map[string]any{"game": "iracing", "clean": in["clean"] == true}
+	if g, _ := in["game"].(string); layoutGames[g] {
+		out["game"] = g
+	}
 	for _, k := range []string{"trackId", "track", "time", "n", "len", "x", "y"} {
 		out[k] = in[k]
 	}
@@ -1172,16 +1175,20 @@ func handleTrackMap(w http.ResponseWriter, r *http.Request) {
 
 // ---------- the shape of the track, from your own laps ----------
 
-// commLayoutBest: the lap time of the layout the community already has per track (-1: none), so a
+// commLayoutBest: the lap time of the layout the community already has per game and track (-1: none), so a
 // slower lap is never sent; filled the first time a track is seen in this run.
-var commLayoutBest = map[int]float64{}
-var commLayoutGeo = map[int]bool{} // whether that layout comes from the game's position
+var commLayoutBest = map[string]float64{}
+var commLayoutGeo = map[string]bool{} // whether that layout comes from the game's position
+
+// layoutGames: the games whose laps draw the community's track maps (the server keeps one layout per game and track)
+var layoutGames = map[string]bool{"iracing": true, "lmu": true}
 
 // shareLayout sends the outline of a valid lap (only its x/y points) to the community when it is
-// faster than the layout everyone already has. iRacing only, and never when sharing layouts is off:
+// faster than the layout everyone already has. iRacing and LMU, and never when sharing layouts is off:
 // it is what draws the track map in the analyzer, the coach, the race summaries and the phone apps.
 func shareLayout(l cloudLap, s cloudSession) {
-	if tel.isDemo() || currentGame() != "iracing" || l.Trace == nil || len(l.Trace.X) < 100 || len(l.Trace.X) > 3000 || !(l.Time > 10) {
+	game := currentGame()
+	if tel.isDemo() || !layoutGames[game] || l.Trace == nil || len(l.Trace.X) < 100 || len(l.Trace.X) > 3000 || !(l.Time > 10) {
 		return
 	}
 	commMu.Lock()
@@ -1196,20 +1203,21 @@ func shareLayout(l cloudLap, s cloudSession) {
 		return
 	}
 	n := len(l.Trace.X)
-	body := map[string]any{"game": "iracing", "clean": true, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "n": n,
+	body := map[string]any{"game": game, "clean": true, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "n": n,
 		"len": trackLengthM(y), "x": l.Trace.X, "y": l.Trace.Y}
 	geo := len(l.Trace.G) == 2 // the path comes from the game's position: exact, with the origin of its frame
 	if geo {
 		body["g"] = l.Trace.G
 	}
+	key := game + ":" + strconv.Itoa(c.TrackID) // LMU's track ids are hashes of the name: one layout per game
 	go func() {
 		commMu.Lock()
-		best, known := commLayoutBest[c.TrackID]
-		commGeo := commLayoutGeo[c.TrackID]
+		best, known := commLayoutBest[key]
+		commGeo := commLayoutGeo[key]
 		commMu.Unlock()
 		if !known {
 			best = -1
-			if b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(c.TrackID)+"&game=iracing", nil, false); err == nil {
+			if b, err := commCall("GET", "/trackmaps?trackId="+strconv.Itoa(c.TrackID)+"&game="+url.QueryEscape(game), nil, false); err == nil {
 				var m struct {
 					Time float64   `json:"time"`
 					G    []float64 `json:"g"`
@@ -1223,12 +1231,12 @@ func shareLayout(l cloudLap, s cloudSession) {
 		// community's does not (the exact shape replaces dead reckoning whatever the time)
 		if best > 0 && best <= l.Time && (!geo || commGeo) {
 			commMu.Lock()
-			commLayoutBest[c.TrackID], commLayoutGeo[c.TrackID] = best, commGeo
+			commLayoutBest[key], commLayoutGeo[key] = best, commGeo
 			commMu.Unlock()
 			return
 		}
 		commMu.Lock()
-		commLayoutBest[c.TrackID], commLayoutGeo[c.TrackID] = l.Time, geo
+		commLayoutBest[key], commLayoutGeo[key] = l.Time, geo
 		commMu.Unlock()
 		if err := ensureRegistered(); err != nil {
 			commNote(err)
@@ -1264,7 +1272,7 @@ func handleTurns(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "trackId", 400)
 			return
 		}
-		b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), "iracing")), nil, false)
+		b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(t)+"&game="+url.QueryEscape(firstNonEmpty(q.Get("game"), currentGame())), nil, false)
 		if err != nil {
 			writeJSON(w, map[string]any{"trackId": t, "turns": []float64{}})
 			return

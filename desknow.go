@@ -116,7 +116,7 @@ func registerDeskRoutes(mux *http.ServeMux) {
 		st.ses = &ovSession{TrackID: in.TrackId, TrackLen: float64(len(in.A)) * ovLapBin}
 		if in.TrackId > 0 {
 			st.ext.turnsKey = "t" + strconv.Itoa(in.TrackId)
-			if b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(in.TrackId)+"&game=iracing", nil, false); err == nil {
+			if b, err := commCall("GET", "/turns?trackId="+strconv.Itoa(in.TrackId)+"&game="+currentGame(), nil, false); err == nil {
 				var d struct {
 					Turns []float64 `json:"turns"`
 				}

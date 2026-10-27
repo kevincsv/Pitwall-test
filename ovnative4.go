@@ -301,7 +301,7 @@ func (st *ovState) loadMap() {
 				N    int `json:"n"`
 				X, Y []float64
 			}
-			if st.fetchJSON("/api/trackmap?trackId="+strconv.Itoa(tid)+"&game=iracing", &c) && len(c.X) > 10 && len(c.X) == len(c.Y) {
+			if st.fetchJSON("/api/trackmap?trackId="+strconv.Itoa(tid), &c) && len(c.X) > 10 && len(c.X) == len(c.Y) {
 				d.X, d.Y, ok = c.X, c.Y, true
 			}
 		}
@@ -328,7 +328,7 @@ func (st *ovState) loadTurns() {
 		var d struct {
 			Turns []float64 `json:"turns"`
 		}
-		if st.fetchJSON("/api/turns?trackId="+strconv.Itoa(tid)+"&game=iracing", &d) {
+		if st.fetchJSON("/api/turns?trackId="+strconv.Itoa(tid), &d) {
 			st.mu.Lock()
 			st.ext.turns = d.Turns
 			st.mu.Unlock()

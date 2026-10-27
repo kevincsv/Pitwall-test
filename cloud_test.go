@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"strings"
 	"testing"
 	"time"
 )
@@ -43,6 +44,31 @@ func TestSessionMeta(t *testing.T) {
 	s := sessionMeta(y, 2, timeZero)
 	if s.Track != "Spa" || s.Car != "Porsche 911 GT3 R" || s.Driver != "Driver C." || s.Kind != "Race" || s.ID != "ir-123-2" {
 		t.Fatalf("bad meta %+v", s)
+	}
+}
+
+// an LMU session (lmu.go's YAML): sports cars, and against the AI when the field has AI drivers, else official
+func TestSessionMetaLMU(t *testing.T) {
+	tel.mu.Lock()
+	was := tel.source
+	tel.source = "lmu"
+	tel.mu.Unlock()
+	defer func() {
+		tel.mu.Lock()
+		tel.source = was
+		tel.mu.Unlock()
+	}()
+	ai := "WeekendInfo:\n TrackDisplayName: Le Mans\n TrackID: 123456\n SubSessionID: 0\n Official: 0\n Category: SportsCar\nSessionInfo:\n Sessions:\n - SessionNum: 0\n   SessionType: Race\nDriverInfo:\n DriverCarIdx: 1\n Drivers:\n - CarIdx: 0\n   UserName: Bot\n   CarScreenName: Porsche 963\n   CarIsAI: 1\n - CarIdx: 1\n   UserName: Me\n   CarScreenName: Porsche 963\n   CarID: 4242\n   CarIsAI: 0\n"
+	s := sessionMeta(ai, 0, timeZero)
+	if s.Game != "lmu" || s.Cat != "SportsCar" || !s.AI || s.Official == nil || *s.Official || !strings.HasPrefix(s.ID, "t-") || s.TrackID != 123456 || s.CarID != 4242 {
+		t.Fatalf("an LMU race against the AI: %+v", s)
+	}
+	s = sessionMeta(strings.ReplaceAll(ai, "CarIsAI: 1", "CarIsAI: 0"), 0, timeZero)
+	if s.AI || s.Official == nil || !*s.Official {
+		t.Fatalf("an online LMU race counts as official: %+v", s)
+	}
+	if gameLocked("lmu") {
+		t.Fatal("LMU is open to everyone")
 	}
 }
 

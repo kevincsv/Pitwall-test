@@ -39,7 +39,7 @@ func gameTag(g string) string {
 
 // gameWIP: games still in development. Their readers stay in the code but Pitlane HQ
 // does not open them yet: their tracks and data do not match iRacing's everywhere.
-var gameWIP = map[string]bool{"lmu": true, "acc": true, "ac": true}
+var gameWIP = map[string]bool{"acc": true, "ac": true}
 
 // wipAllowed: the admins of the server (signed in on this PC) can use what is still in development.
 func wipAllowed() bool {

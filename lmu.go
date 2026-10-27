@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -19,6 +20,18 @@ import (
 )
 
 const lmuCars = 64 // iRacing-style arrays hold 64 cars
+
+// lmuFuelKgPerLtr: LMU counts fuel in litres and iRacing's FuelUsePerHour is kg/h, so the
+// rate goes out with this density and the session says it (DriverCarFuelKgPerLtr) for the way back
+const lmuFuelKgPerLtr = 0.75
+
+// the start bits of SessionFlags (irsdk_Flags)
+const (
+	lmuStartHidden = 0x10000000
+	lmuStartReady  = 0x20000000
+	lmuStartSet    = 0x40000000
+	lmuStartGo     = 0x80000000
+)
 
 // the variables LMU fills: the demo's (the same names iRacing uses) plus a few more
 func lmuVarDefs() []demoVar {
@@ -35,6 +48,8 @@ func lmuVarDefs() []demoVar {
 		{name: "dcEngineMapMax", desc: "Highest engine map of this car", typ: TypeFloat},
 		{name: "dcBrakeBias", desc: "In car brake bias (front)", unit: "%", typ: TypeFloat},
 		{name: "VirtualEnergyPct", desc: "Virtual energy left (Le Mans Ultimate)", unit: "%", typ: TypeFloat},
+		{name: "WindVel", desc: "Wind velocity at start/finish line", unit: "m/s", typ: TypeFloat},
+		{name: "WindDir", desc: "Wind direction at start/finish line", unit: "rad", typ: TypeFloat},
 	}
 	for _, c := range []string{"LF", "RF", "LR", "RR"} {
 		extra = append(extra, demoVar{name: c + "pressure", desc: c + " tire pressure", unit: "kPa", typ: TypeFloat},
@@ -62,6 +77,12 @@ type lmuSource struct {
 	impactET float64
 	impacts  int
 	sessNum  int
+	phase    int     // the game phase of the frame before
+	goET     float64 // the session clock when the race went green, 0 none
+	sec      lmuSectors
+	secStore map[string][3]float64 // the learned sector starts of every track, kept in secPath
+	secPath  string                // "" in tests: nothing is written
+	fuel     lmuFuel
 }
 
 func newLMUSource() Source { return &lmuSource{} }
@@ -77,6 +98,8 @@ func (s *lmuSource) Open() error {
 	s.img = newIRImage(lmuVarDefs())
 	s.snap = make([]byte, lmuDataSize)
 	s.stop = make(chan struct{})
+	s.secPath = filepath.Join(dataDir(), "lmu-sectors.json")
+	readJSON(s.secPath, &s.secStore)
 	if !s.update() {
 		// the mapping exists but holds nothing yet (menus): still connected to the game
 		s.img.setConnected(false)
@@ -167,8 +190,116 @@ type lmuCar struct {
 	last, best                float64
 	inPits, garage, player    bool
 	control                   int
+	sector                    int // rF2's mSector: 0 = sector 3, 1 = sector 1, 2 = sector 2
 	tel                       int // telemetry slot, -1 if none
 	pos                       lmuVec
+}
+
+// lmuSectors learns where the official sectors start from the player's mSector. rF2 and LMU number the
+// sector a car is in 0 = sector 3, 1 = sector 1, 2 = sector 2 (SharedMemoryInterface.hpp says so, "don't
+// ask why"), so a lap runs 1 → 2 → 0 and the two starts to learn are those of sectors 2 and 3, as fractions
+// of the lap; sector 1 starts at the line. A start counts once two laps put it in the same place (within
+// 25 m), so one glitch never moves it, and once known it stays.
+type lmuSectors struct {
+	track   string
+	has     bool // last and lastPct hold the frame before
+	last    int
+	lastPct float64
+	seen    [3][]float64 // where each start was seen, lap by lap, until two agree
+	known   [3]float64   // the confirmed starts (index 1 and 2), 0 none
+}
+
+// note takes one frame of the player's car and says whether the three starts just became known
+func (x *lmuSectors) note(sector int, pct, trackLen float64, onTrack bool) bool {
+	if !onTrack || sector < 0 || sector > 2 {
+		x.has = false
+		return false
+	}
+	prev, lp, had := x.last, x.lastPct, x.has
+	x.has, x.last, x.lastPct = true, sector, pct
+	if !had || sector == prev {
+		return false
+	}
+	idx := 0
+	switch {
+	case prev == 1 && sector == 2:
+		idx = 1
+	case prev == 2 && sector == 0:
+		idx = 2
+	default: // the line (0 → 1) is 0 by definition; anything else is a reset or a glitch
+		return false
+	}
+	// the car crossed it between the two frames: a jump (a tow, a reset) teaches nothing
+	if d := (pct - lp) * trackLen; d <= 0 || d > 100 {
+		return false
+	}
+	at := (lp + pct) / 2
+	if x.known[idx] > 0 || at <= 0 || at >= 1 {
+		return false
+	}
+	for _, seen := range x.seen[idx] {
+		if math.Abs(seen-at)*trackLen <= 25 {
+			x.known[idx] = (seen + at) / 2
+		}
+	}
+	if x.known[idx] == 0 {
+		if x.seen[idx] = append(x.seen[idx], at); len(x.seen[idx]) > 5 {
+			x.seen[idx] = x.seen[idx][1:]
+		}
+		return false
+	}
+	if x.known[1] > 0 && x.known[2] > 0 {
+		if x.known[1] < x.known[2] {
+			return true
+		}
+		x.known, x.seen = [3]float64{}, [3][]float64{} // out of order: start again
+	}
+	return false
+}
+
+// lmuFuel makes FuelUsePerHour, which LMU does not give: the fuel going down while the car runs on the
+// track, counted over ten-second stretches and smoothed over about a lap
+type lmuFuel struct {
+	has           bool
+	et, level     float64 // the telemetry clock and the litres of the frame before
+	accUsed, accT float64 // the stretch being counted
+	rate          float64 // litres an hour
+}
+
+// note takes one frame: the telemetry's own clock (mElapsedTime) and fuel, the speed, whether the car is in
+// the pits or the garage and the lap time to smooth over (0 when unknown)
+func (f *lmuFuel) note(et, level, speed, lap float64, pits bool) {
+	dt := et - f.et
+	if f.has && dt == 0 { // the game has not written since
+		return
+	}
+	last, had := f.level, f.has
+	f.has, f.et, f.level = true, et, level
+	if !had || dt < 0 || dt > 2 || pits || speed < 5 { // a pause, a reset, the pits: start the stretch again
+		f.accUsed, f.accT = 0, 0
+		return
+	}
+	used := last - level
+	if used < 0 || used > 1 { // refuelled, or a new car
+		f.accUsed, f.accT = 0, 0
+		return
+	}
+	f.accUsed += used
+	f.accT += dt
+	if f.accT < 10 {
+		return
+	}
+	inst := f.accUsed / f.accT * 3600
+	tau := 90.0
+	if lap > 0 {
+		tau = lap
+	}
+	if f.rate <= 0 {
+		f.rate = inst
+	} else {
+		f.rate += math.Min(1, f.accT/tau) * (inst - f.rate)
+	}
+	f.accUsed, f.accT = 0, 0
 }
 
 var lmuNumRe = regexp.MustCompile(`#\s*(\d{1,3})`)
@@ -215,7 +346,7 @@ func (s *lmuSource) convert(b []byte) bool {
 			class: lstr(b, o+vs_mVehicleClass, 32), place: lu8(b, o+vs_mPlace), laps: li16(b, o+vs_mTotalLaps), lapDist: lf64(b, o+vs_mLapDist),
 			est: lf64(b, o+vs_mTimeIntoLap), behind: lf64(b, o+vs_mTimeBehindLeader), last: lf64(b, o+vs_mLastLapTime), best: lf64(b, o+vs_mBestLapTime),
 			inPits: lu8(b, o+vs_mInPits) != 0, garage: lu8(b, o+vs_mInGarageStall) != 0, player: lu8(b, o+vs_mIsPlayer) != 0,
-			control: int(int8(b[o+vs_mControl])), pos: lvec(b, o+vs_mPos), tel: -1}
+			control: int(int8(b[o+vs_mControl])), sector: lu8(b, o+vs_mSector), pos: lvec(b, o+vs_mPos), tel: -1}
 		if t, ok := telByID[c.id]; ok {
 			c.tel = t
 		}
@@ -244,6 +375,22 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 	}
 
+	inReal := lu8(b, si+si_mInRealtime) != 0
+	if track != s.sec.track { // another track: its sectors from the file, or none yet
+		s.sec = lmuSectors{track: track, known: s.secStore[track]}
+	}
+	if player >= 0 {
+		p := cars[player]
+		if s.sec.note(p.sector, math.Mod(math.Max(0, p.lapDist)/trackLen, 1), trackLen, inReal && !p.inPits && !p.garage) {
+			if s.secStore == nil {
+				s.secStore = map[string][3]float64{}
+			}
+			s.secStore[track] = s.sec.known
+			if s.secPath != "" {
+				writeJSONFile(s.secPath, s.secStore)
+			}
+		}
+	}
 	s.writeSession(b, cars, player, playerTel, track, trackLen, session)
 
 	m := s.img
@@ -277,7 +424,22 @@ func (s *lmuSource) convert(b []byte) bool {
 	rain := lf64(b, si+si_mRaining)
 	m.set("Precipitation", rain)
 	m.set("TrackWetness", float64(lmuWetness(lf64(b, si+si_mAvgPathWetness))))
+	// the wind blows along mWind (m/s, the world's axes: the game's frame is left-handed, north = -z and east = -x,
+	// as the map's Lat/Lon); WindDir is where it comes from, clockwise from north, the sense YawNorth has, so
+	// the weather overlay draws it against the car
+	wind := lvec(b, si+si_mWind)
+	m.set("WindVel", math.Hypot(wind.x, wind.z))
+	if wind.x != 0 || wind.z != 0 {
+		m.set("WindDir", math.Mod(math.Atan2(wind.x, wind.z)+2*math.Pi, 2*math.Pi))
+	}
 
+	if et < s.goET { // the session's clock started again (another session, a restart): no old "go"
+		s.goET = 0
+	}
+	if phase == 5 && (s.phase == 3 || s.phase == 4) { // the race has just gone green
+		s.goET = et
+	}
+	s.phase = phase
 	flags := 0
 	switch phase {
 	case 5:
@@ -294,6 +456,7 @@ func (s *lmuSource) convert(b []byte) bool {
 			flags |= 0x8 // local yellow
 		}
 	}
+	flags |= lmuStartFlags(phase, lu8(b, si+si_mStartLight), lu8(b, si+si_mNumRedLights), s.goET > 0 && et-s.goET < 4)
 
 	for _, c := range cars {
 		i := c.idx
@@ -331,7 +494,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.setAt("CarIdxTrackSurface", i, -1)
 	}
 
-	connected := player >= 0 && playerTel >= 0 && lu8(b, si+si_mInRealtime) != 0
+	connected := player >= 0 && playerTel >= 0 && inReal
 	m.set("PlayerCarIdx", float64(max(player, 0)))
 	if player >= 0 {
 		p := cars[player]
@@ -353,7 +516,7 @@ func (s *lmuSource) convert(b []byte) bool {
 			flags |= 0x8
 		}
 	}
-	m.set("SessionFlags", float64(flags))
+	m.set("SessionFlags", float64(int32(uint32(flags)))) // through int32, so the start bits (the top ones) keep their pattern
 
 	if connected {
 		to := lmuOffTelem + playerTel*lmuTelSize
@@ -392,6 +555,13 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("FuelLevel", fuel)
 	if capa > 0 {
 		m.set("FuelLevelPct", fuel/capa)
+	}
+	if player >= 0 {
+		p := cars[player]
+		s.fuel.note(lf64(b, to+vt_mElapsedTime), fuel, math.Hypot(vel.x, vel.z), lmuTime(p.last), p.inPits || p.garage)
+	}
+	if s.fuel.rate > 0 {
+		m.set("FuelUsePerHour", s.fuel.rate*lmuFuelKgPerLtr)
 	}
 	m.set("WaterTemp", lf64(b, to+vt_mEngineWaterTemp))
 	m.set("OilTemp", lf64(b, to+vt_mEngineOilTemp))
@@ -487,15 +657,18 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	}
 	m.set("PlayerTrackSurface", float64(surf))
 
-	// position for the track map (metres → a made-up latitude/longitude, north = -z)
+	// position for the track map (metres → a made-up latitude/longitude). The game's world frame is left-handed
+	// (local +x is the car's left, +y up, +z back, and mOri is a rotation), so with y up north = -z goes with
+	// east = -x, else the map comes out mirrored. To be confirmed against a real circuit the first time
 	pos := lvec(b, to+vt_mPos)
 	const lat0 = 45.0
 	m.set("Lat", lat0+(-pos.z)/110540)
-	m.set("Lon", pos.x/(111320*math.Cos(lat0*math.Pi/180)))
+	m.set("Lon", -pos.x/(111320*math.Cos(lat0*math.Pi/180)))
 	ori := [3]lmuVec{lvec(b, to+vt_mOri), lvec(b, to+vt_mOri+24), lvec(b, to+vt_mOri+48)}
 	// forward (local -z) in world coordinates, then the heading on the map
 	fx, fz := -ori[0].z, -ori[2].z
-	m.set("Yaw", math.Atan2(-fz, fx))
+	m.set("Yaw", math.Atan2(-fz, -fx))
+	m.set("YawNorth", math.Mod(math.Atan2(-fx, -fz)+2*math.Pi, 2*math.Pi)) // clockwise from north, like WindDir
 	m.set("CarLeftRight", float64(lmuSpotter(ori, pos, cars, player)))
 }
 
@@ -548,6 +721,25 @@ func b2f(v bool) float64 {
 	return 0
 }
 
+// lmuStartFlags: the start lights as iRacing's start bits. rF2 counts the gantry's frames in mStartLight
+// (1 … mNumRedLights lamps lit, the frame past the last one is the lamps going out) while the game phase is
+// the countdown (4); the formation lap (3) hides them, and the first seconds of green (justGreen) say go.
+func lmuStartFlags(phase, light, red int, justGreen bool) int {
+	switch {
+	case phase == 3:
+		return lmuStartHidden
+	case phase == 4 && red > 0 && light > red:
+		return lmuStartGo
+	case phase == 4 && red > 0 && light >= red:
+		return lmuStartSet
+	case phase == 4:
+		return lmuStartReady
+	case phase == 5 && justGreen:
+		return lmuStartGo
+	}
+	return 0
+}
+
 // LMU game phase → iRacing session state
 func lmuSessionState(phase int) int {
 	switch phase {
@@ -594,7 +786,7 @@ func lmuSessionType(session int) (string, string) {
 	case session >= 1:
 		return "Practice", "PRACTICE"
 	}
-	return "Practice", "TEST DAY"
+	return "Offline Testing", "TEST DAY" // iRacing's name for a test drive: never a best, a share or the model's
 }
 
 func lmuClassColor(class string) string {
@@ -631,7 +823,7 @@ func yamlSafe(s string) string {
 // writeSession builds the session text (track, session, drivers) when it changes.
 func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int, track string, trackLen float64, session int) {
 	var key strings.Builder
-	fmt.Fprintf(&key, "%s|%d|%d|%d", track, session, player, playerTel)
+	fmt.Fprintf(&key, "%s|%d|%d|%d|%v", track, session, player, playerTel, s.sec.known)
 	for _, c := range cars {
 		key.WriteString("|" + c.name + c.vehicle + c.class)
 	}
@@ -640,14 +832,19 @@ func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int,
 	}
 	s.sessKey = key.String()
 	if session != s.sessNum {
-		s.sessNum, s.impacts, s.impactET = session, 0, 0
+		s.sessNum, s.impacts, s.impactET, s.goET = session, 0, 0, 0
 	}
 	si := lmuOffScoring
 	typ, name := lmuSessionType(session)
 	maxLaps := li32(b, si+si_mMaxLaps)
 	laps := "unlimited"
-	if maxLaps > 0 && maxLaps < 10000 {
+	if maxLaps > 0 && maxLaps < 10000 { // a timed session says 32767 (or more) laps
 		laps = fmt.Sprint(maxLaps)
+	}
+	// the session's length, like iRacing's "SessionTime: 3600.0000 sec" (unlimited when laps alone end it)
+	length := "unlimited"
+	if endET, startET := lf64(b, si+si_mEndET), lf64(b, si+si_mStartET); endET > 0 && endET < 1e7 {
+		length = fmt.Sprintf("%.4f sec", endET-math.Max(0, math.Min(startET, endET)))
 	}
 	classes := map[string]bool{}
 	for _, c := range cars {
@@ -691,7 +888,7 @@ SessionInfo:
  Sessions:
  - SessionNum: %d
    SessionLaps: %s
-   SessionTime: %.4f sec
+   SessionTime: %s
    SessionType: %s
    SessionName: %s
 DriverInfo:
@@ -701,6 +898,7 @@ DriverInfo:
  DriverCarIdleRPM: 1000.000
  DriverCarRedLine: %.3f
  DriverCarFuelMaxLtr: %.3f
+ DriverCarFuelKgPerLtr: %.3f
  DriverCarMaxFuelPct: 1.000
  DriverCarSLFirstRPM: %.3f
  DriverCarSLShiftRPM: %.3f
@@ -712,8 +910,8 @@ DriverInfo:
  Drivers:
 `, strings.ReplaceAll(strings.ToLower(yamlSafe(track)), " ", "_"), lmuHash(track, 100000, 800000), trackLen/1000, yamlSafe(track), yamlSafe(track),
 		lf64(b, si+si_mTrackTemp), lf64(b, si+si_mAmbientTemp), typ, len(classes), li32(b, lmuOffGameVer),
-		session, session, laps, lf64(b, si+si_mEndET), typ, name,
-		max(player, 0), max(player, 0)+1, redline, capa, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
+		session, session, laps, length, typ, name,
+		max(player, 0), max(player, 0)+1, redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
 	for _, c := range cars {
 		model := strings.TrimSpace(lmuNumRe.ReplaceAllString(c.vehicle, ""))
 		if c.tel >= 0 {
@@ -753,6 +951,13 @@ DriverInfo:
 `, c.idx, yamlSafe(c.name), yamlSafe(c.name), yamlSafe(string([]rune(yamlSafe(c.name))[:1])), c.idx+1, yamlSafe(c.vehicle), c.num, c.num,
 			strings.ReplaceAll(strings.ToLower(yamlSafe(model)), " ", "_"), lmuHash(c.class, 9000, 900), lmuHash(model, 10000, 90000),
 			yamlSafe(model), yamlSafe(model), yamlSafe(c.class), lmuClassColor(c.class), est, ai)
+	}
+	// the official sectors once learned, written as iRacing does, so the timing overlay and the sectors work
+	if k := s.sec.known; k[1] > 0 && k[2] > k[1] {
+		sb.WriteString("SplitTimeInfo:\n Sectors:\n")
+		for i, start := range []float64{0, k[1], k[2]} {
+			fmt.Fprintf(&sb, " - SectorNum: %d\n   SectorStartPct: %.6f\n", i, start)
+		}
 	}
 	sb.WriteString("...\n")
 	s.img.setSession(sb.String())

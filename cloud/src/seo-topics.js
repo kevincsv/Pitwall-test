@@ -385,7 +385,7 @@ export const TOPICS = [
       faq: [
         ["Is it really free?", "Yes. The PC app, the web and the Android app are free."],
         ["Looking for a free alternative to RaceLab, Garage 61 or VRS?", "Pitlane HQ brings overlays, lap telemetry with comparisons and a coach together in one free app for iRacing."],
-        ["Which sims?", "iRacing. Le Mans Ultimate, ACC and Assetto Corsa are in development."],
+        ["Which sims?", "iRacing and Le Mans Ultimate. ACC and Assetto Corsa are in development."],
       ],
     },
     es: {
@@ -402,7 +402,7 @@ export const TOPICS = [
       faq: [
         ["¿De verdad es gratis?", "Sí. La app del PC, la web y la app de Android son gratis."],
         ["¿Buscas una alternativa gratis a RaceLab, Garage 61 o VRS?", "Pitlane HQ junta overlays, telemetría de vueltas con comparaciones y un coach en una sola app gratis para iRacing."],
-        ["¿Qué simuladores?", "iRacing. Le Mans Ultimate, ACC y Assetto Corsa están en desarrollo."],
+        ["¿Qué simuladores?", "iRacing y Le Mans Ultimate. ACC y Assetto Corsa están en desarrollo."],
       ],
     },
     pt: {
@@ -419,7 +419,7 @@ export const TOPICS = [
       faq: [
         ["É grátis mesmo?", "Sim. O app do PC, a web e o app Android são grátis."],
         ["Procurando uma alternativa grátis ao RaceLab, Garage 61 ou VRS?", "O Pitlane HQ junta overlays, telemetria de voltas com comparações e um coach num só app grátis para iRacing."],
-        ["Quais simuladores?", "iRacing. Le Mans Ultimate, ACC e Assetto Corsa estão em desenvolvimento."],
+        ["Quais simuladores?", "iRacing e Le Mans Ultimate. ACC e Assetto Corsa estão em desenvolvimento."],
       ],
     },
   },

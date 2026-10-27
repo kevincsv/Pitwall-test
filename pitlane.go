@@ -9,6 +9,7 @@ package main
 
 import (
 	"math"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
@@ -128,7 +129,8 @@ func pitOffsets(px, py, rx, ry []float64, a, b int) [][2]float64 {
 
 // notePitLap: a lap of this track through the pits, or a clean one (the reference for the pit laps of the session)
 func notePitLap(trackID int, x, y []float64, pit []bool, clean bool) {
-	if trackID <= 0 || len(x) < 60 || len(x) != len(y) || tel.isDemo() || currentGame() != "iracing" {
+	game := currentGame() // the server keeps one pit lane per game and track (layoutGames, community.go)
+	if trackID <= 0 || len(x) < 60 || len(x) != len(y) || tel.isDemo() || !layoutGames[game] {
 		return
 	}
 	pitMu.Lock()
@@ -162,7 +164,7 @@ func notePitLap(trackID int, x, y []float64, pit []bool, clean bool) {
 		return
 	}
 	go func() {
-		if _, err := commCall("POST", "/pitlane", map[string]any{"game": "iracing", "trackId": trackID, "n": len(ref[0]), "pts": pts}, true); err == nil {
+		if _, err := commCall("POST", "/pitlane", map[string]any{"game": game, "trackId": trackID, "n": len(ref[0]), "pts": pts}, true); err == nil {
 			pitMu.Lock()
 			pitSent[trackID] = time.Now()
 			pitMu.Unlock()
@@ -170,7 +172,7 @@ func notePitLap(trackID int, x, y []float64, pit []bool, clean bool) {
 	}()
 }
 
-// pitLaneQuery: the server's pit lane of a track, for the app (GET /api/pitlane?trackId=)
-func pitLaneQuery(trackID int) ([]byte, error) {
-	return commCall("GET", "/pitlane?trackId="+strconv.Itoa(trackID)+"&game=iracing", nil, false)
+// pitLaneQuery: the server's pit lane of a track, for the app (GET /api/pitlane?trackId=&game=)
+func pitLaneQuery(trackID int, game string) ([]byte, error) {
+	return commCall("GET", "/pitlane?trackId="+strconv.Itoa(trackID)+"&game="+url.QueryEscape(game), nil, false)
 }
