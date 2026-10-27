@@ -12,6 +12,11 @@ package main
 // {sr, dr, at}, next to iRacing's disciplines. On an admin's PC alone the same worker also reads the whole API once
 // per game version (lmuapi.go).
 //
+// The game closed when its API was asked while it was still starting (October 2026, an admin's PC): nothing is asked
+// before the game has been running lmuWarmup and back in the menus lmuSettle, a game not listening yet is only waited
+// for, and a request the game closed during or right after (lmuCrashWindow) is never made again on that build of the
+// game (lmu-rest-bad.json); after lmuBadMax of them the agent asks the game nothing more on that build.
+//
 // One goroutine for all of it (lmuRestW), started the first time the game is found: it sleeps on the source's
 // events (opened, closed, a session loaded or left) and wakes on a timer only while it has something to do.
 
@@ -50,6 +55,11 @@ const (
 	lmuReadCap    = 1 << 20   // never more than this read of one answer
 	lmuKeepCap    = 256 << 10 // what is kept of a bigger one
 	lmuDrainCap   = 64 << 20  // a bigger answer without Content-Length is counted up to this
+
+	lmuWarmup      = 2 * time.Minute  // the game running this long before its API is asked anything
+	lmuSettle      = 30 * time.Second // and back in the menus this long after a session
+	lmuCrashWindow = 20 * time.Second // the game gone this soon after a request: that request is the suspect
+	lmuBadMax      = 2                // suspects on one build of the game: nothing more is asked on it
 )
 
 // one client for the game's API: one connection kept alive, nothing through a proxy (the game is on this PC)
@@ -134,6 +144,10 @@ type lmuRestWorker struct {
 	lastRead                       time.Time
 	base                           string
 	exp                            *lmuExplorer
+	openSince, menusSince          time.Time // the game seen running since; back in the menus since
+	lastPath                       string    // the last request the game answered, and when
+	lastAt                         time.Time
+	warm, settle                   time.Duration
 
 	fetch func(ctx context.Context, url string) lmuAnswer
 	now   func() time.Time
@@ -142,11 +156,66 @@ type lmuRestWorker struct {
 }
 
 func newLMURestWorker() *lmuRestWorker {
-	return &lmuRestWorker{kick: make(chan struct{}, 1), fetch: lmuFetch, now: time.Now, admin: wipAllowed}
+	return &lmuRestWorker{kick: make(chan struct{}, 1), fetch: lmuFetch, now: time.Now, admin: wipAllowed, warm: lmuWarmup, settle: lmuSettle}
 }
 
-// errLMUBusy: a request not made because a session is loaded
-var errLMUBusy = errors.New("in a session")
+// errLMUBusy: a request not made because a session is loaded; errLMUBad: a path the game closed with
+var (
+	errLMUBusy = errors.New("in a session")
+	errLMUBad  = errors.New("the game closed after this request before")
+)
+
+// lmuNotListening: the game's API refused the connection (not up yet, or the game is gone): nothing was asked
+func lmuNotListening(err error) bool {
+	var op *net.OpError
+	return errors.As(err, &op) && op.Op == "dial"
+}
+
+// lmuBad: the paths the game closed with, per build of the game (lmu-rest-bad.json)
+type lmuBad struct {
+	Build int      `json:"build"`
+	Paths []string `json:"paths"`
+}
+
+func (w *lmuRestWorker) badFile() string { return filepath.Join(w.dirOr(), "lmu-rest-bad.json") }
+
+func (w *lmuRestWorker) bad() []string {
+	var b lmuBad
+	readJSON(w.badFile(), &b)
+	w.mu.Lock()
+	build := w.st.build
+	w.mu.Unlock()
+	if build != 0 && b.Build != 0 && b.Build != build {
+		return nil // a new build of the game: asked again
+	}
+	return b.Paths
+}
+
+func (w *lmuRestWorker) isBad(p string) bool {
+	for _, x := range w.bad() {
+		if x == p {
+			return true
+		}
+	}
+	return false
+}
+
+// suspect: the game closed during this request or right after it: never again on this build
+func (w *lmuRestWorker) suspect(p, why string) {
+	if p == "" || w.isBad(p) {
+		return
+	}
+	w.mu.Lock()
+	build := w.st.build
+	w.mu.Unlock()
+	b := lmuBad{Build: build, Paths: append(w.bad(), p)}
+	os.MkdirAll(w.dirOr(), 0o700)
+	writeJSONFile(w.badFile(), b)
+	log.Printf("lmu rest: the game closed %s %s, never asked again", why, p)
+	if len(b.Paths) >= lmuBadMax {
+		log.Printf("lmu rest: the game closed %d times with its API, nothing more is asked on this build", len(b.Paths))
+	}
+}
 
 var (
 	lmuRestW    = newLMURestWorker()
@@ -160,15 +229,8 @@ func (w *lmuRestWorker) poke() {
 	}
 }
 
-// lmuRestOn: off while LMU closes with its API being read (an admin's PC, October 2026): the agent sends the game no
-// request at all, only the shared memory is read, until it is known which request does it
-const lmuRestOn = false
-
 // lmuRestOpened / lmuRestClosed / lmuRestNote: the LMU source's events (the worker starts with the first one)
 func lmuRestOpened() {
-	if !lmuRestOn {
-		return
-	}
 	lmuRestOnce.Do(func() { go lmuRestW.loop() })
 	lmuRestW.opened()
 }
@@ -235,13 +297,21 @@ func (w *lmuRestWorker) step() time.Duration {
 	w.fresh = false
 	w.mu.Unlock()
 	if fresh { // the game started again: read once in its menus, and its API again if it is a new version
-		w.gameSeen, w.wasBusy, w.exp = false, false, nil
+		if w.lastPath != "" && st.closedAt.Sub(w.lastAt) <= lmuCrashWindow {
+			w.suspect(w.lastPath, "right after")
+		}
+		w.gameSeen, w.wasBusy, w.lastPath = false, false, ""
+		if w.exp != nil && w.exp.run != nil && !w.exp.run.Sent && len(w.bad()) >= lmuBadMax {
+			w.exp.queue = nil // what was read is still sent (nothing more is asked)
+		} else {
+			w.exp = nil
+		}
 	}
 	if !st.open && (st.closedAt.IsZero() || now.Sub(st.closedAt) >= lmuGameGrace) {
 		return 0 // the game is not running
 	}
 	if !w.gameSeen {
-		w.gameSeen, w.pendingRead = true, true
+		w.gameSeen, w.pendingRead, w.openSince, w.menusSince = true, true, now, now
 	}
 	if st.inSess || st.onTrack {
 		if !w.wasBusy && w.exp != nil {
@@ -251,7 +321,27 @@ func (w *lmuRestWorker) step() time.Duration {
 		return 0 // nothing while a session is loaded: the next event wakes the worker
 	}
 	if w.wasBusy { // a session ended: back in the menus
-		w.wasBusy, w.pendingRead = false, true
+		w.wasBusy, w.pendingRead, w.menusSince = false, true, now
+	}
+	if len(w.bad()) >= lmuBadMax {
+		// the game closed with its API on this build: nothing more is asked, what an admin's PC read is sent
+		if w.exp != nil && w.exp.run != nil && !w.exp.run.Sent && st.open {
+			w.exp.queue = nil
+			w.exp.step(w, st, now)
+			if d := w.exp.retryIn; d > 0 || !w.exp.run.Sent {
+				w.exp.retryIn = 0
+				return lmuAPIRetry
+			}
+		}
+		return 0
+	}
+	// never while the game is starting, nor the moment it is back from a session
+	ready := w.openSince.Add(w.warm)
+	if t := w.menusSince.Add(w.settle); t.After(ready) {
+		ready = t
+	}
+	if d := ready.Sub(now); d > 0 {
+		return d
 	}
 	var wait time.Duration
 	if w.pendingRead {
@@ -274,6 +364,10 @@ func (w *lmuRestWorker) step() time.Duration {
 		if w.exp.step(w, st, now) {
 			return lmuAPIPace
 		}
+		if d := w.exp.retryIn; d > 0 {
+			w.exp.retryIn = 0
+			return d
+		}
 	}
 	if w.pendingRead {
 		return wait
@@ -290,6 +384,9 @@ func (w *lmuRestWorker) dirOr() string {
 
 // get: one GET of the game's API, at the address that answered last (else each in turn); a session loading cancels it
 func (w *lmuRestWorker) get(path string) lmuAnswer {
+	if w.isBad(path) {
+		return lmuAnswer{err: errLMUBad}
+	}
 	bases := lmuRestBases
 	if w.base != "" {
 		bases = []string{w.base}
@@ -314,13 +411,23 @@ func (w *lmuRestWorker) get(path string) lmuAnswer {
 		cancel()
 		if a.err == nil {
 			w.base = b
+			w.lastPath, w.lastAt = path, w.now()
 			return a
 		}
 		if errors.Is(a.err, context.Canceled) {
 			return a
 		}
+		if w.base == b && !lmuNotListening(a.err) && !errors.Is(a.err, context.DeadlineExceeded) {
+			// the address that answered before took the request and the game went away during it
+			w.suspect(path, "during")
+			return a
+		}
 	}
 	w.base = ""
+	if a.err != nil && !errors.Is(a.err, context.DeadlineExceeded) {
+		// no address that answered before took it: the game is not listening (starting, or gone)
+		return lmuAnswer{err: &net.OpError{Op: "dial", Net: "tcp", Err: a.err}, ms: a.ms}
+	}
 	return a
 }
 

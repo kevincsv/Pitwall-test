@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -28,8 +29,13 @@ func TestLMUAPIPathOK(t *testing.T) {
 			t.Errorf("%s allowed", p)
 		}
 	}
-	good := []string{"/rest/garage/getPlayerSetups", "/rest/sessions/settings", "/rest/watch/standings", "/rest/sessions/weather",
-		"/rest/race/car", "/rest/profile/profileInfo/getProfileInfo", "/rest/strategy/overall", "/rest/garage/setup",
+	for _, p := range []string{"/rest/garage/getPlayerSetups", "/rest/garage/setup", "/rest/garage/PitMenu/receivePitMenu"} {
+		if lmuAPIPathOK(p) {
+			t.Errorf("%s allowed (the car's screens, a session only)", p)
+		}
+	}
+	good := []string{"/rest/sessions/settings", "/rest/watch/standings", "/rest/sessions/weather",
+		"/rest/race/car", "/rest/profile/profileInfo/getProfileInfo", "/rest/strategy/overall",
 		"/rest/race/track", "/rest/watch/replays", "/rest/sessions/getAllVehicles", "/rest/startingGrid"}
 	for _, p := range good {
 		if !lmuAPIPathOK(p) {
@@ -94,7 +100,9 @@ type lmuFakeGame struct {
 	calls  []string
 	sr     string
 	during func(path string) // runs inside a call (a session loading while it is in flight)
-	crash  map[string]bool   // paths the game closes on
+	crash  map[string]bool   // paths the game closes during
+	after  string            // the game closes right after answering this path
+	down   bool              // the game's API is not listening
 }
 
 func (g *lmuFakeGame) fetch(ctx context.Context, url string) lmuAnswer {
@@ -113,8 +121,14 @@ func (g *lmuFakeGame) fetch(ctx context.Context, url string) lmuAnswer {
 		return lmuAnswer{err: ctx.Err()}
 	}
 	g.mu.Lock()
-	crash := g.crash[p]
+	crash, down := g.crash[p], g.down
+	if p == g.after {
+		g.down = true
+	}
 	g.mu.Unlock()
+	if down {
+		return lmuAnswer{err: &net.OpError{Op: "dial", Net: "tcp", Err: errors.New("connection refused")}}
+	}
 	if crash {
 		return lmuAnswer{err: errors.New("connection reset")}
 	}
@@ -168,6 +182,7 @@ func lmuTestWorker(t *testing.T, admin bool) (*lmuRestWorker, *lmuFakeGame, *lmu
 	c := &lmuClock{t: time.Unix(1_000_000, 0)}
 	w := newLMURestWorker()
 	w.fetch, w.now, w.admin, w.dir = g.fetch, c.now, func() bool { return admin }, dir
+	w.warm, w.settle = 0, 0
 	return w, g, c
 }
 
@@ -209,6 +224,7 @@ func TestLMURestRatingsPace(t *testing.T) {
 		t.Fatalf("after the session: %d calls", n)
 	}
 	// the source closes and opens again in the menus every few seconds: not a new start
+	c.t = c.t.Add(time.Minute)
 	w.closed()
 	c.t = c.t.Add(11 * time.Minute)
 	w.opened()
@@ -450,13 +466,66 @@ func TestLMUAPIUploadGate(t *testing.T) {
 	}
 }
 
-// a path the game closes on is never asked again (the agent saw the error, or it stopped too and only the pending
-// request on disk tells), and after lmuAPICrashMax of them the reading ends and what it has is sent
-func TestLMUExplorerCrash(t *testing.T) {
+func lmuTestRestart(w *lmuRestWorker, c *lmuClock) {
+	w.closed()
+	c.t = c.t.Add(lmuGameGrace + time.Second)
+	w.opened()
+}
+
+// nothing is asked while the game starts, nor the moment it is back from a session
+func TestLMURestWarmup(t *testing.T) {
+	w, g, c := lmuTestWorker(t, false)
+	w.warm, w.settle = lmuWarmup, lmuSettle
+	w.opened()
+	w.note(false, false, 14000)
+	if d := w.step(); d != lmuWarmup || len(g.took()) != 0 {
+		t.Fatalf("asked while starting (%v)", d)
+	}
+	c.t = c.t.Add(lmuWarmup - time.Second)
+	if w.step(); len(g.took()) != 0 {
+		t.Fatal("asked before the warm-up")
+	}
+	c.t = c.t.Add(time.Second)
+	if w.step(); len(g.took()) == 0 {
+		t.Fatal("ratings not read after the warm-up")
+	}
+	w.note(true, true, 0)
+	w.step()
+	c.t = c.t.Add(lmuRateEvery)
+	w.note(false, false, 0)
+	if d := w.step(); d != lmuSettle || len(g.took()) != 0 {
+		t.Fatalf("asked the moment the session ended (%v)", d)
+	}
+	c.t = c.t.Add(lmuSettle)
+	if w.step(); len(g.took()) == 0 {
+		t.Fatal("ratings not read after the session")
+	}
+}
+
+// a game whose API is not listening yet is only waited for, never a suspect
+func TestLMURestNotListening(t *testing.T) {
 	w, g, c := lmuTestWorker(t, true)
-	g.crash = map[string]bool{"/rest/tracks": true}
+	g.down = true
+	w.opened()
+	w.note(false, false, 14000)
+	for i := 0; i < 5; i++ {
+		c.t = c.t.Add(lmuRateRetry)
+		if d := w.step(); d != lmuRateRetry {
+			t.Fatalf("not waited for: %v", d)
+		}
+	}
+	if b := w.bad(); len(b) != 0 {
+		t.Fatalf("suspects: %v", b)
+	}
+}
+
+// the game closing right after a request or during one: that path never again on this build; after lmuBadMax nothing
+// more is asked and what was read is sent
+func TestLMURestCrashes(t *testing.T) {
+	w, g, c := lmuTestWorker(t, true)
 	var sent []lmuAPIItem
-	post := func(run *lmuAPIRun, items []lmuAPIItem) error { sent = append(sent, items...); return nil }
+	posts := 0
+	post := func(run *lmuAPIRun, items []lmuAPIItem) error { posts++; sent = append(sent, items...); return nil }
 	run := func(n int) []string {
 		var all []string
 		for i := 0; i < n; i++ {
@@ -469,75 +538,67 @@ func TestLMUExplorerCrash(t *testing.T) {
 		}
 		return all
 	}
+	g.after = "/rest/profile/ratings"
 	w.opened()
 	w.note(false, false, 14000)
-	for i := 0; i < 40 && (w.exp == nil || w.exp.run == nil || w.exp.run.Crashes == 0); i++ {
+	for i := 0; i < 40 && !g.down; i++ {
 		run(1)
 	}
-	if w.exp.run.Crashes != 1 {
-		t.Fatalf("crashes %d", w.exp.run.Crashes)
+	if !g.down {
+		t.Fatal("never asked")
 	}
-	// the game starts again: /rest/tracks never again
-	g.crash = map[string]bool{"/rest/sessions/weather?session=RACE": true}
+	run(3) // the game is gone: refused, nothing marked yet
+	if b := w.bad(); len(b) != 0 {
+		t.Fatalf("suspect before the game was found gone: %v", b)
+	}
+	// the source finds the game gone, then it starts again
+	g.mu.Lock()
+	g.down, g.after = false, ""
+	g.crash = map[string]bool{"/rest/tracks/spa": true}
+	g.mu.Unlock()
 	lmuTestRestart(w, c)
 	w.note(false, false, 0)
-	calls := run(40)
+	calls := run(1)
+	if b := w.bad(); len(b) != 1 || b[0] != "/rest/profile/ratings" {
+		t.Fatalf("suspects: %v", b)
+	}
+	calls = append(calls, run(60)...)
 	for _, p := range calls {
-		if p == "/rest/tracks" {
-			t.Fatal("asked again for a path the game closed on")
+		if p == "/rest/profile/ratings" {
+			t.Fatal("asked again for a path the game closed after")
 		}
 	}
-	// the second crash ends it: sent with what it read
-	if w.exp.run.Crashes != 2 || !w.exp.run.Sent {
-		t.Fatalf("crashes %d sent %v", w.exp.run.Crashes, w.exp.run.Sent)
+	if b := w.bad(); len(b) != 2 {
+		t.Fatalf("suspects: %v", b)
+	}
+	run(3)
+	if posts == 0 {
+		t.Fatal("what was read not sent")
 	}
 	found := 0
 	for _, it := range sent {
-		if (it.Path == "/rest/tracks" || it.Path == "/rest/sessions/weather?session=RACE") && strings.HasPrefix(it.Body, "game closed") {
+		if strings.HasPrefix(it.Body, "game closed") {
 			found++
 		}
 	}
 	if found != 2 {
-		t.Fatalf("crashed paths sent: %d of %d", found, len(sent))
+		for _, it := range sent {
+			t.Logf("%s %q", it.Path, it.Body)
+		}
+		t.Fatalf("crashed paths sent: %d", found)
 	}
-	if run(5); len(g.took()) != 0 {
-		t.Fatal("asked more after it was sent")
-	}
-}
-
-// the agent stopped with the game: the request on disk is the one the game closed on
-func TestLMUExplorerPendingOnDisk(t *testing.T) {
-	w, g, c := lmuTestWorker(t, true)
-	w.opened()
-	w.note(false, false, 14000)
-	for w.exp == nil || w.exp.run == nil {
-		c.t = c.t.Add(lmuAPIPace)
-		w.step()
-	}
-	ver := w.exp.run.Version
-	w.exp.markPending("/rest/tracks")
-	g.took()
-	lmuTestRestart(w, c) // a new run of the game (and of the agent's explorer)
+	// nothing more on this build, even after the game starts again
+	g.crash = nil
+	lmuTestRestart(w, c)
 	w.note(false, false, 0)
-	for i := 0; i < 40; i++ {
-		c.t = c.t.Add(lmuAPIPace)
-		if w.exp != nil {
-			w.exp.post = func(*lmuAPIRun, []lmuAPIItem) error { return nil }
-		}
-		w.step()
-		for _, p := range g.took() {
-			if p == "/rest/tracks" {
-				t.Fatal("asked again for the pending path")
-			}
-		}
+	if calls := run(10); len(calls) != 0 {
+		t.Fatalf("asked on a build the game closed with: %v", calls)
 	}
-	if w.exp.run.Version != ver || w.exp.run.Crashes != 1 {
-		t.Fatalf("run %s crashes %d", w.exp.run.Version, w.exp.run.Crashes)
+	// a new build: asked again
+	lmuTestRestart(w, c)
+	w.note(false, false, 14100)
+	c.t = c.t.Add(lmuRateEvery)
+	if calls := run(3); len(calls) == 0 {
+		t.Fatal("a new build not asked")
 	}
-}
-
-func lmuTestRestart(w *lmuRestWorker, c *lmuClock) {
-	w.closed()
-	c.t = c.t.Add(lmuGameGrace + time.Second)
-	w.opened()
 }

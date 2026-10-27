@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	lmuAPIPace     = 2 * time.Second // at most one request to the game in this time
+	lmuAPIPace     = 5 * time.Second // at most one request to the game in this time
 	lmuAPIMaxCalls = 1000            // requests per version at most
 	lmuAPIFills    = 3               // concrete paths tried for one path with parameters
 	lmuAPITextCap  = 16 << 10        // the start kept of an answer that is not JSON
@@ -46,7 +46,6 @@ const (
 	lmuAPIBatchN   = 150             // items per upload
 	lmuAPISaveN    = 25              // the local copy written every so many answers
 	lmuAPIRetry    = 10 * time.Minute
-	lmuAPICrashMax = 2 // paths the game closed on: after this many the reading ends with what it has and is sent
 )
 
 // words in a path that do something or hand out a secret: the whole word (set, load…) or its start (auth…, token…)
@@ -65,7 +64,9 @@ var (
 		"signin": true, "signout": true, "register": true, "pay": true, "key": true, "keys": true, "cookie": true,
 	}
 	lmuAPISecret = []string{"auth", "token", "ticket", "password", "passwd", "secret", "credential", "steam", "purchase",
-		"upload", "delete", "restart", "session_ticket", "apikey", "privatekey", "encrypt", "decrypt", "license_key"}
+		"upload", "delete", "restart", "session_ticket", "apikey", "privatekey", "encrypt", "decrypt", "license_key",
+		// the car's own screens answer only with a session loaded ("Invalid state" in the menus): never asked
+		"garage", "pitmenu"}
 )
 
 // lmuPathWords: a path's words in lower case ("/rest/garage/getPlayerSetup" → rest garage get player setup)
@@ -250,6 +251,7 @@ type lmuExplorer struct {
 	unsaved  int
 	calls    int
 	nextSend time.Time
+	retryIn  time.Duration // the game's API not listening: the worker comes back after this
 	post     func(run *lmuAPIRun, items []lmuAPIItem) error
 }
 
@@ -259,8 +261,12 @@ func newLMUExplorer(data string) *lmuExplorer {
 
 func (e *lmuExplorer) donePath() string { return filepath.Join(e.dir, "done.json") }
 func (e *lmuExplorer) runPath(v string) string {
-	return filepath.Join(e.dir, lmuKeyNorm.ReplaceAllString(v, "_")+".json.gz")
+	return filepath.Join(e.dir, lmuKeyNorm.ReplaceAllString(v+"@"+lmuAPIRound, "_")+".json.gz")
 }
+
+// lmuAPIRound: a new round reads every version again from the start (r2: the first round read while the game was
+// starting and was cut short by the game closing)
+const lmuAPIRound = "r2"
 
 func (e *lmuExplorer) doneVersions() map[string]int64 {
 	m := map[string]int64{}
@@ -295,20 +301,28 @@ func (e *lmuExplorer) step(w *lmuRestWorker, st lmuRestState, now time.Time) boo
 		if e.called[q.Path] {
 			continue
 		}
-		e.markPending(q.Path)
 		a := w.get(q.Path)
 		if errors.Is(a.err, errLMUBusy) || errors.Is(a.err, context.Canceled) {
-			e.clearPending()
 			e.queue = append([]lmuAPIReq{q}, e.queue...) // a session loaded: this one again next time in the menus
 			e.pause()
 			return false
 		}
-		if a.err != nil && !errors.Is(a.err, context.DeadlineExceeded) {
-			// the game went away during this request: it may be what closed it, so it is never asked again
-			e.crashed(q.Path, a.err.Error())
+		if lmuNotListening(a.err) {
+			// nothing was asked: the game's API is not up (or the game is gone), this one again later
+			e.queue = append([]lmuAPIReq{q}, e.queue...)
+			e.retryIn = lmuRateRetry
+			e.pause()
 			return false
 		}
-		e.clearPending()
+		if errors.Is(a.err, errLMUBad) {
+			e.called[q.Path] = true
+			continue
+		}
+		if a.err != nil && !errors.Is(a.err, context.DeadlineExceeded) {
+			// the game went away during this request (the worker keeps it as a suspect): never asked again
+			e.crashed(w, q.Path, "during this request")
+			return false
+		}
 		e.calls++
 		e.called[q.Path] = true
 		e.add(e.item(q.Path, a))
@@ -334,7 +348,7 @@ func (e *lmuExplorer) step(w *lmuRestWorker, st lmuRestState, now time.Time) boo
 		e.run.Sent = true
 		e.save()
 		m := e.doneVersions()
-		m[e.run.Version] = now.UnixMilli()
+		m[e.run.Version+"@"+lmuAPIRound] = now.UnixMilli()
 		writeJSONFile(e.donePath(), m)
 		log.Printf("lmu api: version %s sent to the server", e.run.Version)
 	}
@@ -366,7 +380,7 @@ func (e *lmuExplorer) start(w *lmuRestWorker, st lmuRestState, now time.Time) bo
 		e.off = true
 		return false
 	}
-	if _, ok := e.doneVersions()[ver]; ok {
+	if _, ok := e.doneVersions()[ver+"@"+lmuAPIRound]; ok {
 		e.off = true // this version was read and sent already
 		return false
 	}
@@ -392,11 +406,13 @@ func (e *lmuExplorer) start(w *lmuRestWorker, st lmuRestState, now time.Time) bo
 		}
 		log.Printf("lmu api: version %s, reading %d paths (%d with parameters, %d left out)", ver, len(plain), len(filled), len(skipped))
 	}
-	// a request the game closed during last time (the agent saw no answer): never again
-	if pv, pp := e.pending(); pv == ver && pp != "" && !e.called[pp] {
-		e.crashed(pp, "the game closed during this request")
+	// the requests the game closed with (the worker's suspects on this build): kept as such, never again
+	for _, p := range w.bad() {
+		if !e.marked(p) {
+			e.crashed(w, p, "right after this request")
+		}
 	}
-	if e.run.Crashes >= lmuAPICrashMax {
+	if len(w.bad()) >= lmuBadMax {
 		plain, filled = nil, nil // enough: what was read is sent
 	}
 	for _, p := range plain {
@@ -445,36 +461,32 @@ func (e *lmuExplorer) add(it lmuAPIItem) {
 	}
 }
 
-// markPending/clearPending: the request in flight, on disk, so a request the game closes on is known when it starts again
-func (e *lmuExplorer) pendingPath() string { return filepath.Join(e.dir, "pending.json") }
-
-func (e *lmuExplorer) markPending(p string) {
-	os.MkdirAll(e.dir, 0o700)
-	writeJSONFile(e.pendingPath(), map[string]string{"version": e.run.Version, "path": p})
-}
-
-func (e *lmuExplorer) clearPending() { os.Remove(e.pendingPath()) }
-
-func (e *lmuExplorer) pending() (ver, p string) {
-	var m map[string]string
-	readJSON(e.pendingPath(), &m)
-	return m["version"], m["path"]
-}
-
-// crashed: a path the game stopped answering on, kept as such and never asked again; after lmuAPICrashMax the
-// reading ends and what it has is sent
-func (e *lmuExplorer) crashed(p, why string) {
-	e.clearPending()
+// crashed: a path the game closed with, kept as such (the worker never asks it again); after lmuBadMax the reading
+// ends and what it has is sent
+func (e *lmuExplorer) crashed(w *lmuRestWorker, p, why string) {
+	key := p
+	if e.called[p] {
+		key = "#closed:" + p // its answer is kept already
+	}
 	e.called[p] = true
 	e.calls++
 	e.run.Crashes++
-	e.run.Items = append(e.run.Items, lmuAPIItem{Path: p, Body: "game closed: " + why})
-	log.Printf("lmu api: the game stopped answering on %s, never asked again", p)
-	if e.run.Crashes >= lmuAPICrashMax {
+	e.run.Items = append(e.run.Items, lmuAPIItem{Path: key, Body: "game closed: " + why})
+	if len(w.bad()) >= lmuBadMax {
 		e.queue = nil
-		log.Printf("lmu api: version %s, the game closed %d times, what was read goes to the server", e.run.Version, e.run.Crashes)
+		log.Printf("lmu api: version %s, the game closed %d times, what was read goes to the server", e.run.Version, len(w.bad()))
 	}
 	e.save()
+}
+
+// marked: the run says already that the game closed with this path
+func (e *lmuExplorer) marked(p string) bool {
+	for _, it := range e.run.Items {
+		if (it.Path == p || it.Path == "#closed:"+p) && strings.HasPrefix(it.Body, "game closed") {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *lmuExplorer) pause() {
