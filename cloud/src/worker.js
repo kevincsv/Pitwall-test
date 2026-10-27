@@ -139,6 +139,17 @@ async function api(req, env, url, ctx) {
     if (!body || !body.session) return err("bad upload", 400);
     // a member's sessions are kept apart from the owner's even with the same iRacing session id
     if ((role === "member" || role === "account") && body.session.id) body.session.id = (me.name.replace(/[^A-Za-z0-9_.-]/g, "_") + ":" + body.session.id).slice(0, 80);
+    // a session read afterwards from a telemetry file on the PC: a lap the account has already (the same time on the same
+    // track and car within 12 hours of it, under any session) never comes in twice, whatever the PC checked before
+    if (body.session.imported === true && Array.isArray(body.laps) && body.laps.length) {
+      const st = Number(body.session.started) || 0;
+      const have = await env.DB.prepare(
+        `SELECT l.time FROM laps l JOIN sessions s ON s.id=l.session_id WHERE s.uploader=?1 AND s.track=?2 AND s.car=?3 AND s.started BETWEEN ?4 AND ?5`
+      ).bind(me.name, str(body.session.track), str(body.session.car), st - 12 * 3600e3, st + 12 * 3600e3).all().catch(() => ({ results: [] }));
+      const times = (have.results || []).map((x) => x.time);
+      body.laps = body.laps.filter((l) => !(l && num(l.time) && times.some((t) => Math.abs(t - l.time) < 0.0006)));
+      if (!body.laps.length) return json({ ok: true, shared: false, duplicate: true });
+    }
     let e = await upsertSession(env, body.session, me.name);
     // this session brings the real iRacing ids: what was shared under provisional ids of the same track and car moves over
     if (!e && posInt(body.session.trackId) && posInt(body.session.carId)) await reconcileIds(env, gameOf(body.session.game), str(body.session.track), str(body.session.trackConfig), str(body.session.car), posInt(body.session.trackId), posInt(body.session.carId)).catch(() => {});
