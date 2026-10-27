@@ -160,8 +160,15 @@ func (w *lmuRestWorker) poke() {
 	}
 }
 
+// lmuRestOn: off while LMU closes with its API being read (an admin's PC, October 2026): the agent sends the game no
+// request at all, only the shared memory is read, until it is known which request does it
+const lmuRestOn = false
+
 // lmuRestOpened / lmuRestClosed / lmuRestNote: the LMU source's events (the worker starts with the first one)
 func lmuRestOpened() {
+	if !lmuRestOn {
+		return
+	}
 	lmuRestOnce.Do(func() { go lmuRestW.loop() })
 	lmuRestW.opened()
 }
