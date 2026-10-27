@@ -144,7 +144,10 @@ async function api(req, env, url, ctx) {
     // the fastest lap of each car and track goes to the leaderboard by itself once it is in the account
     let shared = null;
     // (a faster lap than before: the Discord servers of this driver hear about it, their alerts channel)
-    if (role === "account") shared = await autoShare(env, me.name.slice(5), body.session.id, body.laps, { trackId: body.session.trackId, carId: body.session.carId, lic: body.session.lic, cat: body.session.cat }, ctx).catch(() => null);
+    // a session read afterwards from a telemetry file on the PC (imported): its laps follow the same rules, but an old
+    // licence never replaces the current one and no Discord server hears of a lap driven long ago
+    const imported = body.session.imported === true;
+    if (role === "account") shared = await autoShare(env, me.name.slice(5), body.session.id, body.laps, { trackId: body.session.trackId, carId: body.session.carId, lic: body.session.lic, cat: body.session.cat, imported }, imported ? null : ctx).catch(() => null);
     return json({ ok: true, shared: !!(shared && shared.shared) });
   }
 

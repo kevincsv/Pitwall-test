@@ -154,7 +154,7 @@ export async function autoShare(env, accountId, sessionId, laps, hint, ctx) {
   const g = s.game || "iracing", name = s.track + (s.track_config ? " · " + s.track_config : "");
   const { trackId, carId } = await comboIds(env, s, name, g, accountId, hint);
   // the license class of this discipline is the account's current one (kept per discipline)
-  if (g === "iracing" && licOf(hint && hint.lic)) await rememberLic(env, accountId, catOf(await catMap(env), trackId, carId, hint && hint.cat, name, s.car), hint.lic).catch(() => {});
+  if (g === "iracing" && licOf(hint && hint.lic) && !(hint && hint.imported)) await rememberLic(env, accountId, catOf(await catMap(env), trackId, carId, hint && hint.cat, name, s.car), hint.lic).catch(() => {});
   return keepBestLap(env, accountId, { game: g, carId, trackId, car: s.car, track: name, time: lap.time, sectors: lap.sectors, trace: lap.trace, anon: !!acc.anon, shown: acc.name_kind === "iracing" ? "iracing" : "nick", lic: hint && hint.lic, cat: hint && hint.cat, official: s.official, ai: s.ai === 1, ctx });
 }
 

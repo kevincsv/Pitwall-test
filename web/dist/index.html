@@ -40,9 +40,10 @@
 <style>
 /* Layout: muro de boxes. Cabecera fija + pestañas (barra inferior en móvil); cada vista es una rejilla de paneles de cronometraje. */
 :root{
-  --bg:#11151b; --surface:#19202a; --surface2:#1e2631; --line:#2b3542;
-  --fg:#e7ebf1; --muted:#8a97a9; --accent:#ffb02e; --accent-ink:#11151b;
-  --good:#38c97c; --bad:#ff6363; --pb:#b98cff; --warn:#f2c94c; --blue:#5c9dff;
+  --bg:#0b0e14; --surface:#10141c; --surface2:#141922; --line:#1c222d; --line2:#2a3140; --row:#151a23;
+  --fg:#e6e9ef; --muted:#8a93a3; --accent:#f5b43c; --accent-ink:#161003;
+  --good:#3ddc84; --bad:#ff5c5c; --pb:#b57bff; --warn:#f2c94c; --blue:#4f9cff;
+  --rail:84px; --radius:8px;
   --lic-r:#ff6363; --lic-d:#ff8f45; --lic-c:#f2c94c; --lic-b:#38c97c; --lic-a:#5c9dff; --lic-p:#c9d1dc;
   --f-display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -50,13 +51,13 @@
   color-scheme:dark;
 }
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
-  --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5;
+  --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5; --line2:#c3cbd6; --row:#e6eaf0;
   --fg:#141a22; --muted:#5b677a; --accent:#6d28d9; --accent-ink:#ffffff;
   --good:#178a4c; --bad:#c62f2f; --pb:#0f9d58; --warn:#9a7300; --blue:#1f63c6;
   --lic-r:#c62f2f; --lic-d:#d9661a; --lic-c:#b88a00; --lic-b:#178a4c; --lic-a:#1f63c6; --lic-p:#4a5568;
   color-scheme:light}}
 :root[data-theme="light"]{
-  --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5;
+  --bg:#eef1f5; --surface:#ffffff; --surface2:#f4f6f9; --line:#d6dce5; --line2:#c3cbd6; --row:#e6eaf0;
   --fg:#141a22; --muted:#5b677a; --accent:#6d28d9; --accent-ink:#ffffff;
   --good:#178a4c; --bad:#c62f2f; --pb:#0f9d58; --warn:#9a7300; --blue:#1f63c6;
   --lic-r:#c62f2f; --lic-d:#d9661a; --lic-c:#b88a00; --lic-b:#178a4c; --lic-a:#1f63c6; --lic-p:#4a5568;
@@ -1223,6 +1224,583 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
 @media(max-width:700px){html .hl-kpis>*,html .hl-sec,html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{padding:12px 14px}html .hl-kpis,html .cl-kpis{gap:10px}}
 .lgf-cats{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 10px}#lgfF .lgf-cats label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;white-space:nowrap}#lgfF .lgf-cats input{width:auto;margin:0}.lgf-act{flex-wrap:wrap}.lgf-act .btn{white-space:nowrap}#lgfT{width:100%;resize:vertical}
 .hl-lg{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none}.hl-lg:last-child{border-bottom:0}.hl-lg img,.hl-lg .lgf-ic{width:32px;height:32px;border-radius:8px}.hl-lg .inf{display:flex;flex-direction:column;min-width:0}.hl-lg .nm{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hl-lg .sub{font-size:12px;color:var(--muted)}.hl-lgn{font-size:12px;color:var(--muted);white-space:nowrap}.hl-lg:hover .nm{color:var(--accent)}
+
+/* Design 2026 · Community, Account, Settings (the canvas's Community and Proto): Community and Leagues, Account, Settings,
+   the sign-in, the admin page, the app's dialogs and the game chooser; panels with the amber-bar header, pill tabs,
+   sentence-case buttons */
+:is(#v-community,#v-leagues,#v-me,#v-settings,#v-admin,#v-news,.uidlg) .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:6px;font:600 13px/1.15 var(--f-body);letter-spacing:0;text-transform:none}
+:is(#v-community,#v-leagues,#v-me,#v-settings,#v-admin,#v-news,.uidlg) .btn.small{min-height:30px;padding:0 11px;font-size:12px}
+:is(#v-community,#v-leagues,#v-me,#v-settings,#v-admin,#v-news,.uidlg) .btn.danger{background:transparent}
+:is(#v-community,#v-leagues,#v-me,#v-settings,#v-news,.uidlg) :is(input:not([type=checkbox],[type=radio],[type=range],[type=color]),select,textarea){border:1px solid var(--line2);border-radius:6px;background:var(--bg);color:var(--fg);font-family:var(--f-body)}
+:is(#v-community,#v-leagues,#v-me,#v-settings,.uidlg) :is(input:not([type=checkbox],[type=radio],[type=range],[type=color]),select){min-height:38px}
+:is(#v-community,#v-leagues,#v-me,#v-settings,.uidlg) :is(input,select,textarea):focus-visible{outline:none;border-color:var(--accent)}
+/* the page row: the title and its tabs as pills */
+.cl-head{align-items:center;gap:12px 18px}.cl-tabs{gap:6px}
+.cl-tabs button,#setNav a,#leagBody .lg-tabs .chip{font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border:1px solid var(--line2);border-radius:999px;color:var(--muted);background:transparent;white-space:nowrap}
+.cl-tabs button[aria-pressed="true"],#leagBody .lg-tabs .chip[aria-pressed="true"],#setNav a[aria-current="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.cl-tabs button:hover:not([aria-pressed="true"]),#leagBody .lg-tabs .chip:hover:not([aria-pressed="true"]){color:var(--fg);border-color:var(--line2)}
+/* a panel's title: the amber bar and Barlow caps (the canvas's .ph) */
+.cl-two>section>.cl-h,.cl-you>h2:first-child,#leagBody .lgf-h,.cl-map .cl-mh,
+#v-settings .panel>:is(.label,h2):first-child,#v-settings #appsPanel>.vhead:first-child,
+#meBody .panel>h2:first-child,#meBody .panel>.frow:first-child,.me-auth>h2:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:20px;margin:-14px -16px 14px;padding:10px 14px;border-bottom:1px solid var(--line);font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
+.cl-two>section>.cl-h::before,.cl-you>h2:first-child::before,#leagBody .lgf-h>h2::before,.cl-map .cl-mh>b::before,
+#v-settings .panel>:is(.label,h2):first-child::before,#v-settings #appsPanel>.vhead:first-child>h2::before,
+#meBody .panel>h2:first-child::before,#meBody .panel>.frow:first-child>h2::before,.me-auth>h2:first-child::before{content:"";display:inline-block;flex:none;width:3px;height:14px;margin:0;border-radius:2px;background:var(--accent);vertical-align:-2px}
+.cl-two>section>.cl-h::before{content:none}
+.cl-two>section>.cl-h h2,#leagBody .lgf-h>h2,.cl-map .cl-mh>b,#v-settings #appsPanel>.vhead:first-child>h2,#meBody .panel>.frow:first-child>h2,.cl-title h2{display:flex;align-items:center;gap:8px}
+#meBody .panel>h2.bad:first-child{color:var(--bad)}#meBody .panel>h2.bad:first-child::before{background:var(--bad)}
+:is(#v-settings #appsPanel>.vhead,#meBody .panel>.frow):first-child{justify-content:space-between}
+#v-settings #appsPanel>.vhead:first-child{margin:-14px -16px 14px!important;padding:8px 14px!important}
+:is(#v-settings #appsPanel>.vhead,#meBody .panel>.frow):first-child>h2{display:flex;align-items:center;margin:0!important;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
+:is(#v-settings #appsPanel>.vhead,#meBody .panel>.frow):first-child .btn{min-height:28px;padding:0 10px;font-size:12px}
+:is(#v-settings,#meBody) .panel>:first-child .pill{font-family:var(--f-body)!important;letter-spacing:.06em}
+/* Community */
+html .cl-two>*,html .cl-you,html .cl-board>*,html .cl-rlist,html .cl-rdet{border-radius:var(--radius);padding:14px 16px}
+html .cl-kpis>*{border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.cl-kpis{margin:16px 0 14px}html .cl-kpis{gap:14px}html .cl-two{gap:14px}html .cl-you{margin-top:14px}
+.cl-kpis span{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.cl-kpis b{font-size:30px;margin-top:0}
+.cl-two>section>.cl-h{justify-content:space-between}.cl-two>section>.cl-h h2{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
+.cl-two>section>.cl-h .cl-link{font:500 12px var(--f-body);letter-spacing:0;text-transform:none}
+.cl-myrow,.cl-rmini,.cl-rrow{border-bottom-color:var(--row)}.cl-list>:last-child{border-bottom:0}
+.cl-you .label{display:block;margin-bottom:4px}
+.cl-discs{margin:16px 0 12px}
+.cl-discs .lb-cats{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.cl-discs .lb-cat{flex-direction:column;justify-content:center;gap:6px;padding:12px 8px;text-align:center;border-radius:var(--radius);border-color:var(--line);background:var(--surface)}
+.cl-discs .lb-cat[aria-pressed="true"]{border-color:var(--accent);box-shadow:none;background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+.cl-discs .lb-cat .lb-t{flex:none;width:100%}.cl-discs .lb-cat .lb-t b{font:600 13px/1.2 var(--f-body)}.cl-discs .lb-cat .lb-t small{white-space:normal;line-height:1.35;font:500 10px/1.35 var(--f-data);letter-spacing:.04em}.cl-discs .lb-go{display:none}
+.cl-discs .lb-ic{width:32px;height:32px}
+/* the leaderboard: the filters and the board's title as one bar, the table and the map as panels */
+.cmfilt{margin:0;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:var(--radius) var(--radius) 0 0}
+.cl-title{margin:0 0 14px;padding:8px 14px 10px;background:var(--surface);border:1px solid var(--line);border-top:1px solid var(--row);border-radius:0 0 var(--radius) var(--radius);align-items:center;gap:6px 12px}
+.cl-title:empty{display:none}.cl-title:empty~.cl-board{margin-top:0}
+.cl-title h2{font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center}
+.cl-title h2::before{content:"";display:inline-block;flex:none;width:3px;height:14px;border-radius:2px;background:var(--accent)}
+.cl-title>.muted{font-size:13px}.cl-title .cl-tr{font-size:12px}
+.cmfilt .chip{min-height:38px;padding:0 14px;border-color:var(--line2);background:var(--surface2)}
+html .cl-board{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px}
+html .cl-board>#cmLaps{padding:0;overflow:hidden}#cmLaps>.note,#cmLaps>.err{margin:14px 16px}
+.cl-tscroll{max-height:none}
+.cl-table{font-size:13px}
+.cl-table th{padding:9px 12px;font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:1}
+.cl-table td{height:auto;padding:9px 12px;border-bottom:1px solid var(--row)}.cl-table tbody tr:last-child td{border-bottom:0}
+.cl-table th:first-child,.cl-table td:first-child{padding-left:16px}.cl-table th:last-child,.cl-table td:last-child{padding-right:16px}
+.cl-table td.cl-t{font-weight:600}.cl-table tbody tr[data-bsel]:hover td{background:var(--surface2)}
+.cl-table tr.me td{background:color-mix(in srgb,var(--accent) 8%,transparent)}.cl-table tr.on{background:none;box-shadow:none}.cl-table tr.on td{background:var(--surface2)}.cl-table tr.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.cl-table .btn.small.danger{min-height:26px;padding:0 7px}
+html .cl-board>.cl-map{padding:14px 16px 16px;gap:12px}
+.cl-map .cl-mh{justify-content:space-between}.cl-map .cl-mh>b{display:flex;align-items:center;font:inherit}.cl-map .cl-mh>.mono{font:600 14px var(--f-data);letter-spacing:0}
+.cl-map .cl-leg{font-size:11px}
+/* recent records */
+.cl-dots{gap:6px;margin:16px 0 12px}
+.cl-dots button{display:inline-flex;align-items:center;padding:7px 14px;border:1px solid var(--line2);border-radius:999px;font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cl-dots button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.cl-dots button[aria-pressed="true"] .cl-dot{background:var(--accent-ink)}
+html .cl-recs{grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px}
+html .cl-rlist{padding:4px 16px}.cl-rrow{padding:12px 0}
+.cl-rdet h3{font:600 18px/1.25 var(--f-body)}.cl-big{font-size:40px;margin:16px 0 4px}
+.cl-acts>div .cl-link{font-size:13px}
+/* the track page and a driver's profile */
+#trkDlg .prof-h h2,#profDlg .prof-h h2{font:700 22px/1.15 var(--f-display);letter-spacing:.12em;text-transform:uppercase;margin:0}
+.uidlg :is(#trkDlg,#profDlg) h3,#trkDlg .pn h3,#profDlg .pn h3{font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+.uidlg .rtable{border-collapse:collapse;width:100%;font-size:13px}.uidlg .rtable th{padding:8px 10px;font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);text-align:left}
+.uidlg .rtable td{padding:8px 10px;border-bottom:1px solid var(--row)}.uidlg .rtable tr:last-child td{border-bottom:0}.uidlg .rtable tr.me td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+/* Leagues */
+#leagBody>.panel{background:none;border:0;padding:0}
+#leagBody .lg-tabs{gap:6px;margin-bottom:16px}
+#leagBody .lgf-h{margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid var(--line)}#leagBody .lgf-h h2{display:flex;align-items:center;gap:8px;font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;margin:0}
+#leagBody .lgf-h h2::before{content:"";flex:none;width:3px;height:14px;border-radius:2px;background:var(--accent)}
+#leagBody .lgf-h>:not(h2){font:500 12px var(--f-body);letter-spacing:0;text-transform:none}
+#leagBody .lb-cats.mini .lb-cat,.lg-form .lb-cats.mini .lb-cat{border-radius:var(--radius);border-color:var(--line);background:var(--surface)}
+#leagBody .lb-cats .lb-cat[aria-pressed="true"]{border-color:var(--accent);box-shadow:none;background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+#leagBody .lg-filters{margin-top:12px}#leagBody .lg-filters .chip,.lg-dayset .chip{border-color:var(--line2);background:transparent;font-size:12px;padding:7px 12px}
+#leagBody .lg-filters .chip[aria-pressed="true"],.lg-dayset .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#leagBody .lg-grid{gap:12px}
+#leagBody .lg-post,#leagBody .lgf-card,#leagBody .lg-card{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;background:var(--surface)}
+#leagBody .lg-post:hover,#leagBody .lg-post:focus-visible{border-color:var(--accent)}
+#leagBody .lg-tt b,#leagBody .lgf-nm b{font-size:14px}
+#leagBody .lg-form{max-width:720px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+:is(#leagBody .lg-f,.me-auth label,.me-form label)>.label{font:500 12px/1.3 var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted)}
+/* Account: the account card beside Steam and Discord, then security and the devices */
+#meBody .panel{border-radius:var(--radius);padding:14px 16px}
+.me-top{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin-bottom:14px}
+.me-top>.me-idc{margin:0}#meBody .me-danger>.panel{margin-top:14px}.me-links{display:grid;gap:14px;min-width:0}
+#meBody .me-cols{gap:14px}#meBody .me-col{gap:14px}
+#meBody .me-grp{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:4px 0 -4px}
+#meBody .sa-av{border-radius:10px}#meBody .sa-name{font:600 18px/1.2 var(--f-body)}
+#meBody .me-kv{gap:8px 14px}#meBody .me-kv dt{color:var(--muted)}
+#meBody #meAdmin{min-height:30px}
+#meSteamGo,#meSteam .btn.primary,.me-auth #mlSteam:not(.primary){background:#171d25;border-color:#2a475e;color:#c7d5e0}
+#meSteamGo:hover,.me-auth #mlSteam:not(.primary):hover{background:#1e2732;border-color:#3b6482;color:#e1ebf3}
+#meDiscGo,#meDisc .btn.primary,.me-auth .btn.dc{background:#232646;border-color:#5865f2;color:#e3e5ff}
+#meDiscGo:hover,.me-auth .btn.dc:hover:not(:disabled){background:#2c3060;border-color:#6d78f5;color:#fff}
+/* the sign-in (and create account), on the PC and the web */
+.me-welcome{margin:18px auto 18px;max-width:420px}
+.me-brand{display:inline-flex;align-items:center;gap:12px;font:700 26px/1 var(--f-display);letter-spacing:.14em;text-transform:uppercase}
+.me-brand::before{content:"";flex:none;width:44px;height:44px;border-radius:10px;border:1px solid var(--line2);background:var(--surface2) url(logo.svg) center/24px no-repeat}
+.me-slogan{font:600 15px var(--f-body);letter-spacing:0;margin:10px 0 6px}
+#meBody .me-auth{max-width:460px;padding:20px;display:block}
+#meBody .me-auth>h2:first-child{margin:-20px -20px 16px;padding:12px 20px}
+.me-auth .me-form{gap:14px}.me-auth .me-form label{display:flex;flex-direction:column;gap:6px}
+.me-auth .me-form input{min-height:40px;font-size:14px}
+.me-auth .me-form>.btn.primary,.me-auth .me-form>button[type=submit]{min-height:44px;font-size:14px}
+.me-auth .me-oab .btn{min-height:40px;padding:0 10px}
+.me-switch{border-top-color:var(--line)}
+/* Settings: every block a panel with its title bar */
+#setNav{gap:6px;padding:4px 0 8px;margin-bottom:6px}
+#v-settings .sethead{font:600 13px/1.2 var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+#v-settings .grid{gap:14px}
+#v-settings .panel{border-radius:var(--radius);padding:14px 16px}
+#v-settings .panel .panel{background:var(--surface2);border-color:var(--line);padding:12px 14px}
+#v-settings .panel>.label:first-child .pill{margin-left:8px!important}
+#v-settings .panel .label:not(:first-child),#gameBox .label{font:500 13px/1.3 var(--f-body);letter-spacing:0;text-transform:none;color:var(--fg)}
+#v-settings .seg{border:1px solid var(--line2);border-radius:6px;background:var(--bg)}
+#v-settings .seg button{min-height:32px;padding:0 12px;font:600 12px/1.15 var(--f-body);letter-spacing:.02em;text-transform:none}
+#v-settings .seg button+button{border-left-color:var(--line2)}
+#gamePanel{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}
+#gamePanel>*{grid-column:1/-1}
+#gamePanel>#gameOpenLbl{grid-column:1;margin-top:14px!important;padding-top:14px;border-top:1px solid var(--line)}
+#gamePanel>#gameOpenSeg{grid-column:2;justify-self:end;margin-top:14px!important;align-self:end}
+#gamePanel>#gameOpenLbl:has(+#gameOpenSeg){border-top:0;padding-top:0}
+#v-settings .setacc{border-radius:var(--radius)}
+#aboutPanel .kv{gap:8px 16px}#updPanel{font-size:13px}
+/* the admin page and the inbox: the same panels, tables and pills */
+#admMount>.panel,#v-admin .panel{border-radius:var(--radius)}
+#admMount .rtable th,#admMount table th{font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#admMount table td{border-bottom-color:var(--row)}
+/* the app's dialogs and the game chooser */
+.uidlg .bg{background:rgba(5,7,10,.72)}
+.uidlg .pn{border-radius:var(--radius);border-color:var(--line);padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.uidlg-t{display:flex;align-items:center;gap:8px;font:600 12px/1.2 var(--f-display);letter-spacing:.14em;color:var(--muted)}
+.uidlg-t::before{content:"";flex:none;width:3px;height:12px;border-radius:2px;background:var(--accent)}
+.uidlg .pn>h2{font:700 22px/1.15 var(--f-display);letter-spacing:.1em;text-transform:uppercase}
+.uidlg-b{gap:10px;margin-top:6px}
+#gameAsk .pn{width:min(640px,calc(100% - 32px));padding:22px}
+#gameAsk .ga-l{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+#gameAsk .shas{position:relative;padding:18px;border:1px solid var(--line2);border-radius:10px;background:var(--surface)}
+#gameAsk .shas:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+#gameAsk .shas input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+#gameAsk .shas:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+#gameAsk .shas span{gap:8px}
+#gameAsk .shas b{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font:700 22px/1.1 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+#gameAsk .shas small{font:500 13px/1.35 var(--f-data);color:var(--muted)}
+@media (max-width:820px){
+  .me-top{grid-template-columns:minmax(0,1fr)}
+  .cl-head{gap:10px}.cl-tabs{flex-wrap:wrap;max-width:100%}.cl-tabs button,.cl-dots button,#leagBody .lg-tabs .chip{padding:6px 10px;font-size:11px}
+  .cl-discs .lb-cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cl-discs .lb-cat{padding:10px 6px;gap:4px}.cl-discs .lb-ic{width:26px;height:26px}
+  html .cl-board,html .cl-recs{grid-template-columns:minmax(0,1fr)}
+  .cmfilt{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #gameAsk .ga-l{grid-template-columns:minmax(0,1fr)}
+  #gamePanel{grid-template-columns:minmax(0,1fr)}#gamePanel>#gameOpenSeg{grid-column:1;justify-self:start;margin-top:8px!important}
+}
+@media (max-width:700px){html .cl-kpis>*,html .cl-two>*,html .cl-you,html .cl-board>.cl-map,html .cl-rdet,#meBody .panel,#v-settings .panel{padding:12px 14px}
+  .cl-two>section>.cl-h,.cl-you>h2:first-child,.cl-map .cl-mh,#v-settings .panel>:is(.label,h2):first-child,#v-settings #appsPanel>.vhead:first-child,#meBody .panel>h2:first-child,#meBody .panel>.frow:first-child{margin:-12px -14px 12px}
+  #meBody .me-auth{padding:16px}#meBody .me-auth>h2:first-child{margin:-16px -16px 14px;padding:12px 16px}#v-settings #appsPanel>.vhead:first-child{margin:-12px -14px 12px!important}
+  .cl-kpis b{font-size:24px}}
+
+/* ===== Design 2026, "pit wall" (the owner's canvas): one look for every view =====
+   Reusable classes for every view:
+   .pnl panel · .pnl-h panel header (amber bar + Barlow caps) · .pnl-b panel body · .k small caps label
+   .tabp / .tabp.on rounded tab pill (or aria-selected/aria-pressed="true") · .kcard number card (.kcard>.k, >b, >small)
+   .dtable data table (inside .tscroll) · .pill.acc/.good/.bad/.blue/.pb filled soft pills · .btn / .btn.primary */
+.pnl{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;min-width:0}
+.pnl-h,.hl-sec>.cl-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);margin:0}
+.pnl-h,.pnl-h h2,.hl-sec>.cl-h h2{font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;margin:0;color:var(--fg)}
+.pnl-h::before,.hl-sec>.cl-h h2::before{content:"";display:inline-block;width:3px;height:14px;background:var(--accent);border-radius:2px;margin-right:8px;vertical-align:-2px;flex:none}
+.pnl-h>.sp{flex:1}.pnl-h .cl-link,.hl-sec>.cl-h .cl-link{margin-left:auto;font:500 12px var(--f-body);letter-spacing:0;text-transform:none}
+.hl-sec>.cl-h>span{margin-left:auto;font:500 12px var(--f-body);color:var(--muted)}
+.pnl-b{padding:12px 14px}
+.k{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tabp{font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:transparent;cursor:pointer;white-space:nowrap}
+.tabp:hover{color:var(--fg)}.tabp.on,.tabp[aria-selected="true"],.tabp[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.kcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kcard>b{font:600 30px/1.15 var(--f-data);font-variant-numeric:tabular-nums}.kcard>small{font-size:12px;color:var(--muted)}
+.dtable{border-collapse:collapse;width:100%;font-size:13px}.dtable th{padding:8px 14px;font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.dtable td{padding:9px 14px;border-bottom:1px solid var(--row)}.dtable tr:last-child td{border-bottom:0}.dtable tbody tr:hover td{background:var(--surface2)}
+.pill.acc,.pill.good,.pill.bad,.pill.blue,.pill.pb{border-color:transparent}
+.pill.acc{background:color-mix(in srgb,var(--accent) 15%,transparent)}.pill.good{background:color-mix(in srgb,var(--good) 13%,transparent)}.pill.bad{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.pill.blue{color:var(--blue);background:color-mix(in srgb,var(--blue) 14%,transparent)}.pill.pb{color:var(--pb);background:color-mix(in srgb,var(--pb) 14%,transparent)}
+/* the shared surfaces: panels, cards, controls */
+.panel{border-radius:var(--radius)}
+.btn{border-radius:6px;border-color:var(--line2);background:var(--surface2)}.btn.primary{border-color:var(--accent);background:var(--accent)}
+.iconbtn{border-radius:6px;border-color:var(--line2);background:var(--surface2);color:var(--muted)}.iconbtn:hover{color:var(--fg)}
+input,select,textarea{border-color:var(--line2)}
+section.view .vhead h1,.cl-head h1{font:700 28px/1.05 var(--f-display);letter-spacing:.14em;text-transform:uppercase}
+/* the page row: the sub-tabs as pills, the game selector at the right */
+@media (min-width:821px){.subbar{border-bottom:0;align-items:center;margin:4px 0 16px}nav.subtabs{border-bottom:0;gap:8px;padding:2px 0}
+nav.subtabs button{font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;border:1px solid var(--line2);border-radius:999px;color:var(--muted);background:transparent}
+nav.subtabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}}
+.gseg{margin:0 0 0 auto;border:1px solid var(--line2);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.gseg button{font-weight:600;letter-spacing:.06em;text-transform:uppercase;min-height:32px;border:0}
+.gseg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.conn{border-radius:999px;font:600 10px/1 var(--f-body);letter-spacing:.06em;padding:6px 10px;border-color:transparent;background:var(--surface2)}
+.conn.live{border-color:transparent;background:color-mix(in srgb,var(--good) 13%,transparent)}.conn.wait{border-color:transparent;background:color-mix(in srgb,var(--warn) 12%,transparent)}.conn.demo{border-color:transparent;background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.rail-live{display:none}
+/* computers: the main tabs are a rail on the left (the logo on top, the game's state at the bottom); the header stays
+   the title bar (the brand, the state, the buttons and, on the PC, the window's own) */
+@media (min-width:821px){
+  :root:not(.ov,.ovwin,.signwall,.phone){--gut:clamp(16px,1.8vw,28px)}
+  :root:not(.ov,.ovwin,.signwall,.phone) body{padding-left:calc(var(--rail) + var(--gut));padding-right:var(--gut)}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs{position:fixed;left:0;top:0;bottom:0;width:var(--rail);margin:0;padding:14px 0 14px;display:flex;flex-direction:column;align-items:stretch;gap:2px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;background:var(--bg);border-right:1px solid var(--line);z-index:7}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs::before{content:"";flex:none;align-self:center;width:40px;height:40px;margin:0 0 14px;border-radius:10px;border:1px solid var(--line2);background:var(--surface2) url(logo.svg) center/24px no-repeat;order:0}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs button{flex:none!important;flex-direction:column!important;align-items:center;justify-content:center;gap:5px!important;width:100%;min-width:0;padding:10px 2px!important;border:0;border-left:2px solid transparent;border-radius:0;background:none;color:var(--muted);font:600 9px/1.15 var(--f-body)!important;letter-spacing:.08em!important;text-transform:uppercase}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs button>span{display:block!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px!important}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs button svg{width:18px!important;height:18px!important;stroke-width:1.7}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs button[aria-selected="true"]{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
+  :root:not(.ov,.ovwin,.signwall,.phone) nav.tabs button:hover:not([aria-selected="true"]){color:var(--fg);border-color:transparent}
+  :root:not(.ov,.ovwin,.signwall,.phone) .rail-live{display:flex;order:99;margin-top:auto;padding-top:12px;flex-direction:column;align-items:center;gap:4px;font:500 9px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  :root:not(.ov,.ovwin,.signwall,.phone) .rail-live i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .rail-live.live i{background:var(--good)!important}.rail-live.wait i{background:var(--warn)!important}.rail-live.demo i{background:var(--accent)!important}
+  .rail-live b{font-weight:500;max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top{border-bottom:1px solid var(--line);min-height:52px}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top .brand i{display:none}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top .brand{font-size:18px;letter-spacing:.14em}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top #conn{order:2;margin-left:auto}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top .iconbtn{order:3}
+  :root:not(.ov,.ovwin,.signwall,.phone) header.top .winctl{order:4}
+  /* the PC's own title bar: its left edge sits under the rail, its buttons stay at the right */
+  html.ownframe:not(.ov,.ovwin,.signwall,.phone) header.top{margin-left:calc(-1 * var(--padx,16px));margin-right:calc(-1 * var(--gut));padding-left:var(--padx,16px)}
+}
+/* Home: the design's grid */
+#homeBox.hl{max-width:1440px;gap:14px}
+.hl-hi{align-items:center}
+.hl-hi h1{font:700 28px/1.1 var(--f-display)!important;letter-spacing:.14em!important;text-transform:uppercase!important}
+.hl-hi>span{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface2);font:600 11px/1.2 var(--f-body);letter-spacing:.05em;text-transform:uppercase}
+.hm-live{border-radius:var(--radius)}
+html .hl-kpis{gap:14px}
+html .hl-kpis>*{border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.hl-kpis>div>span{font:500 10px/1.3 var(--f-body)!important;letter-spacing:.1em;text-transform:uppercase}
+.hl-kpis b{font-size:30px;font-weight:600}
+html .hl-sec{padding:0 0 12px;border-radius:var(--radius);display:flex;flex-direction:column}
+.hl-sec>:not(.cl-h){margin-inline:14px;width:auto}
+.hl-days .hm-cal{overflow:visible}.hl-days .hm-grid{min-width:0;width:100%}.hl-days .hm-wk{flex:1 1 0;min-width:0}.hl-days .hm-grid .hm-d{width:100%;height:auto;aspect-ratio:1}.hl-days .hm-mo{overflow:visible;white-space:nowrap}
+.hl-grid>.hl-sessec:first-child{grid-row:span 2}
+.hl-sec>.cl-h+*{margin-top:6px}
+.hl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.hl-grid>.hl-w2{grid-column:span 2}.hl-grid>.hl-sec{align-self:stretch}
+.hl-grid>#hlLeag{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px}
+.hl-grid>#hlLeag[hidden]{display:none}
+.hl-grid>#hlLeag>.cl-h{grid-column:1/-1}.hl-grid>#hlLeag>.hl-lg{border-bottom:0}
+.hl-last{grid-template-columns:120px minmax(0,1fr) auto;border-bottom:0}
+.hl-pos b{font-size:44px}
+.hl-what svg{height:90px;margin-top:10px;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 25%}
+.hl-st{grid-template-columns:repeat(3,auto);gap:2px 22px}.hl-st>span{font:500 10px var(--f-body);letter-spacing:.1em;text-transform:uppercase}.hl-st b{font-size:20px}.hl-st b:last-child{color:var(--pb)}
+.hl-links{gap:10px;padding-top:4px}
+.hl-links .cl-link{display:inline-flex;align-items:center;min-height:36px;padding:0 16px;border-radius:6px;border:1px solid var(--line2);background:var(--surface2);color:var(--fg);font:600 13px var(--f-body);text-decoration:none}
+.hl-links .cl-link:first-child{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.hl-links .cl-link:hover{text-decoration:none;filter:brightness(1.08)}
+.hl-rowh{display:grid;grid-template-columns:52px minmax(0,1fr) 76px 76px;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hl-rowh>span:nth-last-child(-n+2){text-align:right}
+.hl-row{grid-template-columns:52px minmax(0,1fr) 76px 76px;border-bottom-color:var(--row);padding:9px 0}
+.hl-sec .hl-lic{border-bottom-color:var(--row)}.hl-lic>span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1100px) and (min-width:821px){.hl-grid>#hlLeag{grid-template-columns:minmax(0,1fr)}.hl-lic,.hl-lich{grid-template-columns:minmax(0,1fr) 64px 54px 40px}.hl-last{grid-template-columns:96px minmax(0,1fr)}.hl-st{grid-column:1/-1}}
+@media (max-width:820px){
+  .hl-grid{grid-template-columns:minmax(0,1fr)}.hl-grid>.hl-w2{grid-column:auto}
+  .hl-grid>.hl-lastsec{order:1}.hl-grid>.hl-sessec{order:2}.hl-grid>.hl-licsec{order:3}.hl-grid>#hlLeag{order:4;grid-template-columns:minmax(0,1fr)}.hl-grid>.hl-days{order:5}
+  html .hl-grid>.hl-days{display:none}
+  .hl-rowh{display:none}.hl-row{grid-template-columns:40px minmax(0,1fr) 72px}
+  .hl-hi h1{font-size:22px!important;letter-spacing:.08em!important}
+  .hl-last{grid-template-columns:88px minmax(0,1fr)}.hl-what svg{height:40px}
+  .gseg{margin:0;align-self:flex-end}
+}
+/* Design 2026 · Analysis (the canvas's Telemetry = Laps, Coach and the prototype's My sessions / My races):
+   the A/B bar, the gap and its facts as number cards, the corners as buttons, the charts as one panel, then the map
+   and the braking points side by side; the coach in three columns (tips | map, sectors, corners | pace, plan) */
+#v-laps .vhead .sub[data-i18n="lapsSub"],#coachSub,#v-cloudlaps .vhead .sub,#racesSub{display:none}
+#v-laps,#v-coach,#v-cloudlaps,#v-races{--radius:8px}
+/* the A/B bar: one panel, each lap a pill, its name, its time and where it comes from */
+:is(#v-laps,#v-coach) .lapcmpheads{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px 18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin:0 0 12px}
+:is(#v-laps,#v-coach) .lapcmpheads:empty{display:none!important}
+:is(#v-laps,#v-coach) .lapcmp{flex:1 1 280px;display:grid;grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"role name time" "role meta meta";column-gap:10px;row-gap:2px;align-items:center;border:0!important;background:none!important;padding:0!important;border-radius:0;box-shadow:none}
+:is(#v-laps,#v-coach) .lapcmp .role{grid-area:role;align-self:center;padding:3px 8px;border-radius:999px;font:600 10px/1.2 var(--f-body);letter-spacing:.06em;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);white-space:nowrap}
+:is(#v-laps,#v-coach) .lapcmp.b .role{background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+:is(#v-laps,#v-coach) .lapcmp.b.mine .role{background:color-mix(in srgb,var(--pb) 14%,transparent);color:var(--pb)}
+:is(#v-laps,#v-coach) .lapcmp.b .time{color:var(--blue)}:is(#v-laps,#v-coach) .lapcmp.b.mine .time{color:var(--pb)}
+/* lap B in blue on the charts and maps, purple when it is your own best lap */
+#lapsBody .legend i[style*="--pb"]{background:var(--blue)!important}#lapsBody.bmine .legend i[style*="--pb"]{background:var(--pb)!important}
+#lapsBody .ch-read .tb,#lapsBody .ss-b{color:var(--blue)}#lapsBody.bmine .ch-read .tb,#lapsBody.bmine .ss-b{color:var(--pb)}
+:is(#lapMap,#coachMap) .rbmap .lnB{stroke:var(--blue)}:is(#lapMap,#coachMap).bmine .rbmap .lnB{stroke:var(--pb)}
+:is(#lapMap,#coachMap) .chip i.lnB{border-top-color:var(--blue)}:is(#lapMap,#coachMap).bmine .chip i.lnB{border-top-color:var(--pb)}
+:is(#v-laps,#v-coach) .lapcmp .name{grid-area:name;font:600 13px/1.3 var(--f-body);margin:0}
+:is(#v-laps,#v-coach) .lapcmp .time{grid-area:time;font:600 13px/1.3 var(--f-data);margin:0;color:var(--accent)}.lapcmp.b .time{color:var(--pb)}
+:is(#v-laps,#v-coach) .lapcmp .meta{grid-area:meta;font-size:11px;margin:0}
+:is(#v-laps,#v-coach) .lapcmp-vs{font:500 10px/1 var(--f-body);letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+/* the gap and its facts as number cards, then the corners */
+#lapAnalyzer.panel{background:none;border:0;padding:0;box-shadow:none;margin:0 0 12px;display:flex;flex-direction:column;gap:12px}
+#lapAnalyzer .la-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:stretch}
+#lapAnalyzer .kcard{padding:12px 14px;gap:2px;border-left:1px solid var(--line)}
+#lapAnalyzer .kcard>b{font-size:28px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lapAnalyzer .kcard>small{line-height:1.4}
+#lapAnalyzer .la-n.bad>b,#lapAnalyzer .la-d b.bad{color:var(--bad)}#lapAnalyzer .la-n.good>b,#lapAnalyzer .la-d b.good{color:var(--good)}#lapAnalyzer .la-n.warn>b{color:var(--warn,var(--accent))}
+#lapAnalyzer .la-n.muted>small{color:var(--muted)}
+.la-cpnl .la-corners{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:10px 14px;margin:0;scrollbar-width:thin}
+.la-cpnl .la-c{min-width:44px;min-height:44px;padding:4px 6px;gap:4px;border:1px solid transparent;background:transparent;border-radius:6px;justify-content:flex-start;flex:none}
+.la-cpnl .la-c:hover{background:var(--surface2)}
+.la-cpnl .la-c.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent);box-shadow:none}
+.la-cpnl .la-c b{font:600 11px/1.2 var(--f-data)}.la-cpnl .la-c>.mono{font-size:10px}
+.la-cpnl .la-cb{width:28px;height:36px;display:flex;align-items:flex-end;justify-content:center;color:inherit}
+.la-cpnl .la-cb i{width:14px;border-radius:2px}
+/* the charts: one panel, each channel a band of it */
+#lapsBody{gap:12px}
+#lapsBody>.la-charts{padding:0;gap:0;overflow:hidden}
+.la-charts>.panel,.la-charts .ch-p{position:relative;background:none;border:0;border-radius:0;box-shadow:none;margin:0;padding:10px 14px}
+.la-charts>.panel+.panel,.la-charts .ch-p{border-top:1px solid var(--row)}
+.la-charts #cmpChips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-10px -14px 10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.la-charts #cmpChips .chip{border-radius:999px;border:1px solid var(--line2);background:transparent;min-height:28px;padding:0 12px;font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase}
+.la-charts #cmpChips .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+/* the map and the sectors beside the braking points and the laps */
+.la-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:12px;align-items:start;min-width:0}
+.la-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+#lapsBody .la-col>.panel{padding:0 0 12px;margin:0}
+#lapsBody .la-col>.panel>*{margin-inline:14px}
+#lapsBody .la-col>.panel>.tscroll{margin-inline:0}
+#lapsBody .la-col>.panel>.label:first-child{display:flex;align-items:center;margin:0 0 10px!important;padding:10px 14px;border-bottom:1px solid var(--line);font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg);cursor:default;white-space:normal}
+#lapsBody .la-col>.panel>.label:first-child::before{content:"";width:3px;height:14px;background:var(--accent);border-radius:2px;margin-right:8px;flex:none}
+#lapsBody .la-col .secstrip{max-width:none;grid-template-columns:repeat(auto-fit,minmax(84px,1fr))}
+#lapsBody .la-col>.panel>p.note{margin-left:14px!important;margin-right:14px!important}
+#lapsBody .la-col .ss-c{border-radius:var(--radius);border-color:var(--line);background:var(--surface)}
+#lapsBody .la-col .ss-n{font:500 10px/1.3 var(--f-body);letter-spacing:.1em}
+#lapsBody .la-col .ss-d{order:1;text-align:left;font:500 15px/1.2 var(--f-data)}
+#lapsBody .la-col .ss-v{order:2;flex-wrap:wrap;gap:0 8px;font:400 11px/1.3 var(--f-data);justify-content:flex-start}
+#lapsBody .la-col>.la-brk{order:-1}
+#lapAnalyzer .kcard.la-n{border:1px solid var(--line)}
+@media (max-width:820px){.la-cpnl .la-corners{flex-wrap:wrap;overflow:visible}}
+#lapsBody #lapTable,#lapsBody #brakeTable{width:100%;min-width:0;margin:0;font-size:12px;border-collapse:collapse}
+#lapsBody :is(#lapTable,#brakeTable) th{padding:7px 12px;font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap}
+#lapsBody :is(#lapTable,#brakeTable) td{padding:7px 12px;border-bottom:1px solid var(--row)}
+#lapsBody :is(#lapTable,#brakeTable) tr:last-child td{border-bottom:0}
+#lapsBody .la-col .note{font-size:12px}
+@media (max-width:1060px){.la-split{grid-template-columns:minmax(0,1fr)}}
+/* the coach: the gap on top, then three columns */
+.co-wrap{display:flex;flex-direction:column;gap:12px}
+.co-hero .co-top{padding:12px 14px;align-items:center}
+.co-hero .co-top .big{font:600 30px/1.15 var(--f-data)}
+.co-hero .co-top .sub{font-size:12px;color:var(--muted)}
+.co-hero .co-focus{background:var(--surface2);border-color:var(--line2);border-radius:var(--radius)}
+.co-hero .co-focus b{font:600 18px/1.2 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.co-cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,.9fr);gap:12px;align-items:start}
+.co-c1{order:1}.co-side{order:2;display:flex;flex-direction:column;gap:12px;min-width:0}.co-c3{order:3;display:flex;flex-direction:column;gap:12px;min-width:0}
+.co-c1>.pnl-h{flex-wrap:wrap}.co-c1>.pnl-h .btn{font-size:11px}
+.co-c1>.note{padding:12px 14px;margin:0}
+.co-tips.rb-cards{display:flex;flex-direction:column;gap:0;margin:0}
+.co-tip.rb-c{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;box-shadow:none}
+.co-tip.rb-c:last-child{border-bottom:0}
+.co-tip .rb-h{display:flex;align-items:center;gap:10px;font-size:15px}.co-tip .rb-h>.sp{flex:1}
+.co-tip .co-tn{font:600 20px/1 var(--f-data);min-width:38px}
+.co-tip .rb-tipx{font-size:14px;line-height:1.4}.co-tip .rb-tipx .coachtip{color:var(--fg);font-weight:500}
+.co-facts{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted)}
+.co-facts .rb-k{font-size:12px;gap:6px}.co-facts .rb-k span{min-width:0}.co-facts .rb-k small{margin-left:0}.co-facts .rb-k b{font-weight:500;color:var(--fg)}
+.co-tip .rb-hint{margin:0;font-size:12px;line-height:1.4;color:color-mix(in srgb,var(--fg) 78%,var(--muted))}
+.co-act .tiprate{margin:0;padding:0;gap:6px}
+.co-act .tiprate button{min-width:34px;min-height:34px;border-radius:6px;border:1px solid var(--line2);background:var(--surface2);opacity:1;font-size:13px}
+.co-act .tiprate button.on{border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--surface2))}
+.co-side .pnl-b,.co-c3 .pnl-b{padding:12px 14px}
+.co-secs{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.co-s{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);min-width:0}
+.co-s b{font:500 15px/1.2 var(--f-data)}.co-s small{font-size:11px;line-height:1.35;color:var(--muted)}
+.co-bl{display:flex;flex-direction:column;padding:6px 0}
+.co-br{display:flex;align-items:center;gap:10px;padding:6px 14px;font-size:13px}
+.co-br>span:first-child{min-width:34px;font-weight:600}.co-br>span:last-child{min-width:56px;text-align:right}
+.co-bt{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}.co-bt i{display:block;height:8px;background:var(--muted)}.co-bt i.bad{background:var(--bad)}.co-bt i.good{background:var(--good)}
+.co-pace .pnl-b>.co-comm,.co-pace .co-car .co-comm{grid-template-columns:minmax(0,1fr);gap:0;margin:0}
+.co-pace .co-k{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;border:0;border-bottom:1px solid var(--row);border-radius:0;background:none;padding:9px 0}
+.co-pace .co-k>small:first-child{grid-column:1;grid-row:1;font-size:13px;color:var(--fg)}
+.co-pace .co-k>b{grid-column:2;grid-row:1;font:600 15px/1.2 var(--f-data);margin:0}
+.co-pace .co-k>small:last-child:not(:first-child){grid-column:1/-1;grid-row:2;font-size:11px}
+.co-pace .co-k.on{box-shadow:inset 3px 0 0 var(--pb);padding-left:10px;background:color-mix(in srgb,var(--pb) 8%,transparent)}
+.co-pace .pnl-b>.co-comm>.co-k:last-child{border-bottom:0}
+.co-pace .pnl-b>.co-comm>.co-k:last-child>small:first-child{display:none}
+.co-pace .pnl-b>.co-comm>.co-k:last-child>b{grid-column:1/-1;font-size:20px}
+.co-pace .co-fast{margin:0 0 10px}.co-pace .co-car{margin-top:12px}.co-pace .co-commnote{margin:0}
+.co-planp .co-plan{gap:10px;font-size:13px;line-height:1.45}
+.co-planp .co-pt b{font-weight:500}
+#coachMap{min-width:0}
+@media (max-width:1240px){.co-cols{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.co-c3{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:start}}
+@media (max-width:820px){.co-cols{grid-template-columns:minmax(0,1fr)}.co-c3{grid-column:auto}.co-hero .co-top .big{font-size:26px}}
+/* My sessions and My races: tables in panels */
+#cloudLapsBox .mr-filt{margin-bottom:12px}
+.mr-pnl+.mr-pnl{margin-top:12px}
+.mr-t tr.mr{cursor:pointer}.mr-t tr.mr:focus-visible td{background:var(--surface2);outline:0}
+.mr-t th.r,.mr-t td.r{text-align:right}
+.mr-t td{vertical-align:middle}.mr-t td small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.mr-t .mr-main b{font-weight:600}.mr-t .mr-main b small{display:inline;font-weight:400}
+.mr-t .mr-kind{white-space:nowrap}.mr-t .mr-when{white-space:nowrap}
+.mr-t .kind{font:600 10px/1 var(--f-body);letter-spacing:.06em;padding:3px 8px}
+.mr-t .pkgo{color:var(--muted)}
+@media (max-width:640px){.mr-t th,.mr-t td{padding:8px 6px}.mr-t th:first-child,.mr-t td:first-child{padding-left:12px}.mr-t th:last-child,.mr-t td:last-child{display:none}
+  .mr-t .mr-when,.mr-t .mr-kind{white-space:normal}.mr-t .mr-kind>*{margin:0 4px 4px 0}.mr-t th{letter-spacing:.04em}.mr-t td.r:nth-last-child(2){padding-right:12px}.mr-t td.mr-main,.mr-t td.mr-main *{white-space:normal;overflow-wrap:break-word}.mr-t .kind{white-space:nowrap}.mr-t th{font-size:9px;letter-spacing:.02em}.mr-t td{font-size:12px}}
+.rc-kpis{gap:12px;margin:12px 0}
+.rc-kpis .kcard>b{font-size:30px}
+.rc-pnl{margin-bottom:12px}
+.rc-pnl .rtable{font-size:13px;min-width:640px}
+.rc-pnl .rtable th{padding:8px 14px;font:500 10px/1.2 var(--f-body);letter-spacing:.1em;border-bottom:1px solid var(--line)}
+.rc-pnl .rtable td{padding:9px 14px;border-bottom:1px solid var(--row);vertical-align:middle}
+.rc-pnl .rtable tr:last-child td{border-bottom:0}
+.rc-pnl .rtable td small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.rc-pnl .rtable tbody tr{cursor:pointer}
+#v-races #drvPanel{border-radius:var(--radius);padding:0 0 12px}
+#v-races #drvPanel>:not(.frow:first-child){margin-left:14px!important;margin-right:14px!important}
+#v-races #drvPanel>.frow:first-child{margin:0 0 10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+#v-races #drvH{font:600 14px/1.2 var(--f-display)!important;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center}
+#v-races #drvH::before{content:"";width:3px;height:14px;background:var(--accent);border-radius:2px;margin-right:8px;flex:none}
+/* "Choose a session": the design's chooser */
+.uidlg .pn.sp-pn{border-radius:10px;border-color:var(--line);background:var(--surface);padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sp-pn .sp-h h2{font:700 24px/1.1 var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+.sp-pn .sp-sec h3{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sp-pn .sp-row{border-radius:var(--radius);background:var(--surface);border-color:var(--line2)}
+.sp-pn .sp-row:hover{border-color:var(--accent)}
+.sp-pn .sp-row.cur{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface));box-shadow:none}
+.sp-pn .sp-num{font-family:var(--f-data)}
+@media (max-width:820px){#lapAnalyzer .la-row{grid-template-columns:repeat(2,minmax(0,1fr))}#lapAnalyzer .la-row>.la-d{grid-column:1/-1}#lapAnalyzer .kcard>b{font-size:22px}}
+/* Design 2026 · Telemetry and Overlays (the canvas's Live and Overlays): the page's own CSS, the overlay windows
+   (html.ov) keep theirs */
+/* Telemetry: the modes as pills beside the sub-tabs, the top card, then the traces or the compare, then the widgets */
+:root:not(.ov) #v-live:not([hidden]){display:flex;flex-direction:column;gap:12px}
+:root:not(.ov) #v-live>*{margin-top:0;margin-bottom:0}
+:root:not(.ov) #v-live>.flag{order:0}:root:not(.ov) #v-live>.lhead{order:0}:root:not(.ov) #v-live>#pwCommandDash{order:1}
+:root:not(.ov) #v-live>#liveTraces,:root:not(.ov) #v-live>#liveCmp{order:2}:root:not(.ov) #v-live>#liveGrid{order:3}
+:root:not(.ov) #v-live .lhead{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:0}
+#liveMode{display:inline-flex;flex-wrap:wrap;gap:6px;border:0;border-radius:0;overflow:visible;background:none}
+#liveMode button{font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border-radius:999px;border:1px solid var(--line2);color:var(--muted);background:transparent;white-space:nowrap}
+#liveMode button:hover{color:var(--fg)}#liveMode button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+:root:not(.ov) #v-live .btn,:root:not(.ov) #v-overlays .btn,.drawer.float .drawer-panel:has(.cfgsplit) .btn{font:600 12px/1 var(--f-body);letter-spacing:0;text-transform:none;min-height:32px;padding:0 12px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+:root:not(.ov) #v-live .btn.small,:root:not(.ov) #v-overlays .btn.small,.drawer.float .drawer-panel:has(.cfgsplit) .btn.small{min-height:28px;padding:0 10px}
+@media (min-width:1240px){:root:not(.ov,.phone) #v-live.pw-hascmd{position:relative}:root:not(.ov,.phone) #v-live.pw-hascmd>.lhead{position:absolute;right:0;top:-50px;min-height:34px}}
+/* the top card: one panel, the numbers bare, the cars ahead and behind at its side */
+#v-live .pw-cmd{display:flex;flex-wrap:wrap;gap:0;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);min-width:0}
+#v-live .pw-cmd-main{flex:1 1 520px;min-width:0;background:none;border:0;border-radius:0;padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+#v-live .pw-cmd-head{align-items:center}
+#v-live .pw-cmd-head>div:first-child{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;min-width:0}
+#v-live .pw-cmd-track{font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:8px;min-width:0}
+#v-live .pw-cmd-track::before{content:"";flex:none;width:3px;height:14px;background:var(--accent);border-radius:2px}
+#v-live .pw-cmd-sub{margin:0;font-size:12px;color:var(--muted)}
+#v-live .pw-cmd-head .pw-state{border:0;padding:3px 9px;font:600 10px/1.2 var(--f-body);letter-spacing:.06em;background:color-mix(in srgb,currentColor 13%,transparent)}
+#v-live .pw-cmd-kpis{display:flex;flex-wrap:wrap;gap:12px 26px;margin:0}
+#v-live .pw-kpi{background:none;border:0;border-radius:0;padding:0;min-width:0}
+#v-live .pw-kpi .k{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#v-live .pw-kpi b{font:600 34px/1.05 var(--f-data);font-variant-numeric:tabular-nums;margin-top:2px}
+#v-live .pw-kpi:nth-child(n+3) b{font-size:22px;font-weight:500;line-height:1.25;margin-top:8px}
+#v-live .pw-kpi b.good{color:var(--good)}#v-live .pw-kpi b.bad{color:var(--bad)}#v-live .pw-kpi b.pb{color:var(--pb)}
+#v-live .pw-kpi small{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+#v-live #pwBest{color:var(--pb)}
+#v-live .pw-cmd-side{flex:0 1 280px;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:12px 18px;border-left:1px solid var(--line)}
+#v-live .pw-sidecard{background:none;border:0;border-radius:0;padding:0}
+#v-live .pw-sidecard h3{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+#v-live .pw-side-row{border:0;padding:3px 0;font-size:12px}#v-live .pw-side-row>span{color:var(--muted)}
+#v-live .pw-side-row b{font:500 12px var(--f-data);font-variant-numeric:tabular-nums}#v-live .pw-side-row b.bad{color:var(--bad)}
+@media (max-width:860px){#v-live .pw-cmd-side{flex-basis:100%;border-left:0;border-top:1px solid var(--line)}#v-live .pw-cmd-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}#v-live .pw-kpi b{font-size:28px}#v-live .pw-kpi:nth-child(n+3) b{font-size:20px;margin-top:2px}}
+/* every widget a design panel: its title the header with the amber bar */
+:root:not(.ov) #v-live .wpanel{padding:0 14px 12px;border-radius:var(--radius)}
+:root:not(.ov) #v-live .wpanel:not(:has(>.label:first-child,>.vhead:first-child)){padding-top:12px}
+:root:not(.ov) #v-live .wpanel:not([data-w=deltabar])>.label:first-child,:root:not(.ov) #v-live .wpanel>.vhead:first-child,
+:root:not(.ov) #v-live #liveTraces>.trc-head,
+#v-tyres .panel>.label:first-child,#v-field #stdPos>.label:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 -14px 10px!important;padding:10px 66px 10px 14px;border-bottom:1px solid var(--line);min-height:41px;box-sizing:border-box}
+:root:not(.ov) #v-live .wpanel:not([data-w=deltabar])>.label:first-child,:root:not(.ov) #v-live .wpanel>.vhead:first-child>.label,:root:not(.ov) #v-live #trcTitle,
+#v-tyres .panel>.label:first-child,#v-field #stdPos>.label:first-child{font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
+:root:not(.ov) #v-live .wpanel:not([data-w=deltabar])>.label:first-child::before,:root:not(.ov) #v-live .wpanel>.vhead:first-child>.label::before,:root:not(.ov) #v-live #trcTitle::before,
+#v-tyres .panel>.label:first-child::before,#v-field #stdPos>.label:first-child::before{content:"";display:inline-block;flex:none;width:3px;height:14px;background:var(--accent);border-radius:2px}
+:root:not(.ov) #v-live .wpanel>.vhead:first-child>.label,:root:not(.ov) #v-live #trcTitle{display:flex;align-items:center;gap:8px}
+:root:not(.ov) #v-live .wpanel>.vhead:first-child{justify-content:space-between}
+:root:not(.ov) #v-live .wpanel>.grip,:root:not(.ov) #v-live .wpanel>.popbtn{top:8px;border-color:transparent;background:transparent}
+:root:not(.ov) #v-live .wpanel>.grip:hover,:root:not(.ov) #v-live .wpanel>.popbtn:hover{border-color:var(--line2);background:var(--surface2)}
+:root:not(.ov) #v-live .wpanel .legend{font:500 10px/1.3 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+:root:not(.ov) #v-live #liveTraces,#v-tyres .panel,#v-field .panel{padding:0 14px 12px;border-radius:var(--radius)}
+:root:not(.ov) #v-live #liveTraces>.trc-head{padding-right:14px;justify-content:space-between}
+#v-tyres .panel:not(:has(>.label:first-child)),#v-field .panel:not(:has(>.label:first-child)){padding-top:12px}
+/* the numbers: the design's mono */
+:root:not(.ov) #v-live .wpanel .mid{font:500 22px/1.2 var(--f-data);font-variant-numeric:tabular-nums}
+:root:not(.ov) #v-live .wpanel .big{font:600 34px/1.05 var(--f-data);font-variant-numeric:tabular-nums}
+:root:not(.ov) #v-live .wpanel .sub{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+:root:not(.ov) #v-live .wpanel .meter{height:8px;border:0;border-radius:4px;background:var(--surface2)}
+:root:not(.ov) #v-live .wpanel .meter b{border-radius:4px}
+:root:not(.ov) #v-live .wpanel .note{font-size:12px;color:var(--muted)}
+:root:not(.ov) #v-live .wpanel dl.kv{font-size:12px}:root:not(.ov) #v-live .wpanel dl.kv dt{color:var(--muted)}:root:not(.ov) #v-live .wpanel dl.kv dd{font-family:var(--f-data)}
+/* the delta bar: a slim panel, its name small at the left */
+:root:not(.ov) #v-live .wpanel[data-w=deltabar]{display:flex;align-items:center;gap:14px;padding:10px 76px 10px 18px}
+:root:not(.ov) #v-live [data-w=deltabar]>.label:first-child{flex:none;font:500 10px/1.3 var(--f-body);letter-spacing:.1em;color:var(--muted);padding:0;margin:0}
+:root:not(.ov) #v-live [data-w=deltabar] .dbar{flex:1 1 auto;min-width:0;margin:0;gap:14px}
+:root:not(.ov) #v-live [data-w=deltabar] .dbar-track{height:14px;border:0;border-radius:7px;background:var(--surface2)}
+:root:not(.ov) #v-live [data-w=deltabar] .dbar-track b{border-radius:7px}
+:root:not(.ov) #v-live [data-w=deltabar] .dbar-track i{top:0;bottom:0;width:1px;background:var(--line2)}
+:root:not(.ov) #v-live [data-w=deltabar] .dbar-val{font:600 16px/1 var(--f-data);min-width:70px}
+:root:not(.ov) #v-live [data-w=deltabar]>.grip,:root:not(.ov) #v-live [data-w=deltabar]>.popbtn{top:50%;transform:translateY(-50%)}
+@media (max-width:600px){:root:not(.ov) #v-live .wpanel[data-w=deltabar]{padding:10px 44px 10px 14px;gap:10px}:root:not(.ov) #v-live [data-w=deltabar] .dbar{gap:8px}:root:not(.ov) #v-live [data-w=deltabar] .dbar-val{min-width:52px}:root:not(.ov) #v-live [data-w=deltabar]>.grip{right:8px}}
+/* the tables (relative, standings, the pit readings) */
+:root:not(.ov) #v-live .wtable,#v-field .wtable,#tyreHist{border-collapse:collapse;font-size:12px}
+:root:not(.ov) #v-live .wtable th,#v-field .wtable th,#tyreHist th{font:500 10px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:7px 8px;border-bottom:1px solid var(--line)}
+:root:not(.ov) #v-live .wtable td,#v-field .wtable td,#tyreHist td{padding:6px 8px;border-bottom:1px solid var(--row)}
+:root:not(.ov) #v-live .wtable tbody tr:last-child td,#v-field .wtable tbody tr:last-child td,#tyreHist tbody tr:last-child td{border-bottom:0}
+:root:not(.ov) #v-live .wtable tr.me td,#v-field .wtable tr.me td{background:color-mix(in srgb,var(--accent) 9%,transparent);color:var(--accent)}
+:root:not(.ov) #v-live .wtable tr.me td:first-child,#v-field .wtable tr.me td:first-child{box-shadow:none}
+:root:not(.ov) #v-live .hstrip .k,#v-field .hstrip .k{font:500 10px/1.3 var(--f-body);letter-spacing:.1em}
+/* Standings and Tyres: the same panels */
+#v-field .std-bar .seg,#v-field .std-bar .seg3{border-color:var(--line2);border-radius:6px}
+#v-tyres .tcard{border-radius:var(--radius);border-color:var(--line);background:var(--surface2)}
+#v-revbeep .panel,#v-share .panel{border-radius:var(--radius)}
+/* Overlays: the title, the presets as pills and the buttons on one row, then the list as a panel */
+#v-overlays:not([hidden]){display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
+#v-overlays>*{flex:1 1 100%;min-width:0;margin-top:0!important;margin-bottom:0!important}
+#v-overlays>.vhead{flex:0 1 auto;margin:0}
+#v-overlays>#ovGlobal{flex:1 1 560px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:none;border:0;padding:0}
+#v-overlays>#ovCallout{order:1}#v-overlays>#ovScreenPanel{order:2}#v-overlays>#ovCards{order:3}
+#ovGlobal .ov-top{order:2;margin-left:auto}#ovGlobal .ov-top .frow{gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#ovGlobal .pw-overlay-presets{order:1;margin:0;padding:0;border:0;gap:6px}
+#ovGlobal .pw-overlay-presets>.label{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;margin-right:2px}
+#ovGlobal .pw-preset{font:600 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:7px 14px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--muted)}
+#ovGlobal .pw-preset:hover{color:var(--fg);border-color:var(--line2)}
+#ovGlobal .pw-mine{padding:0 6px 0 14px}#ovGlobal .pw-mine button{padding:7px 0;letter-spacing:inherit;text-transform:inherit}#ovGlobal .pw-mine .pw-del{padding:2px 6px}
+#ovScreenPanel{border-radius:var(--radius)}
+#ovCards .ov-list{padding:0;border-radius:var(--radius);border-color:var(--line);background:var(--surface)}
+#ovCards .ov-row{grid-template-columns:minmax(0,1fr) 190px 110px 110px;padding:7px 14px;border-top:0;border-bottom:1px solid var(--row);font-size:13px}
+#ovCards .ov-row:last-child{border-bottom:0}
+#ovCards .ov-row.ov-h{padding:10px 14px;border-bottom:1px solid var(--line);font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#ovCards .ov-row.ov-h>span:first-child{text-transform:none;letter-spacing:0;font-size:11px}
+#ovCards .ov-n b{font-weight:500}
+#ovCards .ov-row[data-ovw] .ov-n::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--line2)}
+#ovCards .ov-row[data-ovw]:has(.ov-st.on) .ov-n::before{background:var(--good)}
+#ovCards .ov-swb{min-height:30px}
+/* Lap compare, live: the same panels, its numbers as number cards */
+#liveCmp .panel{border-radius:var(--radius)}
+#liveCmp .panel>.label:first-child{display:flex;align-items:center;gap:8px;margin:-13px -13px 10px;padding:10px 14px;border-bottom:1px solid var(--line);font:600 14px/1.2 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
+#liveCmp .panel>.label:first-child::before{content:"";flex:none;width:3px;height:14px;background:var(--accent);border-radius:2px}
+#liveCmp .lcmp-k{padding:14px 16px}#liveCmp .lcmp-k>.label{font:500 10px/1.3 var(--f-body);letter-spacing:.1em}
+#liveCmp .lcmp-k>b{font:600 26px/1.15 var(--f-data);font-variant-numeric:tabular-nums}#liveCmp .lcmp-k>.note{font-size:12px;color:var(--muted)}
+#liveCmp .trc-leg{font:500 10px/1.3 var(--f-body);letter-spacing:.08em;text-transform:uppercase}#lcAt{font:600 11px var(--f-data);color:var(--accent)}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .chip{border-radius:6px;font:600 11px/1 var(--f-body);min-height:30px;padding:0 10px}
+#ovCards .ov-sw{width:38px;height:22px;border-radius:11px;border:0;background:var(--line2)}
+#ovCards .ov-sw i{top:3px;left:3px;width:16px;height:16px;background:var(--fg)}
+#ovCards .ov-sw.on{background:var(--accent)}#ovCards .ov-sw.on i{left:19px;background:var(--accent-ink)}
+#ovCards .ov-st{justify-self:start;font:500 11px/1 var(--f-data);min-height:28px;padding:0 8px;border-radius:6px;border:1px solid transparent;background:none;color:var(--muted)}
+#ovCards .ov-st:hover{border-color:var(--line2)}#ovCards .ov-st.on{background:none;border-color:transparent;color:var(--good)}#ovCards .ov-st.on:hover{border-color:var(--line2)}
+#ovCards .ov-row>.btn{justify-self:end}
+#ovCards .ov-foot .label{font:500 10px/1.3 var(--f-body);letter-spacing:.1em}
+@media (max-width:760px){#ovCards .ov-row{grid-template-columns:minmax(0,1fr) 54px 84px}#ovCards .ov-row>.btn{justify-self:start}#v-overlays>#ovGlobal{flex-basis:100%}#ovGlobal .ov-top{margin-left:0}#ovGlobal .ov-top .frow{justify-content:flex-start}}
+/* a widget's or overlay's settings: the design's floating panel, its title the header you drag it by, the live
+   preview on a darker ground at the left and the settings as rows at the right */
+.drawer.float .drawer-panel:has(.cfgsplit){padding:0;background:var(--surface);border:1px solid var(--line2);border-radius:var(--radius);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.drawer.float .drawer-panel:has(.cfgsplit)>.vhead{position:sticky;top:0;margin:0!important;padding:8px 10px 8px 14px;min-height:44px;background:var(--surface);border-bottom:1px solid var(--line);border-radius:var(--radius) var(--radius) 0 0;align-items:center}
+.drawer.float .drawer-panel:has(.cfgsplit)>.vhead>div:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.drawer.float .drawer-panel:has(.cfgsplit) #dTitle{display:flex;align-items:center;gap:8px;margin:0;font:600 14px/1.2 var(--f-display)!important;letter-spacing:.12em;text-transform:uppercase}
+.drawer.float .drawer-panel:has(.cfgsplit) #dTitle::before{content:"";flex:none;width:3px;height:14px;background:var(--accent);border-radius:2px}
+.drawer.float .drawer-panel:has(.cfgsplit) #dSub{margin:0;font:500 10px/1.3 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.drawer.float .drawer-panel:has(.cfgsplit) #dClose{width:30px;height:30px}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgBack{margin:10px 14px 0}
+.drawer.float .drawer-panel:has(.cfgsplit) .cfgsplit{margin:10px 0 0;gap:0;border-top:1px solid var(--line);align-items:stretch;background:linear-gradient(90deg,var(--bg) calc(50% - 1px),var(--line) calc(50% - 1px) 50%,transparent 50%)}
+.drawer.float .drawer-panel:has(.cfgsplit) .cfgpv{top:44px;align-self:start;padding:16px;background:var(--bg)}
+.drawer.float .drawer-panel:has(.cfgsplit) .cfgpv>.label{font:500 10px/1.3 var(--f-body);letter-spacing:.1em;margin:0 0 10px!important}
+.drawer.float .drawer-panel:has(.cfgsplit) .pvbox{border:0;padding:0;background:none}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm{padding:6px 16px 14px;min-width:0}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .panel{background:none;border:0;border-radius:0;padding:4px 0 8px;margin:0}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .panel+.panel{border-top:1px solid var(--row)}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .grid{gap:0}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm h2{font:600 12px/1.3 var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg);margin:8px 0}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .label{font:500 12px/1.3 var(--f-body);letter-spacing:0;text-transform:none;color:var(--fg);padding-top:10px;border-top:1px solid var(--row)}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .panel>.label:first-child{border-top:0;padding-top:4px}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .frow:has(>.chip):not(:has(>:not(.chip))){display:inline-flex;flex-wrap:wrap;gap:0;border:1px solid var(--line2);border-radius:6px;overflow:hidden;max-width:100%}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .frow:has(>.chip):not(:has(>:not(.chip)))>.chip{min-height:30px;padding:0 10px;border:0;border-radius:0;background:transparent;color:var(--muted);font:600 11px/1 var(--f-body)}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .frow:has(>.chip):not(:has(>:not(.chip)))>.chip+.chip{border-left:1px solid var(--line2)}
+.drawer.float .drawer-panel:has(.cfgsplit) #cfgForm .frow:has(>.chip):not(:has(>:not(.chip)))>.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.drawer.float .drawer-panel:has(.cfgsplit) .cfgitem{border-color:var(--line);border-radius:6px;background:var(--surface2)}
+.drawer.float .drawer-panel:has(.cfgsplit) .cfgitem.on{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+@media (max-width:760px){.drawer.float .drawer-panel:has(.cfgsplit) .cfgsplit{background:none}.drawer.float .drawer-panel:has(.cfgsplit) .cfgpv{border-bottom:1px solid var(--line)}}
 </style>
 
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
@@ -1248,6 +1826,7 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
     <button role="tab" data-g="home" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg><span data-i18n="g.home"></span></button>
     <button role="tab" data-g="rig" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2" /></svg><span data-i18n="g.rig"></span></button>
     <button role="tab" data-g="more" aria-selected="false" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg><span data-i18n="g.more"></span></button>
+    <span class="rail-live" id="railLive" aria-hidden="true"><i></i><b></b></span>
   </nav>
   <button class="iconbtn" id="viewTg" type="button" aria-pressed="false" hidden></button><button class="iconbtn" id="lockBtn" type="button" aria-pressed="false" hidden></button>
   <button class="iconbtn" id="inboxBtn" type="button" title="Info" aria-label="Info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><b hidden></b></button>
@@ -1655,6 +2234,7 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
   <div id="lapCompareHeads" class="lapcmpheads"></div>
   <div id="lapAnalyzer" class="panel lap-analyzer" hidden></div>
   <div class="grid" id="lapsBody" hidden>
+    <section class="pnl s12 la-charts">
     <div class="panel s12">
       <div id="cmpChips"></div>
       <div id="cmpTip" class="cmp-tip" hidden></div>
@@ -1665,18 +2245,22 @@ html .hl-sec .hl-last:last-child,html .hl-sec .hl-row:last-child,html .hl-sec .h
     <div class="panel s12 ch-delta"><div class="ch-head"><div class="label" data-i18n="deltaCum"></div><span class="ch-read mono" data-read="delta"></span></div>
       <canvas id="cmpDelta" height="110"></canvas></div>
     <div id="cmpCh" style="display:contents"></div>
+    </section>
+    <div class="s12 la-split"><div class="la-col">
     <div class="panel s12"><div class="label" style="margin-bottom:6px"><span data-i18n="trackMap"></span></div><div id="lapMap"></div></div>
     <div class="panel s12 secpanel"><div class="label" style="margin-bottom:6px" data-i18n="sectors"></div><div class="secstrip" id="secStrip"></div></div>
-    <div class="panel s12">
+    </div><div class="la-col">
+    <div class="panel s12 la-laps">
       <div class="label" style="margin-bottom:4px" data-i18n="lapList"></div>
       <p class="note" id="lapInvNote" style="margin:0 0 6px" hidden></p><div class="tscroll"><table id="lapTable"><thead><tr><th data-i18n="lap"></th><th class="r" data-i18n="time"></th><th class="r" data-i18n="fuelUsed"></th><th class="r" data-i18n="vmax"></th><th class="r">Inc</th><th class="r adm-h" hidden>Admin</th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="panel s12">
+    <div class="panel s12 la-brk">
       <div class="label" style="margin-bottom:4px" data-i18n="brakeTitle"></div>
       <div class="tscroll"><table id="brakeTable"><thead><tr><th>#</th><th class="r" data-i18n="bp.ref"></th><th class="r" data-i18n="bp.diff"></th><th class="r" data-i18n="bp.entry"></th><th class="r" data-i18n="bp.min"></th></tr></thead><tbody></tbody></table></div>
       <p class="note" data-i18n="bp.note"></p>
-      
+
     </div>
+    </div></div>
   </div>
 </section>
 
@@ -2703,7 +3287,7 @@ async function pickCommLap(){if(coachCloudOn())return pickCommLapCloud();const w
       close();renderLaps();$("#lapB").value="c"+(CREF.length-1);drawCmp()}catch(e){toast(e.message);b.querySelector("b").textContent=l.alias||"–"}})}
 function lapSource(l){if(!l)return"";if(l.comm||l.cid||/^⟡ /.test(String(l.n||"")))return Tx("Community","Comunidad","Community","Comunidade");if(l.cloud)return Tx("My account","Mi cuenta","Mein Konto","Minha conta");return Tx("Your lap","Tu vuelta","Deine Runde","Sua volta")}
 function lapName(l){if(!l)return"";const n=String(l.n??"").replace(/^⟡ /,"");if(l.comm||l.cid)return l.alias||l.name||n;if(l.drv)return Tx("Lap","Vuelta","Runde","Volta")+" "+n+" · "+l.drv;if(l._sessionBest)return Tx("MY BEST · Lap","MI MEJOR VUELTA · Vuelta","MEINE BESTE · Runde","MINHA MELHOR · Volta")+" "+n;return Tx("Lap","Vuelta","Runde","Volta")+" "+n}
-function renderLapCompareHeads(A,B){const targets=["#lapCompareHeads","#coachCompareHeads"];const side=(role,l,cls)=>`<div class="lapcmp ${cls}"><div class="role">${esc(role)}</div><div class="name">${esc(lapName(l))}</div><div class="time mono">${fmtT(l.time)}</div><div class="meta">${esc(lapSource(l))}</div></div>`;targets.forEach(id=>{const box=$(id);if(box)box.innerHTML=A&&B?`${side(Tx("LAP A · COMPARING","VUELTA A · COMPARANDO","RUNDE A · VERGLEICH","VOLTA A · COMPARANDO"),A,"a")}<div class="lapcmp-vs">VS</div>${side(Tx("LAP B · REFERENCE","VUELTA B · REFERENCIA","RUNDE B · REFERENZ","VOLTA B · REFERÊNCIA"),B,"b")}`:""})}
+function renderLapCompareHeads(A,B){const targets=["#lapCompareHeads","#coachCompareHeads"];const side=(role,l,cls)=>`<div class="lapcmp ${cls}${cls==="b"&&bMine(l)?" mine":""}"><div class="role">${esc(role)}</div><div class="name">${esc(lapName(l))}</div><div class="time mono">${fmtT(l.time)}</div><div class="meta">${esc(lapSource(l))}</div></div>`;targets.forEach(id=>{const box=$(id);if(box)box.innerHTML=A&&B?`${side(Tx("LAP A · COMPARING","VUELTA A · COMPARANDO","RUNDE A · VERGLEICH","VOLTA A · COMPARANDO"),A,"a")}<div class="lapcmp-vs">VS</div>${side(Tx("LAP B · REFERENCE","VUELTA B · REFERENCIA","RUNDE B · REFERENZ","VOLTA B · REFERÊNCIA"),B,"b")}`:""})}
 /* how each lap was driven, from all the telemetry: flat out, coasting, lifts in the middle of a
    corner and how busy the steering is; what A does differently from B, in plain words */
 function lapDriving(sa,sb,n){const m=s=>{let full=0,coast=0,c=0,lifts=0,steer=0,rev=0,hasS=false,prevT=null,prevD=0,lastS=null;for(let i=0;i<n;i++){const b=s.arr[i];if(!b)continue;c++;const t=b[2],k=b[3];if(t>.95)full++;if(t<.05&&k<.05)coast++;
@@ -2717,15 +3301,15 @@ function lapDriving(sa,sb,n){const m=s=>{let full=0,coast=0,c=0,lifts=0,steer=0,
 function renderLapAnalyzer(A,B){const box=$("#lapAnalyzer");if(!box)return;if(!A||!B){box.hidden=true;box.innerHTML="";return}box.hidden=false;const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end),ad=A.time-B.time;let peak=0,peakI=0,gain=0,gainI=0;for(let i=0;i<n;i++){const a=sa.arr[i],b=sb.arr[i];if(a&&b){const d=a[1]-b[1];if(d>peak){peak=d;peakI=i}if(d<gain){gain=d;gainI=i}}}
   // the essentials: the gap, the corner that costs the most, where A falls furthest behind and where it gains most
   const cz=coachCompare(A,B).filter(c=>c.lost>.03).sort((x,y)=>y.lost-x.lost),items=[];
-  if(cz[0]){const t=Tx(cz[0].tip[0],cz[0].tip[1]);items.push(["bad",Tx(`Corner ${cz[0].n} costs the most: ${sgn(cz[0].lost,3)} s · ${t}`,`La curva ${cz[0].n} es la que más cuesta: ${sgn(cz[0].lost,3)} s · ${t}`,`Kurve ${cz[0].n} kostet am meisten: ${sgn(cz[0].lost,3)} s · ${t}`,`A curva ${cz[0].n} é a que mais custa: ${sgn(cz[0].lost,3)} s · ${t}`)])}
-  if(peak>.05)items.push(["warn",Tx(`A is furthest behind at ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`,`A va más atrás en ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`,`A liegt bei ${Math.round(peakI*BIN)} m am weitesten zurück: ${sgn(peak,3)} s`,`A fica mais atrás em ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`)]);
-  if(gain<-.05)items.push(["good",Tx(`A gains most around ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A gana más alrededor de ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A gewinnt am meisten bei ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A ganha mais por volta de ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`)]);
+  if(cz[0]){const t=Tx(cz[0].tip[0],cz[0].tip[1]);items.push(["bad","T"+cz[0].n,Tx(`Corner ${cz[0].n} costs the most: ${sgn(cz[0].lost,3)} s · ${t}`,`La curva ${cz[0].n} es la que más cuesta: ${sgn(cz[0].lost,3)} s · ${t}`,`Kurve ${cz[0].n} kostet am meisten: ${sgn(cz[0].lost,3)} s · ${t}`,`A curva ${cz[0].n} é a que mais custa: ${sgn(cz[0].lost,3)} s · ${t}`)])}
+  if(peak>.05)items.push(["warn",sgn(peak,3)+" s",Tx(`A is furthest behind at ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`,`A va más atrás en ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`,`A liegt bei ${Math.round(peakI*BIN)} m am weitesten zurück: ${sgn(peak,3)} s`,`A fica mais atrás em ${Math.round(peakI*BIN)} m: ${sgn(peak,3)} s`)]);
+  if(gain<-.05)items.push(["good",sgn(gain,3)+" s",Tx(`A gains most around ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A gana más alrededor de ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A gewinnt am meisten bei ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`,`A ganha mais por volta de ${Math.round(gainI*BIN)} m: ${sgn(gain,3)} s`)]);
   // the corners against the straights: where the lap time goes, and every corner as a small bar you can press
   const all=coachCompare(A,B),inC=all.reduce((q,c)=>q+c.lost,0),straight=ad-inC,nL=all.filter(c=>c.lost>.02).length,nG=all.filter(c=>c.lost<-.02).length;
-  if(all.length)items.push([Math.abs(straight)>.08&&straight>0?"warn":"muted",Tx(`Corners ${sgn(inC,2)} s (A loses in ${nL}, gains in ${nG}) · straights ${sgn(straight,2)} s`,`Curvas ${sgn(inC,2)} s (A pierde en ${nL}, gana en ${nG}) · rectas ${sgn(straight,2)} s`,`Kurven ${sgn(inC,2)} s (A verliert in ${nL}, gewinnt in ${nG}) · Geraden ${sgn(straight,2)} s`,`Curvas ${sgn(inC,2)} s (A perde em ${nL}, ganha em ${nG}) · retas ${sgn(straight,2)} s`)]);
+  if(all.length)items.push([Math.abs(straight)>.08&&straight>0?"warn":"muted",sgn(inC,2)+" s",Tx(`Corners ${sgn(inC,2)} s (A loses in ${nL}, gains in ${nG}) · straights ${sgn(straight,2)} s`,`Curvas ${sgn(inC,2)} s (A pierde en ${nL}, gana en ${nG}) · rectas ${sgn(straight,2)} s`,`Kurven ${sgn(inC,2)} s (A verliert in ${nL}, gewinnt in ${nG}) · Geraden ${sgn(straight,2)} s`,`Curvas ${sgn(inC,2)} s (A perde em ${nL}, ganha em ${nG}) · retas ${sgn(straight,2)} s`)]);
   const mxL=Math.max(.05,...all.map(c=>Math.abs(c.lost)));
-  const corners=all.length?`<div class="la-corners" title="${esc(Tx("Time lost or gained in each corner against B · press one to read it on the charts and the map","Tiempo perdido o ganado en cada curva frente a B · pulsa una para leerla en las gráficas y el mapa","Verlorene oder gewonnene Zeit in jeder Kurve gegen B · antippen, um sie in Diagrammen und Karte zu lesen","Tempo perdido ou ganho em cada curva contra B · toque numa para lê-la nos gráficos e no mapa"))}">${all.map(c=>`<button type="button" class="la-c${c.lost>.02?" bad":c.lost<-.02?" good":""}" data-cd="${Math.round(c.d)}"><b>T${c.n}</b><span class="mono">${sgn(c.lost,2)}</span><i style="height:${Math.max(2,Math.round(Math.abs(c.lost)/mxL*22))}px"></i></button>`).join("")}</div>`:"";
-  box.innerHTML=`<div class="la-row"><div class="la-d"><small>${esc(Tx("A vs B","A vs B"))}</small><b class="mono ${ad>0?"bad":"good"}">${sgn(ad,3)} s</b><small>${esc(ad>0?Tx("A is slower","A es más lenta","A ist langsamer","A está mais lenta"):Tx("A is faster","A es más rápida","A ist schneller","A está mais rápida"))}</small></div><div class="la-notes">${items.length?items.map(([k,t])=>`<div class="la-n ${k}">${esc(t)}</div>`).join(""):`<div class="la-n muted">${esc(Tx("The two laps stay within 0.05 s of each other all the way round.","Las dos vueltas van a menos de 0,05 s en todo el trazado.","Die beiden Runden liegen überall innerhalb von 0,05 s.","As duas voltas ficam a menos de 0,05 s em todo o traçado."))}</div>`}</div></div>${corners}`;
+  const corners=all.length?`<div class="la-corners" title="${esc(Tx("Time lost or gained in each corner against B · press one to read it on the charts and the map","Tiempo perdido o ganado en cada curva frente a B · pulsa una para leerla en las gráficas y el mapa","Verlorene oder gewonnene Zeit in jeder Kurve gegen B · antippen, um sie in Diagrammen und Karte zu lesen","Tempo perdido ou ganho em cada curva contra B · toque numa para lê-la nos gráficos e no mapa"))}">${all.map(c=>`<button type="button" class="la-c${c.lost>.02?" bad":c.lost<-.02?" good":""}" data-cd="${Math.round(c.d)}"><b>T${c.n}</b><span class="la-cb"><i style="height:${Math.max(3,Math.round(Math.abs(c.lost)/mxL*34))}px"></i></span><span class="mono">${sgn(c.lost,2)}</span></button>`).join("")}</div>`:"";
+  box.innerHTML=`<div class="la-row"><div class="kcard la-d"><span class="k">${esc(Tx("A vs B","A vs B"))}</span><b class="mono ${ad>0?"bad":"good"}">${sgn(ad,3)} s</b><small>${esc(ad>0?Tx("A is slower","A es más lenta","A ist langsamer","A está mais lenta"):Tx("A is faster","A es más rápida","A ist schneller","A está mais rápida"))}</small></div>${items.length?items.map(([k,v,t])=>`<div class="kcard la-n ${k}"><b class="mono">${esc(v)}</b><small>${esc(t)}</small></div>`).join(""):`<div class="kcard la-n muted"><small>${esc(Tx("The two laps stay within 0.05 s of each other all the way round.","Las dos vueltas van a menos de 0,05 s en todo el trazado.","Die beiden Runden liegen überall innerhalb von 0,05 s.","As duas voltas ficam a menos de 0,05 s em todo o traçado."))}</small></div>`}</div>${corners?`<section class="pnl la-cpnl"><div class="pnl-h">${esc(Tx("Corners","Curvas","Kurven","Curvas"))}</div>${corners}</section>`:""}`;
   // pressing a corner pins the readouts, the charts and the map at its braking point (pressing it again lets go)
   box.querySelectorAll("[data-cd]").forEach(b=>b.onclick=()=>{const i=Math.round(+b.dataset.cd/BIN);const same=CMP_HOVER&&CMP_HOVER.pin&&CMP_HOVER.i===i;CMP_HOVER=same?null:{i,quiet:true,pin:true};box.querySelectorAll(".la-c").forEach(x=>x.classList.toggle("on",!same&&x===b));drawCmp(true)})}
 /* the corners of the reference as bands on a chart, with the official turn numbers (the braking zone to the apex) */
@@ -2929,14 +3513,14 @@ function drawChannels(sa,sb,n,len,pl,A,B){const host=$("#cmpCh"),chips=$("#cmpCh
       const bh=h-14;x.strokeStyle=css("--line");x.lineWidth=1;x.beginPath();x.moveTo(pl,4+bh);x.lineTo(w-6,4+bh);x.stroke();
       if(!LAT){x.fillStyle=css("--muted");x.font="12px "+css("--f-body");x.fillText(Tx("Both laps need their path (recorded with Pitlane HQ Agent on the same track).","Las dos vueltas necesitan su trazado (grabadas con Pitlane HQ Agent en el mismo circuito).","Beide Runden brauchen ihren Pfad (mit Pitlane HQ Agent auf derselben Strecke).","As duas voltas precisam do seu traçado (gravadas com o Pitlane HQ Agent na mesma pista)."),pl,h/2);return}
       let m=1;for(let i=0;i<n&&i<LAT.length;i++)if(isFinite(LAT[i]))m=Math.max(m,Math.abs(LAT[i]));m=Math.ceil(m);const Y=v=>4+(1-(v+m)/(2*m))*bh;
-      x.beginPath();x.moveTo(pl,Y(0));x.lineTo(w-6,Y(0));x.strokeStyle=css("--pb");x.lineWidth=1.2;x.stroke();x.fillStyle=css("--muted");x.fillText("+"+m+" m "+Tx("left","izq.","links","esq."),4,12);x.fillText("−"+m+" m "+Tx("right","der.","rechts","dir."),4,4+bh);cmpSectorLines(x,w,4+bh,pl,CMP_SECN,12);
+      x.beginPath();x.moveTo(pl,Y(0));x.lineTo(w-6,Y(0));x.strokeStyle=css(bVar(B));x.lineWidth=1.2;x.stroke();x.fillStyle=css("--muted");x.fillText("+"+m+" m "+Tx("left","izq.","links","esq."),4,12);x.fillText("−"+m+" m "+Tx("right","der.","rechts","dir."),4,4+bh);cmpSectorLines(x,w,4+bh,pl,CMP_SECN,12);
       x.beginPath();let st=false;for(let i=0;i<n&&i<LAT.length;i++){const v=LAT[i];if(!isFinite(v)){st=false;continue}const px=X(w,i*BIN),py=Y(v);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css("--accent");x.lineWidth=1.6;x.stroke();
       if(CMP_HOVER){const hx=X(w,Math.min(n-1,CMP_HOVER.i)*BIN);x.strokeStyle=css("--fg");x.globalAlpha=.55;x.setLineDash([3,3]);x.beginPath();x.moveTo(hx,0);x.lineTo(hx,h);x.stroke();x.setLineDash([]);x.globalAlpha=1}
       if(!cv.dataset.hoverWired&&typeof wireCmpExtra==="function")wireCmpExtra(cv);return}
     let lo=0,hi=1;if(k==="gear"){for(let i=0;i<n;i++)[sa,sb].forEach(s=>{const b=s.arr[i];if(b&&b[4]>hi)hi=b[4]})}if(k==="steer"){let m=.1;for(let i=0;i<n;i++)[sa,sb].forEach(s=>{const b=s.arr[i];if(b&&isFinite(b[5]))m=Math.max(m,Math.abs(b[5]))});lo=-m;hi=m}
     const bh=h-14,Y=v=>4+(1-(v-lo)/(hi-lo||1))*bh;x.strokeStyle=css("--line");x.lineWidth=1;x.beginPath();x.moveTo(pl,4+bh);x.lineTo(w-6,4+bh);x.stroke();if(k==="steer"){x.beginPath();x.moveTo(pl,Y(0));x.lineTo(w-6,Y(0));x.stroke()}
     x.fillStyle=css("--muted");x.fillText(k==="gear"?String(Math.round(hi)):k==="steer"?"L / R":"100%",4,12);x.fillText(k==="gear"?"1":k==="steer"?"":"0%",4,4+bh);cmpSectorLines(x,w,4+bh,pl,CMP_SECN,12);
-    [[sb,"--pb"],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b||!isFinite(b[col]))continue;const px=X(w,i*BIN),py=Y(b[col]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.4;x.stroke()});
+    [[sb,bVar(B)],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b||!isFinite(b[col]))continue;const px=X(w,i*BIN),py=Y(b[col]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.4;x.stroke()});
     if(CMP_HOVER){const hx=X(w,Math.min(n-1,CMP_HOVER.i)*BIN);x.strokeStyle=css("--fg");x.globalAlpha=.55;x.setLineDash([3,3]);x.beginPath();x.moveTo(hx,0);x.lineTo(hx,h);x.stroke();x.setLineDash([]);x.globalAlpha=1}
     if(!cv.dataset.hoverWired&&typeof wireCmpExtra==="function")wireCmpExtra(cv)});
   // the readouts: the values of each channel at the point you hover or touch (A · B)
@@ -2999,7 +3583,7 @@ function sessionIncs(A){try{const LP=(typeof analysisLaps==="function"?analysisL
     if(!out.length&&A&&A.sessionId){const x=(CLOUD.sessions||[]).find(z=>z.id===A.sessionId),r=x&&raceForSession(x);if(r)out=(r.incidents||[]).map(e=>({d:e.d||0,pts:e.pts||e.p||1,k:incKind(e),lap:e.lap}))}
     return out}catch(e){return lapIncs(A)}}
 const lapIncs=l=>{const a=(l&&l.incAt)||[],ks=(l&&l.incK)||[],o=[];for(let i=0;i+1<a.length;i+=2)o.push({d:a[i],pts:a[i+1],k:incKind({pts:a[i+1],kind:ks[i/2]})});return o};
-async function renderCmpMap(A,B,box){if(!box)return;const tok=box._tok=++CMP_MAPTOK;let map=lapShape(B)||lapShape(A); // the road is B's path when it has one: B runs along the middle, A beside it by how far it was from B
+async function renderCmpMap(A,B,box){if(!box)return;box.classList.toggle("bmine",bMine(B));const tok=box._tok=++CMP_MAPTOK;let map=lapShape(B)||lapShape(A); // the road is B's path when it has one: B runs along the middle, A beside it by how far it was from B
   lapTrackId(A,B).then(t=>{if(!t||t===TURN_TID)return;TURN_TID=t;const k=turnsFor(t,A.game||B.game);if(k&&k.length)turnsChanged()}).catch(()=>{});
   if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
@@ -3074,13 +3658,16 @@ function cmpMapWire(box,A,B,sa,sb,n,L,N,P,cs,incs,brA,brB){incs=incs||[];brA=brA
   const up=e=>{if(e.pointerType!=="mouse")down=false};svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",up);svg.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")leave()})}
 function cmpMapHover(i){const b=$("#lapMap");if(!b||!b._at)return;const d=b.querySelector(".hdot");if(!d)return;if(i==null){d.setAttribute("hidden","");return}const q=b._at(i*BIN);d.setAttribute("cx",q[0].toFixed(1));d.setAttribute("cy",q[1].toFixed(1));d.removeAttribute("hidden")}
 function cmpSectorLines(x,w,bottom,pl,cnt,ty){x.save();x.setLineDash([4,4]);x.lineWidth=1;x.strokeStyle=css("--muted");x.fillStyle=css("--muted");for(let k=1;k<cnt;k++){const xx=pl+k/cnt*(w-pl-6);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,bottom);x.stroke();x.fillText("S"+k,xx+4,ty)}x.restore()}
-function drawCmp(hover){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(!A||!B)return;applyLapCh();if(!hover){renderLapCompareHeads(A,B);renderLapAnalyzer(A,B)}$("#legA").textContent="A · "+lapName(A);$("#legB").textContent="B · "+lapName(B);
+/* lap B is drawn blue, or purple when it is your own best lap ("My best") */
+function bMine(B){return!!(B&&B._sessionBest&&!(B.comm||B.cid)&&!B.drv)}
+function bVar(B){return bMine(B)?"--pb":"--blue"}
+function drawCmp(hover){const A=lapOf($("#lapA").value),B=lapOf($("#lapB").value);if(!A||!B)return;applyLapCh();{const lb=$("#lapsBody");if(lb)lb.classList.toggle("bmine",bMine(B))}if(!hover){renderLapCompareHeads(A,B);renderLapAnalyzer(A,B)}$("#legA").textContent="A · "+lapName(A);$("#legB").textContent="B · "+lapName(B);
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end),len=n*BIN;let vmax=0;for(let i=0;i<n;i++){if(sa.arr[i])vmax=Math.max(vmax,sa.arr[i][0]);if(sb.arr[i])vmax=Math.max(vmax,sb.arr[i][0])}
   const top=Math.ceil(spd(vmax)/50)*50||200;let [x,w,h]=fitCanvas($("#cmp"));if(!x)return;const mainX=x;x.clearRect(0,0,w,h);const pl=40,pb=18,X=d=>pl+d/len*(w-pl-6),Y=v=>6+(1-spd(v)/top)*(h-pb-6);
   x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.lineWidth=1;
   for(let v=50;v<=top;v+=50){const y=6+(1-v/top)*(h-pb-6);x.beginPath();x.moveTo(pl,y);x.lineTo(w-6,y);x.stroke();x.fillText(v,4,y+4)}
   const step=len>3000?1000:500;for(let d=0;d<len;d+=step)x.fillText(d+" m",X(d)+(d?-14:0),h-3);CMP_SECN=Math.max(A.sectors?.length||0,B.sectors?.length||0,3);cmpSectorLines(x,w,h-18,pl,CMP_SECN,14);cmpCornerBands(x,w,0,h-pb,pl,len,B,A,true);
-  [[sb,"--pb"],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b)continue;const px=X(i*BIN),py=Y(b[0]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.8;x.stroke()});
+  [[sb,bVar(B)],[sa,"--accent"]].forEach(([s,c])=>{x.beginPath();let st=false;for(let i=0;i<n;i++){const b=s.arr[i];if(!b)continue;const px=X(i*BIN),py=Y(b[0]);st?x.lineTo(px,py):x.moveTo(px,py);st=true}x.strokeStyle=css(c);x.lineWidth=1.8;x.stroke()});
   const dts=[];for(let i=0;i<n;i++){const a=sa.arr[i],b=sb.arr[i];if(a&&b)dts.push([i,a[1]-b[1]])}
   if(LAPCH.delta){[x,w,h]=fitCanvas($("#cmpDelta"));if(x){x.clearRect(0,0,w,h);let mx=.2;dts.forEach(([,d])=>mx=Math.max(mx,Math.abs(d)));mx=Math.ceil(mx*10)/10;const Yd=v=>h/2-v/mx*(h/2-8);
   x.font="11px "+css("--f-data");x.fillStyle=css("--muted");x.strokeStyle=css("--line");x.beginPath();x.moveTo(pl,h/2);x.lineTo(w-6,h/2);x.stroke();x.fillText("0",4,h/2+4);x.fillText("+"+mx.toFixed(1),4,Yd(mx)+10);x.fillText("−"+mx.toFixed(1),4,Yd(-mx));cmpSectorLines(x,w,h,pl,CMP_SECN,12);cmpCornerBands(x,w,0,h,pl,len,B,A,false);
@@ -4121,12 +4708,12 @@ async function renderCloudLaps(){const box=$("#cloudLapsBox");if(!box)return;clo
     <select id="mrK" aria-label="${esc(Tx("Session","Sesión"))}">${opt("",Tx("All sessions","Todas las sesiones","Alle Sitzungen","Todas as sessões"),MRF.kind)}${opt("race",sessKind("Race"),MRF.kind)}${opt("qual",sessKind("Qualify"),MRF.kind)}${opt("prac",sessKind("Practice"),MRF.kind)}</select>
     <select id="mrS" aria-label="${esc(Tx("Order","Orden"))}">${opt("new",Tx("Newest first","Más recientes","Neueste zuerst","Mais recentes"),MRF.sort)}${opt("best",Tx("Fastest lap first","Vuelta más rápida primero","Schnellste Runde zuerst","Volta mais rápida primeiro"),MRF.sort)}${opt("laps",Tx("Most laps first","Más vueltas primero","Meiste Runden zuerst","Mais voltas primeiro"),MRF.sort)}</select>
     <button type="button" class="chip" id="mrB" aria-pressed="${MRF.best}">${esc(Tx("Only my fastest ever","Solo mi vuelta más rápida","Nur meine schnellsten","Só minha mais rápida"))}</button><span class="muted" style="font-size:12px">${ss.length} / ${all.length}</span></div>`;
-  box.innerHTML=bar+(ss.length?"":`<div class="panel empty">${esc(Tx("Nothing matches these filters.","Nada coincide con estos filtros.","Nichts passt zu diesen Filtern.","Nada corresponde a esses filtros."))}</div>`)+`<div class="panel"${ss.length?"":" hidden"}><div class="devlist">${ss.map(x=>`<button type="button" class="devrow linkrow mr" data-ses="${esc(x.id)}"><div class="mr-main"><b>${esc(x.track||"")}${x.track_config?` <small class="muted">${esc(x.track_config)}</small>`:""}${sessDrkPill(x)}${sessIsAI(x)?aiBadge({ai:1}):""}${gameBadge(x)}</b><small class="muted"><span class="kind k-${kindKey(x.kind)}">${esc(kind(x.kind)||"–")}</span> ${esc(new Date(x.started||Date.now()).toLocaleDateString(loc,{weekday:"short",day:"numeric",month:"short"}))} · ${esc(x.car||"")}</small></div><span class="mr-side mono">${x.best?fmtT(x.best):"–"}<small class="muted">${x.laps||0} ${esc(Tx("laps","vueltas","Runden","voltas"))}</small></span><span class="pkgo">›</span></button>`).join("")}</div></div>`;
+  box.innerHTML=bar+(ss.length?"":`<div class="panel empty">${esc(Tx("Nothing matches these filters.","Nada coincide con estos filtros.","Nichts passt zu diesen Filtern.","Nada corresponde a esses filtros."))}</div>`)+`<section class="pnl mr-pnl"${ss.length?"":" hidden"}><div class="pnl-h">${L("tab.cloudlaps")}</div><div class="tscroll"><table class="dtable mr-t"><thead><tr><th>${esc(Tx("Date","Fecha","Datum","Data"))}</th><th>${esc(Tx("Session","Sesión","Sitzung","Sessão"))}</th><th>${esc(Tx("Track","Circuito","Strecke","Pista"))} · ${esc(Tx("Car","Coche","Auto","Carro"))}</th><th class="r">${esc(Tx("Laps","Vueltas","Runden","Voltas"))}</th><th class="r">${esc(Tx("Best lap","Mejor vuelta","Beste Runde","Melhor volta"))}</th><th></th></tr></thead><tbody>${ss.map(x=>{const t=new Date(x.started||Date.now());return`<tr class="mr" data-ses="${esc(x.id)}" tabindex="0" role="button"><td class="mono mr-when">${esc(t.toLocaleDateString(loc,{weekday:"short",day:"numeric",month:"short"}))}<small>${esc(t.toLocaleTimeString(loc,{hour:"2-digit",minute:"2-digit"}))}</small></td><td class="mr-kind"><span class="kind k-${kindKey(x.kind)}">${esc(kind(x.kind)||"–")}</span>${sessDrkPill(x)}${sessIsAI(x)?aiBadge({ai:1}):""}${gameBadge(x)}</td><td class="mr-main"><b>${esc(x.track||"")}${x.track_config?` <small class="muted">${esc(x.track_config)}</small>`:""}</b><small class="muted">${esc(x.car||"")}</small></td><td class="r mono">${x.laps||0}</td><td class="r mono">${x.best?fmtT(x.best):"–"}</td><td class="r"><span class="pkgo">›</span></td></tr>`}).join("")}</tbody></table></div></section>`;
   // the race summaries follow the same search and track
   if(RACES===null)await loadRaces();else await addReconstructedRaces();const rs=(RACES||[]).filter(r=>(!q||`${r.track} ${r.car}`.toLowerCase().includes(q))&&(!MRF.track||String(r.track||"").toLowerCase().startsWith(MRF.track.toLowerCase()))&&(!MRF.kind||MRF.kind==="race")).slice().sort(MRF.sort==="best"?(a,b)=>(a.best>0?a.best:1e9)-(b.best>0?b.best:1e9):(a,b)=>(b.when||0)-(a.when||0)).slice(0,30);
-  if(rs.length)box.insertAdjacentHTML("beforeend",`<h3 class="setsub" style="margin-top:14px">${esc(Tx("Race summaries","Resúmenes de carrera","Rennzusammenfassungen","Resumos de corrida"))}</h3><div class="panel"><div class="devlist">${rs.map(r=>`<button type="button" class="devrow linkrow mr" data-rid="${esc(r.id)}"><div class="mr-main"><b>${esc(r.track||"")}</b>${drinksBadge(r)}${aiBadge(r)}${gameBadge(r)}<small class="muted">${esc(new Date(r.when).toLocaleDateString(loc,{weekday:"short",day:"numeric",month:"short"}))} · ${esc(r.car||"")}${r.shared?" · "+esc(Tx("shared","compartida")):""}</small></div><span class="mr-side mono">${finTxt(r)}<small class="muted">${r.inc}x · ${r.irChange>0?"+":""}${r.irChange||0} iR</small></span><span class="pkgo">›</span></button>`).join("")}</div></div>`);
-  box.querySelectorAll("[data-rid]").forEach(b=>b.onclick=()=>openRace(b.dataset.rid));
-  box.querySelectorAll("[data-ses]").forEach(b=>b.onclick=()=>openAccountSession(b.dataset.ses));
+  if(rs.length)box.insertAdjacentHTML("beforeend",`<section class="pnl mr-pnl mr-rs"><div class="pnl-h">${esc(Tx("Race summaries","Resúmenes de carrera","Rennzusammenfassungen","Resumos de corrida"))}</div><div class="tscroll"><table class="dtable mr-t"><thead><tr><th>${esc(Tx("Date","Fecha","Datum","Data"))}</th><th>${esc(Tx("Track","Circuito","Strecke","Pista"))} · ${esc(Tx("Car","Coche","Auto","Carro"))}</th><th class="r">${esc(Tx("Result","Resultado","Ergebnis","Resultado"))}</th><th class="r">Inc</th><th class="r">iR</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr class="mr" data-rid="${esc(r.id)}" tabindex="0" role="button"><td class="mono mr-when">${esc(new Date(r.when).toLocaleDateString(loc,{weekday:"short",day:"numeric",month:"short"}))}</td><td class="mr-main"><b>${esc(r.track||"")}${drinksBadge(r)}${aiBadge(r)}${gameBadge(r)}</b><small class="muted">${esc(r.car||"")}${r.shared?" · "+esc(Tx("shared","compartida")):""}</small></td><td class="r mono">${finTxt(r)}</td><td class="r mono">${r.inc}x</td><td class="r mono">${r.irChange>0?"+":""}${r.irChange||0} iR</td><td class="r"><span class="pkgo">›</span></td></tr>`).join("")}</tbody></table></div></section>`);
+  box.querySelectorAll("[data-rid]").forEach(b=>{b.onclick=()=>openRace(b.dataset.rid);b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openRace(b.dataset.rid)}}});
+  box.querySelectorAll("[data-ses]").forEach(b=>{b.onclick=()=>openAccountSession(b.dataset.ses);b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openAccountSession(b.dataset.ses)}}});
   const qi=$("#mrQ");if(qi){let tm=0;qi.oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>{MRF.q=qi.value;store.set("pw.mrf",MRF);renderCloudLaps().then(()=>{const n=$("#mrQ");if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}})},250)}}
   [["mrT","track"],["mrK","kind"],["mrS","sort"]].forEach(([id,k])=>{const e=$("#"+id);if(e)e.onchange=()=>{MRF[k]=e.value;store.set("pw.mrf",MRF);renderCloudLaps()}});
   const bb=$("#mrB");if(bb)bb.onclick=()=>{MRF.best=!MRF.best;store.set("pw.mrf",MRF);renderCloudLaps()}}
@@ -5125,7 +5712,7 @@ function renderConn(){
   else if(STATUS.demo){cls="demo";en="Demo";es="Demo"}
   else if(STATUS.connected){cls="live";en=`${gameName()} live`;es=`${gameName()} en vivo`}
   else{cls="wait";en=`Waiting for ${gameName()}`;es=`Esperando ${gameName()}`}
-  c.className="conn "+cls;c.textContent=Tx(en,es);if(STATUS.connected&&!STATUS.demo&&!REMOTE&&GAME_BETA.has(STATUS.source))c.insertAdjacentHTML("beforeend",betaPill());renderSettings();markGameGaps();followLiveGame()}
+  c.className="conn "+cls;c.textContent=Tx(en,es);const rl=document.getElementById("railLive");if(rl){rl.className="rail-live "+cls;let gn="";try{gn=GAME_NAMES[liveNow()||(STATUS.connected?"iracing":vGame())]||""}catch(e){}rl.lastChild.textContent=gn}if(STATUS.connected&&!STATUS.demo&&!REMOTE&&GAME_BETA.has(STATUS.source))c.insertAdjacentHTML("beforeend",betaPill());renderSettings();markGameGaps();followLiveGame()}
 /* the badges of your account, next to your name wherever it shows (Admin, and Supporter unless you hid it) */
 const myBadges=me=>!me?"":(me.admin&&!asUser()?' <span class="pill acc" style="font-size:10px">Admin</span>':"")+(me.supporter&&!me.supporterHidden&&typeof supTag==="function"?" "+supTag():"");
 /* your email and account id stay hidden until you show them (one button each) */
@@ -6019,11 +6606,12 @@ function coachCornersHTML(cs,limit){const list=limit?cs.slice().sort((a,b)=>b.lo
     return`<div class="rb-hint">${esc(Tx(`The fast drivers here brake between ${m(h.b0)} and ${m(h.b1)} m and pass the apex at ${v(h.v0)}–${v(h.v1)} ${spdU()} (${h.n} drivers${when})`,`Los rápidos aquí frenan entre ${m(h.b0)} y ${m(h.b1)} m y pasan el vértice a ${v(h.v0)}–${v(h.v1)} ${spdU()} (${h.n} pilotos${when})`,`Die Schnellen bremsen hier zwischen ${m(h.b0)} und ${m(h.b1)} m und nehmen den Scheitel mit ${v(h.v0)}–${v(h.v1)} ${spdU()} (${h.n} Fahrer${when})`,`Os rápidos aqui freiam entre ${m(h.b0)} e ${m(h.b1)} m e passam o vértice a ${v(h.v0)}–${v(h.v1)} ${spdU()} (${h.n} pilotos${when})`)+ln)}</div>`};
   // how many drivers this tip helped on corners like this, when the admin lets the tips say it (coach_confidence)
   const conf=c=>{const b=c.kind&&c.lost>.03?tipConf(c.kind,c.cls):null;return b?`<div class="rb-hint">${esc(Tx(`This tip helped ${b.win} of ${b.n} drivers on corners like this`,`Este consejo ayudó a ${b.win} de ${b.n} pilotos en curvas así`,`Dieser Tipp half ${b.win} von ${b.n} Fahrern in solchen Kurven`,`Esta dica ajudou ${b.win} de ${b.n} pilotos em curvas assim`))}</div>`:""};if(!list.length)return`<p class="note">${esc(Tx("No corner loses more than 0.03 s against the reference. Nice lap.","Ninguna curva pierde más de 0,03 s frente a la referencia. Buena vuelta.","Keine Kurve verliert mehr als 0,03 s. Gute Runde.","Nenhuma curva perde mais de 0,03 s. Boa volta."))}</p>`;
-  return`<div class="rb-cards">${list.map(c=>`<div class="rb-c${c.lost>.03?" tip":""}"><div class="rb-h"><b>T${c.n} <small class="muted">${Math.round(c.d)} m</small></b><span class="mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,2)} s</span></div>
+  const tipX=c=>c.phase?`<div class="rb-tipx"><span class="coachtip">${esc(Tx(c.tip[0],c.tip[1]))}</span></div>`:`<div class="rb-tipx"><span class="good">${esc(Tx("Nothing to fix here","Nada que corregir aquí","Hier nichts zu tun","Nada a corrigir aqui"))}</span></div>`,phC={brake:"bad",entry:"blue",apex:"acc",exit:"good"};
+  return`<div class="rb-cards co-tips">${list.map(c=>`<div class="rb-c co-tip${c.lost>.03?" tip":""}"><div class="rb-h"><b class="mono co-tn">T${c.n}</b>${c.phase?`<span class="pill ${phC[c.phase]||"acc"}">${esc(phaseName(c.phase))}</span>`:""}<small class="muted mono">${Math.round(c.d)} m</small><span class="sp"></span><span class="mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,2)} s</span></div>${tipX(c)}<div class="co-facts">
     <div class="rb-k"><span>${esc(Tx("Braking","Frenada","Bremsen","Frenagem"))}</span><b class="mono ${c.dd==null||Math.abs(c.dd)<5?"":c.dd>0?"good":"bad"}">${c.dd==null?"–":Math.abs(c.dd)<5?Tx("same point","mismo punto","gleicher Punkt","mesmo ponto"):(c.dd>0?Tx("later","más tarde","später","mais tarde"):Tx("earlier","antes","früher","antes"))+" "+Math.abs(Math.round(c.dd))+" m"}</b></div>
     <div class="rb-k"><span>${esc(Tx("Slowest","Más lento","Langsamster","Mais lento"))}</span><b class="mono">${c.vmin==null?"–":Math.round(c.vmin)} ${spdU()}</b><small class="muted mono">B ${Math.round(c.vminr)}</small></div>
     ${c.trailA!=null?`<div class="rb-k"><span>${esc(Tx("Trail / coast","Trail / inercia","Trail / Rollen","Trail / inércia"))}</span><b class="mono">${Math.round(c.trailA)} m · ${Math.round(c.coastA)} m</b><small class="muted mono">B ${Math.round(c.trailB)} · ${Math.round(c.coastB)}</small></div>`:""}
-    ${c.phase?`<div class="rb-tipx"><span class="pill" style="margin-right:6px">${esc(phaseName(c.phase))}</span><span class="coachtip">${esc(Tx(c.tip[0],c.tip[1]))}</span>${rate(c)}</div>`:`<div class="rb-tipx"><span class="good">${esc(Tx("Nothing to fix here","Nada que corregir aquí","Hier nichts zu tun","Nada a corrigir aqui"))}</span></div>`}${conf(c)}${hint(c)}</div>`).join("")}</div>`}
+    </div>${conf(c)}${hint(c)}${c.phase&&rate(c)?`<div class="co-act">${rate(c)}</div>`:""}</div>`).join("")}</div>`}
 /* the track temperature of the session lap A belongs to (the corner card's hint by temperature band), null when unknown */
 function coachTemp(A){const ses=A&&A.sessionId?(CLOUD.sessions||[]).find(x=>x.id===A.sessionId):null;const t=ses&&(ses.track_temp??ses.trackTemp);return typeof t==="number"&&isFinite(t)?t:null}
 let COACH_ALLC=false;
@@ -6078,16 +6666,18 @@ function renderCoach(){coachWeights();coachMe();const LP=coachLaps(),best=markAn
       <div class="co-k" title="${esc(all)}"><small>${esc(Tx("Shifts up at · the fast drivers","Sube de marcha a · los rápidos","Schaltet hoch bei · die Schnellen","Sobe de marcha a · os rápidos"))}</small><b>${pk?`${pk.gr}→${pk.gr+1} · ${kmh(pk.v)}`:"–"}</b><small>${esc(lapS)}</small></div>
       <div class="co-k"><small>${esc(Tx("Top speed","Velocidad punta","Höchstgeschwindigkeit","Velocidade máxima"))}</small><b>${k.vmax?kmh(k.vmax):"–"}</b><small>${esc((k.vmaxTrack?Tx(`at ${k.vmaxTrack}`,`en ${k.vmaxTrack}`,`in ${k.vmaxTrack}`,`em ${k.vmaxTrack}`):"")+(f.vmax?(k.vmaxTrack?" · ":"")+Tx(`this lap: ${kmh(f.vmax)}`,`esta vuelta: ${kmh(f.vmax)}`,`diese Runde: ${kmh(f.vmax)}`,`esta volta: ${kmh(f.vmax)}`):""))}</small></div></div></div>`})():"";
   const corners=COACH_ALLC?c.cs:c.cs.filter(x=>x.lost>.03).sort((a,b)=>b.lost-a.lost).slice(0,3);
-  box.innerHTML=`<div class="grid">
-    <div class="panel s12 co-hero"><div class="co-top"><div><div class="label">${esc(Tx("This lap vs the reference","Esta vuelta frente a la referencia","Diese Runde gegen die Referenz","Esta volta contra a referência"))}</div><div class="big mono ${c.lapD>0?"bad":"good"}">${sgn(c.lapD,3)} s</div>
+  box.innerHTML=`<div class="co-wrap">
+    <div class="pnl co-hero"><div class="co-top"><div><div class="label">${esc(Tx("This lap vs the reference","Esta vuelta frente a la referencia","Diese Runde gegen die Referenz","Esta volta contra a referência"))}</div><div class="big mono ${c.lapD>0?"bad":"good"}">${sgn(c.lapD,3)} s</div>
         <div class="sub">${esc(Tx(`${r2(c.lost)} s lost in ${c.cs.length} corners · ${r2(-c.gained)} s gained · ${r2(Math.abs(c.straight))} s ${c.straight>0?"lost":"gained"} on the straights`,`${r2(c.lost)} s perdidos en ${c.cs.length} curvas · ${r2(-c.gained)} s ganados · ${r2(Math.abs(c.straight))} s ${c.straight>0?"perdidos":"ganados"} en las rectas`))}</div></div>
-      <div class="co-focus"><div class="label">${esc(Tx("Work on this first","Trabaja esto primero","Zuerst daran arbeiten","Trabalhe nisto primeiro"))}</div><b>${esc(focusT)}</b><small class="muted">${esc(focusS)}</small></div></div>${comm}${carBox}</div>
-    <div class="panel s7"><h2 style="margin:0 0 8px">${esc(Tx("Your plan for the next session","Tu plan para la próxima sesión","Dein Plan für die nächste Sitzung","Seu plano para a próxima sessão"))}</h2>
-      ${c.plan.length?`<ol class="co-plan">${c.plan.slice(0,4).map(p=>`<li class="k-${p.k}"><div class="co-pt"><b>${esc(p.t)}</b>${p.gain>0?`<span class="mono ${p.k==="cons"?"warn":"bad"}">${p.k==="cons"?"±":"+"}${r2(p.gain)} s</span>`:""}</div>${p.why?`<div class="co-why">${esc(p.why)}</div>`:""}${p.how?`<div class="co-how">→ ${esc(p.how)}</div>`:""}</li>`).join("")}</ol>`:`<p class="note">${esc(Tx("Nothing stands out: this lap is as good as the reference everywhere.","Nada destaca: esta vuelta es tan buena como la referencia en todas partes.","Nichts fällt auf: diese Runde ist überall so gut wie die Referenz.","Nada se destaca: esta volta é tão boa quanto a referência em toda parte."))}</p>`}</div>
-    <div class="s5 co-side"><div class="panel"><div class="label" style="margin-bottom:6px">${esc(Tx("Track map","Mapa del circuito","Streckenkarte","Mapa da pista"))}</div><div id="coachMap"></div></div>
-      <div class="panel"><div class="label">${esc(Tx("Sectors","Sectores","Sektoren","Setores"))}</div>${c.secs.length?`<div style="overflow:auto"><table class="rtable co-sec" style="margin-top:6px;width:100%"><thead><tr><th></th><th class="r">A</th><th class="r">B</th><th class="r">${esc(Tx("Diff.","Dif."))}</th></tr></thead><tbody>${c.secs.map(x=>`<tr><td>S${x.n}</td><td class="r mono">${x.a.toFixed(3)}</td><td class="r mono">${x.b.toFixed(3)}</td><td class="r mono ${x.d>0?"bad":"good"}">${sgn(x.d,3)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="note" style="margin:6px 0 0">${esc(Tx("No sector times for these laps.","Estas vueltas no tienen tiempos por sector.","Keine Sektorzeiten für diese Runden.","Sem tempos de setor para estas voltas."))}</p>`}</div></div>
-    <div class="panel s12"><div class="co-ch"><h2 style="margin:0">${esc(COACH_ALLC?Tx("Corner by corner","Curva a curva","Kurve für Kurve","Curva a curva"):Tx("The corners that cost the most","Las curvas que más cuestan","Die Kurven, die am meisten kosten","As curvas que mais custam"))}</h2>${c.cs.length>3?`<button type="button" class="btn small" id="coachAllC">${esc(COACH_ALLC?Tx("Only the ones that lose time","Solo las que pierden tiempo","Nur die mit Zeitverlust","Só as que perdem tempo"):Tx(`All ${c.cs.length} corners`,`Las ${c.cs.length} curvas`,`Alle ${c.cs.length} Kurven`,`As ${c.cs.length} curvas`))}</button>`:""}</div>
-      ${coachCornersHTML(corners,0)}</div></div>`;
+      <div class="co-focus"><div class="label">${esc(Tx("Work on this first","Trabaja esto primero","Zuerst daran arbeiten","Trabalhe nisto primeiro"))}</div><b>${esc(focusT)}</b><small class="muted">${esc(focusS)}</small></div></div></div>
+    <div class="co-cols"><div class="co-c3"><section class="pnl co-pace"><div class="pnl-h">${esc(Tx("Your pace among the drivers known here","Tu ritmo entre los pilotos conocidos aquí","Dein Tempo unter den hier bekannten Fahrern","Seu ritmo entre os pilotos conhecidos aqui"))}</div><div class="pnl-b">${comm}${carBox}</div></section>
+    <section class="pnl co-planp"><div class="pnl-h">${esc(Tx("Your plan for the next session","Tu plan para la próxima sesión","Dein Plan für die nächste Sitzung","Seu plano para a próxima sessão"))}</div><div class="pnl-b">
+      ${c.plan.length?`<ol class="co-plan">${c.plan.slice(0,4).map(p=>`<li class="k-${p.k}"><div class="co-pt"><b>${esc(p.t)}</b>${p.gain>0?`<span class="mono ${p.k==="cons"?"warn":"bad"}">${p.k==="cons"?"±":"+"}${r2(p.gain)} s</span>`:""}</div>${p.why?`<div class="co-why">${esc(p.why)}</div>`:""}${p.how?`<div class="co-how">→ ${esc(p.how)}</div>`:""}</li>`).join("")}</ol>`:`<p class="note">${esc(Tx("Nothing stands out: this lap is as good as the reference everywhere.","Nada destaca: esta vuelta es tan buena como la referencia en todas partes.","Nichts fällt auf: diese Runde ist überall so gut wie die Referenz.","Nada se destaca: esta volta é tão boa quanto a referência em toda parte."))}</p>`}</div></section></div>
+    <div class="co-side"><section class="pnl"><div class="pnl-h">${esc(Tx("Track map","Mapa del circuito","Streckenkarte","Mapa da pista"))}</div><div class="pnl-b"><div id="coachMap"></div></div></section>
+      <section class="pnl"><div class="pnl-h">${esc(Tx("Sectors","Sectores","Sektoren","Setores"))}</div><div class="pnl-b">${c.secs.length?`<div class="co-secs">${c.secs.map(x=>`<div class="co-s"><span class="k">S${x.n}</span><b class="mono ${x.d>0?"bad":"good"}">${sgn(x.d,3)}</b><small class="mono">A ${x.a.toFixed(3)} · B ${x.b.toFixed(3)}</small></div>`).join("")}</div>`:`<p class="note" style="margin:0">${esc(Tx("No sector times for these laps.","Estas vueltas no tienen tiempos por sector.","Keine Sektorzeiten für diese Runden.","Sem tempos de setor para estas voltas."))}</p>`}</div></section>
+      ${c.cs.length?(()=>{const mx=Math.max(.05,...c.cs.map(x=>Math.abs(x.lost)));return`<section class="pnl co-bars"><div class="pnl-h">${esc(Tx("Corner by corner","Curva a curva","Kurve für Kurve","Curva a curva"))}</div><div class="co-bl">${c.cs.slice().sort((a,b)=>b.lost-a.lost).map(x=>{const k=x.lost>.02?"bad":x.lost<-.02?"good":"muted";return`<div class="co-br"><span class="mono">T${x.n}</span><span class="co-bt"><i class="${k}" style="width:${Math.max(2,Math.round(Math.abs(x.lost)/mx*100))}%"></i></span><span class="mono ${k}">${sgn(x.lost,2)}</span></div>`}).join("")}</div></section>`})():""}</div>
+    <section class="pnl co-c1"><div class="pnl-h co-ch">${esc(COACH_ALLC?Tx("Corner by corner","Curva a curva","Kurve für Kurve","Curva a curva"):Tx("The corners that cost the most","Las curvas que más cuestan","Die Kurven, die am meisten kosten","As curvas que mais custam"))}<span class="sp"></span>${c.cs.length>3?`<button type="button" class="btn small" id="coachAllC">${esc(COACH_ALLC?Tx("Only the ones that lose time","Solo las que pierden tiempo","Nur die mit Zeitverlust","Só as que perdem tempo"):Tx(`All ${c.cs.length} corners`,`Las ${c.cs.length} curvas`,`Alle ${c.cs.length} Kurven`,`As ${c.cs.length} curvas`))}</button>`:""}</div>
+      ${coachCornersHTML(corners,0)}</section></div></div>`;
   renderCmpMap(A,R,$("#coachMap"));coachReport(A,R,c,best);
   box.querySelectorAll("[data-tiprate] button").forEach(b=>b.onclick=()=>{const apex=+b.parentNode.dataset.tiprate,k=c.cs.find(x=>Math.round(x.apex)===apex);if(!k)return;coachRate(A,k,+b.dataset.up);const on=(TIPRATE[(coachWhere(A)||{}).sid+":"+apex]||0);b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",+x.dataset.up===on))});
   box.querySelectorAll("[data-cref]").forEach(b=>b.onclick=()=>{rsel.value=b.dataset.cref;rsel.dataset.user="1";renderCoach()});
@@ -6400,10 +6990,10 @@ async function renderRaces(){const box=$("#racesBody");if(!box)return;{const h=$
   $("#racesSub").innerHTML=MODE==="bridge"?Lp("A report after every race you drive, saved on this PC","Un informe tras cada carrera que corres, guardado en este PC"):Lp("Sample races: in the PC app every race you drive adds its report here","Carreras de ejemplo: en la app del PC cada carrera que corras añade aquí su informe");
   if(!all.length){box.innerHTML=`<div class="panel empty">${Lp("No races yet. When you finish a race, its report appears here (position, iRating estimate, laps, incidents, fuel…).","Aún no hay carreras. Al terminar una carrera aparece aquí su informe (posición, iRating estimado, vueltas, incidentes, gasolina…).")}</div>`;return}
   const n=list.length,fin=list.filter(r=>!r.dnf),wins=fin.filter(r=>r.finish===1).length,pod=fin.filter(r=>r.finish<=3).length,avgF=fin.length?fin.reduce((s,r)=>s+r.finish,0)/fin.length:0,gained=fin.reduce((s,r)=>s+(r.start-r.finish),0),incAvg=n?list.reduce((s,r)=>s+r.inc,0)/n:0,irSum=list.reduce((s,r)=>s+(isAIRace(r)?0:(r.irChange||0)),0);
-  const card=(lbl,val,sub)=>`<div class="panel s3"><div class="label">${esc(lbl)}</div><div class="big mono" style="font-size:34px">${val}</div><div class="sub">${sub||""}</div></div>`;
-  box.innerHTML=`<div class="grid">${card(Tx("Races","Carreras"),n,Tx(`${wins} wins · ${pod} podiums`,`${wins} victorias · ${pod} podios`,`${wins} Siege · ${pod} Podien`,`${wins} vitórias · ${pod} pódios`))}${card(Tx("Average finish","Posición media"),avgF?"P"+avgF.toFixed(1):"–",Tx(`${gained>=0?"+":""}${gained} places from the start`,`${gained>=0?"+":""}${gained} posiciones desde la salida`,`${gained>=0?"+":""}${gained} Plätze vom Start`,`${gained>=0?"+":""}${gained} posições desde a largada`))}${card(Tx("Incidents per race","Incidentes por carrera"),incAvg.toFixed(1),"")}${card("iRating",`<span class="${irSum>=0?"good":"bad"}">${irTxt(irSum)}</span>`,Tx("estimated, these races","estimado, estas carreras"))}</div>
-    <div class="panel" style="margin-top:10px;padding:0;overflow:auto"><table class="rtable"><thead><tr><th>${esc(Tx("Date","Fecha"))}</th><th>${esc(Tx("Race","Carrera"))}</th><th>${esc(Tx("Result","Resultado"))}</th><th>Inc</th><th>${esc(Tx("Best lap","Mejor vuelta"))}</th><th>iR</th></tr></thead><tbody>
-    ${list.map(r=>`<tr data-rid="${esc(r.id)}" tabindex="0"><td class="mono">${esc(dshort(r.when))}</td><td><b>${esc(seriesName(r.seriesId)||r.car)}</b>${drinksBadge(r)}${aiBadge(r)}${gameBadge(r)}<small>${esc(r.track)}</small></td><td class="mono"><b>${finTxt(r)}</b><small>${r.partial?esc(Tx("rebuilt from the laps","reconstruido de las vueltas","aus den Runden","das voltas")):`${esc(Tx("of","de"))} ${r.field} · ${esc(Tx("from","desde"))} P${r.start} ${placeDelta(r)}`}</small></td><td class="mono">${r.inc}x</td><td class="mono">${fmtT(r.best)}${r.fieldBest&&r.best?`<small>${sgn(r.best-r.fieldBest,3)}</small>`:""}</td><td class="mono ${r.irChange>0&&!isAIRace(r)?"good":r.irChange<0&&!isAIRace(r)?"bad":""}">${isAIRace(r)?"–":irTxt(r.irChange)}${r.posted?' <span title="Discord">💬</span>':""}</td></tr>`).join("")}</tbody></table></div>`;
+  const card=(lbl,val,sub)=>`<div class="kcard s3"><span class="k">${esc(lbl)}</span><b class="mono">${val}</b><small>${sub||""}</small></div>`;
+  box.innerHTML=`<div class="grid rc-kpis">${card(Tx("Races","Carreras"),n,Tx(`${wins} wins · ${pod} podiums`,`${wins} victorias · ${pod} podios`,`${wins} Siege · ${pod} Podien`,`${wins} vitórias · ${pod} pódios`))}${card(Tx("Average finish","Posición media"),avgF?"P"+avgF.toFixed(1):"–",Tx(`${gained>=0?"+":""}${gained} places from the start`,`${gained>=0?"+":""}${gained} posiciones desde la salida`,`${gained>=0?"+":""}${gained} Plätze vom Start`,`${gained>=0?"+":""}${gained} posições desde a largada`))}${card(Tx("Incidents per race","Incidentes por carrera"),incAvg.toFixed(1),"")}${card("iRating",`<span class="${irSum>=0?"good":"bad"}">${irTxt(irSum)}</span>`,Tx("estimated, these races","estimado, estas carreras"))}</div>
+    <section class="pnl rc-pnl"><div class="pnl-h">${L("tab.races")}</div><div class="tscroll"><table class="rtable dtable"><thead><tr><th>${esc(Tx("Date","Fecha"))}</th><th>${esc(Tx("Race","Carrera"))}</th><th>${esc(Tx("Result","Resultado"))}</th><th>Inc</th><th>${esc(Tx("Best lap","Mejor vuelta"))}</th><th>iR</th></tr></thead><tbody>
+    ${list.map(r=>`<tr data-rid="${esc(r.id)}" tabindex="0"><td class="mono">${esc(dshort(r.when))}</td><td><b>${esc(seriesName(r.seriesId)||r.car)}</b>${drinksBadge(r)}${aiBadge(r)}${gameBadge(r)}<small>${esc(r.track)}</small></td><td class="mono"><b>${finTxt(r)}</b><small>${r.partial?esc(Tx("rebuilt from the laps","reconstruido de las vueltas","aus den Runden","das voltas")):`${esc(Tx("of","de"))} ${r.field} · ${esc(Tx("from","desde"))} P${r.start} ${placeDelta(r)}`}</small></td><td class="mono">${r.inc}x</td><td class="mono">${fmtT(r.best)}${r.fieldBest&&r.best?`<small>${sgn(r.best-r.fieldBest,3)}</small>`:""}</td><td class="mono ${r.irChange>0&&!isAIRace(r)?"good":r.irChange<0&&!isAIRace(r)?"bad":""}">${isAIRace(r)?"–":irTxt(r.irChange)}${r.posted?' <span title="Discord">💬</span>':""}</td></tr>`).join("")}</tbody></table></div></section>`;
   box.querySelectorAll("[data-rid]").forEach(tr=>{tr.onclick=()=>openRace(tr.dataset.rid);tr.onkeydown=e=>{if(e.key==="Enter")openRace(tr.dataset.rid)}});renderRaceRecap()}
 function lineChart(vals,opt){const w=600,h=opt.h||150,p=24,xs=vals.map((v,i)=>i),ok=vals.filter(v=>v!=null);if(ok.length<2)return"";let lo=Math.min(...ok),hi=Math.max(...ok);if(opt.lo!=null)lo=opt.lo;if(opt.hi!=null)hi=opt.hi;if(hi-lo<1e-6)hi=lo+1;
   const X=i=>p+i*(w-2*p)/Math.max(1,vals.length-1),Y=v=>opt.invert?p+(v-lo)/(hi-lo)*(h-2*p):h-p-(v-lo)/(hi-lo)*(h-2*p);
@@ -7303,7 +7893,7 @@ async function renderCommLaps(){const box=$("#cmLaps");if(!box||!COMMSEL)return;
     th=`<tr><th>${esc(Tx("Pos","Pos","Pos","Pos"))}</th><th>${esc(Tx("Driver","Piloto","Fahrer","Piloto"))}</th><th class="r">${esc(Tx("Time","Tiempo","Zeit","Tempo"))}</th><th class="r">${esc(Tx("Gap","Dif.","Abst.","Dif."))}</th>${[...Array(cols)].map((_,k)=>`<th class="r">S${k+1}</th>`).join("")}${commAdmin()?"<th></th>":""}</tr>`;
   if(laps.length)box.innerHTML=`<div class="cl-tscroll"><table class="cl-table"><thead>${th}</thead><tbody>
     ${myBest&&!me?`<tr class="me"><td class="mono">–</td><td><b>${esc(Tx("You","Tú","Du","Você"))}</b> <small>${esc(Tx("your best, not shared","tu mejor, sin compartir","deine Bestzeit, nicht geteilt","sua melhor, não compartilhada"))}</small></td><td class="mono r">${fmtT(myBest)}</td><td class="mono r muted">${best?sgn(myBest-best,3):""}</td>${"<td></td>".repeat(cols)}${commAdmin()?"<td></td>":""}</tr>`:""}
-    ${laps.map(l=>`<tr data-bsel="${esc(l.id)}" class="${l.mine?"me":""}${l.id===COMM_BSEL?" on":""}" tabindex="0"><td class="mono ${l.pos===1?"pb":l.pos<=3?"acc":"muted"}">${l.pos}</td><td class="cl-drv">${l.prof?`<button type="button" class="lb-name" data-prof="${esc(l.id)}" title="${esc(Tx("See the profile","Ver el perfil","Profil ansehen","Ver o perfil"))}">${l.mine?`<b>${nm(l)}</b>`:nm(l)}</button>`:l.mine?`<b>${nm(l)}</b>`:nm(l)}${l.sup?" "+supTag():""}${l.mine?` <span class="pill acc" style="font-size:10px">${esc(Tx("you","tú","du","você"))}</span>`:""} <small>· ${esc(agoTxt(l.created))}</small></td><td class="mono r">${fmtT(l.time)}</td><td class="mono r muted">${l.pos>1?"+"+(l.time-best).toFixed(3):"—"}</td>${[...Array(cols)].map((_,k)=>{const v=l.sectors&&l.sectors[k]>0?+l.sectors[k]:null;return`<td class="mono r${v!=null&&v<=sb[k]+1e-9?" pb":""}">${v!=null?v.toFixed(3):"–"}</td>`}).join("")}${commAdmin()?`<td>${admDel("laps",l.id)}</td>`:""}</tr>`).join("")}</tbody></table></div>`;
+    ${laps.map(l=>`<tr data-bsel="${esc(l.id)}" class="${l.mine?"me":""}${l.id===COMM_BSEL?" on":""}" tabindex="0"><td class="mono ${l.pos===1?"pb":l.pos<=3?"acc":"muted"}">${l.pos}</td><td class="cl-drv">${l.prof?`<button type="button" class="lb-name" data-prof="${esc(l.id)}" title="${esc(Tx("See the profile","Ver el perfil","Profil ansehen","Ver o perfil"))}">${l.mine?`<b>${nm(l)}</b>`:nm(l)}</button>`:l.mine?`<b>${nm(l)}</b>`:nm(l)}${l.sup?" "+supTag():""}${l.mine?` <span class="pill acc" style="font-size:10px">${esc(Tx("you","tú","du","você"))}</span>`:""} <small>· ${esc(agoTxt(l.created))}</small></td><td class="mono r cl-t${l.pos===1?" pb":l.mine?" acc":""}">${fmtT(l.time)}</td><td class="mono r muted">${l.pos>1?"+"+(l.time-best).toFixed(3):"—"}</td>${[...Array(cols)].map((_,k)=>{const v=l.sectors&&l.sectors[k]>0?+l.sectors[k]:null;const mv=me&&l!==me&&me.sectors&&me.sectors[k]>0?+me.sectors[k]:null,c=v==null?"":mv!=null?(v-mv<-0.05?" pb":v-mv>0.05?" muted":""):v<=sb[k]+1e-9?" pb":"";return`<td class="mono r${c}">${v!=null?v.toFixed(3):"–"}</td>`}).join("")}${commAdmin()?`<td>${admDel("laps",l.id)}</td>`:""}</tr>`).join("")}</tbody></table></div>`;
   else if(!box.querySelector(".err"))box.innerHTML=`<p class="note">${esc(Tx("No shared laps for this track and car yet.","Aún no hay vueltas compartidas de este circuito y coche.","Noch keine geteilten Runden für diese Strecke und dieses Auto.","Ainda não há voltas compartilhadas desta pista e carro."))}</p>`;
   box.querySelectorAll("[data-prof]").forEach(b=>b.onclick=e=>{e.stopPropagation();openProfile({lap:b.dataset.prof})});wireAdmDel(box,renderCommLaps);
   const pick=id=>{if(COMM_BSEL===id)return;COMM_BSEL=id;box.querySelectorAll("tr[data-bsel]").forEach(r=>r.classList.toggle("on",r.dataset.bsel===id));drawCommMap(s,laps)};
@@ -7451,7 +8041,7 @@ function lmuClass(x){const c=x.cls||x.carClass||x.class||"";if(c)return String(c
   return /\blmp2\b|oreca 07/i.test(n)?"LMP2":/\blmp3\b|ligier js p3|ginetta g61|duqueine d08/i.test(n)?"LMP3":/\bgte\b|488 gte|vantage amr|911 rsr|c8\.r/i.test(n)?"GTE":/gt3/i.test(n)?"LMGT3":/hypercar|499p|\b963\b|gr010|v-series|9x8|vanwall|scg 007|isotta|a424|valkyrie|m hybrid|bmw m4 lmdh/i.test(n)?"Hypercar":""}
 function carsHTML(){const by=new Map();(CLOUD.sessions||[]).forEach(x=>{const k=x.car||"";if(!k)return;const e=by.get(k)||{car:k,cls:lmuClass(x),n:0,laps:0,best:0,last:0};e.n++;e.laps+=+x.laps||0;if(x.best>0&&(!e.best||x.best<e.best))e.best=x.best;e.last=Math.max(e.last,x.started||0);by.set(k,e)});
   const list=[...by.values()].sort((a,b)=>b.n-a.n||b.last-a.last).slice(0,8);
-  return`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Your cars","Tus coches","Deine Autos","Seus carros"))}</h2></div>${list.length?`<div class="hl-cars">${list.map(e=>`<button type="button" class="hl-row hl-car" data-go="cloudlaps"><span class="inf"><span class="nm"><span class="t">${esc(e.car)}</span>${e.cls?`<span class="hl-tag">${esc(e.cls)}</span>`:""}</span><span class="sub">${esc(Tx(`${e.n} sessions`,`${e.n} sesiones`,`${e.n} Sitzungen`,`${e.n} sessões`))} · ${esc(dayAgo(e.last))}</span></span><span class="inc">${hlLaps(e.laps)}</span><span class="muted">${e.best?fmtT(e.best):"–"}</span></button>`).join("")}</div>`:`<p class="note">${esc(Tx("No sessions in Le Mans Ultimate yet.","Aún no hay sesiones en Le Mans Ultimate.","Noch keine Sitzungen in Le Mans Ultimate.","Ainda não há sessões no Le Mans Ultimate."))}</p>`}</section>`}
+  return`<section class="hl-sec hl-licsec"><div class="cl-h"><h2>${esc(Tx("Your cars","Tus coches","Deine Autos","Seus carros"))}</h2></div>${list.length?`<div class="hl-cars">${list.map(e=>`<button type="button" class="hl-row hl-car" data-go="cloudlaps"><span class="inf"><span class="nm"><span class="t">${esc(e.car)}</span>${e.cls?`<span class="hl-tag">${esc(e.cls)}</span>`:""}</span><span class="sub">${esc(Tx(`${e.n} sessions`,`${e.n} sesiones`,`${e.n} Sitzungen`,`${e.n} sessões`))} · ${esc(dayAgo(e.last))}</span></span><span class="inc">${hlLaps(e.laps)}</span><span class="muted">${e.best?fmtT(e.best):"–"}</span></button>`).join("")}</div>`:`<p class="note">${esc(Tx("No sessions in Le Mans Ultimate yet.","Aún no hay sesiones en Le Mans Ultimate.","Noch keine Sitzungen in Le Mans Ultimate.","Ainda não há sessões no Le Mans Ultimate."))}</p>`}</section>`}
 function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   const loc=locale(),races=(RACES||[]).filter(r=>r&&!r.partial),R=discRatings(),hr=new Date().getHours(),name=(COMPANION?CP.acc&&CP.acc.display:ME&&ME.display)||"";
   const hi=hr<6||hr>=21?Tx("Good evening","Buenas noches","Guten Abend","Boa noite"):hr<13?Tx("Good morning","Buenos días","Guten Morgen","Bom dia"):Tx("Good afternoon","Buenas tardes","Guten Tag","Boa tarde");
@@ -7476,7 +8066,7 @@ function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
   // the last race
   const last=races[0];let left="";
   if(last){const ai=isAIRace(last),ir=ai||!last.irChange?null:last.irChange,gain=(last.start||0)&&last.finish?last.start-last.finish:0,pos=(last.laps||[]).map(l=>l.p).filter(p=>p>0);
-    left+=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Your last race","Tu última carrera","Dein letztes Rennen","Sua última corrida"))}</h2><span>${esc(agoTxt(last.when))}</span></div>
+    left+=`<section class="hl-sec hl-w2 hl-lastsec"><div class="cl-h"><h2>${esc(Tx("Your last race","Tu última carrera","Dein letztes Rennen","Sua última corrida"))}</h2><span>${esc(agoTxt(last.when))}</span></div>
       <button type="button" class="hl-last" data-rid="${esc(last.id)}"><div class="hl-pos"><b>${last.dnf?`DNF<small>/${last.field||"–"}</small>`:`P${last.finish||"–"}<small>/${last.field||"–"}</small>`}</b>${gain&&!last.dnf?`<span class="${gain>0?"good":"bad"}">${gain>0?"▲":"▼"} ${Math.abs(gain)} ${esc(Tx("from","desde","von","desde"))} P${last.start}</span>`:""}</div>
         <div class="hl-what"><div class="nm">${esc(last.track||"")}${hlKindTag("race")}${aiBadge(last)}${drinksBadge(last)}${aGame()==="iracing"?gameBadge(last):""}</div><div class="sub"><i style="background:${HL_DC[hlRaceDisc(last)]||"var(--muted)"}"></i>${esc(last.car||"")}</div>
           ${pos.length>1?`<svg viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(pos,200,34,true)}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`:""}</div>
@@ -7484,17 +8074,18 @@ function homeCleanHTML(){loadRatingsSoon();homeRacesHTML();homeActivityHTML();
       <div class="hl-links"><button type="button" class="cl-link" data-rid="${esc(last.id)}">${esc(Tx("Race summary","Resumen de carrera","Rennzusammenfassung","Resumo da corrida"))}</button><button type="button" class="cl-link" id="hlLaps">${esc(Tx("Analyse my laps","Analizar mis vueltas","Meine Runden analysieren","Analisar minhas voltas"))}</button></div></section>`}
   // recent sessions: the races and the other sessions (practice, qualifying, test drives) together, newest first
   const sx=(CLOUD.sessions||[]).filter(x=>sessKindOf(x)!=="race"),rows=[...races.slice(last?1:0).map(r=>({t:r.when,r})),...sx.map(x=>({t:x.started,x}))].sort((a,b)=>b.t-a.t).slice(0,6);
-  if(rows.length)left+=`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Recent sessions","Sesiones recientes","Letzte Sitzungen","Sessões recentes"))}</h2><button type="button" class="cl-link" data-go="cloudlaps">${esc(Tx("See all","Ver todas","Alle","Ver todas"))}</button></div><div class="hl-rows">${rows.map(({r,x})=>{
+  let sesH="";if(rows.length)sesH=`<section class="hl-sec hl-w2 hl-sessec"><div class="cl-h"><h2>${esc(Tx("Recent sessions","Sesiones recientes","Letzte Sitzungen","Sessões recentes"))}</h2><button type="button" class="cl-link" data-go="cloudlaps">${esc(Tx("See all","Ver todas","Alle","Ver todas"))}</button></div><div class="hl-rowh" aria-hidden="true"><span></span><span></span><span class="inc">${esc(Tx("Laps","Vueltas","Runden","Voltas"))}</span><span>${esc(Tx("Best","Mejor","Beste","Melhor"))}</span></div><div class="hl-rows">${rows.map(({r,x})=>{
     if(r){const ir=isAIRace(r)||!r.irChange?null:r.irChange;return`<button type="button" class="hl-row" data-rid="${esc(r.id)}"><b${r.dnf?' class="bad"':""}>${r.dnf?"DNF":"P"+(r.finish||"–")}</b><span class="inf"><span class="nm"><span class="t">${esc(r.track||"")}</span>${hlKindTag("race")}${aiBadge(r)}${drinksBadge(r)}</span><span class="sub"><i style="background:${HL_DC[hlRaceDisc(r)]||"var(--muted)"}"></i>${esc(r.car||"")} · ${esc(agoTxt(r.when))}${ir==null?"":` · <b class="${ir>=0?"good":"bad"}">${hlSg(ir)} iR</b>`}</span></span><span class="inc">${hlLaps((r.laps||[]).length)}</span><span class="muted">${fmtT(r.best)}</span></button>`}
     return`<button type="button" class="hl-row" data-ses="${esc(x.id)}"><b class="muted">–</b><span class="inf"><span class="nm"><span class="t">${esc(x.track||"")}</span>${hlKindTag(sessKindOf(x)||"prac")}${sessIsAI(x)?aiBadge({ai:1}):""}${sessDrkPill(x)}${aGame()==="iracing"?gameBadge(x):""}</span><span class="sub"><i style="background:${HL_DC[x.cat]||"var(--muted)"}"></i>${esc(x.car||"")} · ${esc(agoTxt(x.started))}</span></span><span class="inc">${hlLaps(x.laps||0)}</span><span class="muted">${fmtT(x.best)}</span></button>`}).join("")}</div></section>`;
   // each discipline's licence; the chosen one draws its iRating over your races
   const lic=LB_DISC.map(([k])=>{const r=R[k],c=chgOf(k);return`<button type="button" class="hl-lic${HOME.dk===k?" on":""}${r?"":" none"}" data-dk="${k}"${r?"":" disabled"}><span><i style="background:${HL_DC[k]}"></i>${esc(discName(k))}</span><span>${r&&r.lic?licPill(r.lic):""}</span><b>${r?r.ir:"–"}</b><em class="${c>0?"good":c<0?"bad":"muted"}">${r&&c?hlSg(c):""}</em></button>`}).join("");
   const hist=HOME.dk?real.filter(x=>hlRaceDisc(x)===HOME.dk&&x.ir>1).slice(0,30).reverse().map(x=>x.ir+(x.irChange||0)):[];if(HOME.dk&&R[HOME.dk]&&(!hist.length||hist[hist.length-1]!==R[HOME.dk].ir))hist.push(R[HOME.dk].ir);
-  let right=aGame()!=="iracing"?carsHTML():`<section class="hl-sec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
+  let right=aGame()!=="iracing"?carsHTML():`<section class="hl-sec hl-licsec"><div class="cl-h"><h2>${esc(Tx("Licence summary","Resumen de licencias","Lizenzübersicht","Resumo de licenças"))}</h2></div><div class="hl-lich"><span></span><span></span><span>iRating</span><span></span></div>${lic}${hist.length>1?`<svg class="hl-irl" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="${hlLine(hist,300,60)}" fill="none" stroke="${HL_DC[HOME.dk]}" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>`:""}</section>`;
   const by=homeActivity(),cal=calGrid(k=>{const v=by.get(k);return v?v.ses.length+v.races.length:0},true);
-  right+=homeLeagHTML(main);
-  right+=`<section class="hl-sec hl-days"><div class="cl-h"><h2>${esc(Tx("Days you drove","Días que has corrido","Gefahrene Tage","Dias em que correu"))}</h2><span>${cal.driven} ${esc(Tx("days in 6 months","días en 6 meses","Tage in 6 Monaten","dias em 6 meses"))}</span></div>${cal.html}</section>`;
-  return h+`<div class="hl-two"><div class="hl-col">${left}</div><div class="hl-col">${right}</div></div>`}
+  const leagH=homeLeagHTML(main);
+  const daysH=`<section class="hl-sec hl-days"><div class="cl-h"><h2>${esc(Tx("Days you drove","Días que has corrido","Gefahrene Tage","Dias em que correu"))}</h2><span>${cal.driven} ${esc(Tx("days in 6 months","días en 6 meses","Tage in 6 Monaten","dias em 6 meses"))}</span></div>${cal.html}</section>`;
+  // the design's grid: the last race (2/3) beside the licences, the recent sessions (2/3) beside the days, the leagues below
+  return h+`<div class="hl-grid">${left?left+right+sesH:sesH+right}${daysH}${leagH}</div>`}
 function renderHome(fromLoad){const box=$("#homeBox");if(!box)return;if(!fromLoad&&!HOME.busy&&(!SER||(!ACCSUM&&!(MODE==="bridge"&&ACC.loggedIn&&ACCDATA))||(MODE==="bridge"&&ACC.loggedIn&&!HOME.acct)))homeLoad();
   if(!SER&&HOME.tries++<25)setTimeout(()=>{if(CUR_VIEW==="home")renderHome()},700);
   const me=homeMember(),now=Date.now(),loc=locale(),ini=(me.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -7793,10 +8384,11 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
   // the welcome: the first time this account signs in on this device, until Continue or until you go elsewhere
 
   const when=t=>t?new Date(t).toLocaleString(locale(),{dateStyle:"medium",timeStyle:"short"}):"–";
-  box.innerHTML=`<div class="panel me-idc"><div class="sa-id"><div class="sa-av">${esc((a.display||"?").slice(0,1).toUpperCase())}</div><div class="sa-who"><div class="sa-name">${esc(a.display||"")}${myBadges(a)}</div>
+  box.innerHTML=`<div class="me-top"><div class="panel me-idc"><div class="sa-id"><div class="sa-av">${esc((a.display||"?").slice(0,1).toUpperCase())}</div><div class="sa-who"><div class="sa-name">${esc(a.display||"")}${myBadges(a)}</div>
       <dl class="me-kv"><dt>Email</dt><dd>${hidden("meMailH",a.email||"")}</dd>${a.id?`<dt>${esc(Tx("Account id","ID de cuenta","Konto-ID","ID da conta"))}</dt><dd>${hidden("meIdH",a.id,true)}</dd>`:""}</dl>
       <div class="frow" style="gap:6px;margin-top:10px"><button type="button" class="btn small" id="meProf">${esc(Tx("My profile","Mi perfil","Mein Profil","Meu perfil"))}</button><button type="button" class="btn small" id="meGoComm">${esc(Tx("Public name","Nombre público","Öffentlicher Name","Nome público"))}</button><button type="button" class="btn small danger" id="meSignOut">${esc(COMPANION?Tx("Sign out","Cerrar sesión","Abmelden","Sair"):Tx("Sign out on this PC","Cerrar sesión en este PC","Auf diesem PC abmelden","Sair neste PC"))}</button></div>${a.error&&!COMPANION?`<p class="note err" style="margin:8px 0 0">${esc(Tx("This PC could not sync: ","Este PC no pudo sincronizar: ","Dieser PC konnte nicht synchronisieren: ","Este PC não conseguiu sincronizar: ")+a.error)}</p>`:""}</div></div>
       ${a.verified===false&&a.mail?`<div class="callout" style="margin-top:10px">${esc(Tx("Confirm your email: open the link we sent you. It lets you reset your password if you forget it.","Confirma tu email: abre el enlace que te enviamos. Así podrás restablecer la contraseña si la olvidas.","Bestätige deine E-Mail: Öffne den Link, den wir dir geschickt haben. So kannst du dein Passwort zurücksetzen, wenn du es vergisst.","Confirme seu email: abra o link que enviamos. Assim você pode redefinir a senha se esquecer."))} <button type="button" class="btn small" id="meVer">${esc(Tx("Send it again","Enviarlo otra vez","Erneut senden","Enviar de novo"))}</button></div>`:""}</div>
+    <div class="me-col me-links"><div class="panel" id="meSteam"><h2>Steam</h2><div id="meSteamB"><p class="note">…</p></div></div><div class="panel" id="meDisc"><h2>Discord</h2><div id="meDiscB"><p class="note">…</p></div></div><div class="panel" id="mePro" hidden></div></div></div>
   <div class="me-cols"><div class="me-col"><div class="me-grp">${esc(Tx("Security","Seguridad","Sicherheit","Segurança"))}</div>
     <div class="panel"><h2>${esc(Tx("Change password","Cambiar contraseña"))}</h2><form class="me-form" id="mePw"><input type="password" id="mpO" placeholder="${esc(Tx("Current password","Contraseña actual"))}" required autocomplete="current-password"><input type="password" id="mpN" placeholder="${esc(Tx("New password (10+)","Nueva contraseña (10+)"))}" required minlength="10" autocomplete="new-password"><button class="btn small" type="submit">${esc(Tx("Change","Cambiar"))}</button>
       <p class="note" style="margin:0">${esc((COMPANION?Tx("Other devices are signed out. Your data does not need to be uploaded again.","Los demás dispositivos cierran sesión. No hace falta volver a subir tus datos.","Andere Geräte werden abgemeldet. Deine Daten müssen nicht erneut hochgeladen werden.","Os outros dispositivos saem da conta. Seus dados não precisam ser enviados de novo."):Tx("Other PCs are signed out. Your data does not need to be uploaded again.","Los demás PCs cierran sesión. No hace falta volver a subir tus datos.")))}</p></form></div>
@@ -7807,7 +8399,7 @@ async function renderMe(){const box=$("#meBody");if(!box)return;const a=await lo
       ${COMPANION?"":`<div class="me-row" style="margin-top:8px">${chk("meLaps",a.lapsToAccount,Lp("Keep my laps in my account","Guardar mis vueltas en mi cuenta",true))}<button type="button" class="btn small" id="meWeb">${esc(Tx("See my laps on the web","Ver mis vueltas en la web","Meine Runden im Web ansehen","Ver minhas voltas na web"))}</button></div><p class="note" style="margin:4px 0 0">${esc(Tx("Every lap you drive is uploaded by itself; sign in on the web with your email and password.","Cada vuelta que das se sube sola; en la web entras con tu email y contraseña.","Jede gefahrene Runde wird automatisch hochgeladen; im Web meldest du dich mit E-Mail und Passwort an.","Cada volta que você dá é enviada sozinha; na web você entra com seu e-mail e senha."))}</p>`}
 </div>`}
     <div class="panel"><h2>${esc((COMPANION?Tx("Signed-in devices","Dispositivos con sesión","Angemeldete Geräte","Dispositivos conectados"):Tx("Signed-in PCs","PCs con sesión")))}</h2><div id="meSess" class="devlist"><p class="note">…</p></div><div class="me-row" style="margin-top:8px"><button type="button" class="btn small" id="meOthers">${esc((COMPANION?Tx("Sign out every other device","Cerrar sesión en los demás dispositivos","Alle anderen Geräte abmelden","Encerrar a sessão nos outros dispositivos"):Tx("Sign out every other PC","Cerrar sesión en los demás PCs")))}</button></div></div>
-    <div class="panel" id="meDisc"><h2>Discord</h2><div id="meDiscB"><p class="note">…</p></div></div><div class="panel" id="meSteam"><h2>Steam</h2><div id="meSteamB"><p class="note">…</p></div></div><div class="panel" id="mePro" hidden></div></div></div>
+    </div></div>
   ${a.admin&&!asUser()?`<div class="panel" style="margin-top:12px"><div class="frow" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">${esc(Tx("Admin","Admin","Admin","Admin"))}</h2><button type="button" class="btn primary" id="meAdmin">${esc(Tx("Open the admin page","Abrir la página de admin","Open the admin page","Abrir a página de admin"))}</button></div><p class="note" style="margin:6px 0 0">pitlanehq.app/admin</p></div>`:""}
   <div class="me-danger"><div class="panel"><h2 class="bad">${esc(Tx("Delete account","Borrar cuenta"))}</h2><p class="note" style="margin-top:0">${esc(DEL_ACC_TXT())}</p>
       <form class="me-row" id="meDel"><input type="password" id="mdP" placeholder="${esc(Tx("Password","Contraseña"))}" required autocomplete="current-password" style="flex:1"><button class="btn small danger" type="submit">${esc(Tx("Delete","Borrar"))}</button></form></div></div>`;

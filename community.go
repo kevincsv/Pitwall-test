@@ -1187,7 +1187,11 @@ var layoutGames = map[string]bool{"iracing": true, "lmu": true}
 // faster than the layout everyone already has. iRacing and LMU, and never when sharing layouts is off:
 // it is what draws the track map in the analyzer, the coach, the race summaries and the phone apps.
 func shareLayout(l cloudLap, s cloudSession) {
-	game := currentGame()
+	shareLayoutFor(l, currentGame(), sessionYAML())
+}
+
+// shareLayoutFor: shareLayout for a lap of this game and session YAML (the import of old laps reads them from a file)
+func shareLayoutFor(l cloudLap, game, y string) {
 	if tel.isDemo() || !layoutGames[game] || l.Trace == nil || len(l.Trace.X) < 100 || len(l.Trace.X) > 3000 || !(l.Time > 10) {
 		return
 	}
@@ -1197,7 +1201,6 @@ func shareLayout(l cloudLap, s cloudSession) {
 	if off {
 		return
 	}
-	y := sessionYAML()
 	c := currentCarTrack(y)
 	if c.TrackID == 0 {
 		return

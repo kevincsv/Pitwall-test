@@ -49,6 +49,7 @@ type cloudSession struct {
 	Cat         string  `json:"cat,omitempty"`      // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
 	Official    *bool   `json:"official,omitempty"` // a session of an official series: those teach the model
 	AI          bool    `json:"ai,omitempty"`       // a session with iRacing's AI drivers: its people's laps teach the model too
+	Imported    bool    `json:"imported,omitempty"` // read afterwards from a telemetry file on the PC (ibtimport.go), not driven now
 }
 
 type cloudLap struct {
@@ -287,7 +288,13 @@ func listItem(y, key, value string) string {
 }
 
 func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
-	s := cloudSession{Started: started.UnixMilli(), Track: yamlField(y, "TrackDisplayName"), TrackConfig: yamlField(y, "TrackConfigName"), Game: currentGame(), TrackID: atoi(yamlField(y, "TrackID"))}
+	return sessionMetaGame(y, sessionNum, started, currentGame())
+}
+
+// sessionMetaGame: the session as sessionMeta reads it, for a given game (the import of old laps reads files, not
+// the game running now)
+func sessionMetaGame(y string, sessionNum int, started time.Time, game string) cloudSession {
+	s := cloudSession{Started: started.UnixMilli(), Track: yamlField(y, "TrackDisplayName"), TrackConfig: yamlField(y, "TrackConfigName"), Game: game, TrackID: atoi(yamlField(y, "TrackID"))}
 	me := yamlField(y, "DriverCarIdx")
 	if d := driverBlock(y, me); d != "" {
 		s.Car = yamlField(d, "CarScreenName")
@@ -376,7 +383,7 @@ type lapRec struct {
 
 // noteDriver counts who is driving (DRINKS mode), once a second: the lap is theirs who drove most of it, so a
 // driver changed just after the line or while the car sits in the pits never takes the lap before
-func (r *lapRec) noteDriver(now time.Time) {
+func (r *lapRec) noteDriver(now time.Time, who func() string) {
 	if !r.drvAt.IsZero() && now.Sub(r.drvAt) < time.Second {
 		return
 	}
@@ -384,7 +391,7 @@ func (r *lapRec) noteDriver(now time.Time) {
 	if r.drv == nil {
 		r.drv = map[string]int{}
 	}
-	r.drv[fridayDriver()]++
+	r.drv[who()]++
 }
 
 // topDriver: who drove most of the lap ("" you, also when nothing was counted)
@@ -495,151 +502,215 @@ func (r *lapRec) add(d, t, speed float64, ch [4]float64) {
 	r.hasLast, r.lastD, r.lastT, r.lastSp, r.lastPos = true, d, t, speed, r.pos
 }
 
+// lapEnv: where the lap recorder's samples come from and where its laps go. The live game (liveLapEnv) and the
+// telemetry files on the PC (ibtimport.go) drive the same recorder, so a lap read afterwards follows exactly the rules
+// of a lap driven now.
+type lapEnv interface {
+	yaml() (string, int)                                     // the session YAML and its version
+	runKey(sn int) string                                    // the session the samples belong to (noteRun's key)
+	noteRun(key string, st float64, lap int) (int, int)      // the run's lap offset (sessionrun.go)
+	carsAhead(dist, pct, speed float64, me int) (bool, bool) // a car within a second ahead; false, false without the cars' positions
+	driver() string                                          // who is at the wheel (DRINKS mode, "" you)
+	geo(key string, lat, lon float64) [2]float64             // the origin of the paths of this session's laps
+	has(name string) bool                                    // whether the source sends this variable
+	meta(y string, sn int) cloudSession                      // the session the laps go to
+	lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLL float64)
+	now() time.Time
+}
+
+// lapStream: the lap recorder's state between two samples
+type lapStream struct {
+	env              lapEnv
+	cur              *lapRec
+	sess             cloudSession
+	sessNum, sessVer int
+	sessKey          string
+	lastBase         int     // the lap offset of the session's current run (sessionrun.go)
+	lastLL           float64 // LapLastLapTime one sample before, to tell when iRacing updates it
+	tick             int
+}
+
+func newLapStream(env lapEnv) *lapStream {
+	return &lapStream{env: env, sessNum: -1, sessVer: -1, lastLL: -1}
+}
+
+// reset: the game is gone (or not read): the lap under way is dropped
+func (ls *lapStream) reset() { ls.cur, ls.sessNum, ls.sessKey = nil, -1, "" }
+
 func lapRecorder() {
-	var cur *lapRec
-	var sess cloudSession
-	sessNum, sessVer, sessKey := -1, -1, ""
-	lastBase := 0  // the lap offset of the session's current run (sessionrun.go)
-	lastLL := -1.0 // LapLastLapTime one sample before, to tell when iRacing updates it
+	ls := newLapStream(liveLapEnv{})
 	t := time.NewTicker(time.Second / 30)
-	tick := 0
 	for range t.C {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
-			cur, sessNum, sessKey = nil, -1, ""
+			ls.reset()
 			continue
 		}
-		v := telNums(lapVars)
-		hasYaw := telHas("Yaw") && telHas("VelocityX")
-		hasGeo := telHas("Lat") && telHas("Lon") && math.Abs(v[23]) > 0.001 && math.Abs(v[24]) > 0.001
-		prevLL := lastLL
-		lastLL = v[8]
-		lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
-		onTrack, sn := v[12] > 0, int(v[13])
-		// a new session: another SessionNum, or another event, track or car with the same
-		// number (a second practice, a new race), so laps never land in the previous one
-		tel.mu.RLock()
-		y, ver := tel.session, tel.sessionVer
-		tel.mu.RUnlock()
-		if ver != sessVer {
-			sessVer = ver
-			if k := sessionKey(y); k != sessKey {
-				if sessKey != "" {
-					sessNum = -1
-				}
-				sessKey = k
+		ls.step(telNums(lapVars))
+	}
+}
+
+// step reads one sample (the values of lapVars, in that order), 30 a second
+func (ls *lapStream) step(v []float64) {
+	env := ls.env
+	hasYaw := env.has("Yaw") && env.has("VelocityX")
+	hasGeo := env.has("Lat") && env.has("Lon") && math.Abs(v[23]) > 0.001 && math.Abs(v[24]) > 0.001
+	prevLL := ls.lastLL
+	ls.lastLL = v[8]
+	lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
+	onTrack, sn := v[12] > 0, int(v[13])
+	// a new session: another SessionNum, or another event, track or car with the same
+	// number (a second practice, a new race), so laps never land in the previous one
+	y, ver := env.yaml()
+	if ver != ls.sessVer {
+		ls.sessVer = ver
+		if k := sessionKey(y); k != ls.sessKey {
+			if ls.sessKey != "" {
+				ls.sessNum = -1
 			}
+			ls.sessKey = k
 		}
-		if sn != sessNum {
-			sessNum, cur = sn, nil
-			sess = sessionMeta(y, sn, time.Now())
-			sess.AirTemp, sess.TrackTemp = v[15], v[16]
+	}
+	if sn != ls.sessNum {
+		ls.sessNum, ls.cur = sn, nil
+		ls.sess = env.meta(y, sn)
+		ls.sess.AirTemp, ls.sess.TrackTemp = v[15], v[16]
+	}
+	if !onTrack {
+		ls.cur = nil
+		return
+	}
+	cur := ls.cur
+	// the session started again without leaving it: the lap under way is gone, and the new run's laps are
+	// numbered after the ones already driven (lap is the session's own count from here on)
+	base, _ := env.noteRun(env.runKey(sn), v[14], lap)
+	if base != ls.lastBase {
+		ls.lastBase, cur = base, nil
+	}
+	lap += base
+	// iRacing counts the new lap a moment after the line (a second or more): the samples from the line on already
+	// belong to it, or every lap would start with a hole of tens of metres and never be valid
+	if cur != nil && cur.early && lap == cur.n-1 {
+		lap = cur.n
+	} else if cur != nil && lap == cur.n && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 {
+		lap = cur.n + 1
+	}
+	now := env.now()
+	if cur == nil || lap != cur.n {
+		if cur != nil && lap == cur.n+1 {
+			cur.driver = cur.topDriver()
+			env.lapEnded(sn, cur, ls.sess, v[9], prevLL)
 		}
-		if !onTrack {
-			cur = nil
-			continue
-		}
-		// the session started again without leaving it: the lap under way is gone, and the new run's laps are
-		// numbered after the ones already driven (lap is the session's own count from here on)
-		base, _ := noteRun(curRunKey(sn), v[14], lap)
-		if base != lastBase {
-			lastBase, cur = base, nil
-		}
-		lap += base
-		// iRacing counts the new lap a moment after the line (a second or more): the samples from the line on already
-		// belong to it, or every lap would start with a hole of tens of metres and never be valid
-		if cur != nil && cur.early && lap == cur.n-1 {
-			lap = cur.n
-		} else if cur != nil && lap == cur.n && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 {
-			lap = cur.n + 1
-		}
-		now := time.Now()
-		if cur == nil || lap != cur.n {
-			if cur != nil && lap == cur.n+1 {
-				setLapCut(sn, cur.n, cur.invalid())        // the race report reads the same verdict
-				setLapIncs(sn, cur.n, cur.incAt, cur.incK) // and the same incidents
-				cur.driver = cur.topDriver()
-				setLapDriver(sn, cur.n, cur.driver) // and the same driver
-				done, s := cur, sess
-				fuelNow := v[9]
-				prevLast := prevLL
-				go func() { // iRacing updates the last lap time a moment after the line
-					lt := waitLastLap(done, prevLast)
-					setLapTime(sn, done.n, lt)
-					finishLap(done, s, fuelNow, lt)
-				}()
-			}
-			early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
-			cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early}
-		}
-		cur.noteDriver(now)
-		// twice a second: a car within one second ahead (by its place on the lap) is traffic
-		if tick++; tick%15 == 0 && speed > 5 && pct > 0.02 && dist > 0 {
-			if arr := telArrays([]string{"CarIdxLapDistPct", "CarIdxOnPitRoad"}); len(arr[0]) > 0 {
-				L, me, near := dist/pct, int(v[25]), false
-				for i, p := range arr[0] {
-					if i == me || p < 0 || (len(arr[1]) > i && arr[1][i] > 0) {
-						continue
-					}
-					gap := p - pct
-					if gap < 0 {
-						gap++
-					}
-					if g := gap * L; g > 0 && g < speed*1.0 {
-						near = true
-						break
-					}
-				}
-				cur.trafficS++
-				if near {
-					cur.trafficN++
-				}
-			}
-		}
-		if pct < 0 || dist < 0 {
-			continue
-		}
-		if hasGeo { // the game's own position: the exact shape of the track, the same frame for every lap
-			cur.place(v[14], geoBase(sessKey, v[23], v[24]), v[23], v[24])
-		} else if hasYaw {
-			cur.move(v[14], v[19], v[20], v[21])
-		}
-		if v[22] > 1 { // a car beside you
-			cur.besideAt = time.Now()
-		}
-		if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap, how many points and what it was
-			pts := v[11] - cur.incPrev
-			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), pts)
-			// the kind iRacing gives each incident by its points: 1x Off Track, 2x Loss of Control, 4x Car Contact
-			// (a 0x Light Contact adds nothing to the count, so it is never seen here)
-			k := "off"
-			switch {
-			case pts >= 4:
-				k = "contact"
-			case pts >= 2:
-				k = "loss"
-			}
-			if int(pts)%2 == 1 { // an Off Track (1x, alone or with another incident) makes the lap invalid
-				cur.bad = true
-			}
-			cur.incK = append(cur.incK, k)
-		}
-		cur.incPrev = v[11]
-		cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
-		cur.lastPct = pct
-		cur.vmax = math.Max(cur.vmax, speed)
-		if v[10] > 0 {
-			cur.pit = true
-			cur.markPit(dist)
-		}
-		// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
-		// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
-		if v[18] == 0 && telHas("PlayerTrackSurface") {
-			if cur.off++; cur.off >= offTrackSamples {
-				cur.bad = true
+		early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
+		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early}
+	}
+	ls.cur = cur
+	cur.noteDriver(now, env.driver)
+	// twice a second: a car within one second ahead (by its place on the lap) is traffic
+	if ls.tick++; ls.tick%15 == 0 && speed > 5 && pct > 0.02 && dist > 0 {
+		if near, ok := env.carsAhead(dist, pct, speed, int(v[25])); ok {
+			cur.trafficS++
+			if near {
+				cur.trafficN++
 			}
 		}
 	}
+	if pct < 0 || dist < 0 {
+		return
+	}
+	if hasGeo { // the game's own position: the exact shape of the track, the same frame for every lap
+		cur.place(v[14], env.geo(ls.sessKey, v[23], v[24]), v[23], v[24])
+	} else if hasYaw {
+		cur.move(v[14], v[19], v[20], v[21])
+	}
+	if v[22] > 1 { // a car beside you
+		cur.besideAt = now
+	}
+	if v[11] > cur.incPrev && len(cur.incAt) < 80 { // an incident: where on the lap, how many points and what it was
+		pts := v[11] - cur.incPrev
+		cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), pts)
+		// the kind iRacing gives each incident by its points: 1x Off Track, 2x Loss of Control, 4x Car Contact
+		// (a 0x Light Contact adds nothing to the count, so it is never seen here)
+		k := "off"
+		switch {
+		case pts >= 4:
+			k = "contact"
+		case pts >= 2:
+			k = "loss"
+		}
+		if int(pts)%2 == 1 { // an Off Track (1x, alone or with another incident) makes the lap invalid
+			cur.bad = true
+		}
+		cur.incK = append(cur.incK, k)
+	}
+	cur.incPrev = v[11]
+	cur.add(dist, v[17], speed, [4]float64{v[4], v[5], v[6], v[7]})
+	cur.lastPct = pct
+	cur.vmax = math.Max(cur.vmax, speed)
+	if v[10] > 0 {
+		cur.pit = true
+		cur.markPit(dist)
+	}
+	// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
+	// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
+	if v[18] == 0 && env.has("PlayerTrackSurface") {
+		if cur.off++; cur.off >= offTrackSamples {
+			cur.bad = true
+		}
+	}
+}
+
+// liveLapEnv: the game running now (the shared memory read by reader)
+type liveLapEnv struct{}
+
+func (liveLapEnv) yaml() (string, int) {
+	tel.mu.RLock()
+	defer tel.mu.RUnlock()
+	return tel.session, tel.sessionVer
+}
+func (liveLapEnv) runKey(sn int) string { return curRunKey(sn) }
+func (liveLapEnv) noteRun(key string, st float64, lap int) (int, int) {
+	return noteRun(key, st, lap)
+}
+func (liveLapEnv) carsAhead(dist, pct, speed float64, me int) (bool, bool) {
+	arr := telArrays([]string{"CarIdxLapDistPct", "CarIdxOnPitRoad"})
+	if len(arr[0]) == 0 {
+		return false, false
+	}
+	return carAhead(arr[0], arr[1], dist, pct, speed, me), true
+}
+func (liveLapEnv) driver() string                              { return fridayDriver() }
+func (liveLapEnv) geo(key string, lat, lon float64) [2]float64 { return geoBase(key, lat, lon) }
+func (liveLapEnv) has(name string) bool                        { return telHas(name) }
+func (liveLapEnv) meta(y string, sn int) cloudSession          { return sessionMeta(y, sn, time.Now()) }
+func (liveLapEnv) now() time.Time                              { return time.Now() }
+func (liveLapEnv) lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLast float64) {
+	setLapCut(sn, done.n, done.invalid())         // the race report reads the same verdict
+	setLapIncs(sn, done.n, done.incAt, done.incK) // and the same incidents
+	setLapDriver(sn, done.n, done.driver)         // and the same driver
+	go func() {                                   // iRacing updates the last lap time a moment after the line
+		lt := waitLastLap(done, prevLast)
+		setLapTime(sn, done.n, lt)
+		finishLap(done, s, fuelNow, lt)
+	}()
+}
+
+// carAhead: a car within one second ahead of yours (by its place on the lap), cars on the pit road aside
+func carAhead(pcts, pits []float64, dist, pct, speed float64, me int) bool {
+	L := dist / pct
+	for i, p := range pcts {
+		if i == me || p < 0 || (len(pits) > i && pits[i] > 0) {
+			continue
+		}
+		gap := p - pct
+		if gap < 0 {
+			gap++
+		}
+		if g := gap * L; g > 0 && g < speed*1.0 {
+			return true
+		}
+	}
+	return false
 }
 
 // sessionKey: what makes a session different (event, track, car) besides its number.
@@ -685,8 +756,33 @@ func (r *lapRec) invalid() bool {
 }
 
 func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
-	if lt <= 0 || len(r.bins) < 40 {
+	l, ok := buildLap(r, s, fuelNow, lt)
+	if !ok {
 		return
+	}
+	best := l.Valid          // a lap through the pit lane counts like any other
+	if best && l.Drv == "" { // a friend's lap (DRINKS) is never your best
+		recordSetupLap(l.Time)
+	}
+	recordBookLap(l.Time, l.Fuel, best && l.Drv == "")
+	if best {
+		shareLap(l, s)
+	}
+	if best && l.Trace.X != nil {
+		shareLayout(l, s)
+	}
+	// the pit lane: laps through the pits against a clean lap of the same track
+	if l.Trace.X != nil && (best || r.pit) {
+		go notePitLap(s.TrackID, l.Trace.X, l.Trace.Y, r.pitB, best)
+	}
+	queueLap(s, l)
+}
+
+// buildLap turns a finished lap into what goes to the account: the trace with its holes filled, the verdict (valid or
+// not), the path, the tags, the incidents and the sectors. false when there is no lap (no time, too few points).
+func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
+	if lt <= 0 || len(r.bins) < 40 {
+		return cloudLap{}, false
 	}
 	// fill gaps from neighbours so the trace is continuous; a hole longer
 	// than 40 m means part of the lap was not recorded
@@ -728,7 +824,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 		prev = i
 	}
 	if prev < 0 {
-		return
+		return cloudLap{}, false
 	}
 	for k := prev + 1; k < len(r.bins); k++ {
 		r.bins[k] = r.bins[prev]
@@ -764,22 +860,7 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	if l.Fuel < 0 {
 		l.Fuel = 0
 	}
-	best := l.Valid          // a lap through the pit lane counts like any other
-	if best && l.Drv == "" { // a friend's lap (DRINKS) is never your best
-		recordSetupLap(l.Time)
-	}
-	recordBookLap(l.Time, l.Fuel, best && l.Drv == "")
-	if best {
-		shareLap(l, s)
-	}
-	if best && l.Trace.X != nil {
-		shareLayout(l, s)
-	}
-	// the pit lane: laps through the pits against a clean lap of the same track
-	if l.Trace.X != nil && (best || r.pit) {
-		go notePitLap(s.TrackID, l.Trace.X, l.Trace.Y, r.pitB, best)
-	}
-	queueLap(s, l)
+	return l, true
 }
 
 // shape: the lap's x/y at every 5 m point, closed into a loop (the small drift of dead

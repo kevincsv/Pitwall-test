@@ -529,6 +529,8 @@ func main() {
 	go liveRelay()
 	go liveShareRelay()
 	go cloudUploader()
+	// the laps already on the PC (iRacing's telemetry files) go to the account by themselves
+	go ibtImporter()
 	go func() { // programs you chose to start with Pitlane HQ
 		time.Sleep(2 * time.Second)
 		launchGroup("pitwall")

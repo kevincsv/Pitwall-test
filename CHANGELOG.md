@@ -6,6 +6,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 
 ## 0.6.0 beta
 
+- A new look for the app on the computer, with the menu on the left and clearer panels on every screen.
+- The iRacing laps you saved on your PC before Pitlane HQ come into your account by themselves.
 - Le Mans Ultimate works like iRacing, in beta. Telemetry, overlays, the coach, your laps and the leaderboards, with
   the official sectors learnt from the game. If something looks wrong, write to support@pitlanehq.app.
 - Choose the game you look at at the top of Home, Analysis and Community, even with no game open.

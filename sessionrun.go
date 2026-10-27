@@ -28,7 +28,11 @@ var (
 func noteRun(key string, st float64, lap int) (base, run int) {
 	runMu.Lock()
 	defer runMu.Unlock()
-	r := &runNow
+	return runNow.note(key, st, lap)
+}
+
+// note: noteRun on one session's runs (the live game's is runNow; the import of a file keeps its own)
+func (r *sessionRun) note(key string, st float64, lap int) (base, run int) {
 	if key != r.key {
 		*r = sessionRun{key: key, st: st}
 	}
