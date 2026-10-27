@@ -83,6 +83,7 @@ type lmuSource struct {
 	secStore map[string][3]float64 // the learned sector starts of every track, kept in secPath
 	secPath  string                // "" in tests: nothing is written
 	fuel     lmuFuel
+	onTrack  bool // the game in its realtime (driving, or in the car in the garage): its REST API is left alone (lmurest.go)
 }
 
 func newLMUSource() Source { return &lmuSource{} }
@@ -105,6 +106,7 @@ func (s *lmuSource) Open() error {
 		s.img.setConnected(false)
 	}
 	go s.run()
+	go s.lmuRestLoop(s.stop) // the game's own ratings (SR, DR), read only in the menus
 	return nil
 }
 
@@ -316,6 +318,7 @@ func (s *lmuSource) convert(b []byte) bool {
 	n := li32(b, si+si_mNumVehicles)
 	trackLen := lf64(b, si+si_mLapDist)
 	if n <= 0 || n > lmuMaxVehicles || trackLen <= 0 {
+		s.onTrack = false
 		s.img.setConnected(false)
 		return false
 	}
@@ -376,6 +379,7 @@ func (s *lmuSource) convert(b []byte) bool {
 	}
 
 	inReal := lu8(b, si+si_mInRealtime) != 0
+	s.onTrack = inReal
 	if track != s.sec.track { // another track: its sectors from the file, or none yet
 		s.sec = lmuSectors{track: track, known: s.secStore[track]}
 	}

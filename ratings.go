@@ -15,8 +15,12 @@ import (
 )
 
 type discRating struct {
-	IR  int    `json:"ir"`
+	IR  int    `json:"ir,omitempty"`
 	Lic string `json:"lic,omitempty"` // "B 3.21", as the game showed it in a session
+	// Le Mans Ultimate's own ratings ("lmu" only, lmurest.go): the Safety Rating and the Driver Rating as the game
+	// shows them; that entry has no iRating
+	SR  string `json:"sr,omitempty"`
+	DR  string `json:"dr,omitempty"`
 	At  int64  `json:"at"`            // when it was seen (ms)
 	Src string `json:"src,omitempty"` // "session" (seen in the game) or "race" (from a recorded race)
 	// what your last five recorded races of the discipline gave (the sum of their iRating changes, and how many),
@@ -78,6 +82,9 @@ func ratingsFromRaces() {
 		}
 	}()
 	for k, d := range ratings {
+		if k == "lmu" && d != nil && (d.SR != "" || d.DR != "") { // Le Mans Ultimate's ratings: no iRating of its own
+			continue
+		}
 		if d == nil || !realIR(d.IR) { // an offline session's placeholder ("1", "R 0.01") left by older versions
 			delete(ratings, k)
 			changed = true
