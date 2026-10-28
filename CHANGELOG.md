@@ -4,6 +4,19 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.7.0 beta
+
+- Signing in with Steam or Discord no longer asks for your password.
+- Pitlane HQ stays in the notification area when you close the window, and starts there with Windows.
+- The lap analysis has a braking table of lap A against lap B, with the gear, the time lost and what to do.
+- The lap list shows S1, S2 and S3.
+- The coach's plan goes to the coach overlay with one button.
+- The phones give the same corners, tips and plan as the PC and the web.
+- The coach's references never mix tyre compounds.
+- A Le Mans Ultimate driver with an account shows only once on the leaderboards.
+- The agent uses less of your PC.
+- Fixes and improvements.
+
 ## 0.6.1 beta
 
 - Clean laps are valid again. A lap keeps its first metres after the line in every kind of session.

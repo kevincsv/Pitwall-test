@@ -1,6 +1,45 @@
 {
   "versions": [
     {
+      "v": "0.7.0",
+      "en": [
+        "Signing in with Steam or Discord no longer asks for your password.",
+        "Pitlane HQ stays in the notification area when you close the window, and starts there with Windows.",
+        "The lap analysis has a braking table of lap A against lap B, with the gear, the time lost and what to do.",
+        "The lap list shows S1, S2 and S3.",
+        "The coach's plan goes to the coach overlay with one button.",
+        "The phones give the same corners, tips and plan as the PC and the web.",
+        "The coach's references never mix tyre compounds.",
+        "A Le Mans Ultimate driver with an account shows only once on the leaderboards.",
+        "The agent uses less of your PC.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Entrar con Steam o Discord ya no pide tu contraseña.",
+        "Pitlane HQ se queda en el área de notificación al cerrar la ventana, y arranca ahí con Windows.",
+        "El análisis de vueltas tiene una tabla de frenadas de la vuelta A contra la B, con la marcha, el tiempo perdido y qué hacer.",
+        "La lista de vueltas muestra S1, S2 y S3.",
+        "El plan del coach pasa al overlay del coach con un botón.",
+        "Los móviles dan las mismas curvas, consejos y plan que el PC y la web.",
+        "Las referencias del coach nunca mezclan compuestos de neumático.",
+        "Un piloto de Le Mans Ultimate con cuenta sale una sola vez en las clasificaciones.",
+        "El agente usa menos tu PC.",
+        "Arreglos y mejoras."
+      ],
+      "pt": [
+        "Entrar com a Steam ou o Discord não pede mais a sua senha.",
+        "O Pitlane HQ fica na área de notificação ao fechar a janela, e inicia ali com o Windows.",
+        "A análise de voltas tem uma tabela de frenagens da volta A contra a B, com a marcha, o tempo perdido e o que fazer.",
+        "A lista de voltas mostra S1, S2 e S3.",
+        "O plano do coach vai para o overlay do coach com um botão.",
+        "Os celulares dão as mesmas curvas, dicas e plano que o PC e a web.",
+        "As referências do coach nunca misturam compostos de pneu.",
+        "Um piloto do Le Mans Ultimate com conta aparece só uma vez nas classificações.",
+        "O agente usa menos o seu PC.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.6.1",
       "en": [
         "Clean laps are valid again. A lap keeps its first metres after the line in every kind of session.",
