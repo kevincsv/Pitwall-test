@@ -132,7 +132,83 @@ var (
 	fieldMu   sync.Mutex
 	fieldCars = map[int]*carLapProf{}
 	fieldID   string
+	fieldWho  = map[int]string{} // who is at each index, as the session text last said (fieldDrivers)
 )
+
+// fieldDrivers reads who is at each car index in the session text (its DriverInfo): the team in a team event (its
+// drivers change at the wheel, the car stays), else the driver's id, else their name. Le Mans Ultimate gives an index
+// again to a new car when all 64 are taken (lmuSource.carIdx), so the driver at an index can change within a session;
+// the profile of the car before (its best, its laps' sectors and the laps judged not valid) never goes to the
+// newcomer: the index starts again. An index the text no longer lists keeps what it had.
+func fieldDrivers(y string) {
+	who := map[int]string{}
+	i := strings.Index(y, "\nDriverInfo:")
+	if i < 0 {
+		return
+	}
+	idx, team, uid, name := -1, "", "", ""
+	flush := func() {
+		if idx < 0 {
+			return
+		}
+		id := ""
+		switch {
+		case team != "" && team != "0":
+			id = "t:" + team
+		case uid != "" && uid != "0":
+			id = "u:" + uid
+		case name != "":
+			id = "n:" + name
+		}
+		if id != "" {
+			who[idx] = id
+		}
+	}
+	rest := y[i+1:]
+	for first := true; rest != ""; first = false {
+		line := rest
+		if n := strings.IndexByte(rest, '\n'); n >= 0 {
+			line, rest = rest[:n], rest[n+1:]
+		} else {
+			rest = ""
+		}
+		if first { // "DriverInfo:" itself
+			continue
+		}
+		if line != "" && line[0] != ' ' && line[0] != '-' { // the next top-level section
+			break
+		}
+		t := strings.TrimSpace(line)
+		item := strings.HasPrefix(t, "- ")
+		k, v, ok := strings.Cut(strings.TrimPrefix(t, "- "), ":")
+		if !ok {
+			continue
+		}
+		v = strings.Trim(strings.TrimSpace(v), `"`)
+		if item && k == "CarIdx" {
+			flush()
+			idx, team, uid, name = atoi(v), "", "", ""
+			continue
+		}
+		switch k {
+		case "TeamID":
+			team = v
+		case "UserID":
+			uid = v
+		case "UserName":
+			name = v
+		}
+	}
+	flush()
+	fieldMu.Lock()
+	defer fieldMu.Unlock()
+	for idx, id := range who {
+		if old, seen := fieldWho[idx]; seen && old != id {
+			delete(fieldCars, idx)
+		}
+		fieldWho[idx] = id
+	}
+}
 
 func telArrays(names []string) [][]float64 {
 	out := make([][]float64, len(names))
@@ -262,7 +338,7 @@ func fat(a []float64, i int, def float64) float64 {
 func fieldSession(id string) {
 	fieldMu.Lock()
 	if id != fieldID {
-		fieldID, fieldCars = id, map[int]*carLapProf{}
+		fieldID, fieldCars, fieldWho = id, map[int]*carLapProf{}, map[int]string{}
 	}
 	fieldMu.Unlock()
 }
@@ -285,11 +361,15 @@ func fieldWatcher() {
 		y, v := liveLapEnv{}.yaml()
 		n := int(fat(rd.vals[16], 0, 0))
 		if v != ver || n != sn {
-			if v != ver {
+			text := v != ver
+			if text {
 				ver, sub, trk, L, key = v, yamlField(y, "SubSessionID"), yamlField(y, "TrackID"), trackLength(y), sessionKey(y)
 			}
 			sn = n
 			fieldSession(fmt.Sprintf("%s-%d-%s", sub, n, trk))
+			if text { // a car whose index went to another car starts again
+				fieldDrivers(y)
+			}
 		}
 		s.pct, s.lap, s.last, s.best, s.pit, s.surf, s.gear, s.rpm = rd.vals[0], rd.vals[1], rd.vals[2], rd.vals[3], rd.vals[4], rd.vals[5], rd.vals[6], rd.vals[7]
 		s.steer, s.thr, s.brk, s.lat, s.lon, s.cnt, s.start = rd.vals[8], rd.vals[9], rd.vals[10], rd.vals[11], rd.vals[12], rd.vals[13], rd.vals[14]

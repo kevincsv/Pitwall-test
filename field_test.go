@@ -225,7 +225,7 @@ func fieldCar(t *testing.T, i int) *carLapProf {
 
 func resetField() {
 	fieldMu.Lock()
-	fieldCars = map[int]*carLapProf{}
+	fieldCars, fieldWho = map[int]*carLapProf{}, map[int]string{}
 	fieldMu.Unlock()
 }
 
@@ -996,4 +996,71 @@ func TestFieldShareGame(t *testing.T) {
 			t.Fatalf("%q: %v", g, !want)
 		}
 	}
+}
+
+// Le Mans Ultimate gives an index again to a new car once all 64 are taken: the newcomer starts with a profile of its
+// own (its laps are taken whatever the car before did there), while the same driver, a team whose driver changes at
+// the wheel or an index the text stops listing keep theirs
+func TestFieldIndexGivenToAnotherCar(t *testing.T) {
+	resetField()
+	text := func(drivers ...string) string {
+		y := "---\nWeekendInfo:\n TrackID: 1\nDriverInfo:\n DriverCarIdx: 5\n Drivers:\n"
+		for _, d := range drivers {
+			y += d
+		}
+		return y + "SplitTimeInfo:\n Sectors:\n - SectorNum: 0\n   UserID: 999\n"
+	}
+	car := func(idx int, uid, name, team string) string {
+		s := fmt.Sprintf(" - CarIdx: %d\n   UserName: %s\n   UserID: %s\n", idx, name, uid)
+		if team != "" {
+			s += "   TeamID: " + team + "\n"
+		}
+		return s
+	}
+	fieldDrivers(text(car(0, "1001", "Ana Duarte", ""), car(1, "1002", "Luca Bianchi", "")))
+	fast := newSim("reuse")
+	fast.speed = func(lap int, d float64) float64 { return simSpeed(lap, d) * 1.1 }
+	fast.run(3)
+	before := fieldCar(t, 0)
+	if before.best <= 0 {
+		t.Fatal("the first car has no best")
+	}
+	// the same drivers in a new version of the text: nothing changes
+	fieldDrivers(text(car(0, "1001", "Ana Duarte", ""), car(1, "1002", "Luca Bianchi", "")))
+	if fieldCar(t, 0) != before {
+		t.Fatal("the same driver lost the profile")
+	}
+	// the index goes to another car, slower (a team's)
+	fieldDrivers(text(car(0, "2001", "Pau Vidal", "77"), car(1, "1002", "Luca Bianchi", "")))
+	fieldMu.Lock()
+	_, kept := fieldCars[0]
+	fieldMu.Unlock()
+	if kept {
+		t.Fatal("the newcomer kept the profile of the car before")
+	}
+	slow := newSim("reuse")
+	slow.speed = func(lap int, d float64) float64 { return simSpeed(lap, d) * 0.9 }
+	slow.run(3)
+	after := fieldCar(t, 0)
+	if after.best <= before.best {
+		t.Fatalf("the newcomer's best %.3f is not its own (the car before did %.3f)", after.best, before.best)
+	}
+	found := false
+	for _, lt := range slow.times {
+		found = found || math.Abs(lt-after.best) < 0.002
+	}
+	if !found {
+		t.Fatalf("the newcomer's best %.3f is none of its laps %v", after.best, slow.times)
+	}
+	// the team's driver changes at the wheel: the car is the same, its profile stays; a car the text stops listing too
+	cur := fieldCar(t, 0)
+	fieldDrivers(text(car(0, "3001", "Nour Haddad", "77")))
+	if fieldCar(t, 0) != cur {
+		t.Fatal("a team's driver change started the car again")
+	}
+	fieldDrivers(text(car(1, "1002", "Luca Bianchi", "")))
+	if fieldCar(t, 0) != cur {
+		t.Fatal("an index the text no longer lists lost its profile")
+	}
+	resetField()
 }

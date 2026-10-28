@@ -508,7 +508,8 @@
   as iRacing writes them (`lmuResults`: ResultsPositions with the place, class place, laps and best of every car,
   rebuilt only when a car crosses the line or sets its best, compared field by field), so an LMU race summary has its
   field and its rivals; every car keeps its index for the session (`carIdx`), given again only to a car long gone (five
-  minutes) when all 64 are taken; a rival's position comes about five times a second, so the bins it goes through
+  minutes) when all 64 are taken, and the field watcher then starts that index again (`fieldDrivers`: another driver
+  there in the session text, by team, else driver id, else name), so the newcomer never inherits the car before's best; a rival's position comes about five times a second, so the bins it goes through
   between two take the move's speed (`fieldFillBins`); the layouts, pit lanes and turns
   are per game on the server (`track_maps`, `track_pits`, `track_turns` keyed by game and track id, the agent's
   `/api/trackmap` and `/api/turns` default to the game being read). The map's position is made from the game's
