@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+# the most active leagues the landing shows (public, read by the page)
+Allow: /community/leagues/found
 Disallow: /api/
 Disallow: /live
 Disallow: /dl/
