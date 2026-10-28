@@ -443,7 +443,7 @@
   (kind × speed, cases, how many gained, the thumbs). From 30 answered cases a bucket's share of gains reorders the plan
   (`w` from GET `/community/coach/weights`, `tipWeight` in `coachPlan`, 0.7 to 1.3, and 15 % less for a kind the drivers
   mostly thumb down); the tips' texts never change by themselves and no lap is made of this. The corner card
-  (`cornerCard` in model.js, `corners` in the model, MODEL_VERSION 8): for every braking zone of the record lap, the range
+  (`cornerCard` in model.js, `corners` in the model, MODEL_VERSION 8 and up): for every braking zone of the record lap, the range
   of braking points and of speeds at the slowest point among the fastest drivers here (one lap each, the fastest 30 %, 3 to
   12), shown under the tip as one line ("The fast drivers here brake between 312 and 328 m and pass the apex at
   112–118 km/h (6 drivers)", `cornerHint` in pitwall-model.js, `CornerCard` on the phones): a hint, never a reference lap.
@@ -473,8 +473,8 @@
   or three words, `coachCue`; how it names the corner, "Next turn (T7)" by default, "Next turn" or "T7", `turnName`/`coachTurn`; the preview in its settings draws the chosen style, `coachStyleHTML`), which
   corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
   from how far it speaks. The settings travel with the account like every overlay's.
-- The model (`cloud/src/model.js`, MODEL_VERSION 8) learns clean traces only (a speed jump over 10 m/s between two
-  points is a glitch) and marks a rival's lap (`field`: pedals estimated from its speed); the next level prefers a
+- The model (`cloud/src/model.js`, MODEL_VERSION 9) learns clean traces only (a speed jump over 10 m/s between two
+  points is a glitch) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's.
 - Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report
   problems to support@pitlanehq.app): read from the game's own `LMU_Data` shared memory

@@ -53,6 +53,7 @@ import { proRoutes } from "./lemon.js";
 import { coachTipRoutes } from "./coachtips.js";
 import { lmuApiRoutes } from "./lmuapi.js";
 import { turnsFromPath } from "./trackgeo.js";
+import { estimateTrace } from "./pedals.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
@@ -362,7 +363,13 @@ export async function community(req, env, url, ctx) {
       const a = await env.DB.prepare(`SELECT a.trace FROM laps a JOIN sessions s ON s.id=a.session_id WHERE ${ACCT_TRACE_WHERE} LIMIT 1`).bind(l.user_id, l.time, l.game).first();
       if (a) trace = a.trace;
     }
-    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: famName(l.game, l.car_id, l.car), track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: trace ? JSON.parse(await openData(env, trace)) : null });
+    let tr = trace ? JSON.parse(await openData(env, trace)) : null;
+    // a rival's lap: its pedals and gears from its speed and what this car really does (pedals.js)
+    if (tr && tr.src === "field") {
+      const card = await getCarCard(env, l.game, l.car_id).catch(() => null);
+      tr = estimateTrace(tr, card && card.pedals, card && card.shifts);
+    }
+    return json({ id: l.id, alias: l.alias, game: l.game, time: l.time, car: famName(l.game, l.car_id, l.car), track: l.track, carId: l.car_id, trackId: l.track_id, sectors: l.sectors ? JSON.parse(l.sectors) : null, trace: tr });
   }
   if (p === "/reports" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = +url.searchParams.get("carId");

@@ -11,10 +11,11 @@
 import { famId, famSql } from "./carfamily.js";
 import { lineOffsets, sameFrame, insideSign } from "./trackgeo.js";
 import { openData } from "./crypt.js";
+import { pedalEnvelope, estimatePedals } from "./pedals.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 8; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card
-export const CARD_VERSION = 1;  // the car card (below); raise it when what it learns changes
+export const MODEL_VERSION = 9; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card; 9: rivals' pedals from what the car really does (pedals.js)
+export const CARD_VERSION = 2;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
 const LEARN_PER_RUN = 120;  // new laps taken into the memory per run (the rest on the next one)
@@ -165,6 +166,11 @@ async function candidates(env, game, trackId, carId) {
   const laps = [];
   for (const x of pick) {
     try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) { g.up = x.drv; g.temp = typeof x.temp === "number" ? x.temp : null; laps.push(g); } } catch (e) {}
+  }
+  // a rival's lap: its pedals and gears made again from its speed and what this car really does (pedals.js)
+  if (laps.some((l) => l.field)) {
+    const card = await getCarCard(env, game, carId).catch(() => null);
+    for (const l of laps) if (l.field) l.bins = estimatePedals(l.bins, card && card.pedals, card && card.shifts);
   }
   return { laps, drivers, more: learnt.more, added: learnt.added };
 }
@@ -401,11 +407,11 @@ export function lapFacts(bins) {
 // the card of a car from its laps [{trackId, drv, time, bins}]: the hardest braking the drivers get out of
 // it, the speeds the fast drivers shift up at (both the upper end of the laps, not the average), its top speed
 export function cardOf(laps) {
-  const f = laps.map((l) => ({ ...lapFacts(l.bins), trackId: l.trackId, drv: l.drv }));
+  const f = laps.map((l) => ({ ...lapFacts(l.bins), trackId: l.trackId, drv: l.drv, field: !!l.field }));
   const brakes = f.map((x) => x.brake).filter((x) => x != null);
   const shifts = [];
   for (let g = 1; g <= 8; g++) {
-    const v = f.map((x) => x.shifts && x.shifts[g]).filter((x) => x > 0);
+    const v = f.filter((x) => !x.field).map((x) => x.shifts && x.shifts[g]).filter((x) => x > 0);
     if (v.length >= 3) shifts.push([g, r(pct(v, 0.8), 10)]);
   }
   let vmax = 0, vmaxAt = 0;
@@ -413,6 +419,8 @@ export function cardOf(laps) {
   return {
     n: laps.length, tracks: new Set(laps.map((l) => l.trackId)).size, drivers: new Set(laps.map((l) => l.drv)).size,
     brake: brakes.length >= 3 ? r(pct(brakes, 0.8), 100) : null, shifts, vmax: r(vmax, 10), vmaxAt,
+    // what the car does at every speed with full throttle, no pedal and full brake: rivals' pedals from their speed
+    pedals: pedalEnvelope(laps.filter((l) => !l.field).map((l) => l.bins)),
   };
 }
 export async function buildCarCard(env, game, carId) {
@@ -433,7 +441,7 @@ export async function buildCarCard(env, game, carId) {
   }
   const laps = [];
   for (const x of pick) {
-    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins }); } catch (e) {}
+    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins, field: g.field }); } catch (e) {}
   }
   const card = { v: CARD_VERSION, game, carId, built: Date.now(), ...cardOf(laps) };
   if (card.vmaxAt) {
