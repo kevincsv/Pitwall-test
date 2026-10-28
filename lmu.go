@@ -121,8 +121,9 @@ type lmuSource struct {
 	impactSeen bool // impactET holds a value read from the game (the impact before the program watched, or none)
 	impacts    int
 	carMem     map[int]lmuCarMem
-	telSeen    [2]int  // the cars and how many had telemetry when the log last said so (zero: not yet)
-	telLogET   float64 // the session clock then
+	idxByID    map[int]int // each car's index in the image's arrays this session, by the game's vehicle id (carIdx)
+	telSeen    [2]int      // the cars and how many had telemetry when the log last said so (zero: not yet)
+	telLogET   float64     // the session clock then
 	sessNum    int
 	phase      int     // the game phase of the frame before
 	goET       float64 // the session clock when the race went green, 0 none
@@ -418,11 +419,19 @@ func (s *lmuSource) convert(b []byte) bool {
 		playerTel = lu8(b, lmuOffPlayerIdx)
 	}
 
+	if session != s.sessNum || s.idxByID == nil { // another session: the indexes start again (writeSession forgets the bests)
+		s.idxByID = map[int]int{}
+	}
 	cars := make([]lmuCar, 0, n)
-	player := -1
-	for i := 0; i < n && len(cars) < lmuCars; i++ {
+	player := -1 // the player's place in cars (cars[player].idx is their index in the image)
+	for i := 0; i < n; i++ {
 		o := lmuOffVehScoring + i*lmuVehScSize
-		c := lmuCar{slot: i, idx: len(cars), id: li32(b, o+vs_mID), name: lstr(b, o+vs_mDriverName, 32), vehicle: lstr(b, o+vs_mVehicleName, 64),
+		id := li32(b, o+vs_mID)
+		idx := s.carIdx(id)
+		if idx < 0 {
+			continue
+		}
+		c := lmuCar{slot: i, idx: idx, id: id, name: lstr(b, o+vs_mDriverName, 32), vehicle: lstr(b, o+vs_mVehicleName, 64),
 			class: lstr(b, o+vs_mVehicleClass, 32), place: lu8(b, o+vs_mPlace), laps: li16(b, o+vs_mTotalLaps), lapDist: lf64(b, o+vs_mLapDist),
 			est: lf64(b, o+vs_mTimeIntoLap), behind: lf64(b, o+vs_mTimeBehindLeader), last: lf64(b, o+vs_mLastLapTime), best: lf64(b, o+vs_mBestLapTime),
 			inPits: lu8(b, o+vs_mInPits) != 0, garage: lu8(b, o+vs_mInGarageStall) != 0, player: lu8(b, o+vs_mIsPlayer) != 0,
@@ -436,10 +445,10 @@ func (s *lmuSource) convert(b []byte) bool {
 		if m := lmuNumRe.FindStringSubmatch(c.vehicle); m != nil {
 			c.num = m[1]
 		} else {
-			c.num = fmt.Sprint(c.slot + 1)
+			c.num = fmt.Sprint(c.idx + 1)
 		}
 		if c.player {
-			player = c.idx
+			player = len(cars)
 			if playerTel < 0 {
 				playerTel = c.tel
 			}
@@ -596,7 +605,15 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.setAt("CarIdxThrottle", i, throttle)
 		m.setAt("CarIdxBrake", i, brake)
 	}
-	for i := len(cars); i < lmuCars; i++ {
+	// the slots with no car (never taken, or whose car left): not in the world
+	var used [lmuCars]bool
+	for _, c := range cars {
+		used[c.idx] = true
+	}
+	for i := 0; i < lmuCars; i++ {
+		if used[i] {
+			continue
+		}
 		m.setAt("CarIdxLapDistPct", i, -1)
 		m.setAt("CarIdxTrackSurface", i, -1)
 		m.setAt("CarIdxBestLapNum", i, -1)
@@ -606,9 +623,9 @@ func (s *lmuSource) convert(b []byte) bool {
 	}
 
 	connected := player >= 0 && playerTel >= 0 && inReal
-	m.set("PlayerCarIdx", float64(max(player, 0)))
 	if player >= 0 {
 		p := cars[player]
+		m.set("PlayerCarIdx", float64(p.idx))
 		m.set("PlayerCarPosition", float64(p.place))
 		m.set("PlayerCarClassPosition", float64(p.classPlace))
 		m.setBool("OnPitRoad", p.inPits)
@@ -775,8 +792,8 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("Lat", lat)
 	m.set("Lon", lon)
 	if player >= 0 {
-		m.setAt("CarIdxLat", player, lat)
-		m.setAt("CarIdxLon", player, lon)
+		m.setAt("CarIdxLat", cars[player].idx, lat)
+		m.setAt("CarIdxLon", cars[player].idx, lon)
 	}
 	ori := [3]lmuVec{lvec(b, to+vt_mOri), lvec(b, to+vt_mOri+24), lvec(b, to+vt_mOri+48)}
 	// forward (local -z) in world coordinates, then the heading on the map
@@ -858,6 +875,21 @@ func lmuMaterial(surface int) int {
 		return 24
 	}
 	return 0
+}
+
+// carIdx: a car's index in the image's arrays (CarIdx in the session text too), given the first time the car is seen in
+// the session and kept while it lasts, so a car that leaves never moves the others (the game's own array closes up behind
+// it, and the field watcher follows every car by this index); a slot is never given again. -1 when every slot is taken.
+func (s *lmuSource) carIdx(id int) int {
+	if i, ok := s.idxByID[id]; ok {
+		return i
+	}
+	if len(s.idxByID) >= lmuCars {
+		return -1
+	}
+	i := len(s.idxByID)
+	s.idxByID[id] = i
+	return i
 }
 
 // bestLapNum says which lap set a car's best (iRacing's CarIdxBestLapNum): the lap that had just ended when mBestLapTime
@@ -1055,7 +1087,7 @@ func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int,
 	var key strings.Builder
 	fmt.Fprintf(&key, "%s|%d|%d|%d|%v", track, session, player, playerTel, s.sec.known)
 	for _, c := range cars {
-		key.WriteString("|" + c.name + c.vehicle + c.class)
+		fmt.Fprintf(&key, "|%d:%s%s%s", c.idx, c.name, c.vehicle, c.class)
 	}
 	if key.String() == s.sessKey {
 		return
@@ -1087,7 +1119,9 @@ func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int,
 		to := lmuOffTelem + playerTel*lmuTelSize
 		redline, capa, gears = lf64(b, to+vt_mEngineMaxRPM), lf64(b, to+vt_mFuelCapacity), lu8(b, to+vt_mMaxGears)
 	}
+	pIdx := 0 // DriverCarIdx: the player's index in the image
 	if player >= 0 {
+		pIdx = cars[player].idx
 		est = lf64(b, lmuOffVehScoring+cars[player].slot*lmuVehScSize+vs_mEstimatedLapTime)
 	}
 	var sb strings.Builder
@@ -1143,7 +1177,7 @@ DriverInfo:
 `, strings.ReplaceAll(strings.ToLower(yamlSafe(track)), " ", "_"), lmuHash(track, 100000, 800000), trackLen/1000, yamlSafe(track), yamlSafe(track),
 		lf64(b, si+si_mTrackTemp), lf64(b, si+si_mAmbientTemp), typ, len(classes), li32(b, lmuOffGameVer),
 		session, session, laps, length, typ, name,
-		max(player, 0), lmuDriverID(lmuPlayerName(cars, player)), redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
+		pIdx, lmuDriverID(lmuPlayerName(cars, player)), redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
 	for _, c := range cars {
 		model := strings.TrimSpace(lmuNumRe.ReplaceAllString(c.vehicle, ""))
 		if c.tel >= 0 {

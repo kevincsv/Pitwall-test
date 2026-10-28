@@ -599,3 +599,68 @@ func TestLMUDriverIDs(t *testing.T) {
 		t.Fatal("player name")
 	}
 }
+
+// every car keeps its index for the session: the game's own array closes up when a car leaves, but the image's CarIdx
+// (and the session text's) follows each car, the slot left stays empty (not in the world) and is never given again, a
+// car that joins takes the next one, and another session starts the indexes again
+func TestLMUStableCarIdx(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	si := lmuOffScoring
+	pf64 := func(o int, v float64) { binary.LittleEndian.PutUint64(b[o:], math.Float64bits(v)) }
+	pi32 := func(o int, v int) { binary.LittleEndian.PutUint32(b[o:], uint32(int32(v))) }
+	block := func(slot int) []byte {
+		return b[lmuOffVehScoring+slot*lmuVehScSize : lmuOffVehScoring+(slot+1)*lmuVehScSize]
+	}
+	car := func(slot, id int, name string, dist float64) { // a car in a scoring slot (no telemetry)
+		copy(block(slot), block(2))
+		o := lmuOffVehScoring + slot*lmuVehScSize
+		pi32(o+vs_mID, id)
+		clear(b[o+vs_mDriverName : o+vs_mDriverName+32])
+		copy(b[o+vs_mDriverName:], name)
+		b[o+vs_mIsPlayer] = 0
+		pf64(o+vs_mLapDist, dist)
+	}
+	frame := func(n int) (func(string, int) float64, func(string) float64, string) {
+		pi32(si+si_mNumVehicles, n)
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, y := lmuRead(t, s)
+		return lmuReadAt(t, s), get, y
+	}
+	pct := func(dist float64) float64 { return dist / 13626 }
+	near := func(a, b float64) bool { return math.Abs(a-b) < 1e-4 } // the image keeps the fraction as a float32
+	name := func(y string, idx int) string { return yamlField(driverBlock(y, fmt.Sprint(idx)), "UserName") }
+	car(3, 103, "Pau Vidal", 7000)
+	at, get, y := frame(4)
+	if !near(at("CarIdxLapDistPct", 3), pct(7000)) || get("PlayerCarIdx") != 1 || yamlField(y, "DriverCarIdx") != "1" || name(y, 3) != "Pau Vidal" {
+		t.Fatalf("four cars: Pau at %v (want %v), player %v / %q, CarIdx 3 is %q", at("CarIdxLapDistPct", 3), pct(7000), get("PlayerCarIdx"), yamlField(y, "DriverCarIdx"), name(y, 3))
+	}
+	// the third car (id 102) leaves: Pau moves to the game's slot 2 and keeps index 3; index 2 is empty
+	copy(block(2), block(3))
+	at, get, y = frame(3)
+	if !near(at("CarIdxLapDistPct", 3), pct(7000)) || name(y, 3) != "Pau Vidal" || name(y, 2) != "" {
+		t.Fatalf("after a car left: index 3 at %v is %q, index 2 is %q", at("CarIdxLapDistPct", 3), name(y, 3), name(y, 2))
+	}
+	for _, v := range []string{"CarIdxLapDistPct", "CarIdxTrackSurface", "CarIdxLapCountFlag", "CarIdxThrottle", "CarIdxBrake", "CarIdxBestLapNum"} {
+		if at(v, 2) != -1 {
+			t.Errorf("the slot left: %s[2] = %v, want -1", v, at(v, 2))
+		}
+	}
+	if get("PlayerCarIdx") != 1 || yamlField(y, "DriverCarIdx") != "1" || at("CarIdxLat", 1) != get("Lat") || !near(at("CarIdxLapDistPct", 0), pct(6000)) {
+		t.Fatalf("the player and the leader moved: %v / %q, lat %v vs %v, leader at %v", get("PlayerCarIdx"), yamlField(y, "DriverCarIdx"), at("CarIdxLat", 1), get("Lat"), at("CarIdxLapDistPct", 0))
+	}
+	// a car joins: the next index, never the slot left
+	car(3, 104, "Nour Haddad", 8000)
+	at, _, y = frame(4)
+	if !near(at("CarIdxLapDistPct", 4), pct(8000)) || name(y, 4) != "Nour Haddad" || at("CarIdxLapDistPct", 2) != -1 || name(y, 2) != "" {
+		t.Fatalf("a car joined: index 4 at %v is %q, index 2 at %v is %q", at("CarIdxLapDistPct", 4), name(y, 4), at("CarIdxLapDistPct", 2), name(y, 2))
+	}
+	// another session: the indexes start again in the order the cars come
+	pi32(si+si_mSession, 11)
+	at, _, y = frame(4)
+	if !near(at("CarIdxLapDistPct", 2), pct(7000)) || name(y, 2) != "Pau Vidal" || !near(at("CarIdxLapDistPct", 3), pct(8000)) || at("CarIdxLapDistPct", 4) != -1 {
+		t.Fatalf("a new session: index 2 at %v is %q, index 3 at %v, index 4 at %v", at("CarIdxLapDistPct", 2), name(y, 2), at("CarIdxLapDistPct", 3), at("CarIdxLapDistPct", 4))
+	}
+}
