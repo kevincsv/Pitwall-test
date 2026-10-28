@@ -58,6 +58,7 @@ import { estimateTrace } from "./pedals.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
+import { lmuClass, wetOf, clsParam, classLaps } from "./lmuclass.js";
 
 // one shared lap per driver, car and track: a faster lap replaces the slower one, and a slower lap
 // replaces a faster one only when it brings the telemetry the faster one lacks
@@ -89,16 +90,26 @@ export function shortDriverName(v) {
   return ini ? first + " " + ini.toUpperCase() + "." : first;
 }
 
-async function keepBestLap(env, uid, x) {
+// how wet the track was on a lap whose trace is sealed already (a lap from a session in the account): 2 wet, 1 damp, null dry
+async function sealedWet(env, trace) {
+  if (!trace) return null;
+  try { const tr = JSON.parse(await openData(env, trace)); return wetOf(tr && tr.f); } catch { return null; }
+}
+
+export async function keepBestLap(env, uid, x) {
   x = { ...x, carId: await noteCar(env, x.game, x.carId, x.car) }; // one board for the brands of one car (carfamily.js)
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
+  // Le Mans Ultimate's class (its class boards), and how wet the track was: from the flags of the trace before it was
+  // sealed when the caller has them, else from the sealed trace itself (only here, when the lap is really kept)
+  const cls = x.game === "lmu" ? lmuClass(x.cls, x.car) : null;
+  const wet = x.wet !== undefined ? x.wet : await sealedWet(env, x.trace);
   await env.DB.prepare(
-    `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown, lic, cat, official, ai) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)
+    `INSERT INTO community_laps (id, user_id, car_id, car, track_id, track, time, sectors, trace, created, anon, game, shown, lic, cat, official, ai, cls, wet) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)
      ON CONFLICT(user_id, car_id, track_id) DO UPDATE SET time=excluded.time, sectors=excluded.sectors, trace=excluded.trace, created=excluded.created, car=excluded.car, track=excluded.track, anon=excluded.anon, game=excluded.game, shown=excluded.shown,
-       lic=COALESCE(excluded.lic, community_laps.lic), cat=COALESCE(excluded.cat, community_laps.cat), official=excluded.official, ai=excluded.ai`
-  ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick", licOf(x.lic), str(x.cat, 20), officialOf(x.official), x.ai ? 1 : null).run();
+       lic=COALESCE(excluded.lic, community_laps.lic), cat=COALESCE(excluded.cat, community_laps.cat), official=excluded.official, ai=excluded.ai, cls=COALESCE(excluded.cls, community_laps.cls), wet=excluded.wet`
+  ).bind(rid(), uid, x.carId, str(x.car), x.trackId, str(x.track), x.time, x.sectors || null, x.trace || null, Date.now(), x.anon ? 1 : 0, x.game, x.shown || "nick", licOf(x.lic), str(x.cat, 20), officialOf(x.official), x.ai ? 1 : null, cls, wet ?? null).run();
   await markModel(env, x.game, x.trackId, x.carId);
   // improved: a faster lap than the one shared before (the Discord alerts), not only its telemetry added
   const improved = !old || old.game !== x.game || x.time < old.time;
@@ -299,7 +310,7 @@ export async function community(req, env, url, ctx) {
     const r = await env.DB.prepare(
       `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY track_id, car_id) AS n
          FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model')
-       SELECT l.id, l.user_id AS uid, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n,
+       SELECT l.id, l.user_id AS uid, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n, l.wet,
          CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
          (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
          (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
@@ -323,7 +334,7 @@ export async function community(req, env, url, ctx) {
       env.DB.prepare(
         `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY car_id) AS n
            FROM community_laps WHERE game=?1 AND track_id=?2 AND COALESCE(shown,'')<>'model')
-         SELECT l.id, l.user_id AS uid, l.car_id AS carId, l.car, l.track, l.cat AS hint, l.time, l.created, l.n,
+         SELECT l.id, l.user_id AS uid, l.car_id AS carId, l.car, l.track, l.cat AS hint, l.time, l.created, l.n, l.wet, l.cls,
            CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
            (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
            (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace
@@ -343,21 +354,29 @@ export async function community(req, env, url, ctx) {
     });
   }
   if (p === "/laps" && m === "GET") {
+    // Le Mans Ultimate's class board (?cls= instead of the car): each driver's best lap of any car of the class here
+    const cq = game === "lmu" ? clsParam(url.searchParams.get("cls")) : null;
+    if (cq && +url.searchParams.get("trackId")) {
+      const who = await me(req, env).catch(() => null);
+      const rows = await classLaps(env, +url.searchParams.get("trackId"), cq, { admin: !!who && isAdmin(env, who.id), acctTrace: ACCT_TRACE });
+      return json({ cat: "sports_car", cls: cq, laps: rows.map(({ uid, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), lic: licOf(x.lic), prof: !!x.prof, sup: !!x.sup, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
+    }
     const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
     // signed in: your own laps are marked as yours (also the anonymous ones; only you see that)
     const who = await me(req, env).catch(() => null);
-    const h = await env.DB.prepare("SELECT MAX(cat) AS hint, MAX(track) AS track, MAX(car) AS car FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3").bind(t, c, game).first().catch(() => null);
+    const h = await env.DB.prepare("SELECT MAX(cat) AS hint, MAX(track) AS track, MAX(car) AS car, MAX(cls) AS cls FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3").bind(t, c, game).first().catch(() => null);
     const cat = game === "iracing" ? catOf(await catMap(env), t, c, h && h.hint, h && h.track, h && h.car) : "sports_car";
     const r = await env.DB.prepare(
-      `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track,
+      `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track, l.wet,
          COALESCE(json_extract(u.lics, '$.' || ?4), l.lic) AS lic,
          (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup
        FROM community_laps l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
        WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 200`
     ).bind(t, c, game, cat).all();
     // field: another driver of a race someone drove, anonymous (their speed trace with estimated pedals)
-    return json({ cat, laps: (r.results || []).map(({ uid, ...x }) => ({ ...x, lic: licOf(x.lic), prof: !!x.prof, sup: !!x.sup, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
+    // cls: the board's Le Mans Ultimate class (its class board, ?cls=), null in iRacing
+    return json({ cat, cls: game === "lmu" ? (h && h.cls) || lmuClass(null, h && h.car) : null, laps: (r.results || []).map(({ uid, ...x }) => ({ ...x, lic: licOf(x.lic), prof: !!x.prof, sup: !!x.sup, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
   }
   if (p.startsWith("/laps/") && m === "GET") {
     const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
@@ -1143,7 +1162,7 @@ export async function community(req, env, url, ctx) {
       // its public name or as Anonymous, as the account chose
       const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1 AND l.game=?2").bind(oid, game).first();
       if (link) {
-        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
+        const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), cls: body.cls, wet: wetOf(body.trace && body.trace.f), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
         if (r.limit) return err("too many uploads today", 429);
         return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
       }
@@ -1153,7 +1172,7 @@ export async function community(req, env, url, ctx) {
         .bind(oid, "other:" + oid, Date.now(), u.id, short || "Anonymous").run();
       if (short) await env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1 AND anon=1").bind(oid).run();
       // on the leaderboard only when the PC says so (faster than you, with their trace); the rest teach the model unseen
-      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), cls: body.cls, wet: wetOf(body.trace && body.trace.f), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
       if (r.limit) return err("too many uploads today", 429);
       return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
     }
@@ -1161,7 +1180,7 @@ export async function community(req, env, url, ctx) {
     if (plainTrace && plainTrace.length > 900000) return err("lap trace too large", 400);
     const trace = await sealData(env, plainTrace);
     // your faster lap stays, unless it has no telemetry and this one does: then the whole lap is worth more
-    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
+    const r = await keepBestLap(env, u.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace, cls: body.cls, wet: wetOf(body.trace && body.trace.f), anon: !!body.anon, shown: shownAs, lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
     if (r.limit) return err("too many uploads today", 429);
     return json(r.kept ? { kept: "your faster lap is already shared" } : { shared: true });
   }
