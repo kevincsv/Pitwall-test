@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -666,5 +667,104 @@ func TestLMUStableCarIdx(t *testing.T) {
 	at, _, y = frame(4)
 	if !near(at("CarIdxLapDistPct", 2), pct(7000)) || name(y, 2) != "Pau Vidal" || !near(at("CarIdxLapDistPct", 3), pct(8000)) || at("CarIdxLapDistPct", 4) != -1 {
 		t.Fatalf("a new session: index 2 at %v is %q, index 3 at %v, index 4 at %v", at("CarIdxLapDistPct", 2), name(y, 2), at("CarIdxLapDistPct", 3), at("CarIdxLapDistPct", 4))
+	}
+}
+
+// An LMU session's text carries its results as iRacing writes them, so the race summary has its field and the rivals'
+// best laps go up under the keys of their names; it is rebuilt when a car completes a lap, and only then.
+func TestLMUReportSharesRivals(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	_, y := lmuRead(t, s)
+	res := sessionResults(y, 10)
+	if len(res) != 3 {
+		t.Fatalf("%d results in\n%s", len(res), y)
+	}
+	names := []string{"Ana Duarte", "Driver", "Luca Bianchi"}
+	seen := map[string]bool{}
+	for i, r := range res {
+		key := driverKey(strconv.Itoa(lmuDriverID(names[i])))
+		if r.Pos != i+1 || r.carIdx != i || r.Name != names[i] || math.Abs(r.Best-(210.5+float64(i))) > 1e-3 || r.Laps != 5 || r.Me != (i == 1) || r.Out != "Running" {
+			t.Fatalf("result %d: %+v", i, r)
+		}
+		if r.key == "" || r.key != key || seen[key] {
+			t.Fatalf("result %d: key %q, want %q (distinct)", i, r.key, key)
+		}
+		seen[key] = true
+	}
+	if res[0].ClassPos != 1 || res[1].ClassPos != 2 || res[2].ClassPos != 1 {
+		t.Fatalf("class places %d %d %d", res[0].ClassPos, res[1].ClassPos, res[2].ClassPos)
+	}
+	if yamlField(y, "DriverUserID") != strconv.Itoa(lmuDriverID("Driver")) {
+		t.Fatalf("DriverUserID %q", yamlField(y, "DriverUserID"))
+	}
+	resetField()
+	top := fieldTopLaps(&raceReport{Game: "lmu", TrackID: 1, Track: "Sarthe", Best: 211.5, Results: func() []raceResult {
+		for i := range res {
+			res[i].CarID = 1
+		}
+		return res
+	}()})
+	if len(top) != 2 || top[0]["game"] != "lmu" || top[0]["other"] != res[0].key || top[1]["other"] != res[2].key || top[0]["name"] != "Ana Duarte" {
+		t.Fatalf("rivals shared: %v", top)
+	}
+	// the same frame builds nothing new; a lap more is in the results at once
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	if _, y2 := lmuRead(t, s); y2 != y {
+		t.Fatal("the session text changed with nothing new")
+	}
+	binary.LittleEndian.PutUint16(b[lmuOffVehScoring+vs_mTotalLaps:], 6)
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	if _, y3 := lmuRead(t, s); sessionResults(y3, 10)[0].Laps != 6 {
+		t.Fatalf("a lap more not in the results:\n%s", y3)
+	}
+}
+
+// every car keeps its index while the session lasts; with all 64 taken, a newcomer gets the index of a car gone for five
+// minutes or more, never one still in the game's list
+func TestLMUCarIdxReuse(t *testing.T) {
+	s := &lmuSource{idxByID: map[int]int{}}
+	for id := 0; id < lmuCars; id++ {
+		if s.carIdx(1000+id, 0) != id {
+			t.Fatalf("car %d", id)
+		}
+	}
+	if s.carIdx(5000, 100) != -1 {
+		t.Fatal("a slot given while every car left a moment ago")
+	}
+	for id := 1; id < lmuCars; id++ { // every car but the first still there
+		s.carIdx(1000+id, 350)
+	}
+	if got := s.carIdx(5000, 400); got != 0 {
+		t.Fatalf("the newcomer got index %d, want the first car's 0", got)
+	}
+	if s.carIdx(1001, 401) != 1 || s.carIdx(5000, 401) != 0 {
+		t.Fatal("the cars still there kept their index")
+	}
+	if s.carIdx(1000, 402) != -1 {
+		t.Fatal("the car gone came back to a full field and took an index")
+	}
+}
+
+// the field watcher reads the LMU image by name: every variable it asks for that LMU gives is in the image
+func TestLMUFieldVarsInImage(t *testing.T) {
+	have := map[string]bool{}
+	for _, v := range lmuVarDefs() {
+		have[v.name] = true
+	}
+	for _, n := range fieldVars {
+		if n == "CarIdxTrackSurfaceMaterial" { // iRacing's alone: LMU judges the four wheels itself
+			continue
+		}
+		if !have[n] {
+			t.Fatalf("%s is not in the LMU image", n)
+		}
 	}
 }

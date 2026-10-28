@@ -435,7 +435,10 @@
   paint or a rumble strip (`pavedMaterial`); without that variable every sample off the track counts, as before. In Le
   Mans Ultimate the car is off the track only with all four wheels on grass, dirt or gravel (lmu.go reads the wheels;
   two on the grass are a wide line, not an Off Track), the surface under the wheels goes out as iRacing's material and
-  the game's own `LapCountFlag` catches the cuts.
+  the game's own `LapCountFlag` catches the cuts. A rival's lap is judged the same way (field.go): a third of a second
+  off the track counted in the game's time (`fieldOffTime`, the same at 60 or 5 updates a second), a kerb or paint
+  under it never counting when the game says the material (`CarIdxTrackSurfaceMaterial`), the game's own best, and
+  `LapCountFlag` judged when the lap ends (a pit road reached within 200 m of the flag's drop is the in-lap).
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
@@ -490,7 +493,10 @@
   track state) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's. A rival's lap whose pedals the game itself
   gave (Le Mans Ultimate's telemetry of the other cars, `Trace.src` "real" from field.go, kept as such by POST `/laps`)
-  is a real lap: the model and `/community/laps/:id` estimate pedals only over src "field".
+  is a real lap: the model and `/community/laps/:id` estimate pedals only over src "field". It is "real" only when its
+  pedals move (the throttle to half and the brake to a fifth at least; still or missing pedals are estimated), it keeps
+  its src in `model_laps` and it never teaches the car card what the car does at each speed (`rival` in `goodLap`: no
+  pedals' envelope, no shift speeds), its speed coming from its position. A rival's lap on a wet track carries `wet` too.
 - Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report
   problems to support@pitlanehq.app): read from the game's own `LMU_Data` shared memory
   (Settings → Gameplay → Enable Plugins, nothing to install), turned into an iRacing-shaped image (`lmu.go`,
@@ -498,7 +504,12 @@
   learnt from the game's sector changes (`lmuSectors`, kept per track in `lmu-sectors.json`) and written as
   SplitTimeInfo; start lights, wind and the fuel rate come from the game; it has no iRating, licences or incident
   count (contacts stand in, `GAME_NO.lmu`). A session is "vs AI" when the game marks AI drivers (`CarIsAI`), an
-  online one counts as official for the model, a test day is "Offline Testing"; the layouts, pit lanes and turns
+  online one counts as official for the model, a test day is "Offline Testing"; the session text carries the results
+  as iRacing writes them (`lmuResults`: ResultsPositions with the place, class place, laps and best of every car,
+  rebuilt only when a car crosses the line or sets its best, compared field by field), so an LMU race summary has its
+  field and its rivals; every car keeps its index for the session (`carIdx`), given again only to a car long gone (five
+  minutes) when all 64 are taken; a rival's position comes about five times a second, so the bins it goes through
+  between two take the move's speed (`fieldFillBins`); the layouts, pit lanes and turns
   are per game on the server (`track_maps`, `track_pits`, `track_turns` keyed by game and track id, the agent's
   `/api/trackmap` and `/api/turns` default to the game being read). The map's position is made from the game's
   world frame (left-handed: north = -z, east = -x, to be confirmed against a real circuit).
@@ -617,8 +628,11 @@
   (it appears in My races); only the phones tell you.
 - Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app
   schedules no browser notifications): what it has to say shows inside the app.
-- PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
-  itself when no sim is running (unless switched off in Settings → About).
+- PitlaneHQ.exe checks for updates every 10 minutes, and at once when the server's answer to its minute sync names a
+  newer build (`X-Pitlane-Build`, from version.json; `updateNudge`), notifies once per build and installs by itself
+  when no sim is connected (unless switched off in Settings → About). A required update (the PC's version is older
+  than version.json's `min`, `appMinVersion`) installs as soon as the car is not on the track, whatever that switch,
+  never while driving. The client tag (`clientTag`, `X-Pitlane-Client`) carries the build, shown in Admin → Online.
 - People see the PC program as "Pitlane HQ Agent" (or "the agent"), never "PitlaneHQ.exe" (the file keeps its name):
   on the web, the PC app, Pitlane HQ Desktop, the phones, the downloads page and the changelog. Away from the PC (the web,
   the phones) a text never says "this PC": it is "your PC" (`PC_WORDS`/`devWords` in index.html turn every "this PC",

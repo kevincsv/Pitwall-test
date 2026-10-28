@@ -595,8 +595,9 @@ func raceWatcher() {
 			}
 		}
 		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account (iRacing
-		// only: LMU's driver ids are the car's slot, not the person). Your own id, never the car's driver block: in
-		// a team race that block names whoever is in the car, and a swap would link a teammate for good
+		// only: LMU's ids are a hash of the name the game shows, and an account links one driver, so linking by name
+		// would take the iRacing link's place and could join a namesake). Your own id, never the car's driver block:
+		// in a team race that block names whoever is in the car, and a swap would link a teammate for good
 		if onTrack && currentGame() == "iracing" {
 			linkOwnDriver(yamlField(y, "DriverUserID"))
 		}

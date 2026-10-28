@@ -20,9 +20,14 @@ import (
 
 const fieldBin = 10.0 // metres
 
-// fieldOffSamples: a third of a second off the track (at 60 samples a second) makes a rival's lap not valid, as
-// offTrackSamples does for your own laps at 30
-const fieldOffSamples = 20
+// fieldOffTime: a third of a second off the track makes a rival's lap not valid, as offTrackSamples does for your own
+// laps; counted in the game's time, so it means the same whether the game updates the car 60 or 5 times a second
+const fieldOffTime = 1.0 / 3
+
+// fieldFillBins: a car the game moves less often than it draws it (Le Mans Ultimate updates the other cars about five
+// times a second) can go through more than one 10 m bin between two positions; up to this many bins in one move take
+// the move's speed (more is a hole in what the game sent, left empty)
+const fieldFillBins = 6
 
 // fbin: what was seen of a car in one 10 m stretch of its lap
 type fbin struct {
@@ -40,9 +45,12 @@ type fbin struct {
 
 type carLapProf struct {
 	lap   int
-	b     []fbin // the lap being driven
-	valid bool   // nothing seen yet that makes the lap not valid
-	off   int    // samples off the track this lap
+	b     []fbin  // the lap being driven
+	valid bool    // nothing seen yet that makes the lap not valid
+	offT  float64 // time off the track this lap (s)
+	cntD  float64 // where the game first said this lap's time does not count (past 100 m, off the pit road), -1 never
+	pitD  float64 // where the lap first touched the pit road, -1 never
+	wet   bool    // the track was at least lightly wet at some point of this lap
 	// the lap just finished, waiting for the game to time it: its bins, when it ended, whether it was judged not valid
 	// while driven, the game's best of the car before its time was taken, and its time once read (then the game's best
 	// is read again: a lap faster than that best that the game does not take was not accepted)
@@ -50,6 +58,7 @@ type carLapProf struct {
 	pend      bool
 	pendAt    float64
 	pendBad   bool
+	pendWet   bool
 	pendBest0 float64
 	pendLT    float64
 	prevLT    float64 // the last lap time the game showed, so a lap never takes the time of the lap before
@@ -60,6 +69,7 @@ type carLapProf struct {
 	best      float64
 	bestV     []float32 // the best lap's speed every 10 m (from the revs where the gear held, else the position's)
 	bestB     []fbin    // the best lap's bins (nil for a profile made before the car was seen whole)
+	bestWet   bool      // the best lap was driven on a wet track ("wet" on its trace, never the model's)
 	org       [2]float64
 	hasOrg    bool      // org: the origin [lat, lon] of the bins' x/y, the same as the player's laps' (geoBase)
 	badT      []float64 // the times of the laps judged not valid (fieldLapInvalid)
@@ -230,14 +240,15 @@ func trackLength(y string) float64 {
 // Ultimate adds its own verdict on the lap (CarIdxLapCountFlag), the exact moment each lap started, the car's
 // pedals and its position, as the same made-up latitude and longitude the player's Lat/Lon use.
 type fieldSample struct {
-	t                                                                                 float64 // SessionTime
-	pct, lap, last, best, pit, surf, gear, rpm, steer, thr, brk, lat, lon, cnt, start []float64
+	t                                                                                      float64 // SessionTime
+	wet                                                                                    float64 // TrackWetness (-1 unknown)
+	pct, lap, last, best, pit, surf, gear, rpm, steer, thr, brk, lat, lon, cnt, start, mat []float64
 }
 
 // the variables the watcher reads, in fieldSample's order, then SessionTime and SessionNum
 var fieldVars = []string{"CarIdxLapDistPct", "CarIdxLap", "CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxOnPitRoad",
 	"CarIdxTrackSurface", "CarIdxGear", "CarIdxRPM", "CarIdxSteer", "CarIdxThrottle", "CarIdxBrake", "CarIdxLat", "CarIdxLon",
-	"CarIdxLapCountFlag", "CarIdxLapStartET", "SessionTime", "SessionNum"}
+	"CarIdxLapCountFlag", "CarIdxLapStartET", "SessionTime", "SessionNum", "CarIdxTrackSurfaceMaterial", "TrackWetness"}
 
 // fat: a car's value in an array the game may not send (def then, or when the array is short)
 func fat(a []float64, i int, def float64) float64 {
@@ -282,7 +293,7 @@ func fieldWatcher() {
 		}
 		s.pct, s.lap, s.last, s.best, s.pit, s.surf, s.gear, s.rpm = rd.vals[0], rd.vals[1], rd.vals[2], rd.vals[3], rd.vals[4], rd.vals[5], rd.vals[6], rd.vals[7]
 		s.steer, s.thr, s.brk, s.lat, s.lon, s.cnt, s.start = rd.vals[8], rd.vals[9], rd.vals[10], rd.vals[11], rd.vals[12], rd.vals[13], rd.vals[14]
-		s.t = rd.vals[15][0]
+		s.t, s.mat, s.wet = rd.vals[15][0], rd.vals[17], fat(rd.vals[18], 0, -1)
 		fieldStep(&s, L, key)
 	}
 }
@@ -325,10 +336,16 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			// the lap before is done: it waits for its time. The game's best as it stands now is the best before
 			// that time is taken (when the game already took it, the two are equal and the best says nothing)
 			c.endLap(t, fat(s.best, i, 0))
-			c.lap, c.b, c.valid, c.off, c.pit = lap, make([]fbin, nb), true, 0, false // a lap through the pit lane counts too
+			c.lap, c.b, c.valid, c.offT, c.cntD, c.pitD, c.wet, c.pit = lap, make([]fbin, nb), true, 0, -1, -1, false, false // a lap through the pit lane counts too
 		}
 		if fat(s.pit, i, 0) > 0 {
+			if !c.pit {
+				c.pitD = pct * L
+			}
 			c.pit = true
+		}
+		if s.wet >= 4 { // lightly wet or more, on iRacing's scale (LMU's is turned into it)
+			c.wet = true
 		}
 		c.settle(s, i, t)
 		if c.pendS != nil && t-c.pendSAt > 2 {
@@ -377,19 +394,30 @@ func fieldStep(s *fieldSample, L float64, key string) {
 						sp = d * L / (t - c.moveT)
 					}
 					c.sample(&c.b[b], sp, s, i, org, hasOrg)
+					// the bins it went through since the game last moved it take the same speed (their other columns
+					// are filled between the bins seen, fieldTrace)
+					if lb := int(c.lastPct * L / fieldBin); sp > 0 && b-lb > 1 && b-lb <= fieldFillBins {
+						for k := max(0, lb+1); k < b; k++ {
+							if c.b[k].v == 0 {
+								c.b[k].v = float32(sp)
+							}
+						}
+					}
 				}
 			}
-			// what makes the lap not valid, counted once per frame: off the track (all four wheels out, surface 0; -1 is
-			// a car not in the world) for a third of a second, or the game's own word that the lap's time does not
-			// count, past its first 100 m and on a lap that never touched the pit road (LMU's mCountLapFlag: 2 counts,
-			// 1 the lap only, 0 neither; an out-lap or an in-lap is counted but not timed, and is valid here like yours)
-			if fat(s.surf, i, 3) == 0 {
-				if c.off++; c.off >= fieldOffSamples {
+			// what makes the lap not valid: off the track for a third of a second (all four wheels out, surface 0; -1
+			// is a car not in the world; a kerb or paint under the car never counts, like yours, when the game says
+			// the material), or the game's own word that the lap's time does not count, past its first 100 m, on a lap
+			// that never touched the pit road (LMU's mCountLapFlag: 2 counts, 1 the lap only, 0 neither; an out-lap
+			// or an in-lap is counted but not timed, and is valid here like yours). Judged when the lap ends: the flag
+			// can drop a frame before the car is on the pit road, so a pit road reached within 200 m of it is the in-lap
+			if fat(s.surf, i, 3) == 0 && (s.mat == nil || !pavedMaterial(int(fat(s.mat, i, 0)))) {
+				if c.offT += t - c.lastT; c.offT >= fieldOffTime-1e-9 {
 					c.valid = false
 				}
 			}
-			if cnt := fat(s.cnt, i, -1); cnt >= 0 && cnt < 2 && pct*L > 100 && !c.pit {
-				c.valid = false
+			if cnt := fat(s.cnt, i, -1); cnt >= 0 && cnt < 2 && pct*L > 100 && !c.pit && c.cntD < 0 {
+				c.cntD = pct * L
 			}
 		}
 		if c.lastT == 0 || pct != c.lastPct {
@@ -468,7 +496,7 @@ func (c *carLapProf) endLap(t, gameBest float64) {
 	if c.lap < 0 || c.b == nil {
 		return
 	}
-	c.pend, c.pendB, c.pendAt, c.pendBad, c.pendBest0, c.pendLT = true, c.b, t, !c.valid, gameBest, 0
+	c.pend, c.pendB, c.pendAt, c.pendBad, c.pendBest0, c.pendLT, c.pendWet = true, c.b, t, !c.valid || (c.cntD >= 0 && (c.pitD < 0 || c.pitD-c.cntD > 200)), gameBest, 0, c.wet
 }
 
 // settle: the lap just finished gets its time 2 s after the line (never the lap before's: a lap the game never times,
@@ -522,7 +550,7 @@ func (c *carLapProf) take(lt float64) {
 	}
 	v := rpmSpeed(c.pendB)
 	if len(v) >= 20 && coverage(v) > 0.85 {
-		c.best, c.bestV, c.bestB = lt, v, c.pendB
+		c.best, c.bestV, c.bestB, c.bestWet = lt, v, c.pendB, c.pendWet
 	}
 }
 
@@ -713,13 +741,13 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	var raw []float32
 	var bins []fbin
 	var org [2]float64
-	hasOrg := false
+	hasOrg, wet := false, false
 	if c != nil && c.bestV != nil && math.Abs(c.best-lapTime) < 0.002 {
 		raw = append([]float32{}, c.bestV...)
 		if len(c.bestB) == len(raw) {
 			bins = append([]fbin{}, c.bestB...)
 		}
-		org, hasOrg = c.org, c.hasOrg
+		org, hasOrg, wet = c.org, c.hasOrg, c.bestWet
 	}
 	fieldMu.Unlock()
 	if raw == nil || lapTime <= 0 || len(raw) < 20 || coverage(raw) < 0.85 {
@@ -765,9 +793,18 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 				}
 			}
 		}
-		// against the bins seen (a lap is taken from 85 % of them): the game gave the pedals, or the position, for the lap
+		// against the bins seen (a lap is taken from 85 % of them): the game gave the pedals, or the position, for the
+		// lap. Pedals that never move (a telemetry slot the game leaves at 0, or held at one value) are no real pedals
 		if real = nSeen > 0 && float64(nPed) >= 0.9*float64(nSeen); real {
-			thr, brk = fillGaps(thr, ped), fillGaps(brk, ped)
+			maxT, maxB := 0.0, 0.0
+			for i := range thr {
+				if ped[i] {
+					maxT, maxB = math.Max(maxT, thr[i]), math.Max(maxB, brk[i])
+				}
+			}
+			if real = maxT >= 0.5 && maxB >= 0.2; real {
+				thr, brk = fillGaps(thr, ped), fillGaps(brk, ped)
+			}
 		}
 		if geo = hasOrg && nSeen > 0 && float64(nPos) >= 0.9*float64(nSeen); geo {
 			xs, ys = fillGaps(xs, pos), fillGaps(ys, pos)
@@ -805,6 +842,9 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	tr := &lapTrace{Bin: lapBin, D: d, Src: "field"}
 	if real {
 		tr.Src = "real"
+	}
+	if wet {
+		tr.F = []string{"wet"}
 	}
 	if geo {
 		tr.X, tr.Y, tr.G = make([]float64, len(sp)), make([]float64, len(sp)), []float64{org[0], org[1]}

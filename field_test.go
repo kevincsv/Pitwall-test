@@ -20,6 +20,16 @@ type fieldSim struct {
 	ratio   []float64                        // speed per rpm by gear (index = gear); nil: no revs
 	steer   func(d float64) float64          // nil: no steering
 	pedals  bool                             // the game gives the car's pedals
+	flatPed bool                             // ... but they never move (0 and 0)
+	noPed   bool                             // the arrays are there, -1 for this car (no telemetry slot)
+	tick    int                              // the game updates everything (clock included) every tick frames (LMU: 12, five times a second)
+	mat     func(lap int, d float64) float64 // nil: no CarIdxTrackSurfaceMaterial
+	wet     float64                          // TrackWetness
+	hide    func(lap int, d float64) bool    // the car not in the world there (pct -1)
+	last0   float64                          // what the game shows as the last lap and the best before the first line (0: none)
+	best0   float64
+	bestLag float64                          // seconds after the line before the game's best changes
+	lastLag float64                          // ... and its last lap time
 	geo     bool                             // the game gives the car's position
 	startET bool                             // the game gives the moment each lap started
 	surf    func(lap int, d float64) float64 // nil: 3 (on track)
@@ -50,10 +60,15 @@ func (m *fieldSim) run(laps int) {
 	const dt = 1.0 / 60
 	d, lap, k := 0.0, 1, 0
 	last, best := -1.0, -1.0
+	if m.last0 > 0 {
+		last, best = m.last0, m.best0
+	}
+	lateLast, lateBest, lastAt, bestAt := 0.0, 0.0, -1.0, -1.0
 	m.cross = []float64{fieldSimT0}
 	m.marks = [][2]float64{{0, 0}}
 	var tail float64
 	prevPct, heldPct := 0.0, 0.0
+	var held fieldSample
 	for {
 		t := fieldSimT0 + float64(k)*dt
 		if lap > laps {
@@ -64,9 +79,15 @@ func (m *fieldSim) run(laps int) {
 				return
 			}
 		}
+		if lastAt >= 0 && t >= lastAt {
+			last, lastAt = lateLast, -1
+		}
+		if bestAt >= 0 && t >= bestAt {
+			best, bestAt = lateBest, -1
+		}
 		in := d - float64(lap-1)*m.L
 		v := m.speed(lap, in)
-		s := fieldSample{t: t}
+		s := fieldSample{t: t, wet: m.wet}
 		pos := d
 		if m.noise != nil {
 			pos += m.noise(k)
@@ -76,6 +97,9 @@ func (m *fieldSim) run(laps int) {
 			pct += 1
 		}
 		rep := pct
+		if m.hide != nil && m.hide(lap, in) {
+			rep = -1
+		}
 		if m.lag {
 			rep, prevPct = prevPct, pct
 		}
@@ -114,7 +138,16 @@ func (m *fieldSim) run(laps int) {
 			} else {
 				th = math.Min(1, 0.6+dv*20)
 			}
+			if m.flatPed {
+				th, br = 0, 0
+			}
 			s.thr, s.brk = []float64{th}, []float64{br}
+		}
+		if m.noPed {
+			s.thr, s.brk = []float64{-1}, []float64{-1}
+		}
+		if m.mat != nil {
+			s.mat = []float64{m.mat(lap, in)}
 		}
 		if m.geo {
 			la, lo := m.latLon(in)
@@ -126,7 +159,14 @@ func (m *fieldSim) run(laps int) {
 		if m.startET {
 			s.start = []float64{m.cross[len(m.cross)-1]}
 		}
-		fieldStep(&s, m.L, m.key)
+		if m.tick > 1 {
+			if k%m.tick == 0 {
+				held = s
+			}
+			fieldStep(&held, m.L, m.key)
+		} else {
+			fieldStep(&s, m.L, m.key)
+		}
 		// the car moves on; a line or a third mark crossed between two samples has its exact moment
 		d2 := d + v*dt
 		edge := float64(lap) * m.L
@@ -142,9 +182,13 @@ func (m *fieldSim) run(laps int) {
 			m.marks = append(m.marks, [2]float64{})
 			m.times = append(m.times, lt)
 			if m.noTime == nil || !m.noTime(lap) {
-				last = lt
-				if (m.refuse == nil || !m.refuse(lap)) && (best < 0 || lt < best) {
-					best = lt
+				lateLast, lastAt = lt, tc+m.lastLag
+				nb := best
+				if bestAt >= 0 {
+					nb = lateBest
+				}
+				if (m.refuse == nil || !m.refuse(lap)) && (nb < 0 || lt < nb) {
+					lateBest, bestAt = lt, tc+m.bestLag
 				}
 			}
 			lap++
@@ -354,7 +398,10 @@ func TestFieldTraceSeenBins(t *testing.T) {
 			}
 			x := fbin{v: 40, n: 3, gear: 4, pos: true, x: float32(i), y: float32(2 * i)}
 			if float64(i%100) < 100*ped {
-				x.ped, x.thr = true, 0.7
+				x.ped, x.thr = true, 0.9
+				if i%10 == 5 { // a braking zone
+					x.thr, x.brk = 0, 0.8
+				}
 			}
 			c.bestB[i], c.bestV[i] = x, 40
 		}
@@ -507,8 +554,7 @@ func TestFieldLapWithoutTime(t *testing.T) {
 		}
 		return 2
 	}
-	fieldStep(&fieldSample{t: 1, pct: []float64{0.99}, lap: []float64{0}, last: []float64{64.321}, best: []float64{64.321}}, m.L, m.key)
-	fieldStep(&fieldSample{t: 1.02, pct: []float64{0.991}, lap: []float64{0}, last: []float64{64.321}, best: []float64{64.321}}, m.L, m.key)
+	m.last0, m.best0 = 64.321, 64.321
 	m.run(2)
 	c = fieldCar(t, 0)
 	if len(c.badT) != 0 || math.Abs(c.best-m.times[1]) > 1e-6 {
@@ -726,6 +772,228 @@ func TestFieldTopLapsGame(t *testing.T) {
 		top := fieldTopLaps(r)
 		if len(top) != 1 || top[0]["game"] != c.want {
 			t.Fatalf("game %q: %v", c.game, top)
+		}
+	}
+}
+
+// Le Mans Ultimate moves the other cars and its clock about five times a second: a car at 70 m/s goes 14 m between two
+// updates, more than a bin, and its laps are still taken whole; a third of a second off the track is still a third of
+// a second
+func TestFieldSlowUpdates(t *testing.T) {
+	resetField()
+	m := newSim("slow")
+	m.tick = 12
+	m.speed = func(lap int, d float64) float64 {
+		return (75 - 15*math.Max(0, math.Cos(2*math.Pi*d/3000*4))) * (1 + 0.01*float64(lap))
+	}
+	m.run(3)
+	c := fieldCar(t, 0)
+	if len(c.badT) != 0 || c.best == 0 || math.Abs(c.best-m.times[2]) > 0.05 {
+		t.Fatalf("at 5 Hz: best %.3f (laps %v), not valid %v", c.best, m.times, c.badT)
+	}
+	if tr := fieldTrace(0, c.best); tr == nil || len(tr.D) < 500 {
+		t.Fatal("no trace of a lap seen at 5 Hz")
+	}
+	resetField()
+	m = newSim("slow-off")
+	m.tick = 12
+	m.surf = func(lap int, d float64) float64 { // lap 2: a little over a third of a second off (two updates)
+		if lap == 2 && d >= 1000 && d < 1000+0.45*50 {
+			return 0
+		}
+		return 3
+	}
+	m.run(3)
+	if !fieldLapInvalid(0, m.times[1]) || fieldLapInvalid(0, m.times[2]) {
+		t.Fatalf("at 5 Hz the lap off the track: %v (laps %v)", fieldCar(t, 0).badT, m.times)
+	}
+	resetField()
+}
+
+// pedals the game gives but never move, or -1 for a car without telemetry, are no real pedals: estimated ("field")
+func TestFieldPedalsMustMove(t *testing.T) {
+	for _, c := range []struct {
+		name        string
+		flat, noPed bool
+		want        string
+	}{{"moving", false, false, "real"}, {"flat", true, false, "field"}, {"none", false, true, "field"}} {
+		resetField()
+		m := newSim("ped-" + c.name)
+		m.gear, m.ratio, m.pedals, m.flatPed, m.noPed = simGear, simRatio, true, c.flat, c.noPed
+		m.run(1)
+		tr := fieldTrace(0, m.times[0])
+		if tr == nil || tr.Src != c.want {
+			t.Fatalf("%s pedals: %+v", c.name, tr)
+		}
+		for _, p := range tr.D {
+			if p[1] < 0 || p[2] < 0 {
+				t.Fatalf("%s pedals: a pedal below 0 in %v", c.name, p)
+			}
+		}
+	}
+	resetField()
+}
+
+// a rival's lap on a wet track says so, so the model leaves it aside like yours
+func TestFieldWetLap(t *testing.T) {
+	resetField()
+	m := newSim("wet")
+	m.wet = 4
+	m.run(1)
+	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 1 || tr.F[0] != "wet" {
+		t.Fatalf("a wet lap: %+v", tr)
+	}
+	resetField()
+	m = newSim("dry")
+	m.wet = 2
+	m.run(1)
+	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 0 {
+		t.Fatalf("a dry lap: %+v", tr)
+	}
+	resetField()
+}
+
+// a rival with all four wheels on a kerb or paint is on the track, like you; on the grass it is not
+func TestFieldKerbs(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		mat  float64
+		bad  bool
+	}{{"rumble strip", 11, false}, {"paint", 9, false}, {"grass", 15, true}, {"racing dirt", 7, true}} {
+		resetField()
+		m := newSim("kerb")
+		m.surf = func(lap int, d float64) float64 {
+			if lap == 1 && d >= 1000 && d < 1040 {
+				return 0
+			}
+			return 3
+		}
+		m.mat = func(lap int, d float64) float64 { return c.mat }
+		m.run(2)
+		if fieldLapInvalid(0, m.times[0]) != c.bad {
+			t.Fatalf("%s: not valid %v", c.name, fieldCar(t, 0).badT)
+		}
+	}
+	resetField()
+}
+
+// the game's flag can drop a frame before the car is on the pit road: that in-lap is valid
+func TestFieldPitLapCountFlagOrder(t *testing.T) {
+	resetField()
+	m := newSim("pitorder")
+	m.cnt = func(lap int, d float64) float64 {
+		if lap == 2 && d >= 2800 {
+			return 1
+		}
+		return 2
+	}
+	m.pit = func(lap int, d float64) float64 {
+		if (lap == 2 && d >= 2801) || (lap == 3 && d < 300) {
+			return 1
+		}
+		return 0
+	}
+	m.run(3)
+	if fieldLapInvalid(0, m.times[1]) {
+		t.Fatalf("the in-lap judged not valid: %v", fieldCar(t, 0).badT)
+	}
+	resetField()
+}
+
+// the game publishes a lap's time and its best a moment after the line (iRacing about a second and a half later): a
+// lap it accepts late is still the car's best, and a lap it never takes as its best is still not valid
+func TestFieldLateTimes(t *testing.T) {
+	for _, c := range []struct{ bestLag, lastLag float64 }{{1.5, 0}, {3, 3}} {
+		resetField()
+		m := newSim("late")
+		m.bestLag, m.lastLag = c.bestLag, c.lastLag
+		m.run(3)
+		f := fieldCar(t, 0)
+		if len(f.badT) != 0 || math.Abs(f.best-m.times[2]) > 1e-6 {
+			t.Fatalf("lags %v: not valid %v, best %.4f want %.4f", c, f.badT, f.best, m.times[2])
+		}
+		resetField()
+		m = newSim("late-refused")
+		m.bestLag, m.lastLag = c.bestLag, c.lastLag
+		m.refuse = func(lap int) bool { return lap == 2 }
+		m.run(3)
+		f = fieldCar(t, 0)
+		if len(f.badT) != 1 || math.Abs(f.badT[0]-m.times[1]) > 1e-6 || math.Abs(f.best-m.times[2]) > 1e-6 {
+			t.Fatalf("lags %v, lap 2 refused: not valid %v, best %.4f want %.4f", c, f.badT, f.best, m.times[2])
+		}
+	}
+	resetField()
+}
+
+// a lap the PC saw only in part (the car not in the world for its first 600 m) is never the car's best
+func TestFieldPartialLap(t *testing.T) {
+	resetField()
+	m := newSim("partial")
+	m.speed = func(lap int, d float64) float64 { return simSpeed(1, d) * (1 - 0.02*float64(lap)) } // lap 1 the faster
+	m.hide = func(lap int, d float64) bool { return lap == 1 && d < 600 }
+	m.run(2)
+	if c := fieldCar(t, 0); math.Abs(c.best-m.times[1]) > 1e-6 {
+		t.Fatalf("best %.4f, want lap 2's %.4f", c.best, m.times[1])
+	}
+	if fieldTrace(0, m.times[0]) != nil {
+		t.Fatal("a trace of the lap seen in part")
+	}
+	resetField()
+}
+
+// the revs never speak for a bin where they disagree with the position (wheelspin, a locked wheel) or for a gear seen
+// in too few bins; a gear changed inside a bin marks it
+func TestFieldRPMGuards(t *testing.T) {
+	b := make([]fbin, 200)
+	for i := range b {
+		v := 30 + 10*math.Sin(float64(i)/30)
+		g := simGear(v)
+		b[i] = fbin{v: float32(v), gear: int8(g), rpm: float32(v / simRatio[g]), n: 5}
+	}
+	b[40].rpm *= 1.5
+	for i := 100; i < 103; i++ { // a seventh gear seen in three bins
+		b[i].gear, b[i].rpm = 7, 4000
+	}
+	out := rpmSpeed(b)
+	if out[40] != b[40].v {
+		t.Fatalf("revs 50 %% off the position's speed: %v want %v", out[40], b[40].v)
+	}
+	for i := 100; i < 103; i++ {
+		if out[i] != b[i].v {
+			t.Fatalf("a gear seen in three bins: %v want %v", out[i], b[i].v)
+		}
+	}
+	var c carLapProf
+	var x fbin
+	s := &fieldSample{gear: []float64{3}, rpm: []float64{5000}}
+	c.sample(&x, 30, s, 0, [2]float64{}, false)
+	s.gear[0], s.rpm[0] = 4, 4000
+	c.sample(&x, 31, s, 0, [2]float64{}, false)
+	c.sample(&x, 31, s, 0, [2]float64{}, false)
+	if x.rpm != -1 || x.gear != 4 {
+		t.Fatalf("a shift inside the bin: rpm %v gear %d", x.rpm, x.gear)
+	}
+}
+
+// fillGaps: the points not seen take the value between their neighbours, the ends the nearest; nothing seen, nil
+func TestFillGaps(t *testing.T) {
+	got := fillGaps([]float64{0, 0, 10, 0, 0, 20, 0}, []bool{false, false, true, false, false, true, false})
+	want := []float64{10, 10, 10, 13.333, 16.667, 20, 20}
+	for i := range want {
+		if math.Abs(got[i]-want[i]) > 1e-3 {
+			t.Fatalf("fillGaps %v", got)
+		}
+	}
+	if fillGaps([]float64{1, 2}, []bool{false, false}) != nil {
+		t.Fatal("nothing seen gives a profile")
+	}
+}
+
+// the games whose rivals' laps go up
+func TestFieldShareGame(t *testing.T) {
+	for g, want := range map[string]bool{"": true, "iracing": true, "lmu": true, "ac": false, "acc": false, "LMU": false} {
+		if fieldShareGame(g) != want {
+			t.Fatalf("%q: %v", g, !want)
 		}
 	}
 }

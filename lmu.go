@@ -114,14 +114,17 @@ type lmuSource struct {
 	img        *irImage
 	snap       []byte
 	stop       chan struct{}
-	sessKey    string
+	sessHead   lmuSessHead  // what the session text was last built from (writeSession), compared field by field
+	sessCars   []lmuSessCar // so a frame where nothing changed builds no string
+	sessBuilt  bool
 	impactET   float64
 	impactSeen bool // impactET holds a value read from the game (the impact before the program watched, or none)
 	impacts    int
 	carMem     map[int]lmuCarMem
-	idxByID    map[int]int // each car's index in the image's arrays this session, by the game's vehicle id (carIdx)
-	telSeen    [2]int      // the cars and how many had telemetry when the log last said so (zero: not yet)
-	telLogET   float64     // the session clock then
+	idxByID    map[int]int     // each car's index in the image's arrays this session, by the game's vehicle id (carIdx)
+	idxSeen    map[int]float64 // the session clock each of those cars was last in the game's list
+	telSeen    [2]int          // the cars and how many had telemetry when the log last said so (zero: not yet)
+	telLogET   float64         // the session clock then
 	sessNum    int
 	phase      int     // the game phase of the frame before
 	goET       float64 // the session clock when the race went green, 0 none
@@ -254,6 +257,20 @@ type lmuCar struct {
 	pos                       lmuVec
 	countFlag, penalties      int     // mCountLapFlag (2 lap and time count, 1 lap only, 0 neither), mNumPenalties
 	lapStart                  float64 // when this lap started (mLapStartET)
+	finish                    int     // mFinishStatus: 0 none, 1 finished, 2 DNF, 3 disqualified
+}
+
+// lmuSessHead and lmuSessCar: what the session text says, so writeSession rebuilds it only when one of them changes
+type lmuSessHead struct {
+	track                  string
+	session, player, plTel int
+	known                  [3]float64
+}
+
+type lmuSessCar struct {
+	idx, laps, finish    int
+	best                 float64
+	name, vehicle, class string
 }
 
 // lmuSectors learns where the official sectors start from the player's mSector. rF2 and LMU number the
@@ -419,14 +436,14 @@ func (s *lmuSource) convert(b []byte) bool {
 	}
 
 	if session != s.sessNum || s.idxByID == nil { // another session: the indexes start again (writeSession forgets the bests)
-		s.idxByID = map[int]int{}
+		s.idxByID, s.idxSeen = map[int]int{}, map[int]float64{}
 	}
 	cars := make([]lmuCar, 0, n)
 	player := -1 // the player's place in cars (cars[player].idx is their index in the image)
 	for i := 0; i < n; i++ {
 		o := lmuOffVehScoring + i*lmuVehScSize
 		id := li32(b, o+vs_mID)
-		idx := s.carIdx(id)
+		idx := s.carIdx(id, et)
 		if idx < 0 {
 			continue
 		}
@@ -439,7 +456,7 @@ func (s *lmuSource) convert(b []byte) bool {
 			c.tel = t
 		}
 		c.countFlag, c.penalties = lu8(b, o+vs_mCountLapFlag), lu16(b, o+vs_mNumPenalties) // an unsigned short
-		c.lapStart = lf64(b, o+vs_mLapStartET)
+		c.lapStart, c.finish = lf64(b, o+vs_mLapStartET), lu8(b, o+vs_mFinishStatus)
 		if m := lmuNumRe.FindStringSubmatch(c.vehicle); m != nil {
 			c.num = m[1]
 		} else {
@@ -862,16 +879,34 @@ func lmuMaterial(surface int) int {
 
 // carIdx: a car's index in the image's arrays (CarIdx in the session text too), given the first time the car is seen in
 // the session and kept while it lasts, so a car that leaves never moves the others (the game's own array closes up behind
-// it, and the field watcher follows every car by this index); a slot is never given again. -1 when every slot is taken.
-func (s *lmuSource) carIdx(id int) int {
+// it, and the field watcher follows every car by this index); a slot is given again only when all 64 are taken, to a
+// car long gone. -1 when no slot is free.
+func (s *lmuSource) carIdx(id int, et float64) int {
+	if s.idxSeen == nil {
+		s.idxSeen = map[int]float64{}
+	}
 	if i, ok := s.idxByID[id]; ok {
+		s.idxSeen[id] = et
 		return i
 	}
-	if len(s.idxByID) >= lmuCars {
-		return -1
-	}
 	i := len(s.idxByID)
-	s.idxByID[id] = i
+	if i >= lmuCars {
+		// every index taken: the one of the car gone longest, when it left the game's list five minutes ago or more
+		// (a public server where drivers come and go), so a car that joins late is never left out of the image
+		old, at := -1, et-300
+		for o, t := range s.idxSeen {
+			if t < at {
+				old, at = o, t
+			}
+		}
+		if old < 0 {
+			return -1
+		}
+		i = s.idxByID[old]
+		delete(s.idxByID, old)
+		delete(s.idxSeen, old)
+	}
+	s.idxByID[id], s.idxSeen[id] = i, et
 	return i
 }
 
@@ -1065,17 +1100,54 @@ func yamlSafe(s string) string {
 	return s
 }
 
+// lmuResults: the session's results as iRacing writes them (ResultsPositions, under the session), in the game's order:
+// the place, the class place (from 0), the laps done and the best lap of every car, so the race summary has its field
+// and its rivals like an iRacing race. Le Mans Ultimate counts no incidents.
+func lmuResults(cars []lmuCar) string {
+	order := make([]int, 0, len(cars))
+	for i, c := range cars {
+		if c.place > 0 {
+			order = append(order, i)
+		}
+	}
+	if len(order) == 0 {
+		return ""
+	}
+	sort.Slice(order, func(a, b int) bool { return cars[order[a]].place < cars[order[b]].place })
+	var sb strings.Builder
+	sb.WriteString("   ResultsPositions:\n")
+	for _, i := range order {
+		c := cars[i]
+		out := "Running"
+		switch c.finish {
+		case 2:
+			out = "Disconnected"
+		case 3:
+			out = "Disqualified"
+		}
+		fmt.Fprintf(&sb, "   - Position: %d\n     ClassPosition: %d\n     CarIdx: %d\n     Lap: %d\n     FastestTime: %.4f\n     LastTime: %.4f\n     LapsComplete: %d\n     Incidents: 0\n     ReasonOutStr: %s\n",
+			c.place, max(0, c.classPlace-1), c.idx, c.laps, lmuTime(c.best), lmuTime(c.last), c.laps, out)
+	}
+	return sb.String()
+}
+
 // writeSession builds the session text (track, session, drivers) when it changes.
 func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int, track string, trackLen float64, session int) {
-	var key strings.Builder
-	fmt.Fprintf(&key, "%s|%d|%d|%d|%v", track, session, player, playerTel, s.sec.known)
-	for _, c := range cars {
-		fmt.Fprintf(&key, "|%d:%s%s%s", c.idx, c.name, c.vehicle, c.class)
+	// rebuilt when the track, the session, the player or a car changes, a car crosses the line or sets its best (the
+	// results, as iRacing updates them), compared field by field so the usual frame builds nothing
+	head := lmuSessHead{track: track, session: session, player: player, plTel: playerTel, known: s.sec.known}
+	same := s.sessBuilt && head == s.sessHead && len(cars) == len(s.sessCars)
+	for i := 0; same && i < len(cars); i++ {
+		c := cars[i]
+		same = s.sessCars[i] == lmuSessCar{idx: c.idx, laps: c.laps, finish: c.finish, best: c.best, name: c.name, vehicle: c.vehicle, class: c.class}
 	}
-	if key.String() == s.sessKey {
+	if same {
 		return
 	}
-	s.sessKey = key.String()
+	s.sessHead, s.sessBuilt, s.sessCars = head, true, s.sessCars[:0]
+	for _, c := range cars {
+		s.sessCars = append(s.sessCars, lmuSessCar{idx: c.idx, laps: c.laps, finish: c.finish, best: c.best, name: c.name, vehicle: c.vehicle, class: c.class})
+	}
 	if session != s.sessNum {
 		s.sessNum, s.impacts, s.impactET, s.impactSeen, s.goET = session, 0, 0, false, 0
 		clear(s.carMem) // the bests belong to the session before
@@ -1140,7 +1212,7 @@ SessionInfo:
    SessionTime: %s
    SessionType: %s
    SessionName: %s
-DriverInfo:
+%sDriverInfo:
  DriverCarIdx: %d
  DriverUserID: %d
  PaceCarIdx: -1
@@ -1159,7 +1231,7 @@ DriverInfo:
  Drivers:
 `, strings.ReplaceAll(strings.ToLower(yamlSafe(track)), " ", "_"), lmuHash(track, 100000, 800000), trackLen/1000, yamlSafe(track), yamlSafe(track),
 		lf64(b, si+si_mTrackTemp), lf64(b, si+si_mAmbientTemp), typ, len(classes), li32(b, lmuOffGameVer),
-		session, session, laps, length, typ, name,
+		session, session, laps, length, typ, name, lmuResults(cars),
 		pIdx, lmuDriverID(lmuPlayerName(cars, player)), redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
 	for _, c := range cars {
 		model := strings.TrimSpace(lmuNumRe.ReplaceAllString(c.vehicle, ""))

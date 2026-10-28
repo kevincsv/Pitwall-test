@@ -58,7 +58,9 @@ export function goodLap(time, tr) {
   }
   if (back > 2 || jumps > 2) return null;                      // lap time going backwards, or a broken recording
   if (bins[bins.length - 1][1] > time + 2) return null;        // the trace does not match the lap time
-  return { time, bins, field: tr.src === "field" };
+  // rival: a rival's lap with the game's own pedals, real for the coach, but its speed comes from its position (a few
+  // times a second): it never teaches the car what it does at each speed (the pedals' envelope, the shift speeds)
+  return { time, bins, field: tr.src === "field", rival: tr.src === "real" };
 }
 
 const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("").slice(0, 24);
@@ -122,10 +124,10 @@ async function learnNewLaps(env, game, trackId, carId) {
     let tr = null;
     try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
     if (!goodLap(x.time, tr)) continue;
-    // the memory keeps "field" on a rival's lap from its position (its pedals made again at every build); a lap with
-    // the game's own pedals (src "real") goes in as the points alone, like an account's lap
+    // the memory keeps where a rival's lap came from: "field" (its pedals made again at every build) or "real" (the
+    // game's own pedals); an account's lap goes in as the points alone
     await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created, temp) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT DO NOTHING")
-      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" ? { d: tr.d, src: "field" } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null).run();
+      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" || tr.src === "real" ? { d: tr.d, src: tr.src } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null).run();
     added++;
   }
   return { added, more: false };
@@ -413,7 +415,7 @@ export function lapFacts(bins) {
 // the card of a car from its laps [{trackId, drv, time, bins}]: the hardest braking the drivers get out of
 // it, the speeds the fast drivers shift up at (both the upper end of the laps, not the average), its top speed
 export function cardOf(laps) {
-  const f = laps.map((l) => ({ ...lapFacts(l.bins), trackId: l.trackId, drv: l.drv, field: !!l.field }));
+  const f = laps.map((l) => ({ ...lapFacts(l.bins), trackId: l.trackId, drv: l.drv, field: !!l.field || !!l.rival }));
   const brakes = f.map((x) => x.brake).filter((x) => x != null);
   const shifts = [];
   for (let g = 1; g <= 8; g++) {
@@ -426,7 +428,7 @@ export function cardOf(laps) {
     n: laps.length, tracks: new Set(laps.map((l) => l.trackId)).size, drivers: new Set(laps.map((l) => l.drv)).size,
     brake: brakes.length >= 3 ? r(pct(brakes, 0.8), 100) : null, shifts, vmax: r(vmax, 10), vmaxAt,
     // what the car does at every speed with full throttle, no pedal and full brake: rivals' pedals from their speed
-    pedals: pedalEnvelope(laps.filter((l) => !l.field).map((l) => l.bins)),
+    pedals: pedalEnvelope(laps.filter((l) => !l.field && !l.rival).map((l) => l.bins)),
   };
 }
 export async function buildCarCard(env, game, carId) {
@@ -447,7 +449,7 @@ export async function buildCarCard(env, game, carId) {
   }
   const laps = [];
   for (const x of pick) {
-    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins, field: g.field }); } catch (e) {}
+    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) laps.push({ trackId: x.track_id, drv: x.drv, time: x.time, bins: g.bins, field: g.field, rival: g.rival }); } catch (e) {}
   }
   const card = { v: CARD_VERSION, game, carId, built: Date.now(), ...cardOf(laps) };
   if (card.vmaxAt) {

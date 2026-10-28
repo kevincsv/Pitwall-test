@@ -546,12 +546,15 @@ func shareLap(l cloudLap, s cloudSession) {
 // sends no one else's pedals, so those are estimated from the speed), when you share your own laps
 // and did not switch this off. Needs your account: the server keeps one anonymous driver per real
 // driver, so a later faster lap replaces the earlier one.
+// fieldShareGame: the games whose rivals' laps go up: iRacing's and Le Mans Ultimate's (LMU names its drivers by a
+// stable id made from their name, lmuDriverID); a report without a game is an iRacing one from before
+func fieldShareGame(game string) bool { return game == "" || game == "iracing" || game == "lmu" }
+
 func shareFieldTop(r *raceReport) {
 	commMu.Lock()
 	on := commCfg.ShareTimes
 	commMu.Unlock()
-	// iRacing's and Le Mans Ultimate's rivals (LMU names its drivers by a stable id made from their name, lmuDriverID)
-	if !on || tel.isDemo() || (r.Game != "" && r.Game != "iracing" && r.Game != "lmu") || !accountSignedIn() {
+	if !on || tel.isDemo() || !fieldShareGame(r.Game) || !accountSignedIn() {
 		return
 	}
 	for _, body := range fieldTopLaps(r) {
