@@ -1,7 +1,7 @@
 // Pitlane HQ cloud: receives sessions and laps from PitlaneHQ.exe (the
 // agent) and serves the web viewer. Runs on Cloudflare Workers with D1.
 import { voiceIce } from "./voiceice.js";
-import { downloads } from "./downloads.js";
+import { downloads, latestBuild } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
 import { autoShare, reshareSession, unshareInvalid } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
@@ -502,7 +502,12 @@ async function handle(req, env, ctx) {
     }
     if (url.pathname.startsWith("/account/")) {
       try {
-        return await accounts(req, env, url);
+        {
+          // the PC's minute sync carries the newest Windows build, so a PC behind checks for its update at once
+          const res = await accounts(req, env, url);
+          if (res && url.pathname === "/account/sync/meta") { try { const b = await latestBuild(env); if (b) res.headers.set("X-Pitlane-Build", b); } catch (e) {} }
+          return res;
+        }
       } catch (e) {
         return err("server error: " + (e && e.message), 500);
       }

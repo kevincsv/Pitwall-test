@@ -134,11 +134,16 @@ func commToken() string {
 
 // clientTag tells the server which app asks (the admin page's Online tab): the agent by itself ("pc") or as the engine
 // of the Pitlane HQ window ("desktop"), with the version
+// clientTag: which app this is, for the server (presence, the admin page's Online tab): the version and the build
 func clientTag() string {
-	if engineMode {
-		return "desktop/" + appVersion
+	v := appVersion
+	if buildID != "dev" && len(buildID) >= 7 {
+		v += "+" + buildID[:7]
 	}
-	return "pc/" + appVersion
+	if engineMode {
+		return "desktop/" + v
+	}
+	return "pc/" + v
 }
 
 // commMaxAnswer: the biggest answer read from the server (a session with every lap's telemetry is tens of MB); a bigger
@@ -204,6 +209,9 @@ func commRequestWith(client *http.Client, method, path string, body any, tok str
 		return nil, fmt.Errorf("could not reach the Pitlane HQ server: %w", err)
 	}
 	defer resp.Body.Close()
+	if nb := resp.Header.Get("X-Pitlane-Build"); nb != "" {
+		updateNudge(nb) // the server names the newest build: a PC behind checks for its update at once
+	}
 	b, rerr := readCapped(resp.Body, commMaxAnswer)
 	if rerr != nil && resp.StatusCode < 300 {
 		return nil, rerr
