@@ -27,10 +27,12 @@ export function lmuClass(raw, car) {
   const own = r.replace(/[^A-Za-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 16);
   return own || null;
 }
-// how wet the track was on a lap, from its trace's flags: 2 wet, 1 damp, null dry (community_laps.wet)
+// what a lap was driven in, from its trace's flags, as bits (community_laps.wet): 2 a wet track ("wet"), 1 rain ("rain");
+// null for a dry lap. A lap may carry both
 export function wetOf(flags) {
   if (!Array.isArray(flags)) return null;
-  return flags.includes("wet") ? 2 : flags.includes("damp") ? 1 : null;
+  const w = (flags.includes("wet") ? 2 : 0) | (flags.includes("rain") ? 1 : 0);
+  return w || null;
 }
 
 // a class name asked for (GET /laps?cls=): only the letters, digits and spaces a class has

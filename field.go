@@ -50,7 +50,7 @@ type carLapProf struct {
 	offT  float64 // time off the track this lap (s)
 	cntD  float64 // where the game first said this lap's time does not count (past 100 m, off the pit road), -1 never
 	pitD  float64 // where the lap first touched the pit road, -1 never
-	wet   uint8   // how wet the track was at its wettest on this lap: 2 wet (TrackWetness 4 or more), 1 damp (2 or 3), 0 dry
+	wet   uint8   // what the lap was driven in, as bits: 2 a wet track (TrackWetness 4 or more), 1 rain
 	// the lap just finished, waiting for the game to time it: its bins, when it ended, whether it was judged not valid
 	// while driven, the game's best of the car before its time was taken, and its time once read (then the game's best
 	// is read again: a lap faster than that best that the game does not take was not accepted)
@@ -69,7 +69,7 @@ type carLapProf struct {
 	best      float64
 	bestV     []float32 // the best lap's speed every 10 m (from the revs where the gear held, else the position's)
 	bestB     []fbin    // the best lap's bins (nil for a profile made before the car was seen whole)
-	bestWet   uint8     // the best lap was driven on a wet track (2, "wet" on its trace, never the model's) or a damp one (1, "damp", a note only)
+	bestWet   uint8     // the best lap's bits: 2 a wet track ("wet" on its trace, never the model's), 1 rain ("rain", a note only)
 	org       [2]float64
 	hasOrg    bool      // org: the origin [lat, lon] of the bins' x/y, the same as the player's laps' (geoBase)
 	badT      []float64 // the times of the laps judged not valid (fieldLapInvalid)
@@ -318,13 +318,15 @@ func trackLength(y string) float64 {
 type fieldSample struct {
 	t                                                                                      float64 // SessionTime
 	wet                                                                                    float64 // TrackWetness (-1 unknown)
+	rain                                                                                   float64 // it rains: Precipitation over 0 or WeatherDeclaredWet
 	pct, lap, last, best, pit, surf, gear, rpm, steer, thr, brk, lat, lon, cnt, start, mat []float64
 }
 
 // the variables the watcher reads, in fieldSample's order, then SessionTime and SessionNum
 var fieldVars = []string{"CarIdxLapDistPct", "CarIdxLap", "CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxOnPitRoad",
 	"CarIdxTrackSurface", "CarIdxGear", "CarIdxRPM", "CarIdxSteer", "CarIdxThrottle", "CarIdxBrake", "CarIdxLat", "CarIdxLon",
-	"CarIdxLapCountFlag", "CarIdxLapStartET", "SessionTime", "SessionNum", "CarIdxTrackSurfaceMaterial", "TrackWetness"}
+	"CarIdxLapCountFlag", "CarIdxLapStartET", "SessionTime", "SessionNum", "CarIdxTrackSurfaceMaterial", "TrackWetness",
+	"Precipitation", "WeatherDeclaredWet"}
 
 // fat: a car's value in an array the game may not send (def then, or when the array is short)
 func fat(a []float64, i int, def float64) float64 {
@@ -360,6 +362,7 @@ func fieldWatcher() {
 		s.pct, s.lap, s.last, s.best, s.pit, s.surf, s.gear, s.rpm = rd.vals[0], rd.vals[1], rd.vals[2], rd.vals[3], rd.vals[4], rd.vals[5], rd.vals[6], rd.vals[7]
 		s.steer, s.thr, s.brk, s.lat, s.lon, s.cnt, s.start = rd.vals[8], rd.vals[9], rd.vals[10], rd.vals[11], rd.vals[12], rd.vals[13], rd.vals[14]
 		s.t, s.mat, s.wet = rd.vals[15][0], rd.vals[17], fat(rd.vals[18], 0, -1)
+		s.rain = max(fat(rd.vals[19], 0, 0), fat(rd.vals[20], 0, 0))
 		fieldStep(&s, ft.L, ft.key)
 	}
 }
@@ -439,9 +442,10 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			c.pit = true
 		}
 		if s.wet >= 4 { // lightly wet or more, on iRacing's scale (LMU's is turned into it)
-			c.wet = 2
-		} else if s.wet >= 2 && c.wet < 1 { // mostly dry or very lightly wet: damp
-			c.wet = 1
+			c.wet |= 2
+		}
+		if s.rain > 0 { // raining (LMU's rain makes both variables)
+			c.wet |= 1
 		}
 		c.settle(s, i, t)
 		if c.pendS != nil && t-c.pendSAt > 2 {
@@ -939,11 +943,11 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	if real {
 		tr.Src = "real"
 	}
-	switch wet {
-	case 2:
-		tr.F = []string{"wet"}
-	case 1: // informational only: the model keeps a damp lap
-		tr.F = []string{"damp"}
+	if wet&2 != 0 {
+		tr.F = append(tr.F, "wet")
+	}
+	if wet&1 != 0 { // informational only: the model keeps a lap in the rain on a track not wet yet
+		tr.F = append(tr.F, "rain")
 	}
 	if geo {
 		tr.X, tr.Y, tr.G = make([]float64, len(sp)), make([]float64, len(sp)), []float64{org[0], org[1]}

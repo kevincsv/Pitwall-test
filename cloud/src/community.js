@@ -90,7 +90,7 @@ export function shortDriverName(v) {
   return ini ? first + " " + ini.toUpperCase() + "." : first;
 }
 
-// how wet the track was on a lap whose trace is sealed already (a lap from a session in the account): 2 wet, 1 damp, null dry
+// what a lap whose trace is sealed already was driven in (a lap from a session in the account): bits, 2 a wet track, 1 rain
 async function sealedWet(env, trace) {
   if (!trace) return null;
   try { const tr = JSON.parse(await openData(env, trace)); return wetOf(tr && tr.f); } catch { return null; }
@@ -101,7 +101,7 @@ export async function keepBestLap(env, uid, x) {
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
-  // Le Mans Ultimate's class (its class boards), and how wet the track was: from the flags of the trace before it was
+  // Le Mans Ultimate's class (its class boards), and whether the track was wet or it rained (every game): from the flags of the trace before it was
   // sealed when the caller has them, else from the sealed trace itself (only here, when the lap is really kept)
   const cls = x.game === "lmu" ? lmuClass(x.cls, x.car) : null;
   const wet = x.wet !== undefined ? x.wet : await sealedWet(env, x.trace);

@@ -15,7 +15,7 @@ assert.equal(goodLap(time, { d, f: ["traffic"] }), null, "a lap in traffic is le
 assert.equal(goodLap(time, { d, f: ["wet"] }), null, "a wet lap is left out");
 assert.equal(goodLap(time, { d, f: ["cold", "cmp:1", "wet"] }), null, "wet among other flags");
 assert.ok(goodLap(time, { d, f: "wet" }), "flags that are not a list are no flags");
-assert.ok(goodLap(time, { d, f: ["damp"] }), "a damp lap teaches the model: the flag is a note only");
+assert.ok(goodLap(time, { d, f: ["rain"] }), "a lap in the rain on a track not wet yet teaches the model: the flag is a note only");
 
 assert.equal(goodLap(time, { d }).field, false, "an account's lap is real");
 assert.equal(goodLap(time, { d, src: "field" }).field, true, "a rival's lap from its position has estimated pedals");

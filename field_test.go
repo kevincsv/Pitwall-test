@@ -25,6 +25,7 @@ type fieldSim struct {
 	tick    int                              // the game updates everything (clock included) every tick frames (LMU: 12, five times a second)
 	mat     func(lap int, d float64) float64 // nil: no CarIdxTrackSurfaceMaterial
 	wet     float64                          // TrackWetness
+	rain    float64                          // Precipitation
 	hide    func(lap int, d float64) bool    // the car not in the world there (pct -1)
 	last0   float64                          // what the game shows as the last lap and the best before the first line (0: none)
 	best0   float64
@@ -87,7 +88,7 @@ func (m *fieldSim) run(laps int) {
 		}
 		in := d - float64(lap-1)*m.L
 		v := m.speed(lap, in)
-		s := fieldSample{t: t, wet: m.wet}
+		s := fieldSample{t: t, wet: m.wet, rain: m.rain}
 		pos := d
 		if m.noise != nil {
 			pos += m.noise(k)
@@ -834,7 +835,7 @@ func TestFieldPedalsMustMove(t *testing.T) {
 	resetField()
 }
 
-// a rival's lap on a wet track says so, so the model leaves it aside like yours; on a damp one it says "damp" (a note only)
+// a rival's lap on a wet track says so, so the model leaves it aside like yours; in the rain it says "rain" (a note only)
 func TestFieldWetLap(t *testing.T) {
 	resetField()
 	m := newSim("wet")
@@ -851,11 +852,18 @@ func TestFieldWetLap(t *testing.T) {
 		t.Fatalf("a dry lap: %+v", tr)
 	}
 	resetField()
-	m = newSim("damp")
-	m.wet = 3
+	m = newSim("rain")
+	m.wet, m.rain = 3, 0.2
 	m.run(1)
-	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 1 || tr.F[0] != "damp" {
-		t.Fatalf("a damp lap: %+v", tr)
+	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 1 || tr.F[0] != "rain" {
+		t.Fatalf("a lap in the rain on a track not wet yet: %+v", tr)
+	}
+	resetField()
+	m = newSim("both")
+	m.wet, m.rain = 5, 0.6
+	m.run(1)
+	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 2 || tr.F[0] != "wet" || tr.F[1] != "rain" {
+		t.Fatalf("a wet lap in the rain: %+v", tr)
 	}
 	resetField()
 }

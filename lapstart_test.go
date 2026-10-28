@@ -264,34 +264,35 @@ func TestPenaltyMakesLapInvalid(t *testing.T) {
 	}
 }
 
-// the lap's flags: "wet" when the track was at least lightly wet (4 on iRacing's scale) at any point of the lap, "damp"
-// when it was at most mostly dry or very lightly wet (2 or 3),
-// "cmp:<n>" with the tyre compound at the lap's end when the car has several; nothing on a dry lap on the only one
+// the lap's flags: "wet" when the track was at least lightly wet (4 on iRacing's scale) at any point of the lap,
+// "rain" when it rained (Precipitation over 0 or the track declared wet), "cmp:<n>" with the tyre compound at the lap's end when the car has several; nothing on a dry lap on the only one
 func TestLapFlagsWetAndCompound(t *testing.T) {
 	cases := []struct {
 		name       string
 		wetAt, wet float64 // TrackWetness between 1000 and 1100 m of lap 1, and over the rest of it
 		cmp0, cmp1 float64 // the compound over the first half of lap 1 and over the second
 		want       string
+		rain, decl float64 // Precipitation and WeatherDeclaredWet between 1000 and 1100 m of lap 1
 	}{
-		{"dry on the only compound", 1, 1, 0, 0, ""},
-		{"very lightly wet is damp", 3, 3, 0, 0, "damp"},
-		{"a mostly dry patch is damp", 2, 1, 0, 0, "damp"},
-		{"wet beats damp", 4, 3, 0, 0, "wet"},
-		{"a wet patch", 4, 1, 0, 0, "wet"},
-		{"soaked on the third compound", 7, 7, 2, 2, "wet cmp:2"},
-		{"dry on the second compound", 1, 1, 1, 1, "cmp:1"},
-		{"the compound at the lap's end", 1, 1, 1, 2, "cmp:2"},
+		{"a shower on a dry track", 1, 1, 0, 0, "rain", 0.3, 0},
+		{"declared wet", 1, 1, 0, 0, "rain", 0, 1},
+		{"wet and raining", 5, 5, 0, 0, "wet rain", 0.5, 1},
+		{"dry on the only compound", 1, 1, 0, 0, "", 0, 0},
+		{"very lightly wet is dry", 3, 3, 0, 0, "", 0, 0},
+		{"a wet patch", 4, 1, 0, 0, "wet", 0, 0},
+		{"soaked on the third compound", 7, 7, 2, 2, "wet cmp:2", 0, 0},
+		{"dry on the second compound", 1, 1, 1, 1, "cmp:1", 0, 0},
+		{"the compound at the lap's end", 1, 1, 1, 2, "cmp:2", 0, 0},
 	}
 	for _, c := range cases {
-		env := &lapTestEnv{t: time.Unix(1000, 0), vars: map[string]bool{"PlayerTrackSurface": true, "TrackWetness": true, "PlayerTireCompound": true}}
+		env := &lapTestEnv{t: time.Unix(1000, 0), vars: map[string]bool{"PlayerTrackSurface": true, "TrackWetness": true, "PlayerTireCompound": true, "Precipitation": true, "WeatherDeclaredWet": true}}
 		ended := driveLaps(env, 2, func(lap int, d float64, v []float64) {
 			if lap != 1 {
 				return
 			}
 			v[29] = c.wet
 			if d > 1000 && d < 1100 {
-				v[29] = c.wetAt
+				v[29], v[32], v[33] = c.wetAt, c.rain, c.decl
 			}
 			v[30] = c.cmp0
 			if d >= 1500 {
