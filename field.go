@@ -52,7 +52,8 @@ type carLapProf struct {
 	pendBad   bool
 	pendBest0 float64
 	pendLT    float64
-	prevLT    float64 // the last lap time taken, so a lap never takes the time of the lap before
+	prevLT    float64 // the last lap time the game showed, so a lap never takes the time of the lap before
+	pit       bool    // the car touched the pit road this lap: the game's flag says nothing of it (an out-lap is counted, not timed)
 	lastPct   float64
 	lastT     float64
 	best      float64
@@ -315,14 +316,18 @@ func fieldStep(s *fieldSample, L float64, key string) {
 		}
 		c := fieldCars[i]
 		if c == nil {
-			c = &carLapProf{lap: -1}
+			// the time the game shows now belongs to a lap before the car was seen: never the first lap's
+			c = &carLapProf{lap: -1, prevLT: fat(s.last, i, 0)}
 			fieldCars[i] = c
 		}
 		if lap := int(fat(s.lap, i, 0)); lap != c.lap {
 			// the lap before is done: it waits for its time. The game's best as it stands now is the best before
 			// that time is taken (when the game already took it, the two are equal and the best says nothing)
 			c.endLap(t, fat(s.best, i, 0))
-			c.lap, c.b, c.valid, c.off = lap, make([]fbin, nb), true, 0 // a lap through the pit lane counts too
+			c.lap, c.b, c.valid, c.off, c.pit = lap, make([]fbin, nb), true, 0, false // a lap through the pit lane counts too
+		}
+		if fat(s.pit, i, 0) > 0 {
+			c.pit = true
 		}
 		c.settle(s, i, t)
 		if c.pendS != nil && t-c.pendSAt > 2 {
@@ -369,13 +374,14 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			}
 			// what makes the lap not valid, counted once per frame: off the track (all four wheels out, surface 0; -1 is
 			// a car not in the world) for a third of a second, or the game's own word that the lap's time does not
-			// count, past its first 100 m and off the pit road (LMU's mCountLapFlag: 2 counts, 1 the lap only, 0 neither)
+			// count, past its first 100 m and on a lap that never touched the pit road (LMU's mCountLapFlag: 2 counts,
+			// 1 the lap only, 0 neither; an out-lap or an in-lap is counted but not timed, and is valid here like yours)
 			if fat(s.surf, i, 3) == 0 {
 				if c.off++; c.off >= fieldOffSamples {
 					c.valid = false
 				}
 			}
-			if cnt := fat(s.cnt, i, -1); cnt >= 0 && cnt < 2 && pct*L > 100 && fat(s.pit, i, 0) == 0 {
+			if cnt := fat(s.cnt, i, -1); cnt >= 0 && cnt < 2 && pct*L > 100 && !c.pit {
 				c.valid = false
 			}
 		}
@@ -453,10 +459,11 @@ func (c *carLapProf) endLap(t, gameBest float64) {
 	c.pend, c.pendB, c.pendAt, c.pendBad, c.pendBest0, c.pendLT = true, c.b, t, !c.valid, gameBest, 0
 }
 
-// settle: the lap just finished gets its time 2 s after the line (never the lap before's). A lap judged not valid
-// while driven is noted as such; one faster than the game's best of the car before it waits 3 s more for the game's
-// best to become its time, else the game did not accept it (not faster, or no best before, says nothing); the rest
-// may become the car's best here.
+// settle: the lap just finished gets its time 2 s after the line (never the lap before's: a lap the game never times,
+// LMU counting the lap but not its time, a tow or a reset in iRacing, is neither judged nor taken). A lap judged not
+// valid while driven is noted as such; one faster than the game's best of the car before it waits 3 s more for the
+// game's best to become its time, else the game did not accept it (not faster, or no best before, says nothing); the
+// rest may become the car's best here.
 func (c *carLapProf) settle(s *fieldSample, i int, t float64) {
 	if !c.pend {
 		return
@@ -466,8 +473,8 @@ func (c *carLapProf) settle(s *fieldSample, i int, t float64) {
 			return
 		}
 		lt, late := fat(s.last, i, 0), t-c.pendAt > 4
-		if lt <= 0 || (lt == c.prevLT && !late) {
-			if lt <= 0 && late {
+		if lt <= 0 || lt == c.prevLT {
+			if late { // no time of its own after 4 s: the game shows the lap before's, or none
 				c.drop()
 			}
 			return

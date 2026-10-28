@@ -24,6 +24,7 @@ type fieldSim struct {
 	cnt     func(lap int, d float64) float64 // nil: no CarIdxLapCountFlag
 	pit     func(lap int, d float64) float64 // nil: never on the pit road
 	refuse  func(lap int) bool               // the game does not take this lap as the car's best
+	noTime  func(lap int) bool               // the game never times this lap: its last lap time (and best) stay as they were
 	key     string
 	// what happened, exactly: the session time of every line crossing (the start of lap 1 first), the thirds of
 	// every lap and the lap times in order
@@ -132,9 +133,11 @@ func (m *fieldSim) run(laps int) {
 			m.cross = append(m.cross, tc)
 			m.marks = append(m.marks, [2]float64{})
 			m.times = append(m.times, lt)
-			last = lt
-			if (m.refuse == nil || !m.refuse(lap)) && (best < 0 || lt < best) {
-				best = lt
+			if m.noTime == nil || !m.noTime(lap) {
+				last = lt
+				if (m.refuse == nil || !m.refuse(lap)) && (best < 0 || lt < best) {
+					best = lt
+				}
 			}
 			lap++
 		}
@@ -344,6 +347,107 @@ func TestFieldInvalidLapCountFlag(t *testing.T) {
 	}
 	if math.Abs(c.best-m.times[4]) > 1e-6 {
 		t.Fatalf("best %.4f, want lap 5's %.4f", c.best, m.times[4])
+	}
+	resetField()
+}
+
+// a lap the game never times (LMU counts an out-lap or a cut lap but not its time, so the last lap time stays the lap
+// before's; a tow or a reset in iRacing) is neither judged nor taken: the lap before, already timed, is never marked
+// not valid in its place, and the untimed lap's bins never go under another lap's time
+func TestFieldLapWithoutTime(t *testing.T) {
+	// LMU: lap 2 is counted (flag 1) but not timed; lap 1 stays valid and lap 3, faster, is the best
+	resetField()
+	m := newSim("notime")
+	m.noTime = func(lap int) bool { return lap == 2 }
+	m.cnt = func(lap int, d float64) float64 {
+		if lap == 2 {
+			return 1
+		}
+		return 2
+	}
+	m.run(3)
+	c := fieldCar(t, 0)
+	if len(c.badT) != 0 {
+		t.Fatalf("a lap judged not valid in the untimed lap's place: %v (lap 1 %.3f)", c.badT, m.times[0])
+	}
+	if math.Abs(c.best-m.times[2]) > 1e-6 {
+		t.Fatalf("best %.4f, want lap 3's %.4f", c.best, m.times[2])
+	}
+	// iRacing: lap 2 the fastest but off the track, lap 3 untimed, lap 4 faster than lap 1: lap 3's bins never go
+	// under lap 2's time, so lap 4 is the best
+	resetField()
+	m = newSim("notime2")
+	m.speed = func(lap int, d float64) float64 {
+		f := []float64{1, 1, 1.03, 1.01, 1.02}
+		return simSpeed(1, d) * f[min(lap, len(f)-1)]
+	}
+	m.noTime = func(lap int) bool { return lap == 3 }
+	m.surf = func(lap int, d float64) float64 {
+		if lap == 2 && d >= 1000 && d < 1030 {
+			return 0
+		}
+		return 3
+	}
+	m.run(4)
+	c = fieldCar(t, 0)
+	if len(c.badT) != 1 || math.Abs(c.badT[0]-m.times[1]) > 1e-6 {
+		t.Fatalf("laps judged not valid: %v, want lap 2's %.4f only", c.badT, m.times[1])
+	}
+	if math.Abs(c.best-m.times[3]) > 1e-6 {
+		t.Fatalf("best %.4f, want lap 4's %.4f (lap 2, not valid, %.4f)", c.best, m.times[3], m.times[1])
+	}
+	// the time the game shows when a car is first seen belongs to a lap before: the first lap seen, untimed, never
+	// takes it
+	resetField()
+	m = newSim("notime3")
+	m.noTime = func(lap int) bool { return lap == 1 }
+	m.cnt = func(lap int, d float64) float64 {
+		if lap == 1 {
+			return 1
+		}
+		return 2
+	}
+	fieldStep(&fieldSample{t: 1, pct: []float64{0.99}, lap: []float64{0}, last: []float64{64.321}, best: []float64{64.321}}, m.L, m.key)
+	fieldStep(&fieldSample{t: 1.02, pct: []float64{0.991}, lap: []float64{0}, last: []float64{64.321}, best: []float64{64.321}}, m.L, m.key)
+	m.run(2)
+	c = fieldCar(t, 0)
+	if len(c.badT) != 0 || math.Abs(c.best-m.times[1]) > 1e-6 {
+		t.Fatalf("the lap before the car was seen: not valid %v, best %.4f want lap 2's %.4f", c.badT, c.best, m.times[1])
+	}
+	resetField()
+}
+
+// the game's flag on a lap through the pit lane: an out-lap (flag 1 from the pits, still 1 past the pit exit) and an
+// in-lap are counted but not timed, and are valid here like the player's own; a lap the flag refuses before it reaches
+// the pit road is not
+func TestFieldPitLapCountFlag(t *testing.T) {
+	resetField()
+	m := newSim("pitcnt")
+	m.cnt = func(lap int, d float64) float64 {
+		switch {
+		case lap == 2: // the out-lap: the flag stays 1 the whole lap
+			return 1
+		case lap == 3 && d >= 500: // a cut at 500 m, the pits at the end: not valid
+			return 1
+		case lap == 4 && d >= 2800: // the in-lap: the flag drops as the car enters the pit lane
+			return 1
+		}
+		return 2
+	}
+	m.pit = func(lap int, d float64) float64 {
+		switch {
+		case lap == 2 && d < 300, lap == 3 && d >= 2800, lap == 4 && d >= 2800:
+			return 1
+		}
+		return 0
+	}
+	m.run(4)
+	c := fieldCar(t, 0)
+	if fieldLapInvalid(0, m.times[1]) || fieldLapInvalid(0, m.times[3]) {
+		t.Fatalf("the out-lap or the in-lap judged not valid: %v", c.badT)
+	}
+	if !fieldLapInvalid(0, m.times[2]) {
+		t.Fatalf("the lap cut before the pits is valid: %v", c.badT)
 	}
 	resetField()
 }
