@@ -326,10 +326,9 @@ func lmuReadAt(t *testing.T, s *lmuSource) func(string, int) float64 {
 	}
 }
 
-// the field's own variables: every car's lap flag, its last lap's sector times (the game keeps sector 2 as the time at
-// its end), when its lap started and its position; the pedals and the steering of the cars the game gives telemetry for
-// (-1 for the others); the player's own car carries the player's Lat/Lon, from the telemetry, and the player their lap
-// flag and penalties
+// the field's own variables: every car's lap flag, when its lap started and its position; the pedals and the steering of
+// the cars the game gives telemetry for (-1 for the others); the player's own car carries the player's Lat/Lon, from the
+// telemetry, and the player their lap flag and penalties (an unsigned count)
 func TestLMUFieldVariables(t *testing.T) {
 	s := &lmuSource{img: newIRImage(lmuVarDefs())}
 	b := fakeLMU()
@@ -337,10 +336,6 @@ func TestLMUFieldVariables(t *testing.T) {
 	pi16 := func(o int, v int) { binary.LittleEndian.PutUint16(b[o:], uint16(int16(v))) }
 	o0, po := lmuOffVehScoring, lmuOffVehScoring+1*lmuVehScSize
 	b[o0+vs_mCountLapFlag], b[po+vs_mCountLapFlag] = 2, 1
-	pf64(o0+vs_mLastSector1, 70.5)
-	pf64(o0+vs_mLastSector2, 150.25) // the time at the end of sector 2, sector 1 included
-	pf64(po+vs_mLastSector1, -1)     // no lap yet
-	pf64(po+vs_mLastSector2, -1)
 	pi16(po+vs_mNumPenalties, 2)
 	pf64(po+vs_mPos+16, 5) // the scoring's position lags the telemetry's: the player's car takes the telemetry's
 	t0, tp := lmuOffTelem, lmuOffTelem+1*lmuTelSize
@@ -359,7 +354,6 @@ func TestLMUFieldVariables(t *testing.T) {
 		want float64
 	}{
 		{"CarIdxLapCountFlag", 0, 2}, {"CarIdxLapCountFlag", 1, 1}, {"CarIdxLapCountFlag", 63, -1},
-		{"CarIdxLastS1", 0, 70.5}, {"CarIdxLastS2", 0, 79.75}, {"CarIdxLastS1", 1, 0}, {"CarIdxLastS2", 1, 0},
 		{"CarIdxLapStartET", 0, 550},
 		{"CarIdxThrottle", 0, 0.9}, {"CarIdxBrake", 0, 0.3}, {"CarIdxThrottle", 2, -1}, {"CarIdxBrake", 2, -1}, {"CarIdxThrottle", 63, -1},
 		{"CarIdxSteer", 0, -math.Pi / 2}, {"CarIdxSteer", 1, math.Pi / 4}, {"CarIdxSteer", 2, 0},
@@ -381,6 +375,14 @@ func TestLMUFieldVariables(t *testing.T) {
 	}
 	if s.telSeen != [2]int{3, 2} {
 		t.Errorf("the log counted %v, want 2 of 3 cars with telemetry", s.telSeen)
+	}
+	// mNumPenalties is an unsigned short: a count past 32767 never reads negative
+	binary.LittleEndian.PutUint16(b[po+vs_mNumPenalties:], 40000)
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	if get, _ = lmuRead(t, s); get("PlayerNumPenalties") != 40000 {
+		t.Errorf("PlayerNumPenalties = %v, want 40000", get("PlayerNumPenalties"))
 	}
 }
 
@@ -521,13 +523,15 @@ func TestLMUImpacts(t *testing.T) {
 		return get("PlayerCarMyIncidentCount")
 	}
 	for _, c := range []struct{ et, mag, want float64 }{
-		{0, 0, 0},       // no impact yet
-		{10, 200, 0},    // a light touch
-		{20, 5000, 4},   // a crash
-		{20.3, 5000, 4}, // the same one, still reported
-		{21, 1000, 8},   // another, at the line
-		{22, 999, 8},    // under it
-		{22, 999, 8},    // nothing new
+		{0, 0, 0},        // no impact yet
+		{10, 200, 0},     // a light touch
+		{20, 5000, 4},    // a crash
+		{20.3, 5000, 4},  // the same one, still reported
+		{21, 1000, 8},    // another, at the line
+		{22, 999, 8},     // under it
+		{22, 999, 8},     // nothing new
+		{25, 200, 8},     // a light touch
+		{25.3, 5000, 12}, // the crash just after it counts: the touch never hid it
 	} {
 		if got := frame(c.et, c.mag); got != c.want {
 			t.Errorf("impact at %v s of %v: %v points, want %v", c.et, c.mag, got, c.want)

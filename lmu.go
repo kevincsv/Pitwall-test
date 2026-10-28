@@ -90,8 +90,6 @@ func lmuFieldVars() []demoVar {
 		{name: "CarIdxBestLapNum", desc: "Cars best lap number", typ: TypeInt, count: lmuCars},
 		// the game's own verdict on each car's lap under way: 2 the lap and its time count, 1 the lap only, 0 neither, -1 no car
 		{name: "CarIdxLapCountFlag", desc: "Whether the game counts the cars lap and its time", typ: TypeInt, count: lmuCars},
-		{name: "CarIdxLastS1", desc: "Cars last lap sector 1 time, 0 unknown", unit: "s", typ: TypeFloat, count: lmuCars},
-		{name: "CarIdxLastS2", desc: "Cars last lap sector 2 time, 0 unknown", unit: "s", typ: TypeFloat, count: lmuCars},
 		{name: "CarIdxLapStartET", desc: "Session time the cars current lap started", unit: "s", typ: TypeFloat, count: lmuCars},
 		// every car's position in the player's made-up latitude/longitude, so a rival's path and the player's share one frame
 		{name: "CarIdxLat", desc: "Latitude by car index", unit: "deg", typ: TypeDouble, count: lmuCars},
@@ -206,6 +204,7 @@ func lf32(b []byte, o int) float64 {
 }
 func li32(b []byte, o int) int { return int(int32(binary.LittleEndian.Uint32(b[o:]))) }
 func li16(b []byte, o int) int { return int(int16(binary.LittleEndian.Uint16(b[o:]))) }
+func lu16(b []byte, o int) int { return int(binary.LittleEndian.Uint16(b[o:])) }
 func lu8(b []byte, o int) int  { return int(b[o]) }
 func lstr(b []byte, o, n int) string {
 	s := b[o : o+n]
@@ -254,7 +253,7 @@ type lmuCar struct {
 	tel                       int // telemetry slot, -1 if none
 	pos                       lmuVec
 	countFlag, penalties      int     // mCountLapFlag (2 lap and time count, 1 lap only, 0 neither), mNumPenalties
-	lastS1, lastS2, lapStart  float64 // the last lap's own sector times (0 unknown) and when this lap started
+	lapStart                  float64 // when this lap started (mLapStartET)
 }
 
 // lmuSectors learns where the official sectors start from the player's mSector. rF2 and LMU number the
@@ -439,8 +438,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		if t, ok := telByID[c.id]; ok {
 			c.tel = t
 		}
-		c.countFlag, c.penalties = lu8(b, o+vs_mCountLapFlag), li16(b, o+vs_mNumPenalties)
-		c.lastS1, c.lastS2 = lmuSectorTimes(lf64(b, o+vs_mLastSector1), lf64(b, o+vs_mLastSector2))
+		c.countFlag, c.penalties = lu8(b, o+vs_mCountLapFlag), lu16(b, o+vs_mNumPenalties) // an unsigned short
 		c.lapStart = lf64(b, o+vs_mLapStartET)
 		if m := lmuNumRe.FindStringSubmatch(c.vehicle); m != nil {
 			c.num = m[1]
@@ -577,8 +575,6 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 		m.setAt("CarIdxOnPitRoad", i, b2f(c.inPits))
 		m.setAt("CarIdxLapCountFlag", i, float64(c.countFlag))
-		m.setAt("CarIdxLastS1", i, c.lastS1)
-		m.setAt("CarIdxLastS2", i, c.lastS2)
 		m.setAt("CarIdxLapStartET", i, c.lapStart)
 		lat, lon := lmuLatLon(c.pos)
 		m.setAt("CarIdxLat", i, lat)
@@ -739,17 +735,18 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("DRS_Status", float64(drs))
 
 	// contacts stand in for incidents (lmuImpactStrong says how they count). An impact is one while its time stays within
-	// half a second; the time found when the program started watching belongs to an impact before that (or to none).
+	// half a second of the last one that counted (a light touch never hides the crash just after it); the time found when
+	// the program started watching belongs to an impact before that (or to none).
 	imp := lf64(b, to+vt_mLastImpactET)
 	switch {
 	case !s.impactSeen:
-		s.impactSeen = true
-	case imp > s.impactET+0.5:
-		if lf64(b, to+vt_mLastImpactMagnitude) >= lmuImpactStrong {
-			s.impacts += lmuImpactPoints
-		}
+		s.impactSeen, s.impactET = true, imp
+	case imp < s.impactET: // the session's clock started again
+		s.impactET = imp
+	case imp > s.impactET+0.5 && lf64(b, to+vt_mLastImpactMagnitude) >= lmuImpactStrong:
+		s.impacts += lmuImpactPoints
+		s.impactET = imp
 	}
-	s.impactET = imp // a smaller time than before is the session's clock started again
 	m.set("PlayerCarMyIncidentCount", float64(s.impacts))
 	m.set("PlayerCarDriverIncidentCount", float64(s.impacts))
 
@@ -820,20 +817,6 @@ func lmuSteer(input, rangeDeg float64) float64 {
 		rangeDeg = 540
 	}
 	return -input * rangeDeg / 2 * math.Pi / 180
-}
-
-// lmuSectorTimes: rF2 and LMU keep a car's last sector 1 as its own time and its last sector 2 as the time at the end of
-// sector 2 (sector 1 included), negative when there is none; the image carries each sector's own time, 0 unknown. They end
-// where lmuSectors learns the starts of sectors 2 and 3 from mSector (1 → 2 and 2 → 0), so these and the timing's sectors
-// agree.
-func lmuSectorTimes(s1, s2cum float64) (float64, float64) {
-	if s1 <= 0 {
-		return 0, 0
-	}
-	if s2cum <= s1 {
-		return s1, 0
-	}
-	return s1, s2cum - s1
 }
 
 // lmuWheelSurface reads a car's four wheels (wh_mSurfaceType: 0 dry asphalt, 1 wet asphalt, 2 grass, 3 dirt, 4 gravel,
