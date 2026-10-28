@@ -274,11 +274,12 @@
   `/laps?cls=` for game lmu, indexed by game, track, class and time; the PC sends the game's CarClassShortName as `cls`
   for its own laps and its rivals', `lapClass`; a lap without it, and the laps of before, take it from the car's name).
   The per-car boards stay, and the coach and the reference laps are per car, never a class. iRacing has no class view.
-  A leaderboard, record or track page row whose lap was driven on a wet track or in the rain says so beside the time
-  (`wetTag`; "Wet"/"Mojada"/"Molhada" and "Rain"/"Lluvia"/"Chuva", both when both), in every game: the trace's flags
-  "wet" (TrackWetness 4 or more at any point) and "rain" (Precipitation over 0 or WeatherDeclaredWet at any point, own
-  laps in cloud.go and rivals in field.go; LMU makes both from its rain) become `community_laps.wet` (bits: 2 wet, 1
-  rain) on POST /laps. "rain" alone is a note only: it never keeps a lap from the model nor from the coach's default
+  A leaderboard, record or track page row whose lap was driven in the rain or on a wet or damp track says so beside the
+  time (`wetTag`; "Rain"/"Lluvia"/"Chuva", "Wet"/"Mojada"/"Molhada", "Damp"/"Húmeda"/"Úmida"; Rain goes with Wet or
+  Damp), in every game: the trace's flags "rain" (Precipitation over 0 or WeatherDeclaredWet at any point), "wet"
+  (TrackWetness 4 or more at any point) and "damp" (its highest 2 or 3, never 4), own laps in cloud.go and rivals in
+  field.go (LMU makes them from its rain and path wetness), become `community_laps.wet` (bits: 2 wet, 4 damp, 1 rain)
+  on POST /laps. "damp" and "rain" are notes only: they never keep a lap from the model nor from the coach's default
   lap A (only "wet" does).
   Community's "Recent records" (PC, web, Pitlane HQ Desktop, phones; `/community/records`): the fastest lap of every
   car and track, the newest first, with the lap it beat ("beat Juan by 0.312 s", or "the first lap here"), filtered
@@ -610,7 +611,7 @@
   `dif`); laps in traffic (a car within a second ahead for a fifth of the lap, `traffic` in `Trace.f`, the agent checks
   twice a second), on cold tyres (the first lap of a run, `cold`) or on a wet track (`wet`, TrackWetness at 4 or more,
   lightly wet on iRacing's scale, at any point of the lap, "wet track" on the web) are tagged on the web (`lapOptText`;
-  a lap in the rain, `rain`, says "rain" there and is no disturbance),
+  a damp track, `damp`, says "damp track" and a lap in the rain, `rain`, "rain", and neither is a disturbance),
   never the coach's default lap A (`lapClean`) and, traffic and wet, never the model's (`goodLap`; a cold lap is the
   driver's own); the tyre compound travels as `cmp:<n>` in `Trace.f` when the car has several (PlayerTireCompound over
   0, the value at the lap's end), shown nowhere and no disturbance for the coach's default lap; a corner taken

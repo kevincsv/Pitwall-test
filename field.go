@@ -50,7 +50,7 @@ type carLapProf struct {
 	offT  float64 // time off the track this lap (s)
 	cntD  float64 // where the game first said this lap's time does not count (past 100 m, off the pit road), -1 never
 	pitD  float64 // where the lap first touched the pit road, -1 never
-	wet   uint8   // what the lap was driven in, as bits: 2 a wet track (TrackWetness 4 or more), 1 rain
+	wet   uint8   // what the lap was driven in, as bits: 2 a wet track (TrackWetness 4 or more), 4 a damp one (2 or 3), 1 rain
 	// the lap just finished, waiting for the game to time it: its bins, when it ended, whether it was judged not valid
 	// while driven, the game's best of the car before its time was taken, and its time once read (then the game's best
 	// is read again: a lap faster than that best that the game does not take was not accepted)
@@ -69,7 +69,7 @@ type carLapProf struct {
 	best      float64
 	bestV     []float32 // the best lap's speed every 10 m (from the revs where the gear held, else the position's)
 	bestB     []fbin    // the best lap's bins (nil for a profile made before the car was seen whole)
-	bestWet   uint8     // the best lap's bits: 2 a wet track ("wet" on its trace, never the model's), 1 rain ("rain", a note only)
+	bestWet   uint8     // the best lap's bits: 2 a wet track ("wet" on its trace, never the model's), 4 a damp one ("damp" when never wet), 1 rain ("rain"); damp and rain are notes only
 	org       [2]float64
 	hasOrg    bool      // org: the origin [lat, lon] of the bins' x/y, the same as the player's laps' (geoBase)
 	badT      []float64 // the times of the laps judged not valid (fieldLapInvalid)
@@ -443,6 +443,8 @@ func fieldStep(s *fieldSample, L float64, key string) {
 		}
 		if s.wet >= 4 { // lightly wet or more, on iRacing's scale (LMU's is turned into it)
 			c.wet |= 2
+		} else if s.wet >= 2 { // mostly dry or very lightly wet: damp
+			c.wet |= 4
 		}
 		if s.rain > 0 { // raining (LMU's rain makes both variables)
 			c.wet |= 1
@@ -945,6 +947,8 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	}
 	if wet&2 != 0 {
 		tr.F = append(tr.F, "wet")
+	} else if wet&4 != 0 { // informational only: the model keeps a damp lap
+		tr.F = append(tr.F, "damp")
 	}
 	if wet&1 != 0 { // informational only: the model keeps a lap in the rain on a track not wet yet
 		tr.F = append(tr.F, "rain")

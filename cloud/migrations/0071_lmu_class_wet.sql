@@ -1,6 +1,6 @@
 -- Le Mans Ultimate's class boards and the wet badge (lmuclass.js). cls: the lap's LMU class (Hypercar, LMP2, LMP3, LMGTE,
 -- LMGT3), sent by the PC, else from the car's name; NULL for iRacing and for an LMU car nobody knows. wet: what the lap
--- was driven in, as bits, in every game: 2 a wet track, 1 rain (3 both), NULL dry (from the trace's flags when it was
+-- was driven in, as bits, in every game: 2 a wet track, 4 a damp one, 1 rain (with either), NULL dry (from the trace's flags when it was
 -- shared; the laps of before are NULL).
 ALTER TABLE community_laps ADD COLUMN cls TEXT;
 ALTER TABLE community_laps ADD COLUMN wet INTEGER;

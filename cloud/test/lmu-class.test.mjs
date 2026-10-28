@@ -36,10 +36,13 @@ assert.equal(clsParam("LMGT3"), "LMGT3");
 assert.equal(clsParam("x'; DROP"), null);
 assert.equal(clsParam(""), null);
 
-// the flags of a lap's trace as bits: 2 a wet track, 1 rain, both on one lap
+// the flags of a lap's trace as bits: 2 a wet track, 4 a damp one, 1 rain with either
 assert.equal(wetOf(["traffic", "wet"]), 2);
 assert.equal(wetOf(["rain", "cmp:1"]), 1);
 assert.equal(wetOf(["wet", "rain"]), 3);
+assert.equal(wetOf(["damp"]), 4);
+assert.equal(wetOf(["damp", "rain"]), 5);
+assert.equal(wetOf(["wet", "damp"]), 2, "wet is never damp too");
 assert.equal(wetOf(["cold"]), null);
 assert.equal(wetOf(undefined), null);
 

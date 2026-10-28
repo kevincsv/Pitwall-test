@@ -79,7 +79,7 @@ type lapTrace struct {
 	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
 	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated); "real": another car's lap with the pedals the game itself gave of it (Le Mans Ultimate), a real lap
-	F    []string     `json:"f,omitempty"`    // what this lap was driven in: "traffic" (a car within a second ahead for a fifth of the lap), "cold" (the first lap of a run, tyres cold), "wet" (the track at least lightly wet at some point, TrackWetness 4 or more), "rain" (it rained at some point: Precipitation over 0 or the track declared wet; a note only), "cmp:<n>" (the tyre compound when the car has several); the coach leaves traffic, cold and wet laps aside, the model traffic and wet ones
+	F    []string     `json:"f,omitempty"`    // what this lap was driven in: "traffic" (a car within a second ahead for a fifth of the lap), "cold" (the first lap of a run, tyres cold), "wet" (the track at least lightly wet at some point, TrackWetness 4 or more), "damp" (at most mostly dry or very lightly wet, 2 or 3, never wet; a note only), "rain" (it rained at some point: Precipitation over 0 or the track declared wet; a note only), "cmp:<n>" (the tyre compound when the car has several); the coach leaves traffic, cold and wet laps aside, the model traffic and wet ones
 }
 
 type cloudItem struct {
@@ -545,6 +545,7 @@ type lapRec struct {
 	penalty            bool      // the game gave a penalty on this lap off the pit road (track limits): not valid, read as a 1x Off Track
 	penPrev            float64   // the game's penalty count at the previous sample (PlayerNumPenalties)
 	wet                bool      // the track was at least lightly wet at some point of the lap (TrackWetness 4 or more)
+	damp               bool      // the track was mostly dry or very lightly wet at some point (TrackWetness 2 or 3): "damp" when never wet, a note only
 	rain               bool      // it rained at some point of the lap (Precipitation over 0, or the track declared wet): "rain", a note only
 	cmp                int       // the tyre compound at the lap's end (PlayerTireCompound; 0 the only one, or unknown)
 	incPrev            float64   // the incident count at the previous sample
@@ -936,6 +937,8 @@ func (ls *lapStream) step(v []float64) {
 	cur.penPrev = v[31]
 	if v[29] >= 4 { // iRacing's scale: 4 is lightly wet
 		cur.wet = true
+	} else if v[29] >= 2 { // 2 mostly dry, 3 very lightly wet: a damp track, only a note on the lap
+		cur.damp = true
 	}
 	if v[32] > 0 || v[33] > 0 { // raining: only a note on the lap (the model and the coach keep it unless the track is wet)
 		cur.rain = true
@@ -1188,6 +1191,8 @@ func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
 	}
 	if r.wet {
 		l.Trace.F = append(l.Trace.F, "wet")
+	} else if r.damp { // informational only: the model and the coach keep a damp lap
+		l.Trace.F = append(l.Trace.F, "damp")
 	}
 	if r.rain { // informational only: a lap in the rain on a track not wet yet stays the model's and the coach's
 		l.Trace.F = append(l.Trace.F, "rain")

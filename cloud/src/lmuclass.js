@@ -27,11 +27,11 @@ export function lmuClass(raw, car) {
   const own = r.replace(/[^A-Za-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 16);
   return own || null;
 }
-// what a lap was driven in, from its trace's flags, as bits (community_laps.wet): 2 a wet track ("wet"), 1 rain ("rain");
-// null for a dry lap. A lap may carry both
+// what a lap was driven in, from its trace's flags, as bits (community_laps.wet): 2 a wet track ("wet"), 4 a damp one
+// ("damp", never with wet), 1 rain ("rain"); null for a dry lap without rain. Rain goes with wet or damp
 export function wetOf(flags) {
   if (!Array.isArray(flags)) return null;
-  const w = (flags.includes("wet") ? 2 : 0) | (flags.includes("rain") ? 1 : 0);
+  const w = (flags.includes("wet") ? 2 : flags.includes("damp") ? 4 : 0) | (flags.includes("rain") ? 1 : 0);
   return w || null;
 }
 
