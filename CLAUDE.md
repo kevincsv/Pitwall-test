@@ -274,8 +274,13 @@
   `CarIsAI`/`CarIsPaceCar`, `ai` in journal.go) show on the leaderboards with their
   whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
   history, `rivalnames.v2`), with no "rival" tag beside them, on the public pages too. When a driver's own signed-in PC sees them at the wheel
-  in iRacing, what was shared of them as a rival goes to their account, and so does what comes later (`/link-driver`,
-  `driver_links`: one iRacing driver per account and one account per driver; admins can undo it).
+  in iRacing or Le Mans Ultimate, what was shared of them as a rival in that game goes to their account, and so does what
+  comes later (`/link-driver` with the game, `driver_links` per game, migration 0067: one driver of each game per account
+  and one account per driver of each game; `linkOwnDriver`/`ownLinkKey`: iRacing by the driver's own id, LMU by
+  `lmuDriverID` of the player's own name, never a profile's default name such as "Player" nor one of a letter or two),
+  so a driver with an account shows once on the LMU boards; admins undo one game's link (`unlink-driver` with the game,
+  `driverGames` in the accounts list: "Unlink its iRacing driver", "Unlink its Le Mans Ultimate driver" on the web, the
+  PC and the phones).
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin

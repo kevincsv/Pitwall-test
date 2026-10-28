@@ -604,16 +604,16 @@ const gunz = async (b) => await new Response(new Blob([b instanceof ArrayBuffer 
 
 // a car and track got a new lap: the model has to learn it
 // the laps one driver taught the model, moved to another driver (a PC's community token merged into its
-// account): the same laps, counted once and under the account
-export async function moveDriver(env, fromUp, toUp) {
+// account): the same laps, counted once and under the account; with game, that game's laps only (a driver linked per game)
+export async function moveDriver(env, fromUp, toUp, game) {
   const from = await sha("drv:" + fromUp), to = await sha("drv:" + toUp);
-  const rows = (await env.DB.prepare("SELECT game, track_id, car_id, k, time FROM model_laps WHERE drv=?1").bind(from).all()).results || [];
+  const rows = (await env.DB.prepare("SELECT game, track_id, car_id, k, time FROM model_laps WHERE drv=?1" + (game ? " AND game=?2" : "")).bind(...(game ? [from, game] : [from])).all()).results || [];
   for (const r of rows) {
     await env.DB.prepare("UPDATE OR IGNORE model_laps SET drv=?5, k=?6 WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4")
       .bind(r.game, r.track_id, r.car_id, r.k, to, await sha(toUp + ":" + r.time.toFixed(3))).run();
   }
   // a lap both drivers had (the same lap learnt twice) stays once
-  await env.DB.prepare("DELETE FROM model_laps WHERE drv=?1").bind(from).run();
+  await env.DB.prepare("DELETE FROM model_laps WHERE drv=?1" + (game ? " AND game=?2" : "")).bind(...(game ? [from, game] : [from])).run();
   return rows.length;
 }
 

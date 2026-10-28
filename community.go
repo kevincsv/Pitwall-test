@@ -564,32 +564,55 @@ func shareFieldTop(r *raceReport) {
 }
 
 // linkOwnDriver: the driver at the wheel of this PC is the account's own: the server puts under the account
-// the laps other PCs shared of them as a race rival (and the ones still to come). One iRacing driver per
-// account; asked once per driver while Pitlane HQ runs, again after a failure a few minutes later.
+// the laps other PCs shared of them as a race rival in that game (and the ones still to come). One driver of each
+// game per account (ownLinkKey says which); asked once per driver while Pitlane HQ runs, again after a failure a few
+// minutes later.
 var (
 	linkMu   sync.Mutex
 	linkDone = map[string]time.Time{}
 )
 
-func linkOwnDriver(userID string) {
-	k := driverKey(userID)
+// lmuDefaultNames: the names a Le Mans Ultimate profile has before its driver names it: many people share them, so
+// none is ever linked to one account
+var lmuDefaultNames = map[string]bool{"player": true, "driver": true, "user": true, "guest": true, "pilot": true, "you": true}
+
+// ownLinkKey: the key the PC links its own driver of a game by ("" when it does not): iRacing's own id; in Le Mans
+// Ultimate the id made from the name the game shows (lmuDriverID, what other PCs share that driver's laps under as a
+// rival), never a profile's default name nor one of a letter or two
+func ownLinkKey(game, userID, name string) string {
+	switch game {
+	case "iracing":
+		return driverKey(userID)
+	case "lmu":
+		n := strings.ToLower(strings.TrimSpace(name))
+		if len([]rune(n)) < 3 || lmuDefaultNames[n] {
+			return ""
+		}
+		return driverKey(userID)
+	}
+	return ""
+}
+
+func linkOwnDriver(game, userID, name string) {
+	k := ownLinkKey(game, userID, name)
 	if k == "" || tel.isDemo() {
 		return
 	}
+	lk := game + "|" + k
 	linkMu.Lock()
-	if t, ok := linkDone[k]; ok && (t.IsZero() || time.Since(t) < 5*time.Minute) {
+	if t, ok := linkDone[lk]; ok && (t.IsZero() || time.Since(t) < 5*time.Minute) {
 		linkMu.Unlock()
 		return
 	}
-	linkDone[k] = time.Now()
+	linkDone[lk] = time.Now()
 	linkMu.Unlock()
 	go func() {
 		if !accountSignedIn() {
 			return
 		}
-		if _, err := commCall("POST", "/link-driver", map[string]any{"key": k}, true); err == nil {
+		if _, err := commCall("POST", "/link-driver", map[string]any{"key": k, "game": game}, true); err == nil {
 			linkMu.Lock()
-			linkDone[k] = time.Time{}
+			linkDone[lk] = time.Time{}
 			linkMu.Unlock()
 		}
 	}()

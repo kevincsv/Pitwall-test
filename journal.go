@@ -594,12 +594,12 @@ func raceWatcher() {
 				sessionRating(y) // your iRating and licence of this discipline, for every discipline's card
 			}
 		}
-		// you at the wheel in iRacing: the laps other PCs shared of you as a race rival go to your account (iRacing
-		// only: LMU's ids are a hash of the name the game shows, and an account links one driver, so linking by name
-		// would take the iRacing link's place and could join a namesake). Your own id, never the car's driver block:
-		// in a team race that block names whoever is in the car, and a swap would link a teammate for good
-		if onTrack && currentGame() == "iracing" {
-			linkOwnDriver(yamlField(y, "DriverUserID"))
+		// you at the wheel: the laps other PCs shared of you as a race rival in this game go to your account, linked
+		// per game (in Le Mans Ultimate by the id made from the name the game shows, lmuDriverID). Your own id, never
+		// the car's driver block: in an iRacing team race that block names whoever is in the car, and a swap would link
+		// a teammate for good (LMU's own id is the player's name; the block only says whether it is a default one)
+		if onTrack {
+			linkOwnDriver(currentGame(), yamlField(y, "DriverUserID"), yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "UserName"))
 		}
 		if !strings.EqualFold(kind, "Race") {
 			end(cur != nil && cur.state < 5)
