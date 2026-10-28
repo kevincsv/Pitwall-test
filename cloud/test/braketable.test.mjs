@@ -21,8 +21,10 @@ function fn(name) {
 }
 const ctx = { S: { WeekendInfo: { TrackID: 12 } }, window: {} };
 vm.createContext(ctx);
-vm.runInContext(["lineTip", "tipMain", "tipShort", "lapSecsOf", "lapSecCols", "coachTurnsHere"].map(fn).join("\n"), ctx);
-const { tipMain, tipShort, lineTip, lapSecCols, coachTurnsHere } = ctx;
+// the analysis lives in pitwall-analysis.js (PWA in the page), the table's own functions in index.html
+vm.runInContext(readFileSync(new URL("../../web/dist/pitwall-analysis.js", import.meta.url), "utf8"), ctx);
+vm.runInContext("const PWA = window.PW_ANALYSIS;\n" + ["tipMain", "tipShort", "lapSecsOf", "lapSecCols", "coachTurnsHere"].map(fn).join("\n"), ctx);
+const { tipMain, tipShort, lapSecCols, coachTurnsHere } = ctx, lineTip = ctx.window.PW_ANALYSIS.lineTip;
 
 // a corner whose line tip went after the tip of the phase (the corner turned in 2 m more to the inside)
 const line = { entry: 2, apex: 0, exit: 0 };
@@ -33,6 +35,9 @@ const c = { tip: [main[0] + ". " + lt[0], main[1] + ". " + lt[1]], kind: "brake_
 assert.deepEqual([...tipMain(c).slice(0, 2)], main, "the line tip goes, the phase's tip stays");
 assert.equal(tipShort(tipMain(c)[0]), "Brake a little earlier and carry the speed");
 assert.equal(tipShort(tipMain(c)[1]), "Frena un poco antes y conserva la velocidad");
+// the Portuguese tip loses its line tip the same way
+const pt = "Você freia 12 m mais tarde que a referência e perde 5 km/h no ápice. Freie um pouco antes e mantenha a velocidade";
+assert.equal(tipMain({ ...c, tip: [...c.tip, pt + ". " + lt[3]] })[2], pt);
 // a line tip that replaced a generic one is the corner's tip
 const lc = { tip: [lt[0], lt[1]], kind: lt[2], line, dd: 12, lost: .2 };
 assert.equal(tipShort(tipMain(lc)[0]), "Start the corner from the outside");
