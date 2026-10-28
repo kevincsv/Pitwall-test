@@ -333,7 +333,13 @@ async function api(req, env, url, ctx) {
     const { results } = await env.DB.prepare(`SELECT id, n, time, valid, fuel, vmax, sectors, inc, drv${withTraces ? ", trace" : ""} FROM laps WHERE session_id=?1 ORDER BY n`).bind(sid).all();
     const laps = [];
     for (const l of results) laps.push({ ...l, sectors: l.sectors ? JSON.parse(l.sectors) : null, ...(withTraces ? { trace: l.trace ? JSON.parse(await openData(env, l.trace)) : null } : {}) });
-    return json({ session: placeOut(s), laps });
+    // another driver's session (an admin opening it): who it is, so the analyzer never calls their laps "my best"
+    let who;
+    if (me && s.uploader !== me.name && String(s.uploader || "").startsWith("acct:")) {
+      const a = await env.DB.prepare("SELECT display FROM accounts WHERE id=?1").bind(String(s.uploader).slice(5)).first().catch(() => null);
+      who = (a && a.display) || "";
+    }
+    return json({ session: { ...placeOut(s), ...(who !== undefined ? { other: true, who } : {}) }, laps });
   }
 
   // fastest valid lap of anyone in the team for a track, layout and car
