@@ -103,3 +103,18 @@ func TestMergeBundlesAndSame(t *testing.T) {
 }
 
 func mustJSON(v any) string { b, _ := json.Marshal(v); return string(b) }
+
+// the coach's plan sent from the web or a phone (ui.coach.turns and turnsTrack in settings.json) reaches the PC's
+// settings at its next sync, while what the PC changed meanwhile stays
+func TestMergeCoachPlanFromPhone(t *testing.T) {
+	base := []byte(`{"ui":{"coach":{"mode":"next","turns":[]},"lang":"es"}}`)
+	local := []byte(`{"ui":{"coach":{"mode":"big","turns":[]},"lang":"es"}}`)                            // the PC chose the big style
+	remote := []byte(`{"ui":{"coach":{"mode":"next","turns":["T9","T3"],"turnsTrack":12},"lang":"es"}}`) // the phone sent the plan
+	c := dec(t, mergeJSON(base, local, remote, false)).(map[string]any)["ui"].(map[string]any)["coach"].(map[string]any)
+	if c["mode"] != "big" || c["turnsTrack"] != json.Number("12") {
+		t.Fatalf("coach %v", c)
+	}
+	if tr, _ := c["turns"].([]any); len(tr) != 2 || tr[0] != "T9" || tr[1] != "T3" {
+		t.Fatalf("turns %v", c["turns"])
+	}
+}
