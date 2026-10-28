@@ -8,6 +8,7 @@ package main
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 )
 
 // splitFrame: the values of a frame, each the exact text of its element (what json.RawMessage holds), sharing one
@@ -228,4 +229,14 @@ func jsonNumber(b []byte) bool {
 		}
 	}
 	return i == len(b)
+}
+
+// frameValues: a frame without its tick ({"k":tick,"v":[…]} → [ …]}), so two frames with the same values compare equal
+func frameValues(data string) string {
+	if strings.HasPrefix(data, `{"k":`) {
+		if i := strings.Index(data, `,"v":`); i > 0 {
+			return data[i:]
+		}
+	}
+	return data
 }

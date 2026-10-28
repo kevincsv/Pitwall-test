@@ -83,6 +83,13 @@ func saveSettingsLocked() {
 	cfgVer++
 }
 
+// settingsVersion: the settings' version, without copying them
+func settingsVersion() int {
+	cfgMu.Lock()
+	defer cfgMu.Unlock()
+	return cfgVer
+}
+
 func settingsSnapshot() (Config, int) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()

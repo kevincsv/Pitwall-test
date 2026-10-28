@@ -324,7 +324,9 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		if c, v := settingsSnapshot(); v != configVer || uiPrefsVer.Load() != prefsVer {
+		// the settings are copied only when they changed (a copy every frame was the stream's only allocation)
+		if v := settingsVersion(); v != configVer || uiPrefsVer.Load() != prefsVer {
+			c, v := settingsSnapshot()
 			configVer, prefsVer = v, uiPrefsVer.Load()
 			if !send("config", map[string]any{"config": c, "version": v, "profile": activeID(), "profileName": activeName(), "lang": uiLangChoice(), "units": uiUnits()}) {
 				return

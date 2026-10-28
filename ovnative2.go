@@ -205,34 +205,81 @@ func (c *ovCanvas) line(x0, y0, x1, y1, w float64, col uint32, a float64) {
 	dx, dy := x1-x0, y1-y0
 	l2 := dx*dx + dy*dy
 	r := w / 2
-	for py := int(math.Min(y0, y1) - r - 1); py <= int(math.Max(y0, y1)+r+1); py++ {
-		for px := int(math.Min(x0, x1) - r - 1); px <= int(math.Max(x0, x1)+r+1); px++ {
-			qx, qy := float64(px)+0.5-x0, float64(py)+0.5-y0
+	far := (r + 0.75) * (r + 0.75) // beyond this the pixel's coverage is 0: no hypot needed
+	near := -1.0                   // and inside this 1
+	if r > 0.75 {
+		near = (r - 0.75) * (r - 0.75)
+	}
+	bl := c.blender(col)
+	py0, py1 := c.colSpan(int(math.Min(y0, y1)-r-1), int(math.Max(y0, y1)+r+1))
+	px0, px1 := c.rowSpan(int(math.Min(x0, x1)-r-1), int(math.Max(x0, x1)+r+1))
+	for py := py0; py <= py1; py++ {
+		qy := float64(py) + 0.5 - y0
+		for px := px0; px <= px1; px++ {
+			qx := float64(px) + 0.5 - x0
 			t := 0.0
 			if l2 > 0 {
-				t = math.Max(0, math.Min(1, (qx*dx+qy*dy)/l2))
+				t = cov((qx*dx + qy*dy) / l2)
 			}
-			d := math.Hypot(qx-t*dx, qy-t*dy) - r
-			c.blend(px, py, col, a*clamp01(0.5-d))
+			ex, ey := qx-t*dx, qy-t*dy
+			q := ex*ex + ey*ey
+			if q > far {
+				continue
+			}
+			if q < near { // well inside: the whole alpha
+				bl.at(px, py, a*1)
+				continue
+			}
+			d := math.Hypot(ex, ey) - r
+			bl.at(px, py, a*cov(0.5-d))
 		}
 	}
 }
 
 // ring draws a circle's outline (w wide); disc fills one
 func (c *ovCanvas) ring(cx, cy, r, w float64, col uint32, a float64) {
-	for py := int(cy - r - w - 1); py <= int(cy+r+w+1); py++ {
-		for px := int(cx - r - w - 1); px <= int(cx+r+w+1); px++ {
-			d := math.Abs(math.Hypot(float64(px)+0.5-cx, float64(py)+0.5-cy)-r) - w/2
-			c.blend(px, py, col, a*clamp01(0.5-d))
+	bl := c.blender(col)
+	out := r + w/2 + 0.75
+	in := math.Max(0, r-w/2-0.75)
+	out2, in2 := out*out, in*in
+	py0, py1 := c.colSpan(int(cy-r-w-1), int(cy+r+w+1))
+	px0, px1 := c.rowSpan(int(cx-r-w-1), int(cx+r+w+1))
+	for py := py0; py <= py1; py++ {
+		ey := float64(py) + 0.5 - cy
+		for px := px0; px <= px1; px++ {
+			ex := float64(px) + 0.5 - cx
+			if q := ex*ex + ey*ey; q > out2 || q < in2 {
+				continue
+			}
+			d := math.Abs(math.Hypot(ex, ey)-r) - w/2
+			bl.at(px, py, a*cov(0.5-d))
 		}
 	}
 }
 
 func (c *ovCanvas) disc(cx, cy, r float64, col uint32, a float64) {
-	for py := int(cy - r - 1); py <= int(cy+r+1); py++ {
-		for px := int(cx - r - 1); px <= int(cx+r+1); px++ {
-			d := math.Hypot(float64(px)+0.5-cx, float64(py)+0.5-cy) - r
-			c.blend(px, py, col, a*clamp01(0.5-d))
+	bl := c.blender(col)
+	out2 := (r + 0.75) * (r + 0.75)
+	in2 := -1.0 // inside this the coverage is 1: no hypot needed
+	if r > 0.75 {
+		in2 = (r - 0.75) * (r - 0.75)
+	}
+	py0, py1 := c.colSpan(int(cy-r-1), int(cy+r+1))
+	px0, px1 := c.rowSpan(int(cx-r-1), int(cx+r+1))
+	for py := py0; py <= py1; py++ {
+		ey := float64(py) + 0.5 - cy
+		for px := px0; px <= px1; px++ {
+			ex := float64(px) + 0.5 - cx
+			q := ex*ex + ey*ey
+			if q > out2 {
+				continue
+			}
+			if q < in2 {
+				bl.at(px, py, a*1)
+				continue
+			}
+			d := math.Hypot(ex, ey) - r
+			bl.at(px, py, a*cov(0.5-d))
 		}
 	}
 }
