@@ -968,12 +968,13 @@ func myLapWatcher() {
 	var lap, n, full, brk, coast, shifts, runSeen int
 	var vmax, lastT, pitT, lastPct, lastGear float64
 	var cross [3]float64
+	var v []float64 // kept between samples, nothing in the loop holds on to it
 	for range time.Tick(time.Second / 30) {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
 			continue
 		}
-		v := telNums(vars)
+		v = telNumsInto(v, vars)
 		if v[8] == 0 {
 			continue
 		}

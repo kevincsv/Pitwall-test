@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -133,6 +134,67 @@ type lmuSource struct {
 	secPath    string                // "" in tests: nothing is written
 	fuel       lmuFuel
 	onTrack    bool // the game in its realtime (driving, or in the car in the garage): its REST API is left alone (lmurest.go)
+	// kept between frames, so a frame allocates nothing once warm: the cars, the telemetry slots by vehicle id, each
+	// car's texts as last decoded (by vehicle id, read again only when their bytes change), the classes and the
+	// image's per-car variables, looked up once
+	cars    []lmuCar
+	telByID map[int]int
+	text    map[int]*lmuCarText
+	classes []string
+	cls     []int
+	refs    *lmuRefs
+}
+
+// lmuCarText: a car's name, vehicle and class as the game wrote them (raw) and as decoded, with its number
+type lmuCarText struct {
+	raw                       [32 + 64 + 32]byte
+	name, vehicle, class, num string // num "" when the vehicle's name carries none
+}
+
+// lmuRefs: the image's per-car variables the frame writes, found once per image
+type lmuRefs struct {
+	img                                                                        *irImage
+	lap, lapDone, pct, pos, clsPos, est, f2, last, best, bestNum, pit, cntFlag *demoVar
+	lapStart, lat, lon, gear, rpm, tyre, steer, surf, thr, brk                 *demoVar
+}
+
+func (s *lmuSource) carRefs() *lmuRefs {
+	if s.refs != nil && s.refs.img == s.img {
+		return s.refs
+	}
+	m := s.img
+	s.refs = &lmuRefs{img: m, lap: m.ref("CarIdxLap"), lapDone: m.ref("CarIdxLapCompleted"), pct: m.ref("CarIdxLapDistPct"),
+		pos: m.ref("CarIdxPosition"), clsPos: m.ref("CarIdxClassPosition"), est: m.ref("CarIdxEstTime"), f2: m.ref("CarIdxF2Time"),
+		last: m.ref("CarIdxLastLapTime"), best: m.ref("CarIdxBestLapTime"), bestNum: m.ref("CarIdxBestLapNum"), pit: m.ref("CarIdxOnPitRoad"),
+		cntFlag: m.ref("CarIdxLapCountFlag"), lapStart: m.ref("CarIdxLapStartET"), lat: m.ref("CarIdxLat"), lon: m.ref("CarIdxLon"),
+		gear: m.ref("CarIdxGear"), rpm: m.ref("CarIdxRPM"), tyre: m.ref("CarIdxTireCompound"), steer: m.ref("CarIdxSteer"),
+		surf: m.ref("CarIdxTrackSurface"), thr: m.ref("CarIdxThrottle"), brk: m.ref("CarIdxBrake")}
+	return s.refs
+}
+
+// carText: the car's texts in the scoring block at o, decoded only when the game's bytes changed since the last frame
+func (s *lmuSource) carText(b []byte, o, id int) *lmuCarText {
+	if s.text == nil || len(s.text) > 4*lmuMaxVehicles { // a public server's comings and goings: start again
+		s.text = map[int]*lmuCarText{}
+	}
+	t := s.text[id]
+	name, veh, class := b[o+vs_mDriverName:o+vs_mDriverName+32], b[o+vs_mVehicleName:o+vs_mVehicleName+64], b[o+vs_mVehicleClass:o+vs_mVehicleClass+32]
+	if t != nil && string(t.raw[:32]) == string(name) && string(t.raw[32:96]) == string(veh) && string(t.raw[96:]) == string(class) {
+		return t
+	}
+	if t == nil {
+		t = &lmuCarText{}
+		s.text[id] = t
+	}
+	copy(t.raw[:32], name)
+	copy(t.raw[32:96], veh)
+	copy(t.raw[96:], class)
+	t.name, t.vehicle, t.class = lstr(b, o+vs_mDriverName, 32), lstr(b, o+vs_mVehicleName, 64), lstr(b, o+vs_mVehicleClass, 32)
+	t.num = ""
+	if m := lmuNumRe.FindStringSubmatch(t.vehicle); m != nil {
+		t.num = m[1]
+	}
+	return t
 }
 
 func newLMUSource() Source { return &lmuSource{} }
@@ -426,7 +488,11 @@ func (s *lmuSource) convert(b []byte) bool {
 	if active > lmuMaxVehicles {
 		active = lmuMaxVehicles
 	}
-	telByID := map[int]int{}
+	if s.telByID == nil {
+		s.telByID = map[int]int{}
+	}
+	telByID := s.telByID
+	clear(telByID)
 	for t := 0; t < active; t++ {
 		telByID[li32(b, lmuOffTelem+t*lmuTelSize+vt_mID)] = t
 	}
@@ -438,7 +504,7 @@ func (s *lmuSource) convert(b []byte) bool {
 	if session != s.sessNum || s.idxByID == nil { // another session: the indexes start again (writeSession forgets the bests)
 		s.idxByID, s.idxSeen = map[int]int{}, map[int]float64{}
 	}
-	cars := make([]lmuCar, 0, n)
+	cars := s.cars[:0]
 	player := -1 // the player's place in cars (cars[player].idx is their index in the image)
 	for i := 0; i < n; i++ {
 		o := lmuOffVehScoring + i*lmuVehScSize
@@ -447,8 +513,9 @@ func (s *lmuSource) convert(b []byte) bool {
 		if idx < 0 {
 			continue
 		}
-		c := lmuCar{slot: i, idx: idx, id: id, name: lstr(b, o+vs_mDriverName, 32), vehicle: lstr(b, o+vs_mVehicleName, 64),
-			class: lstr(b, o+vs_mVehicleClass, 32), place: lu8(b, o+vs_mPlace), laps: li16(b, o+vs_mTotalLaps), lapDist: lf64(b, o+vs_mLapDist),
+		txt := s.carText(b, o, id)
+		c := lmuCar{slot: i, idx: idx, id: id, name: txt.name, vehicle: txt.vehicle,
+			class: txt.class, place: lu8(b, o+vs_mPlace), laps: li16(b, o+vs_mTotalLaps), lapDist: lf64(b, o+vs_mLapDist),
 			est: lf64(b, o+vs_mTimeIntoLap), behind: lf64(b, o+vs_mTimeBehindLeader), last: lf64(b, o+vs_mLastLapTime), best: lf64(b, o+vs_mBestLapTime),
 			inPits: lu8(b, o+vs_mInPits) != 0, garage: lu8(b, o+vs_mInGarageStall) != 0, player: lu8(b, o+vs_mIsPlayer) != 0,
 			control: int(int8(b[o+vs_mControl])), sector: lu8(b, o+vs_mSector), pos: lvec(b, o+vs_mPos), tel: -1}
@@ -457,10 +524,8 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 		c.countFlag, c.penalties = lu8(b, o+vs_mCountLapFlag), lu16(b, o+vs_mNumPenalties) // an unsigned short
 		c.lapStart, c.finish = lf64(b, o+vs_mLapStartET), lu8(b, o+vs_mFinishStatus)
-		if m := lmuNumRe.FindStringSubmatch(c.vehicle); m != nil {
-			c.num = m[1]
-		} else {
-			c.num = fmt.Sprint(c.idx + 1)
+		if c.num = txt.num; c.num == "" {
+			c.num = strconv.Itoa(c.idx + 1)
 		}
 		if c.player {
 			player = len(cars)
@@ -470,16 +535,27 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 		cars = append(cars, c)
 	}
-	// class positions
-	byClass := map[string][]int{}
-	for i, c := range cars {
-		byClass[c.class] = append(byClass[c.class], i)
-	}
-	for _, list := range byClass {
-		sort.Slice(list, func(a, b int) bool { return cars[list[a]].place < cars[list[b]].place })
-		for k, i := range list {
-			cars[i].classPlace = k + 1
+	s.cars = cars
+	// class positions: each car's place among the cars of its class (equal places in the game's order)
+	s.classes, s.cls = s.classes[:0], s.cls[:0]
+	for _, c := range cars {
+		k := 0
+		for k < len(s.classes) && s.classes[k] != c.class {
+			k++
 		}
+		if k == len(s.classes) {
+			s.classes = append(s.classes, c.class)
+		}
+		s.cls = append(s.cls, k)
+	}
+	for i := range cars {
+		p := 1
+		for j := range cars {
+			if j != i && s.cls[j] == s.cls[i] && (cars[j].place < cars[i].place || (cars[j].place == cars[i].place && j < i)) {
+				p++
+			}
+		}
+		cars[i].classPlace = p
 	}
 
 	inReal := lu8(b, si+si_mInRealtime) != 0
@@ -569,33 +645,35 @@ func (s *lmuSource) convert(b []byte) bool {
 	}
 	flags |= lmuStartFlags(phase, lu8(b, si+si_mStartLight), lu8(b, si+si_mNumRedLights), s.goET > 0 && et-s.goET < 4)
 
-	for _, c := range cars {
+	r := s.carRefs()
+	for k := range cars {
+		c := &cars[k]
 		i := c.idx
 		pct := c.lapDist / trackLen
 		if pct < 0 {
 			pct = 0
 		}
 		pct = math.Mod(pct, 1)
-		m.setAt("CarIdxLap", i, float64(c.laps+1))
-		m.setAt("CarIdxLapCompleted", i, float64(c.laps))
-		m.setAt("CarIdxLapDistPct", i, pct)
-		m.setAt("CarIdxPosition", i, float64(c.place))
-		m.setAt("CarIdxClassPosition", i, float64(c.classPlace))
-		m.setAt("CarIdxEstTime", i, c.est)
-		m.setAt("CarIdxF2Time", i, c.behind)
-		m.setAt("CarIdxLastLapTime", i, lmuTime(c.last))
-		m.setAt("CarIdxBestLapTime", i, lmuTime(c.best))
+		m.setVar(r.lap, i, float64(c.laps+1))
+		m.setVar(r.lapDone, i, float64(c.laps))
+		m.setVar(r.pct, i, pct)
+		m.setVar(r.pos, i, float64(c.place))
+		m.setVar(r.clsPos, i, float64(c.classPlace))
+		m.setVar(r.est, i, c.est)
+		m.setVar(r.f2, i, c.behind)
+		m.setVar(r.last, i, lmuTime(c.last))
+		m.setVar(r.best, i, lmuTime(c.best))
 		bestNum := s.bestLapNum(c.id, c.best, c.laps)
-		m.setAt("CarIdxBestLapNum", i, float64(bestNum))
+		m.setVar(r.bestNum, i, float64(bestNum))
 		if c.player {
 			m.set("LapBestLap", float64(max(0, bestNum)))
 		}
-		m.setAt("CarIdxOnPitRoad", i, b2f(c.inPits))
-		m.setAt("CarIdxLapCountFlag", i, float64(c.countFlag))
-		m.setAt("CarIdxLapStartET", i, c.lapStart)
+		m.setVar(r.pit, i, b2f(c.inPits))
+		m.setVar(r.cntFlag, i, float64(c.countFlag))
+		m.setVar(r.lapStart, i, c.lapStart)
 		lat, lon := lmuLatLon(c.pos)
-		m.setAt("CarIdxLat", i, lat)
-		m.setAt("CarIdxLon", i, lon)
+		m.setVar(r.lat, i, lat)
+		m.setVar(r.lon, i, lon)
 		throttle, brake := -1.0, -1.0 // unknown without the car's telemetry
 		surf := 3
 		if c.garage {
@@ -605,18 +683,18 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 		if c.tel >= 0 {
 			to := lmuOffTelem + c.tel*lmuTelSize
-			m.setAt("CarIdxGear", i, float64(li32(b, to+vt_mGear)))
-			m.setAt("CarIdxRPM", i, lf64(b, to+vt_mEngineRPM))
-			m.setAt("CarIdxTireCompound", i, float64(lu8(b, to+vt_mFrontTireCompoundIndex)))
-			m.setAt("CarIdxSteer", i, lmuSteer(lf64(b, to+vt_mUnfilteredSteering), lf32(b, to+vt_mPhysicalSteeringWheelRange)))
+			m.setVar(r.gear, i, float64(li32(b, to+vt_mGear)))
+			m.setVar(r.rpm, i, lf64(b, to+vt_mEngineRPM))
+			m.setVar(r.tyre, i, float64(lu8(b, to+vt_mFrontTireCompoundIndex)))
+			m.setVar(r.steer, i, lmuSteer(lf64(b, to+vt_mUnfilteredSteering), lf32(b, to+vt_mPhysicalSteeringWheelRange)))
 			throttle, brake = lf64(b, to+vt_mFilteredThrottle), lf64(b, to+vt_mFilteredBrake)
 			if off, _ := lmuWheelSurface(b, to); surf == 3 && off == 4 {
 				surf = 0 // off the track: all four wheels out
 			}
 		}
-		m.setAt("CarIdxTrackSurface", i, float64(surf))
-		m.setAt("CarIdxThrottle", i, throttle)
-		m.setAt("CarIdxBrake", i, brake)
+		m.setVar(r.surf, i, float64(surf))
+		m.setVar(r.thr, i, throttle)
+		m.setVar(r.brk, i, brake)
 	}
 	// the slots with no car (never taken, or whose car left): not in the world
 	var used [lmuCars]bool
@@ -627,12 +705,12 @@ func (s *lmuSource) convert(b []byte) bool {
 		if used[i] {
 			continue
 		}
-		m.setAt("CarIdxLapDistPct", i, -1)
-		m.setAt("CarIdxTrackSurface", i, -1)
-		m.setAt("CarIdxBestLapNum", i, -1)
-		m.setAt("CarIdxLapCountFlag", i, -1)
-		m.setAt("CarIdxThrottle", i, -1)
-		m.setAt("CarIdxBrake", i, -1)
+		m.setVar(r.pct, i, -1)
+		m.setVar(r.surf, i, -1)
+		m.setVar(r.bestNum, i, -1)
+		m.setVar(r.cntFlag, i, -1)
+		m.setVar(r.thr, i, -1)
+		m.setVar(r.brk, i, -1)
 	}
 
 	connected := player >= 0 && playerTel >= 0 && inReal
@@ -768,21 +846,22 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("PlayerCarDriverIncidentCount", float64(s.impacts))
 
 	// wheels: FL, FR, RL, RR
-	for k, c := range []string{"LF", "RF", "LR", "RR"} {
+	for k := range lmuWheelVars {
+		wv := &lmuWheelVars[k]
 		w := to + vt_mWheels + k*lmuWheelSize
-		for z, side := range []string{"L", "M", "R"} {
+		for z := 0; z < 3; z++ {
 			t := lf64(b, w+wh_mTemperature+z*8)
 			if t > 0 {
-				m.set(c+"tempC"+side, t-273.15)
+				m.set(wv.temp[z], t-273.15)
 			}
-			m.set(c+"wear"+side, lf64(b, w+wh_mWear))
+			m.set(wv.wear[z], lf64(b, w+wh_mWear))
 		}
-		m.set(c+"pressure", lf64(b, w+wh_mPressure))
-		m.set(c+"coldPressure", lf64(b, w+wh_mPressure))
+		m.set(wv.pressure, lf64(b, w+wh_mPressure))
+		m.set(wv.cold, lf64(b, w+wh_mPressure))
 		if bt := lf64(b, w+wh_mBrakeTemp); bt > 0 {
-			m.set(c+"brakeTemp", bt-273.15)
+			m.set(wv.brakeTemp, bt-273.15)
 		}
-		m.set(c+"brakeLinePress", lf64(b, w+wh_mBrakePressure))
+		m.set(wv.brakeLine, lf64(b, w+wh_mBrakePressure))
 	}
 	// off the track only with all four wheels out (a kerb never counts, and the game's own LapCountFlag says when a cut
 	// is one): two wheels on the grass are a wide line, not an Off Track
@@ -816,6 +895,20 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("YawNorth", math.Mod(math.Atan2(-fx, -fz)+2*math.Pi, 2*math.Pi)) // clockwise from north, like WindDir
 	m.set("CarLeftRight", float64(lmuSpotter(ori, pos, cars, player)))
 }
+
+// lmuWheelVars: the names of each wheel's variables (LF, RF, LR, RR; the tyre's zones L, M, R), made once
+var lmuWheelVars = func() (out [4]struct {
+	temp, wear                           [3]string
+	pressure, cold, brakeTemp, brakeLine string
+}) {
+	for k, c := range []string{"LF", "RF", "LR", "RR"} {
+		for z, side := range []string{"L", "M", "R"} {
+			out[k].temp[z], out[k].wear[z] = c+"tempC"+side, c+"wear"+side
+		}
+		out[k].pressure, out[k].cold, out[k].brakeTemp, out[k].brakeLine = c+"pressure", c+"coldPressure", c+"brakeTemp", c+"brakeLinePress"
+	}
+	return
+}()
 
 // lmuLatLon turns a world position (metres) into the made-up latitude/longitude the track map and the laps' paths use,
 // the same for the player and for every other car so their paths share one frame. The game's world frame is left-handed

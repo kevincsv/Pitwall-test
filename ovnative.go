@@ -378,6 +378,9 @@ func (s *ovState) num(name string) (float64, bool) {
 	if !ok {
 		return 0, false
 	}
+	if f, ok, known := jsonScalar(raw); known { // the stream's plain values, read without encoding/json
+		return f, ok
+	}
 	var v any
 	if json.Unmarshal(raw, &v) != nil {
 		return 0, false
@@ -398,6 +401,9 @@ func (s *ovState) arr(name string) []float64 {
 	raw, ok := s.frame[name]
 	if !ok {
 		return nil
+	}
+	if out, known := jsonNumbers(raw); known {
+		return out
 	}
 	var v []any
 	if json.Unmarshal(raw, &v) != nil {
@@ -672,7 +678,9 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		json.Unmarshal([]byte(data), fields)
 	case "t":
 		var f struct{ V []json.RawMessage }
-		if json.Unmarshal([]byte(data), &f) != nil {
+		if v, ok := splitFrame(data); ok {
+			f.V = v
+		} else if json.Unmarshal([]byte(data), &f) != nil {
 			return
 		}
 		st.mu.Lock()

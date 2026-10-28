@@ -564,7 +564,11 @@
   Overlay windows use the app's language (`&lang=` from `uiLangChoice`). The Overlays screen editor shows only the
   overlays that are open or Auto, always inside the screen. In a narrow PC window the main tabs show only icons. The delta bar overlay has no title: a rounded track and the delta in a pill in the centre.
   An overlay asks the PC only for the values it shows, 60 times a second, and redraws fast (relative 10/s,
-  standings 4/s, radar 30/s). The relative always has the rows you chose ahead and behind (empty when no car).
+  standings 4/s, radar 30/s). The agent stays light: the stream's frame is written straight from the telemetry buffer
+  (`streamFrame`, byte for byte what encoding/json wrote) and an overlay reads it without encoding/json (`ovframe.go`,
+  the same values), the session text is read by scanning (`yamlField`/`listItem`, never a regexp compiled per call),
+  the LMU frame decodes a car's texts only when they change, and the loops that run 30 to 60 times a second allocate
+  nothing once warm (`perf_bench_test.go` measures them, `go test -run '^$' -bench . -benchmem`). The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside

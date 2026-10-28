@@ -269,6 +269,7 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 	_, voiceSeen := voiceSince("", -1)
 	var lastTick int32 = -1
 	var want []int
+	var frame []byte // the frame's event, its storage kept between frames
 	var lastStatus statusMsg
 	var drvAt time.Time
 	drvOn, drvName := false, ""
@@ -363,15 +364,21 @@ func handleStream(w http.ResponseWriter, r *http.Request) {
 			}
 			tel.mu.RLock()
 		}
-		var frame []any
 		tick := tel.tick
+		frame = frame[:0]
 		if tel.connected && tick != lastTick && len(tel.buf) > 0 {
-			frame = decodeValues(tel.vars, tel.buf, want)
+			var ok bool
+			frame = append(frame, "event: t\ndata: "...)
+			if frame, ok = streamFrame(frame, tel.vars, tel.buf, want, tick); ok {
+				frame = append(frame, "\n\n"...)
+			} else {
+				frame = frame[:0]
+			}
 		}
 		tel.mu.RUnlock()
-		if frame != nil {
+		if len(frame) > 0 {
 			lastTick = tick
-			if !send("t", map[string]any{"k": tick, "v": frame}) {
+			if _, err := w.Write(frame); err != nil {
 				return
 			}
 		}
@@ -751,4 +758,44 @@ func quitApp() {
 	stopShare()
 	closeOverlays("*")
 	os.Exit(0)
+}
+
+// streamFrame appends one frame of the live stream ({"k":tick,"v":[values]}) to dst: what encoding/json made of
+// decodeValues' values, written straight from the buffer (a frame 60 times a second per overlay boxed every value).
+// false when encoding/json would have refused the frame (a number too big to round), which is then not sent.
+func streamFrame(dst []byte, vars []VarHeader, buf []byte, want []int, tick int32) ([]byte, bool) {
+	ok := true
+	dst = append(dst, `{"k":`...)
+	dst = strconv.AppendInt(dst, int64(tick), 10)
+	dst = append(dst, `,"v":[`...)
+	for k, idx := range want {
+		if k > 0 {
+			dst = append(dst, ',')
+		}
+		v := vars[idx]
+		sz := typeSize[v.typ]
+		switch {
+		case v.offset+sz*v.Count > len(buf):
+			dst = append(dst, "null"...)
+		case v.typ == TypeChar:
+			s, _ := json.Marshal(cstr(buf[v.offset : v.offset+v.Count]))
+			dst = append(dst, s...)
+		case v.Count == 1:
+			var good bool
+			dst, good = appendJSONValue(dst, v.typ, buf, v.offset)
+			ok = ok && good
+		default:
+			dst = append(dst, '[')
+			for i := 0; i < v.Count; i++ {
+				if i > 0 {
+					dst = append(dst, ',')
+				}
+				var good bool
+				dst, good = appendJSONValue(dst, v.typ, buf, v.offset+i*sz)
+				ok = ok && good
+			}
+			dst = append(dst, ']')
+		}
+	}
+	return append(dst, "]}"...), ok
 }

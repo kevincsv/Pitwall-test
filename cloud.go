@@ -19,7 +19,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -337,28 +336,112 @@ func queueSession(s cloudSession) {
 
 // ---------- reading the session ----------
 
+// yamlField: the value of the first "key:" that starts a line (after its indent) in the block, trimmed and unquoted.
+// It reads what the regexp (?m)^\s*key:\s*(.*)$ would (the value may start on the next line when nothing follows the
+// colon), by scanning: it runs on every session change over a text of tens of kilobytes, where the regexp took
+// hundreds of microseconds a call.
 func yamlField(block, key string) string {
-	re := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(key) + `:\s*(.*)$`)
-	if m := re.FindStringSubmatch(block); m != nil {
-		return strings.Trim(strings.TrimSpace(m[1]), `"`)
+	if key == "" {
+		return ""
+	}
+	for off := 0; off < len(block); {
+		j := strings.Index(block[off:], key)
+		if j < 0 {
+			return ""
+		}
+		i := off + j
+		off = i + 1
+		k := i + len(key)
+		if k >= len(block) || block[k] != ':' || !yamlLineStart(block, i) {
+			continue
+		}
+		k++
+		for k < len(block) && yamlSpace(block[k]) {
+			k++
+		}
+		e := len(block)
+		if n := strings.IndexByte(block[k:], '\n'); n >= 0 {
+			e = k + n
+		}
+		return strings.Trim(strings.TrimSpace(block[k:e]), `"`)
 	}
 	return ""
 }
 
-// listItem returns the YAML list entry that starts with "- key: value".
+// yamlSpace: the regexp's \s (tab, newline, form feed, carriage return, space)
+func yamlSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' }
+
+// yamlLineStart: only spaces between the start of i's line and i
+func yamlLineStart(y string, i int) bool {
+	for j := i - 1; j >= 0; j-- {
+		switch y[j] {
+		case '\n':
+			return true
+		case ' ', '\t', '\r', '\f':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// listItem returns the YAML list entry that starts with "- key: value": what follows that line up to the next entry
+// of the same list (a line with the same indent and "- ") or the next top-level line. It scans the text the way the
+// regexps (?m)^(\s*)- key: value\s*$ and (?m)^indent- |^\S did, without compiling them on every call.
 func listItem(y, key, value string) string {
-	re := regexp.MustCompile(`(?m)^(\s*)- ` + regexp.QuoteMeta(key) + `: ` + regexp.QuoteMeta(value) + `\s*$`)
-	loc := re.FindStringSubmatchIndex(y)
-	if loc == nil {
-		return ""
+	needle := "- " + key + ": " + value
+	for off := 0; off < len(y); {
+		j := strings.Index(y[off:], needle)
+		if j < 0 {
+			return ""
+		}
+		i := off + j
+		off = i + 1
+		if !yamlLineStart(y, i) {
+			continue
+		}
+		// what follows the value up to the end of its line is blank (the entry's own line ends there)
+		e := i + len(needle)
+		q := e
+		for q < len(y) && yamlSpace(y[q]) && y[q] != '\n' {
+			q++
+		}
+		if q < len(y) && y[q] != '\n' {
+			continue
+		}
+		// the match ends at the last line end of the blank run after the value (or the text's end)
+		r := e
+		for r < len(y) && yamlSpace(y[r]) {
+			r++
+		}
+		end := r
+		if r < len(y) {
+			end = strings.LastIndexByte(y[e:r], '\n') + e
+		}
+		// the indent: from the earliest line start that only blanks separate from the "-"
+		b := i
+		for b > 0 && yamlSpace(y[b-1]) {
+			b--
+		}
+		p := b
+		if b > 0 {
+			p = strings.IndexByte(y[b:i], '\n') + b + 1
+		}
+		indent := y[p:i]
+		rest, next := y[end:], indent+"- "
+		for ls := 0; ls <= len(rest); {
+			if ls < len(rest) && (strings.HasPrefix(rest[ls:], next) || !yamlSpace(rest[ls])) {
+				return rest[:ls]
+			}
+			n := strings.IndexByte(rest[ls:], '\n')
+			if n < 0 {
+				break
+			}
+			ls += n + 1
+		}
+		return rest
 	}
-	indent := y[loc[2]:loc[3]]
-	rest := y[loc[1]:]
-	end := regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(indent) + `- |^\S`).FindStringIndex(rest)
-	if end != nil {
-		rest = rest[:end[0]]
-	}
-	return rest
+	return ""
 }
 
 func sessionMeta(y string, sessionNum int, started time.Time) cloudSession {
@@ -656,13 +739,15 @@ func (ls *lapStream) endSession() {
 func lapRecorder() {
 	ls := newLapStream(liveLapEnv{})
 	t := time.NewTicker(time.Second / 30)
+	var v []float64 // the sample's storage, kept: step never holds on to it
 	for range t.C {
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
 			ls.reset()
 			continue
 		}
-		ls.step(telNums(lapVars))
+		v = telNumsInto(v, lapVars)
+		ls.step(v)
 	}
 }
 

@@ -1,23 +1,31 @@
 package main
 
 // telNums reads several telemetry values at once, as numbers (0 when missing).
-func telNums(names []string) []float64 {
-	out := make([]float64, len(names))
+func telNums(names []string) []float64 { return telNumsInto(nil, names) }
+
+// telNumsInto is telNums into dst's storage when it is big enough (a loop that reads the same values 30 times a
+// second allocates nothing): a scalar's value with the stream's rounding, 0 for an array, a text or a missing one
+func telNumsInto(dst []float64, names []string) []float64 {
+	if cap(dst) < len(names) {
+		dst = make([]float64, len(names))
+	}
+	out := dst[:len(names)]
+	clear(out)
 	tel.mu.RLock()
 	defer tel.mu.RUnlock()
 	if len(tel.buf) == 0 {
 		return out
 	}
-	idx := make([]int, 0, len(names))
-	pos := make([]int, 0, len(names))
 	for k, n := range names {
-		if i, ok := tel.index[n]; ok {
-			idx = append(idx, i)
-			pos = append(pos, k)
+		i, ok := tel.index[n]
+		if !ok {
+			continue
 		}
-	}
-	for j, v := range decodeValues(tel.vars, tel.buf, idx) {
-		out[pos[j]] = toF(v)
+		v := tel.vars[i]
+		if v.typ == TypeChar || v.Count != 1 || v.offset+typeSize[v.typ]*v.Count > len(tel.buf) {
+			continue
+		}
+		out[k] = decodeNum(v.typ, tel.buf, v.offset)
 	}
 	return out
 }
