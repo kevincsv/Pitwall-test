@@ -74,3 +74,24 @@ func coachStyles(t *testing.T, turnName string) {
 		}
 	}
 }
+
+// the corners chosen for one track (the coach's plan, turnsTrack) are the overlay's only there: on another track it speaks
+// at the three that cost the most
+func TestCoachPickedTrack(t *testing.T) {
+	st := ovTestState(t, map[string]any{})
+	st.ses = &ovSession{TrackID: 12}
+	C := &st.ext.coach
+	C.tips = []coachTip{{n: 1, lost: .30}, {n: 3, lost: .20}, {n: 5, lost: .10}, {n: 9, lost: .05}}
+	cfg := map[string]any{"turns": []any{"T9"}, "turnsTrack": float64(12)}
+	if !st.coachPicked(cfg, C.tips[3]) || st.coachPicked(cfg, C.tips[0]) {
+		t.Fatal("the plan's corners on its own track")
+	}
+	st.ses.TrackID = 40
+	if st.coachPicked(cfg, C.tips[3]) || !st.coachPicked(cfg, C.tips[0]) || !st.coachPicked(cfg, C.tips[2]) {
+		t.Fatal("another track: the three that cost the most")
+	}
+	delete(cfg, "turnsTrack") // chosen before turnsTrack existed: every track, as before
+	if !st.coachPicked(cfg, C.tips[3]) || st.coachPicked(cfg, C.tips[0]) {
+		t.Fatal("no track: the chosen corners")
+	}
+}

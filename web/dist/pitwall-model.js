@@ -105,13 +105,10 @@ async function cardFor(lap){if(!lap||lap.comm)return null;await combos();return 
 /* the card of lap A's car when it is already here (as the server learnt it on every track), with what lap A did */
 function carCard(A){if(!A||!Array.isArray(A.bins))return null;const id=carIdSync(A),k=id&&CARD.id===id&&!CARD.busy?CARD.data:null;return k?{card:k,mine:lapFacts(A.bins)}:null}
 
-/* ---------- lap list and sectors in purple, like the sims ---------- */
-function colourLapTable(LP){const tb=$("#lapTable tbody"),th=$("#lapTable thead tr");if(!tb||!th||!LP||!LP.length)return;
-  const ns=Math.max(0,...LP.map(l=>Array.isArray(l.sectors)?l.sectors.length:0));if(!th.dataset.sec){th.dataset.sec="1";th.insertAdjacentHTML("beforeend",[1,2,3,4,5].map(i=>`<th class="r sec-h" data-s="${i}">S${i}</th>`).join(""))}
-  th.querySelectorAll(".sec-h").forEach(h=>h.hidden=+h.dataset.s>ns);
-  const valid=LP.filter(l=>l.valid!==false),bestT=Math.min(...valid.map(l=>l.time)),bestS=[];for(let i=0;i<ns;i++)bestS[i]=Math.min(...valid.map(l=>l.sectors&&l.sectors[i]>0?l.sectors[i]:1e9));
-  const rows=LP.slice().reverse();[...tb.rows].forEach((tr,ri)=>{const l=rows[ri];if(!l)return;tr.classList.toggle("lap-invalid",l.valid===false);const t=tr.cells[1];if(t)t.classList.toggle("pb",l.valid!==false&&l.time===bestT);
-    tr.querySelectorAll(".sec-c").forEach(c=>c.remove());for(let i=0;i<5;i++){if(i>=ns)break;const v=l.sectors&&l.sectors[i];tr.insertAdjacentHTML("beforeend",`<td class="r mono sec-c ${v>0&&l.valid!==false&&v===bestS[i]?"pb":""}">${v>0?(+v).toFixed(3):"–"}</td>`)}})}
+/* ---------- lap list: the laps not valid crossed out, the fastest valid lap in purple (its sectors: lapSecCols in index.html) ---------- */
+function colourLapTable(LP){const tb=$("#lapTable tbody");if(!tb||!LP||!LP.length)return;
+  const valid=LP.filter(l=>l.valid!==false),bestT=Math.min(...valid.map(l=>l.time));
+  const rows=LP.slice().reverse();[...tb.rows].forEach((tr,ri)=>{const l=rows[ri];if(!l)return;tr.classList.toggle("lap-invalid",l.valid===false);const t=tr.cells[1];if(t)t.classList.toggle("pb",l.valid!==false&&l.time===bestT)})}
 
 /* ---------- into the analyzer and the coach ---------- */
 /* the analyzer's B list keeps one entry per model reference (CREF, the "c<i>" options), replaced in place so a
