@@ -489,7 +489,7 @@ async function handle(req, env, ctx) {
     }
     if (url.pathname === "/news") return news(req, env, ctx);
     // the public pages for search engines: what Pitlane HQ does, the records of every car and track, the sitemap
-    { const sp = await seoPage(req, env, url).catch(() => null); if (sp) return sp; }
+    { const sp = await seoPage(req, env, url, ctx).catch(() => null); if (sp) return sp; }
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     // the admin page's Online tab: who is on the web, the PC or the phones now (presence.js)
     if (url.pathname === "/community/admin/online" && req.method === "GET") return onlineRoute(req, env).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
@@ -522,7 +522,7 @@ async function handle(req, env, ctx) {
     }
     // one address for the app: /index.html is "/"
     if (url.pathname === "/index.html") { const to = new URL(req.url); to.pathname = "/"; return Response.redirect(to.href, 301); }
-    const isAppFile = /^\/(fonts\.css|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og\.png|robots\.txt|landing\/(?:en\/|es\/|pt\/)?[a-z0-9-]+\.(?:jpg|png))$/.test(url.pathname);
+    const isAppFile = /^\/(fonts\.css|pitwall-[a-z0-9-]+\.js|app-news\.json|whats-new\.json|server\.json|manifest\.webmanifest|favicon\.ico|favicon-32\.png|icon-\d+\.png|logo\.svg|bimi\.svg|og(?:-es|-pt)?\.png|robots\.txt|landing\/(?:en\/|es\/|pt\/)?[a-z0-9-]+\.(?:jpg|png))$/.test(url.pathname);
     if ((url.pathname === "/" && url.searchParams.get("embed") !== "1") || isAppFile) {
       if (!env.ASSETS) return err("the app is not published on this server", 404);
       // a local server (wrangler dev --var LOCAL:1, tools/local.cmd): the app served by it uses it, not pitlanehq.app
@@ -532,8 +532,9 @@ async function handle(req, env, ctx) {
       h.set("referrer-policy", "no-referrer");
       h.set("x-frame-options", "DENY");
       h.set("x-content-type-options", "nosniff");
-      // the browser asks the server every time (ETag): a new build is seen at once, nothing stale after an update
-      h.set("cache-control", "no-cache");
+      // the browser asks the server every time (ETag): a new build is seen at once, nothing stale after an update; the
+      // landing's screenshots and the sharing pictures change rarely, so they are kept a day and checked in the background
+      h.set("cache-control", /^\/(landing\/|og)/.test(url.pathname) ? "public, max-age=86400, stale-while-revalidate=604800" : "no-cache");
       return new Response(r.body, { status: r.status, headers: h });
     }
     // live telemetry from your PC to your browser or phone, end-to-end encrypted

@@ -2,28 +2,25 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pitlane HQ · Free iRacing telemetry app and lap coach</title>
-<meta name="description" content="Pitlane HQ (PitlaneHQ) is a free iRacing telemetry app with a lap coach, leaderboards, overlays and iRacing leagues to join, on your PC, in the browser and on your phone.">
+<title>Pitlane HQ · Free iRacing and Le Mans Ultimate telemetry</title>
+<meta name="description" content="Pitlane HQ (PitlaneHQ) is free telemetry for iRacing and Le Mans Ultimate, with a lap coach, overlays, leaderboards and leagues on PC, web and phone.">
 <link rel="canonical" href="https://pitlanehq.app/">
-<link rel="alternate" hreflang="en" href="https://pitlanehq.app/">
-<link rel="alternate" hreflang="es" href="https://pitlanehq.app/es/telemetria-iracing">
-<link rel="alternate" hreflang="pt" href="https://pitlanehq.app/pt/telemetria-iracing">
-<link rel="alternate" hreflang="x-default" href="https://pitlanehq.app/">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta property="og:locale" content="en_US">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pitlane HQ">
-<meta property="og:title" content="Pitlane HQ · Free iRacing telemetry app and lap coach">
-<meta property="og:description" content="Pitlane HQ (PitlaneHQ) is a free iRacing telemetry app with a lap coach, leaderboards, overlays and iRacing leagues to join, on your PC, in the browser and on your phone.">
+<meta property="og:title" content="Pitlane HQ · Free iRacing and Le Mans Ultimate telemetry">
+<meta property="og:description" content="Pitlane HQ (PitlaneHQ) is free telemetry for iRacing and Le Mans Ultimate, with a lap coach, overlays, leaderboards and leagues on PC, web and phone.">
 <meta property="og:url" content="https://pitlanehq.app/">
 <meta property="og:image" content="https://pitlanehq.app/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pitlane HQ">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pitlane HQ · Free iRacing telemetry app and lap coach">
-<meta name="twitter:description" content="Pitlane HQ (PitlaneHQ) is a free iRacing telemetry app with a lap coach, leaderboards, overlays and iRacing leagues to join, on your PC, in the browser and on your phone.">
+<meta name="twitter:title" content="Pitlane HQ · Free iRacing and Le Mans Ultimate telemetry">
+<meta name="twitter:description" content="Pitlane HQ (PitlaneHQ) is free telemetry for iRacing and Le Mans Ultimate, with a lap coach, overlays, leaderboards and leagues on PC, web and phone.">
 <meta name="twitter:image" content="https://pitlanehq.app/og.png">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane HQ Agent"],"url":"https://pitlanehq.app/","applicationCategory":"SportsApplication","operatingSystem":"Windows, Android, Web","description":"Pitlane HQ (PitlaneHQ) is free sim racing telemetry for iRacing: record your laps, see where you lose time, compare with faster drivers and use overlays in the game.","image":"https://pitlanehq.app/og.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","@id":"https://pitlanehq.app/#app","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane HQ Agent"],"url":"https://pitlanehq.app/","applicationCategory":"SportsApplication","applicationSubCategory":"Sim racing telemetry","operatingSystem":"Windows, Android, Web","description":"Free sim racing telemetry for iRacing and Le Mans Ultimate (in beta). Record your laps, see where you lose time, compare with faster drivers and race with overlays on top of the game.","inLanguage":["en","es","pt-BR"],"image":"https://pitlanehq.app/og.png","screenshot":[{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/coach.jpg","width":2880,"height":1040},{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/compare.jpg","width":2880,"height":1000}],"featureList":["Lap telemetry for iRacing and Le Mans Ultimate","A coach that compares your lap with real faster laps","Overlays on top of the game, also in VR","Leaderboards by car and track","Live telemetry on your phone","Leagues to join"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"WebSite","@id":"https://pitlanehq.app/#website","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane"],"url":"https://pitlanehq.app/","inLanguage":["en","es","pt-BR"],"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"Organization","@id":"https://pitlanehq.app/#org","name":"Pitlane HQ","alternateName":"PitlaneHQ","url":"https://pitlanehq.app/","logo":"https://pitlanehq.app/icon-512.png","email":"support@pitlanehq.app"}]</script>
 <meta name="theme-color" content="#11151b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -36,6 +33,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="fonts.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: muro de boxes. Cabecera fija + pestañas (barra inferior en móvil); cada vista es una rejilla de paneles de cronometraje. */
@@ -1801,11 +1799,16 @@ html .hl-sec{padding:0 0 12px;border-radius:var(--radius);display:flex;flex-dire
 @media (max-width:760px){.drawer.float .drawer-panel:has(.cfgsplit) .cfgsplit{background:none}.drawer.float .drawer-panel:has(.cfgsplit) .cfgpv{border-bottom:1px solid var(--line)}}
 </style>
 
+</head>
+<body>
 <noscript><main style="max-width:860px;margin:40px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#e7ebf1">
-<h1>Pitlane HQ (PitlaneHQ) · iRacing and sim racing telemetry, a coach for your laps and overlays</h1>
-<p>Free iRacing telemetry: Pitlane HQ Agent records every lap you drive on your Windows PC, and the coach shows where you lose time against your best lap, the record and the driver just ahead of you in the same car. On Windows, Android and the web.</p>
-<p><a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/iracing-overlays">iRacing overlays</a> · <a href="/iracing-leagues">iRacing leagues</a> · <a href="/es/ligas-iracing">Ligas de iRacing (Español)</a> · <a href="/pt/ligas-iracing">Ligas de iRacing (Português)</a> · <a href="/records">iRacing records by car and track</a> · <a href="/downloads">Download</a> · <a href="/es/telemetria-iracing">Telemetría para iRacing (Español)</a> · <a href="/pt/telemetria-iracing">Telemetria para iRacing (Português)</a></p>
-<p>Guides: <a href="/iracing-coach">iRacing coach</a> · <a href="/iracing-lap-comparison">Compare iRacing laps</a> · <a href="/iracing-braking-points">iRacing braking points</a> · <a href="/iracing-racing-line">iRacing racing line</a> · <a href="/iracing-irating-tracker">iRating and licence tracker</a> · <a href="/iracing-shift-beep">iRacing shift beep</a> · <a href="/iracing-telemetry-on-phone">iRacing telemetry on your phone</a> · <a href="/free-iracing-telemetry">Free iRacing telemetry</a> · <a href="/es/coach-iracing">Coach de iRacing</a> · <a href="/es/telemetria-iracing-gratis">Telemetría de iRacing gratis</a> · <a href="/pt/coach-iracing">Coach de iRacing (PT)</a> · <a href="/pt/telemetria-iracing-gratis">Telemetria do iRacing grátis</a></p>
+<h1>Pitlane HQ (PitlaneHQ) · iRacing and Le Mans Ultimate telemetry, a coach for your laps and overlays</h1>
+<p>Free sim racing telemetry for iRacing and Le Mans Ultimate (in beta). Pitlane HQ Agent records every lap you drive on your Windows PC, and the coach shows where you lose time against your best lap, the record and the driver just ahead of you in the same car. On Windows, Android and the web.</p>
+<p>iRacing · <a href="/iracing-telemetry">iRacing telemetry</a> · <a href="/iracing-overlays">iRacing overlays</a> · <a href="/iracing-leagues">iRacing leagues</a> · <a href="/records">iRacing records by car and track</a> · <a href="/downloads">Download</a></p>
+<p>Le Mans Ultimate · <a href="/le-mans-ultimate-telemetry">Le Mans Ultimate telemetry</a> · <a href="/le-mans-ultimate-overlays">Le Mans Ultimate overlays</a> · <a href="/le-mans-ultimate-coach">Le Mans Ultimate coach</a></p>
+<p>Guides · <a href="/iracing-coach">iRacing coach</a> · <a href="/iracing-lap-comparison">Compare iRacing laps</a> · <a href="/iracing-braking-points">iRacing braking points</a> · <a href="/iracing-racing-line">iRacing racing line</a> · <a href="/iracing-irating-tracker">iRating and licence tracker</a> · <a href="/iracing-shift-beep">iRacing shift beep</a> · <a href="/iracing-telemetry-on-phone">Telemetry on your phone</a> · <a href="/free-iracing-telemetry">Free iRacing and Le Mans Ultimate telemetry</a></p>
+<p lang="es">Español · <a href="/es/telemetria-iracing">Telemetría para iRacing</a> · <a href="/es/telemetria-le-mans-ultimate">Telemetría para Le Mans Ultimate</a> · <a href="/es/overlays-iracing">Overlays para iRacing</a> · <a href="/es/coach-iracing">Coach de iRacing</a> · <a href="/es/ligas-iracing">Ligas de iRacing</a> · <a href="/es/telemetria-iracing-gratis">Telemetría gratis</a></p>
+<p lang="pt-BR">Português · <a href="/pt/telemetria-iracing">Telemetria para iRacing</a> · <a href="/pt/telemetria-le-mans-ultimate">Telemetria para Le Mans Ultimate</a> · <a href="/pt/overlays-iracing">Overlays para iRacing</a> · <a href="/pt/coach-iracing">Coach de iRacing</a> · <a href="/pt/ligas-iracing">Ligas de iRacing</a> · <a href="/pt/telemetria-iracing-gratis">Telemetria grátis</a></p>
 <p>The app needs JavaScript.</p></main></noscript>
 <div id="splash" role="status" aria-label="Pitlane HQ"><div class="sp-logo"><span class="sp-flag" aria-hidden="true"></span>PITLANE HQ</div><div class="sp-bar"><i></i></div></div>
 <script>/* overlay windows never show the splash; a slow start never hides the app for long */

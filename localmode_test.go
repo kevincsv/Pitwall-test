@@ -38,7 +38,7 @@ func TestLocalDialGuard(t *testing.T) {
 	if len(dialed) != 4 {
 		t.Errorf("dialed %v", dialed)
 	}
-	page := []byte("<link rel=\"stylesheet\" href=\"fonts.css\">\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=X\">\n<style>")
+	page := []byte("<link rel=\"stylesheet\" href=\"fonts.css\">\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=X\">\n<style>")
 	if got := string(localPage(page)); got != "<link rel=\"stylesheet\" href=\"fonts.css\">\n<style>" {
 		t.Errorf("localPage: %q", got)
 	}

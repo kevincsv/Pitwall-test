@@ -110,7 +110,7 @@ func init() {
 }
 
 // localPage: the app's page served in local mode asks nothing of Google Fonts (the program's own fonts stay)
-var googleFontsRe = regexp.MustCompile(`(?m)^<link [^\n]*https://fonts\.googleapis\.com[^\n]*>\n?`)
+var googleFontsRe = regexp.MustCompile(`(?m)^<link [^\n]*https://fonts\.(?:googleapis|gstatic)\.com[^\n]*>\n?`)
 
 func localPage(b []byte) []byte {
 	if localServer() == "" {
