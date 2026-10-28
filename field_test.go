@@ -1160,3 +1160,26 @@ func TestFieldIndexReusedByLMU(t *testing.T) {
 		}
 	}
 }
+
+// a rival's lap whose flag never says its time counts (LMU's practice) is valid; one whose flag drops is not
+func TestFieldLapCountFlagOnlyADrop(t *testing.T) {
+	resetField()
+	m := newSim("cntprac")
+	m.cnt = func(lap int, d float64) float64 {
+		switch {
+		case lap == 2:
+			return 1
+		case lap == 3 && d >= 1500:
+			return 1
+		}
+		return 2
+	}
+	m.run(4)
+	if fieldLapInvalid(0, m.times[1]) {
+		t.Fatal("a lap whose flag never said the time counts is not valid")
+	}
+	if !fieldLapInvalid(0, m.times[2]) {
+		t.Fatal("a lap whose flag dropped is valid")
+	}
+	resetField()
+}

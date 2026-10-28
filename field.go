@@ -49,6 +49,7 @@ type carLapProf struct {
 	valid bool    // nothing seen yet that makes the lap not valid
 	offT  float64 // time off the track this lap (s)
 	cntD  float64 // where the game first said this lap's time does not count (past 100 m, off the pit road), -1 never
+	cntOK bool    // the flag said this lap's time counts at some point past its first 100 m
 	pitD  float64 // where the lap first touched the pit road, -1 never
 	wet   uint8   // what the lap was driven in, as bits: 2 a wet track (TrackWetness 4 or more), 4 a damp one (2 or 3), 1 rain
 	// the lap just finished, waiting for the game to time it: its bins, when it ended, whether it was judged not valid
@@ -433,7 +434,7 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			// the lap before is done: it waits for its time. The game's best as it stands now is the best before
 			// that time is taken (when the game already took it, the two are equal and the best says nothing)
 			c.endLap(t, fat(s.best, i, 0))
-			c.lap, c.b, c.valid, c.offT, c.cntD, c.pitD, c.wet, c.pit = lap, make([]fbin, nb), true, 0, -1, -1, 0, false // a lap through the pit lane counts too
+			c.lap, c.b, c.valid, c.offT, c.cntD, c.cntOK, c.pitD, c.wet, c.pit = lap, make([]fbin, nb), true, 0, -1, false, -1, 0, false // a lap through the pit lane counts too
 		}
 		if fat(s.pit, i, 0) > 0 {
 			if !c.pit {
@@ -518,7 +519,11 @@ func fieldStep(s *fieldSample, L float64, key string) {
 					c.valid = false
 				}
 			}
-			if cnt := fat(s.cnt, i, -1); cnt >= 0 && cnt < 2 && pct*L > 100 && !c.pit && c.cntD < 0 {
+			// only a drop counts: the flag said this lap's time counts and then took it back (LMU's practice says
+			// "lap, not time" for every lap, which says nothing of the driving)
+			if cnt := fat(s.cnt, i, -1); cnt >= 2 && pct*L > 100 {
+				c.cntOK = true
+			} else if cnt >= 0 && cnt < 2 && c.cntOK && pct*L > 100 && !c.pit && c.cntD < 0 {
 				c.cntD = pct * L
 			}
 		}

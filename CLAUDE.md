@@ -572,7 +572,7 @@
   paint or a rumble strip (`pavedMaterial`); without that variable every sample off the track counts, as before. In Le
   Mans Ultimate the car is off the track only with all four wheels on grass, dirt or gravel (lmu.go reads the wheels;
   two on the grass are a wide line, not an Off Track), the surface under the wheels goes out as iRacing's material and
-  the game's own `LapCountFlag` catches the cuts. A rival's lap is judged the same way (field.go): a third of a second
+  the game's own `LapCountFlag` catches the cuts (only a drop counts: the flag said the lap's time counts and then took it back, `cntOK`; LMU's practice says "lap, not time" for every lap, which says nothing). A rival's lap is judged the same way (field.go): a third of a second
   off the track counted in the game's time (`fieldOffTime`, the same at 60 or 5 updates a second), a kerb or paint
   under it never counting when the game says the material (`CarIdxTrackSurfaceMaterial`), the game's own best, and
   `LapCountFlag` judged when the lap ends (a pit road reached within 200 m of the flag's drop is the in-lap).

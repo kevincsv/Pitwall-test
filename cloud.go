@@ -542,6 +542,7 @@ type lapRec struct {
 	ownClock           bool
 	bestAt0            float64   // the game's own best lap as this lap ended, the lap before's included (iRacing counts only the laps it accepts)
 	gameNo             bool      // the game itself said this lap does not count (Le Mans Ultimate's LapCountFlag)
+	cntOK              bool      // the game's LapCountFlag said this lap's time counts at some point past its first 100 m
 	penalty            bool      // the game gave a penalty on this lap off the pit road (track limits): not valid, read as a 1x Off Track
 	penPrev            float64   // the game's penalty count at the previous sample (PlayerNumPenalties)
 	wet                bool      // the track was at least lightly wet at some point of the lap (TrackWetness 4 or more)
@@ -918,11 +919,16 @@ func (ls *lapStream) step(v []float64) {
 	if v[10] > 0 {
 		cur.pit = true
 		cur.markPit(dist)
-	} else if env.has("LapCountFlag") && v[27] < 2 && dist > 100 && !cur.pit {
+	} else if env.has("LapCountFlag") {
 		// the game says this lap's time does not count (track limits, a cut): the game's verdict is the lap's (the
 		// first 100 m aside, while the flag of the lap before may still show; the pit lane aside, a lap through it
-		// is valid)
-		cur.gameNo, cur.bad = true, true
+		// is valid). Only a drop counts: the flag said the time counts on this lap and then took it back. Le Mans
+		// Ultimate's practice says "lap, not time" the whole lap for every lap, which says nothing of the driving
+		if v[27] >= 2 && dist > 100 {
+			cur.cntOK = true
+		} else if v[27] < 2 && cur.cntOK && dist > 100 && !cur.pit {
+			cur.gameNo, cur.bad = true, true
+		}
 	}
 	// a penalty the game gives during the lap (Le Mans Ultimate's track limits): the lap is not valid, and it reads as
 	// iRacing's 1x Off Track where it was given. Not on the pit road (a penalty served there is not this lap's driving)

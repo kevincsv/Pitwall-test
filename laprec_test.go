@@ -13,11 +13,12 @@ type lapSim struct {
 	t      *testing.T
 	env    *lapTestEnv
 	ls     *lapStream
-	st     float64 // the session clock
-	lap    int     // the game's lap count (LapCompleted + 1 in iRacing's Lap)
-	d      float64 // where on the lap
-	lineAt float64 // the session time the car last crossed the line (the game's lap clock counts from it)
-	last   float64 // the game's last lap time
+	st     float64                          // the session clock
+	lap    int                              // the game's lap count (LapCompleted + 1 in iRacing's Lap)
+	d      float64                          // where on the lap
+	lineAt float64                          // the session time the car last crossed the line (the game's lap clock counts from it)
+	last   float64                          // the game's last lap time
+	flag   func(lap int, d float64) float64 // LapCountFlag (nil: 2, the lap and its time count)
 }
 
 const lapSimL, lapSimHz = 3000.0, 30.0
@@ -33,6 +34,9 @@ func (s *lapSim) sample(speed float64, pit, onTrack bool) {
 	v[0], v[1], v[2], v[3] = float64(s.lap), s.d, s.d/lapSimL, speed
 	v[8], v[9], v[13], v[14] = s.last, 50, 0, s.st
 	v[17], v[18], v[27] = s.st-s.lineAt, 3, 2
+	if s.flag != nil {
+		v[27] = s.flag(s.lap, s.d)
+	}
 	if pit {
 		v[10], v[18] = 1, 2
 	}
@@ -268,4 +272,25 @@ func TestLapTelemetryGapAtTheLine(t *testing.T) {
 	lapCheck(t, "the lap before", laps[1], true)
 	lapCheck(t, "the lap cut short", laps[2], false)
 	lapCheck(t, "the lap after", laps[3], true)
+}
+
+// Le Mans Ultimate's lap flag: a lap whose flag never says its time counts (the game's practice says "lap, not time" for
+// every lap) is valid, while a lap whose flag drops from "time counts" (a cut) is not
+func TestLapCountFlagOnlyADrop(t *testing.T) {
+	s := newLapSim(t, 1, 0)
+	s.flag = func(lap int, d float64) float64 {
+		switch {
+		case lap == 2:
+			return 1 // the whole lap: practice
+		case lap == 3 && d >= 1500:
+			return 1 // dropped half way: a cut
+		}
+		return 2
+	}
+	s.move(4*3000+100, 60, false, true)
+	laps := s.ended()
+	lapCheck(t, "time counts", laps[1], true)
+	lapCheck(t, "the flag never said the time counts", laps[2], true)
+	lapCheck(t, "the flag dropped", laps[3], false)
+	lapCheck(t, "time counts again", laps[4], true)
 }
