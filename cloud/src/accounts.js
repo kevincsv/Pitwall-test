@@ -12,6 +12,7 @@ import { proOnRegister, proOf, proGate, proHere } from "./lemon.js";
 import { discordAccount, discordStart, useDiscordGrant, discordAccountId, discordLinkedAny, linkDiscordLogin, oauthReady as discordReady } from "./discord.js";
 import { steamAccount, steamStart, useSteamGrant, steamAccountId, linkSteam } from "./steam.js";
 import { notePresence } from "./presence.js";
+import { sealEscrow, escrowLogin } from "./escrow.js";
 // the phone app calls the server directly (bearer tokens, no cookies), so any origin may ask
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
@@ -225,7 +226,7 @@ export async function accounts(req, env, url) {
     }
     const salt = rid(16);
     await env.DB.batch([
-      env.DB.prepare("UPDATE accounts SET auth_salt=?2, auth_hash=?3, wrapped_key=?4, verified=1 WHERE id=?1").bind(id, salt, await authHash(salt, body.auth), body.wrappedKey),
+      env.DB.prepare("UPDATE accounts SET auth_salt=?2, auth_hash=?3, wrapped_key=?4, verified=1, escrow=NULL WHERE id=?1").bind(id, salt, await authHash(salt, body.auth), body.wrappedKey),
       // the synced copy was encrypted with the old password: the PCs upload it again
       env.DB.prepare("DELETE FROM account_sync_chunks WHERE account_id=?1").bind(id),
       env.DB.prepare("DELETE FROM account_sync WHERE account_id=?1").bind(id),
@@ -278,11 +279,12 @@ export async function accounts(req, env, url) {
     // still works (signed in) so nobody is locked out while the email service is down.
     if (mailed) return json({ verifyFirst: true, mailed: true, error: "verify your email first: we sent you a link, open it and then sign in", code: "verify_first", ...taken }, 202);
     const token = await newSession(env, id, body.device);
-    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, keyTag: await keyTag(body.wrappedKey), admin: isAdmin(env, id), verified: false, mailed, ...taken });
+    return json({ id, token, display, nameKind: body.nameKind === "iracing" ? "iracing" : "nick", wrappedKey: body.wrappedKey, keyTag: await keyTag(body.wrappedKey), admin: isAdmin(env, id), verified: false, mailed, escrow: false, ...taken });
   }
-  // a sign-in with Steam or Discord (needKey) gets the session without the wrapped key: the password asks for it (POST /account/key),
-  // so Steam alone never hands out what a password could be tried against
-  const signedIn = async (a, token, more) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: more && more.needKey ? undefined : a.wrapped_key, keyTag: await keyTag(a.wrapped_key), admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on, ...more });
+  // a sign-in with Steam or Discord (social) gets the session without the wrapped key: the data key the server keeps
+  // (dataKey, escrow.js) when a device uploaded it, else needKey and the password once (POST /account/key). escrow says
+  // whether the server keeps it, so a device that has the key uploads it once (POST /account/escrow)
+  const signedIn = async (a, token, social) => json({ id: a.id, token, display: a.display, nameKind: a.name_kind, anon: !!a.anon, wrappedKey: social ? undefined : a.wrapped_key, keyTag: await keyTag(a.wrapped_key), admin: isAdmin(env, a.id), verified: !!a.verified, twoFactor: !!a.totp_on, escrow: !!a.escrow, ...(social ? await escrowLogin(env, a) : {}) });
   // "Sign in with Steam" from the sign-in screen (no session yet): the address the browser opens, answered at /steam/return,
   // with the state and the code only this app keeps. The web gets the answer in the browser; the PC's browser goes on to
   // its agent (port)
@@ -335,7 +337,8 @@ export async function accounts(req, env, url) {
   }
   // the sign-in with Steam: the one-use grant /steam/return handed the app, with the code of the app that started, says
   // who. The rest is the password sign-in's (the network's limit, the email to confirm, the authenticator), and the
-  // password is still asked once on the device for the data key (needKey, POST /account/key). The sign-in with Discord is
+  // data key comes from the server's copy (dataKey), or the password once on the device when it has none (needKey,
+  // POST /account/key). The sign-in with Discord is
   // the same, with the grant /discord/oauth handed the app (POST /account/login/discord). Neither ever stands for the
   // password elsewhere (reauth, passCheck).
   if ((p === "/login/steam" || p === "/login/discord") && m === "POST") {
@@ -355,12 +358,12 @@ export async function accounts(req, env, url) {
       const t = rid(24);
       await env.DB.batch([
         env.DB.prepare("DELETE FROM login_pending WHERE expires<?1").bind(Date.now()),
-        // steam 1: the session comes without the wrapped key (Steam or Discord signed in)
+        // steam 1: the session comes without the wrapped key, with the server's copy of the data key (Steam or Discord signed in)
         env.DB.prepare("INSERT INTO login_pending (token_hash, account_id, device, expires, steam) VALUES (?1,?2,?3,?4,1)").bind(await sha256(t), a.id, device, Date.now() + 5 * 60e3),
       ]);
-      return json({ twoFactor: true, pending: t, needKey: true });
+      return json({ twoFactor: true, pending: t, needKey: !a.escrow });
     }
-    return signedIn(a, await newSession(env, a.id, device), { needKey: true });
+    return signedIn(a, await newSession(env, a.id, device), true);
   }
   // second step of a sign-in: the 6-digit code of the authenticator app, or one recovery code
   if (p === "/login/2fa" && m === "POST") {
@@ -384,7 +387,7 @@ export async function accounts(req, env, url) {
       return err("wrong code", 401);
     }
     await env.DB.prepare("DELETE FROM login_pending WHERE token_hash=?1").bind(ph).run();
-    return signedIn(a, await newSession(env, a.id, pend.device), pend.steam ? { needKey: true } : undefined);
+    return signedIn(a, await newSession(env, a.id, pend.device), !!pend.steam);
   }
 
   const a = await sessionAccount(req, env);
@@ -411,8 +414,16 @@ export async function accounts(req, env, url) {
     if (no) return no;
     return json({ wrappedKey: a.wrapped_key, keyTag: await keyTag(a.wrapped_key) });
   }
+  // the data key from a device that has it (and the account's email, kept only when it is this account's), for the
+  // sign-ins with Steam or Discord: kept sealed with the server's secret (escrow.js). It replaces any copy before
+  if (p === "/escrow" && m === "POST") {
+    const r = await sealEscrow(env, body.key, body.email, async (e) => same(await emailHash(env, e), a.email_hash));
+    if (r.error) return err(r.error, r.status);
+    await env.DB.prepare("UPDATE accounts SET escrow=?2 WHERE id=?1").bind(a.id, r.value).run();
+    return json({ ok: true, escrow: true });
+  }
 
-  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, ...proOf(a), ...(await proHere(env, a, url.searchParams)), proGate: await proGate(env), verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
+  if (p === "/me" && m === "GET") return json({ id: a.id, display: a.display, nameKind: a.name_kind, anon: !!a.anon, created: a.created, admin: isAdmin(env, a.id), supporter: !!a.supporter, supporterHidden: !!a.supporter_hidden, ...proOf(a), ...(await proHere(env, a, url.searchParams)), proGate: await proGate(env), verified: !!a.verified, mail: mailReady(env), twoFactor: !!a.totp_on, escrow: !!a.escrow, recoveryLeft: a.totp_on ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM recovery_codes WHERE account_id=?1").bind(a.id).first()) || {}).n || 0 : 0 });
   // two-step sign-in with an authenticator app (Google Authenticator, Authy, 1Password…):
   // setup gives the secret (and the QR address), enable confirms it with a first code and hands
   // out the recovery codes once; disable needs the password and a code

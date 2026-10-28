@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -218,6 +221,160 @@ func TestSteamLoginKeepsKey(t *testing.T) {
 	plMu.Lock()
 	plAcc = plAccount{}
 	plMu.Unlock()
+}
+
+// a sign-in with Steam or Discord that brings the server's copy of the data key signs in without the password when that key
+// opens the account's data; one that does not open it waits for the password like before. A PC signed in uploads its key
+// once (with the email) while the server keeps none
+func TestSteamLoginEscrow(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("APPDATA", dir)
+	good, bad := bytes.Repeat([]byte{7}, 32), bytes.Repeat([]byte{9}, 32)
+	blob, _ := sealAES(good, gz([]byte(`{}`)))
+	var sent map[string]string
+	down := false
+	oldWait := keyCheckWait
+	keyCheckWait = 0
+	defer func() { keyCheckWait = oldWait }()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/account/sync":
+			if down {
+				w.WriteHeader(503)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{"version": 3, "blob": blob})
+		case "/account/escrow":
+			b, _ := io.ReadAll(r.Body)
+			json.Unmarshal(b, &sent)
+			w.Write([]byte(`{"ok":true,"escrow":true}`))
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+	commMu.Lock()
+	old := commCfg
+	commCfg = commConfig{URL: srv.URL}
+	commMu.Unlock()
+	defer func() { commMu.Lock(); commCfg = old; commMu.Unlock() }()
+	loadPL()
+	plMu.Lock()
+	plAcc = plAccount{}
+	plMu.Unlock()
+	steamPendingMu.Lock()
+	steamPending = nil
+	steamPendingMu.Unlock()
+	ans := func(tok string, key []byte) []byte {
+		b, _ := json.Marshal(map[string]any{"id": "a1", "token": tok, "display": "Ana", "nameKind": "nick", "keyTag": "k1", "escrow": true, "dataKey": hex.EncodeToString(key), "email": "Ana@Example.com"})
+		return b
+	}
+	needKey, err := plSteamLogin(ans("t-bad", bad))
+	if err != nil || !needKey {
+		t.Fatal("a copy of the key that does not open the account waits for the password", err, needKey)
+	}
+	plMu.Lock()
+	a := plAcc
+	plMu.Unlock()
+	if a.Token != "" || a.DataKey != "" {
+		t.Fatalf("nothing is kept from a key that does not open the account: %+v", a)
+	}
+	if needKey, err = plSteamLogin(ans("t-good", good)); err != nil || needKey {
+		t.Fatal("the server's copy of the key signs in without the password", err, needKey)
+	}
+	steamPendingMu.Lock()
+	sp := steamPending
+	steamPendingMu.Unlock()
+	plMu.Lock()
+	a = plAcc
+	plMu.Unlock()
+	if sp != nil || a.Token != "t-good" || a.DataKey != hex.EncodeToString(good) || a.Email != "ana@example.com" || !a.Escrow || a.Display != "Ana" {
+		t.Fatalf("signed in with the server's key and email, nothing left waiting: %+v %v", a, sp)
+	}
+	plEscrowUp()
+	if sent != nil {
+		t.Fatal("the server keeps the key already: nothing goes up")
+	}
+	plMu.Lock()
+	plAcc.Escrow = false
+	plMu.Unlock()
+	plEscrowUp()
+	if sent["key"] != hex.EncodeToString(good) || sent["email"] != "ana@example.com" {
+		t.Fatalf("the key and the email go up once: %v", sent)
+	}
+	plMu.Lock()
+	up := plAcc.Escrow
+	plAcc = plAccount{}
+	plMu.Unlock()
+	if !up {
+		t.Fatal("the PC knows the server keeps it now")
+	}
+	// a key the PC could not check (the server's copy of the account cannot be read) is not taken: the password, and the
+	// server's email fills its window
+	down = true
+	if needKey, err = plSteamLogin(ans("t-down", good)); err != nil || !needKey {
+		t.Fatal("a key that could not be checked waits for the password", err, needKey)
+	}
+	if e := steamAskEmail(); e != "ana@example.com" {
+		t.Fatal("the password window has the server's email:", e)
+	}
+	plMu.Lock()
+	a = plAcc
+	plMu.Unlock()
+	if a.Token != "" || a.DataKey != "" {
+		t.Fatalf("nothing is kept from a key that could not be checked: %+v", a)
+	}
+	down = false
+	steamPendingMu.Lock()
+	steamPending = nil
+	steamPendingMu.Unlock()
+	// a PC that kept the account's key (same tag) while the server's copy is another one: its own key goes up again
+	plMu.Lock()
+	plAcc = plAccount{Email: "ana@example.com", ID: "a1", Token: "t-old", DataKey: hex.EncodeToString(good), KeyTag: "k1", Escrow: true}
+	plMu.Unlock()
+	if needKey, err = plSteamLogin(ans("t-kept", bad)); err != nil || needKey {
+		t.Fatal("the key this PC kept signs in", err, needKey)
+	}
+	plMu.Lock()
+	a = plAcc
+	plMu.Unlock()
+	if a.Token != "t-kept" || a.DataKey != hex.EncodeToString(good) || a.Escrow {
+		t.Fatalf("the PC keeps its own key and sends it over the wrong copy: %+v", a)
+	}
+	sent = nil
+	plEscrowUp()
+	if sent["key"] != hex.EncodeToString(good) {
+		t.Fatalf("the PC's key goes up over the wrong copy: %v", sent)
+	}
+	// the same copy as the PC's: nothing to send
+	plMu.Lock()
+	plAcc = plAccount{Email: "ana@example.com", ID: "a1", Token: "t-old", DataKey: hex.EncodeToString(good), KeyTag: "k1"}
+	plMu.Unlock()
+	plSteamLogin(ans("t-same", good))
+	plMu.Lock()
+	a = plAcc
+	plAcc = plAccount{}
+	plMu.Unlock()
+	if !a.Escrow {
+		t.Fatal("the server's copy is the PC's key")
+	}
+	// the escrow without an email never fills in the email of an account signed out on this PC before
+	plMu.Lock()
+	plAcc = plAccount{Email: "old@example.com"}
+	plMu.Unlock()
+	b, _ := json.Marshal(map[string]any{"id": "a2", "token": "t-new", "keyTag": "k2", "escrow": true, "dataKey": hex.EncodeToString(good)})
+	if needKey, err = plSteamLogin(b); err != nil || needKey {
+		t.Fatal("signed in with the server's key", err, needKey)
+	}
+	plMu.Lock()
+	a = plAcc
+	plAcc = plAccount{}
+	plMu.Unlock()
+	if a.Email != "" || a.ID != "a2" {
+		t.Fatalf("no email of another account: %+v", a)
+	}
 }
 
 // the page's actions name their outside sign-in, and the browser only opens Discord's own sign-in page

@@ -322,7 +322,14 @@
   encryption wording on the Live card. The Live page is: your PC, watch another driver (the code gets
   its dashes as you type), then the download, with the same gap between the boxes.
 - What is encrypted how (for us, never said in the apps): the account (settings, race summaries, notes, ratings) is
-  end-to-end encrypted with the password's key, the server cannot read it; the laps' telemetry is stored sealed on the
+  end-to-end encrypted with the password's key, except that the server keeps a copy of the data key (and the account's
+  email) sealed with its own secret (DATA_KEY, `escrow` on the account, migration 0064, `cloud/src/escrow.js`) so Steam and
+  Discord sign in without the password (the owner's choice). Every device (web, PC agent,
+  phones) uploads it once after a sync that opened the account (POST /account/escrow, `cpEscrow`, `plEscrowUp`,
+  `escrowUp`) while the server says it has none (`escrow` on the sign-in and /account/me); a Steam or Discord sign-in (and
+  its 2FA step) answers `dataKey` and `email`, and only without a copy (`needKey`), or when the copy does not open the
+  account, the password is asked once as before and that key goes up instead. A password reset with a new key clears the
+  copy, a password change keeps it, deleting the account deletes it; the laps' telemetry is stored sealed on the
   server (DATA_KEY), which opens it to teach the model and share the fastest laps; live telemetry with a code is
   end-to-end. The analysis of your laps runs on your device.
 - No text that explains what something is (the owner's choice): no subtitle under a title, no line saying what a chart
