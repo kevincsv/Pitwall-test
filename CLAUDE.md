@@ -488,7 +488,7 @@
   or three words, `coachCue`; how it names the corner, "Next turn (T7)" by default, "Next turn" or "T7", `turnName`/`coachTurn`; the preview in its settings draws the chosen style, `coachStyleHTML`), which
   corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
   from how far it speaks. The settings travel with the account like every overlay's.
-- The model (`cloud/src/model.js`, MODEL_VERSION 10) learns clean traces only (a speed jump over 10 m/s between two
+- The model (`cloud/src/model.js`, MODEL_VERSION 11) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch), never a lap in traffic or on a wet track (`goodLap`: a wet lap teaches braking points of another
   track state) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
   lap with real pedals, and `idealField` says when the record is a rival's. A rival's lap whose pedals the game itself
@@ -497,6 +497,14 @@
   pedals move (the throttle to half and the brake to a fifth at least; still or missing pedals are estimated), it keeps
   its src in `model_laps` and it never teaches the car card what the car does at each speed (`rival` in `goodLap`: no
   pedals' envelope, no shift speeds), its speed coming from its position. A rival's lap on a wet track carries `wet` too.
+  Tyre compounds are never mixed in a reference: the memory keeps every lap's compound (`model_laps.cmp`, migration
+  0066, `lapCompound`: the lap's `cmp:<n>`, 0 for an account's lap without it, -1 for a rival's whose tyres nobody
+  knows), and when a car and track have laps on several compounds each one with 5 laps or more gets its own record,
+  next levels and corner card (`byCmp`, `compoundsOf`, `refsOf`); the model of every lap stays the default. A client
+  asks for the compound of its lap A (`cmp` on `/community/model`, `forCompound`; `cmpOf` in pitwall-model.js, the
+  phones' `Trace.cmp`, the PC's coach and braking overlays by PlayerTireCompound) and gets that compound's references
+  when the model has them, else every lap's; `cmps` lists the compounds it has apart. The pace among the drivers
+  (`times`) is every lap's.
 - Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report
   problems to support@pitlanehq.app): read from the game's own `LMU_Data` shared memory
   (Settings → Gameplay → Enable Plugins, nothing to install), turned into an iRacing-shaped image (`lmu.go`,

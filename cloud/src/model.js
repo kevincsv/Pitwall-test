@@ -14,7 +14,7 @@ import { openData } from "./crypt.js";
 import { pedalEnvelope, estimatePedals } from "./pedals.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 10; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card; 9: rivals' pedals from what the car really does (pedals.js); 10: wet laps left out, a rival's lap with the game's own pedals (src "real") is a real lap
+export const MODEL_VERSION = 11; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card; 9: rivals' pedals from what the car really does (pedals.js); 10: wet laps left out, a rival's lap with the game's own pedals (src "real") is a real lap; 11: the references of every tyre compound apart (byCmp)
 export const CARD_VERSION = 2;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -22,6 +22,7 @@ const LEARN_PER_RUN = 120;  // new laps taken into the memory per run (the rest 
 const LADDER_STEP = 0.004;  // a "next level" reference every 0.4 % of pace
 const LADDER_SPAN = 0.08;   // up to 8 % slower than the fastest lap
 const LEVEL_BIN = 2;        // the references keep one bin in two (10 m) to stay small
+const CMP_MIN = 5;          // laps a tyre compound needs before it gets references of its own
 
 const median = (a) => { const v = a.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
 const r = (v, d) => (v == null || !isFinite(v) ? 0 : Math.round(v * d) / d);
@@ -63,6 +64,15 @@ export function goodLap(time, tr) {
   return { time, bins, field: tr.src === "field", rival: tr.src === "real" };
 }
 
+// the tyre compound of a lap (exported for the tests): the agent writes "cmp:<n>" in its flags when the car has several
+// and the lap was not on the first (0); an account's lap without it is on the first compound. A rival's lap says
+// nothing of its tyres (-1, unknown): it teaches the model of every compound together, never one compound's
+export function lapCompound(tr) {
+  const f = tr && Array.isArray(tr.f) ? tr.f.find((x) => typeof x === "string" && /^cmp:\d+$/.test(x)) : null;
+  if (f) return +f.slice(4);
+  return tr && (tr.src === "field" || tr.src === "real") ? -1 : 0;
+}
+
 const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("").slice(0, 24);
 
 // laps from before the PC sent the iRacing ids of the track and car: found by name and given the ids,
@@ -94,7 +104,8 @@ async function adoptOldSessions(env, game, trackId, carId) {
 // every valid lap with telemetry that is not in the memory yet goes in: account laps (shared or
 // not), shared laps of drivers without an account (DRINKS drivers, older PCs)
 async function learnNewLaps(env, game, trackId, carId) {
-  const known = new Set(((await env.DB.prepare("SELECT k FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).all()).results || []).map((x) => x.k));
+  // k → its compound (null: a lap learnt before the memory kept it, read again below)
+  const known = new Map(((await env.DB.prepare("SELECT k, cmp FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3").bind(game, trackId, carId).all()).results || []).map((x) => [x.k, x.cmp]));
   const a = await env.DB.prepare(
     `SELECT s.uploader AS up, a.time, a.trace, s.track_temp AS temp FROM laps a JOIN sessions s ON s.id=a.session_id
      WHERE s.track_id=?1 AND (s.car_id=?2 OR s.car_id IN (${await famSql(env, game, carId)})) AND s.game=?3 AND s.uploader LIKE 'acct:%' AND a.valid=1 AND a.time>10 AND a.trace IS NOT NULL
@@ -115,19 +126,29 @@ async function learnNewLaps(env, game, trackId, carId) {
     known.delete(k);
     await env.DB.prepare("DELETE FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4").bind(game, trackId, carId, k).run();
   }
-  let added = 0;
+  let added = 0, read = 0;
   for (const x of [...(a.results || []), ...(c.results || [])]) {
     const k = await sha(x.up + ":" + x.time.toFixed(3));
-    if (known.has(k)) continue;
-    if (added >= LEARN_PER_RUN) return { added, more: true }; // the rest on the next run
-    known.add(k);
+    const old = known.has(k);
+    if (old && known.get(k) != null) continue;
+    // a lap learnt before the memory kept its compound: its trace is read once more for it (within the same budget)
+    if (added + read >= LEARN_PER_RUN) return { added, more: true }; // the rest on the next run
     let tr = null;
-    try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
+    try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { tr = null; }
+    if (old) {
+      read++;
+      const cmp = tr ? lapCompound(tr) : -1; // a trace that does not open any more: unknown, and never read again
+      known.set(k, cmp);
+      await env.DB.prepare("UPDATE model_laps SET cmp=?5 WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4").bind(game, trackId, carId, k, cmp).run();
+      continue;
+    }
+    if (!tr) { known.set(k, -1); continue; }
+    known.set(k, -1);
     if (!goodLap(x.time, tr)) continue;
     // the memory keeps where a rival's lap came from: "field" (its pedals made again at every build) or "real" (the
-    // game's own pedals); an account's lap goes in as the points alone
-    await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created, temp) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT DO NOTHING")
-      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" || tr.src === "real" ? { d: tr.d, src: tr.src } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null).run();
+    // game's own pedals); an account's lap goes in as the points alone. And the lap's tyre compound (lapCompound)
+    await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created, temp, cmp) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10) ON CONFLICT DO NOTHING")
+      .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" || tr.src === "real" ? { d: tr.d, src: tr.src } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null, lapCompound(tr)).run();
     added++;
   }
   return { added, more: false };
@@ -150,37 +171,66 @@ async function lapPath(env, game, trackId, carId, time) {
 // a lap as the memory keeps it: the points alone, or with "field" for a rival's lap (its pedals estimated from its speed)
 const memTrace = (v) => (Array.isArray(v) ? { d: v } : { d: v.d, src: v.src });
 
-// what the model learns from: its memory, the best few laps of every driver
-async function candidates(env, game, trackId, carId) {
-  await adoptOldSessions(env, game, trackId, carId);
-  const learnt = await learnNewLaps(env, game, trackId, carId);
-  const all = await env.DB.prepare("SELECT drv, time, data, temp FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all();
-  // the best 3 laps of each driver; with fewer than 3 drivers (one driver's Garage 61 history, say) up to 10
-  // of theirs, so the ideal lap settles on the median of many laps instead of three
-  const drivers = new Set((all.results || []).map((x) => x.drv)).size;
+// the laps one set of the memory teaches: the best 3 laps of each driver; with fewer than 3 drivers (one driver's
+// Garage 61 history, say) up to 10 of theirs, so the ideal lap settles on the median of many laps instead of three.
+// One lap per driver first (the best), then their next best ones while there is room (exported for the tests)
+export function pickLaps(rows) {
+  const drivers = new Set(rows.map((x) => x.drv)).size;
   const cap = drivers < 3 ? 10 : 3;
   const per = new Map();
-  for (const x of all.results || []) {
+  for (const x of rows) {
     const l = per.get(x.drv) || [];
     if (l.length >= cap) continue;
     l.push(x);
     per.set(x.drv, l);
   }
-  // one lap per driver first (the best), then their next best ones while there is room
   const rounds = Array.from({ length: cap }, () => []);
   for (const l of per.values()) l.forEach((x, i) => rounds[i].push(x));
   const pick = [];
   for (const rd of rounds) for (const x of rd.sort((p, q) => p.time - q.time)) if (pick.length < MAX_LAPS) pick.push(x);
-  const laps = [];
-  for (const x of pick) {
-    try { const g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); if (g) { g.up = x.drv; g.temp = typeof x.temp === "number" ? x.temp : null; laps.push(g); } } catch (e) {}
-  }
-  // a rival's lap: its pedals and gears made again from its speed and what this car really does (pedals.js)
-  if (laps.some((l) => l.field)) {
-    const card = await getCarCard(env, game, carId).catch(() => null);
-    for (const l of laps) if (l.field) l.bins = estimatePedals(l.bins, card && card.pedals, card && card.shifts);
-  }
-  return { laps, drivers, more: learnt.more, added: learnt.added };
+  return pick;
+}
+// the tyre compounds of the memory that get references of their own: only when its laps were driven on several, each
+// one with CMP_MIN laps at least (exported for the tests)
+export function compoundsOf(rows) {
+  const n = new Map();
+  for (const x of rows) if (typeof x.cmp === "number" && x.cmp >= 0) n.set(x.cmp, (n.get(x.cmp) || 0) + 1);
+  if (n.size < 2) return [];
+  return [...n.entries()].filter(([, k]) => k >= CMP_MIN).map(([c]) => c).sort((p, q) => p - q);
+}
+
+// what the model learns from: its memory, the best few laps of every driver; and the same of every tyre compound apart
+// when the laps were driven on several (byCmp: compound → its laps)
+async function candidates(env, game, trackId, carId) {
+  await adoptOldSessions(env, game, trackId, carId);
+  const learnt = await learnNewLaps(env, game, trackId, carId);
+  const rows = (await env.DB.prepare("SELECT drv, time, data, temp, cmp FROM model_laps WHERE game=?1 AND track_id=?2 AND car_id=?3 ORDER BY time LIMIT 5000").bind(game, trackId, carId).all()).results || [];
+  const drivers = new Set(rows.map((x) => x.drv)).size;
+  // every row is opened once, whichever sets it is in; a rival's lap gets its pedals and gears again from its speed and
+  // what this car really does (pedals.js)
+  const open = new Map();
+  let card;
+  const lapsOf = async (pick) => {
+    const out = [];
+    for (const x of pick) {
+      if (!open.has(x)) {
+        let g = null;
+        try { g = goodLap(x.time, memTrace(JSON.parse(await gunz(x.data)))); } catch (e) {}
+        if (g) {
+          g.up = x.drv; g.temp = typeof x.temp === "number" ? x.temp : null; g.cmp = typeof x.cmp === "number" && x.cmp >= 0 ? x.cmp : null;
+          if (g.field) { if (card === undefined) card = await getCarCard(env, game, carId).catch(() => null); g.bins = estimatePedals(g.bins, card && card.pedals, card && card.shifts); }
+        }
+        open.set(x, g);
+      }
+      const g = open.get(x);
+      if (g) out.push(g);
+    }
+    return out;
+  };
+  const laps = await lapsOf(pickLaps(rows));
+  const byCmp = new Map();
+  for (const c of compoundsOf(rows)) byCmp.set(c, await lapsOf(pickLaps(rows.filter((x) => x.cmp === c))));
+  return { laps, byCmp, drivers, more: learnt.more, added: learnt.added };
 }
 
 // ---------- the corner card: where the fastest drivers here brake and how fast they take every corner ----------
@@ -288,15 +338,11 @@ export function lineRanges(record, recPath, picks, zones, n) {
   return out;
 }
 
-export async function buildModel(env, game, trackId, carId) {
-  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
-  const { laps: raw, drivers, more, added } = await candidates(env, game, trackId, carId);
-  if (added) await markCar(env, game, carId); // its memory of this car grew: the car card learns again
-  const shared = await env.DB.prepare(
-    `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND COALESCE(shown,'')<>'model'`).bind(trackId, carId, game).first();
-  const base = { v: MODEL_VERSION, game, trackId, carId, built: Date.now(), more: !!more, drivers, shared: (shared && shared.n) || 0 };
-  if (raw.length < 2) return { ...base, n: raw.length };
-  // same length of track for every lap (another layout or a broken recording would not line up)
+// the laps that line up with each other (exported for the tests): the same length of track for every lap (another
+// layout or a broken recording would not line up), telemetry that adds up to the lap time, no lap far slower than the
+// rest and, with a few laps, each one like the others
+export function cleanLaps(raw) {
+  if (raw.length < 2) return raw.slice();
   const len = median(raw.map((l) => l.bins.length));
   let laps = raw.filter((l) => Math.abs(l.bins.length - len) <= len * 0.03);
   // the telemetry has to add up to the lap time (speed over every 5 m gives the time back): a lap that
@@ -321,14 +367,12 @@ export async function buildModel(env, game, trackId, carId) {
       return l.seg0.every((v, k) => v == null || segMed[k] == null || v >= segMed[k] * 0.88);
     });
   }
-  // the pace of every driver the model knows, with or without telemetry (the rivals of your races
-  // whose lap the PC did not see whole still bring their time): where your pace stands among them
-  const timed = await env.DB.prepare("SELECT user_id, MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND time>10 AND (COALESCE(official,1)<>0 OR ai=1) GROUP BY user_id").bind(trackId, carId, game).all();
-  const byDrv = new Map();
-  for (const l of laps) if (!byDrv.has(l.up) || l.time < byDrv.get(l.up)) byDrv.set(l.up, l.time);
-  for (const x of timed.results || []) { const k = await sha("drv:acct:" + x.user_id); if (!byDrv.has(k) || x.t < byDrv.get(k)) byDrv.set(k, x.t); }
-  const times = [...byDrv.values()].sort((a, b) => a - b).map((t) => r(t, 1000));
-  if (laps.length < 2) return { ...base, n: laps.length, drivers: Math.max(drivers, times.length), times };
+  return laps;
+}
+
+// the references one set of laps gives (two at least): the record, the next level at every pace with its line and its
+// step, the corner card and the fastest line known. pathFor(lap) finds the path a lap's car drove
+export async function refsOf(laps, pathFor) {
   const n = Math.min(...laps.map((l) => l.bins.length)), M = Math.max(8, Math.round((n * 5) / SEG_M));
   laps.forEach((l) => { l.seg = segTimes(l, M, n); });
   // the record: the fastest lap really driven, whole, as the reference everyone can be measured against
@@ -354,8 +398,6 @@ export async function buildModel(env, game, trackId, carId) {
   }
   // the line of each reference: the path its car drove, from the lap's own trace, so the coach can tell where on
   // the track you were against it (the record whole, the next levels one point in two like their bins)
-  const paths = new Map();
-  const pathFor = async (l) => { if (!paths.has(l)) paths.set(l, await lapPath(env, game, trackId, carId, l.time).catch(() => null)); return paths.get(l); };
   const fp = await pathFor(fastest);
   const out = [];
   for (const { lap, ...x } of ladder) {
@@ -380,11 +422,52 @@ export async function buildModel(env, game, trackId, carId) {
     }
   }
   return {
-    ...base, n: laps.length, drivers: Math.max(drivers, times.length), M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), times, lineXY,
+    n: laps.length, M, nb: n, pool: laps.length, idealTime: r(fastest.time, 1000), fastest: r(fastest.time, 1000), lineXY,
     ideal: record, idealField: !!fastest.field, corners,
     idealXY: fp && fp.x.length >= n ? { x: fp.x.slice(0, n).map((v) => r(v, 10)), y: fp.y.slice(0, n).map((v) => r(v, 10)), ...(fp.g ? { g: fp.g } : {}) } : null,
     ladder: out,
   };
+}
+export async function buildModel(env, game, trackId, carId) {
+  carId = await famId(env, game, carId); // one model for a car under every badge (carfamily.js)
+  const { laps: raw, byCmp: rawCmp, drivers, more, added } = await candidates(env, game, trackId, carId);
+  if (added) await markCar(env, game, carId); // its memory of this car grew: the car card learns again
+  const shared = await env.DB.prepare(
+    `SELECT COUNT(*) AS n, MIN(time) AS best FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND COALESCE(shown,'')<>'model'`).bind(trackId, carId, game).first();
+  const base = { v: MODEL_VERSION, game, trackId, carId, built: Date.now(), more: !!more, drivers, shared: (shared && shared.n) || 0 };
+  if (raw.length < 2) return { ...base, n: raw.length };
+  const laps = cleanLaps(raw);
+  // the pace of every driver the model knows, with or without telemetry (the rivals of your races
+  // whose lap the PC did not see whole still bring their time): where your pace stands among them
+  const timed = await env.DB.prepare("SELECT user_id, MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3 AND time>10 AND (COALESCE(official,1)<>0 OR ai=1) GROUP BY user_id").bind(trackId, carId, game).all();
+  const byDrv = new Map();
+  for (const l of laps) if (!byDrv.has(l.up) || l.time < byDrv.get(l.up)) byDrv.set(l.up, l.time);
+  for (const x of timed.results || []) { const k = await sha("drv:acct:" + x.user_id); if (!byDrv.has(k) || x.t < byDrv.get(k)) byDrv.set(k, x.t); }
+  const times = [...byDrv.values()].sort((a, b) => a - b).map((t) => r(t, 1000));
+  if (laps.length < 2) return { ...base, n: laps.length, drivers: Math.max(drivers, times.length), times };
+  const paths = new Map();
+  const pathFor = async (l) => { if (!paths.has(l)) paths.set(l, await lapPath(env, game, trackId, carId, l.time).catch(() => null)); return paths.get(l); };
+  const model = { ...base, drivers: Math.max(drivers, times.length), times, ...(await refsOf(laps, pathFor)) };
+  // the laps were driven on several tyre compounds: the references of each one apart (the record, the next level,
+  // the corner card), so a lap on the hard tyres is never measured against the softs; the clients ask for theirs
+  // (forCompound). The default above keeps every lap
+  const cmps = {};
+  for (const [c, ls] of rawCmp) {
+    const cl = cleanLaps(ls);
+    if (cl.length >= 2) cmps[c] = await refsOf(cl, pathFor);
+  }
+  if (Object.keys(cmps).length) model.byCmp = cmps;
+  return model;
+}
+
+// the model as a client asks for it (exported for the tests): the references of the compound of its lap A when the
+// model has them apart (cmp, a number), else the model of every lap; cmps lists the compounds that have their own
+export function forCompound(md, cmp) {
+  if (!md) return md;
+  const { byCmp, ...m } = md;
+  const list = byCmp ? Object.keys(byCmp).map(Number).sort((p, q) => p - q) : [];
+  const one = byCmp && Number.isInteger(cmp) && cmp >= 0 ? byCmp[cmp] : null;
+  return { ...m, ...(list.length ? { cmps: list } : {}), ...(one ? { ...one, cmp } : {}) };
 }
 
 // ---------- the car card: what a car does on every track it was driven on ----------

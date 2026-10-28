@@ -25,7 +25,7 @@ func lapOverlay(name string) bool {
 }
 
 // the values the lap recorder needs (the app's recordLap)
-var recVars = []string{"LapDist", "LapCompleted", "LapCurrentLapTime", "IsOnTrack", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle", "RPM", "Lap", "LapLastLapTime", "OnPitRoad", "LapBestLapTime"}
+var recVars = []string{"LapDist", "LapCompleted", "LapCurrentLapTime", "IsOnTrack", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle", "RPM", "Lap", "LapLastLapTime", "OnPitRoad", "LapBestLapTime", "PlayerTireCompound"}
 
 func lapOvVars(name string) []string {
 	switch name {
@@ -374,7 +374,12 @@ func (st *ovState) loadModelRef() {
 		return
 	}
 	best, _ := st.num("LapBestLapTime")
-	key := fmt.Sprintf("%d:%d:%.1f", st.ses.TrackID, car, best)
+	// the tyres on the car: the model's references of the same compound when it has them apart (0 the first, or the only one)
+	cmp := 0
+	if v, ok := st.num("PlayerTireCompound"); ok && v > 0 {
+		cmp = int(v)
+	}
+	key := fmt.Sprintf("%d:%d:%.1f:%d", st.ses.TrackID, car, best, cmp)
 	if st.ext.modelKey == key && (st.ext.modelRef != nil || time.Since(st.ext.modelAt) < 5*time.Minute) {
 		return
 	}
@@ -390,7 +395,7 @@ func (st *ovState) loadModelRef() {
 			} `json:"ladder"`
 			Corners []ovCorner `json:"corners"`
 		}
-		if !st.fetchJSON(fmt.Sprintf("/api/community/model?trackId=%d&carId=%d&game=iracing", tid, car), &m) || len(m.Ladder) == 0 {
+		if !st.fetchJSON(fmt.Sprintf("/api/community/model?trackId=%d&carId=%d&game=iracing&cmp=%d", tid, car, cmp), &m) || len(m.Ladder) == 0 {
 			return
 		}
 		st.mu.Lock()

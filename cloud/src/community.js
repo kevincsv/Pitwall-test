@@ -5,7 +5,7 @@
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
 import { mailReady, mailLog, mailDomain } from "./email.js";
 import { sealData, openData } from "./crypt.js";
-import { getModel, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { getModel, forCompound, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -275,7 +275,10 @@ export async function community(req, env, url, ctx) {
   if (p === "/model" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
-    const md = await getModel(env, game, t, c);
+    // the compound of the lap the client measures (its "cmp:<n>" flag, 0 without it): that compound's references when
+    // the model has them apart, else the model of every lap
+    const cq = url.searchParams.get("cmp");
+    const md = forCompound(await getModel(env, game, t, c), cq != null && /^\d{1,2}$/.test(cq) ? +cq : null);
     const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
     // with the card of the car: what it does on other tracks, for when nobody known drove it here yet
     return json({ ...md, car: await getCarCard(env, game, c).catch(() => null), fastShared: fs || null });
