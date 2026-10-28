@@ -430,7 +430,7 @@
   and calls it through thin wrappers, `anaCtx` hands it the language, units, official turns, `COACH_W`/`COACH_ME` and the
   model's corner cards) and by the phones (Android's JavaScriptSandbox, iOS's JavaScriptCore; they download
   pitlanehq.app/pitwall-analysis.js, served with `no-cache` and its ETag like every app file, keep it on disk and carry a
-  copy in the app used until a download succeeds). It has the corners and their tips, the plan, the sectors, the line, how
+  copy in the app used until a download succeeds; the mobile repository's `tools/sync-analysis.sh` refreshes that copy). It has the corners and their tips, the plan, the sectors, the line, how
   the lap is driven and the analyzer's key facts; `analyse(A, B, ctx)` gives all of it as plain JSON for the phones. Its
   texts are in English, Spanish and Portuguese (a corner's `tip` is [en, es, pt], `tipTx` on the web). A change there is
   a change on every device at once: `cloud/test/analysis.test.mjs` runs index.html's own functions and the module over
