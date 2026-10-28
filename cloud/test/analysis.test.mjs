@@ -308,7 +308,7 @@ for (const cs of cases()) for (const set of SETS) {
     weights: { w: cs.W.w, b: cs.W.b, off: [...cs.W.off] }, me: { w: cs.ME.w, habits: cs.ME.habits }, cards: cs.cards.map((c) => ({ apex: c.apex, spread: c.spread })),
     laps: [A, B, ...LP], step: [{ apex: 300 }, { apex: 1700 }] };
   const res = JSON.parse(PWA.analyse(JSON.parse(JSON.stringify(A)), JSON.parse(JSON.stringify(B)), JSON.parse(JSON.stringify(ctx)), { json: true }));
-  const bare = (c) => { const { text, ...o } = c; return { ...o, tip: o.tip.slice(0, 2) }; };
+  const bare = (c) => { const { text, todo, ...o } = c; return { ...o, tip: o.tip.slice(0, 2) }; };
   assert.equal(hash(res.corners.map(bare)), want.corners, key + " corners as the phones get them");
   assert.equal(hash(res.corners.map((c) => c.tip)), want.tips, key + " tips as the phones get them");
   assert.equal(hash({ ...res.coach, cs: res.coach.cs.map(bare) }), want.plan, key + " plan as the phones get it");
@@ -320,9 +320,12 @@ for (const cs of cases()) for (const set of SETS) {
     assert.equal(c.tip.length, 3, "every tip in English, Spanish and Portuguese");
     if (c.tip[0]) { assert.ok(c.tip[2] && !/undefined|NaN/.test(c.tip.join("|")), key + " T" + c.n + " tip " + c.kind); assert.equal(c.text, set.lang === "es" ? c.tip[1] : set.lang === "pt" ? c.tip[2] : c.tip[0]); }
     else assert.equal(c.text, "");
+    // the braking points table's "what to do": the tip of the phase in a few words, the line tip after it left out
+    assert.equal(c.todo, c.lost > .03 && c.tip[0] ? PWA.tipShort(PWA.tipMain(c)[set.lang === "es" ? 1 : set.lang === "pt" ? 2 : 0]) : "", key + " T" + c.n + " todo");
+    if (c.todo) assert.ok(c.todo.length <= c.text.length && !/\(/.test(c.todo), key + " T" + c.n + " todo is short");
   });
   // no text joins two phrases with a colon (CLAUDE.md): the tips, the plan, the analyzer's facts, the step
-  const texts = [...res.corners.map((c) => c.text), ...res.coach.plan.flatMap((p) => [p.t, p.why, p.how]), ...res.facts.items.map((x) => x[2]), res.step, ...res.coach.driving];
+  const texts = [...res.corners.map((c) => c.text), ...res.corners.map((c) => c.todo), ...res.coach.plan.flatMap((p) => [p.t, p.why, p.how]), ...res.facts.items.map((x) => x[2]), res.step, ...res.coach.driving];
   texts.forEach((t) => assert.ok(!/\S: \S/.test(t || ""), key + " a text joins two phrases with a colon: " + t));
   // in Portuguese every text the module writes is Portuguese (never English left over), and every corner tip has one
   const pt = JSON.parse(PWA.analyse(JSON.parse(JSON.stringify(A)), JSON.parse(JSON.stringify(B)), { ...JSON.parse(JSON.stringify(ctx)), lang: "pt" }, { json: true }));

@@ -426,9 +426,10 @@
   session's best of each among the valid laps, green a valid lap's one better than your best lap's. The braking points are a table of lap A against lap B per corner of
   `coachCompare` in pitwall-analysis.js (`renderBrakeTable`): the turn ("T7"), where A and B brake, Δ m (+ A later; red when A brakes 3 m or more
   before B, muted otherwise), the speed at each apex, the gear at the apex ("3 / 4" when they differ), the time lost and what
-  to do (the tip of the phase that loses the most in a few words, without the line tip added after it, `tipMain`/`tipShort`;
+  to do (the tip of the phase that loses the most in a few words, without the line tip added after it, `tipMain`/`tipShort` in pitwall-analysis.js, `todo` on the corners the phones get;
   a line tip that replaced a generic one stays); a row pins the charts and the map like the corner bars. The phones' lap
-  list and lap analysis show the same.
+  list and lap analysis show the same. "Take the plan to the coach overlay" takes the turns of the plan's first four steps
+  (`turns` on each step of `coachPlan`, `planTurns`), on the phones too when they run the module.
   The corner tips (`coachCompare` in pitwall-analysis.js wherever the app or the phones analyse a lap, `compareLaps` in
   ovnative4.go for the coach overlay; the phones' `corners` in LapMath/Models only as the fallback):
   the phase that loses the most says the tip, and every tip follows the measured facts, never against them: braking

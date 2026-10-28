@@ -14,7 +14,8 @@
    A lap is the web's own shape: bins (one every 5 m: [speed m/s, lap time s, throttle 0-1, brake 0-1, gear, steering
    rad]), maxBin, time, sectors, trackId and xy {x, y, g} (the path, g its origin when it comes from the game's position).
    analyse(A, B, ctx) gives everything the analyzer and the coach show as plain JSON. The corners' tips carry English,
-   Spanish and Portuguese ([en, es, pt]); text is the one in ctx.lang. */
+   Spanish and Portuguese ([en, es, pt]); text is the one in ctx.lang, and todo what the braking points table says to do
+   there (tipMain, tipShort). */
 (function (root) {
   "use strict";
   const VERSION = 1, BIN = 5;
@@ -221,6 +222,23 @@
   const KIND_NAMES = { brake_late_apex: ["Brakes later and loses the apex", "Frena más tarde y pierde el vértice", "Freia depois e perde o ápice"], brake_later: ["Brake later", "Frenar más tarde", "Frear depois"], brake_harder: ["Brake harder at first", "Pisar más fuerte al empezar", "Frear mais forte no início"], brake_earlier: ["Braked too late", "Frenó demasiado tarde", "Freou tarde demais"], trail: ["Trail braking", "Trail braking", "Trail braking"], brake_same: ["Same point, slower braking zone", "Mismo punto, frenada más lenta", "Mesmo ponto, frenagem mais lenta"], brake_generic: ["Brake later and harder", "Frenar más tarde y fuerte", "Frear depois e mais forte"], coast: ["Coasting before the apex", "Inercia antes del vértice", "Embalo antes do ápice"], entry_before: ["Time before the apex", "Tiempo antes del vértice", "Tempo antes do ápice"], entry_speed: ["More speed into the turn", "Más velocidad al entrar", "Mais velocidade na entrada"], apex_speed: ["More speed at the apex", "Más velocidad en el vértice", "Mais velocidade no ápice"], apex_longer: ["Slow for longer", "Lento durante más metros", "Lento por mais tempo"], apex_line: ["Rounder line", "Trazada más redonda", "Linha mais redonda"], throttle: ["Throttle earlier", "Acelerar antes", "Acelerar antes"], no_wait: ["Wait between brake and throttle", "Espera entre freno y acelerador", "Espera entre freio e acelerador"], exit_speed: ["Throttle early, slow apex", "Acelera pronto, vértice lento", "Acelera cedo, ápice lento"], full_throttle: ["Full throttle sooner", "A fondo antes", "Acelerador a fundo mais cedo"], gear_up: ["Higher gear", "Marcha más alta", "Marcha mais alta"], gear_down: ["Lower gear", "Marcha más baja", "Marcha mais baixa"], lifts: ["Throttle lifts on exit", "Levanta el gas a la salida", "Alívios do acelerador na saída"], throttle_slow: ["Slow to full throttle", "Tarda en ir a fondo", "Demora para acelerar a fundo"], throttle_rough: ["Throttle too abrupt", "Gas demasiado brusco", "Acelerador brusco demais"], steer: ["Steering corrections", "Correcciones de volante", "Correções de volante"], line_same_brake: ["Line · turn in from the outside", "Trazada · entrar desde fuera", "Linha · entre por fora"], line_turnin: ["Line · turn-in too inside", "Trazada · giro muy por dentro", "Linha · entrada por dentro demais"], line_apex: ["Line · away from the apex", "Trazada · lejos del vértice", "Linha · longe do ápice"], line_exit: ["Line · track unused on exit", "Trazada · pista sin usar a la salida", "Linha · pista sem usar na saída"] };
   function kindName(k, ctx) { const N = KIND_NAMES[k]; return N ? txOf(ctx)(N[0], N[1], N[2]) : k; }
 
+  /* ---------- the braking points table ---------- */
+  /* a corner's own tip without the line's, which coachCompare adds after the tip of the phase (". ", then lineTip): the
+     table says what to do in the phase that loses the most; a line tip that replaced a generic one (kind line_*) stays */
+  function tipMain(c) {
+    const t = (c && c.tip) || [], lt = String((c && c.kind) || "").startsWith("line_") ? null : lineTip(c && c.line, c && c.dd != null && Math.abs(c.dd) <= 6);
+    if (!lt) return t; const cut = (s, x) => s && x && s.endsWith(". " + x) ? s.slice(0, -(x.length + 2)) : s;
+    return [cut(t[0], lt[0]), cut(t[1], lt[1]), cut(t[2], lt[3])];
+  }
+  /* a tip in a few words: without its figures in brackets (the columns carry them) and, of two sentences, the one that
+     says what to do (the last, unless it is only the measurement and the first is not) */
+  function tipShort(t) {
+    const q = String(t || "").replace(/\s*\([^)]*\)/g, "").trim().split(/\.\s+/).map((x) => x.replace(/\.$/, "").trim()).filter(Boolean); if (q.length < 2) return q[0] || "";
+    const last = q[q.length - 1], first = q[0], num = /\d/; return num.test(last) && !num.test(first) ? first : last;
+  }
+  /* what to do in a corner, in a few words in the context's language: the table's last column ("" when it loses no time) */
+  function tipTodo(c, ctx) { if (!c || !(c.lost > .03) || !c.tip || !c.tip[0]) return ""; const t = tipMain(c); return tipShort(txOf(ctx)(t[0], t[1], t[2])); }
+
   /* ---------- the plan ---------- */
   /* what to work on first: the corners that cost the most (weighed by what the coach learnt of their tips and how hard the
      corner is for everyone), the phase that repeats, the straights, the corners taken differently every lap, how the lap is
@@ -300,7 +318,7 @@
      analyzer's key facts */
   function analyse(A, B, ctx, opts) {
     ctx = ctx || {};
-    const Tx = txOf(ctx), withText = (c) => ({ ...c, text: c.tip[0] ? Tx(c.tip[0], c.tip[1], c.tip[2]) : "" });
+    const Tx = txOf(ctx), withText = (c) => ({ ...c, text: c.tip[0] ? Tx(c.tip[0], c.tip[1], c.tip[2]) : "", todo: tipTodo(c, ctx) });
     const facts = analyzerFacts(A, B, ctx), plan = coachPlan(A, B, Array.isArray(ctx.laps) ? ctx.laps : [], ctx);
     const out = { v: VERSION, gap: A.time - B.time, corners: facts.corners.map(withText), facts: { ad: facts.ad, items: facts.items }, coach: { ...plan, cs: plan.cs.map(withText) } };
     if (Array.isArray(ctx.step)) out.step = stepText(ctx.step, A, ctx); // the next level's step, when lap B is the next level
@@ -308,7 +326,7 @@
   }
 
   const api = { VERSION, BIN, lapSeries, serOf, lapShape, sameFrame, lineOffsets, cornerLine, lineTip, brakeZones, PHASES, phaseName, turnNo, COACH_GEN, cornerClass, cornerZones,
-    coachCompare, cornerConsistency, pairSecs, lapDriving, kindName, coachPlan, stepText, analyzerFacts, analyse };
+    coachCompare, cornerConsistency, pairSecs, lapDriving, kindName, tipMain, tipShort, tipTodo, coachPlan, stepText, analyzerFacts, analyse };
   root.PW_ANALYSIS = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this);

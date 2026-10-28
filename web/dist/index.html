@@ -4329,14 +4329,9 @@ function renderBrakeTable(A,B){const tb=$("#brakeTable tbody"),th=$("#brakeTable
     return `<tr data-bd="${Math.round(c.d)}" class="${pin===i?"on":""}"><td class="mono"><b>T${c.n}</b></td><td class="r mono">${c.dd==null?"–":m(c.d+c.dd)}</td><td class="r mono">${c.lift?`<span class="muted">${esc(Tx("lift","sin freno","kein Bremsen","sem freio"))}</span>`:m(c.d)}</td><td class="r mono ${dd!=null&&dd<=-3?"bad":"muted"}">${dd==null?"–":Math.abs(dd)<3?"≈ 0":(dd>0?"+":"−")+Math.abs(Math.round(dd))}</td><td class="r mono">${v(c.vmin)}</td><td class="r mono">${v(c.vminr)}</td><td class="r mono">${gear}</td><td class="r mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,3)}</td><td class="bt-tip">${t?esc(t):`<span class="muted">–</span>`}</td></tr>`}).join(""):`<tr><td colspan="9" class="empty">–</td></tr>`;
   // a row pins the charts and the map at that corner, like the corner bars above
   tb.querySelectorAll("[data-bd]").forEach(r=>r.onclick=()=>{const b=$(`#lapAnalyzer .la-c[data-cd="${r.dataset.bd}"]`);if(b)b.click();else{const i=Math.round(+r.dataset.bd/BIN),same=CMP_HOVER&&CMP_HOVER.pin&&CMP_HOVER.i===i;CMP_HOVER=same?null:{i,quiet:true,pin:true};markBrakeRow();drawCmp(true)}})}
-/* the corner's own tip without the line's, which coachCompare adds after the tip of the phase (".", then lineTip): the
-   table says what to do in the phase that loses the most, as the phones do; a line tip that replaced a generic one stays */
-function tipMain(c){const t=c.tip||[],lt=String(c.kind||"").startsWith("line_")?null:PWA.lineTip(c.line,c.dd!=null&&Math.abs(c.dd)<=6);
-  if(!lt)return t;const cut=(s,x)=>s&&x&&s.endsWith(". "+x)?s.slice(0,-(x.length+2)):s;return[cut(t[0],lt[0]),cut(t[1],lt[1]),cut(t[2],lt[3])]}
-/* a tip in a few words: without its figures in brackets (the columns carry them) and, of two sentences, the one that says
-   what to do (the last, unless it is only the measurement and the first is not) */
-function tipShort(t){const q=String(t||"").replace(/\s*\([^)]*\)/g,"").trim().split(/\.\s+/).map(x=>x.replace(/\.$/,"").trim()).filter(Boolean);if(q.length<2)return q[0]||"";
-  const last=q[q.length-1],first=q[0],num=/\d/;return num.test(last)&&!num.test(first)?first:last}
+/* the corner's own tip without the line's, and a tip in a few words (pitwall-analysis.js, where the phones read them too) */
+function tipMain(c){return PWA.tipMain(c)}
+function tipShort(t){return PWA.tipShort(t)}
 function markBrakeRow(){const pin=CMP_HOVER&&CMP_HOVER.pin?CMP_HOVER.i:null;document.querySelectorAll("#brakeTable [data-bd]").forEach(r=>r.classList.toggle("on",pin!=null&&Math.round(+r.dataset.bd/BIN)===pin))}
 
 /* ===================== shared settings (overlays read them too) ===================== */
