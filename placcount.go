@@ -68,7 +68,7 @@ type plAccount struct {
 	ProGate      bool      `json:"proGate,omitempty"`      // the beta is over: Pro is needed for what it unlocks
 	ProElsewhere bool      `json:"proElsewhere,omitempty"` // the account's Pro is on another PC
 	Ended        bool      `json:"ended,omitempty"`        // signed out by the server (see plSessionEnded); the email stays
-	Escrow       bool      `json:"escrow,omitempty"`       // the server keeps a copy of the data key (Steam and Discord sign in without the password)
+	Escrow       bool      `json:"escrow,omitempty"`       // the server keeps this key (Steam and Discord sign in without the password)
 }
 
 var (
@@ -733,20 +733,31 @@ func plEscrowUp() {
 	plMu.Unlock()
 }
 
-// keyOpens: the server's copy of the data key opens the account's synced data (or there is none yet). A server that
-// cannot be reached says nothing against it (the sync tells later).
-func keyOpens(tok string, key []byte) bool {
-	b, err := commRequest("GET", "/account/sync", nil, tok)
-	if err != nil {
-		return true
+// keyOpens: whether the server's copy of the data key opens the account's synced data (or there is none yet), and whether
+// that could be checked at all. A check that could not run is tried again a moment later, and one that never runs leaves
+// the key not verified (the password once, as without a copy): a key never stays on the PC unchecked.
+var keyCheckWait = time.Second
+
+func keyOpens(tok string, key []byte) (opens, checked bool) {
+	for try := 0; try < 3; try++ {
+		if try > 0 {
+			time.Sleep(keyCheckWait)
+		}
+		b, err := commRequest("GET", "/account/sync", nil, tok)
+		if err != nil {
+			continue
+		}
+		var r struct{ Blob string }
+		if json.Unmarshal(b, &r) != nil {
+			continue
+		}
+		if r.Blob == "" {
+			return true, true
+		}
+		_, err = openAES(key, r.Blob)
+		return err == nil, true
 	}
-	var r struct{ Blob string }
-	json.Unmarshal(b, &r)
-	if r.Blob == "" {
-		return true
-	}
-	_, err = openAES(key, r.Blob)
-	return err == nil
+	return false, false
 }
 
 // ---------- "Sign in with Steam" ----------
@@ -880,16 +891,22 @@ func plSteamLogin(b []byte) (needKey bool, err error) {
 	}
 	plMu.Lock()
 	if plAcc.ID == res.ID && plAcc.DataKey != "" && plAcc.KeyTag != "" && plAcc.KeyTag == res.KeyTag {
-		plAcc = plAccount{Email: plAcc.Email, ID: res.ID, Token: res.Token, DataKey: plAcc.DataKey, KeyTag: plAcc.KeyTag, Display: res.Display, NameKind: res.NameKind, Admin: res.Admin, Verified: res.Verified, Mail: res.Mailed != nil, TwoFactor: res.TwoFactor, Escrow: res.Escrow}
+		// the server's copy is not this PC's key (still the account's): this one goes up after the next sync
+		escrow := res.Escrow && (res.DataKey == "" || strings.EqualFold(res.DataKey, plAcc.DataKey))
+		plAcc = plAccount{Email: plAcc.Email, ID: res.ID, Token: res.Token, DataKey: plAcc.DataKey, KeyTag: plAcc.KeyTag, Display: res.Display, NameKind: res.NameKind, Admin: res.Admin, Verified: res.Verified, Mail: res.Mailed != nil, TwoFactor: res.TwoFactor, Escrow: escrow}
 		savePLLocked()
 		plMu.Unlock()
 		return false, nil
 	}
+	known := ""
+	if plAcc.ID == res.ID { // the email this PC kept, only for the same account (never one signed out before)
+		known = plAcc.Email
+	}
 	plMu.Unlock()
-	if k, err := hex.DecodeString(res.DataKey); err == nil && len(k) == 32 && keyOpens(res.Token, k) {
+	if k, err := hex.DecodeString(res.DataKey); err == nil && len(k) == 32 && keyOpensOK(res.Token, k) {
 		email := normEmail(res.Email)
 		if email == "" {
-			email = steamKnownEmail(res.ID)
+			email = known
 		}
 		res.Escrow = true
 		plSignedIn(res, email, nil, k)
@@ -908,6 +925,26 @@ func plSteamLogin(b []byte) (needKey bool, err error) {
 	steamPending = &steamPendingT{Res: res, At: time.Now()}
 	steamPendingMu.Unlock()
 	return true, nil
+}
+
+func keyOpensOK(tok string, key []byte) bool {
+	opens, checked := keyOpens(tok, key)
+	return opens && checked
+}
+
+// steamAskEmail: the email the password window fills in for the sign-in waiting: the server's (the escrow kept it),
+// else the one this PC knows
+func steamAskEmail() string {
+	steamPendingMu.Lock()
+	sp := steamPending
+	steamPendingMu.Unlock()
+	if sp == nil {
+		return steamKnownEmail("")
+	}
+	if e := normEmail(sp.Res.Email); e != "" {
+		return e
+	}
+	return steamKnownEmail(sp.Res.ID)
 }
 
 // steamKnownEmail: the email the password step may fill in, when this PC's account is (or may be) the one signing in
@@ -1200,7 +1237,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 						break
 					}
 					if needKey {
-						writeJSON(w, map[string]any{"status": "password", "needKey": true, "email": steamKnownEmail("")})
+						writeJSON(w, map[string]any{"status": "password", "needKey": true, "email": steamAskEmail()})
 						return
 					}
 					plSteamFinish()
@@ -1300,7 +1337,7 @@ func registerPLRoutes(mux *http.ServeMux) {
 					break
 				}
 				if needKey {
-					writeJSON(w, map[string]any{"status": "password", "needKey": true, "email": steamKnownEmail("")})
+					writeJSON(w, map[string]any{"status": "password", "needKey": true, "email": steamAskEmail()})
 					return
 				}
 				plSteamFinish()
@@ -1329,6 +1366,9 @@ func registerPLRoutes(mux *http.ServeMux) {
 					break
 				}
 				email := normEmail(in.Email)
+				if email == "" {
+					email = normEmail(sp.Res.Email)
+				}
 				if email == "" {
 					email = steamKnownEmail(sp.Res.ID)
 				}
@@ -1635,8 +1675,10 @@ func plRefreshMe() {
 		plAcc.Display, plAcc.NameKind, plAcc.Anon = me.Display, me.NameKind, me.Anon
 		savePLLocked()
 	}
-	if me.Escrow != nil && plAcc.Escrow != *me.Escrow {
-		plAcc.Escrow = *me.Escrow
+	// only "none kept" is taken from the server: a copy that is not this PC's key (the password asked, or another key
+	// than the one kept here) must not stop this key going up
+	if me.Escrow != nil && !*me.Escrow && plAcc.Escrow {
+		plAcc.Escrow = false
 		savePLLocked()
 	}
 	plRecovery = me.RecoveryLeft

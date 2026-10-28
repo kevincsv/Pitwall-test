@@ -2634,7 +2634,7 @@ function verifyPrompt(email,again){return uiPanel(`<h2 style="margin:6px 0 4px">
 // your profile as the account has it now (public name, anonymous, admin, email confirmed): true when it changed here
 async function cpMe(){const m=await cpCall("GET","/account/me").catch(()=>null);const a=CP.acc;if(!m||!a||(m.id&&m.id!==a.id))return false;
   const key=x=>JSON.stringify([x.display,x.nameKind,!!x.anon,!!x.admin,!!x.verified,!!x.twoFactor,!!x.supporter,!!x.supporterHidden,!!x.pro,!!x.proGate]),before=key(a);
-  if(m.display)a.display=m.display;a.nameKind=m.nameKind==="iracing"?"iracing":"nick";a.anon=!!m.anon;a.admin=!!m.admin;a.verified=!!m.verified;a.mail=!!m.mail;a.twoFactor=!!m.twoFactor;a.recoveryLeft=m.recoveryLeft;a.supporter=!!m.supporter;a.supporterHidden=!!m.supporterHidden;a.pro=!!m.pro;a.proSrc=m.proSrc||"";a.proGate=!!m.proGate;if(m.escrow!==undefined&&!!m.escrow!==a.escrow){a.escrow=!!m.escrow;CP.escTried=false}
+  if(m.display)a.display=m.display;a.nameKind=m.nameKind==="iracing"?"iracing":"nick";a.anon=!!m.anon;a.admin=!!m.admin;a.verified=!!m.verified;a.mail=!!m.mail;a.twoFactor=!!m.twoFactor;a.recoveryLeft=m.recoveryLeft;a.supporter=!!m.supporter;a.supporterHidden=!!m.supporterHidden;a.pro=!!m.pro;a.proSrc=m.proSrc||"";a.proGate=!!m.proGate;if(m.escrow===false&&a.escrow){a.escrow=false;CP.escTried=false}
   cpSecret.set("account",JSON.stringify(a));return key(a)!==before}
 function cpForget(){CP.acc=null;CP.files={};CP.ver=0;cpSecret.set("account",null);cpIdbSet("bundle",null)}
 // the account as the server has it now: the names of the files that changed here (races.json, local.json…)
@@ -2686,12 +2686,17 @@ const steamCode=(v,state)=>oauthCode("steam",v,state);
 // Sign in with Discord on the web: the same, with its own code and POST /account/login/discord
 const discordCode=(v,state)=>oauthCode("discord",v,state);
 async function cpSteamGot(r){if(r.twoFactor){CP.pend2fa={pending:r.pending,steam:true,at:Date.now()};return{twoFactor:true}}
-  if(/^[0-9a-f]{64}$/.test(r.dataKey||"")){await cpSignedIn(r,r.email||"",null,cpUnhex(r.dataKey));
-    // the key opens the account's copy (or there is none yet): signed in. One that does not open it asks the password, as before
-    let bad=false;try{await cpPull()}catch(e){bad=!!e&&e.name==="OperationError"}
-    if(!bad){steamCode(null);discordCode(null);setTimeout(()=>location.reload(),600);return cpStatus()}
-    cpForget()}
+  // the key opens the account's copy (or there is none yet): signed in, and only then kept on this device. One that does not
+  // open it, or that could not be checked, asks the password as before
+  if(/^[0-9a-f]{64}$/.test(r.dataKey||"")&&await cpKeyOpens(r.token,cpUnhex(r.dataKey))){await cpSignedIn(r,r.email||"",null,cpUnhex(r.dataKey));
+    await cpPull().catch(()=>{});steamCode(null);discordCode(null);setTimeout(()=>location.reload(),600);return cpStatus()}
   CP.steamPend=r;return{needKey:true,email:r.email||""}}
+// whether a data key opens the account's synced copy (true with none yet); a check that cannot run is tried again, and false
+// at the end (not verified)
+async function cpKeyOpens(tok,key){for(let i=0;i<3;i++){if(i)await new Promise(f=>setTimeout(f,1000));let j;
+    try{const res=await cpOrigFetch(CP.server+"/account/sync",{headers:{Authorization:"Bearer "+tok},cache:"no-store"});if(!res.ok)continue;j=await res.json()}catch(e){continue}
+    if(!j||!j.blob)return true;try{await cpOpen(key,j.blob);return true}catch(e){return false}}
+  return false}
 async function cpAccount(b){const a=b.action;
   if(a==="login"){const{auth,wrap}=await cpDerive(b.email,b.password);const r=await cpCall("POST","/account/login",{email:b.email.trim().toLowerCase(),auth,device:cpDevice(),lang:b.lang||LANG},false);
     if(r.twoFactor){CP.pend2fa={pending:r.pending,email:b.email,wrap,at:Date.now()};return{twoFactor:true}}await cpSignedIn(r,b.email,wrap);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
