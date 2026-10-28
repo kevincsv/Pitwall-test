@@ -41,12 +41,10 @@ func gameTag(g string) string {
 // does not open them yet: their tracks and data do not match iRacing's everywhere.
 var gameWIP = map[string]bool{"acc": true, "ac": true}
 
-// wipAllowed: the admins of the server (signed in on this PC) can use what is still in development.
+// wipAllowed: the admins of the server (signed in on this PC) can use what is still in development, while admin
+// mode is on on this PC (adminmode.go).
 func wipAllowed() bool {
-	loadPL()
-	plMu.Lock()
-	defer plMu.Unlock()
-	return plAcc.Admin && plAcc.Token != ""
+	return realAdminSigned() && adminMode()
 }
 
 // gameLocked: a game in development, closed except for the admins of the server, who test it.

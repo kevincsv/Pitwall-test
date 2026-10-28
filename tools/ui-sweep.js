@@ -3,7 +3,8 @@
 // full-page screenshot of each view in <outdir>/ui/. Serve web/dist first (python3 -m http.server 8799 from
 // web/dist); needs Playwright (npm i playwright, and its Chromium). Run: node tools/ui-sweep.js <outdir>
 const { chromium } = require('playwright');
-const views=["home","laps","coach","cloudlaps","races","live","overlays","community","leagues","me","settings"];
+const views=["home","laps","coach","cloudlaps","races","live","overlays","community","leagues","me","settings","admin"];
+const ADMIN_SECS=["summary","users","feedback","content","sessions","coach","server"]; // the admin page's sections, each checked too
 (async () => {
   const b = await chromium.launch();
   for (const width of [1300, 390]) {
@@ -12,7 +13,7 @@ const views=["home","laps","coach","cloudlaps","races","live","overlays","commun
     const now=Date.now();
     await p.route('**/api/ratings*', r => r.fulfill({ json: { ratings: { sports_car: { ir: 1875, lic: 'B 3.21', at: now-3600e3, src: 'session' }, formula_car: { ir: 980, lic: 'C', at: now-864e5, src: 'race' } } } }));
     await p.goto('http://localhost:8799/index.html?lang=es'); await p.waitForTimeout(2000);
-    const st = await p.evaluate(()=>{try{localStorage.setItem("pw.demo","1")}catch(e){} let ok=false; try{if(typeof ME==="undefined"||!ME)ME={};ME.admin=true; ok=isAdmin()}catch(e){} const h=document.getElementById('lpT');let e=h;while(e&&e.parentElement&&e.parentElement!==document.body)e=e.parentElement;if(e)e.remove(); return {demo:!!window.PITLANE_DEMO, admin:ok, on: (typeof demoOn==="function")&&demoOn()}});
+    const st = await p.evaluate(()=>{try{localStorage.setItem("pw.demo","1");localStorage.setItem("pw.adminMode","1")}catch(e){} let ok=false; try{if(typeof ME==="undefined"||!ME)ME={};ME.admin=true; ok=isAdmin()}catch(e){} const h=document.getElementById('lpT');let e=h;while(e&&e.parentElement&&e.parentElement!==document.body)e=e.parentElement;if(e)e.remove(); return {demo:!!window.PITLANE_DEMO, admin:ok, on: (typeof demoOn==="function")&&demoOn()}});
     console.log(width, 'state', JSON.stringify(st));
     await p.evaluate(()=>{try{rerenderAll()}catch(e){}}); await p.waitForTimeout(800);
     for (const v of views) {
@@ -20,6 +21,12 @@ const views=["home","laps","coach","cloudlaps","races","live","overlays","commun
       const info = await p.evaluate(()=>{const W=innerWidth,bad=[];for(const el of document.querySelectorAll('body *')){const r=el.getBoundingClientRect();if(r.width&&r.height&&r.right>W+1&&getComputedStyle(el).visibility!=='hidden'&&el.closest('[hidden]')==null){const s=el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/).slice(0,2).join('.'):'');if(!bad.some(x=>x.startsWith(s)))bad.push(s+' r='+Math.round(r.right))}if(bad.length>6)break}return {sw:document.documentElement.scrollWidth,W,bad}});
       console.log(width, v, 'overflow:', info.sw>info.W?info.sw:'ok', info.bad.slice(0,4).join(' | '));
       await p.screenshot({path:`${process.argv[2]}/ui/shot-${width}-${v}.png`, fullPage:true});
+      if (v==="admin") for (const sec of ADMIN_SECS) {
+        await p.evaluate(sec=>{const b=document.querySelector(`[data-admsec="${sec}"]`);if(b)b.click()}, sec); await p.waitForTimeout(1200);
+        const a = await p.evaluate(()=>{const W=innerWidth,bad=[];for(const el of document.querySelectorAll('#v-admin *')){const r=el.getBoundingClientRect();if(r.width&&r.height&&r.right>W+1&&el.closest('[hidden]')==null){bad.push(el.tagName.toLowerCase()+(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/)[0]:'')+' r='+Math.round(r.right));if(bad.length>4)break}}return {sw:document.documentElement.scrollWidth,W,bad}});
+        console.log(width, 'admin/'+sec, 'overflow:', a.sw>a.W?a.sw:'ok', a.bad.join(' | '));
+        await p.screenshot({path:`${process.argv[2]}/ui/shot-${width}-admin-${sec}.png`, fullPage:true});
+      }
       if (v==="laps"||v==="coach") { await p.evaluate(()=>{try{closeOpenPanels()}catch(e){} const d=document.querySelector('#sesPick,#pickWin,.pickwin');}); }
     }
     console.log(width, 'errors:', errs.slice(0,8));

@@ -42,7 +42,7 @@ function mailHTML(subject, text, link, button, l) {
 <td style="font:800 20px ${F};letter-spacing:.06em;text-transform:uppercase;color:#e7ebf1">PITLANE HQ</td></tr></table></a></td></tr>
 <tr><td bgcolor="#1a2029" style="background:#1a2029;border:1px solid #2b3542;border-radius:14px;padding:28px 26px">
 <div style="font:800 13px ${F};letter-spacing:.1em;text-transform:uppercase;color:#ffb02e;margin:0 0 10px">${esc(subject.replace(/^Pitlane HQ:\s*/, ""))}</div>
-<p style="font:16px/1.55 ${F};color:#e7ebf1;margin:0 0 22px">${esc(text)}</p>
+<p style="font:16px/1.55 ${F};color:#e7ebf1;margin:0 0 22px;white-space:pre-line">${esc(text)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#ffb02e" style="background:#ffb02e;border-radius:8px">
 <a href="${esc(link)}" style="display:inline-block;padding:13px 22px;font:800 14px ${F};letter-spacing:.06em;text-transform:uppercase;color:#11151b;text-decoration:none">${esc(button)}</a></td></tr></table>
 <p style="font:13px/1.5 ${F};color:#8a96a8;margin:22px 0 0">${esc(alt)}<br><a href="${esc(link)}" style="color:#aab4c3;word-break:break-all">${esc(link)}</a></p>
@@ -116,14 +116,14 @@ export async function mailLog(env) {
   }
   return l;
 }
-async function send(env, to, subject, text, link, button, l) {
+async function send(env, to, subject, text, link, button, l, reply) {
   if (!mailReady(env)) { lastError = { at: Date.now(), message: "emails are not set up: EMAIL_FROM or RESEND_API_KEY is missing" }; await note(env, false); return false; }
-  try { return await send1(env, to, subject, text, link, button, l); }
+  try { return await send1(env, to, subject, text, link, button, l, reply); }
   catch (e) { lastError = { at: Date.now(), message: String((e && e.message) || e) }; await note(env, false); return false; }
 }
-async function send1(env, to, subject, text, link, button, l) {
+async function send1(env, to, subject, text, link, button, l, reply) {
   const html = mailHTML(subject, text, link, button, l);
-  const plain = text + "\n\n" + link + "\n\n" + SUPPORT, replyTo = env.EMAIL_REPLY_TO || SUPPORT;
+  const plain = text + "\n\n" + link + "\n\n" + SUPPORT, replyTo = reply || env.EMAIL_REPLY_TO || SUPPORT;
   if (env.RESEND_API_KEY) {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -157,3 +157,17 @@ export async function sendTest(env, to, l) {
 export const sendVerify = (env, to, link, l) => send(env, to, T.verifySubject[lang(l)], T.verifyText[lang(l)], link, T.verifyButton[lang(l)], l);
 export const previewHTML = (kind, l) => kind === "reset" ? mailHTML(T.resetSubject[lang(l)], T.resetText[lang(l)], SITE + "/reset?t=example", T.resetButton[lang(l)], l) : mailHTML(T.verifySubject[lang(l)], T.verifyText[lang(l)], SITE + "/verify?t=example", T.verifyButton[lang(l)], l);
 export const sendReset = (env, to, link, l) => send(env, to, T.resetSubject[lang(l)], T.resetText[lang(l)], link, T.resetButton[lang(l)], l);
+
+// "Share your feedback" (usage.js): what a driver wrote goes to support@, in English (it is for us), with who wrote it,
+// from which device and version, the stars and where it was asked. Reply-To is the driver's email when the server knows
+// it (the escrowed one), so answering the email answers them; else support@ as every email.
+export function feedbackMail(f) {
+  const stars = f.rating ? "★".repeat(f.rating) + "☆".repeat(5 - f.rating) + " (" + f.rating + "/5)" : "no stars";
+  const subject = "Pitlane HQ feedback · " + (f.nick || "a driver") + (f.rating ? " · " + f.rating + "/5" : "");
+  const text = [f.text, "", "From " + (f.nick || "–") + " (" + (f.accountId || "–") + ")", "Device " + (f.device || "–") + " · version " + (f.v || "–") + " · asked in " + (f.view || "–"), stars, f.email ? "Reply to answer " + f.email : "No email known for this account"].join("\n");
+  return { subject, text };
+}
+export async function sendFeedback(env, f) {
+  const { subject, text } = feedbackMail(f);
+  return send(env, SUPPORT, subject, text, SITE + "/admin", "Open the admin page", "en", f.email || "");
+}

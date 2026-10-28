@@ -20,6 +20,7 @@ import { discordInteraction, discordOAuth } from "./discord.js";
 import { steamReturn } from "./steam.js";
 import { scanLeagues } from "./leaguescan.js";
 import { onlineRoute, prunePresence } from "./presence.js";
+import { usageRoute, pruneUsage } from "./usage.js";
 import { sessionSummary } from "./sessionsum.js";
 export { LiveRoom } from "./live.js";
 
@@ -480,7 +481,7 @@ export default {
     // the repairs of old data once an hour (the first run of each hour), the rest every ten minutes
     const hourly = new Date(ev.scheduledTime || Date.now()).getUTCMinutes() < 10;
     ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {}));
-    if (hourly) { ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
+    if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },
@@ -504,6 +505,11 @@ async function handle(req, env, ctx) {
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     // the admin page's Online tab: who is on the web, the PC or the phones now (presence.js)
     if (url.pathname === "/community/admin/online" && req.method === "GET") return onlineRoute(req, env).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+    // what the drivers use and what they tell us (usage.js): the usage batches, the feedback window, the admin's analytics
+    if (url.pathname.startsWith("/community/usage") || url.pathname.startsWith("/community/feedback") || url.pathname === "/community/admin/analytics" || url.pathname === "/community/admin/feedback") {
+      const r = await usageRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+      if (r) return r;
+    }
     if (url.pathname.startsWith("/community/")) {
       try {
         return await community(req, env, url, ctx);
