@@ -293,3 +293,290 @@ func TestLMUNoSession(t *testing.T) {
 		t.Fatal("an empty mapping should mean no session")
 	}
 }
+
+// lmuReadAt reads element i of one of the image's arrays (the field's variables)
+func lmuReadAt(t *testing.T, s *lmuSource) func(string, int) float64 {
+	t.Helper()
+	h, err := readHeader(s.img.mem)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vars, err := readVarHeaders(s.img.mem, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	idx := map[string]int{}
+	for i, v := range vars {
+		idx[v.Name] = i
+	}
+	_, buf, ok := latestBuffer(s.img.mem, nil)
+	if !ok {
+		t.Fatal("no buffer")
+	}
+	return func(name string, i int) float64 {
+		k, ok := idx[name]
+		if !ok {
+			t.Fatalf("no %s", name)
+		}
+		arr, ok := decodeValues(vars, buf, []int{k})[0].([]any)
+		if !ok || i >= len(arr) {
+			t.Fatalf("%s has no element %d", name, i)
+		}
+		return toF(arr[i])
+	}
+}
+
+// the field's own variables: every car's lap flag, its last lap's sector times (the game keeps sector 2 as the time at
+// its end), when its lap started and its position; the pedals and the steering of the cars the game gives telemetry for
+// (-1 for the others); the player's own car carries the player's Lat/Lon, from the telemetry, and the player their lap
+// flag and penalties
+func TestLMUFieldVariables(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	pf64 := func(o int, v float64) { binary.LittleEndian.PutUint64(b[o:], math.Float64bits(v)) }
+	pi16 := func(o int, v int) { binary.LittleEndian.PutUint16(b[o:], uint16(int16(v))) }
+	o0, po := lmuOffVehScoring, lmuOffVehScoring+1*lmuVehScSize
+	b[o0+vs_mCountLapFlag], b[po+vs_mCountLapFlag] = 2, 1
+	pf64(o0+vs_mLastSector1, 70.5)
+	pf64(o0+vs_mLastSector2, 150.25) // the time at the end of sector 2, sector 1 included
+	pf64(po+vs_mLastSector1, -1)     // no lap yet
+	pf64(po+vs_mLastSector2, -1)
+	pi16(po+vs_mNumPenalties, 2)
+	pf64(po+vs_mPos+16, 5) // the scoring's position lags the telemetry's: the player's car takes the telemetry's
+	t0, tp := lmuOffTelem, lmuOffTelem+1*lmuTelSize
+	pf64(t0+vt_mFilteredBrake, 0.3)
+	pf64(t0+vt_mUnfilteredSteering, 0.5) // half of a 360° wheel to the right: 90° to the right
+	pf64(tp+vt_mUnfilteredSteering, -0.25)
+	b[lmuOffActive] = 2 // the third car has no telemetry slot
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	get, _ := lmuRead(t, s)
+	at := lmuReadAt(t, s)
+	for _, c := range []struct {
+		name string
+		i    int
+		want float64
+	}{
+		{"CarIdxLapCountFlag", 0, 2}, {"CarIdxLapCountFlag", 1, 1}, {"CarIdxLapCountFlag", 63, -1},
+		{"CarIdxLastS1", 0, 70.5}, {"CarIdxLastS2", 0, 79.75}, {"CarIdxLastS1", 1, 0}, {"CarIdxLastS2", 1, 0},
+		{"CarIdxLapStartET", 0, 550},
+		{"CarIdxThrottle", 0, 0.9}, {"CarIdxBrake", 0, 0.3}, {"CarIdxThrottle", 2, -1}, {"CarIdxBrake", 2, -1}, {"CarIdxThrottle", 63, -1},
+		{"CarIdxSteer", 0, -math.Pi / 2}, {"CarIdxSteer", 1, math.Pi / 4}, {"CarIdxSteer", 2, 0},
+		{"CarIdxGear", 0, 4}, {"CarIdxGear", 2, 0},
+		{"CarIdxTrackSurface", 0, 3}, {"CarIdxTrackSurface", 2, 3}, {"CarIdxBestLapNum", 0, -1}, {"CarIdxBestLapNum", 63, -1},
+		{"CarIdxLat", 0, 45 + 40.0/110540}, {"CarIdxLon", 0, 0},
+	} {
+		if got := at(c.name, c.i); math.Abs(got-c.want) > 1e-4 {
+			t.Errorf("%s[%d] = %v, want %v", c.name, c.i, got, c.want)
+		}
+	}
+	for k, want := range map[string]float64{"LapCountFlag": 1, "PlayerNumPenalties": 2, "SteeringWheelAngle": math.Pi / 4, "WeatherDeclaredWet": 0, "Lat": 45, "Lon": 0} {
+		if got := get(k); math.Abs(got-want) > 1e-4 {
+			t.Errorf("%s = %v, want %v", k, got, want)
+		}
+	}
+	if at("CarIdxLat", 1) != get("Lat") || at("CarIdxLon", 1) != get("Lon") {
+		t.Errorf("the player's car is at %v, %v in the field and at %v, %v as the player", at("CarIdxLat", 1), at("CarIdxLon", 1), get("Lat"), get("Lon"))
+	}
+	if s.telSeen != [2]int{3, 2} {
+		t.Errorf("the log counted %v, want 2 of 3 cars with telemetry", s.telSeen)
+	}
+}
+
+// which lap set a car's best: unknown until mBestLapTime changes, then the lap just ended (the player's as LapBestLap
+// too); a best taken away is unknown again and a new session forgets them all
+func TestLMUBestLapNum(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	frame := func(laps int, best float64) [3]float64 {
+		for _, o := range []int{lmuOffVehScoring, lmuOffVehScoring + 1*lmuVehScSize} {
+			binary.LittleEndian.PutUint16(b[o+vs_mTotalLaps:], uint16(laps))
+			binary.LittleEndian.PutUint64(b[o+vs_mBestLapTime:], math.Float64bits(best))
+		}
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, _ := lmuRead(t, s)
+		at := lmuReadAt(t, s)
+		return [3]float64{at("CarIdxBestLapNum", 0), at("CarIdxBestLapNum", 1), get("LapBestLap")}
+	}
+	for _, c := range []struct {
+		laps int
+		best float64
+		want [3]float64
+	}{
+		{5, 210.5, [3]float64{-1, -1, 0}}, // a best already set when first seen: the lap unknown
+		{5, 210.5, [3]float64{-1, -1, 0}},
+		{6, 209, [3]float64{6, 6, 6}}, // the lap just ended set it
+		{7, 209, [3]float64{6, 6, 6}},
+		{8, 208.2, [3]float64{8, 8, 8}},
+		{8, -1, [3]float64{-1, -1, 0}}, // the best taken away
+	} {
+		if got := frame(c.laps, c.best); got != c.want {
+			t.Errorf("laps %d best %v: %v, want %v", c.laps, c.best, got, c.want)
+		}
+	}
+	binary.LittleEndian.PutUint32(b[lmuOffScoring+si_mSession:], 11)
+	if got := frame(2, 205); got != [3]float64{-1, -1, 0} {
+		t.Errorf("a new session remembers the laps before: %v", got)
+	}
+	if got := frame(3, 204); got != [3]float64{3, 3, 3} {
+		t.Errorf("the new session's best: %v", got)
+	}
+}
+
+// off the track only with all four wheels on grass, dirt or gravel, a kerb never (two wheels on the grass are a wide
+// line), for the player and for the cars with telemetry; the pits say so whatever the wheels; the surface under most
+// wheels as iRacing's material
+func TestLMUWheelsOff(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	wheels := func(tel int, st [4]int) {
+		for k, v := range st {
+			b[lmuOffTelem+tel*lmuTelSize+vt_mWheels+k*lmuWheelSize+wh_mSurfaceType] = byte(v)
+		}
+	}
+	for _, c := range []struct {
+		st        [4]int
+		surf, mat float64
+	}{
+		{[4]int{0, 0, 0, 0}, 3, 1}, {[4]int{1, 1, 1, 1}, 3, 1}, {[4]int{0, 0, 2, 2}, 3, 15}, {[4]int{2, 2, 2, 0}, 3, 15},
+		{[4]int{2, 2, 2, 5}, 3, 15}, {[4]int{2, 2, 2, 2}, 0, 15}, {[4]int{5, 5, 5, 5}, 3, 11}, {[4]int{0, 0, 0, 5}, 3, 1},
+		{[4]int{4, 4, 4, 5}, 3, 24}, {[4]int{3, 3, 3, 3}, 0, 19}, {[4]int{4, 4, 4, 4}, 0, 24}, {[4]int{2, 3, 4, 2}, 0, 15},
+	} {
+		wheels(1, c.st) // the player
+		wheels(0, c.st) // a rival with telemetry
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, _ := lmuRead(t, s)
+		at := lmuReadAt(t, s)
+		if got, mat := get("PlayerTrackSurface"), get("PlayerTrackSurfaceMaterial"); got != c.surf || mat != c.mat {
+			t.Errorf("wheels %v: PlayerTrackSurface %v material %v, want %v and %v", c.st, got, mat, c.surf, c.mat)
+		}
+		if a, p := at("CarIdxTrackSurface", 0), at("CarIdxTrackSurface", 1); a != c.surf || p != c.surf {
+			t.Errorf("wheels %v: CarIdxTrackSurface %v (rival) %v (player), want %v", c.st, a, p, c.surf)
+		}
+	}
+	wheels(0, [4]int{2, 2, 2, 2})
+	b[lmuOffVehScoring+vs_mInPits] = 1
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	if got := lmuReadAt(t, s)("CarIdxTrackSurface", 0); got != 2 {
+		t.Errorf("in the pits on the grass: CarIdxTrackSurface %v, want 2", got)
+	}
+}
+
+// the game's wetness on iRacing's scale (4, lightly wet, is where a lap is tagged wet) and the wet declaration from the rain
+func TestLMUWetness(t *testing.T) {
+	for _, c := range []struct {
+		w    float64
+		want int
+	}{{0, 1}, {0.019, 1}, {0.02, 2}, {0.09, 2}, {0.1, 3}, {0.19, 3}, {0.2, 4}, {0.34, 4}, {0.35, 5}, {0.54, 5}, {0.55, 6}, {0.79, 6}, {0.8, 7}, {1, 7}} {
+		if got := lmuWetness(c.w); got != c.want {
+			t.Errorf("wetness %v: %d, want %d", c.w, got, c.want)
+		}
+	}
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	si := lmuOffScoring
+	pf64 := func(o int, v float64) { binary.LittleEndian.PutUint64(b[o:], math.Float64bits(v)) }
+	pf64(si+si_mAvgPathWetness, 0.25)
+	pf64(si+si_mRaining, 0.3)
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	get, _ := lmuRead(t, s)
+	if get("TrackWetness") != 4 || get("WeatherDeclaredWet") != 1 || math.Abs(get("Precipitation")-0.3) > 1e-4 {
+		t.Errorf("wetness %v declared wet %v rain %v", get("TrackWetness"), get("WeatherDeclaredWet"), get("Precipitation"))
+	}
+	pf64(si+si_mRaining, 0)
+	pf64(si+si_mAvgPathWetness, 0.01)
+	if !s.convert(b) {
+		t.Fatal("no session")
+	}
+	if get, _ = lmuRead(t, s); get("TrackWetness") != 1 || get("WeatherDeclaredWet") != 0 {
+		t.Errorf("dry: wetness %v declared wet %v", get("TrackWetness"), get("WeatherDeclaredWet"))
+	}
+}
+
+// contacts as incidents: a strong impact is 4 points (a Car Contact), a light one none, never the 1 of an Off Track; an
+// impact counts once, the one found when the program starts watching never, and a new session starts at zero
+func TestLMUImpacts(t *testing.T) {
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMU()
+	tp := lmuOffTelem + 1*lmuTelSize
+	frame := func(et, mag float64) float64 {
+		binary.LittleEndian.PutUint64(b[tp+vt_mLastImpactET:], math.Float64bits(et))
+		binary.LittleEndian.PutUint64(b[tp+vt_mLastImpactMagnitude:], math.Float64bits(mag))
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, _ := lmuRead(t, s)
+		if get("PlayerCarDriverIncidentCount") != get("PlayerCarMyIncidentCount") {
+			t.Errorf("the team's count %v differs from the driver's %v", get("PlayerCarDriverIncidentCount"), get("PlayerCarMyIncidentCount"))
+		}
+		return get("PlayerCarMyIncidentCount")
+	}
+	for _, c := range []struct{ et, mag, want float64 }{
+		{0, 0, 0},       // no impact yet
+		{10, 200, 0},    // a light touch
+		{20, 5000, 4},   // a crash
+		{20.3, 5000, 4}, // the same one, still reported
+		{21, 1000, 8},   // another, at the line
+		{22, 999, 8},    // under it
+		{22, 999, 8},    // nothing new
+	} {
+		if got := frame(c.et, c.mag); got != c.want {
+			t.Errorf("impact at %v s of %v: %v points, want %v", c.et, c.mag, got, c.want)
+		}
+	}
+	// another session starts at zero, and the impact it finds reported is not one of its own
+	binary.LittleEndian.PutUint32(b[lmuOffScoring+si_mSession:], 11)
+	if got := frame(22, 999); got != 0 {
+		t.Errorf("a new session starts with %v points", got)
+	}
+	if got := frame(30, 5000); got != 4 {
+		t.Errorf("the new session's crash: %v points, want 4", got)
+	}
+	// a program started mid-session: the crash already there is not counted, the next is
+	s = &lmuSource{img: newIRImage(lmuVarDefs())}
+	if got := frame(300, 5000); got != 0 {
+		t.Errorf("the impact before the program watched counts %v", got)
+	}
+	if got := frame(310, 5000); got != 4 {
+		t.Errorf("the first impact watched: %v points, want 4", got)
+	}
+}
+
+// the log of how many cars have telemetry: once, again when the number changes (not within ten seconds of the last
+// line, a car to the garage and back), and at once when the clock started again
+func TestLMUTelemetryLog(t *testing.T) {
+	s := &lmuSource{}
+	cars := []lmuCar{{tel: 0}, {tel: 1}, {tel: -1}}
+	if !s.noteTelemetry(cars, 100) {
+		t.Fatal("the first frame says nothing")
+	}
+	if s.telSeen != [2]int{3, 2} {
+		t.Fatalf("counted %v, want 2 of 3", s.telSeen)
+	}
+	if s.noteTelemetry(cars, 101) {
+		t.Fatal("the same numbers again")
+	}
+	cars[2].tel = 2
+	if s.noteTelemetry(cars, 105) {
+		t.Fatal("a change within ten seconds went out at once")
+	}
+	if !s.noteTelemetry(cars, 111) {
+		t.Fatal("the change never went out")
+	}
+	if s.telSeen != [2]int{3, 3} {
+		t.Errorf("counted %v, want 3 of 3", s.telSeen)
+	}
+	cars[2].tel = -1
+	if !s.noteTelemetry(cars, 2) {
+		t.Error("the clock started again and the change waited")
+	}
+}
