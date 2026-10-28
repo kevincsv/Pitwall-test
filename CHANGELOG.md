@@ -8,8 +8,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 
 - Clean laps are valid again. A lap keeps its first metres after the line in every kind of session.
 - Race summaries are never lost any more, and offline races no longer replace one another.
-- Rivals' pedals and gears are estimated from what their car really does, and in Le Mans Ultimate their laps reach the leaderboards too.
-- A lap the game itself does not count is not valid, and a lap says when the track was wet.
+- Rivals' pedals and gears are estimated from what their car really does.
+- A lap the game itself does not count is not valid.
 - A fix reaches your PC within minutes, installed as soon as you are not driving.
 - Fixes and improvements.
 
