@@ -1,6 +1,30 @@
 {
   "versions": [
     {
+      "v": "0.7.1",
+      "en": [
+        "The overlays use far less of your PC and no longer slow the game down. You can lower their frames per second in Overlays.",
+        "Le Mans Ultimate leaderboards show the whole class too, with each driver's car.",
+        "Laps driven in the rain or on a wet or damp track carry a badge on the leaderboards.",
+        "Share your feedback from the app, it reaches us directly.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Los overlays usan mucho menos tu PC y ya no ralentizan el juego. Puedes bajar sus fotogramas por segundo en Overlays.",
+        "Las clasificaciones de Le Mans Ultimate muestran también toda la clase, con el coche de cada piloto.",
+        "Las vueltas hechas con lluvia o con la pista mojada o húmeda llevan una insignia en las clasificaciones.",
+        "Envía tu opinión desde la app, nos llega directamente.",
+        "Arreglos y mejoras."
+      ],
+      "pt": [
+        "Os overlays usam muito menos o seu PC e não deixam mais o jogo lento. Você pode baixar os quadros por segundo deles em Overlays.",
+        "As classificações do Le Mans Ultimate mostram também a classe inteira, com o carro de cada piloto.",
+        "As voltas feitas com chuva ou com a pista molhada ou úmida levam um selo nas classificações.",
+        "Envie sua opinião pelo app, ela chega direto para nós.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.7.0",
       "en": [
         "Signing in with Steam or Discord no longer asks for your password.",

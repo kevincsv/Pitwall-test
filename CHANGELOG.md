@@ -4,6 +4,14 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.7.1 beta
+
+- The overlays use far less of your PC and no longer slow the game down. You can lower their frames per second in Overlays.
+- Le Mans Ultimate leaderboards show the whole class too, with each driver's car.
+- Laps driven in the rain or on a wet or damp track carry a badge on the leaderboards.
+- Share your feedback from the app, it reaches us directly.
+- Fixes and improvements.
+
 ## 0.7.0 beta
 
 - Signing in with Steam or Discord no longer asks for your password.
