@@ -580,3 +580,22 @@ func TestLMUTelemetryLog(t *testing.T) {
 		t.Error("the clock started again and the change waited")
 	}
 }
+
+// a Le Mans Ultimate driver's id comes from the name the game shows: the same in every session, different per
+// driver, far above iRacing's ids, none for a nameless car
+func TestLMUDriverIDs(t *testing.T) {
+	a, b := lmuDriverID("Ana García"), lmuDriverID("Luis Pérez")
+	if a == b || a < 1_000_000_000 || b < 1_000_000_000 {
+		t.Fatalf("ids %d %d", a, b)
+	}
+	if lmuDriverID(" Ana García ") != a {
+		t.Fatal("the same name, another id")
+	}
+	if lmuDriverID("") != 0 || lmuDriverID("  ") != 0 {
+		t.Fatal("an id for no name")
+	}
+	cars := []lmuCar{{name: "Ana García"}, {name: "Luis Pérez"}}
+	if lmuPlayerName(cars, 1) != "Luis Pérez" || lmuPlayerName(cars, -1) != "" || lmuPlayerName(cars, 5) != "" {
+		t.Fatal("player name")
+	}
+}

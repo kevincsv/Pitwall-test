@@ -975,6 +975,10 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 	if r == nil || r.TrackID == 0 {
 		return nil
 	}
+	game := r.Game // the rivals' laps of Le Mans Ultimate go up like iRacing's, under the game's own ids
+	if game == "" {
+		game = "iracing"
+	}
 	for _, x := range r.Results {
 		if x.Me || x.AI || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
 			continue // bots never go to the community: only real drivers' laps
@@ -982,7 +986,7 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if fieldLapInvalid(x.carIdx, x.Best) {
 			continue // the watcher saw that lap leave the track, or the game refused it: never shared, nor the model's
 		}
-		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
+		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": game, "other": x.key, "kind": "Race", "official": r.Official}
 		if r.AI {
 			b["ai"] = true
 		}

@@ -365,6 +365,23 @@ func (f *lmuFuel) note(et, level, speed, lap float64, pits bool) {
 
 var lmuNumRe = regexp.MustCompile(`#\s*(\d{1,3})`)
 
+// lmuDriverID: a stable id for a driver of Le Mans Ultimate, from the name the game shows (the game gives no id):
+// the same driver takes the same id in every session, two drivers never the same one in practice, and far above
+// iRacing's ids, so their rivals never meet on the server (driverKey hashes it as "pitlanehq-other|<id>")
+func lmuDriverID(name string) int {
+	if strings.TrimSpace(name) == "" {
+		return 0
+	}
+	return lmuHash("driver|"+strings.TrimSpace(name), 1_000_000_000, 1_000_000_000)
+}
+
+func lmuPlayerName(cars []lmuCar, player int) string {
+	if player < 0 || player >= len(cars) {
+		return ""
+	}
+	return cars[player].name
+}
+
 func lmuHash(s string, base, span uint32) int {
 	h := fnv.New32a()
 	h.Write([]byte(strings.ToLower(s)))
@@ -1126,7 +1143,7 @@ DriverInfo:
 `, strings.ReplaceAll(strings.ToLower(yamlSafe(track)), " ", "_"), lmuHash(track, 100000, 800000), trackLen/1000, yamlSafe(track), yamlSafe(track),
 		lf64(b, si+si_mTrackTemp), lf64(b, si+si_mAmbientTemp), typ, len(classes), li32(b, lmuOffGameVer),
 		session, session, laps, length, typ, name,
-		max(player, 0), max(player, 0)+1, redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
+		max(player, 0), lmuDriverID(lmuPlayerName(cars, player)), redline, capa, lmuFuelKgPerLtr, redline*0.85, redline*0.96, redline*0.94, redline*0.98, est, gears)
 	for _, c := range cars {
 		model := strings.TrimSpace(lmuNumRe.ReplaceAllString(c.vehicle, ""))
 		if c.tel >= 0 {
@@ -1163,7 +1180,7 @@ DriverInfo:
    CarIsPaceCar: 0
    CarIsAI: %d
    CurDriverIncidentCount: 0
-`, c.idx, yamlSafe(c.name), yamlSafe(c.name), yamlSafe(string([]rune(yamlSafe(c.name))[:1])), c.idx+1, yamlSafe(c.vehicle), c.num, c.num,
+`, c.idx, yamlSafe(c.name), yamlSafe(c.name), yamlSafe(string([]rune(yamlSafe(c.name))[:1])), lmuDriverID(c.name), yamlSafe(c.vehicle), c.num, c.num,
 			strings.ReplaceAll(strings.ToLower(yamlSafe(model)), " ", "_"), lmuHash(c.class, 9000, 900), lmuHash(model, 10000, 90000),
 			yamlSafe(model), yamlSafe(model), yamlSafe(c.class), lmuClassColor(c.class), est, ai)
 	}

@@ -542,7 +542,8 @@ func shareFieldTop(r *raceReport) {
 	commMu.Lock()
 	on := commCfg.ShareTimes
 	commMu.Unlock()
-	if !on || tel.isDemo() || (r.Game != "" && r.Game != "iracing") || !accountSignedIn() {
+	// iRacing's and Le Mans Ultimate's rivals (LMU names its drivers by a stable id made from their name, lmuDriverID)
+	if !on || tel.isDemo() || (r.Game != "" && r.Game != "iracing" && r.Game != "lmu") || !accountSignedIn() {
 		return
 	}
 	for _, body := range fieldTopLaps(r) {

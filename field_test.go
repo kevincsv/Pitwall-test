@@ -511,3 +511,17 @@ func TestTelReader(t *testing.T) {
 		t.Fatal("the reader allocated again")
 	}
 }
+
+// the rivals of a Le Mans Ultimate race go up under the game's own name, like iRacing's
+func TestFieldTopLapsGame(t *testing.T) {
+	resetField()
+	for _, c := range []struct{ game, want string }{{"", "iracing"}, {"iracing", "iracing"}, {"lmu", "lmu"}} {
+		r := &raceReport{Game: c.game, TrackID: 166, Track: "Okayama", Best: 99, Results: []raceResult{
+			{Name: "y", Laps: 5, Best: 98.9, CarID: 67, key: "k2", carIdx: 2},
+		}}
+		top := fieldTopLaps(r)
+		if len(top) != 1 || top[0]["game"] != c.want {
+			t.Fatalf("game %q: %v", c.game, top)
+		}
+	}
+}
