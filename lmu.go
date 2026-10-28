@@ -50,6 +50,8 @@ func lmuVarDefs() []demoVar {
 		{name: "VirtualEnergyPct", desc: "Virtual energy left (Le Mans Ultimate)", unit: "%", typ: TypeFloat},
 		{name: "WindVel", desc: "Wind velocity at start/finish line", unit: "m/s", typ: TypeFloat},
 		{name: "WindDir", desc: "Wind direction at start/finish line", unit: "rad", typ: TypeFloat},
+		// the game's own verdict on the lap under way: 2 the lap and its time count, 1 the lap only, 0 neither
+		{name: "LapCountFlag", desc: "Whether the game counts this lap and its time (Le Mans Ultimate)", typ: TypeInt},
 	}
 	for _, c := range []string{"LF", "RF", "LR", "RR"} {
 		extra = append(extra, demoVar{name: c + "pressure", desc: c + " tire pressure", unit: "kPa", typ: TypeFloat},
@@ -525,6 +527,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.set("LapCurrentLapTime", math.Max(0, et-lf64(b, po+vs_mLapStartET)))
 		m.set("LapLastLapTime", lmuTime(p.last))
 		m.set("LapBestLapTime", lmuTime(p.best))
+		m.set("LapCountFlag", float64(lu8(b, po+vs_mCountLapFlag)))
 		if fl := lu8(b, po+vs_mFlag); fl == 6 {
 			flags |= 0x20 // blue
 		}
