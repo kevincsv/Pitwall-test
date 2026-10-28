@@ -506,6 +506,9 @@ var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Bra
 
 const lapBin = 5 // metres
 
+// lapHoleM: more than this many metres of a lap with no telemetry is lost connection, and the lap is not valid
+const lapHoleM = 40
+
 type lapRec struct {
 	n                    int
 	bins                 [][6]float64 // speed, throttle, brake, gear, steering, lap time at the 5 m point
@@ -657,7 +660,7 @@ func (r *lapRec) add(d, t, speed float64, ch [4]float64) {
 			}
 		}
 	}
-	if r.hasLast && d >= r.lastD && d-r.lastD < 150 {
+	if r.hasLast && d >= r.lastD && d-r.lastD <= lapHoleM { // a longer step is a hole in the telemetry, left empty
 		for k := int(r.lastD/lapBin) + 1; k <= b; k++ {
 			f := (float64(k*lapBin) - r.lastD) / math.Max(d-r.lastD, 1e-6)
 			set(k, r.lastSp+(speed-r.lastSp)*f, r.lastT+(t-r.lastT)*f, f)
@@ -817,6 +820,7 @@ func (ls *lapStream) step(v []float64) {
 			// the game's best as this lap ends: it has the lap before's by now (published a moment after its line) and
 			// not yet this one's, so gameAccepts compares this lap with the right "before"
 			cur.bestAt0 = v[26]
+			cur.markHoles() // a lap with a hole or not round the whole circuit is not valid in the race summary either
 			env.lapEnded(sn, cur, ls.sess, v[9], prevLL)
 		}
 		early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
@@ -1074,14 +1078,10 @@ func finishLap(r *lapRec, s cloudSession, fuelNow, lt float64) {
 	queueLap(s, l)
 }
 
-// buildLap turns a finished lap into what goes to the account: the trace with its holes filled, the verdict (valid or
-// not), the path, the tags, the incidents and the sectors. false when there is no lap (no time, too few points).
-func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
-	if lt <= 0 || len(r.bins) < 40 {
-		return cloudLap{}, false
-	}
-	// fill gaps from neighbours so the trace is continuous; a hole longer
-	// than 40 m means part of the lap was not recorded
+// markHoles: lost connection, a hole in the lap's telemetry longer than 40 m, or a lap that did not go round the whole
+// circuit (a reset or a tow to the pits), is no valid lap, whatever its time. Judged when the lap ends (the race
+// summary reads that verdict, setLapCut) and again when it is built; it gives the longest hole, in points
+func (r *lapRec) markHoles() int {
 	gap, maxGap, seen := 0, 0, 0
 	for i := range r.bins {
 		if r.bins[i][0] < 0 {
@@ -1094,11 +1094,19 @@ func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
 			seen++
 		}
 	}
-	// lost connection: a hole in the lap's telemetry longer than 40 m, or a lap that did not go round the whole
-	// circuit (a reset or a tow to the pits), is no valid lap, whatever its time
-	if !fullLap(seen, len(r.bins)) || maxGap*lapBin > 40 {
+	if !fullLap(seen, len(r.bins)) || maxGap*lapBin > lapHoleM {
 		r.bad = true
 	}
+	return maxGap
+}
+
+// buildLap turns a finished lap into what goes to the account: the trace with its holes filled, the verdict (valid or
+// not), the path, the tags, the incidents and the sectors. false when there is no lap (no time, too few points).
+func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
+	if lt <= 0 || len(r.bins) < 40 {
+		return cloudLap{}, false
+	}
+	maxGap := r.markHoles()
 	// holes (lost samples) are filled in a straight line between the points around them
 	prev := -1
 	for i := range r.bins {
@@ -1169,7 +1177,7 @@ func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
 // reckoning spread along the lap); nil when the position was not recorded or part is missing.
 func (r *lapRec) shape(maxGap int) ([]float64, []float64) {
 	n := len(r.bins)
-	if !r.hasPos || r.posBad || len(r.xy) != n || n < 40 || maxGap*lapBin > 40 {
+	if !r.hasPos || r.posBad || len(r.xy) != n || n < 40 || maxGap*lapBin > lapHoleM {
 		return nil, nil
 	}
 	x, y := make([]float64, n), make([]float64, n)

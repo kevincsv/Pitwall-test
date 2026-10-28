@@ -440,7 +440,10 @@
   under it never counting when the game says the material (`CarIdxTrackSurfaceMaterial`), the game's own best, and
   `LapCountFlag` judged when the lap ends (a pit road reached within 200 m of the flag's drop is the in-lap).
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
-  model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
+  model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow;
+  a hole over 40 m, `lapHoleM`: two samples further apart than that leave the points between them empty, never filled
+  in), judged when the lap ends (`markHoles`) so the race summary says the same (laprec_test.go drives an out-lap, a
+  reset, a tow and lost telemetry through the recorder),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
   upload, migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job).
 - The coach learns from what happens after its tips (`cloud/src/coachtips.js`, migration 0051 `coach_tips`; never an LLM
