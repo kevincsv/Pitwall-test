@@ -4,7 +4,8 @@
    - the next level: for your pace, the lap of the driver just ahead (0.3–3 % faster).
    Here it feeds the coach and the lap analyzer: the record and the next level among the laps you can
    compare with, the coach's default reference, your pace among the drivers known here, and the lap
-   list in purple. It has no panel of its own. */
+   list in purple. It has no panel of its own. It asks for the references of lap A's tyre compound, which the server
+   gives when its laps were driven on several. */
 (function(){
 "use strict";
 if(window.__PW_MODEL)return;window.__PW_MODEL=true;
@@ -18,8 +19,13 @@ const COMBOS={g:"",list:null,p:null},MODEL={key:"",busy:false,data:null,err:"",a
 const norm=s=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
 function combos(){const g=game();if(COMBOS.list&&COMBOS.g===g)return Promise.resolve(COMBOS.list);if(COMBOS.p&&COMBOS.g===g)return COMBOS.p;
   COMBOS.g=g;COMBOS.list=null;COMBOS.p=cget(url("/api/community/combos")).then(r=>r.combos||[]).catch(()=>[]).then(l=>{COMBOS.list=l;COMBOS.p=null;return l});return COMBOS.p}
-/* the car and track of a lap, with what is already loaded (null while the list loads, or when unknown) */
-function comboSync(lap){
+/* the tyre compound of a lap: its "cmp:<n>" flag when the car has several (a lap of the account), the compound on the car
+   when it was recorded here (cmp), else the first (0) */
+const cmpOf=lap=>{const f=((lap&&lap.flags)||[]).find(x=>/^cmp:\d+$/.test(x));return f?+f.slice(4):lap&&lap.cmp>0?lap.cmp|0:0};
+/* the car and track of a lap (and its compound, so the model gives the references of the same tyres), with what is
+   already loaded (null while the list loads, or when unknown) */
+function comboSync(lap){const c=comboRaw(lap);return c?{...c,cmp:cmpOf(lap)}:null}
+function comboRaw(lap){
   if(!lap)return null;
   if(!lap.cloud&&!lap.comm&&typeof S!=="undefined"&&S.WeekendInfo&&S.WeekendInfo.TrackID&&typeof myDriver==="function"&&myDriver().CarID)return{trackId:S.WeekendInfo.TrackID,carId:myDriver().CarID};
   if(lap.trackId&&lap.carId)return{trackId:lap.trackId,carId:lap.carId};
@@ -28,7 +34,7 @@ function comboSync(lap){
   const hit=list.find(c=>norm(c.car)===car&&norm(c.track)===full)||list.find(c=>norm(c.car)===car&&norm(c.track).startsWith(tr))||list.find(c=>norm(c.car)===car&&norm(c.track).split(" · ")[0]===tr);
   return hit?{trackId:hit.trackId,carId:hit.carId}:null}
 async function comboOf(lap){if(!lap)return null;await combos();return comboSync(lap)}
-const keyOf=c=>game()+":"+c.trackId+":"+c.carId;
+const keyOf=c=>game()+":"+c.trackId+":"+c.carId+":"+(c.cmp||0);
 
 /* ---------- the model of one car and track, as the server learnt it ---------- */
 /* the record lap, the next level at every pace (real laps, one bin in two) and the pace of every driver it knows */
@@ -41,9 +47,9 @@ function buildModel(c){
   MODEL.key=key;MODEL.busy=true;MODEL.err="";MODEL.data=null;MODEL.at=Date.now();
   MODEL.p=(async()=>{
     try{
-      const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}`));
+      const r=await cget(url(`/api/community/model?trackId=${c.trackId}&carId=${c.carId}&cmp=${c.cmp||0}`));
       if(r.car&&r.car.n){CARD.id=c.carId;CARD.data=r.car;CARD.busy=false;CARD.at=Date.now()} // the car card came with the model
-      MODEL.data={key,trackId:c.trackId,carId:c.carId,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
+      MODEL.data={key,trackId:c.trackId,carId:c.carId,cmp:typeof r.cmp==="number"?r.cmp:null,n:r.n||0,drivers:r.drivers||0,total:r.shared||0,fastShared:r.fastShared||null,M:r.M,nb:r.nb,pool:r.pool,idealTime:r.idealTime,built:r.built,
         times:r.times||[],corners:withSpreadMax(Array.isArray(r.corners)?r.corners:[]),ideal:(r.ideal||[]).map(b=>[b[0],b[1],b[2],b[3],b[4],b[5],null]),idealXY:r.idealXY&&Array.isArray(r.idealXY.x)?r.idealXY:null,lineXY:r.lineXY&&Array.isArray(r.lineXY.x)?r.lineXY:null,ladder:(r.ladder||[]).map(x=>({time:x.time,n:x.n,upTo:x.upTo,seg:x.seg,bins:null,raw:x.bins,rx:x.x,ry:x.y,rg:x.g||null,step:Array.isArray(x.step)?x.step:null}))}}
     catch(e){MODEL.err=e.message}
     MODEL.busy=false;return MODEL.data})();

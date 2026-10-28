@@ -5,7 +5,8 @@
 import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName } from "./accounts.js";
 import { mailReady, mailLog, mailDomain } from "./email.js";
 import { sealData, openData } from "./crypt.js";
-import { getModel, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { getModel, forCompound, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { linkDriver, unlinkDriver } from "./driverlinks.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -275,7 +276,10 @@ export async function community(req, env, url, ctx) {
   if (p === "/model" && m === "GET") {
     const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
     if (!t || !c) return err("trackId and carId", 400);
-    const md = await getModel(env, game, t, c);
+    // the compound of the lap the client measures (its "cmp:<n>" flag, 0 without it): that compound's references when
+    // the model has them apart, else the model of every lap
+    const cq = url.searchParams.get("cmp");
+    const md = forCompound(await getModel(env, game, t, c), cq != null && /^\d{1,2}$/.test(cq) ? +cq : null);
     const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
     // with the card of the car: what it does on other tracks, for when nobody known drove it here yet
     return json({ ...md, car: await getCarCard(env, game, c).catch(() => null), fastShared: fs || null });
@@ -503,7 +507,8 @@ export async function community(req, env, url, ctx) {
         (SELECT COUNT(*) FROM community_users g WHERE g.owner=a.id AND g.id LIKE 'guest-%') AS guests,
         (SELECT group_concat(gl.gid || '|' || g.alias, ',') FROM guest_links gl JOIN community_users g ON g.id=gl.gid WHERE gl.account_id=a.id) AS guestLinked,
         (SELECT COUNT(*) FROM leagues g WHERE g.owner=a.id) AS leagues,
-        EXISTS (SELECT 1 FROM driver_links d WHERE d.account_id=a.id) AS driverLinked
+        EXISTS (SELECT 1 FROM driver_links d WHERE d.account_id=a.id) AS driverLinked,
+        (SELECT group_concat(d.game, ',') FROM driver_links d WHERE d.account_id=a.id) AS driverGames
         FROM accounts a ${q ? "WHERE a.display LIKE ?1 OR a.id LIKE ?1" : ""} ORDER BY a.created DESC LIMIT 500`).bind(...(q ? ["%" + q.replace(/[%_]/g, "") + "%"] : [])).all();
       return json({ users: (r.results || []).map((x) => ({ ...x, admin: isAdmin(env, x.id) })) });
     }
@@ -593,8 +598,13 @@ export async function community(req, env, url, ctx) {
     if (ua[2] === "verify") await env.DB.prepare("UPDATE accounts SET verified=1 WHERE id=?1").bind(id).run();
     if (ua[2] === "2fa-off") await env.DB.batch([env.DB.prepare("UPDATE accounts SET totp=NULL, totp_on=0, totp_pending=NULL WHERE id=?1").bind(id), env.DB.prepare("DELETE FROM recovery_codes WHERE account_id=?1").bind(id)]);
     if (ua[2] === "signout") await env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id).run();
-    // a wrong link to an iRacing driver: their laps still to come go back to the rival of a race
-    if (ua[2] === "unlink-driver") await env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id).run();
+    // a wrong link to a driver of a game (body.game, or name from the phones; without it every game's): their laps still
+    // to come go back to the rival of a race
+    // (in Le Mans Ultimate what the link took goes back to the rival, and it never links again by itself: driverlinks.js)
+    if (ua[2] === "unlink-driver") {
+      const g = String(body.game || body.name || "");
+      await unlinkDriver(env, id, g ? gameOf(g) : null);
+    }
     // a DRINKS driver (a friend who drove on an admin's PC) joined to the friend's own account: what was shared
     // under the driver's name goes to the account (per car and track the faster lap stays, like an iRacing driver's)
     // and so does what comes later; undone, the laps stay where they are and new ones go under the name again
@@ -1057,38 +1067,15 @@ export async function community(req, env, url, ctx) {
     return json({ named });
   }
   // the PC saw this account's own driver at the wheel: what other PCs shared of them as a race rival goes
-  // under the account (per car and track the faster lap stays), and their laps still to come too. One iRacing
-  // driver per account and one account per driver: the first account linked keeps it
+  // under the account (per car and track the faster lap stays), and their laps still to come too. Per game (game, an
+  // older PC's link is iRacing's): one driver of each game per account and one account per driver of each game, the
+  // first account linked keeps it
   if (p === "/link-driver" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     if (typeof body.key !== "string" || !/^[0-9a-f]{16,64}$/i.test(body.key)) return err("missing key", 400);
-    const oid = await otherId(env, body.key);
-    const had = await env.DB.prepare("SELECT oid, account_id FROM driver_links WHERE oid=?1 OR account_id=?2").bind(oid, u.id).all();
-    for (const x of had.results || []) {
-      if (x.oid === oid && x.account_id === u.id) return json({ linked: true, moved: 0 });
-      if (x.oid === oid) return err("this driver is already linked to another account", 409);
-      return err("this account is already linked to another driver", 409);
-    }
-    const acc = await env.DB.prepare("SELECT anon, name_kind FROM accounts WHERE id=?1").bind(u.id).first();
-    if (!acc) return err("sign in with your Pitlane HQ account", 401);
-    await env.DB.prepare("INSERT INTO driver_links (oid, account_id, created) VALUES (?1,?2,?3)").bind(oid, u.id, Date.now()).run();
-    const shown = acc.name_kind === "iracing" ? "iracing" : "nick";
-    const laps = (await env.DB.prepare("SELECT id, car_id, track_id, time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1").bind(oid).all()).results || [];
-    const q = [], combos = new Set();
-    for (const l of laps) {
-      const mine = await env.DB.prepare("SELECT id, time, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(u.id, l.car_id, l.track_id).first();
-      combos.add(l.game + "|" + l.track_id + "|" + l.car_id);
-      const take = env.DB.prepare("UPDATE community_laps SET user_id=?2, anon=?3, shown=?4 WHERE id=?1").bind(l.id, u.id, acc.anon ? 1 : 0, shown);
-      if (!mine) { q.push(take); continue; }
-      const better = mine.time > l.time || (!mine.traced && !!l.traced); // the same rule as keepBestLap
-      if (better) q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(mine.id), take);
-      else q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(l.id));
-    }
-    q.push(env.DB.prepare("DELETE FROM community_users WHERE id=?1").bind(oid));
-    await env.DB.batch(q);
-    await moveDriver(env, "acct:" + oid, "acct:" + u.id);
-    for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
-    return json({ linked: true, moved: laps.length });
+    // in Le Mans Ultimate only once the account's own PC saw that name at the wheel on a few days (driverlinks.js)
+    const r = await linkDriver(env, u.id, await otherId(env, body.key), game);
+    return r.error ? err(r.error, r.status) : json(r);
   }
   if (p === "/lics" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
@@ -1154,7 +1141,7 @@ export async function community(req, env, url, ctx) {
       if (plain && plain.length > 900000) return err("lap trace too large", 400);
       // a rival who has an account (their PC saw them at the wheel): the lap goes to their account, under
       // its public name or as Anonymous, as the account chose
-      const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1").bind(oid).first();
+      const link = await env.DB.prepare("SELECT l.account_id AS id, a.anon, a.name_kind FROM driver_links l JOIN accounts a ON a.id=l.account_id WHERE l.oid=?1 AND l.game=?2").bind(oid, game).first();
       if (link) {
         const r = await keepBestLap(env, link.id, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), anon: !!link.anon, shown: link.name_kind === "iracing" ? "iracing" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u), ctx });
         if (r.limit) return err("too many uploads today", 429);

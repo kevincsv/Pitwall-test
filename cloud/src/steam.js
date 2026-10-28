@@ -61,6 +61,17 @@ async function personaOf(env, steamid) {
   }
 }
 
+// a link made before the server had the Web API key has no name, and nothing named it later: a sign-in with Steam (which
+// reads the name anyway) gives it its name, or the one it has now when it changed on Steam; reading the link (GET
+// /account/steam) asks Steam for a link still without one. The name, or null
+async function nameLink(env, steamid, persona) {
+  if (!steamid) return null;
+  if (persona === undefined) persona = await personaOf(env, steamid);
+  if (!persona) return null;
+  await env.DB.prepare("UPDATE steam_links SET persona=?2 WHERE steamid=?1 AND COALESCE(persona,'')<>?2").bind(steamid, persona).run().catch(() => {});
+  return persona;
+}
+
 // the address the browser opens, and what only the app that asked keeps: the state (in Steam's return_to, 10 minutes, as
 // a hash) and the code its grant is redeemed with. kind "link" (an account linking its Steam) or "login" (a sign-in, or a
 // sign-up when that Steam has no account); port is the PC's agent, which the browser goes on to instead of the web app,
@@ -151,7 +162,10 @@ async function steamAnswer(env, url, base, state, st, back, fail) {
     return back("steamLink=" + (await newGrant(env, "link", st, ans.steamid, persona, 5 * 60e3)));
   }
   // a sign-in: the app signs in with the grant, or creates the account with the sign-up grant (linked at once)
-  if (await steamAccountId(env, ans.steamid)) return back("steamLogin=" + (await newGrant(env, "login", st, ans.steamid, persona, 5 * 60e3)));
+  if (await steamAccountId(env, ans.steamid)) {
+    await nameLink(env, ans.steamid, persona);
+    return back("steamLogin=" + (await newGrant(env, "login", st, ans.steamid, persona, 5 * 60e3)));
+  }
   const q = new URLSearchParams({ steamLogin: "0", new: "1", sid: await newGrant(env, "signup", st, ans.steamid, persona, 30 * 60e3) });
   if (persona) q.set("persona", persona);
   return back(String(q));
@@ -163,6 +177,7 @@ async function steamAnswer(env, url, base, state, st, back, fail) {
 export async function steamAccount(env, a, p, m, body, url, passCheck) {
   if (p === "/steam" && m === "GET") {
     const l = await env.DB.prepare("SELECT steamid, persona, shown FROM steam_links WHERE account_id=?1").bind(a.id).first();
+    if (l && !l.persona) l.persona = await nameLink(env, l.steamid); // linked before the server could read names
     return json({ linked: !!l, id: l ? l.steamid : undefined, persona: l ? l.persona || "" : undefined, shown: !!(l && l.shown) });
   }
   if (p === "/steam/start" && m === "POST") {

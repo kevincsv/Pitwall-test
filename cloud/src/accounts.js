@@ -140,6 +140,8 @@ export async function deleteAccount(env, id) {
     // the rivals of your races and your Drinks drivers are other people: their laps stay as they are
     env.DB.prepare("UPDATE community_users SET owner=NULL WHERE owner=?1").bind(id),
     env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM driver_link_seen WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM driver_link_moves WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(id),
     // of your own laps only the ones the model learns from stay (valid, with telemetry), under no name
@@ -157,6 +159,8 @@ export async function purgeAccount(env, id) {
     env.DB.prepare("DELETE FROM community_laps WHERE user_id IN (SELECT id FROM community_users WHERE owner=?1)").bind(id),
     env.DB.prepare("DELETE FROM community_users WHERE owner=?1").bind(id),
     env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM driver_link_seen WHERE account_id=?1").bind(id),
+    env.DB.prepare("DELETE FROM driver_link_moves WHERE account_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_laps WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_reports WHERE user_id=?1").bind(id),
     env.DB.prepare("DELETE FROM community_setups WHERE user_id=?1").bind(id),
