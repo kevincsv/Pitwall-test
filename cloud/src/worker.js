@@ -416,9 +416,16 @@ export function traceLapTime(t) {
 // a share made from a lap that is not valid any more (an impossible lap: migration 0046, dropImpossibleLaps) goes and
 // the account's best of the car and track is shared again from its valid laps; a few each run
 async function repairImpossibleShares(env) {
+  // from the laps not valid (an index of them alone, migration 0068) to their session and the account's shares (both by
+  // index), never the shares against every session and lap; a share a valid lap of the same time backs is right and is
+  // never picked again (it was, every ten minutes, reading the whole database each time)
   const { results } = await env.DB.prepare(
-    `SELECT DISTINCT c.user_id AS uid, l.session_id AS sid FROM community_laps c JOIN sessions s ON s.uploader='acct:'||c.user_id
-       JOIN laps l ON l.session_id=s.id AND l.valid=0 AND abs(l.time-c.time)<0.0006 AND l.drv IS NULL LIMIT 5`).all();
+    `SELECT DISTINCT c.user_id AS uid, l.session_id AS sid FROM laps l
+       JOIN sessions s ON s.id=l.session_id AND s.uploader LIKE 'acct:%'
+       JOIN community_laps c ON c.user_id=substr(s.uploader,6) AND abs(l.time-c.time)<0.0006
+     WHERE l.valid=0 AND l.drv IS NULL
+       AND NOT EXISTS (SELECT 1 FROM laps v WHERE v.session_id=l.session_id AND v.valid=1 AND v.drv IS NULL AND abs(v.time-l.time)<0.0006)
+     LIMIT 5`).all();
   for (const r of results || []) await unshareInvalid(env, r.uid, r.sid).catch(() => {});
 }
 
@@ -469,7 +476,11 @@ function harden(r) {
 
 export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
-  async scheduled(ev, env, ctx) { ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
+  async scheduled(ev, env, ctx) {
+    // the repairs of old data once an hour (the first run of each hour), the rest every ten minutes
+    const hourly = new Date(ev.scheduledTime || Date.now()).getUTCMinutes() < 10;
+    ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {}));
+    if (hourly) { ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },
