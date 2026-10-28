@@ -216,8 +216,13 @@ func updateWatcher() {
 						notify("Pitlane HQ "+v+" is available", "It installs by itself as soon as you are not driving. Your settings and laps are kept.")
 					}
 				}
-				// by itself: not while a sim is running, not in the first minutes after starting
-				if !p.Manual && (!engineMode || desktopNext() != "") && updateSupported && !busy && !currentStatus().Connected && time.Since(started) > 2*time.Minute {
+				// by itself: not while a sim is running, not in the first minutes after starting. A required
+				// update (this version is older than the newest one's minimum: it no longer works properly) goes
+				// in as soon as the car is not on the track (the menus, the garage), whatever the "Update now
+				// only" choice; never while driving
+				required := st["required"] == true
+				idle := !currentStatus().Connected || (required && telNums([]string{"IsOnTrack"})[0] <= 0)
+				if (!p.Manual || required) && (!engineMode || desktopNext() != "") && updateSupported && !busy && idle && time.Since(started) > 2*time.Minute {
 					updMu.Lock()
 					updBusy = true
 					updMu.Unlock()

@@ -602,8 +602,11 @@
   (it appears in My races); only the phones tell you.
 - Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app
   schedules no browser notifications): what it has to say shows inside the app.
-- PitlaneHQ.exe checks for updates every 30 minutes, notifies once per version and installs by
-  itself when no sim is running (unless switched off in Settings → About).
+- PitlaneHQ.exe checks for updates every 10 minutes, and at once when the server's answer to its minute sync names a
+  newer build (`X-Pitlane-Build`, from version.json; `updateNudge`), notifies once per build and installs by itself
+  when no sim is connected (unless switched off in Settings → About). A required update (the PC's version is older
+  than version.json's `min`, `appMinVersion`) installs as soon as the car is not on the track, whatever that switch,
+  never while driving. The client tag (`clientTag`, `X-Pitlane-Client`) carries the build, shown in Admin → Online.
 - People see the PC program as "Pitlane HQ Agent" (or "the agent"), never "PitlaneHQ.exe" (the file keeps its name):
   on the web, the PC app, Pitlane HQ Desktop, the phones, the downloads page and the changelog. Away from the PC (the web,
   the phones) a text never says "this PC": it is "your PC" (`PC_WORDS`/`devWords` in index.html turn every "this PC",
