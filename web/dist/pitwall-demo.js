@@ -156,6 +156,23 @@
         cars: cs.map((c) => { const b = board(c.trackId, c.carId), r = b[0]; return { ...r, trackId: tid, track: c.track, carId: c.carId, car: c.car, cat: c.cat || "sports_car", n: b.length }; }) };
     }
     if (p === "/api/community/setups") return { setups: setups() };
+    // the admin page's analytics and feedback, invented (admins only, like every demo answer)
+    if (p === "/community/records") return get("/api/community/records");
+    if (p === "/community/admin/analytics") {
+      const days = Math.max(1, Math.min(90, +q.get("days") || 30)), r = rng(7), d = (i) => new Date(NOW - i * DAY).toISOString().slice(0, 10);
+      const keys = ["view:home", "view:laps", "view:coach", "view:live", "view:community", "view:races", "view:overlays", "act:race_summary", "act:coach_report", "act:leaderboard", "act:overlay_open", "act:track_page"];
+      return { days, active: Array.from({ length: days }, (_, i) => ({ day: d(days - 1 - i), users: 6 + r.i(0, 14) })),
+        byDevice: [{ device: "pc", users: 31, n: 2400 }, { device: "web", users: 22, n: 1310 }, { device: "android", users: 9, n: 420 }, { device: "ios", users: 4, n: 150 }],
+        top: keys.map((key, i) => ({ key, users: 30 - i * 2, n: 900 - i * 60 })), games: [{ game: "iracing", users: 28, n: 310 }, { game: "lmu", users: 7, n: 64 }],
+        versions: [{ device: "pc", v: "0.9.14", devices: 24 }, { device: "web", v: "0.9.14", devices: 18 }, { device: "pc", v: "0.9.13", devices: 5 }],
+        users: NAMES.slice(0, 8).map((nick, i) => ({ id: "acct_demo" + i, nick, lastSeen: NOW - i * 5 * 3600e3, devices: i % 2 ? ["web"] : ["pc", "web"], n: 400 - i * 40, top: keys.slice(i % 3, (i % 3) + 4).map((key, j) => ({ key, n: 60 - j * 12 })) })) };
+    }
+    if (p === "/community/admin/users") return { users: NAMES.slice(0, 8).map((display, i) => ({ id: "acct_demo" + i, display, created: NOW - (40 + i * 30) * DAY, verified: 1, twoFactor: i % 3 === 0 ? 1 : 0, supporter: i === 2 ? 1 : 0, supporterSrc: "manual", sessions: 120 - i * 12, lastSession: NOW - i * DAY, laps: 30 - i * 3, leagues: i % 4 === 0 ? 1 : 0, guests: 0, admin: false })) };
+    if (p === "/community/admin/feedback") {
+      const items = NAMES.slice(0, 5).map((nick, i) => ({ id: "fb" + i, accountId: "acct_demo" + i, nick, created: NOW - i * 9 * 3600e3, device: ["pc", "web", "pc", "web", "pc"][i], v: "0.9.14", rating: [5, 4, null, 3, 5][i], view: ["coach", "home", "menu:laps", "community", "live"][i],
+        text: ["The coach plan helped me at Spa, I found three tenths in two days.", "I would like to compare two laps of different sessions more easily.", "The relative overlay is great. Could it show the pace column by default?", "Le Mans Ultimate works, but the sectors took a lap to show up.", "Love the rev beep."][i] }));
+      return { items, count: items.length, avg: 4.3 };
+    }
     return undefined;
   }
 

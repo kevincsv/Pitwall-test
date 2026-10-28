@@ -716,7 +716,7 @@ var errLMUNotAdmin = errors.New("not an admin of the server")
 
 // lmuAPIUpload: one batch to the server, gzipped; only with an admin of the server signed in on this PC
 func lmuAPIUpload(run *lmuAPIRun, items []lmuAPIItem) error {
-	if !wipAllowed() {
+	if !realAdminSigned() { // the capture runs for an admin's account whatever admin mode says
 		return errLMUNotAdmin
 	}
 	body, err := lmuAPIGzip(run, items)

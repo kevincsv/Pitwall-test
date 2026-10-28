@@ -31,8 +31,17 @@
   account is told where it is and offers "Move to this PC" (`/community/pro/pc`; the other PC goes back to free). The
   Auto list goes with the account and is never trimmed: the agent opens only what this PC may (`proAutoList`: the
   basic overlays; `proAppsAllowed`: the first 3 programs of the list), and the app asks for Pro on a fourth program.
-- The admin panel is its own page, only for admins (pitlanehq.app/admin → `/app#admin`, `v-admin`); Account only has
-  the button that opens it.
+- The admin panel is its own page, only for admins (pitlanehq.app/admin → `/app#admin`, `v-admin`), reached from the
+  header's Admin button with admin mode on (Account shows its button only then).
+- Admin mode (the owner's choice): an admin sees Pitlane HQ exactly as everyone does by default, on every device. The
+  header's Admin button (`#viewTg`, a shield, only for admins; `renderViewToggle`) turns admin mode on for that device
+  (`pw.adminMode` in localStorage, `adminMode()`/`setAdminMode` in index.html; `isAdmin()` = an admin's account and admin
+  mode on, `realAdmin()` the account alone) and opens the admin page; with it on, the button opens a small menu (Open the
+  admin page, Turn admin mode off) and everything for admins and in development shows. Opening /admin with it off turns
+  it on. The PC's agent follows the page (POST `/api/adminmode`, `adminmode.go`, `admin-mode.json` in the data folder,
+  never synced): `wipAllowed()` is an admin's account and admin mode on, while what is not "in development" keeps
+  reading the account (`realAdminSigned`: DRINKS, the voice chat answering, the LMU data capture). About also has the
+  switch. The phones have their own admin mode (off by default) in Settings.
 - Real data by default: no demo races, sample drivers or made-up laps on the server. Invented data
   only behind Settings → About → Demo data, which only admins see (web/PC: pitwall-demo.js; phone
   apps: Settings → Admin), never uploaded, with a banner on every screen. The `-demo` flag of
@@ -62,7 +71,9 @@
   CHANGELOG.md (newest first), the phones' and whats-new.json list only the big versions and only what users notice;
   internal, server and small fixes are one "Fixes and improvements" line. These notes read as a person wrote them, in plain short sentences: no "Title: text" headings and never a
   ";" or a ":". A version gets a GitHub release.
-- Every feature goes to the PC app, the web and the phone apps. Equivalent screens show the same information under the
+- Every feature goes to the PC app, the web and the phone apps (the one exception, the owner's choice: the "Share your
+  feedback" window and "Send feedback" are on the PC app and the web only; the phones still send their usage and their
+  admin panel lists the feedback). Equivalent screens show the same information under the
   same names on every device (the phones' sub-tabs and labels are the PC's, never shortened versions; the web's
   phone-width layout is checked with `tools/ui-sweep.js`, a Playwright sweep of every view at 1300 and 390 px: no page
   error and no element wider than the screen, tables only inside a scrolling container).
@@ -346,7 +357,8 @@
   server (DATA_KEY), which opens it to teach the model and share the fastest laps; live telemetry with a code is
   end-to-end. The analysis of your laps runs on your device.
 - No text that explains what something is (the owner's choice): no subtitle under a title, no line saying what a chart
-  or a list shows; the title and the data say it. Only the notes the driver needs to act. A text never joins two
+  or a list shows; the title and the data say it. The one exception is the admin page, which the owner asked to have
+  explained: every section and every part has one short line saying what it is for and what its buttons do. Only the notes the driver needs to act. A text never joins two
   phrases with a colon ("No records yet: the first lap…"); it is one sentence, or two.
 - No text anywhere (PC, web, Pitlane HQ Desktop, phones, the server's pages, the landing) about encryption, how the data
   is protected, where the password goes or what the server can see: no "How your data is protected" list, no privacy
@@ -452,17 +464,46 @@
   directory's data without its permission. Up to 3 leagues per driver, 10 for a supporter (Patreon or by hand; `LEAGUES_FREE`/`LEAGUES_SUPPORTER`,
   `limit` in the list): under "Post the league" the form says how many you have posted and, to the rest, that supporters
   post up to 10, with a small "♥ Support on Patreon" link.
-- Admins: the admin panel (Account, on the PC, the web and the phones) has the overview, every
-  account (member since, set by hand; the supporter badge; its profile; delete), the shared items,
-  the leagues, the latest sessions (any driver's, a private one too: an admin opens every account's profile from the
-  leaderboards, and the profile lists its sessions for admins; "See the laps" opens its laps one by one with their top speed and
-  sectors, and an admin marks a lap not valid or valid again: `admSessionLaps`, `/api/laps/:id/valid`; the session's
-  best, the driver's share and the model follow), the server's emails and the tools (rebuild the coach models; the
-  blocked sign-ins one by one, by email or all; per account: confirm its email, turn off its two-step
-  sign-in, sign it out everywhere, rename it, join a DRINKS driver to it or undo it; `/admin/guests` lists every
-  DRINKS driver on the platform for the chooser). Networks are only ever a hash of their address. An admin
-  can see the app as a normal user on one device (the shield in the header, the admin panel, or
-  Settings on the phones): everything for admins and in development hides until the admin view is back.
+- Admins: the admin page (on the PC, the web and the phones; `admSecs`/`admParts`/`wireAdminProfile` in index.html) is
+  sections as tabs, each with its line of explanation: Summary (the key numbers, then the analytics), Users (every
+  account with what it uses in the last 30 days, its devices and when it was seen, a name opening its detail,
+  `admUserDetail`; member since set by hand, the supporter badge, its profile, delete; per account: confirm its email,
+  turn off its two-step sign-in, sign it out everywhere, rename it, join a DRINKS driver to it or undo it, unlink its
+  game drivers; `/admin/guests` lists every DRINKS driver on the platform for the chooser; and Online now), Feedback
+  (every answer of "Share your feedback", the newest first), Content (the shared items, the leagues and the newest
+  records, a record's lap deleted by hand), Sessions (the latest sessions of any driver, a private one too: an admin
+  opens every account's profile from the leaderboards, and the profile lists its sessions for admins; "See the laps"
+  opens its laps one by one with their top speed and sectors, and an admin marks a lap not valid or valid again:
+  `admSessionLaps`, `/api/laps/:id/valid`; the session's best, the driver's share and the model follow), Coach (the
+  coach's buckets) and Server (the server's emails and the domain's records, the tools: rebuild the coach models, the
+  blocked sign-ins one by one, by email or all, the .ibt import, demo data, admin mode; and Pro). Networks are only ever a
+  hash of their address.
+- What the drivers use (`cloud/src/usage.js`, the pure part in `usagelib.js`, migration 0070 `usage_days`): every app
+  counts the views it opens (`view:<name>`), its notable actions (`act:<name>`: race summary opened, plan to the coach
+  overlay, track page, leaderboard, overlay opened, profile, coach report, feedback sent…) and the game it drives
+  (`game:iracing`, `game:lmu`, once when the car goes on track in a new session) and sends them as POST `/community/usage`
+  {device: web|pc|android|ios, v, counts, ms} every 5 minutes and when the page goes to the background (fetch with
+  keepalive; `USAGE`/`usageCount`/`usageFlush` in index.html, through the agent's `/api/sync/get` on the PC); never in
+  demo data, never for a visitor (dropped unsent), never from an overlay window, never while an admin has admin mode on.
+  The server keeps keys matching `^(view|act|game):[a-z0-9_.-]{1,40}$` only, 100 a batch, 1000 per key, added into one row
+  per day, account, device and key (rows over 400 days go, hourly). `ms` (how long the page was on the screen, 10 minutes
+  a batch at most) adds to the account's use for the feedback window. GET `/community/admin/analytics?days=N` (admins, 1 to
+  90 days) answers {days, active [{day, users}], byDevice [{device, users, n}], top [{key, n, users}], games [{game, users,
+  n}], versions [{device, v, devices}] from presence, users [{id, nick, lastSeen, devices, n, top [{key, n}]}]} from two
+  grouped reads of usage_days and one of presence, never a query per account; the Summary draws it (active drivers per
+  day, devices, games, screens and actions with how many drivers, versions) and Users merges it into every account.
+- "Share your feedback" (PC app and web only): a window with a text box, 1 to 5 optional stars, Send and Not now
+  (`feedbackAsk` in index.html). The server says when (GET `/community/feedback/ask` → {ask}: six hours of use, the
+  usage batches' ms, or two race sessions uploaded since it was last shown; `feedback_ask` per account, so the devices
+  never ask twice, its clock starting the first time the account asks). The page asks 3 minutes after it opens and every 10
+  minutes, never in the car (the PC while the car is on track), in demo data, from an overlay window, over another window
+  or to an admin in admin mode; shown, it is marked at once (POST `/community/feedback/seen`), so Not now waits six more
+  hours of use or two races. "Send feedback" is always in Settings → About and the inbox. POST `/community/feedback`
+  {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 5 a day per account) and emails it through
+  Resend to support@pitlanehq.app (`sendFeedback` in email.js: the nickname, account id, device, version, stars, where it
+  was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). GET
+  `/community/admin/feedback` (admins) lists them, the newest first, with the count and the average stars. Deleting an
+  account deletes its usage and its feedback.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts (plus the corners against the straights), every corner as a small bar you can press to pin the charts
@@ -619,7 +660,7 @@
   are per game on the server (`track_maps`, `track_pits`, `track_turns` keyed by game and track id, the agent's
   `/api/trackmap` and `/api/turns` default to the game being read). The map's position is made from the game's
   world frame (left-handed: north = -z, east = -x, to be confirmed against a real circuit).
-- In development (shown with "In development", usable only by admins, on every device): the
+- In development (shown with "In development", usable only by admins with admin mode on, on every device): the
   Planner (until iRacing switches its data API back on), ACC, Assetto Corsa,
   NASCAR 26, team mode and the Data view. The overlays on top of the game are open to everyone (0.9.0). The
   Full telemetry view is gone everywhere.
@@ -743,7 +784,7 @@
   newer build (`X-Pitlane-Build`, from version.json; `updateNudge`), notifies once per build and installs by itself
   when no sim is connected (unless switched off in Settings → About). A required update (the PC's version is older
   than version.json's `min`, `appMinVersion`) installs as soon as the car is not on the track, whatever that switch,
-  never while driving. The client tag (`clientTag`, `X-Pitlane-Client`) carries the build, shown in Admin → Online.
+  never while driving. The client tag (`clientTag`, `X-Pitlane-Client`) carries the build, shown in Admin → Users → Online now.
 - People see the PC program as "Pitlane HQ Agent" (or "the agent"), never "PitlaneHQ.exe" (the file keeps its name):
   on the web, the PC app, Pitlane HQ Desktop, the phones, the downloads page and the changelog. Away from the PC (the web,
   the phones) a text never says "this PC": it is "your PC" (`PC_WORDS`/`devWords` in index.html turn every "this PC",

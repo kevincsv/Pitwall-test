@@ -122,6 +122,9 @@ const accountRows = (env, id) => [
   env.DB.prepare("DELETE FROM steam_links WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM steam_oauth WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM steam_grants WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM usage_days WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM feedback WHERE account_id=?1").bind(id),
+  env.DB.prepare("DELETE FROM feedback_ask WHERE account_id=?1").bind(id),
   env.DB.prepare("DELETE FROM accounts WHERE id=?1").bind(id),
 ];
 

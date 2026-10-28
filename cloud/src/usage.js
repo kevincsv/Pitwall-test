@@ -1,0 +1,99 @@
+// What the drivers use and what they tell us (the admin page's Summary, Users and Feedback; migration 0070).
+//
+// POST /community/usage   (signed in)  {device, v, counts: {"view:laps": 3, "act:compare": 1, "game:iracing": 1}, ms}
+//   every app counts the views it opens, its notable actions and the game it drives, and sends a batch every few
+//   minutes and when it goes to the background; the server adds them to one row per day, account, device and key.
+//   ms (optional, the web and the PC) is how long the app was on the screen since the last batch: it feeds the
+//   feedback window's six hours of use.
+// GET  /community/admin/analytics?days=N (admins)  the numbers of the Summary and the Users tabs, from two reads of
+//   usage_days over the days asked (at most 90) and one of presence; never a query per account.
+// POST /community/feedback (signed in)  {text, rating, device, v, view}  kept and emailed to support@ (email.js)
+// GET  /community/feedback/ask (signed in)  {ask}: the web and the PC show "Share your feedback" when it says so
+// POST /community/feedback/seen (signed in)  the window was shown and put off (Not now): it waits again
+// GET  /community/admin/feedback (admins)  every answer, newest first
+import { sessionAccount, isAdmin } from "./accounts.js";
+import { openEscrow } from "./escrow.js";
+import { sendFeedback } from "./email.js";
+import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE, day, cleanUsage, cleanFeedback, shouldAsk, analyticsOf, ASK_USED, FEEDBACK_PER_DAY, MAX_DAYS } from "./usagelib.js";
+
+const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+const err = (m, s) => json({ error: m }, s);
+
+/** The routes above; null when the path is none of them. */
+export async function usageRoute(req, env, url) {
+  const p = url.pathname, m = req.method;
+  const ours = ["/community/usage", "/community/feedback", "/community/feedback/ask", "/community/feedback/seen", "/community/admin/analytics", "/community/admin/feedback"];
+  if (!ours.includes(p)) return null;
+  const acc = await sessionAccount(req, env);
+  if (!acc) return err("sign in with your Pitlane HQ account", 401);
+  const now = Date.now();
+  if (p === "/community/usage" && m === "POST") {
+    const u = cleanUsage(await req.json().catch(() => null));
+    if (u.error) return err(u.error, 400);
+    const d = day(now), st = [];
+    for (const [k, n] of u.counts)
+      st.push(env.DB.prepare(SQL_USAGE_ADD).bind(d, acc.id, u.device, k, n));
+    if (u.ms) st.push(env.DB.prepare(SQL_ASK_USED).bind(acc.id, now, u.ms));
+    if (st.length) await env.DB.batch(st);
+    return json({ ok: true, kept: u.counts.length });
+  }
+  if (p === "/community/feedback/ask" && m === "GET") {
+    const r = await env.DB.prepare("SELECT shown, used FROM feedback_ask WHERE account_id=?1").bind(acc.id).first();
+    // the first time: the clock starts now, nobody is asked the day this comes out
+    if (!r) { await env.DB.prepare("INSERT OR IGNORE INTO feedback_ask (account_id, shown, used) VALUES (?1,?2,0)").bind(acc.id, now).run(); return json({ ask: false }); }
+    let races = 0;
+    if (r.used < ASK_USED) {
+      const c = await env.DB.prepare(SQL_RACES_SINCE).bind("acct:" + acc.id, r.shown).first();
+      races = (c && c.n) || 0;
+    }
+    return json({ ask: shouldAsk(r.used, races), used: r.used, races });
+  }
+  if (p === "/community/feedback/seen" && m === "POST") {
+    await env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now).run();
+    return json({ ok: true });
+  }
+  if (p === "/community/feedback" && m === "POST") {
+    const f = cleanFeedback(await req.json().catch(() => null));
+    if (f.error) return err(f.error, 400);
+    const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback WHERE account_id=?1 AND created>?2").bind(acc.id, now - 86400e3).first();
+    if (c && c.n >= FEEDBACK_PER_DAY) return err("thank you, that is enough for today", 429);
+    const id = crypto.randomUUID();
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO feedback (id, account_id, created, device, v, rating, text, view) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)").bind(id, acc.id, now, f.device, f.v, f.rating, f.text, f.view),
+      env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now),
+    ]);
+    const esc = await openEscrow(env, acc.escrow).catch(() => null);
+    const mailed = await sendFeedback(env, { ...f, nick: acc.display || "", accountId: acc.id, email: (esc && esc.email) || "" }).catch(() => false);
+    return json({ ok: true, id, mailed });
+  }
+  if (!isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+  if (p === "/community/admin/feedback" && m === "GET") {
+    const r = await env.DB.prepare("SELECT f.id, f.account_id AS accountId, f.created, f.device, f.v, f.rating, f.text, f.view, a.display AS nick FROM feedback f LEFT JOIN accounts a ON a.id=f.account_id ORDER BY f.created DESC LIMIT 300").all();
+    const items = r.results || [];
+    const rated = items.filter((x) => x.rating);
+    return json({ items, count: items.length, avg: rated.length ? Math.round((rated.reduce((s, x) => s + x.rating, 0) / rated.length) * 10) / 10 : null });
+  }
+  if (p === "/community/admin/analytics" && m === "GET") {
+    const days = Math.max(1, Math.min(MAX_DAYS, Math.floor(Number(url.searchParams.get("days")) || 30)));
+    const from = day(now - (days - 1) * 86400e3);
+    const [perDay, rows, pres] = await Promise.all([
+      env.DB.prepare("SELECT day, COUNT(DISTINCT account_id) AS users FROM usage_days WHERE day>=?1 GROUP BY day ORDER BY day").bind(from).all(),
+      env.DB.prepare("SELECT account_id, device, key, SUM(n) AS n, MAX(day) AS last FROM usage_days WHERE day>=?1 GROUP BY account_id, device, key LIMIT 20000").bind(from).all(),
+      env.DB.prepare("SELECT account_id, kind, app_version, last_seen FROM presence WHERE last_seen>?1 LIMIT 5000").bind(now - 7 * 86400e3).all(),
+    ]);
+    const R = rows.results || [], ids = [...new Set(R.map((x) => x.account_id))].slice(0, 300), accounts = new Map();
+    // the nicknames of the accounts in the list, in pieces of 90 (D1's bound parameters)
+    for (let i = 0; i < ids.length; i += 90) {
+      const part = ids.slice(i, i + 90);
+      const a = await env.DB.prepare(`SELECT id, display FROM accounts WHERE id IN (${part.map((_, j) => "?" + (j + 1)).join(",")})`).bind(...part).all();
+      for (const x of a.results || []) accounts.set(x.id, x);
+    }
+    return json(analyticsOf(days, perDay.results || [], R, pres.results || [], accounts));
+  }
+  return err("not found", 404);
+}
+
+// the ten-minute job: a little over a year of usage is enough
+export async function pruneUsage(env) {
+  await env.DB.prepare("DELETE FROM usage_days WHERE day < ?1").bind(day(Date.now() - 400 * 86400e3)).run();
+}
