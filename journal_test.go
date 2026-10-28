@@ -393,3 +393,22 @@ func TestHasAI(t *testing.T) {
 		t.Fatal("a bot in the race")
 	}
 }
+
+// an empty field of the session text is empty, never the next line, and a race named that way gets its name back
+func TestYamlFieldEmptyValue(t *testing.T) {
+	y := "WeekendInfo:\n TrackDisplayName: Tsukuba Circuit 2k Full\n TrackConfigName: \n TrackCity: Shimotsuma\n TrackID: 325\n"
+	if v := yamlField(y, "TrackConfigName"); v != "" {
+		t.Fatalf("empty config read as %q", v)
+	}
+	if c := currentCarTrack(y); c.Track != "Tsukuba Circuit 2k Full" {
+		t.Fatalf("track %q", c.Track)
+	}
+	if v := yamlField(y, "TrackCity"); v != "Shimotsuma" {
+		t.Fatalf("city %q", v)
+	}
+	for in, want := range map[string]string{"Tsukuba Circuit 2k Full · TrackCity: Shimotsuma": "Tsukuba Circuit 2k Full", "Spa · Grand Prix": "Spa · Grand Prix", "Okayama": "Okayama"} {
+		if got := cleanTrackName(in); got != want {
+			t.Fatalf("%q -> %q", in, got)
+		}
+	}
+}

@@ -356,7 +356,9 @@ func yamlField(block, key string) string {
 			continue
 		}
 		k++
-		for k < len(block) && yamlSpace(block[k]) {
+		// the value is on this line only: an empty field ("TrackConfigName: ") is empty, never the line after it (the
+		// old regexp's \s* crossed the line break, so a track without a configuration was named "… · TrackCity: …")
+		for k < len(block) && (block[k] == ' ' || block[k] == '\t') {
 			k++
 		}
 		e := len(block)

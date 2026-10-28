@@ -7,9 +7,10 @@ import (
 	"testing"
 )
 
-// the regexps yamlField and listItem were before they scanned the text: the scanners must read exactly what these did
+// the regexps yamlField and listItem were before they scanned the text, except that a field's value is on its own line: an
+// empty field is empty, never the next line (the old `:\s*` read "TrackConfigName: " as the TrackCity line after it)
 func yamlFieldRe(block, key string) string {
-	re := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(key) + `:\s*(.*)$`)
+	re := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(key) + `:[ \t]*(.*)$`)
 	if m := re.FindStringSubmatch(block); m != nil {
 		return strings.Trim(strings.TrimSpace(m[1]), `"`)
 	}

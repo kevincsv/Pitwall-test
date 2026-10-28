@@ -56,6 +56,15 @@ type carTrack struct {
 	Cat                    string // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
 }
 
+// cleanTrackName: a race recorded while an empty track configuration read the session text's next line ("Tsukuba
+// Circuit 2k Full · TrackCity: Shimotsuma") gets its own name back; a real configuration never has a colon
+func cleanTrackName(t string) string {
+	if i := strings.Index(t, " · "); i > 0 && strings.Contains(t[i:], ":") {
+		return t[:i]
+	}
+	return t
+}
+
 func currentCarTrack(y string) carTrack {
 	c := carTrack{TrackID: atoi(yamlField(y, "TrackID")), Track: yamlField(y, "TrackDisplayName"), SeriesID: atoi(yamlField(y, "SeriesID")),
 		SeasonID: atoi(yamlField(y, "SeasonID")), Subsession: atoi(yamlField(y, "SubSessionID")), Official: yamlField(y, "Official") == "1",
@@ -124,6 +133,9 @@ func loadJournal() {
 		}
 		if clearAIRatings(x) {
 			fixed = true
+		}
+		if t := cleanTrackName(x.Track); t != x.Track {
+			x.Track, fixed = t, true
 		}
 	}
 	if chainRealIR(r) {
