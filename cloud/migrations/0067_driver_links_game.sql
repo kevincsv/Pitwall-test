@@ -13,3 +13,23 @@ CREATE TABLE IF NOT EXISTS driver_links_g (
 INSERT OR IGNORE INTO driver_links_g (game, oid, account_id, created) SELECT 'iracing', oid, account_id, created FROM driver_links;
 DROP TABLE driver_links;
 ALTER TABLE driver_links_g RENAME TO driver_links;
+-- Le Mans Ultimate's name can be typed by anyone (driverlinks.js): the link waits until the account's own PC saw that
+-- name at the wheel on three different days (one row a day; "undone" when an admin undid the link, which never comes
+-- back by itself), and it keeps what it moved so the admin's undo gives the laps back to the rival
+CREATE TABLE IF NOT EXISTS driver_link_seen (
+  game TEXT NOT NULL,
+  oid TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  PRIMARY KEY (game, oid, account_id, day)
+);
+CREATE TABLE IF NOT EXISTS driver_link_moves (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  game TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  oid TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  row TEXT NOT NULL,
+  created INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS driver_link_moves_acct ON driver_link_moves (account_id, game);

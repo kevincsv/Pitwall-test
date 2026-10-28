@@ -6,6 +6,7 @@ import { sessionAccount, isAdmin, nameTaken, purgeAccount, emailHash, cleanName 
 import { mailReady, mailLog, mailDomain } from "./email.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, forCompound, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
+import { linkDriver, unlinkDriver } from "./driverlinks.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -599,10 +600,10 @@ export async function community(req, env, url, ctx) {
     if (ua[2] === "signout") await env.DB.prepare("DELETE FROM account_sessions WHERE account_id=?1").bind(id).run();
     // a wrong link to a driver of a game (body.game, or name from the phones; without it every game's): their laps still
     // to come go back to the rival of a race
+    // (in Le Mans Ultimate what the link took goes back to the rival, and it never links again by itself: driverlinks.js)
     if (ua[2] === "unlink-driver") {
       const g = String(body.game || body.name || "");
-      if (g) await env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1 AND game=?2").bind(id, gameOf(g)).run();
-      else await env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1").bind(id).run();
+      await unlinkDriver(env, id, g ? gameOf(g) : null);
     }
     // a DRINKS driver (a friend who drove on an admin's PC) joined to the friend's own account: what was shared
     // under the driver's name goes to the account (per car and track the faster lap stays, like an iRacing driver's)
@@ -1072,35 +1073,9 @@ export async function community(req, env, url, ctx) {
   if (p === "/link-driver" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);
     if (typeof body.key !== "string" || !/^[0-9a-f]{16,64}$/i.test(body.key)) return err("missing key", 400);
-    const oid = await otherId(env, body.key);
-    const had = await env.DB.prepare("SELECT oid, account_id FROM driver_links WHERE game=?3 AND (oid=?1 OR account_id=?2)").bind(oid, u.id, game).all();
-    for (const x of had.results || []) {
-      if (x.oid === oid && x.account_id === u.id) return json({ linked: true, moved: 0 });
-      if (x.oid === oid) return err("this driver is already linked to another account", 409);
-      return err("this account is already linked to another driver", 409);
-    }
-    const acc = await env.DB.prepare("SELECT anon, name_kind FROM accounts WHERE id=?1").bind(u.id).first();
-    if (!acc) return err("sign in with your Pitlane HQ account", 401);
-    await env.DB.prepare("INSERT INTO driver_links (game, oid, account_id, created) VALUES (?4,?1,?2,?3)").bind(oid, u.id, Date.now(), game).run();
-    const shown = acc.name_kind === "iracing" ? "iracing" : "nick";
-    // what was shared of them as a rival in this game only
-    const laps = (await env.DB.prepare("SELECT id, car_id, track_id, time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND game=?2").bind(oid, game).all()).results || [];
-    const q = [], combos = new Set();
-    for (const l of laps) {
-      const mine = await env.DB.prepare("SELECT id, time, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3 AND game=?4").bind(u.id, l.car_id, l.track_id, l.game).first();
-      combos.add(l.game + "|" + l.track_id + "|" + l.car_id);
-      const take = env.DB.prepare("UPDATE community_laps SET user_id=?2, anon=?3, shown=?4 WHERE id=?1").bind(l.id, u.id, acc.anon ? 1 : 0, shown);
-      if (!mine) { q.push(take); continue; }
-      const better = mine.time > l.time || (!mine.traced && !!l.traced); // the same rule as keepBestLap
-      if (better) q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(mine.id), take);
-      else q.push(env.DB.prepare("DELETE FROM community_laps WHERE id=?1").bind(l.id));
-    }
-    // the rival goes when nothing of them is left (their laps of another game stay theirs)
-    q.push(env.DB.prepare("DELETE FROM community_users WHERE id=?1 AND NOT EXISTS (SELECT 1 FROM community_laps WHERE user_id=?1)").bind(oid));
-    await env.DB.batch(q);
-    await moveDriver(env, "acct:" + oid, "acct:" + u.id, game);
-    for (const c of combos) { const [g, tr, ca] = c.split("|"); await markModel(env, g, +tr, +ca); }
-    return json({ linked: true, moved: laps.length });
+    // in Le Mans Ultimate only once the account's own PC saw that name at the wheel on a few days (driverlinks.js)
+    const r = await linkDriver(env, u.id, await otherId(env, body.key), game);
+    return r.error ? err(r.error, r.status) : json(r);
   }
   if (p === "/lics" && m === "POST") {
     if (!u.account) return err("sign in with your Pitlane HQ account", 401);

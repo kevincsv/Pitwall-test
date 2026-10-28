@@ -23,6 +23,7 @@ const LADDER_STEP = 0.004;  // a "next level" reference every 0.4 % of pace
 const LADDER_SPAN = 0.08;   // up to 8 % slower than the fastest lap
 const LEVEL_BIN = 2;        // the references keep one bin in two (10 m) to stay small
 const CMP_MIN = 5;          // laps a tyre compound needs before it gets references of its own
+const CMP_DRIVERS = 3;      // and drivers: one driver's laps alone would make their own lap the compound's next level
 
 const median = (a) => { const v = a.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); if (!v.length) return null; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
 const r = (v, d) => (v == null || !isFinite(v) ? 0 : Math.round(v * d) / d);
@@ -191,12 +192,17 @@ export function pickLaps(rows) {
   return pick;
 }
 // the tyre compounds of the memory that get references of their own: only when its laps were driven on several, each
-// one with CMP_MIN laps at least (exported for the tests)
+// one with CMP_MIN laps at least from CMP_DRIVERS drivers or more (exported for the tests)
 export function compoundsOf(rows) {
-  const n = new Map();
-  for (const x of rows) if (typeof x.cmp === "number" && x.cmp >= 0) n.set(x.cmp, (n.get(x.cmp) || 0) + 1);
+  const n = new Map(), d = new Map();
+  for (const x of rows) {
+    if (typeof x.cmp !== "number" || x.cmp < 0) continue;
+    n.set(x.cmp, (n.get(x.cmp) || 0) + 1);
+    if (!d.has(x.cmp)) d.set(x.cmp, new Set());
+    d.get(x.cmp).add(x.drv);
+  }
   if (n.size < 2) return [];
-  return [...n.entries()].filter(([, k]) => k >= CMP_MIN).map(([c]) => c).sort((p, q) => p - q);
+  return [...n.entries()].filter(([c, k]) => k >= CMP_MIN && d.get(c).size >= CMP_DRIVERS).map(([c]) => c).sort((p, q) => p - q);
 }
 
 // what the model learns from: its memory, the best few laps of every driver; and the same of every tyre compound apart
@@ -614,7 +620,16 @@ export async function moveDriver(env, fromUp, toUp, game) {
   }
   // a lap both drivers had (the same lap learnt twice) stays once
   await env.DB.prepare("DELETE FROM model_laps WHERE drv=?1" + (game ? " AND game=?2" : "")).bind(...(game ? [from, game] : [from])).run();
-  return rows.length;
+  return rows;
+}
+// the laps moveDriver moved (its answer) given back to the driver they came from: an admin's undo of a wrong link
+export async function moveDriverBack(env, rows, fromUp, toUp) {
+  const from = await sha("drv:" + fromUp), to = await sha("drv:" + toUp);
+  for (const x of rows || []) {
+    if (!x || typeof x.time !== "number") continue;
+    await env.DB.prepare("UPDATE OR IGNORE model_laps SET drv=?5, k=?6 WHERE game=?1 AND track_id=?2 AND car_id=?3 AND k=?4 AND drv=?7")
+      .bind(x.game, x.track_id, x.car_id, await sha(fromUp + ":" + x.time.toFixed(3)), to, await sha(toUp + ":" + x.time.toFixed(3)), from).run();
+  }
 }
 
 // a lap that is no longer valid (an impossible lap, or an admin's call) leaves the model's memory

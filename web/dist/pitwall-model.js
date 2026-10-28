@@ -19,8 +19,9 @@ const COMBOS={g:"",list:null,p:null},MODEL={key:"",busy:false,data:null,err:"",a
 const norm=s=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
 function combos(){const g=game();if(COMBOS.list&&COMBOS.g===g)return Promise.resolve(COMBOS.list);if(COMBOS.p&&COMBOS.g===g)return COMBOS.p;
   COMBOS.g=g;COMBOS.list=null;COMBOS.p=cget(url("/api/community/combos")).then(r=>r.combos||[]).catch(()=>[]).then(l=>{COMBOS.list=l;COMBOS.p=null;return l});return COMBOS.p}
-/* the tyre compound of a lap: its "cmp:<n>" flag when the car has several, else the first (0) */
-const cmpOf=lap=>{const f=((lap&&lap.flags)||[]).find(x=>/^cmp:\d+$/.test(x));return f?+f.slice(4):0};
+/* the tyre compound of a lap: its "cmp:<n>" flag when the car has several (a lap of the account), the compound on the car
+   when it was recorded here (cmp), else the first (0) */
+const cmpOf=lap=>{const f=((lap&&lap.flags)||[]).find(x=>/^cmp:\d+$/.test(x));return f?+f.slice(4):lap&&lap.cmp>0?lap.cmp|0:0};
 /* the car and track of a lap (and its compound, so the model gives the references of the same tyres), with what is
    already loaded (null while the list loads, or when unknown) */
 function comboSync(lap){const c=comboRaw(lap);return c?{...c,cmp:cmpOf(lap)}:null}

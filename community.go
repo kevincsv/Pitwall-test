@@ -566,11 +566,24 @@ func shareFieldTop(r *raceReport) {
 // linkOwnDriver: the driver at the wheel of this PC is the account's own: the server puts under the account
 // the laps other PCs shared of them as a race rival in that game (and the ones still to come). One driver of each
 // game per account (ownLinkKey says which); asked once per driver while Pitlane HQ runs, again after a failure a few
-// minutes later.
+// minutes later. In Le Mans Ultimate the server links only once it has seen the name at the wheel on a few days
+// (driverlinks.js): while it is not linked yet the PC asks again some hours later, and never after an admin undid it.
 var (
 	linkMu   sync.Mutex
-	linkDone = map[string]time.Time{}
+	linkNext = map[string]time.Time{} // when the PC may ask again; zero: linked (or undone), never again
 )
+
+// linkAgain: when the PC asks the server again after its answer to /link-driver (zero: never while it runs)
+func linkAgain(b []byte, now time.Time) time.Time {
+	var r struct {
+		Linked *bool `json:"linked"`
+		Undone bool  `json:"undone"`
+	}
+	if json.Unmarshal(b, &r) != nil || r.Linked == nil || *r.Linked || r.Undone {
+		return time.Time{}
+	}
+	return now.Add(6 * time.Hour)
+}
 
 // lmuDefaultNames: the names a Le Mans Ultimate profile has before its driver names it: many people share them, so
 // none is ever linked to one account
@@ -600,19 +613,19 @@ func linkOwnDriver(game, userID, name string) {
 	}
 	lk := game + "|" + k
 	linkMu.Lock()
-	if t, ok := linkDone[lk]; ok && (t.IsZero() || time.Since(t) < 5*time.Minute) {
+	if t, ok := linkNext[lk]; ok && (t.IsZero() || time.Now().Before(t)) {
 		linkMu.Unlock()
 		return
 	}
-	linkDone[lk] = time.Now()
+	linkNext[lk] = time.Now().Add(5 * time.Minute)
 	linkMu.Unlock()
 	go func() {
 		if !accountSignedIn() {
 			return
 		}
-		if _, err := commCall("POST", "/link-driver", map[string]any{"key": k, "game": game}, true); err == nil {
+		if b, err := commCall("POST", "/link-driver", map[string]any{"key": k, "game": game}, true); err == nil {
 			linkMu.Lock()
-			linkDone[lk] = time.Time{}
+			linkNext[lk] = linkAgain(b, time.Now())
 			linkMu.Unlock()
 		}
 	}()

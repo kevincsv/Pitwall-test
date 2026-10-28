@@ -280,7 +280,12 @@
   `lmuDriverID` of the player's own name, never a profile's default name such as "Player" nor one of a letter or two),
   so a driver with an account shows once on the LMU boards; admins undo one game's link (`unlink-driver` with the game,
   `driverGames` in the accounts list: "Unlink its iRacing driver", "Unlink its Le Mans Ultimate driver" on the web, the
-  PC and the phones).
+  PC and the phones). An LMU name is one anyone can type, so in every game but iRacing (`cloud/src/driverlinks.js`,
+  `linkDriver`/`unlinkDriver`) the link waits until the account's own PC saw that name at the wheel on three different
+  days (`driver_link_seen`, `LINK_DAYS`; the PC asks again some hours later, `linkAgain`), keeps what it moved
+  (`driver_link_moves`: the laps taken and dropped, the rival, the model's memory), and the admin's undo gives all of it
+  back to the rival (a lap the account improved since stays the account's) and is never linked again by itself
+  ("undone"). An iRacing undo leaves the laps where they are, as before.
 - Driver profiles show the nickname only (never the iRacing name); anonymous laps open no profile and
   never show on one (admins see them). The supporter badge comes by itself to Patreon patrons with
   the same email (`/patreon/webhook`, secret PATREON_WEBHOOK_SECRET) or by hand from the admin
@@ -504,10 +509,12 @@
   pedals' envelope, no shift speeds), its speed coming from its position. A rival's lap on a wet track carries `wet` too.
   Tyre compounds are never mixed in a reference: the memory keeps every lap's compound (`model_laps.cmp`, migration
   0066, `lapCompound`: the lap's `cmp:<n>`, 0 for an account's lap without it, -1 for a rival's whose tyres nobody
-  knows), and when a car and track have laps on several compounds each one with 5 laps or more gets its own record,
+  knows), and when a car and track have laps on several compounds each one with 5 laps or more from 3 drivers or more
+  (`CMP_MIN`, `CMP_DRIVERS`) gets its own record,
   next levels and corner card (`byCmp`, `compoundsOf`, `refsOf`); the model of every lap stays the default. A client
   asks for the compound of its lap A (`cmp` on `/community/model`, `forCompound`; `cmpOf` in pitwall-model.js, the
-  phones' `Trace.cmp`, the PC's coach and braking overlays by PlayerTireCompound) and gets that compound's references
+  phones' `Trace.cmp`, the PC's coach and braking overlays and the app's live compare and Braking markers widget by
+  PlayerTireCompound, `liveCmp`, which the laps recorded live keep as `cmp`) and gets that compound's references
   when the model has them, else every lap's; `cmps` lists the compounds it has apart. The pace among the drivers
   (`times`) is every lap's.
 - Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report

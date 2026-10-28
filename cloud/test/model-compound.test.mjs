@@ -21,6 +21,11 @@ assert.deepEqual(compoundsOf(rows([[0, 20], [null, 30]])), [], "nor laps whose c
 assert.deepEqual(compoundsOf(rows([[0, 20], [2, 6]])), [0, 2], "two compounds with enough laps each");
 assert.deepEqual(compoundsOf(rows([[0, 20], [2, 4]])), [0], "a compound with too few laps keeps to the model of every lap");
 assert.deepEqual(compoundsOf(rows([[0, 4], [1, 4], [2, 9]])), [2], "only the compounds with enough laps");
+// one driver's laps alone never give a compound references of its own (their own lap would be its next level)
+const one = (cmp, k, drv) => Array.from({ length: k }, (_, i) => ({ drv, time: 91 + i * 0.1, cmp }));
+assert.deepEqual(compoundsOf([...rows([[0, 20]]), ...one(1, 8, "solo")]), [0], "eight laps of one driver on a compound are not enough");
+assert.deepEqual(compoundsOf([...rows([[0, 20]]), ...one(1, 4, "a"), ...one(1, 4, "b")]), [0], "nor of two drivers");
+assert.deepEqual(compoundsOf([...rows([[0, 20]]), ...one(1, 2, "a"), ...one(1, 2, "b"), ...one(1, 2, "c")]), [0, 1], "three drivers with enough laps between them");
 
 // the best 3 laps of each driver, at most 80 laps
 const many = Array.from({ length: 200 }, (_, i) => ({ drv: "d" + (i % 40), time: 90 + i * 0.01 }));
