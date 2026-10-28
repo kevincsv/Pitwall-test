@@ -26,6 +26,16 @@ public partial class MainWindow : Window
     private string T(string en, string es) => Es ? es : en;
     private readonly Border[] _rpm = new Border[16];
 
+    // Pitlane HQ lives in the notification area (like Steam or Garage 61): closing the window hides it there while the
+    // engine, the overlays, the sync, the updates and the live link keep running; Quit on the icon stops everything.
+    // trayOnClose off (Settings, /api/now's "tray") closing quits as before
+    private readonly Tray _tray;
+    private bool _quitting, _stopped, _trayOnClose = true;
+    // started with Windows: hidden in the notification area from the start. The window is shown once off the screen
+    // and out of the taskbar (WPF builds the WebView only for a shown window: the page, the rev beep, must run), then
+    // hidden at once
+    private bool _hiddenStart;
+
     // the native screens; every other view is the WebView
     // every screen is the app itself (web/dist in the WebView), exactly the web: no screen is native any more (the
     // owner's choice); the native screens stay in the code, not shown
@@ -42,11 +52,24 @@ public partial class MainWindow : Window
         _poll.Tick += async (_, _) => await RefreshAsync();
         _fast.Tick += async (_, _) => await FastAsync();
         ApplyLanguage(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en");
-        if (App.StartMinimized) WindowState = WindowState.Minimized; // started with Windows
-        // an update installed by the engine: the new window starts (it waits for this one) and this one closes
+        _tray = new Tray(Tray.WindowsLanguage());
+        _tray.Open += ShowFromTray;
+        _tray.Quit += () => { Quitting(); Close(); };
+        if (App.StartMinimized)
+        {
+            _hiddenStart = true;
+            ShowInTaskbar = false;
+            ShowActivated = false;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = Top = -30000;
+        }
+        // an update installed by the engine: the new window starts (it waits for this one) and this one closes; it
+        // starts hidden in the notification area when this one was there
         _engine.Restart += path => Dispatcher.Invoke(() =>
         {
-            try { Process.Start(new ProcessStartInfo(path, $"-replace {Environment.ProcessId}") { UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? "" }); } catch { return; }
+            var args = $"-replace {Environment.ProcessId}" + (IsVisible && !_hiddenStart ? "" : " -minimized");
+            try { Process.Start(new ProcessStartInfo(path, args) { UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? "" }); } catch { return; }
+            Quitting();
             Close();
         });
     }
@@ -104,8 +127,16 @@ public partial class MainWindow : Window
     private static double D(JsonNode? n) { try { return n?.GetValue<double>() ?? 0; } catch { return double.TryParse(n?.ToString(), out var v) ? v : 0; } }
     private static bool Bo(JsonNode? n) { try { return n?.GetValue<bool>() ?? false; } catch { return false; } }
 
+    private bool _loaded;
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_loaded) return; // once: the window coming back from the notification area starts nothing again
+        _loaded = true;
+        if (_hiddenStart)
+        {
+            Hide();
+            EndHiddenStart();
+        }
         Starting.Visibility = Visibility.Visible;
         var exe = Engine.FindExe(Environment.GetCommandLineArgs().Skip(1).ToArray());
         if (exe == null)
@@ -297,7 +328,10 @@ public partial class MainWindow : Window
                 ConnDot.Fill = B("Bad");
                 return;
             }
-            var st = Status.From(await _engine.GetAsync("/api/info"), await _engine.GetAsync("/api/now"));
+            var info = await _engine.GetAsync("/api/info");
+            var now = await _engine.GetAsync("/api/now");
+            ApplyTray(now);
+            var st = Status.From(info, now);
             ConnDot.Fill = B(st.Connected ? "Good" : "Bad");
             ConnText.Text = st.Connected ? st.Game + T(" connected", " conectado") : T("Waiting for ", "Esperando a ") + st.Game;
             TrackText.Text = st.Track == "" ? "–" : st.Track;
@@ -1186,9 +1220,63 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // the close button (the page's header, Alt+F4): hidden in the notification area, everything keeps running
+        if (!_quitting && _trayOnClose && _engine.Running)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+        StopAll();
+    }
+
+    /// <summary>Quit (the icon's menu, an update's restart, Windows shutting down or signing out): the next close stops everything.</summary>
+    public void Quitting() => _quitting = true;
+
+    /// <summary>Everything stops, once: the engine (and with it the overlays, the sync, the live link) and the icon.</summary>
+    public void StopAll()
+    {
+        if (_stopped) return;
+        _stopped = true;
         _poll.Stop();
         _fast.Stop();
         _cts.Cancel();
         _engine.Dispose(); // closing the window stops the engine, like the Go window does
+        _tray.Dispose();
+    }
+
+    // what the engine says for the notification area: the app's language (empty until the page told it: Windows')
+    // and whether closing keeps Pitlane HQ there
+    private void ApplyTray(JsonNode? now)
+    {
+        if (now == null) return;
+        var lang = S(now["lang"]);
+        _tray.SetLanguage(lang == "" ? Tray.WindowsLanguage() : lang);
+        if (now["tray"] != null) _trayOnClose = Bo(now["tray"]);
+    }
+
+    // the window from the hidden start goes back where a window opens (the middle of the main screen) and to the taskbar
+    private void EndHiddenStart()
+    {
+        if (!_hiddenStart) return;
+        _hiddenStart = false;
+        var wa = SystemParameters.WorkArea;
+        Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
+        Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
+        ShowInTaskbar = true;
+        ShowActivated = true;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr h);
+
+    /// <summary>The window back from the notification area (its icon, or Pitlane HQ opened again) and in front.</summary>
+    public void ShowFromTray()
+    {
+        if (_stopped) return;
+        if (_hiddenStart) { Hide(); EndHiddenStart(); }
+        if (!IsVisible) Show();
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+        SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
     }
 }

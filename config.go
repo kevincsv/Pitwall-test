@@ -15,22 +15,25 @@ import (
 )
 
 type Config struct {
-	AutoStart        bool              `json:"autoStart"`
-	AutoWidgets      []string          `json:"autoWidgets"`
-	CloseOnExit      bool              `json:"closeOnExit"`
-	Engine           string            `json:"engine"` // "webview" (frameless) or "edge"
-	Edit             bool              `json:"edit"`
-	Alpha            int               `json:"alpha"`
-	Lock             bool              `json:"lock"`
-	Scale            float64           `json:"scale"`
-	StartWithWindows bool              `json:"startWithWindows"`
-	Positions        map[string][4]int `json:"positions"`
-	UI               map[string]any    `json:"ui"`
-	Game             string            `json:"game"` // "auto" (default), "iracing" or "lmu"
+	AutoStart        bool     `json:"autoStart"`
+	AutoWidgets      []string `json:"autoWidgets"`
+	CloseOnExit      bool     `json:"closeOnExit"`
+	Engine           string   `json:"engine"` // "webview" (frameless) or "edge"
+	Edit             bool     `json:"edit"`
+	Alpha            int      `json:"alpha"`
+	Lock             bool     `json:"lock"`
+	Scale            float64  `json:"scale"`
+	StartWithWindows bool     `json:"startWithWindows"`
+	// TrayOnClose: closing Pitlane HQ Desktop's window keeps it in the notification area (the shell reads it from
+	// /api/now); off, closing quits as before
+	TrayOnClose bool              `json:"trayOnClose"`
+	Positions   map[string][4]int `json:"positions"`
+	UI          map[string]any    `json:"ui"`
+	Game        string            `json:"game"` // "auto" (default), "iracing" or "lmu"
 }
 
 func defaultConfig() Config {
-	return Config{CloseOnExit: true, Engine: "webview", Alpha: 255, Scale: 1, Positions: map[string][4]int{}, UI: map[string]any{}}
+	return Config{CloseOnExit: true, TrayOnClose: true, Engine: "webview", Alpha: 255, Scale: 1, Positions: map[string][4]int{}, UI: map[string]any{}}
 }
 
 var (
@@ -99,7 +102,10 @@ func registerConfigRoutes(mux *http.ServeMux) {
 				http.Error(w, err.Error(), 400)
 				return
 			}
-			var in Config
+			// a page from before trayOnClose leaves it as it is
+			cfgMu.Lock()
+			in := Config{TrayOnClose: cfg.TrayOnClose}
+			cfgMu.Unlock()
 			if err := json.Unmarshal(b, &in); err != nil {
 				http.Error(w, "bad settings", 400)
 				return

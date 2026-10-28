@@ -4,6 +4,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- the icon in the notification area (Tray.cs, NotifyIcon) -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- the DPI awareness stays in app.manifest, where WPF reads it -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>PitlaneHQ.Desktop</AssemblyName>
@@ -21,6 +25,17 @@
     <Resource Include="..\..\ovfonts\*.ttf" Link="fonts\%(Filename)%(Extension)" />
     <!-- the logo in the header, rendered from assets/logo.svg -->
     <Resource Include="img\logo.png" />
+  </ItemGroup>
+
+  <!-- WPF's names stay the plain ones: Windows Forms only by its full name (Tray.cs) -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <!-- the notification area's icon, the app's own -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\pitlanehq.ico" LogicalName="pitlanehq.ico" />
   </ItemGroup>
 
   <ItemGroup>

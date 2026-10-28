@@ -199,8 +199,16 @@
   agent as its engine (`-engine`). PitlaneHQ.exe started by itself (old shortcuts, the Run entry, the updater) opens
   the window when it sits next to it (`openDesktop`, desktoplaunch*.go); it uninstalls the old preview install. The
   updater's zip is the whole app folder (`out-desktop`, sub-folders kept); in engine mode it installs by itself too
-  and says `PITLANEHQ_RESTART=` so the window starts again on the new version (`-replace <pid>`). The window is one
-  instance (`Local\PitlaneHQ.Desktop`): a second start brings it forward, never when Windows started it.
+  and says `PITLANEHQ_RESTART=` so the window starts again on the new version (`-replace <pid>`, with `-minimized`
+  when it was hidden in the notification area, so it comes back as it was). The window is one instance
+  (`Local\PitlaneHQ.Desktop`): a second start brings it forward, hidden or minimised (it sets the event
+  `Local\PitlaneHQ.Desktop.Show` the running window waits on), never when Windows started it. Pitlane HQ lives in
+  Windows' notification area like Steam or Garage 61 (`Tray.cs`, the app's icon with "Open Pitlane HQ" and "Quit" in
+  the app's language, a click opens the window, never a balloon or a toast): closing the window (the header's close,
+  Alt+F4) hides it there while the engine, the overlays, the sync, the updates and the live link keep running, and only
+  Quit on its icon (or Windows shutting down or signing out) stops everything. Settings → "Closing the window keeps
+  Pitlane HQ in the notification area" (`trayOnClose` in the agent's settings, on by default, read by the window from
+  `/api/now`; shown only in Pitlane HQ Desktop, `INFO.desktop`) turned off makes closing quit.
 - Local mode (the owner's development, `tools/local.cmd`, never a button in the app): the whole of Pitlane HQ on one PC
   without internet. The server (`cloud/`, the same code as pitlanehq.app) runs on the PC with `wrangler dev --local
   --var LOCAL:1 --test-scheduled` (database and files in `cloud/.wrangler`, `DATA_KEY` in `cloud/.dev.vars`; `LOCAL=1`:
@@ -217,8 +225,9 @@
 - The app's page takes its fonts from the program first (`/fonts.css` and `/fonts/*` from the embedded `ovfonts/`,
   `registerLocalRoutes`; on the web `fonts.css` is empty) and Google Fonts after, so with internet nothing changes
   and without it the app looks the same.
-- Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe opens minimized
-  (the window with `-minimized`) and never brings an already open window forward.
+- Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe starts Pitlane HQ
+  in the notification area (the window with `-minimized`: hidden there, nothing in the taskbar, the engine running,
+  never shown by itself) and never brings an already open window forward.
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
   matched by car, track and best lap; Anonymous or "Juan M." rivals this account shared take their whole name).
 - Wherever other drivers show (the relative and the standings in the overlays, the app and Pitlane HQ Desktop; the race
