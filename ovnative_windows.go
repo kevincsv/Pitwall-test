@@ -30,6 +30,7 @@ var (
 	ovGetDC              = user32.NewProc("GetDC")
 	ovReleaseDC          = user32.NewProc("ReleaseDC")
 	ovLoadCursor         = user32.NewProc("LoadCursorW")
+	ovIsWindowVisible    = user32.NewProc("IsWindowVisible")
 	ovCreateCompatibleDC = gdi32.NewProc("CreateCompatibleDC")
 	ovCreateDIBSection   = gdi32.NewProc("CreateDIBSection")
 	ovSelectObject       = gdi32.NewProc("SelectObject")
@@ -47,6 +48,12 @@ var nat struct {
 	old      uintptr
 	bits     unsafe.Pointer
 	bw, bh   int
+	pace     ovPace   // when it draws (ovpace.go)
+	shown    []uint32 // the picture on the screen now
+	shownAt  [5]int   // where, how big and how opaque (x, y, w, h, alpha)
+	vrAt     time.Time
+	timerMs  uintptr
+	hidden   bool
 }
 
 // runNativeOverlay opens a native overlay's window and blocks until it closes.
@@ -66,7 +73,7 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	if name == "radar" {
 		nat.st.hz = 60 // every sample the game gives
 	}
-	nat.st.varsFn = func() []string { return ovVars(name, nat.st) }
+	nat.st.varsFn = func() []string { return ovWithOnTrack(ovVars(name, nat.st)) }
 	go ovFeed(rawURL, nat.st.varsFn, nat.st)
 	cls, _ := syscall.UTF16PtrFromString("PitlaneHQOverlay")
 	title, _ := syscall.UTF16PtrFromString(overlayTitlePrefix + name)
@@ -93,14 +100,9 @@ func runNativeOverlay(name, rawURL string, x, y, w, h int) {
 	}
 	noWinBorder(hwnd, true)
 	ovPaint(hwnd)
-	ms := uintptr(33)
-	switch name {
-	case "standings":
-		ms = 100
-	case "radar": // every frame the game gives (60 a second): the cars around you where they are now
-		ms = 16
-	}
-	ovSetTimer.Call(hwnd, 1, ms, 0)
+	// the radar every frame the game gives (60 a second): the cars around you where they are now
+	nat.timerMs = ovTimerMs(name, nil)
+	ovSetTimer.Call(hwnd, 1, nat.timerMs, 0)
 	var msg [48]byte
 	for {
 		ret, _, _ := ovGetMessage.Call(uintptr(unsafe.Pointer(&msg[0])), 0, 0, 0)
@@ -123,8 +125,25 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 	switch msg {
 	case 0x0113: // WM_TIMER
 		nat.st.mu.Lock()
-		edit := nat.st.edit
+		edit, ms := nat.st.edit, ovTimerMs(nat.name, nat.st.ui)
 		nat.st.mu.Unlock()
+		// hidden (Overlays → Hide): nothing drawn, its stream closed, the timer slow until it shows again
+		vis, _, _ := ovIsWindowVisible.Call(h)
+		if hide := vis == 0; hide != nat.hidden {
+			nat.hidden = hide
+			nat.st.hidden.Store(hide)
+			nat.pace = ovPace{}
+		}
+		if nat.hidden {
+			ms = 250
+		}
+		if ms != nat.timerMs { // Overlays → Frame rate
+			nat.timerMs = ms
+			ovSetTimer.Call(h, 1, ms, 0)
+		}
+		if nat.hidden {
+			return 0
+		}
 		if edit != nat.edit || !nat.styled { // moving the overlays: it takes the mouse; otherwise every click goes to the game
 			nat.edit, nat.styled = edit, true
 			st, _, _ := procGetWindowLongPtrW.Call(h, uintptr(gwlExStyle))
@@ -135,7 +154,7 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 			}
 			procSetWindowLongPtrW.Call(h, uintptr(gwlExStyle), st)
 		}
-		ovPaint(h)
+		ovTick(h)
 		return 0
 	case 0x0084: // WM_NCHITTEST: drag it anywhere, resize it from the bottom-right corner
 		if !nat.edit {
@@ -173,6 +192,7 @@ func ovNativeProc(h, msg, wp, lp uintptr) (ret uintptr) {
 	case 0x0232: // WM_EXITSIZEMOVE
 		nat.sizing = false
 	case 0x0005: // WM_SIZE
+		nat.pace = ovPace{}
 		ovPaint(h)
 		return 0
 	case 0x0002: // WM_DESTROY
@@ -216,6 +236,14 @@ func ovBuffer(w, h int) bool {
 	old, _, _ := ovSelectObject.Call(dc, bmp)
 	nat.dc, nat.bmp, nat.old, nat.bits, nat.bw, nat.bh = dc, bmp, old, bits, w, h
 	return true
+}
+
+// ovTick: the timer's frame, drawn only when it may show something new (ovPace)
+func ovTick(hwnd uintptr) {
+	_, _, w, h := windowRect(hwnd)
+	if nat.sizing || nat.pace.due(nat.st, w, h, time.Now()) {
+		ovPaint(hwnd)
+	}
 }
 
 // ovPaint draws a frame and hands it to Windows with its alpha; the window takes the height the overlay needs
@@ -263,7 +291,20 @@ func ovPaint(hwnd uintptr) {
 	if alpha < 40 || alpha > 255 {
 		alpha = 255
 	}
-	defer vrFrame(nat.name, unsafe.Slice((*uint32)(nat.bits), w*h), x, y, w, h, int(alpha), ui) // and in the headset, with VR on
+	px := unsafe.Slice((*uint32)(nat.bits), w*h)
+	// the same picture at the same place as the one on the screen: Windows is not asked to compose it again
+	at := [5]int{x, y, w, h, int(alpha)}
+	same := at == nat.shownAt && samePixels(px, nat.shown)
+	nat.pace.done(nat.st, w, h, now, same)
+	if same && !nat.sizing {
+		if now.Sub(nat.vrAt) >= 500*time.Millisecond { // the headset still hears from it now and then (SteamVR's events)
+			nat.vrAt = now
+			vrFrame(nat.name, px, x, y, w, h, int(alpha), ui)
+		}
+		return
+	}
+	nat.shown, nat.shownAt, nat.vrAt = append(nat.shown[:0], px...), at, now
+	defer vrFrame(nat.name, px, x, y, w, h, int(alpha), ui) // and in the headset, with VR on
 	pt, src, size := [2]int32{int32(x), int32(y)}, [2]int32{0, 0}, [2]int32{int32(w), int32(h)}
 	blend := uint32(0x01000000) | uint32(alpha)<<16 // AC_SRC_OVER, the overlays' opacity, AC_SRC_ALPHA
 	// with the position and the size, this also moves and resizes the window; while Windows itself drags or resizes

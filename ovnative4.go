@@ -73,6 +73,7 @@ type ovExtra struct {
 	pending  *ovLap // a lap just finished: its time comes with the next frames (LapLastLapTime)
 	pendAt   time.Time
 	mapKey   string
+	mapLayer mapLayer // the map overlay's still part, drawn once per window size and track
 	mapX     []float64
 	mapY     []float64
 	turnsKey string
@@ -467,10 +468,10 @@ func drawLapOv(name string, c *ovCanvas, st *ovState, z float64, now time.Time) 
 func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	W, H := float64(c.w), float64(c.h)
 	st.loadMap()
-	panel(c, H, z)
 	X, Y := st.ext.mapX, st.ext.mapY
 	nf := ovFace(fkBody, 13*z)
 	if len(X) < 10 {
+		panel(c, H, z)
 		c.text(nf, st.T("Waiting for the track…", "Esperando el circuito…"), W/2, H/2, colMuted, 1, 2)
 		return 0
 	}
@@ -484,80 +485,89 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	ox, oy := (W-(mxx-mnx)*sc)/2, (H-(mxy-mny)*sc)/2
 	P := func(x, y float64) (float64, float64) { return ox + (x-mnx)*sc, H - (oy + (y-mny)*sc) }
 	N := len(X)
-	// the track: a wide dark band and a lighter one inside, like the app
-	step := 1
-	if N > 600 {
-		step = N / 600
-	}
-	for pass, w := range []float64{14 * z, 9 * z} {
-		col := uint32(colLine)
-		if pass == 1 {
-			col = colSurf2
-		}
-		for i := 0; i < N; i += step {
-			j := (i + step) % N
-			x0, y0 := P(X[i], Y[i])
-			x1, y1 := P(X[j], Y[j])
-			c.line(x0, y0, x1, y1, w, col, 1)
-		}
-	}
-	// the pit lane beside the track, dashed, like iRacing's map; the cars on the pit road are drawn on it
-	// the start line
-	if N > 4 {
-		sx, sy := P(X[0], Y[0])
-		tx, ty := P(X[3], Y[3])
-		a := math.Atan2(ty-sy, tx-sx) + math.Pi/2
-		c.line(sx+math.Cos(a)*9*z, sy+math.Sin(a)*9*z, sx-math.Cos(a)*9*z, sy-math.Sin(a)*9*z, 3*z, colText, 1)
-		// the way the cars go, like iRacing's maps: an arrow beside the line, on the outside of the track
-		if N > 20 {
-			qx, qy := P(X[max(2, N/60)], Y[max(2, N/60)])
-			ux, uy := qx-sx, qy-sy
-			m := math.Max(math.Hypot(ux, uy), 1e-6)
-			ux, uy = ux/m, uy/m
-			nx, ny := -uy, ux
-			if (sx-W/2)*nx+(sy-H/2)*ny < 0 {
-				nx, ny = -nx, -ny
-			}
-			bx, by := sx+nx*15*z, sy+ny*15*z
-			tx, ty := bx+ux*20*z, by+uy*20*z
-			h := 7 * z
-			c.line(bx, by, tx-ux*h, ty-uy*h, 2.6*z, colBad, 1)
-			c.line(tx, ty, tx-ux*h+nx*h*.6, ty-uy*h+ny*h*.6, 2.6*z, colBad, 1)
-			c.line(tx, ty, tx-ux*h-nx*h*.6, ty-uy*h-ny*h*.6, 2.6*z, colBad, 1)
-		}
-	}
-	// the sectors: a short bar across the track where each one starts (the first is the line)
-	if len(st.ses.Sectors) >= 2 {
-		sf := ovFace(fkData, 9*z)
-		for k, f := range st.ses.Sectors[1:] {
-			i := int(math.Floor(f*float64(N))) % N
-			i0, i1 := (i-2+N)%N, (i+2)%N
-			x0, y0 := P(X[i0], Y[i0])
-			x1, y1 := P(X[i1], Y[i1])
-			a := math.Atan2(y1-y0, x1-x0) + math.Pi/2
-			px, py := P(X[i], Y[i])
-			c.line(px+math.Cos(a)*8*z, py+math.Sin(a)*8*z, px-math.Cos(a)*8*z, py-math.Sin(a)*8*z, 2*z, colMuted, 0.9)
-			c.text(sf, "S"+strconv.Itoa(k+2), px-math.Cos(a)*14*z, py-math.Sin(a)*14*z, colMuted, 0.9, 2)
-		}
-	}
-	// the official turns, numbered on the outside of the track
 	st.loadTurns()
-	if len(st.ext.turns) > 0 {
-		cxm, cym := 0.0, 0.0
-		for i := range X {
-			cxm += X[i]
-			cym += Y[i]
+	// the panel, the track, its line, arrow, sectors and turns change only with the window or the track: drawn once,
+	// then copied under the cars every frame (the same pixels)
+	key := mapLayerKey{w: c.w, h: c.h, z: z, x: &X[0], y: &Y[0], n: N, ny: len(Y), ses: st.ses, turns: st.ext.turns}
+	if L := &st.ext.mapLayer; L.ok && L.key.same(key) && len(L.px) == len(c.px) {
+		copy(c.px, L.px)
+	} else {
+		panel(c, H, z)
+		// the track: a wide dark band and a lighter one inside, like the app
+		step := 1
+		if N > 600 {
+			step = N / 600
 		}
-		cxm, cym = cxm/float64(N), cym/float64(N)
-		tf := ovFace(fkDataB, 9.5*z)
-		for k, f := range st.ext.turns {
-			i := int(math.Floor(f*float64(N))) % N
-			px, py := P(X[i], Y[i])
-			ox, oy := P(cxm, cym)
-			dx, dy := px-ox, py-oy
-			m := math.Max(math.Hypot(dx, dy), 1e-6)
-			c.text(tf, "T"+strconv.Itoa(k+1), px+dx/m*15*z, py+dy/m*15*z, colMuted, 1, 2)
+		for pass, w := range []float64{14 * z, 9 * z} {
+			col := uint32(colLine)
+			if pass == 1 {
+				col = colSurf2
+			}
+			for i := 0; i < N; i += step {
+				j := (i + step) % N
+				x0, y0 := P(X[i], Y[i])
+				x1, y1 := P(X[j], Y[j])
+				c.line(x0, y0, x1, y1, w, col, 1)
+			}
 		}
+		// the pit lane beside the track, dashed, like iRacing's map; the cars on the pit road are drawn on it
+		// the start line
+		if N > 4 {
+			sx, sy := P(X[0], Y[0])
+			tx, ty := P(X[3], Y[3])
+			a := math.Atan2(ty-sy, tx-sx) + math.Pi/2
+			c.line(sx+math.Cos(a)*9*z, sy+math.Sin(a)*9*z, sx-math.Cos(a)*9*z, sy-math.Sin(a)*9*z, 3*z, colText, 1)
+			// the way the cars go, like iRacing's maps: an arrow beside the line, on the outside of the track
+			if N > 20 {
+				qx, qy := P(X[max(2, N/60)], Y[max(2, N/60)])
+				ux, uy := qx-sx, qy-sy
+				m := math.Max(math.Hypot(ux, uy), 1e-6)
+				ux, uy = ux/m, uy/m
+				nx, ny := -uy, ux
+				if (sx-W/2)*nx+(sy-H/2)*ny < 0 {
+					nx, ny = -nx, -ny
+				}
+				bx, by := sx+nx*15*z, sy+ny*15*z
+				tx, ty := bx+ux*20*z, by+uy*20*z
+				h := 7 * z
+				c.line(bx, by, tx-ux*h, ty-uy*h, 2.6*z, colBad, 1)
+				c.line(tx, ty, tx-ux*h+nx*h*.6, ty-uy*h+ny*h*.6, 2.6*z, colBad, 1)
+				c.line(tx, ty, tx-ux*h-nx*h*.6, ty-uy*h-ny*h*.6, 2.6*z, colBad, 1)
+			}
+		}
+		// the sectors: a short bar across the track where each one starts (the first is the line)
+		if len(st.ses.Sectors) >= 2 {
+			sf := ovFace(fkData, 9*z)
+			for k, f := range st.ses.Sectors[1:] {
+				i := int(math.Floor(f*float64(N))) % N
+				i0, i1 := (i-2+N)%N, (i+2)%N
+				x0, y0 := P(X[i0], Y[i0])
+				x1, y1 := P(X[i1], Y[i1])
+				a := math.Atan2(y1-y0, x1-x0) + math.Pi/2
+				px, py := P(X[i], Y[i])
+				c.line(px+math.Cos(a)*8*z, py+math.Sin(a)*8*z, px-math.Cos(a)*8*z, py-math.Sin(a)*8*z, 2*z, colMuted, 0.9)
+				c.text(sf, "S"+strconv.Itoa(k+2), px-math.Cos(a)*14*z, py-math.Sin(a)*14*z, colMuted, 0.9, 2)
+			}
+		}
+		// the official turns, numbered on the outside of the track
+		if len(st.ext.turns) > 0 {
+			cxm, cym := 0.0, 0.0
+			for i := range X {
+				cxm += X[i]
+				cym += Y[i]
+			}
+			cxm, cym = cxm/float64(N), cym/float64(N)
+			tf := ovFace(fkDataB, 9.5*z)
+			for k, f := range st.ext.turns {
+				i := int(math.Floor(f*float64(N))) % N
+				px, py := P(X[i], Y[i])
+				ox, oy := P(cxm, cym)
+				dx, dy := px-ox, py-oy
+				m := math.Max(math.Hypot(dx, dy), 1e-6)
+				c.text(tf, "T"+strconv.Itoa(k+1), px+dx/m*15*z, py+dy/m*15*z, colMuted, 1, 2)
+			}
+		}
+		L.key, L.px, L.ok = key, append(L.px[:0], c.px...), true
 	}
 	// the cars: you in amber, a lap ahead red, a lap behind blue, the rest light (their class's colour when several
 	// classes race); their place inside
@@ -2244,4 +2254,27 @@ func drawCoachBig(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead
 		c.text(ovFace(fkBody, 14*z), st.T("No tip yet", "Sin consejo todavía"), pad, cy, colMuted, 1, 0)
 	}
 	return int(math.Ceil(H))
+}
+
+// the map overlay's still picture (the panel and the track), kept with what it was drawn from
+type mapLayer struct {
+	key mapLayerKey
+	px  []uint32
+	ok  bool
+}
+
+type mapLayerKey struct {
+	w, h  int
+	z     float64
+	x, y  *float64
+	n, ny int
+	ses   *ovSession
+	turns []float64
+}
+
+func (a mapLayerKey) same(b mapLayerKey) bool {
+	if a.w != b.w || a.h != b.h || a.z != b.z || a.x != b.x || a.y != b.y || a.n != b.n || a.ny != b.ny || a.ses != b.ses || len(a.turns) != len(b.turns) {
+		return false
+	}
+	return len(a.turns) == 0 || &a.turns[0] == &b.turns[0]
 }

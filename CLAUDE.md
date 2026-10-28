@@ -730,7 +730,14 @@
   the same values), the session text is read by scanning (`yamlField`/`listItem`, never a regexp compiled per call),
   the LMU frame decodes a car's texts only when they change, the stream's frame and the LMU frame allocate nothing once
   warm, the lap recorder and the field watcher only as their laps grow, and an overlay a few lists of numbers per frame
-  (`perf_bench_test.go` measures them, `go test -run '^$' -bench . -benchmem`). The relative always has the rows you chose ahead and behind (empty when no car).
+  (`perf_bench_test.go` measures them, `go test -run '^$' -bench . -benchmem`). An overlay draws and pushes to the screen
+  only what changed (`ovpace.go`: a frame with the same values, settings and a still picture is not drawn again, a
+  picture the same as the one on the screen is never handed to UpdateLayeredWindow again, off the track or with no game
+  four draws a second, at once at its full rate back on the track, a hidden overlay closes its stream), its shapes skip
+  the per-pixel distance where the answer is known and the text's glyphs and widths are kept (`textMask`, `ovWidths`),
+  the map's still part is drawn once per size and track (`mapLayer`), always the same pixels as before
+  (`TestOverlayShapesSameAsBefore`, `TestOverlaysRedrawTheSame`; `ovbench_test.go` measures every overlay's draw), and
+  Overlays → More → Frame rate (30 by default, 20, 15 or 10 a second, `ui.ovfps`; the radar twice it) lowers it. The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside

@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/image/font"
@@ -63,51 +64,174 @@ func (c *ovCanvas) blend(x, y int, col uint32, a float64) {
 	if x < 0 || y < 0 || x >= c.w || y >= c.h || a <= 0 {
 		return
 	}
+	i := y*c.w + x
+	c.px[i] = blendPx(c.px[i], col, a)
+}
+
+// blendPx: colour col with alpha a (over 0) painted over the pixel d, rounded as it always was
+func blendPx(d, col uint32, a float64) uint32 {
 	if a > 1 {
 		a = 1
 	}
-	i := y*c.w + x
-	d := c.px[i]
 	inv := 1 - a
-	ch := func(s uint32) uint32 {
-		v := float64((col>>s)&0xff)*a + float64((d>>s)&0xff)*inv
-		if v > 255 {
-			v = 255
-		}
-		return uint32(v + 0.5)
+	r := float64((col>>16)&0xff)*a + float64((d>>16)&0xff)*inv
+	if r > 255 {
+		r = 255
+	}
+	g := float64((col>>8)&0xff)*a + float64((d>>8)&0xff)*inv
+	if g > 255 {
+		g = 255
+	}
+	b := float64(col&0xff)*a + float64(d&0xff)*inv
+	if b > 255 {
+		b = 255
 	}
 	na := a*255 + float64(d>>24)*inv
 	if na > 255 {
 		na = 255
 	}
-	c.px[i] = uint32(na+0.5)<<24 | ch(16)<<16 | ch(8)<<8 | ch(0)
+	return uint32(na+0.5)<<24 | uint32(r+0.5)<<16 | uint32(g+0.5)<<8 | uint32(b+0.5)
+}
+
+// pxBlender paints one colour over many pixels, remembering the last answer: the pixels of a shape are mostly the
+// same pixel under the same alpha, so most of them cost a comparison (the result is blendPx's, bit for bit)
+type pxBlender struct {
+	col     uint32
+	lastD   uint32
+	lastA   float64
+	lastOut uint32
+	has     bool
+	px      []uint32
+	w, h    int
+}
+
+func (b *pxBlender) at(x, y int, a float64) {
+	if x < 0 || y < 0 || x >= b.w || y >= b.h || a <= 0 {
+		return
+	}
+	b.atI(y*b.w+x, a)
+}
+
+// span: atI for the pixels i0..i1 under one alpha
+func (b *pxBlender) span(i0, i1 int, a float64) {
+	if b.has && a != b.lastA {
+		b.has = false
+	}
+	px := b.px[i0 : i1+1]
+	for k, d := range px {
+		if !b.has || d != b.lastD {
+			b.lastD, b.lastA, b.lastOut, b.has = d, a, blendPx(d, b.col, a), true
+		}
+		px[k] = b.lastOut
+	}
+}
+
+// atI: at for a pixel known to be on the canvas (by its index) and an alpha over 0
+func (b *pxBlender) atI(i int, a float64) {
+	d := b.px[i]
+	if b.has && d == b.lastD && a == b.lastA {
+		b.px[i] = b.lastOut
+		return
+	}
+	out := blendPx(d, b.col, a)
+	b.lastD, b.lastA, b.lastOut, b.has = d, a, out, true
+	b.px[i] = out
+}
+
+func (c *ovCanvas) blender(col uint32) pxBlender {
+	return pxBlender{col: col, px: c.px, w: c.w, h: c.h}
 }
 
 func clamp01(v float64) float64 { return math.Max(0, math.Min(1, v)) }
+
+// cov: clamp01 for an alpha that only goes to blend (a −0 there is a 0: nothing is painted either way)
+func cov(v float64) float64 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+// rowSpan clips a shape's pixel loop to the canvas (the pixels outside were never painted)
+func (c *ovCanvas) rowSpan(p0, p1 int) (int, int) { return max(p0, 0), min(p1, c.w-1) }
+func (c *ovCanvas) colSpan(p0, p1 int) (int, int) { return max(p0, 0), min(p1, c.h-1) }
 
 // roundRect fills (and outlines) a rounded rectangle with smooth edges; x, y is its top-left corner
 func (c *ovCanvas) roundRect(x, y, w, h, rad float64, fill uint32, fa float64, stroke uint32, sa, lw float64) {
 	cx, cy := x+w/2, y+h/2
 	rad = math.Min(rad, math.Min(w, h)/2)
 	hx, hy := w/2-rad, h/2-rad
-	for py := int(y - lw - 1); py <= int(y+h+lw+1); py++ {
-		for px := int(x - lw - 1); px <= int(x+w+lw+1); px++ {
-			qx, qy := math.Abs(float64(px)+0.5-cx)-hx, math.Abs(float64(py)+0.5-cy)-hy
-			d := math.Hypot(math.Max(qx, 0), math.Max(qy, 0)) + math.Min(math.Max(qx, qy), 0) - rad
-			if fa > 0 {
-				c.blend(px, py, fill, fa*clamp01(0.5-d))
+	fb, sb := c.blender(fill), c.blender(stroke)
+	doStroke := sa > 0 && lw > 0
+	py0, py1 := c.colSpan(int(y-lw-1), int(y+h+lw+1))
+	px0, px1 := c.rowSpan(int(x-lw-1), int(x+w+lw+1))
+	// deep inside (d ≤ −0.5, and the outline 0 there) every pixel takes the fill's whole alpha: no distance needed
+	in := rad - 0.51
+	if doStroke {
+		in = math.Min(in, rad-0.51-lw)
+	}
+	for py := py0; py <= py1; py++ {
+		qy := math.Abs(float64(py)+0.5-cy) - hy
+		row := py * c.w
+		deep := func(px int) bool {
+			qx := math.Abs(float64(px)+0.5-cx) - hx
+			return qx <= in && qy <= in && (qx <= 0 || qy <= 0)
+		}
+		// the deep pixels of a row are one run (qx falls, then rises): found from both ends, filled in one go
+		s0, s1 := px0, px1
+		for s0 <= px1 && !deep(s0) {
+			s0++
+		}
+		for s1 >= s0 && !deep(s1) {
+			s1--
+		}
+		if s0 <= s1 && fa > 0 {
+			fb.span(row+s0, row+s1, fa)
+		}
+		for px := px0; px <= px1; px++ {
+			if px == s0 && s0 <= s1 {
+				px = s1
+				continue
 			}
-			if sa > 0 && lw > 0 {
-				c.blend(px, py, stroke, sa*clamp01(math.Min(0.5-d, 0.5+d+lw)))
+			qx := math.Abs(float64(px)+0.5-cx) - hx
+			// the distance to the edge, as hypot(max(qx,0), max(qy,0)) + min(max(qx,qy),0) - rad gives it
+			var d float64
+			switch {
+			case qx > 0 && qy > 0:
+				d = math.Hypot(qx, qy) - rad
+			case qx > 0:
+				d = qx - rad
+			case qy > 0:
+				d = qy - rad
+			case qx > qy:
+				d = qx - rad
+			default:
+				d = qy - rad
+			}
+			if fa > 0 {
+				fb.at(px, py, fa*cov(0.5-d))
+			}
+			if doStroke {
+				e := 0.5 - d
+				if o := 0.5 + d + lw; o < e {
+					e = o
+				}
+				sb.at(px, py, sa*cov(e))
 			}
 		}
 	}
 }
 
 func (c *ovCanvas) rect(x, y, w, h float64, col uint32, a float64) {
-	for py := int(math.Floor(y)); py < int(math.Ceil(y+h)); py++ {
-		for px := int(math.Floor(x)); px < int(math.Ceil(x+w)); px++ {
-			c.blend(px, py, col, a)
+	b := c.blender(col)
+	py0, py1 := c.colSpan(int(math.Floor(y)), int(math.Ceil(y+h))-1)
+	px0, px1 := c.rowSpan(int(math.Floor(x)), int(math.Ceil(x+w))-1)
+	for py := py0; py <= py1; py++ {
+		for px := px0; px <= px1; px++ {
+			b.at(px, py, a)
 		}
 	}
 }
@@ -145,9 +269,14 @@ const (
 var (
 	ovFontsOnce sync.Once
 	ovFonts     [6]*opentype.Font
-	ovFaces     = map[string]font.Face{}
+	ovFaces     = map[ovFaceKey]font.Face{}
 	ovFacesMu   sync.Mutex
 )
+
+type ovFaceKey struct {
+	kind int
+	px   float64
+}
 
 func ovFace(kind int, px float64) font.Face {
 	ovFontsOnce.Do(func() {
@@ -156,7 +285,7 @@ func ovFace(kind int, px float64) font.Face {
 		}
 	})
 	px = math.Max(6, math.Round(px*4)/4)
-	key := fmt.Sprint(kind, px)
+	key := ovFaceKey{kind, px}
 	ovFacesMu.Lock()
 	defer ovFacesMu.Unlock()
 	if f, ok := ovFaces[key]; ok {
@@ -181,9 +310,27 @@ func textWT(f font.Face, s string, track float64) float64 {
 	if f == nil || s == "" {
 		return 0
 	}
+	k := ovWidthKey{f, s}
+	ovTextMu.Lock()
+	adv, ok := ovWidths[k]
+	if !ok { // measuring walks the font's kerning tables for every pair: done once per text and face
+		adv = font.MeasureString(f, s)
+		if len(ovWidths) >= ovWidthCacheMax {
+			clear(ovWidths)
+		}
+		ovWidths[k] = adv
+	}
+	ovTextMu.Unlock()
 	n := len([]rune(s))
-	return float64(font.MeasureString(f, s))/64 + track*float64(n-1)
+	return float64(adv)/64 + track*float64(n-1)
 }
+
+type ovWidthKey struct {
+	f font.Face
+	s string
+}
+
+var ovWidths = map[ovWidthKey]fixed.Int26_6{}
 
 // text draws s with its left edge at x and its vertical middle at cy; align: 0 left, 1 right (x is the right edge), 2 centre
 func (c *ovCanvas) text(f font.Face, s string, x, cy float64, col uint32, a float64, align int) {
@@ -210,10 +357,67 @@ func (c *ovCanvas) textT(f font.Face, s string, x, cy float64, col uint32, a flo
 		capH = asc * 0.7
 	}
 	base := cy + capH/2
-	mask := image.NewAlpha(image.Rect(0, 0, int(w)+6, int(asc+desc)+6))
 	// the fraction of a pixel is kept, so the letters land where they should (smooth at any size)
 	fx, fy := x-math.Floor(x), base-math.Floor(base)
-	d := font.Drawer{Dst: mask, Src: image.Opaque, Face: f, Dot: fixed.Point26_6{X: fixed.Int26_6((2 + fx) * 64), Y: fixed.Int26_6((math.Ceil(asc) + 2 + fy) * 64)}}
+	dot := fixed.Point26_6{X: fixed.Int26_6((2 + fx) * 64), Y: fixed.Int26_6((math.Ceil(asc) + 2 + fy) * 64)}
+	mask := textMask(f, s, track, dot, int(w)+6, int(asc+desc)+6)
+	ox, oy := int(math.Floor(x))-2, int(math.Floor(base))-int(math.Ceil(asc))-2
+	bl := c.blender(col)
+	for yy := 0; yy < mask.h; yy++ {
+		row := mask.pix[yy*mask.w : (yy+1)*mask.w]
+		for xx, v := range row {
+			if v > 0 {
+				// a touch more coverage, as Windows draws light text on dark
+				bl.at(ox+xx, oy+yy, a*covPow[v])
+			}
+		}
+	}
+}
+
+// covPow: a glyph's coverage v as it is painted, math.Pow(v/255, 0.85)
+var covPow = func() (t [256]float64) {
+	for v := range t {
+		t[v] = math.Pow(float64(v)/255, 0.85)
+	}
+	return
+}()
+
+// a text's coverage, drawn once: the overlays write the same labels and numbers frame after frame, at the same
+// fraction of a pixel, so the glyphs are rasterised only when the text, its face or its position's fraction change
+type ovTextKey struct {
+	f     font.Face
+	s     string
+	track float64
+	dot   fixed.Point26_6
+	w, h  int
+}
+
+type ovTextMask struct {
+	pix  []byte
+	w, h int
+}
+
+var (
+	ovTextMu    sync.Mutex
+	ovTextCache = map[ovTextKey]*ovTextMask{}
+)
+
+const (
+	ovTextCacheMax  = 1024 // texts drawn (a few hundred kB)
+	ovWidthCacheMax = 4096 // widths measured
+)
+
+func textMask(f font.Face, s string, track float64, dot fixed.Point26_6, w, h int) *ovTextMask {
+	k := ovTextKey{f, s, track, dot, w, h}
+	ovTextMu.Lock()
+	m := ovTextCache[k]
+	ovTextMu.Unlock()
+	if m != nil {
+		return m
+	}
+	img := image.NewAlpha(image.Rect(0, 0, w, h))
+	d := font.Drawer{Dst: img, Src: image.Opaque, Face: f, Dot: dot}
+	ovTextMu.Lock() // a face is not safe to draw with from two goroutines
 	if track == 0 {
 		d.DrawString(s)
 	} else {
@@ -222,16 +426,17 @@ func (c *ovCanvas) textT(f font.Face, s string, x, cy float64, col uint32, a flo
 			d.Dot.X += fixed.Int26_6(track * 64)
 		}
 	}
-	ox, oy := int(math.Floor(x))-2, int(math.Floor(base))-int(math.Ceil(asc))-2
-	b := mask.Bounds()
-	for yy := 0; yy < b.Dy(); yy++ {
-		for xx := 0; xx < b.Dx(); xx++ {
-			if v := mask.Pix[yy*mask.Stride+xx]; v > 0 {
-				// a touch more coverage, as Windows draws light text on dark
-				c.blend(ox+xx, oy+yy, col, a*math.Pow(float64(v)/255, 0.85))
-			}
-		}
+	b := img.Bounds()
+	m = &ovTextMask{w: b.Dx(), h: b.Dy(), pix: make([]byte, b.Dx()*b.Dy())}
+	for yy := 0; yy < m.h; yy++ {
+		copy(m.pix[yy*m.w:(yy+1)*m.w], img.Pix[yy*img.Stride:yy*img.Stride+m.w])
 	}
+	if len(ovTextCache) >= ovTextCacheMax {
+		clear(ovTextCache)
+	}
+	ovTextCache[k] = m
+	ovTextMu.Unlock()
+	return m
 }
 
 // ellipsis shortens s to fit w pixels
@@ -328,6 +533,10 @@ type ovState struct {
 	units   string             // "metric" or "imperial", as the app
 	clearAt time.Time          // radar: since when nobody has been near
 	hz      int                // the stream's samples a second (30, the radar 60)
+	dataSeq uint64             // a frame with other values than the one before arrived (ovPace)
+	cfgSeq  uint64             // the settings, the session or the driver changed (ovPace)
+	lastV   string             // the values of the last frame, as the stream wrote them
+	hidden  atomic.Bool        // the window is hidden: its stream is closed until it shows again
 	radLat  map[int]float64    // radar: each car's place across (−1 left … 1 right), eased from frame to frame
 	radSide map[int]float64    // radar: the side each car was last seen on
 	radDm   map[int][2]float64 // radar: each car's distance ahead (m) and how fast it changes (m/s), filtered
@@ -626,6 +835,9 @@ func ovFeed(rawURL string, vars func() []string, st *ovState) {
 	st.client, st.base = client, base
 	st.mu.Unlock()
 	for {
+		for st.hidden.Load() { // a hidden overlay reads nothing
+			time.Sleep(250 * time.Millisecond)
+		}
 		want := strings.Join(vars(), ",")
 		st.mu.Lock()
 		st.varsKey = want
@@ -665,7 +877,7 @@ func ovRead(resp *http.Response, st *ovState) {
 		case line == "":
 			st.event(ev, data, &fields)
 			ev, data = "", ""
-			if st.wantsOther() { // the overlay now shows other values: ask again
+			if st.wantsOther() || st.hidden.Load() { // the overlay now shows other values (ask again), or it was hidden
 				return
 			}
 		}
@@ -690,6 +902,11 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 				st.frame[n] = f.V[i]
 			}
 		}
+		// the frame's tick aside, the same values as the frame before draw the same picture
+		if v := frameValues(data); v != st.lastV || v == "" {
+			st.lastV = v
+			st.dataSeq++
+		}
 		st.at = time.Now()
 		st.countPits()
 		st.collect()
@@ -701,6 +918,7 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		ses := parseOvSession(y)
 		st.mu.Lock()
 		st.ses = ses
+		st.cfgSeq++
 		st.mu.Unlock()
 	case "schema":
 		var vars []struct{ Name, Unit string }
@@ -711,6 +929,7 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		for _, v := range vars {
 			st.unitOf[v.Name] = v.Unit
 		}
+		st.cfgSeq++
 		st.mu.Unlock()
 	case "driver": // DRINKS mode: who is at the wheel now
 		var d struct {
@@ -722,6 +941,7 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		}
 		st.mu.Lock()
 		st.ext.drinks, st.ext.driver = d.On, d.Name
+		st.cfgSeq++
 		st.mu.Unlock()
 	case "config":
 		var c struct {
@@ -746,6 +966,7 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		if c.Config.UI != nil {
 			st.ui = c.Config.UI
 		}
+		st.cfgSeq++
 		st.mu.Unlock()
 	}
 }
@@ -1030,8 +1251,8 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 	defer st.mu.Unlock()
 	z := math.Max(0.5, math.Min(2.5, float64(c.w)/ovDesign[name]))
 	fresh := now.Sub(st.at) < 2*time.Second
-	if !fresh { // no data from the game: the overlay waits, empty, without old values
-		st.frame = map[string]json.RawMessage{}
+	if !fresh && len(st.frame) > 0 { // no data from the game: the overlay waits, empty, without old values
+		clear(st.frame)
 	}
 	var h int
 	switch name {
