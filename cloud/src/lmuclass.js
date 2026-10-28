@@ -13,8 +13,8 @@ const NAMED = [
 // migration's CASE
 const BY_CAR = [
   [/gt3/i, "LMGT3"],
-  [/gte|rsr|c8\.r/i, "LMGTE"],
-  [/499p|963|gr010|9x8|v-series\.r|m hybrid|a424|sc63|scg ?007|vanwall|tipo ?6|valkyrie|hypercar|lmdh|lmh/i, "Hypercar"],
+  [/gte|rsr|c8\.r|vantage amr/i, "LMGTE"],
+  [/499p|963|gr010|9x8|v-series\.r|m hybrid|a424|sc63|scg ?007|vanwall|vandervell|isotta|tipo ?6|valkyrie|hypercar|lmdh|lmh/i, "Hypercar"],
   [/oreca|lmp2/i, "LMP2"],
   [/ligier|ginetta|duqueine|lmp3/i, "LMP3"],
 ];

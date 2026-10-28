@@ -27,6 +27,9 @@ assert.equal(lmuClass(null, "Ferrari 499P"), "Hypercar");
 assert.equal(lmuClass(null, "Oreca 07 Gibson"), "LMP2");
 assert.equal(lmuClass(null, "Ligier JS P325"), "LMP3");
 assert.equal(lmuClass(null, "Porsche 911 RSR-19"), "LMGTE");
+assert.equal(lmuClass(null, "Aston Martin Vantage AMR"), "LMGTE");
+assert.equal(lmuClass(null, "Aston Martin Vantage AMR LMGT3"), "LMGT3");
+assert.equal(lmuClass(null, "Isotta Fraschini Tipo6-C"), "Hypercar");
 assert.equal(lmuClass(null, "Some new car"), null, "an unknown car has no class");
 assert.equal(lmuClass("Fun<cup>!", "Some new car"), "Fun cup", "a class of its own, letters, digits and spaces only");
 assert.equal(clsParam("LMGT3"), "LMGT3");
@@ -55,10 +58,12 @@ lap("5", "o:d", "lmu", 5, 14, "McLaren 720S LMGT3 Evo", 99.9, "model"); // hidde
 lap("6", "o:d", "lmu", 6, 14, "McLaren 720S LMGT3 Evo", 101.0); // another track
 lap("7", "c", "iracing", 5, 10, "BMW M4 GT3", 95.0); // iRacing has no class
 lap("8", "b", "lmu", 5, 15, "Mystery Car", 98.0);
+lap("9", "c", "lmu", 7, 16, "Aston Martin Vantage AMR", 98.0);
+lap("10", "c", "lmu", 7, 17, "Isotta Fraschini Tipo6-C", 98.0);
 
 db.exec(readFileSync(new URL("../migrations/0071_lmu_class_wet.sql", import.meta.url), "utf8"));
 const cls = Object.fromEntries(db.prepare("SELECT id, cls FROM community_laps").all().map((x) => [x.id, x.cls]));
-assert.deepEqual(cls, { 1: "LMGT3", 2: "LMGT3", 3: "LMGT3", 4: "Hypercar", 5: "LMGT3", 6: "LMGT3", 7: null, 8: null }, "the laps of before take their class from the car");
+assert.deepEqual(cls, { 1: "LMGT3", 2: "LMGT3", 3: "LMGT3", 4: "Hypercar", 5: "LMGT3", 6: "LMGT3", 7: null, 8: null, 9: "LMGTE", 10: "Hypercar" }, "the laps of before take their class from the car");
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM community_laps WHERE wet IS NOT NULL").get().n, 0, "the laps of before are dry");
 // the migration's CASE and lmuClass agree on the laps of before
 for (const r of db.prepare("SELECT car, cls FROM community_laps WHERE game='lmu'").all()) assert.equal(lmuClass(null, r.car), r.cls, r.car);
