@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 	"testing"
 )
@@ -14,6 +15,7 @@ type fieldSim struct {
 	speed   func(lap int, d float64) float64 // the true speed (m/s) at lap distance d of that lap (the first is 1)
 	noise   func(k int) float64              // metres added to the position the game reports at sample k
 	lag     bool                             // the game's position a frame late
+	hold    int                              // the game moves the car's position every hold frames and holds it in between (0, 1: every frame)
 	gear    func(v float64) int              // nil: the game gives no gear
 	ratio   []float64                        // speed per rpm by gear (index = gear); nil: no revs
 	steer   func(d float64) float64          // nil: no steering
@@ -51,7 +53,7 @@ func (m *fieldSim) run(laps int) {
 	m.cross = []float64{fieldSimT0}
 	m.marks = [][2]float64{{0, 0}}
 	var tail float64
-	prevPct := 0.0
+	prevPct, heldPct := 0.0, 0.0
 	for {
 		t := fieldSimT0 + float64(k)*dt
 		if lap > laps {
@@ -76,6 +78,12 @@ func (m *fieldSim) run(laps int) {
 		rep := pct
 		if m.lag {
 			rep, prevPct = prevPct, pct
+		}
+		if m.hold > 1 {
+			if k%m.hold == 0 {
+				heldPct = rep
+			}
+			rep = heldPct
 		}
 		s.pct, s.lap, s.last, s.best = []float64{rep}, []float64{float64(lap)}, []float64{last}, []float64{best}
 		surf := 3.0
@@ -275,6 +283,98 @@ func TestFieldRPMSpeed(t *testing.T) {
 	}
 	if eRaw < 50 || eClean > 0.5*eRaw {
 		t.Fatalf("the best lap's speed should be the cleaned one: %.1f (position %.1f)", eClean, eRaw)
+	}
+	resetField()
+}
+
+// a frame that holds the car's position (the game updates another car's place less often than it draws it) says
+// nothing of its speed: the speed is how far the position moved since the game last moved it, so a car whose place
+// comes five times a second still has its lap, with the right speed, and a car stopped in a bin never halves it
+func TestFieldHeldPosition(t *testing.T) {
+	resetField()
+	m := newSim("held")
+	m.hold = 12 // five times a second
+	m.run(1)
+	c := fieldCar(t, 0)
+	if c.best == 0 || c.bestV == nil {
+		t.Fatalf("no best lap from a position held between updates: coverage %.2f", coverage(rpmSpeed(c.b)))
+	}
+	seen, bad := 0, 0
+	for i, v := range c.bestV {
+		if v == 0 {
+			continue
+		}
+		seen++
+		// the speed over the 6 to 10 m before the bin's end, against the truth there
+		if tr := simSpeed(1, float64(i)*fieldBin+fieldBin/2); math.Abs(float64(v)-tr) > 0.1*tr {
+			bad++
+		}
+	}
+	if seen < 250 || bad > seen/20 {
+		t.Fatalf("%d of %d bins have a speed far from the truth", bad, seen)
+	}
+	// a car stopped in a bin for five seconds: the bin keeps the speed it had and its samples stop at 255, the
+	// averages of its steering and its position never wrap
+	resetField()
+	org := geoBase("stop", 45, 0)
+	la, lo := 45.0001, 0.0002
+	px, py := geoXY(org, la, lo)
+	f := func(t, pct float64) *fieldSample {
+		return &fieldSample{t: t, pct: []float64{pct}, lap: []float64{1}, steer: []float64{0.5}, lat: []float64{la}, lon: []float64{lo}}
+	}
+	fieldStep(f(10, 0.4990), 3000, "stop")
+	fieldStep(f(10+1.0/60, 0.5), 3000, "stop")    // 3 m in a frame: 180 m/s, a jump, no speed
+	fieldStep(f(10+2.0/60, 0.5002), 3000, "stop") // 0.6 m: 36 m/s
+	for k := 3; k < 303; k++ {
+		fieldStep(f(10+float64(k)/60, 0.5002), 3000, "stop") // held
+	}
+	c = fieldCar(t, 0)
+	x := c.b[150]
+	if x.n != 255 || math.Abs(float64(x.v)-36) > 0.5 {
+		t.Fatalf("the bin of a stopped car: %d samples, speed %.1f (want 255 and 36)", x.n, x.v)
+	}
+	if math.Abs(float64(x.steer)-0.5) > 1e-4 || math.IsNaN(float64(x.x)) || math.IsInf(float64(x.x), 0) || math.Abs(float64(x.x)-px) > 0.01 || math.Abs(float64(x.y)-py) > 0.01 {
+		t.Fatalf("the averages wrapped: steer %v, position %v,%v (want 0.5 and %.2f,%.2f)", x.steer, x.x, x.y, px, py)
+	}
+	resetField()
+}
+
+// a lap goes up with its real pedals and its path when the game gave them for the bins the watcher saw (a lap is
+// taken from 85 % of its bins), not for every bin of the track
+func TestFieldTraceSeenBins(t *testing.T) {
+	resetField()
+	const L = 3000
+	nb := int(L/fieldBin) + 1
+	org := geoBase("seen", 45, 0)
+	mk := func(ped float64) *carLapProf {
+		c := &carLapProf{best: 70, org: org, hasOrg: true, bestB: make([]fbin, nb), bestV: make([]float32, nb)}
+		for i := range c.bestB {
+			if i%8 == 0 { // 12.5 % of the bins never seen
+				continue
+			}
+			x := fbin{v: 40, n: 3, gear: 4, pos: true, x: float32(i), y: float32(2 * i)}
+			if float64(i%100) < 100*ped {
+				x.ped, x.thr = true, 0.7
+			}
+			c.bestB[i], c.bestV[i] = x, 40
+		}
+		return c
+	}
+	fieldMu.Lock()
+	fieldCars = map[int]*carLapProf{0: mk(1), 1: mk(0.5)}
+	fieldMu.Unlock()
+	tr := fieldTrace(0, 70)
+	desc := func(tr *lapTrace) string {
+		if tr == nil {
+			return "no trace"
+		}
+		return fmt.Sprintf("src %s, %d path points, origin %v", tr.Src, len(tr.X), tr.G)
+	}
+	if tr == nil || tr.Src != "real" || tr.X == nil || tr.G == nil {
+		t.Fatalf("a lap with pedals and a position in every bin seen: %s", desc(tr))
+	}
+	if tr2 := fieldTrace(1, 70); tr2 == nil || tr2.Src != "field" || tr2.X == nil {
+		t.Fatalf("pedals in half of the bins seen are estimated, the path stays: %s", desc(tr2))
 	}
 	resetField()
 }

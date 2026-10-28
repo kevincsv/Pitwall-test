@@ -56,6 +56,7 @@ type carLapProf struct {
 	pit       bool    // the car touched the pit road this lap: the game's flag says nothing of it (an out-lap is counted, not timed)
 	lastPct   float64
 	lastT     float64
+	moveT     float64 // when the game last moved the car's position: a frame that holds it says nothing of the speed
 	best      float64
 	bestV     []float32 // the best lap's speed every 10 m (from the revs where the gear held, else the position's)
 	bestB     []fbin    // the best lap's bins (nil for a profile made before the car was seen whole)
@@ -369,7 +370,13 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			}
 			if d >= 0 && d < 0.05 {
 				if b := int(pct * L / fieldBin); b >= 0 && b < len(c.b) {
-					c.sample(&c.b[b], d*L/(t-c.lastT), s, i, org, hasOrg)
+					// the speed is how far the position moved since the game last moved it (the game updates another
+					// car's place less often than it draws it): a frame that holds the position gives none
+					sp := -1.0
+					if d > 0 && c.moveT > 0 && t > c.moveT {
+						sp = d * L / (t - c.moveT)
+					}
+					c.sample(&c.b[b], sp, s, i, org, hasOrg)
 				}
 			}
 			// what makes the lap not valid, counted once per frame: off the track (all four wheels out, surface 0; -1 is
@@ -385,15 +392,20 @@ func fieldStep(s *fieldSample, L float64, key string) {
 				c.valid = false
 			}
 		}
+		if c.lastT == 0 || pct != c.lastPct {
+			c.moveT = t
+		}
 		c.lastPct, c.lastT = pct, t
 	}
 }
 
-// sample puts one reading into the bin the car is in: the speed its position gave (averaged with the bin's), the
-// gear and the revs (the revs say nothing of the speed when the gear changed inside the bin), the steering averaged,
-// and the pedals and the position when the game gives them.
+// sample puts one reading into the bin the car is in: the speed its position gave (averaged with the bin's; none
+// below 0, a jump at 120 m/s or more), the gear and the revs (the revs say nothing of the speed when the gear changed
+// inside the bin), the steering averaged, and the pedals and the position when the game gives them. The averages
+// weigh what the bin holds by its samples, which stop counting at 255 (a car stopped in the bin), so they never wrap.
 func (c *carLapProf) sample(x *fbin, sp float64, s *fieldSample, i int, org [2]float64, hasOrg bool) {
-	if sp < 120 {
+	n, more := float32(x.n), x.n < 255
+	if sp >= 0 && sp < 120 {
 		if x.v == 0 {
 			x.v = float32(sp)
 		} else {
@@ -416,8 +428,8 @@ func (c *carLapProf) sample(x *fbin, sp float64, s *fieldSample, i int, org [2]f
 			}
 		}
 	}
-	if s.steer != nil {
-		x.steer = (x.steer*float32(x.n) + float32(fat(s.steer, i, 0))) / float32(x.n+1)
+	if s.steer != nil && more {
+		x.steer = (x.steer*n + float32(fat(s.steer, i, 0))) / (n + 1)
 	}
 	if s.thr != nil && s.brk != nil {
 		if th, br := fat(s.thr, i, -1), fat(s.brk, i, -1); th >= 0 && br >= 0 {
@@ -430,14 +442,14 @@ func (c *carLapProf) sample(x *fbin, sp float64, s *fieldSample, i int, org [2]f
 			px, py := geoXY(org, lat, lon)
 			if !x.pos {
 				x.x, x.y = float32(px), float32(py)
-			} else {
-				x.x, x.y = (x.x*float32(x.n)+float32(px))/float32(x.n+1), (x.y*float32(x.n)+float32(py))/float32(x.n+1)
+			} else if more {
+				x.x, x.y = (x.x*n+float32(px))/(n+1), (x.y*n+float32(py))/(n+1)
 			}
 			x.pos = true
 			c.org, c.hasOrg = org, true
 		}
 	}
-	if x.n < 255 {
+	if more {
 		x.n++
 	}
 }
@@ -753,10 +765,11 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 				}
 			}
 		}
-		if real = float64(nPed) >= 0.9*float64(n); real {
+		// against the bins seen (a lap is taken from 85 % of them): the game gave the pedals, or the position, for the lap
+		if real = nSeen > 0 && float64(nPed) >= 0.9*float64(nSeen); real {
 			thr, brk = fillGaps(thr, ped), fillGaps(brk, ped)
 		}
-		if geo = hasOrg && float64(nPos) >= 0.9*float64(n); geo {
+		if geo = hasOrg && nSeen > 0 && float64(nPos) >= 0.9*float64(nSeen); geo {
 			xs, ys = fillGaps(xs, pos), fillGaps(ys, pos)
 		}
 	}
