@@ -3342,18 +3342,16 @@ function renderLapAnalyzer(A,B){const box=$("#lapAnalyzer");if(!box)return;if(!A
 function cmpCornerBands(x,w,top,bottom,pl,len,B,A,labels){const zs=brakeZones(serOf(B));if(!zs.length)return;const X=d=>pl+d/len*(w-pl-6);x.save();x.fillStyle=css("--fg");x.globalAlpha=.05;
   zs.forEach(z=>{const x0=X(z.i*BIN),x1=X(Math.min(len,(z.imin+6)*BIN));x.fillRect(x0,top,Math.max(2,x1-x0),bottom-top)});
   if(labels){x.globalAlpha=.8;x.fillStyle=css("--muted");x.font="10px "+css("--f-data");zs.forEach((z,k)=>x.fillText("T"+turnNo((A&&A.trackId)||B.trackId||TURN_TID,z.imin*BIN,len,k+1),X(z.i*BIN)+3,top+22))}x.restore()}
-/* the sector times of every lap in the lap list: the game's official sectors when the session's laps have them (as the
-   analyzer and the coach read them, pairSecs), else thirds of the lap from its trace. Purple the session's best sector
-   among the valid laps, green a sector better than the one of your best lap */
+/* the sector times of every lap in the lap list: the game's official sectors (those that add up to the lap's time), the
+   same the phones show. Purple the session's best sector among the valid laps, green a valid lap's sector better than the
+   one of your best lap */
 function lapSecsOf(l){if(!l||!(l.time>0))return null;const g=l.sectors;if(Array.isArray(g)&&g.length>=2&&g.every(v=>v>0)&&Math.abs(g.reduce((p,v)=>p+v,0)-l.time)<1)return g;return null}
-function lapTraceSecs(l){if(!l||!Array.isArray(l.bins)||l.bins.length<40)return null;const s=lapSeries(l),n=s.end,third=Math.floor(n/3),tAt=i=>{for(let k=Math.min(i,n-1);k>=0;k--)if(s.arr[k])return s.arr[k][1];return 0};
-  const c1=tAt(third),c2=tAt(2*third);return c1>0&&c2>c1&&c2<l.time?[c1,c2-c1,l.time-c2]:null}
-function lapSecCols(LP,best){const off=LP.some(l=>lapSecsOf(l)),get=l=>off?lapSecsOf(l):lapTraceSecs(l),S=new Map();LP.forEach(l=>S.set(l,get(l)));
+function lapSecCols(LP,best){const S=new Map();LP.forEach(l=>S.set(l,lapSecsOf(l)));
   const N=Math.max(0,...[...S.values()].map(q=>q?q.length:0));if(!N)return{heads:"",cells:()=>""};
   const top=Array.from({length:N},(_,k)=>Math.min(...LP.filter(l=>l.valid!==false&&S.get(l)&&S.get(l).length===N).map(l=>S.get(l)[k]))),bs=best?S.get(best):null;
   return{heads:Array.from({length:N},(_,k)=>`<th class="r">S${k+1}</th>`).join(""),
     cells:l=>{const q=S.get(l);return Array.from({length:N},(_,k)=>{const v=q&&q.length===N?q[k]:null;if(v==null)return`<td class="r mono muted">–</td>`;
-      const cls=l.valid!==false&&isFinite(top[k])&&v<=top[k]+1e-4?"pb":bs&&bs.length===N&&l!==best&&v<bs[k]-1e-4?"good":"";return`<td class="r mono ${cls}">${v.toFixed(3)}</td>`}).join("")}}}
+      const cls=l.valid!==false&&isFinite(top[k])&&v<=top[k]+1e-4?"pb":l.valid!==false&&bs&&bs.length===N&&l!==best&&v<bs[k]-1e-4?"good":"";return`<td class="r mono ${cls}">${v.toFixed(3)}</td>`}).join("")}}}
 // a lap only counts as "my best" when its telemetry adds up to its time (speed over every 5 m gives
 // the lap time back, within 4 %): a lap that started part way round (out of the pits, a reset) does not
 function lapPlausible(l){const b=l&&l.bins;if(!Array.isArray(b)||b.length<40||!(l.time>0))return true;let t=0,n=0;for(const x of b){if(x&&x[0]>0.5){t+=5/x[0];n++}}if(n<b.length*0.9)return true;return Math.abs(t-l.time)/l.time<0.04}
@@ -4359,11 +4357,15 @@ $("#mapLayersBtn").onclick=()=>{const o=$("#mapLayers").hidden;$("#mapLayers").h
 function renderBrakeTable(A,B){const tb=$("#brakeTable tbody"),th=$("#brakeTable thead");if(!tb)return;
   if(th)th.innerHTML=`<tr><th>${esc(Tx("Turn","Curva","Kurve","Curva"))}</th><th class="r">${esc(Tx("Brake A","Frena A","Bremst A","Freia A"))}</th><th class="r">${esc(Tx("Brake B","Frena B","Bremst B","Freia B"))}</th><th class="r">Δ m</th><th class="r">${esc(Tx("Apex A","Vértice A","Scheitel A","Ápice A"))}</th><th class="r">${esc(Tx("Apex B","Vértice B","Scheitel B","Ápice B"))}</th><th class="r">${esc(Tx("Gear","Marcha","Gang","Marcha"))}</th><th class="r">${esc(Tx("Loss","Pérdida","Verlust","Perda"))}</th><th class="bt-tip">${esc(Tx("What to do","Qué hacer","Was tun","O que fazer"))}</th></tr>`;
   const cs=A&&B?coachCompare(A,B):[],pin=CMP_HOVER&&CMP_HOVER.pin?CMP_HOVER.i:null,m=v=>v==null?"–":Math.round(v)+" m",v=x=>x==null?"–":Math.round(x);
-  const short=c=>c.lost>.03&&c.tip[0]?tipShort(Tx(c.tip[0],c.tip[1])):"";
+  const short=c=>{if(!(c.lost>.03)||!c.tip[0])return"";const t=tipMain(c);return tipShort(Tx(t[0],t[1],undefined,t[2]))};
   tb.innerHTML=cs.length?cs.map(c=>{const i=Math.round(c.d/BIN),dd=c.lift?null:c.dd,gear=c.gA>=1&&c.gB>=1&&c.gA!==c.gB?`${c.gA} / ${c.gB}`:c.gA>=1?String(c.gA):c.gB>=1?String(c.gB):"–",t=short(c);
-    return `<tr data-bd="${Math.round(c.d)}" class="${pin===i?"on":""}"><td class="mono"><b>T${c.n}</b></td><td class="r mono">${c.dd==null?"–":m(c.d+c.dd)}</td><td class="r mono">${c.lift?`<span class="muted">${esc(Tx("lift","sin freno","kein Bremsen","sem freio"))}</span>`:m(c.d)}</td><td class="r mono ${dd==null||Math.abs(dd)<3?"muted":dd<0?"bad":""}">${dd==null?"–":Math.abs(dd)<3?"≈ 0":(dd>0?"+":"−")+Math.abs(Math.round(dd))}</td><td class="r mono">${v(c.vmin)}</td><td class="r mono">${v(c.vminr)}</td><td class="r mono">${gear}</td><td class="r mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,3)}</td><td class="bt-tip">${t?esc(t):`<span class="muted">–</span>`}</td></tr>`}).join(""):`<tr><td colspan="9" class="empty">–</td></tr>`;
+    return `<tr data-bd="${Math.round(c.d)}" class="${pin===i?"on":""}"><td class="mono"><b>T${c.n}</b></td><td class="r mono">${c.dd==null?"–":m(c.d+c.dd)}</td><td class="r mono">${c.lift?`<span class="muted">${esc(Tx("lift","sin freno","kein Bremsen","sem freio"))}</span>`:m(c.d)}</td><td class="r mono ${dd!=null&&dd<=-3?"bad":"muted"}">${dd==null?"–":Math.abs(dd)<3?"≈ 0":(dd>0?"+":"−")+Math.abs(Math.round(dd))}</td><td class="r mono">${v(c.vmin)}</td><td class="r mono">${v(c.vminr)}</td><td class="r mono">${gear}</td><td class="r mono ${c.lost>.02?"bad":c.lost<-.02?"good":"muted"}">${sgn(c.lost,3)}</td><td class="bt-tip">${t?esc(t):`<span class="muted">–</span>`}</td></tr>`}).join(""):`<tr><td colspan="9" class="empty">–</td></tr>`;
   // a row pins the charts and the map at that corner, like the corner bars above
   tb.querySelectorAll("[data-bd]").forEach(r=>r.onclick=()=>{const b=$(`#lapAnalyzer .la-c[data-cd="${r.dataset.bd}"]`);if(b)b.click();else{const i=Math.round(+r.dataset.bd/BIN),same=CMP_HOVER&&CMP_HOVER.pin&&CMP_HOVER.i===i;CMP_HOVER=same?null:{i,quiet:true,pin:true};markBrakeRow();drawCmp(true)}})}
+/* the corner's own tip without the line's, which coachCompare adds after the tip of the phase (".", then lineTip): the
+   table says what to do in the phase that loses the most, as the phones do; a line tip that replaced a generic one stays */
+function tipMain(c){const t=c.tip||[],lt=String(c.kind||"").startsWith("line_")?null:(typeof lineTip==="function"?lineTip:window.PW_ANALYSIS&&PW_ANALYSIS.lineTip)?.(c.line,c.dd!=null&&Math.abs(c.dd)<=6);
+  if(!lt)return t;const cut=(s,x)=>s&&x&&s.endsWith(". "+x)?s.slice(0,-(x.length+2)):s;return[cut(t[0],lt[0]),cut(t[1],lt[1]),cut(t[2],lt[3])]}
 /* a tip in a few words: without its figures in brackets (the columns carry them) and, of two sentences, the one that says
    what to do (the last, unless it is only the measurement and the first is not) */
 function tipShort(t){const q=String(t||"").replace(/\s*\([^)]*\)/g,"").trim().split(/\.\s+/).map(x=>x.replace(/\.$/,"").trim()).filter(Boolean);if(q.length<2)return q[0]||"";
@@ -4931,11 +4933,11 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
   else if(k==="pit")body=`<div class="panel">${num("loss","pitLoss",5,180)}<p class="note">${Lp("Time lost driving through the pit lane and stopping, compared with staying out. Depends on the track: about 20–35 s on most road courses.","Tiempo que pierdes al pasar por boxes y parar, frente a seguir en pista. Depende del circuito: unos 20–35 s en la mayoría de circuitos.")}</p></div>`;
   else if(k==="gaps")body=`<div class="panel">${num("mins","gapMins",1,30)}${num("cars","gapCars",1,5)}</div>`;
   // the coach overlay before the session: the reference, what it shows, which corners, the fast drivers' hint, the verdict, how far ahead it speaks
-  else if(k==="coach"){const chip=(f,v,t)=>`<button type="button" class="chip" data-cch="${f}:${v}" aria-pressed="${String(c[f])===String(v)}">${esc(t)}</button>`,tid=(S.WeekendInfo||{}).TrackID,turns=tid?turnsFor(tid):null,tn=turns&&turns.length?turns.length:0;
+  else if(k==="coach"){const chip=(f,v,t)=>`<button type="button" class="chip" data-cch="${f}:${v}" aria-pressed="${String(c[f])===String(v)}">${esc(t)}</button>`,tid=(S.WeekendInfo||{}).TrackID,turns=tid?turnsFor(tid):null,tn=turns&&turns.length?turns.length:0,ct=coachTurnsHere(c);
     body=`<div class="panel"><div class="label">${esc(Tx("Reference","Referencia"))}</div><div class="frow" style="margin:6px 0 12px">${chip("ref","level","▲ "+Tx("Next level","Siguiente nivel"))}${chip("ref","best",Tx("My best lap","Mi mejor vuelta"))}</div>
       <div class="label">${esc(Tx("What it shows","Qué muestra"))}</div><div class="frow" style="margin:6px 0 12px">${chip("mode","next",Tx("Card","Tarjeta"))}${chip("mode","column",Tx("Column","Columna"))}${chip("mode","curve",Tx("Corner drawn","Curva dibujada"))}${chip("mode","big",Tx("Big, for VR","Grande, para VR"))}</div>
       <div class="label">${esc(Tx("How it names the corner","Cómo nombra la curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("turnName","both",Tx("Next turn (T7)","Próxima curva (T7)"))}${chip("turnName","words",Tx("Next turn","Próxima curva"))}${chip("turnName","num","T7")}</div>
-      <div class="label">${esc(Tx("Corners","Curvas"))}</div><div class="frow" style="margin:6px 0 12px"><button type="button" class="chip" data-cturn="" aria-pressed="${!(c.turns||[]).length}">${esc(Tx("The 3 that cost the most","Las 3 que más cuestan"))}</button>${tn?Array.from({length:tn},(_,i)=>`<button type="button" class="chip" data-cturn="T${i+1}" aria-pressed="${(c.turns||[]).includes("T"+(i+1))}">T${i+1}</button>`).join(""):`<span class="note">${esc(Tx("The track's corners appear here when the game is open on a track the community knows.","Las curvas del circuito aparecen aquí cuando el juego está en un circuito que la comunidad conoce."))}</span>`}</div>
+      <div class="label">${esc(Tx("Corners","Curvas"))}</div><div class="frow" style="margin:6px 0 12px"><button type="button" class="chip" data-cturn="" aria-pressed="${!ct.length}">${esc(Tx("The 3 that cost the most","Las 3 que más cuestan"))}</button>${tn?Array.from({length:tn},(_,i)=>`<button type="button" class="chip" data-cturn="T${i+1}" aria-pressed="${ct.includes("T"+(i+1))}">T${i+1}</button>`).join(""):`<span class="note">${esc(Tx("The track's corners appear here when the game is open on a track the community knows.","Las curvas del circuito aparecen aquí cuando el juego está en un circuito que la comunidad conoce."))}</span>`}</div>
       <div class="frow" style="margin:6px 0 12px">${chk("cHint",c.hint!==false,esc(Tx("The fast drivers' braking and apex speed","La frenada y el vértice de los rápidos")))}</div>
       <div class="label">${esc(Tx("Verdict after each corner","Veredicto tras cada curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("verdict",0,Tx("Off","Apagado"))}${chip("verdict",4,"4 s")}${chip("verdict",8,"8 s")}</div>
       <div class="label">${esc(Tx("Speaks from","Avisa desde"))}</div><div class="frow" style="margin:6px 0 0">${chip("lead",200,"200 m")}${chip("lead",300,"300 m")}${chip("lead",500,"500 m")}</div></div>`}
@@ -4952,7 +4954,7 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
   document.querySelectorAll("#dBody [data-arr]").forEach(b=>b.onclick=()=>{const[f,v]=b.dataset.arr.split(":"),a=c[f].includes(v)?c[f].filter(x=>x!==v):[...c[f],v];upd({[f]:a})});
   document.querySelectorAll("#dBody [data-bdir]").forEach(b=>b.onclick=()=>upd({barDir:b.dataset.bdir}));
   document.querySelectorAll("#dBody [data-cch]").forEach(b=>b.onclick=()=>{const[f,v]=b.dataset.cch.split(":");upd({[f]:isNaN(+v)?v:+v})});
-  document.querySelectorAll("#dBody [data-cturn]").forEach(b=>b.onclick=()=>{const t=b.dataset.cturn,cur=c.turns||[];upd({turns:t?(cur.includes(t)?cur.filter(x=>x!==t):[...cur,t]):[]})});
+  document.querySelectorAll("#dBody [data-cturn]").forEach(b=>b.onclick=()=>{const t=b.dataset.cturn,cur=coachTurnsHere(c),nx=t?(cur.includes(t)?cur.filter(x=>x!==t):[...cur,t]):[],tid=+((S.WeekendInfo||{}).TrackID)||0;upd({turns:nx,turnsTrack:nx.length?tid:0})});
   if($("#cHint"))$("#cHint").onclick=()=>upd({hint:c.hint===false});
   document.querySelectorAll("#dBody [data-dsrc]").forEach(b=>b.onclick=()=>upd({src:b.dataset.dsrc}));document.querySelectorAll("#dBody [data-drng]").forEach(b=>b.onclick=()=>upd({range:+b.dataset.drng}));
   if($("#cMyClass"))$("#cMyClass").onclick=()=>upd({myClass:!c.myClass});if($("#cPred"))$("#cPred").onclick=()=>upd({predict:c.predict===false});if($("#cAH"))$("#cAH").onclick=()=>upd({autohide:!c.autohide});
@@ -6745,16 +6747,19 @@ function renderCoach(){coachWeights();coachMe();const LP=coachLaps(),best=markAn
   box.querySelectorAll("[data-tiprate] button").forEach(b=>b.onclick=()=>{const apex=+b.parentNode.dataset.tiprate,k=c.cs.find(x=>Math.round(x.apex)===apex);if(!k)return;coachRate(A,k,+b.dataset.up);const on=(TIPRATE[(coachWhere(A)||{}).sid+":"+apex]||0);b.parentNode.querySelectorAll("button").forEach(x=>x.classList.toggle("on",+x.dataset.up===on))});
   box.querySelectorAll("[data-cref]").forEach(b=>b.onclick=()=>{rsel.value=b.dataset.cref;rsel.dataset.user="1";renderCoach()});
   const ac=$("#coachAllC");if(ac)ac.onclick=()=>{COACH_ALLC=!COACH_ALLC;renderCoach()}
-  const po=$("#coachPlanOv");if(po)po.onclick=()=>planToOverlay(c.plan,po)}
+  const po=$("#coachPlanOv");if(po)po.onclick=()=>planToOverlay(c.plan,po,A.trackId||TURN_TID)}
 /* the plan's corners (in its order, the ones shown) for the coach overlay: "Take the plan to the coach overlay" makes them
-   the overlay's chosen corners (its settings, UI_DEFAULTS.coach.turns, which go with the account) and opens it on the PC */
+   the overlay's chosen corners on that track (its settings, UI_DEFAULTS.coach.turns and turnsTrack, which go with the
+   account; on another track the overlay speaks at the three that cost the most) and opens it on the PC */
+/* the coach overlay's chosen corners where the game is now: the ones chosen for another track do not count there */
+function coachTurnsHere(c){const tid=+((S.WeekendInfo||{}).TrackID)||0,tt=+(c&&c.turnsTrack)||0;return tt&&tid&&tt!==tid?[]:(c&&c.turns)||[]}
 function planTurns(plan){const out=[];(plan||[]).slice(0,4).forEach(p=>(p.turns||[]).forEach(n=>{if(n>0&&!out.includes(n))out.push(n)}));return out}
-async function planToOverlay(plan,btn){const ns=planTurns(plan);if(!ns.length)return;const turns=ns.map(n=>"T"+n),list=turns.join(", ");if(btn)btn.disabled=true;
-  try{setUI("coach",{turns});
+async function planToOverlay(plan,btn,track){const ns=planTurns(plan);if(!ns.length)return;const turns=ns.map(n=>"T"+n),list=turns.join(", "),turnsTrack=+track>0?+track:0;if(btn)btn.disabled=true;
+  try{setUI("coach",{turns,turnsTrack});
     if(pcOverlays()&&!REMOTE){let open=[];try{open=(await (await fetch("/api/overlay/list")).json()).open||[]}catch(e){}
       if(!open.includes("coach")&&!await openOverlayOnPC("coach"))return;OV_OPEN.add("coach");markOvOpen();
       toast(Tx(`The coach overlay follows your plan now (${list})`,`El overlay del coach sigue ahora tu plan (${list})`,`Das Coach-Overlay folgt jetzt deinem Plan (${list})`,`O overlay do coach agora segue o seu plano (${list})`));return}
-    if(cpSetUI("coach",{turns}))toast(Tx(`Your plan goes to the coach overlay on your PC (${list})`,`Tu plan va al overlay del coach de tu PC (${list})`,`Dein Plan geht ins Coach-Overlay auf deinem PC (${list})`,`Seu plano vai para o overlay do coach do seu PC (${list})`));
+    if(cpSetUI("coach",{turns,turnsTrack}))toast(Tx(`Your plan goes to the coach overlay on your PC (${list})`,`Tu plan va al overlay del coach de tu PC (${list})`,`Dein Plan geht ins Coach-Overlay auf deinem PC (${list})`,`Seu plano vai para o overlay do coach do seu PC (${list})`));
     else toast(Tx("Open the coach on your PC to take the plan to its overlay","Abre el coach en tu PC para llevar el plan a su overlay","Öffne den Coach auf deinem PC, um den Plan ins Overlay zu übernehmen","Abra o coach no seu PC para levar o plano ao overlay"))}
   finally{if(btn)btn.disabled=false}}
 function renderCoachWidget(){const box=$("#coachW");if(!box)return;if(OV.on){box.innerHTML=coachStyleHTML();return}const tips=coachTips(),LP=analysisLaps(),last=LP.at(-1);
@@ -6905,7 +6910,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
    PC itself (not the phone, not overlay windows), so they are not heard twice. */
 Object.assign(I18N,{"w.brakes":["Braking markers","Marcas de frenada"],"d.brakes":["Where to brake in the next corner, from your best lap, with beeps; brakes earlier with a car just ahead","Dónde frenar en la próxima curva según tu mejor vuelta, con pitidos; frena antes con un coche justo delante"]});
 UI_DEFAULTS.brakes={on:true,beeps:"count",traffic:true,vol:.7};
-UI_DEFAULTS.coach={mode:"next",turnName:"both",ref:"level",turns:[],hint:true,verdict:4,lead:300}; // the coach overlay (drawCoachOv in ovnative4.go): what it shows and which corners, chosen before the session
+UI_DEFAULTS.coach={mode:"next",turnName:"both",ref:"level",turns:[],turnsTrack:0,hint:true,verdict:4,lead:300}; // the coach overlay (drawCoachOv in ovnative4.go): what it shows and which corners, chosen before the session
 function beepHere(){if(OV.on)return false;const v=store.get("pw.beepHere",null);if(v!=null)return v;return MODE==="local"||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
 let ACTX=null;
 function beep(freq,ms,vol){try{ACTX=ACTX||new(window.AudioContext||window.webkitAudioContext)();if(ACTX.state==="suspended")ACTX.resume();

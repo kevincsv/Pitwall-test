@@ -1693,9 +1693,13 @@ func (st *ovState) coachTick(cfg map[string]any) {
 	}
 }
 
-// coachPicked: whether the settings want this corner: the chosen turns ("T4"), else the three that cost the most
+// coachPicked: whether the settings want this corner: the chosen turns ("T4") on the track they were chosen for
+// (turnsTrack, from the coach's plan or the chips of the track the game was on), else the three that cost the most
 func (st *ovState) coachPicked(cfg map[string]any, t coachTip) bool {
 	turns := uiList(cfg, "turns", nil)
+	if tt := int(uiNum(cfg, "turnsTrack", 0)); tt > 0 && st.ses != nil && st.ses.TrackID > 0 && tt != st.ses.TrackID {
+		turns = nil
+	}
 	if len(turns) > 0 {
 		for _, x := range turns {
 			if x == "T"+strconv.Itoa(t.n) {
