@@ -9,6 +9,7 @@
      me       the driver's own memory (/community/coach/me: w by "kind|cls", habits)
      hint     a function (apex m) → the model's corner card there, or cards: the model's corner cards (/community/model)
      laps     the session's laps (how steady each corner is), for analyse
+     step     the next level's step (the model's ladder entry, step), for analyse when lap B is the next level
      post     a function every text of the plan and the analyzer goes through (the web turns "this PC" into "your PC")
    A lap is the web's own shape: bins (one every 5 m: [speed m/s, lap time s, throttle 0-1, brake 0-1, gear, steering
    rad]), maxBin, time, sectors, trackId and xy {x, y, g} (the path, g its origin when it comes from the game's position).
@@ -210,10 +211,10 @@
       if (prevT != null && prevT > .9 && t < .6 && k < .05) lifts++; prevT = t; if (isFinite(b[5])) { hasS = true; if (lastS != null) { const d = b[5] - lastS; steer += Math.abs(d); if (Math.abs(d) > .004 && Math.sign(d) !== Math.sign(prevD) && prevD !== 0) rev++; if (Math.abs(d) > .004) prevD = d; } lastS = b[5]; } }
       return { full: c ? full / c : 0, coast: c ? coast / c : 0, lifts, steer, rev, hasS }; };
     const a = m(sa), b = m(sb), out = [], pc = (v) => Math.round(v * 100) + "%";
-    if (b.full - a.full > .03) out.push("🦶 " + Tx(`A is flat out ${pc(a.full)} of the lap, B ${pc(b.full)}: get back on the throttle sooner on the corner exits.`, `A va a fondo el ${pc(a.full)} de la vuelta, B el ${pc(b.full)}: vuelve al acelerador antes a la salida de las curvas.`, `A vai de pé no fundo ${pc(a.full)} da volta, B ${pc(b.full)}: volte ao acelerador antes na saída das curvas.`));
-    if (a.coast - b.coast > .02) out.push("💤 " + Tx(`A spends ${pc(a.coast)} of the lap with no pedal (B ${pc(b.coast)}): go from brake to throttle without waiting in between.`, `A pasa el ${pc(a.coast)} de la vuelta sin pisar ningún pedal (B el ${pc(b.coast)}): pasa del freno al acelerador sin esperar entre medias.`, `A passa ${pc(a.coast)} da volta sem pedal (B ${pc(b.coast)}): vá do freio ao acelerador sem esperar.`));
-    if (a.lifts > b.lifts + 1) out.push("↕️ " + Tx(`A lifts off the throttle ${a.lifts} times in the middle of a corner (B ${b.lifts}): a smoother entry lets you stay on the throttle.`, `A levanta el pie del acelerador ${a.lifts} veces en mitad de curva (B ${b.lifts}): una entrada más suave te deja mantener el gas.`, `A tira o pé ${a.lifts} vezes no meio da curva (B ${b.lifts}): uma entrada mais suave deixa você manter o acelerador.`));
-    if (a.hasS && b.hasS && b.steer > 0 && a.steer > b.steer * 1.15) out.push("🎯 " + Tx(`A turns the wheel ${Math.round((a.steer / b.steer - 1) * 100)}% more than B and corrects it ${a.rev} times (B ${b.rev}): the car is sliding or you go in too fast. Smoother hands, a little less speed at the turn-in.`, `A gira el volante un ${Math.round((a.steer / b.steer - 1) * 100)} % más que B y lo corrige ${a.rev} veces (B ${b.rev}): el coche desliza o entras demasiado rápido. Manos más suaves y un poco menos de velocidad al girar.`, `A gira o volante ${Math.round((a.steer / b.steer - 1) * 100)}% mais que B e corrige ${a.rev} vezes (B ${b.rev}): o carro está escorregando ou você entra rápido demais. Mãos mais suaves, um pouco menos de velocidade na entrada.`));
+    if (b.full - a.full > .03) out.push("🦶 " + Tx(`A is flat out ${pc(a.full)} of the lap, B ${pc(b.full)}. Get back on the throttle sooner on the corner exits.`, `A va a fondo el ${pc(a.full)} de la vuelta, B el ${pc(b.full)}. Vuelve al acelerador antes a la salida de las curvas.`, `A vai de pé no fundo ${pc(a.full)} da volta, B ${pc(b.full)}. Volte ao acelerador antes na saída das curvas.`));
+    if (a.coast - b.coast > .02) out.push("💤 " + Tx(`A spends ${pc(a.coast)} of the lap with no pedal (B ${pc(b.coast)}). Go from brake to throttle without waiting in between.`, `A pasa el ${pc(a.coast)} de la vuelta sin pisar ningún pedal (B el ${pc(b.coast)}). Pasa del freno al acelerador sin esperar entre medias.`, `A passa ${pc(a.coast)} da volta sem pedal (B ${pc(b.coast)}). Vá do freio ao acelerador sem esperar.`));
+    if (a.lifts > b.lifts + 1) out.push("↕️ " + Tx(`A lifts off the throttle ${a.lifts} times in the middle of a corner (B ${b.lifts}). A smoother entry lets you stay on the throttle.`, `A levanta el pie del acelerador ${a.lifts} veces en mitad de curva (B ${b.lifts}). Una entrada más suave te deja mantener el gas.`, `A tira o pé ${a.lifts} vezes no meio da curva (B ${b.lifts}). Uma entrada mais suave deixa você manter o acelerador.`));
+    if (a.hasS && b.hasS && b.steer > 0 && a.steer > b.steer * 1.15) out.push("🎯 " + Tx(`A turns the wheel ${Math.round((a.steer / b.steer - 1) * 100)}% more than B and corrects it ${a.rev} times (B ${b.rev}). The car is sliding or you go in too fast. Smoother hands, a little less speed at the turn-in.`, `A gira el volante un ${Math.round((a.steer / b.steer - 1) * 100)} % más que B y lo corrige ${a.rev} veces (B ${b.rev}). El coche desliza o entras demasiado rápido. Manos más suaves y un poco menos de velocidad al girar.`, `A gira o volante ${Math.round((a.steer / b.steer - 1) * 100)}% mais que B e corrige ${a.rev} vezes (B ${b.rev}). O carro está escorregando ou você entra rápido demais. Mãos mais suaves, um pouco menos de velocidade na entrada.`));
     return out;
   }
   /* the name of a kind of tip, short (the plan's habit, the admin's Coach tab) */
@@ -270,6 +271,14 @@
     return { cs, lapD, lost, gained, straight, ph, phN, secs, driving, cons, plan: P, areas, focus: areas.slice().sort((a, b) => b[1] - a[1])[0] };
   }
 
+  /* the step to the next level (the model's levelStep): the corners where the drivers at your pace lose to the driver just
+     ahead, by the official turns, as the line under the Next level card (" · …"), or "" */
+  function stepText(step, A, ctx) {
+    if (!Array.isArray(step) || !step.length || !A) return "";
+    const n = A.bins ? A.bins.length : 0, turns = turnsOf(ctx), names = step.map((x, k) => "T" + turnNo(turns, x.apex, n * BIN, k + 1)).join(", ");
+    return " · " + txOf(ctx)(`the drivers at your pace make the step in ${names}`, `los pilotos de tu ritmo dan el salto en ${names}`, `os pilotos do seu ritmo dão o salto em ${names}`);
+  }
+
   /* ---------- the lap analyzer's key facts ---------- */
   /* the gap, the corner that costs the most, where A falls furthest behind and where it gains most, and the corners against
      the straights; items are [class, value, text] */
@@ -277,9 +286,9 @@
     const Tx = txOf(ctx), sa = lapSeries(A), sb = lapSeries(B), n = Math.min(sa.end, sb.end), ad = A.time - B.time; let peak = 0, peakI = 0, gain = 0, gainI = 0;
     for (let i = 0; i < n; i++) { const a = sa.arr[i], b = sb.arr[i]; if (a && b) { const d = a[1] - b[1]; if (d > peak) { peak = d; peakI = i; } if (d < gain) { gain = d; gainI = i; } } }
     const all = coachCompare(A, B, ctx), cz = all.filter((c) => c.lost > .03).sort((x, y) => y.lost - x.lost), items = [];
-    if (cz[0]) { const t = Tx(cz[0].tip[0], cz[0].tip[1], cz[0].tip[2]); items.push(["bad", "T" + cz[0].n, Tx(`Corner ${cz[0].n} costs the most: ${sgn(cz[0].lost, 3)} s · ${t}`, `La curva ${cz[0].n} es la que más cuesta: ${sgn(cz[0].lost, 3)} s · ${t}`, `A curva ${cz[0].n} é a que mais custa: ${sgn(cz[0].lost, 3)} s · ${t}`)]); }
-    if (peak > .05) items.push(["warn", sgn(peak, 3) + " s", Tx(`A is furthest behind at ${Math.round(peakI * BIN)} m: ${sgn(peak, 3)} s`, `A va más atrás en ${Math.round(peakI * BIN)} m: ${sgn(peak, 3)} s`, `A fica mais atrás em ${Math.round(peakI * BIN)} m: ${sgn(peak, 3)} s`)]);
-    if (gain < -.05) items.push(["good", sgn(gain, 3) + " s", Tx(`A gains most around ${Math.round(gainI * BIN)} m: ${sgn(gain, 3)} s`, `A gana más alrededor de ${Math.round(gainI * BIN)} m: ${sgn(gain, 3)} s`, `A ganha mais por volta de ${Math.round(gainI * BIN)} m: ${sgn(gain, 3)} s`)]);
+    if (cz[0]) { const t = Tx(cz[0].tip[0], cz[0].tip[1], cz[0].tip[2]); items.push(["bad", "T" + cz[0].n, Tx(`Corner ${cz[0].n} costs the most (${sgn(cz[0].lost, 3)} s) · ${t}`, `La curva ${cz[0].n} es la que más cuesta (${sgn(cz[0].lost, 3)} s) · ${t}`, `A curva ${cz[0].n} é a que mais custa (${sgn(cz[0].lost, 3)} s) · ${t}`)]); }
+    if (peak > .05) items.push(["warn", sgn(peak, 3) + " s", Tx(`A is furthest behind at ${Math.round(peakI * BIN)} m (${sgn(peak, 3)} s)`, `A va más atrás en ${Math.round(peakI * BIN)} m (${sgn(peak, 3)} s)`, `A fica mais atrás em ${Math.round(peakI * BIN)} m (${sgn(peak, 3)} s)`)]);
+    if (gain < -.05) items.push(["good", sgn(gain, 3) + " s", Tx(`A gains most around ${Math.round(gainI * BIN)} m (${sgn(gain, 3)} s)`, `A gana más alrededor de ${Math.round(gainI * BIN)} m (${sgn(gain, 3)} s)`, `A ganha mais por volta de ${Math.round(gainI * BIN)} m (${sgn(gain, 3)} s)`)]);
     const inC = all.reduce((q, c) => q + c.lost, 0), straight = ad - inC, nL = all.filter((c) => c.lost > .02).length, nG = all.filter((c) => c.lost < -.02).length;
     if (all.length) items.push([Math.abs(straight) > .08 && straight > 0 ? "warn" : "muted", sgn(inC, 2) + " s", Tx(`Corners ${sgn(inC, 2)} s (A loses in ${nL}, gains in ${nG}) · straights ${sgn(straight, 2)} s`, `Curvas ${sgn(inC, 2)} s (A pierde en ${nL}, gana en ${nG}) · rectas ${sgn(straight, 2)} s`, `Curvas ${sgn(inC, 2)} s (A perde em ${nL}, ganha em ${nG}) · retas ${sgn(straight, 2)} s`)]);
     return { ad, items, corners: all };
@@ -294,11 +303,12 @@
     const Tx = txOf(ctx), withText = (c) => ({ ...c, text: c.tip[0] ? Tx(c.tip[0], c.tip[1], c.tip[2]) : "" });
     const facts = analyzerFacts(A, B, ctx), plan = coachPlan(A, B, Array.isArray(ctx.laps) ? ctx.laps : [], ctx);
     const out = { v: VERSION, gap: A.time - B.time, corners: facts.corners.map(withText), facts: { ad: facts.ad, items: facts.items }, coach: { ...plan, cs: plan.cs.map(withText) } };
+    if (Array.isArray(ctx.step)) out.step = stepText(ctx.step, A, ctx); // the next level's step, when lap B is the next level
     return opts && opts.json ? JSON.stringify(out) : out;
   }
 
   const api = { VERSION, BIN, lapSeries, serOf, lapShape, sameFrame, lineOffsets, cornerLine, lineTip, brakeZones, PHASES, phaseName, turnNo, COACH_GEN, cornerClass, cornerZones,
-    coachCompare, cornerConsistency, pairSecs, lapDriving, kindName, coachPlan, analyzerFacts, analyse };
+    coachCompare, cornerConsistency, pairSecs, lapDriving, kindName, coachPlan, stepText, analyzerFacts, analyse };
   root.PW_ANALYSIS = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : this);

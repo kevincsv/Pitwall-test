@@ -421,8 +421,8 @@
   says the time goes before it (entry) or in a longer slow part (apex); a throttle picked up earlier than the
   reference's but a slower apex says to carry the speed, never "full throttle sooner". A generic tip gives way to
   what the data shows plainly, in this order: the line (inside/outside), the gear at the apex against the reference's,
-  throttle lifts after the apex (exit), steering corrections in the corner (PC and web only: the phones' traces carry
-  no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
+  throttle lifts after the apex (exit), steering corrections in the corner (wherever both laps carry steering, the phones
+  too since they run the same module; never against a model reference, whose points have none). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
 - The lap analysis and the coach are one file, `web/dist/pitwall-analysis.js` (`PW_ANALYSIS`, pure JavaScript: no page, no
@@ -431,7 +431,10 @@
   model's corner cards) and by the phones (Android's JavaScriptSandbox, iOS's JavaScriptCore; they download
   pitlanehq.app/pitwall-analysis.js, served with `no-cache` and its ETag like every app file, keep it on disk and carry a
   copy in the app used until a download succeeds; the mobile repository's `tools/sync-analysis.sh` refreshes that copy). It has the corners and their tips, the plan, the sectors, the line, how
-  the lap is driven and the analyzer's key facts; `analyse(A, B, ctx)` gives all of it as plain JSON for the phones. Its
+  the lap is driven, the analyzer's key facts and the next level's step (`stepText`), and what the coach learnt
+  (`coachOf`: the plan's weights, the metres a braking tip asks for, the kinds turned off); `analyse(A, B, ctx)` gives all
+  of it as plain JSON (`v`, the shape's version, 1: the phones run only the version they were built for, and a newer
+  shape raises it) with the session's laps in `ctx.laps` for how steady each corner is, so the phones' plan is the PC's. Its
   texts are in English, Spanish and Portuguese (a corner's `tip` is [en, es, pt], `tipTx` on the web). A change there is
   a change on every device at once: `cloud/test/analysis.test.mjs` runs index.html's own functions and the module over
   realistic laps and keeps every answer as it was (`analysis.fixture.json`; a change meant to change them writes it again
@@ -467,7 +470,7 @@
   its slowest point within 60 m). Every tip card has 👍/👎 (web, PC and phones, POST `/community/coach/rate`, `TIPRATE` on
   the web, `tipRatings` on the phones). The drivers see none of the counts. The admin panel's Coach tab shows the buckets
   (kind × speed, cases, how many gained, the thumbs). From 30 answered cases a bucket's share of gains reorders the plan
-  (`w` from GET `/community/coach/weights`, `tipWeight` in `coachPlan`, 0.7 to 1.3, and 15 % less for a kind the drivers
+  (`w` from GET `/community/coach/weights`, `coachOf` in pitwall-analysis.js, 0.7 to 1.3, and 15 % less for a kind the drivers
   mostly thumb down); the tips' texts never change by themselves and no lap is made of this. The corner card
   (`cornerCard` in model.js, `corners` in the model, MODEL_VERSION 8 and up): for every braking zone of the record lap, the range
   of braking points and of speeds at the slowest point among the fastest drivers here (one lap each, the fastest 30 %, 3 to
@@ -475,7 +478,7 @@
   112–118 km/h (6 drivers)", `cornerHint` in pitwall-model.js, `CornerCard` on the phones): a hint, never a reference lap.
   How the coach keeps learning (migration 0053), all of it counts over real laps, never an LLM: the metres a braking tip
   asks for are what the drivers who gained really moved their braking by (`dd`/`ddn` on the tips, `ask` per bucket from 10
-  gains, `tipAsk` on the web, never more than the gap seen); the driver's own memory (`/community/coach/me`: the kinds that
+  gains, `coachOf` in pitwall-analysis.js, never more than the gap seen); the driver's own memory (`/community/coach/me`: the kinds that
   repeat on 3 or more of their tracks are habits, shown first in the plan and on the phones, and their own buckets weigh
   from 10 cases, `COACH_ME`); the step to the next level (`levelStep` in model.js, `step` on every ladder entry: the
   corners where the laps just slower than that reference lose to it, "the drivers at your pace make the step in T4 and

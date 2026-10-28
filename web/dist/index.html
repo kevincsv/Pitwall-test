@@ -6340,16 +6340,6 @@ function dirArrowSvg(p0,p1,cx,cy){const dx=p1[0]-p0[0],dy=p1[1]-p0[1],m=Math.hyp
 function turnNo(id,d,L,fb){return PWA.turnNo(id?turnsFor(id):null,d,L,fb)}
 function cornerZones(sb,n,tid){return PWA.cornerZones(sb,n,tid?turnsFor(tid):null)}
 function coachCompare(A,B){return PWA.coachCompare(A,B,anaCtx(A,B))}
-/* where the lap loses time, phase by phase, how much it coasts, and the least steady corners */
-function coachPhasesHTML(cs,A,R,LP){const tot={brake:0,entry:0,apex:0,exit:0};cs.forEach(c=>Object.keys(tot).forEach(k=>{tot[k]+=Math.max(0,c.ph[k]||0)}));
-  const worst=Object.entries(tot).sort((a,b)=>b[1]-a[1])[0],cA=cs.reduce((a,c)=>a+c.coastA,0),cB=cs.reduce((a,c)=>a+c.coastB,0);
-  const cons=cornerConsistency(LP.filter(l=>l.valid!==false),R),wob=cons&&cons.filter(x=>x.sd>.05).slice(0,3);
-  const box=(k,v)=>`<div class="kpi" style="flex:1;min-width:90px;padding:8px 10px;border:1px solid ${k===worst[0]&&v>.03?"var(--bad)":"var(--line)"};border-radius:6px"><div class="label">${esc(phaseName(k))}</div><div class="mono ${v>.03?"bad":"muted"}" style="font-size:18px;font-weight:800">${v>0?"+":""}${v.toFixed(2)}</div></div>`;
-  return`<div class="panel s8"><div class="label">${esc(Tx("Where the time goes, by phase","Dónde se pierde el tiempo, por fase","Wo die Zeit verloren geht, nach Phase","Onde o tempo se perde, por fase"))}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${Object.entries(tot).map(([k,v])=>box(k,v)).join("")}</div>
-    <p class="note" style="margin:8px 0 0">${worst[1]>.05?esc(Tx(`Most of your time goes in the ${phaseName(worst[0]).toLowerCase()} phase: work on that first in every corner.`,`La mayor parte del tiempo se va en la fase de ${phaseName(worst[0]).toLowerCase()}: trabájala primero en todas las curvas.`)):esc(Tx("No phase stands out: the time is spread over the lap.","Ninguna fase destaca: el tiempo está repartido por la vuelta."))}</p></div>
-    <div class="panel s4"><div class="label">${esc(Tx("Coasting","Sin gas ni freno"))}</div><div class="big mono ${cA-cB>20?"bad":"muted"}">${Math.round(cA)} m</div><div class="sub">${esc(Tx(`reference ${Math.round(cB)} m · time without throttle or brake in the corners`,`referencia ${Math.round(cB)} m · tiempo sin acelerador ni freno en las curvas`))}</div>
-    ${wob&&wob.length?`<div class="label" style="margin-top:10px">${esc(Tx("Least steady corners","Curvas menos constantes"))}</div><div class="sub">${wob.map(x=>`${esc(Tx("Corner","Curva"))} ${x.n} ±${x.sd.toFixed(2)} s`).join(" · ")}</div>`:""}${(()=>{const sa=lapSeries(A),sb=lapSeries(R),dn=lapDriving(sa,sb,Math.min(sa.end,sb.end));return dn.length?`<div class="label" style="margin-top:10px">${esc(Tx("How you drive the lap","Cómo conduces la vuelta","Wie du die Runde fährst","Como você pilota a volta"))}</div>${dn.map(x=>`<div class="sub" style="margin-top:4px">${esc(x)}</div>`).join("")}`:""})()}</div>`}
 function cornerConsistency(laps,R,tid){return PWA.cornerConsistency(laps,R,tid?turnsFor(tid):null)}
 /* reference: Garage 61 lap, else my best lap; when the lap to judge is my best, the next best */
 function bestExcept(x){const LP=analysisLaps();return LP.reduce((a,b)=>b!==x&&(!a||b.time<a.time)?b:a,null)}
@@ -6465,15 +6455,12 @@ function coachPlan(A,R,LP){return PWA.coachPlan(A,R,LP,anaCtx(A,R))}
 /* The coach learns from what happens after its tips (coachtips.js on the server). The tips of the lap in the coach go to the
    account once per lap and reference, with the time the session's best lap spends in every corner; the next session on
    that car and track says whether each corner got faster. From COACH_W.min cases of a tip's kind on corners of that speed,
-   the share of drivers who gained reorders the plan (tipWeight); the texts never change. The driver sees none of it, only
+   the share of drivers who gained reorders the plan (coachOf in pitwall-analysis.js); the texts never change. The driver sees none of it, only
    the 👍/👎 on each tip; the admin panel (Coach) shows the counts. */
 let COACH_W={at:0,w:{},b:{},off:new Set(),conf:false,min:30,p:null},COACH_ME={at:0,habits:[],w:{},p:null};
 function coachWeights(){if(Date.now()-COACH_W.at<3600e3||COACH_W.p||demoOn())return;COACH_W.p=cloudGet("/community/coach/weights").then(r=>{COACH_W.at=Date.now();COACH_W.min=r.min||30;COACH_W.w={};COACH_W.b={};(r.buckets||[]).forEach(b=>{const k=b.kind+"|"+b.cls;COACH_W.w[k]=b.w>0?b.w:1;COACH_W.b[k]=b});COACH_W.off=new Set(r.off||[]);COACH_W.conf=!!r.confidence;COACH_W.p=null}).catch(()=>{COACH_W.at=Date.now()-3000e3;COACH_W.p=null})}
 /* the driver's own memory (coachtips.js /coach/me): the kinds of tip that repeat across their tracks (habits) and their own weights */
 function coachMe(){if(Date.now()-COACH_ME.at<600e3||COACH_ME.p||demoOn())return;COACH_ME.p=cloudGet("/community/coach/me").then(r=>{COACH_ME.at=Date.now();COACH_ME.habits=r.habits||[];COACH_ME.w=r.w||{};COACH_ME.p=null}).catch(()=>{COACH_ME.at=Date.now()-500e3;COACH_ME.p=null})}
-const tipWeight=c=>c&&c.kind?(COACH_W.w[c.kind+"|"+c.cls]||1)*(COACH_ME.w[c.kind+"|"+c.cls]||1):1; // what worked for everyone, and what worked for this driver
-const tipAsk=(k,cls)=>{const b=COACH_W.b[k+"|"+cls];return b&&b.ask>0?b.ask:null}; // the metres a braking tip should ask for, learnt from the drivers who gained
-const tipOff=(k,cls)=>COACH_W.off.has(k+"|"+cls);
 const tipConf=(k,cls)=>{const b=COACH_W.b[k+"|"+cls];return COACH_W.conf&&b&&b.n>=COACH_W.min?b:null}; // how many drivers it helped, when the admin lets the tips say it
 const COACH_SENT=new Set(),TIPRATE=store.get("pw.tiprate",{});
 function coachWhere(A){const ses=A&&A.sessionId?(CLOUD.sessions||[]).find(x=>x.id===A.sessionId):null;return ses&&ses.started>0?{sid:A.sessionId,started:ses.started}:null}
@@ -6488,8 +6475,7 @@ async function coachReport(A,R,c,best){try{if(!A||!R||A.comm||demoOn()||!c||!c.c
 async function coachRate(A,c,up){const PM=window.PW_MODEL,w=coachWhere(A);if(!PM||!w||!c)return;const k=w.sid+":"+Math.round(c.apex),was=TIPRATE[k]||0,now=was===up?0:up;if(now)TIPRATE[k]=now;else delete TIPRATE[k];store.set("pw.tiprate",TIPRATE);
   try{const co=await PM.comboOf(A);if(!co)return;await cloudPost("/community/coach/rate",{game:aGame(),trackId:co.trackId,carId:co.carId,sid:w.sid,started:w.started,n:c.n,apex:Math.round(c.apex),kind:c.kind,cls:c.cls,up:now})}catch(e){}}
 /* the step to the next level: the corners where the drivers at your pace lose to the driver just ahead (the model's levelStep) */
-function stepText(L,A){const st=L&&L.step;if(!Array.isArray(st)||!st.length||!A)return"";const n=A.bins?A.bins.length:0,tid=A.trackId||TURN_TID;const names=st.map((x,k)=>"T"+turnNo(tid,x.apex,n*BIN,k+1));
-  return" · "+Tx(`the drivers at your pace make the step in ${names.join(", ")}`,`los pilotos de tu ritmo dan el salto en ${names.join(", ")}`,`die Fahrer deines Tempos machen den Schritt in ${names.join(", ")}`,`os pilotos do seu ritmo dão o salto em ${names.join(", ")}`)}
+function stepText(L,A){return PWA.stepText(L&&L.step,A,anaCtx(A))}
 const areaName=k=>k==="straight"?Tx("Straights","Rectas","Geraden","Retas"):phaseName(k);
 /* the corner cards: what each corner says (used by the coach and the lap analyzer) */
 function coachCornersHTML(cs,limit){const list=limit?cs.slice().sort((a,b)=>b.lost-a.lost).slice(0,limit):cs;const A=window.COACH_A,PM=window.PW_MODEL,w=coachWhere(A);

@@ -3,9 +3,11 @@
 // there: realistic laps (braking zones, trail braking, coasting, lifts, gears, steering, paths in both frames, sectors,
 // official turns, the coach's weights) go through the app's own functions, taken out of web/dist/index.html with a small
 // loader, and every answer (the corners and their tips, the plan, the sectors, the line, the analyzer's facts, the HTML
-// of the analyzer and the coach's phases) must hash to what index.html gave before the move (analysis.fixture.json, made
-// with --capture from the index.html of that time). The module is also run the way the phones run it (plain JSON in,
-// plain JSON out) and must give the web's answers, with the tips in Portuguese too.
+// of the analyzer, the next level's step) must hash to analysis.fixture.json. The fixture was first made with --capture
+// from the index.html of before the move and the new one gave the same file; it was made again when the texts of how the
+// lap is driven and of the analyzer's facts stopped joining two phrases with a colon (only those answers changed), with
+// the Portuguese answers and the cases that reach the coach's last tips added. The module is also run the way the phones
+// run it (plain JSON in, plain JSON out, no help from index.html) and what it answers must hash to the same fixture.
 //
 //   node cloud/test/analysis.test.mjs                    check the current web/dist against the fixture
 //   node cloud/test/analysis.test.mjs --capture FILE     write the fixture from that index.html's own functions
@@ -19,7 +21,9 @@ const FIXTURE = new URL("analysis.fixture.json", import.meta.url);
 // ---------- the loader: top-level definitions of index.html, one statement from its first line to the next one at column 0
 const NAMES = ["lapSeries", "serOf", "lapShape", "sameFrame", "lineOffsets", "cornerLine", "lineTip", "lapDriving", "renderLapAnalyzer",
   "pairSecs", "brakeZones", "PHASES", "phaseName", "turnNo", "COACH_GEN", "cornerClass", "cornerZones", "coachCompare", "coachPhasesHTML",
-  "cornerConsistency", "coachPlan", "tipWeight", "tipAsk", "tipOff", "coachKindName", "stepText", "areaName",
+  "cornerConsistency", "coachPlan", "coachKindName", "stepText", "areaName",
+  // only in an index.html from before the module: the coach's weights (coachOf in the module now) and the phases' panel nobody called
+  "tipWeight", "tipAsk", "tipOff", "coachPhasesHTML",
   // the new index.html: what builds the module's context and reads its texts (the line's and the corners' helpers above
   // live only in the module now)
   "anaCtx", "tipTx", "PWA"];
@@ -53,9 +57,9 @@ let COACH_W={at:0,w:{},b:{},off:new Set(),conf:false,min:30},COACH_ME={at:0,habi
 let CARDS=[];const hintOf=(cs,apex)=>{if(!cs||!cs.length||!(apex>=0))return null;let b=null;for(const c of cs){const g=Math.abs(c.apex-apex);if(g<=60&&(!b||g<Math.abs(b.apex-apex)))b=c}return b};
 window.PW_MODEL={cornerHint:(A,apex)=>hintOf(CARDS,apex)};
 const BOX={hidden:true,innerHTML:"",querySelectorAll:()=>[]};const $=s=>s==="#lapAnalyzer"?BOX:null;let CMP_HOVER=null;const drawCmp=()=>{};
-${extract(html, moduleSrc ? ["sameFrame", "cornerLine", "lineTip", "PHASES", "COACH_GEN", "cornerClass"] : ["anaCtx", "tipTx", "PWA"])}
+${extract(html, moduleSrc ? ["sameFrame", "cornerLine", "lineTip", "PHASES", "COACH_GEN", "cornerClass", "tipWeight", "tipAsk", "tipOff", "coachPhasesHTML"] : ["anaCtx", "tipTx", "PWA"])}
 return{set(o){LANG=o.lang;UNITS=o.units;TURNS=o.turns;TURN_TID=null;COACH_W=o.w;COACH_ME=o.me;CARDS=o.cards},BOX,
-  lapSeries,serOf,lineOffsets,lapDriving,renderLapAnalyzer,pairSecs,brakeZones,cornerZones,coachCompare,coachPhasesHTML,
+  lapSeries,serOf,lineOffsets,lapDriving,renderLapAnalyzer,pairSecs,brakeZones,cornerZones,coachCompare,
   cornerConsistency,coachPlan,coachKindName,stepText,turnNo,PW_ANALYSIS:window.PW_ANALYSIS};`;
   return new Function(code)();
 }
@@ -125,6 +129,8 @@ function drive(tk, opt) {
     corners.forEach((c, k) => { const d = (i - c.ia) * 5, lim = Math.sqrt(c.vmin * c.vmin + 2 * (d <= 0 ? c.dec : c.acc) * Math.abs(d)); if (lim < best) { best = lim; who = k; } });
     // what a driver loses with the pedals: in the braking zone, into the turn, out of it
     corners.forEach((c) => { if (c.slowB) best -= c.slowB * gauss(i - (c.ia - 18), 5); if (c.slowE) best -= c.slowE * gauss(i - (c.ia - 5), 4); if (c.slowX) best -= c.slowX * gauss(i - (c.ia + 16), 7); });
+    // the later cases: slower on the way into the turn after the brake is off (slowN), slow for longer around an apex as fast (sag), a slower apex (slowAp)
+    corners.forEach((c) => { if (c.slowN && i < c.ia - 3) best -= c.slowN * gauss(i - (c.ia - 6.5), 1.5); if (c.sag) best -= c.sag * gauss(i - c.ia, 2.5) * (1 - gauss(i - c.ia, 0.6)); if (c.slowAp) best -= c.slowAp * gauss(i - c.ia, 2.5); });
     v[i] = best; act[i] = who;
   }
   const bins = [];
@@ -180,6 +186,8 @@ const KINDS = ["brake_late_apex", "brake_later", "brake_harder", "brake_earlier"
   "apex_speed", "apex_longer", "apex_line", "throttle", "no_wait", "exit_speed", "full_throttle", "gear_up", "gear_down", "lifts", "throttle_slow", "throttle_rough",
   "steer", "line_same_brake", "line_turnin", "line_apex", "line_exit", "cons", "unknown_kind"];
 
+const EXTRA = [[5, "coast"], [1, "entry"], [12, "sag"], [1, "sag"], [1, "apexspd"], [11, "apexline"]];
+
 // the cases: each a track, lap A against lap B, the session's laps, and what the app knows around them
 function cases() {
   const out = [];
@@ -203,10 +211,34 @@ function cases() {
     const cards = s % 4 === 0 ? [] : tk.corners.map((c, k) => ({ apex: c.ia * 5 + (k % 3) * 20, spread: (k % 4) * 0.05 + 0.01, spreadMax: 0.16 }));
     out.push({ name: "case" + s + (focus ? "-" + focus : ""), A, B, LP: [A, B, C, D], tid, turns, W, ME, cards });
   }
+  // the tips the cases above never reach: a reference that coasts before the apex (so the entry phase is long enough to
+  // lose time in), lap A slower there with the throttle later after the apex (coast) or not (entry_before); slow for longer
+  // around an apex reached as fast (apex_longer); a slower apex (apex_speed, apex_line)
+  for (const [s, focus] of EXTRA) {
+    const r = rng(s * 104729), tk0 = track(r), coasts = focus === "coast" || focus === "entry";
+    const tk = coasts ? { ...tk0, corners: tk0.corners.map((c) => (c.lift ? c : { ...c, coast: 45, trail: r.f(15, 30) })) } : tk0;
+    const tkA = { ...tk, corners: tk.corners.map((c) => {
+      if (c.lift) return c;
+      if (focus === "coast") return { ...c, slowN: r.f(1.5, 3), pick: c.pick + r.f(15, 30) };
+      if (focus === "entry") return { ...c, slowN: r.f(1.5, 3) };
+      if (focus === "sag") return { ...c, sag: r.f(1, 2.5) };
+      if (focus === "apexspd") return { ...c, slowAp: r.f(1, 2) };
+      return { ...c, slowAp: r.f(0.15, 0.45) };
+    }) };
+    const ga = [47.1 + s * 0.01, 8.2], tid = 300 + s;
+    const A = lapOf(tkA, { g: ga, h0: s * 0.2 }, { n: 3, trackId: tid, sectors: s % 2 ? "game" : null });
+    const B = lapOf(tk, { g: ga, h0: s * 0.2 }, { n: 1, sectors: s % 2 ? "game" : null });
+    const C = lapOf(variant(tk, r, 0.5), { g: ga, h0: s * 0.2 }, { n: 5 });
+    const turns = { [tid]: tk.corners.map((c) => Math.round((c.ia / tk.n) * 1e4) / 1e4) };
+    const cards = tk.corners.map((c) => ({ apex: c.ia * 5, spread: 0.02 + (c.ia % 5) * 0.01 })), mx = Math.max(...cards.map((c) => c.spread));
+    cards.forEach((c) => { c.spreadMax = mx; });
+    out.push({ name: "extra" + s + "-" + focus, A, B, LP: [A, B, C, B], tid, turns, W: { at: 1, w: {}, b: {}, off: new Set(), conf: false, min: 30 }, ME: { at: 1, habits: [], w: {} }, cards });
+  }
   return out;
 }
 
-const SETS = [{ lang: "en", units: "metric" }, { lang: "es", units: "metric" }, { lang: "en", units: "imperial" }, { lang: "es", units: "imperial" }];
+const SETS = [{ lang: "en", units: "metric" }, { lang: "es", units: "metric" }, { lang: "en", units: "imperial" }, { lang: "es", units: "imperial" },
+  { lang: "pt", units: "metric" }, { lang: "pt", units: "imperial" }];
 const fresh = (l) => { const o = JSON.parse(JSON.stringify(l, (k, v) => (k === "_ser" || k === "_serN" ? undefined : v))); if (Array.isArray(l.bins)) o.bins = l.bins.map((b) => (b ? b.slice() : undefined)); return o; };
 const hash = (v) => crypto.createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 20);
 
@@ -218,6 +250,7 @@ function answers(api, cs, set) {
   const cc = api.coachCompare(A, B);
   const out = {
     corners: cc.map((c) => ({ ...c, tip: c.tip.slice(0, 2) })),
+    tips: cc.map((c) => c.tip),
     plan: (() => { const p = api.coachPlan(A, B, LP); return { ...p, cs: p.cs.map((c) => ({ ...c, tip: c.tip.slice(0, 2) })) }; })(),
     line: api.lineOffsets(A, B),
     brakeA: api.brakeZones(api.serOf(A)), brakeB: api.brakeZones(api.serOf(B)),
@@ -225,7 +258,6 @@ function answers(api, cs, set) {
     secs: api.pairSecs(A, B, sa, sb, n),
     driving: api.lapDriving(sa, sb, n),
     cons: api.cornerConsistency(LP, B, tid), consNoTurns: api.cornerConsistency(LP, B),
-    phasesHTML: api.coachPhasesHTML(cc, A, B, LP),
     analyzer: (api.renderLapAnalyzer(A, B), api.BOX.innerHTML),
     kinds: KINDS.map((k) => api.coachKindName(k)),
     step: api.stepText({ step: [{ apex: 300 }, { apex: 1700 }] }, A),
@@ -267,21 +299,29 @@ for (const cs of cases()) for (const set of SETS) {
   got.corners.forEach((c) => seen.add(c.kind));
   got.plan.cs.forEach((c) => seen.add(c.kind));
 
-  // the phones' way: laps and context as plain JSON (no functions, no Sets), one call, plain JSON back, the web's answers
+  // the phones' way: laps and context as plain JSON (no functions, no Sets, the model's corner cards without their
+  // spreadMax, as the phones send them), one call, plain JSON back; what it answers must hash to the fixture by itself
   const A = fresh(cs.A), B = fresh(cs.B), LP = [fresh(cs.LP[2]), fresh(cs.LP[3])];
   const tid = A.trackId || B.trackId, ctx = { lang: set.lang, units: set.units, turns: tid ? cs.turns[tid] || null : null,
-    weights: { w: cs.W.w, b: cs.W.b, off: [...cs.W.off] }, me: { w: cs.ME.w, habits: cs.ME.habits }, cards: cs.cards, laps: [A, B, ...LP] };
+    weights: { w: cs.W.w, b: cs.W.b, off: [...cs.W.off] }, me: { w: cs.ME.w, habits: cs.ME.habits }, cards: cs.cards.map((c) => ({ apex: c.apex, spread: c.spread })),
+    laps: [A, B, ...LP], step: [{ apex: 300 }, { apex: 1700 }] };
   const res = JSON.parse(PWA.analyse(JSON.parse(JSON.stringify(A)), JSON.parse(JSON.stringify(B)), JSON.parse(JSON.stringify(ctx)), { json: true }));
-  const web = answers(api, cs, set);
-  assert.deepEqual(res.corners.map((c) => ({ ...c, tip: c.tip.slice(0, 2), text: undefined })).map((c) => JSON.parse(JSON.stringify(c))), JSON.parse(JSON.stringify(web.corners)), key + " corners as the phones get them");
-  assert.deepEqual(JSON.parse(JSON.stringify(res.coach.plan)), JSON.parse(JSON.stringify(web.plan.plan)), key + " plan as the phones get it");
-  assert.deepEqual(res.coach.secs, JSON.parse(JSON.stringify(web.plan.secs)), key + " sectors as the phones get them");
+  const bare = (c) => { const { text, ...o } = c; return { ...o, tip: o.tip.slice(0, 2) }; };
+  assert.equal(hash(res.corners.map(bare)), want.corners, key + " corners as the phones get them");
+  assert.equal(hash(res.corners.map((c) => c.tip)), want.tips, key + " tips as the phones get them");
+  assert.equal(hash({ ...res.coach, cs: res.coach.cs.map(bare) }), want.plan, key + " plan as the phones get it");
+  // (the web names the step's turns by lap A's track, so only where lap A carries it or neither lap does)
+  if (A.trackId || !B.trackId) assert.equal(hash(res.step), want.step, key + " next level's step as the phones get it");
+  assert.equal(res.v, 1);
   assert.equal(res.gap, cs.A.time - cs.B.time);
   res.corners.forEach((c) => {
     assert.equal(c.tip.length, 3, "every tip in English, Spanish and Portuguese");
-    if (c.tip[0]) { assert.ok(c.tip[2] && !/undefined|NaN/.test(c.tip.join("|")), key + " T" + c.n + " tip " + c.kind); assert.equal(c.text, set.lang === "es" ? c.tip[1] : c.tip[0]); }
+    if (c.tip[0]) { assert.ok(c.tip[2] && !/undefined|NaN/.test(c.tip.join("|")), key + " T" + c.n + " tip " + c.kind); assert.equal(c.text, set.lang === "es" ? c.tip[1] : set.lang === "pt" ? c.tip[2] : c.tip[0]); }
     else assert.equal(c.text, "");
   });
+  // no text joins two phrases with a colon (CLAUDE.md): the tips, the plan, the analyzer's facts, the step
+  const texts = [...res.corners.map((c) => c.text), ...res.coach.plan.flatMap((p) => [p.t, p.why, p.how]), ...res.facts.items.map((x) => x[2]), res.step, ...res.coach.driving];
+  texts.forEach((t) => assert.ok(!/\S: \S/.test(t || ""), key + " a text joins two phrases with a colon: " + t));
   // in Portuguese every text the module writes is Portuguese (never English left over), and every corner tip has one
   const pt = JSON.parse(PWA.analyse(JSON.parse(JSON.stringify(A)), JSON.parse(JSON.stringify(B)), { ...JSON.parse(JSON.stringify(ctx)), lang: "pt" }, { json: true }));
   pt.corners.forEach((c, i) => { if (c.tip[0]) { assert.equal(c.text, c.tip[2]); assert.notEqual(c.tip[2], c.tip[0], key + " Portuguese tip " + c.kind); } });
@@ -290,6 +330,6 @@ for (const cs of cases()) for (const set of SETS) {
   pt.coach.plan.forEach((p, i) => { if (en[i] && en[i].why && set.lang === "en") assert.notEqual(p.why, en[i].why, key + " Portuguese plan " + p.k); });
 }
 // the cases reach most of what the coach can say
-const missing = KINDS.filter((k) => !seen.has(k) && !["unknown_kind", "cons", "steer", "line_same_brake"].includes(k));
-assert.ok(missing.length <= 6, "the cases reach the coach's tips; missing: " + missing.join(", "));
+const missing = KINDS.filter((k) => !seen.has(k) && k !== "unknown_kind");
+assert.equal(missing.length, 0, "the cases reach every tip of the coach; missing: " + missing.join(", "));
 console.log(`analysis: ${checked} answers as before, ${seen.size} kinds of tip reached${missing.length ? " (not reached: " + missing.join(", ") + ")" : ""}`);
