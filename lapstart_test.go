@@ -301,3 +301,38 @@ func TestLapFlagsWetAndCompound(t *testing.T) {
 		}
 	}
 }
+
+// the game's best lap a lap is judged against is the one as the lap ends: iRacing publishes the lap before's best a
+// moment after its line, so a best read at the start would miss it and a lap slower than the last one but faster
+// than the one before would look refused
+func TestGameBestReadAtLapEnd(t *testing.T) {
+	env := &lapTestEnv{t: time.Unix(1000, 0)}
+	ls := newLapStream(env)
+	const L, sp, hz = 3000.0, 60.0, 30.0
+	lapT := L / sp
+	best := 51.0
+	bestAt := -1.0 // when the game publishes lap 1 as its best (1.5 s after the line)
+	for i := 0; i < int(2.5*lapT*hz); i++ {
+		st := float64(i) / hz
+		pos := st * sp
+		lap := int(pos / L)
+		d := pos - float64(lap)*L
+		if lap == 1 && bestAt < 0 {
+			bestAt = st + 1.5
+		}
+		if bestAt > 0 && st >= bestAt {
+			best = 50.0 // lap 1 was the new best
+		}
+		v := make([]float64, len(lapVars))
+		v[0], v[1], v[2], v[3] = float64(lap+1), d, d/L, sp
+		v[9], v[12], v[13], v[14] = 50, 1, 0, st
+		v[17], v[18], v[26] = d/sp, 3, best
+		ls.step(v)
+	}
+	if len(env.ended) < 2 {
+		t.Fatalf("laps ended: %d", len(env.ended))
+	}
+	if env.ended[0].bestAt0 != 51.0 || env.ended[1].bestAt0 != 50.0 {
+		t.Fatalf("best before lap 1 %.3f, before lap 2 %.3f", env.ended[0].bestAt0, env.ended[1].bestAt0)
+	}
+}

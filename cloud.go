@@ -449,7 +449,7 @@ type lapRec struct {
 	early              bool    // started at the line, a moment before iRacing counted the lap
 	st0                float64 // a lap seen crossing the line: the session time it crossed it (its own clock, SessionTime - st0)
 	ownClock           bool
-	bestAt0            float64   // the game's own best lap when this lap started (iRacing counts only the laps it accepts)
+	bestAt0            float64   // the game's own best lap as this lap ended, the lap before's included (iRacing counts only the laps it accepts)
 	gameNo             bool      // the game itself said this lap does not count (Le Mans Ultimate's LapCountFlag)
 	penalty            bool      // the game gave a penalty on this lap off the pit road (track limits): not valid, read as a 1x Off Track
 	penPrev            float64   // the game's penalty count at the previous sample (PlayerNumPenalties)
@@ -729,6 +729,9 @@ func (ls *lapStream) step(v []float64) {
 			ls.sess.setPlace(ls.place(y, sn))
 			ls.sentPlace = ls.sess.place()
 			ls.sessLaps++
+			// the game's best as this lap ends: it has the lap before's by now (published a moment after its line) and
+			// not yet this one's, so gameAccepts compares this lap with the right "before"
+			cur.bestAt0 = v[26]
 			env.lapEnded(sn, cur, ls.sess, v[9], prevLL)
 		}
 		early := cur != nil && lap == cur.n+1 && lap-base != int(v[0])
@@ -744,7 +747,7 @@ func (ls *lapStream) step(v []float64) {
 				st0 = prevST + (v[14]-prevST)*(1-cur.lastPct)/f
 			}
 		}
-		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own, bestAt0: v[26], penPrev: v[31]}
+		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own, penPrev: v[31]}
 	}
 	ls.cur = cur
 	cur.noteDriver(now, env.driver)

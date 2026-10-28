@@ -1,6 +1,33 @@
 {
   "versions": [
     {
+      "v": "0.6.1",
+      "en": [
+        "Clean laps are valid again. A lap keeps its first metres after the line in every kind of session.",
+        "Race summaries are never lost any more, and offline races no longer replace one another.",
+        "Rivals' pedals and gears are estimated from what their car really does, and in Le Mans Ultimate their laps reach the leaderboards too.",
+        "A lap the game itself does not count is not valid, and a lap says when the track was wet.",
+        "A fix reaches your PC within minutes, installed as soon as you are not driving.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Las vueltas limpias vuelven a ser válidas. Una vuelta conserva sus primeros metros tras la meta en cualquier tipo de sesión.",
+        "Los resúmenes de carrera ya no se pierden, y las carreras offline ya no se sustituyen unas a otras.",
+        "Los pedales y las marchas de los rivales se estiman por lo que hace de verdad su coche, y en Le Mans Ultimate sus vueltas llegan también a las clasificaciones.",
+        "Una vuelta que el propio juego no cuenta no es válida, y una vuelta dice cuándo la pista estaba mojada.",
+        "Un arreglo llega a tu PC en minutos, instalado en cuanto no estás pilotando.",
+        "Arreglos y mejoras."
+      ],
+      "pt": [
+        "As voltas limpas voltam a ser válidas. Uma volta mantém seus primeiros metros depois da linha em qualquer tipo de sessão.",
+        "Os resumos de corrida não se perdem mais, e as corridas offline já não substituem umas às outras.",
+        "Os pedais e as marchas dos rivais são estimados pelo que o carro deles faz de verdade, e no Le Mans Ultimate as voltas deles chegam também às classificações.",
+        "Uma volta que o próprio jogo não conta não é válida, e uma volta diz quando a pista estava molhada.",
+        "Uma correção chega ao seu PC em minutos, instalada assim que você não está pilotando.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.6.0",
       "en": [
         "A new look for the app on the computer, with the menu on the left and clearer panels on every screen.",

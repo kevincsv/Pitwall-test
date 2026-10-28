@@ -78,3 +78,19 @@ h3{font-size:14px;color:#ffb02e;margin:18px 0 4px}p{color:#a9b4c3;margin:6px 0}u
 .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.c{display:grid;gap:3px;padding:14px;border:1px solid #2b3542;border-radius:12px;background:#19202a;text-decoration:none;color:#e7ebf1}.c:hover{border-color:#ffb02e}.c span{color:#8a97a9;font-size:13px}.n{margin-top:26px;font-size:14px}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:18px}.top b{font-size:15px;letter-spacing:.06em}.top img{width:28px;height:28px;border-radius:7px}</style>
 <main><div class="top"><img src="/icon-192.png" alt=""><b>PITLANE HQ</b></div>${body}</main></html>`;
+
+// latestBuild: the Windows build's commit in version.json, read from the bucket at most once a minute per isolate:
+// the server tells it to every PC (X-Pitlane-Build on the account's answers) so a PC behind checks for its update
+// at once instead of at its next look
+let buildCache = { at: 0, build: "" };
+export async function latestBuild(env) {
+  const now = Date.now();
+  if (now - buildCache.at < 60e3) return buildCache.build;
+  buildCache.at = now;
+  try {
+    const o = env.DL && (await env.DL.get("version.json"));
+    const v = o ? JSON.parse(await o.text()) : null;
+    buildCache.build = v && typeof v.build === "string" ? v.build : "";
+  } catch (e) { buildCache.build = ""; }
+  return buildCache.build;
+}

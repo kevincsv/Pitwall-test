@@ -128,9 +128,51 @@ func updateStatus() map[string]any {
 	return m
 }
 
-// updateWatcher checks 20 seconds after start and then every 30 minutes. A new version shows a Windows
-// notification (once per version) and the banner in the app, and installs by itself as soon as no sim
-// is running (unless you switched that off): Pitlane HQ restarts on the new version with its windows.
+// updateNudge: the server says which build is the newest (the X-Pitlane-Build header of its answers, every sync):
+// a PC on another build checks at once instead of at its next look, so a fix reaches every PC within a minute of
+// the moment it is not driving. true when a check was started (at most one every two minutes).
+var (
+	updNudgeMu sync.Mutex
+	updNudgeAt time.Time
+	updCheck   = checkUpdate // tests replace it
+)
+
+func updateNudge(build string) bool {
+	return nudgeBuild(build, updateSupported && localServer() == "" && !underSteam())
+}
+
+// nudgeBuild: updateNudge's decision, with "updates work here" given (tests)
+func nudgeBuild(build string, on bool) bool {
+	build = strings.TrimSpace(build)
+	if build == "" || buildID == "dev" || build == buildID || !on {
+		return false
+	}
+	updMu.Lock()
+	known := updLatest != nil && updLatest.Build == build
+	updMu.Unlock()
+	if known {
+		return false
+	}
+	updNudgeMu.Lock()
+	defer updNudgeMu.Unlock()
+	if time.Since(updNudgeAt) < 2*time.Minute {
+		return false
+	}
+	updNudgeAt = time.Now()
+	go func() {
+		if err := updCheck(); err != nil {
+			updMu.Lock()
+			updErr = err.Error()
+			updMu.Unlock()
+		}
+	}()
+	return true
+}
+
+// updateWatcher checks 20 seconds after start and then every 10 minutes (and at once when the server names a
+// newer build, updateNudge). A new version shows a Windows notification (once per build) and the banner in the
+// app, and installs by itself as soon as no sim is running (unless you switched that off): Pitlane HQ restarts
+// on the new version with its windows.
 func updateWatcher() {
 	cleanOldFiles()
 	if localServer() != "" || underSteam() { // local mode: nothing to check, no internet; under Steam, Steam keeps the files
@@ -147,7 +189,7 @@ func updateWatcher() {
 	var last time.Time
 	for {
 		if buildID != "dev" {
-			if time.Since(last) >= 30*time.Minute {
+			if time.Since(last) >= 10*time.Minute {
 				last = time.Now()
 				if err := checkUpdate(); err != nil {
 					updMu.Lock()
@@ -174,8 +216,13 @@ func updateWatcher() {
 						notify("Pitlane HQ "+v+" is available", "It installs by itself as soon as you are not driving. Your settings and laps are kept.")
 					}
 				}
-				// by itself: not while a sim is running, not in the first minutes after starting
-				if !p.Manual && (!engineMode || desktopNext() != "") && updateSupported && !busy && !currentStatus().Connected && time.Since(started) > 2*time.Minute {
+				// by itself: not while a sim is running, not in the first minutes after starting. A required
+				// update (this version is older than the newest one's minimum: it no longer works properly) goes
+				// in as soon as the car is not on the track (the menus, the garage), whatever the "Update now
+				// only" choice; never while driving
+				required := st["required"] == true
+				idle := !currentStatus().Connected || (required && telNums([]string{"IsOnTrack"})[0] <= 0)
+				if (!p.Manual || required) && (!engineMode || desktopNext() != "") && updateSupported && !busy && idle && time.Since(started) > 2*time.Minute {
 					updMu.Lock()
 					updBusy = true
 					updMu.Unlock()

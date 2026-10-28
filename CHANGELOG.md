@@ -4,6 +4,15 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.6.1 beta
+
+- Clean laps are valid again. A lap keeps its first metres after the line in every kind of session.
+- Race summaries are never lost any more, and offline races no longer replace one another.
+- Rivals' pedals and gears are estimated from what their car really does, and in Le Mans Ultimate their laps reach the leaderboards too.
+- A lap the game itself does not count is not valid, and a lap says when the track was wet.
+- A fix reaches your PC within minutes, installed as soon as you are not driving.
+- Fixes and improvements.
+
 ## 0.6.0 beta
 
 - A new look for the app on the computer, with the menu on the left and clearer panels on every screen.
