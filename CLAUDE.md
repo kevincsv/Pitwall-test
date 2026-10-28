@@ -428,6 +428,14 @@
   only when it takes the car off the track; a lap through the pit lane is valid, a rival's too (field.go). Incidents
   are named as iRacing names them, by their points: 1x Off Track, 2x Loss of Control, 4x Car Contact, 0x Light
   Contact (never seen in the count); never "spin". The game's own verdict counts too: Le Mans Ultimate's `LapCountFlag` (the game says the lap's time does not count, the pit lane aside) and iRacing's own best lap (`gameAccepts`: a lap faster than iRacing's best of the session that iRacing does not take as its best was not accepted, so it is not valid; a slower lap, or no best yet, says nothing).
+  A penalty the game gives during the lap (Le Mans Ultimate's `PlayerNumPenalties` rising off the pit road after the
+  lap's first 100 m, `penalty` on the lap) makes it not valid too and is recorded as a 1x Off Track where it was given.
+  A kerb never makes a lap not valid: a sample off the track (`PlayerTrackSurface` 0) counts toward the four wheels out
+  only when the surface under the car (`PlayerTrackSurfaceMaterial`, iRacing's irsdk_TrkSurf) is not asphalt, concrete,
+  paint or a rumble strip (`pavedMaterial`); without that variable every sample off the track counts, as before. In Le
+  Mans Ultimate the car is off the track only with all four wheels on grass, dirt or gravel (lmu.go reads the wheels;
+  two on the grass are a wide line, not an Off Track), the surface under the wheels goes out as iRacing's material and
+  the game's own `LapCountFlag` catches the cuts.
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
@@ -455,8 +463,12 @@
   corners where the laps just slower than that reference lose to it, "the drivers at your pace make the step in T4 and
   T9" under the Next level card); each corner's difficulty (`spread` of the drivers' corner times, weighing the plan with
   `dif`); laps in traffic (a car within a second ahead for a fifth of the lap, `traffic` in `Trace.f`, the agent checks
-  twice a second) or on cold tyres (the first lap of a run, `cold`) are tagged on the web, never the coach's default lap
-  A and never the model's (`goodLap`); a corner taken differently every lap (its spread over twice its loss) hears
+  twice a second), on cold tyres (the first lap of a run, `cold`) or on a wet track (`wet`, TrackWetness at 4 or more,
+  lightly wet on iRacing's scale, at any point of the lap, "wet track" on the web) are tagged on the web (`lapOptText`),
+  never the coach's default lap A (`lapClean`) and, traffic and wet, never the model's (`goodLap`; a cold lap is the
+  driver's own); the tyre compound travels as `cmp:<n>` in `Trace.f` when the car has several (PlayerTireCompound over
+  0, the value at the lap's end), shown nowhere and no disturbance for the coach's default lap; a corner taken
+  differently every lap (its spread over twice its loss) hears
   "the same braking point every lap" first (kind `cons`); the corner card by track temperature band (cold under 25 °C,
   hot over 35, `bands`, `model_laps.temp`) when a band has enough laps, and the fast drivers' line at the apex against
   the record's (`lineRanges`, `line` on the corner, a range never a composite); a tip may say how many drivers it helped
@@ -473,9 +485,12 @@
   or three words, `coachCue`; how it names the corner, "Next turn (T7)" by default, "Next turn" or "T7", `turnName`/`coachTurn`; the preview in its settings draws the chosen style, `coachStyleHTML`), which
   corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
   from how far it speaks. The settings travel with the account like every overlay's.
-- The model (`cloud/src/model.js`, MODEL_VERSION 9) learns clean traces only (a speed jump over 10 m/s between two
-  points is a glitch) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
-  lap with real pedals, and `idealField` says when the record is a rival's.
+- The model (`cloud/src/model.js`, MODEL_VERSION 10) learns clean traces only (a speed jump over 10 m/s between two
+  points is a glitch), never a lap in traffic or on a wet track (`goodLap`: a wet lap teaches braking points of another
+  track state) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
+  lap with real pedals, and `idealField` says when the record is a rival's. A rival's lap whose pedals the game itself
+  gave (Le Mans Ultimate's telemetry of the other cars, `Trace.src` "real" from field.go, kept as such by POST `/laps`)
+  is a real lap: the model and `/community/laps/:id` estimate pedals only over src "field".
 - Le Mans Ultimate is supported like iRacing (PC, web and phones), labelled "Beta" wherever it is offered (drivers report
   problems to support@pitlanehq.app): read from the game's own `LMU_Data` shared memory
   (Settings → Gameplay → Enable Plugins, nothing to install), turned into an iRacing-shaped image (`lmu.go`,

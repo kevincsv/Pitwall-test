@@ -14,7 +14,7 @@ import { openData } from "./crypt.js";
 import { pedalEnvelope, estimatePedals } from "./pedals.js";
 
 // raise it when the way the model learns changes: every model is rebuilt from its memory
-export const MODEL_VERSION = 9; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card; 9: rivals' pedals from what the car really does (pedals.js)
+export const MODEL_VERSION = 10; // 4: real laps only — the record and the driver just ahead, no composites; 5: with their line; 6: the fastest line known; 7: clean traces, the next level with real pedals; 8: the corner card; 9: rivals' pedals from what the car really does (pedals.js); 10: wet laps left out, a rival's lap with the game's own pedals (src "real") is a real lap
 export const CARD_VERSION = 2;  // the car card (below); raise it when what it learns changes
 const SEG_M = 250;          // metres per micro-sector
 const MAX_LAPS = 80;        // laps the model reads per car and track
@@ -36,11 +36,15 @@ function segTimes(l, M, n) {
   return out;
 }
 
-// a lap is only used when its telemetry is whole and believable
-function goodLap(time, tr) {
+// a lap is only used when its telemetry is whole and believable (exported for the tests). field: a rival's lap from
+// its position on track (src "field"), whose pedals are estimated; a rival's lap with the pedals the game itself gave
+// (src "real") is as real as an account's
+export function goodLap(time, tr) {
   if (!tr || !Array.isArray(tr.d) || tr.d.length < 60) return null;
   // a lap driven behind another car (its flags say traffic) teaches braking points and lines that are not the driver's
   if (Array.isArray(tr.f) && tr.f.includes("traffic")) return null;
+  // a wet lap teaches braking points of another track state: the model knows one, the dry track
+  if (Array.isArray(tr.f) && tr.f.includes("wet")) return null;
   const bins = tr.d.map((x) => [+x[0], +x[5], Math.min(1, Math.max(0, +x[1] || 0)), Math.min(1, Math.max(0, +x[2] || 0)), +x[3], +x[4]]);
   let back = 0, jumps = 0, prev = -1, prevV = null;
   for (const b of bins) {
@@ -118,6 +122,8 @@ async function learnNewLaps(env, game, trackId, carId) {
     let tr = null;
     try { tr = JSON.parse(await openData(env, x.trace)); } catch (e) { continue; }
     if (!goodLap(x.time, tr)) continue;
+    // the memory keeps "field" on a rival's lap from its position (its pedals made again at every build); a lap with
+    // the game's own pedals (src "real") goes in as the points alone, like an account's lap
     await env.DB.prepare("INSERT INTO model_laps (game, track_id, car_id, k, drv, time, data, created, temp) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT DO NOTHING")
       .bind(game, trackId, carId, k, await sha("drv:" + x.up), x.time, await gz(JSON.stringify(tr.src === "field" ? { d: tr.d, src: "field" } : tr.d)), Date.now(), typeof x.temp === "number" && isFinite(x.temp) ? x.temp : null).run();
     added++;

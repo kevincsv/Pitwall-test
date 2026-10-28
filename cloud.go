@@ -79,8 +79,8 @@ type lapTrace struct {
 	G    []float64    `json:"g,omitempty"`    // the origin of X/Y when they come from the game's position: [lat, lon] of x=0, y=0 (x east, y north)
 	Inc  []float64    `json:"inc,omitempty"`  // lap distance (m) of each incident, with its points: [d, pts, d, pts…]
 	IncK []string     `json:"incK,omitempty"` // what each incident was: "off", "loss", "light" (light contact) or "contact"
-	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated)
-	F    []string     `json:"f,omitempty"`    // what this lap was driven in: "traffic" (a car within a second ahead for a fifth of the lap), "cold" (the first lap of a run, tyres cold); the coach and the model leave such laps aside
+	Src  string       `json:"src,omitempty"`  // "field": another car's lap from its position on track (speed real, pedals estimated); "real": another car's lap with the pedals the game itself gave of it (Le Mans Ultimate), a real lap
+	F    []string     `json:"f,omitempty"`    // what this lap was driven in: "traffic" (a car within a second ahead for a fifth of the lap), "cold" (the first lap of a run, tyres cold), "wet" (the track at least lightly wet at some point, TrackWetness 4 or more), "cmp:<n>" (the tyre compound when the car has several); the coach leaves traffic, cold and wet laps aside, the model traffic and wet ones
 }
 
 type cloudItem struct {
@@ -416,7 +416,10 @@ func sessionMetaGame(y string, sessionNum int, started time.Time, game string) c
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
 	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
-	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon", "PlayerCarIdx", "LapBestLapTime", "LapCountFlag"}
+	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon", "PlayerCarIdx", "LapBestLapTime", "LapCountFlag",
+	// the surface under the car, how wet the track is, the tyre compound and the game's penalties: iRacing gives the
+	// first three, Le Mans Ultimate makes all four in lmu.go; a source without one reads 0 (env.has says which exist)
+	"PlayerTrackSurfaceMaterial", "TrackWetness", "PlayerTireCompound", "PlayerNumPenalties"}
 
 const lapBin = 5 // metres
 
@@ -448,6 +451,10 @@ type lapRec struct {
 	ownClock           bool
 	bestAt0            float64   // the game's own best lap when this lap started (iRacing counts only the laps it accepts)
 	gameNo             bool      // the game itself said this lap does not count (Le Mans Ultimate's LapCountFlag)
+	penalty            bool      // the game gave a penalty on this lap off the pit road (track limits): not valid, read as a 1x Off Track
+	penPrev            float64   // the game's penalty count at the previous sample (PlayerNumPenalties)
+	wet                bool      // the track was at least lightly wet at some point of the lap (TrackWetness 4 or more)
+	cmp                int       // the tyre compound at the lap's end (PlayerTireCompound; 0 the only one, or unknown)
 	incPrev            float64   // the incident count at the previous sample
 	incAt              []float64 // [distance, points] of every incident on this lap
 	incK               []string  // the kind of each incident
@@ -664,6 +671,7 @@ func (ls *lapStream) step(v []float64) {
 	env := ls.env
 	hasYaw := env.has("Yaw") && env.has("VelocityX")
 	hasGeo := env.has("Lat") && env.has("Lon") && math.Abs(v[23]) > 0.001 && math.Abs(v[24]) > 0.001
+	hasMat, hasPen := env.has("PlayerTrackSurfaceMaterial"), env.has("PlayerNumPenalties")
 	prevLL, prevST := ls.lastLL, ls.lastST
 	ls.lastLL, ls.lastST = v[8], v[14]
 	lap, dist, pct, speed := int(v[0]), v[1], v[2], v[3]
@@ -736,7 +744,7 @@ func (ls *lapStream) step(v []float64) {
 				st0 = prevST + (v[14]-prevST)*(1-cur.lastPct)/f
 			}
 		}
-		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own, bestAt0: v[26]}
+		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own, bestAt0: v[26], penPrev: v[31]}
 	}
 	ls.cur = cur
 	cur.noteDriver(now, env.driver)
@@ -796,14 +804,36 @@ func (ls *lapStream) step(v []float64) {
 		// is valid)
 		cur.gameNo, cur.bad = true, true
 	}
-	// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
-	// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
-	if v[18] == 0 && env.has("PlayerTrackSurface") {
+	// a penalty the game gives during the lap (Le Mans Ultimate's track limits): the lap is not valid, and it reads as
+	// iRacing's 1x Off Track where it was given. Not on the pit road (a penalty served there is not this lap's driving)
+	// and the first 100 m aside, while the game may still be settling the lap before
+	if hasPen && v[31] > cur.penPrev && v[10] <= 0 && dist > 100 {
+		cur.penalty, cur.bad = true, true
+		if len(cur.incAt) < 80 {
+			cur.incAt = append(cur.incAt, math.Max(0, math.Round(dist)), 1)
+			cur.incK = append(cur.incK, "off")
+		}
+	}
+	cur.penPrev = v[31]
+	if v[29] >= 4 { // iRacing's scale: 4 is lightly wet
+		cur.wet = true
+	}
+	cur.cmp = int(v[30])
+	// an incident alone does not make a lap invalid; leaving the track for a third of a second (all four wheels out,
+	// cutting a corner) does, so it is never shared; only where the game reports the surface, and never on a kerb, a
+	// painted run-off or a concrete apron: with the material under the car known, only grass, dirt, sand and gravel
+	// count (without it, every sample off the track does, as before)
+	if v[18] == 0 && env.has("PlayerTrackSurface") && !(hasMat && pavedMaterial(int(v[28]))) {
 		if cur.off++; cur.off >= offTrackSamples {
 			cur.bad = true
 		}
 	}
 }
+
+// pavedMaterial: a surface the car may have all four wheels on without leaving the track, by iRacing's irsdk_TrkSurf:
+// asphalt (1 to 4), concrete (5 and 6), paint (9 and 10) and rumble strips (11 to 14). Racing dirt, grass, dirt, sand,
+// gravel, grasscrete and astroturf are not, nor -1 (not in the world) or 0 (undefined).
+func pavedMaterial(m int) bool { return (m >= 1 && m <= 6) || (m >= 9 && m <= 14) }
 
 // liveLapEnv: the game running now (the shared memory read by reader)
 type liveLapEnv struct{}
@@ -924,9 +954,11 @@ func gameAccepts(before, lt float64, best func() float64, tries int) bool {
 // are filled in; a lap that skipped part of the track is not)
 func fullLap(seen, bins int) bool { return bins > 0 && float64(seen) >= 0.9*float64(bins) }
 
-// invalid: what makes a lap not valid, and only that: leaving the track (an Off Track, or all four wheels out for a
-// third of a second) or lost connection (a hole in its telemetry, or not the whole circuit). A Loss of Control or a
-// Car Contact counts only when it takes the car off the track; a lap through the pit lane is valid.
+// invalid: what makes a lap not valid, and only that: leaving the track (an Off Track, or all four wheels out on grass,
+// dirt or gravel for a third of a second, never on a kerb), the game's own verdict (its LapCountFlag, a lap faster than
+// its best that it did not take, a penalty given during the lap) or lost connection (a hole in its telemetry, or not the
+// whole circuit). A Loss of Control or a Car Contact counts only when it takes the car off the track; a lap through the
+// pit lane is valid.
 func (r *lapRec) invalid() bool {
 	return r.bad || r.off >= offTrackSamples
 }
@@ -1020,6 +1052,12 @@ func buildLap(r *lapRec, s cloudSession, fuelNow, lt float64) (cloudLap, bool) {
 	}
 	if r.cold {
 		l.Trace.F = append(l.Trace.F, "cold")
+	}
+	if r.wet {
+		l.Trace.F = append(l.Trace.F, "wet")
+	}
+	if r.cmp > 0 { // the compound only when the car has several (the first, or the only one, is 0)
+		l.Trace.F = append(l.Trace.F, fmt.Sprintf("cmp:%d", r.cmp))
 	}
 	if len(r.incAt) > 0 {
 		l.Trace.Inc, l.Trace.IncK = r.incAt, r.incK

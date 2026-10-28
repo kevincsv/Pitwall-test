@@ -1147,8 +1147,10 @@ export async function community(req, env, url, ctx) {
     if (typeof body.other === "string" && /^[0-9a-f]{16,64}$/i.test(body.other)) {
       if (!u.account) return err("sign in with your Pitlane HQ account to share other drivers' times", 401);
       const oid = await otherId(env, body.other);
-      // the speed trace their position gave (pedals estimated): the model, the leaderboard and comparisons use it
-      const plain = body.trace && Array.isArray(body.trace.d) && body.trace.d.length >= 60 ? JSON.stringify({ ...body.trace, src: "field" }) : null;
+      // the speed trace their position gave (src "field", pedals estimated), or the game's own telemetry of their car
+      // (src "real", Le Mans Ultimate: a real lap for the model, no estimate on top); the model, the leaderboard and
+      // comparisons use it
+      const plain = body.trace && Array.isArray(body.trace.d) && body.trace.d.length >= 60 ? JSON.stringify({ ...body.trace, src: body.trace.src === "real" ? "real" : "field" }) : null;
       if (plain && plain.length > 900000) return err("lap trace too large", 400);
       // a rival who has an account (their PC saw them at the wheel): the lap goes to their account, under
       // its public name or as Anonymous, as the account chose
