@@ -2634,13 +2634,17 @@ function verifyPrompt(email,again){return uiPanel(`<h2 style="margin:6px 0 4px">
 // your profile as the account has it now (public name, anonymous, admin, email confirmed): true when it changed here
 async function cpMe(){const m=await cpCall("GET","/account/me").catch(()=>null);const a=CP.acc;if(!m||!a||(m.id&&m.id!==a.id))return false;
   const key=x=>JSON.stringify([x.display,x.nameKind,!!x.anon,!!x.admin,!!x.verified,!!x.twoFactor,!!x.supporter,!!x.supporterHidden,!!x.pro,!!x.proGate]),before=key(a);
-  if(m.display)a.display=m.display;a.nameKind=m.nameKind==="iracing"?"iracing":"nick";a.anon=!!m.anon;a.admin=!!m.admin;a.verified=!!m.verified;a.mail=!!m.mail;a.twoFactor=!!m.twoFactor;a.recoveryLeft=m.recoveryLeft;a.supporter=!!m.supporter;a.supporterHidden=!!m.supporterHidden;a.pro=!!m.pro;a.proSrc=m.proSrc||"";a.proGate=!!m.proGate;
+  if(m.display)a.display=m.display;a.nameKind=m.nameKind==="iracing"?"iracing":"nick";a.anon=!!m.anon;a.admin=!!m.admin;a.verified=!!m.verified;a.mail=!!m.mail;a.twoFactor=!!m.twoFactor;a.recoveryLeft=m.recoveryLeft;a.supporter=!!m.supporter;a.supporterHidden=!!m.supporterHidden;a.pro=!!m.pro;a.proSrc=m.proSrc||"";a.proGate=!!m.proGate;if(m.escrow!==undefined&&!!m.escrow!==a.escrow){a.escrow=!!m.escrow;CP.escTried=false}
   cpSecret.set("account",JSON.stringify(a));return key(a)!==before}
 function cpForget(){CP.acc=null;CP.files={};CP.ver=0;cpSecret.set("account",null);cpIdbSet("bundle",null)}
 // the account as the server has it now: the names of the files that changed here (races.json, local.json…)
 async function cpPull(){const j=await cpCall("GET","/account/sync");CP.lastSync=Date.now();if(!j.blob){CP.ver=j.version||0;return[]}
   const files=cpDecode(await cpGunz(await cpOpen(cpUnhex(CP.acc.dataKey),j.blob))),old=CP.files||{};const changed=[...new Set([...Object.keys(files),...Object.keys(old)])].filter(k=>JSON.stringify(files[k]??null)!==JSON.stringify(old[k]??null));
-  CP.files=files;CP.ver=j.version;await cpIdbSet("bundle",{v:j.version,blob:j.blob,t:Date.now()});return changed}
+  CP.files=files;CP.ver=j.version;await cpIdbSet("bundle",{v:j.version,blob:j.blob,t:Date.now()});cpEscrow();return changed}
+// the data key goes to the server once (POST /account/escrow), after it opened or sealed the account's copy: the sign-ins with
+// Steam and Discord then need no password. Tried once per page while the server says it has none
+function cpEscrow(){const a=CP.acc;if(!a||!a.dataKey||a.escrow===true||CP.escTried)return;CP.escTried=true;
+  cpCall("POST","/account/escrow",{key:a.dataKey,email:a.email||undefined}).then(()=>{if(CP.acc===a){a.escrow=true;cpSecret.set("account",JSON.stringify(a))}}).catch(()=>{})}
 // what the screens keep of a file that changed in the account is read again (the races, the ratings, the notes…)
 function cpFilesChanged(ch){if(!ch||!ch.length)return;if(ch.includes("races.json")){RACES=null;HOME.rt=0;HOME.rl=0}if(ch.includes("ratings.json"))RATINGS_AT=0;if(ch.includes("trackbook.json"))TB=null;if(ch.includes("drivers.json"))DRV_AT=0;if(ch.includes("notes.json"))loadNotes().catch(()=>{})}
 function cpApplyPending(p){if(!p)return;const f=CP.files;if(p.local){f["local.json"]=Object.assign({},f["local.json"]||{},p.local);Object.keys(p.local).forEach(k=>{if(p.local[k]===null)delete f["local.json"][k]})}
@@ -2651,7 +2655,7 @@ function cpQueue(change){if(!CP.acc)return;const p=CP.pending||(CP.pending={});i
   if(change.uncutRace)p.uncutRaces=[...(p.uncutRaces||[]),change.uncutRace];if(change.lapDrv)p.lapDrvs=[...(p.lapDrvs||[]),change.lapDrv];if(change.fixRace)p.fixRaces=[...(p.fixRaces||[]),change.fixRace];
   cpApplyPending({local:change.local,notes:change.notes,drivers:change.drivers,delRaces:change.delRace?[change.delRace]:null,uncutRaces:change.uncutRace?[change.uncutRace]:null,fixRaces:change.fixRace?[change.fixRace]:null,lapDrvs:change.lapDrv?[change.lapDrv]:null});clearTimeout(CP.pushT);CP.pushT=setTimeout(()=>cpPush().catch(e=>{CP.err=e.message}),2500)}
 async function cpPush(tries=0){if(!CP.acc)return;const pend=CP.pending;const sealed=await cpSeal(cpUnhex(CP.acc.dataKey),await cpGz(cpEncode(CP.files)));
-  try{const r=await cpCall("PUT","/account/sync",{blob:sealed,base:CP.ver});CP.ver=r.version;CP.pending=null;CP.err="";CP.lastSync=Date.now();await cpIdbSet("bundle",{v:r.version,blob:sealed,t:Date.now()})}
+  try{const r=await cpCall("PUT","/account/sync",{blob:sealed,base:CP.ver});CP.ver=r.version;CP.pending=null;CP.err="";CP.lastSync=Date.now();await cpIdbSet("bundle",{v:r.version,blob:sealed,t:Date.now()});cpEscrow()}
   catch(e){if(/conflict/i.test(e.message)&&tries<3){cpFilesChanged(await cpPull());cpApplyPending(pend);return cpPush(tries+1)}throw e}}
 const cpSnapAll=()=>CP.files["companion.json"]||{};
 function cpSnap(k){const c=cpSnapAll();if(c[k])return c[k].body;const path=k.split("?")[0],hits=Object.keys(c).filter(x=>x.split("?")[0]===path);return hits.length===1?c[hits[0]].body:null}
@@ -2662,10 +2666,11 @@ const cpDevice=()=>{const u=navigator.userAgent,b=/Edg(e|A|iOS)?\//.test(u)?"Edg
   const os=/iPhone/.test(u)?"iPhone":/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?"iPad":/Android/.test(u)?"Android":/Windows/.test(u)?"Windows":/Mac OS X|Macintosh/.test(u)?"Mac":/Linux/.test(u)?"Linux":"";
   return NATIVE_RAW?(os||"Phone"):"Web"+(b?" · "+b:"")+(os?" · "+os:"")};
 async function cpSignedIn(r,email,wrap,key){if(!key){key=await cpOpen(wrap,r.wrappedKey)}
-  CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind,anon:!!r.anon,admin:!!r.admin,verified:!!r.verified,mail:r.mailed!==undefined||!!r.mail,twoFactor:!!r.twoFactor};cpSecret.set("account",JSON.stringify(CP.acc))}
-/* Sign in with Steam on the web: /account/login/steam gives the session without the data key; the password (and the email it was
-   made with), asked once on this device by the page (steamKeyAsk) through loginSteamKey, gets the wrapped key from the server
-   (POST /account/key). The code the start gave stays on this device for 10 minutes, kept by its state (pw.oauth.<state>, so a
+  CP.acc={email:email.trim().toLowerCase(),id:r.id,token:r.token,dataKey:cpHex(key),display:r.display,nameKind:r.nameKind,anon:!!r.anon,admin:!!r.admin,verified:!!r.verified,mail:r.mailed!==undefined||!!r.mail,twoFactor:!!r.twoFactor,escrow:!!r.escrow};CP.escTried=false;cpSecret.set("account",JSON.stringify(CP.acc))}
+/* Sign in with Steam on the web: /account/login/steam gives the session with the server's copy of the data key (dataKey, and
+   the account's email); only an account without one (needKey), or a copy that does not open the account, asks the password
+   (and the email it was made with) once on this device by the page (steamKeyAsk) through loginSteamKey, which gets the
+   wrapped key from the server (POST /account/key). The code the start gave stays on this device for 10 minutes, kept by its state (pw.oauth.<state>, so a
    phone browser that comes back in a new tab still has it; the state comes back in the address, oauthBack): a grant is only
    good with it, so a Steam address or a grant passed on to somebody else signs nobody in. The previous version kept it in the
    tab (pw.steamCode, pw.discordCode), still read */
@@ -2680,7 +2685,13 @@ function oauthBack(prov,state){if(!/^[0-9a-f]{48}$/.test(state||""))return;let c
 const steamCode=(v,state)=>oauthCode("steam",v,state);
 // Sign in with Discord on the web: the same, with its own code and POST /account/login/discord
 const discordCode=(v,state)=>oauthCode("discord",v,state);
-async function cpSteamGot(r){if(r.twoFactor){CP.pend2fa={pending:r.pending,steam:true,at:Date.now()};return{twoFactor:true}}CP.steamPend=r;return{needKey:true,email:""}}
+async function cpSteamGot(r){if(r.twoFactor){CP.pend2fa={pending:r.pending,steam:true,at:Date.now()};return{twoFactor:true}}
+  if(/^[0-9a-f]{64}$/.test(r.dataKey||"")){await cpSignedIn(r,r.email||"",null,cpUnhex(r.dataKey));
+    // the key opens the account's copy (or there is none yet): signed in. One that does not open it asks the password, as before
+    let bad=false;try{await cpPull()}catch(e){bad=!!e&&e.name==="OperationError"}
+    if(!bad){steamCode(null);discordCode(null);setTimeout(()=>location.reload(),600);return cpStatus()}
+    cpForget()}
+  CP.steamPend=r;return{needKey:true,email:r.email||""}}
 async function cpAccount(b){const a=b.action;
   if(a==="login"){const{auth,wrap}=await cpDerive(b.email,b.password);const r=await cpCall("POST","/account/login",{email:b.email.trim().toLowerCase(),auth,device:cpDevice(),lang:b.lang||LANG},false);
     if(r.twoFactor){CP.pend2fa={pending:r.pending,email:b.email,wrap,at:Date.now()};return{twoFactor:true}}await cpSignedIn(r,b.email,wrap);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
@@ -2699,7 +2710,7 @@ async function cpAccount(b){const a=b.action;
     let r;try{r=await cpOrigFetch(CP.server+"/account/key",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+p.token},body:JSON.stringify({auth}),cache:"no-store"})}catch(e){throw new Error(Tx("No internet connection","Sin conexión a internet","Keine Internetverbindung","Sem conexão com a internet"))}
     const k=await r.json().catch(()=>({}));if(!r.ok)throw new Error(r.status===401?Tx("Wrong email or password","Email o contraseña incorrectos","Wrong email or password","Email ou senha incorretos"):k.error||("HTTP "+r.status));
     let key;try{key=await cpOpen(wrap,k.wrappedKey)}catch(e){throw new Error(Tx("Wrong email or password","Email o contraseña incorrectos","Wrong email or password","Email ou senha incorretos"))}
-    CP.steamPend=null;steamCode(null);discordCode(null);await cpSignedIn({...p,wrappedKey:k.wrappedKey,keyTag:k.keyTag},b.email,wrap,key);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
+    CP.steamPend=null;steamCode(null);discordCode(null);await cpSignedIn({...p,wrappedKey:k.wrappedKey,keyTag:k.keyTag,escrow:false},b.email,wrap,key);await cpPull();setTimeout(()=>location.reload(),600);return cpStatus()}
   if(a==="steamLoginCancel"||a==="discordLoginCancel"){const p=CP.steamPend;CP.steamPend=null;if(p&&p.token)cpOrigFetch(CP.server+"/account/logout",{method:"POST",headers:{Authorization:"Bearer "+p.token}}).catch(()=>{});return cpStatus()}
   if(!CP.acc)throw new Error(Tx("Sign in first","Inicia sesión primero"));
   if(a==="logout"){cpCall("POST","/account/logout").catch(()=>{});cpForget();return cpStatus()}
