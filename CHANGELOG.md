@@ -4,6 +4,11 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.7.2 beta
+
+- Le Mans Ultimate practice laps are valid again.
+- Fixes and improvements.
+
 ## 0.7.1 beta
 
 - The overlays use far less of your PC and no longer slow the game down. You can lower their frames per second in Overlays.

@@ -1,6 +1,21 @@
 {
   "versions": [
     {
+      "v": "0.7.2",
+      "en": [
+        "Le Mans Ultimate practice laps are valid again.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Las vueltas de práctica de Le Mans Ultimate vuelven a ser válidas.",
+        "Arreglos y mejoras."
+      ],
+      "pt": [
+        "As voltas de treino do Le Mans Ultimate voltam a ser válidas.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.7.1",
       "en": [
         "The overlays use far less of your PC and no longer slow the game down. You can lower their frames per second in Overlays.",
