@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash/fnv"
+	"log"
 	"math"
 	"path/filepath"
 	"regexp"
@@ -24,6 +25,17 @@ const lmuCars = 64 // iRacing-style arrays hold 64 cars
 // lmuFuelKgPerLtr: LMU counts fuel in litres and iRacing's FuelUsePerHour is kg/h, so the
 // rate goes out with this density and the session says it (DriverCarFuelKgPerLtr) for the way back
 const lmuFuelKgPerLtr = 0.75
+
+// Contacts stand in for incidents (LMU has no incident count). The recorder names each incident by the points it adds, as
+// iRacing does (1x Off Track, which alone makes the lap not valid; 2x Loss of Control; 4x Car Contact; 0x Light Contact), so
+// a strong impact adds lmuImpactPoints and a light one nothing: a touch never reads as an Off Track. The game's
+// mLastImpactMagnitude has no documented unit (its header says only "magnitude of last impact"): a rub along a wall or a
+// wheel-to-wheel touch stays in the low hundreds and a crash reaches the thousands, so the line is kept high and only an
+// unmistakable contact counts.
+const (
+	lmuImpactStrong = 1000.0
+	lmuImpactPoints = 4
+)
 
 // the start bits of SessionFlags (irsdk_Flags)
 const (
@@ -50,11 +62,14 @@ func lmuVarDefs() []demoVar {
 		{name: "VirtualEnergyPct", desc: "Virtual energy left (Le Mans Ultimate)", unit: "%", typ: TypeFloat},
 		{name: "WindVel", desc: "Wind velocity at start/finish line", unit: "m/s", typ: TypeFloat},
 		{name: "WindDir", desc: "Wind direction at start/finish line", unit: "rad", typ: TypeFloat},
+		// the game's own verdict on the lap under way: 2 the lap and its time count, 1 the lap only, 0 neither
+		{name: "LapCountFlag", desc: "Whether the game counts this lap and its time (Le Mans Ultimate)", typ: TypeInt},
 	}
 	for _, c := range []string{"LF", "RF", "LR", "RR"} {
 		extra = append(extra, demoVar{name: c + "pressure", desc: c + " tire pressure", unit: "kPa", typ: TypeFloat},
 			demoVar{name: c + "brakeTemp", desc: c + " brake temperature", unit: "C", typ: TypeFloat})
 	}
+	extra = append(extra, lmuFieldVars()...)
 	seen := map[string]bool{}
 	var out []demoVar
 	for _, v := range append(append([]demoVar{}, demoVarDefs...), extra...) {
@@ -67,23 +82,55 @@ func lmuVarDefs() []demoVar {
 	return out
 }
 
+// lmuFieldVars: what LMU gives beyond iRacing's variables, for every car (the field's own telemetry) and for the player.
+// iRacing has none of them, so their readers (field.go, cloud.go) take their absence for "unknown".
+func lmuFieldVars() []demoVar {
+	return []demoVar{
+		{name: "CarIdxSteer", desc: "Steering wheel angle by car index", unit: "rad", typ: TypeFloat, count: lmuCars},
+		{name: "CarIdxBestLapNum", desc: "Cars best lap number", typ: TypeInt, count: lmuCars},
+		// the game's own verdict on each car's lap under way: 2 the lap and its time count, 1 the lap only, 0 neither, -1 no car
+		{name: "CarIdxLapCountFlag", desc: "Whether the game counts the cars lap and its time", typ: TypeInt, count: lmuCars},
+		{name: "CarIdxLastS1", desc: "Cars last lap sector 1 time, 0 unknown", unit: "s", typ: TypeFloat, count: lmuCars},
+		{name: "CarIdxLastS2", desc: "Cars last lap sector 2 time, 0 unknown", unit: "s", typ: TypeFloat, count: lmuCars},
+		{name: "CarIdxLapStartET", desc: "Session time the cars current lap started", unit: "s", typ: TypeFloat, count: lmuCars},
+		// every car's position in the player's made-up latitude/longitude, so a rival's path and the player's share one frame
+		{name: "CarIdxLat", desc: "Latitude by car index", unit: "deg", typ: TypeDouble, count: lmuCars},
+		{name: "CarIdxLon", desc: "Longitude by car index", unit: "deg", typ: TypeDouble, count: lmuCars},
+		// a car's own pedals when the game gives its telemetry (a rival's lap then carries real pedals), -1 when it does not
+		{name: "CarIdxThrottle", desc: "Throttle by car index, -1 unknown", unit: "%", typ: TypeFloat, count: lmuCars},
+		{name: "CarIdxBrake", desc: "Brake by car index, -1 unknown", unit: "%", typ: TypeFloat, count: lmuCars},
+		{name: "PlayerNumPenalties", desc: "Penalties outstanding against the player", typ: TypeInt},
+		{name: "PlayerTrackSurfaceMaterial", desc: "Players car track surface material type", unit: "irsdk_TrkSurf", typ: TypeInt},
+	}
+}
+
+// lmuCarMem is what the source remembers of a car between frames, by the game's vehicle id
+type lmuCarMem struct {
+	best float64 // mBestLapTime the frame before
+	num  int     // the lap that set it, -1 unknown
+}
+
 type lmuSource struct {
-	mu       sync.Mutex
-	view     lmuView
-	img      *irImage
-	snap     []byte
-	stop     chan struct{}
-	sessKey  string
-	impactET float64
-	impacts  int
-	sessNum  int
-	phase    int     // the game phase of the frame before
-	goET     float64 // the session clock when the race went green, 0 none
-	sec      lmuSectors
-	secStore map[string][3]float64 // the learned sector starts of every track, kept in secPath
-	secPath  string                // "" in tests: nothing is written
-	fuel     lmuFuel
-	onTrack  bool // the game in its realtime (driving, or in the car in the garage): its REST API is left alone (lmurest.go)
+	mu         sync.Mutex
+	view       lmuView
+	img        *irImage
+	snap       []byte
+	stop       chan struct{}
+	sessKey    string
+	impactET   float64
+	impactSeen bool // impactET holds a value read from the game (the impact before the program watched, or none)
+	impacts    int
+	carMem     map[int]lmuCarMem
+	telSeen    [2]int  // the cars and how many had telemetry when the log last said so (zero: not yet)
+	telLogET   float64 // the session clock then
+	sessNum    int
+	phase      int     // the game phase of the frame before
+	goET       float64 // the session clock when the race went green, 0 none
+	sec        lmuSectors
+	secStore   map[string][3]float64 // the learned sector starts of every track, kept in secPath
+	secPath    string                // "" in tests: nothing is written
+	fuel       lmuFuel
+	onTrack    bool // the game in its realtime (driving, or in the car in the garage): its REST API is left alone (lmurest.go)
 }
 
 func newLMUSource() Source { return &lmuSource{} }
@@ -205,6 +252,8 @@ type lmuCar struct {
 	sector                    int // rF2's mSector: 0 = sector 3, 1 = sector 1, 2 = sector 2
 	tel                       int // telemetry slot, -1 if none
 	pos                       lmuVec
+	countFlag, penalties      int     // mCountLapFlag (2 lap and time count, 1 lap only, 0 neither), mNumPenalties
+	lastS1, lastS2, lapStart  float64 // the last lap's own sector times (0 unknown) and when this lap started
 }
 
 // lmuSectors learns where the official sectors start from the player's mSector. rF2 and LMU number the
@@ -364,6 +413,9 @@ func (s *lmuSource) convert(b []byte) bool {
 		if t, ok := telByID[c.id]; ok {
 			c.tel = t
 		}
+		c.countFlag, c.penalties = lu8(b, o+vs_mCountLapFlag), li16(b, o+vs_mNumPenalties)
+		c.lastS1, c.lastS2 = lmuSectorTimes(lf64(b, o+vs_mLastSector1), lf64(b, o+vs_mLastSector2))
+		c.lapStart = lf64(b, o+vs_mLapStartET)
 		if m := lmuNumRe.FindStringSubmatch(c.vehicle); m != nil {
 			c.num = m[1]
 		} else {
@@ -408,6 +460,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 	}
 	s.writeSession(b, cars, player, playerTel, track, trackLen, session)
+	s.noteTelemetry(cars, et)
 
 	m := s.img
 	m.begin()
@@ -439,6 +492,7 @@ func (s *lmuSource) convert(b []byte) bool {
 	m.set("TrackTempCrew", lf64(b, si+si_mTrackTemp))
 	rain := lf64(b, si+si_mRaining)
 	m.set("Precipitation", rain)
+	m.setBool("WeatherDeclaredWet", rain > 0)
 	m.set("TrackWetness", float64(lmuWetness(lf64(b, si+si_mAvgPathWetness))))
 	// the wind blows along mWind (m/s, the world's axes: the game's frame is left-handed, north = -z and east = -x,
 	// as the map's Lat/Lon); WindDir is where it comes from, clockwise from north, the sense YawNorth has, so
@@ -490,24 +544,48 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.setAt("CarIdxF2Time", i, c.behind)
 		m.setAt("CarIdxLastLapTime", i, lmuTime(c.last))
 		m.setAt("CarIdxBestLapTime", i, lmuTime(c.best))
+		bestNum := s.bestLapNum(c.id, c.best, c.laps)
+		m.setAt("CarIdxBestLapNum", i, float64(bestNum))
+		if c.player {
+			m.set("LapBestLap", float64(max(0, bestNum)))
+		}
 		m.setAt("CarIdxOnPitRoad", i, b2f(c.inPits))
+		m.setAt("CarIdxLapCountFlag", i, float64(c.countFlag))
+		m.setAt("CarIdxLastS1", i, c.lastS1)
+		m.setAt("CarIdxLastS2", i, c.lastS2)
+		m.setAt("CarIdxLapStartET", i, c.lapStart)
+		lat, lon := lmuLatLon(c.pos)
+		m.setAt("CarIdxLat", i, lat)
+		m.setAt("CarIdxLon", i, lon)
+		throttle, brake := -1.0, -1.0 // unknown without the car's telemetry
 		surf := 3
 		if c.garage {
 			surf = 1
 		} else if c.inPits {
 			surf = 2
 		}
-		m.setAt("CarIdxTrackSurface", i, float64(surf))
 		if c.tel >= 0 {
 			to := lmuOffTelem + c.tel*lmuTelSize
 			m.setAt("CarIdxGear", i, float64(li32(b, to+vt_mGear)))
 			m.setAt("CarIdxRPM", i, lf64(b, to+vt_mEngineRPM))
 			m.setAt("CarIdxTireCompound", i, float64(lu8(b, to+vt_mFrontTireCompoundIndex)))
+			m.setAt("CarIdxSteer", i, lmuSteer(lf64(b, to+vt_mUnfilteredSteering), lf32(b, to+vt_mPhysicalSteeringWheelRange)))
+			throttle, brake = lf64(b, to+vt_mFilteredThrottle), lf64(b, to+vt_mFilteredBrake)
+			if off, _ := lmuWheelSurface(b, to); surf == 3 && off == 4 {
+				surf = 0 // off the track: all four wheels out
+			}
 		}
+		m.setAt("CarIdxTrackSurface", i, float64(surf))
+		m.setAt("CarIdxThrottle", i, throttle)
+		m.setAt("CarIdxBrake", i, brake)
 	}
 	for i := len(cars); i < lmuCars; i++ {
 		m.setAt("CarIdxLapDistPct", i, -1)
 		m.setAt("CarIdxTrackSurface", i, -1)
+		m.setAt("CarIdxBestLapNum", i, -1)
+		m.setAt("CarIdxLapCountFlag", i, -1)
+		m.setAt("CarIdxThrottle", i, -1)
+		m.setAt("CarIdxBrake", i, -1)
 	}
 
 	connected := player >= 0 && playerTel >= 0 && inReal
@@ -525,12 +603,14 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.set("LapCurrentLapTime", math.Max(0, et-lf64(b, po+vs_mLapStartET)))
 		m.set("LapLastLapTime", lmuTime(p.last))
 		m.set("LapBestLapTime", lmuTime(p.best))
+		m.set("LapCountFlag", float64(lu8(b, po+vs_mCountLapFlag)))
 		if fl := lu8(b, po+vs_mFlag); fl == 6 {
 			flags |= 0x20 // blue
 		}
 		if lu8(b, po+vs_mUnderYellow) != 0 {
 			flags |= 0x8
 		}
+		m.set("PlayerNumPenalties", float64(p.penalties))
 	}
 	m.set("SessionFlags", float64(int32(uint32(flags)))) // through int32, so the start bits (the top ones) keep their pattern
 
@@ -562,11 +642,7 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	m.set("Throttle", lf64(b, to+vt_mFilteredThrottle))
 	m.set("Brake", lf64(b, to+vt_mFilteredBrake))
 	m.set("Clutch", 1-lf64(b, to+vt_mFilteredClutch)) // iRacing: 1 = fully engaged
-	rng := lf32(b, to+vt_mPhysicalSteeringWheelRange)
-	if rng <= 0 {
-		rng = 540
-	}
-	m.set("SteeringWheelAngle", -lf64(b, to+vt_mUnfilteredSteering)*rng/2*math.Pi/180)
+	m.set("SteeringWheelAngle", lmuSteer(lf64(b, to+vt_mUnfilteredSteering), lf32(b, to+vt_mPhysicalSteeringWheelRange)))
 	fuel, capa := lf64(b, to+vt_mFuel), lf64(b, to+vt_mFuelCapacity)
 	m.set("FuelLevel", fuel)
 	if capa > 0 {
@@ -628,20 +704,22 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 	}
 	m.set("DRS_Status", float64(drs))
 
-	// contacts stand in for incidents (LMU has no incident count)
-	if imp := lf64(b, to+vt_mLastImpactET); imp > s.impactET+0.5 && lf64(b, to+vt_mLastImpactMagnitude) > 300 {
-		if s.impactET > 0 {
-			s.impacts++
+	// contacts stand in for incidents (lmuImpactStrong says how they count). An impact is one while its time stays within
+	// half a second; the time found when the program started watching belongs to an impact before that (or to none).
+	imp := lf64(b, to+vt_mLastImpactET)
+	switch {
+	case !s.impactSeen:
+		s.impactSeen = true
+	case imp > s.impactET+0.5:
+		if lf64(b, to+vt_mLastImpactMagnitude) >= lmuImpactStrong {
+			s.impacts += lmuImpactPoints
 		}
-		s.impactET = imp
-	} else if imp > s.impactET {
-		s.impactET = imp
 	}
+	s.impactET = imp // a smaller time than before is the session's clock started again
 	m.set("PlayerCarMyIncidentCount", float64(s.impacts))
 	m.set("PlayerCarDriverIncidentCount", float64(s.impacts))
 
 	// wheels: FL, FR, RL, RR
-	off := 0
 	for k, c := range []string{"LF", "RF", "LR", "RR"} {
 		w := to + vt_mWheels + k*lmuWheelSize
 		for z, side := range []string{"L", "M", "R"} {
@@ -657,35 +735,150 @@ func (s *lmuSource) playerTelemetry(b []byte, to int, cars []lmuCar, player int)
 			m.set(c+"brakeTemp", bt-273.15)
 		}
 		m.set(c+"brakeLinePress", lf64(b, w+wh_mBrakePressure))
-		if st := lu8(b, w+wh_mSurfaceType); st >= 2 && st <= 4 {
-			off++
-		}
 	}
+	// off the track only with all four wheels out (a kerb never counts, and the game's own LapCountFlag says when a cut
+	// is one): two wheels on the grass are a wide line, not an Off Track
+	off, surface := lmuWheelSurface(b, to)
 	surf := 3
 	if player >= 0 {
 		if cars[player].garage {
 			surf = 1
 		} else if cars[player].inPits {
 			surf = 2
-		} else if off >= 2 {
+		} else if off == 4 {
 			surf = 0
 		}
 	}
 	m.set("PlayerTrackSurface", float64(surf))
+	m.set("PlayerTrackSurfaceMaterial", float64(lmuMaterial(surface)))
 
-	// position for the track map (metres → a made-up latitude/longitude). The game's world frame is left-handed
-	// (local +x is the car's left, +y up, +z back, and mOri is a rotation), so with y up north = -z goes with
-	// east = -x, else the map comes out mirrored. To be confirmed against a real circuit the first time
+	// position for the track map; the player's own car takes it in the field's arrays too, from this same telemetry
 	pos := lvec(b, to+vt_mPos)
-	const lat0 = 45.0
-	m.set("Lat", lat0+(-pos.z)/110540)
-	m.set("Lon", -pos.x/(111320*math.Cos(lat0*math.Pi/180)))
+	lat, lon := lmuLatLon(pos)
+	m.set("Lat", lat)
+	m.set("Lon", lon)
+	if player >= 0 {
+		m.setAt("CarIdxLat", player, lat)
+		m.setAt("CarIdxLon", player, lon)
+	}
 	ori := [3]lmuVec{lvec(b, to+vt_mOri), lvec(b, to+vt_mOri+24), lvec(b, to+vt_mOri+48)}
 	// forward (local -z) in world coordinates, then the heading on the map
 	fx, fz := -ori[0].z, -ori[2].z
 	m.set("Yaw", math.Atan2(-fz, -fx))
 	m.set("YawNorth", math.Mod(math.Atan2(-fx, -fz)+2*math.Pi, 2*math.Pi)) // clockwise from north, like WindDir
 	m.set("CarLeftRight", float64(lmuSpotter(ori, pos, cars, player)))
+}
+
+// lmuLatLon turns a world position (metres) into the made-up latitude/longitude the track map and the laps' paths use,
+// the same for the player and for every other car so their paths share one frame. The game's world frame is left-handed
+// (local +x is the car's left, +y up, +z back, and mOri is a rotation), so with y up north = -z goes with east = -x, else
+// the map comes out mirrored. To be confirmed against a real circuit the first time
+func lmuLatLon(pos lmuVec) (lat, lon float64) {
+	const lat0 = 45.0
+	return lat0 + (-pos.z)/110540, -pos.x / (111320 * math.Cos(lat0*math.Pi/180))
+}
+
+// lmuSteer: the steering wheel's angle in rad, as iRacing gives it (positive to the left), from the game's input
+// (mUnfilteredSteering, -1 … 1, positive to the right) and the car's physical wheel range in degrees (540 when the game
+// says none)
+func lmuSteer(input, rangeDeg float64) float64 {
+	if rangeDeg <= 0 {
+		rangeDeg = 540
+	}
+	return -input * rangeDeg / 2 * math.Pi / 180
+}
+
+// lmuSectorTimes: rF2 and LMU keep a car's last sector 1 as its own time and its last sector 2 as the time at the end of
+// sector 2 (sector 1 included), negative when there is none; the image carries each sector's own time, 0 unknown. They end
+// where lmuSectors learns the starts of sectors 2 and 3 from mSector (1 → 2 and 2 → 0), so these and the timing's sectors
+// agree.
+func lmuSectorTimes(s1, s2cum float64) (float64, float64) {
+	if s1 <= 0 {
+		return 0, 0
+	}
+	if s2cum <= s1 {
+		return s1, 0
+	}
+	return s1, s2cum - s1
+}
+
+// lmuWheelSurface reads a car's four wheels (wh_mSurfaceType: 0 dry asphalt, 1 wet asphalt, 2 grass, 3 dirt, 4 gravel,
+// 5 kerb, 6 special): how many are off the track (grass, dirt or gravel; a kerb never counts) and the surface under most
+// of them (a tie goes to the one further from the asphalt)
+func lmuWheelSurface(b []byte, to int) (off, surface int) {
+	var n [7]int
+	for k := 0; k < 4; k++ {
+		st := lu8(b, to+vt_mWheels+k*lmuWheelSize+wh_mSurfaceType)
+		if st > 6 {
+			st = 6
+		}
+		n[st]++
+		if st >= 2 && st <= 4 {
+			off++
+		}
+	}
+	for st := 1; st < len(n); st++ {
+		if n[st] >= n[surface] {
+			surface = st
+		}
+	}
+	return off, surface
+}
+
+// lmuMaterial turns the surface under the wheels into iRacing's irsdk_TrkSurf material: asphalt 1 (dry or wet), a kerb 11
+// (a rumble strip), grass 15, dirt 19, gravel 24, anything else 0 (undefined)
+func lmuMaterial(surface int) int {
+	switch surface {
+	case 0, 1:
+		return 1
+	case 5:
+		return 11
+	case 2:
+		return 15
+	case 3:
+		return 19
+	case 4:
+		return 24
+	}
+	return 0
+}
+
+// bestLapNum says which lap set a car's best (iRacing's CarIdxBestLapNum): the lap that had just ended when mBestLapTime
+// changed. -1 while unknown: no best yet, or a best already set when the car was first seen (the program started
+// mid-session). The memory is written only when the best changes, so a frame costs no allocation.
+func (s *lmuSource) bestLapNum(id int, best float64, laps int) int {
+	mem, seen := s.carMem[id]
+	if seen && best == mem.best {
+		return mem.num
+	}
+	mem.best, mem.num = best, -1
+	if seen && best > 0 && laps > 0 {
+		mem.num = laps
+	}
+	if s.carMem == nil {
+		s.carMem = map[int]lmuCarMem{}
+	}
+	s.carMem[id] = mem
+	return mem.num
+}
+
+// noteTelemetry logs how many of the session's cars the game gives telemetry for (the player's always; the rivals' says
+// whether their laps come with real pedals), once per change. A car going to the garage and back changes the count, so a
+// change within ten seconds of the last line waits. It says whether a line went out.
+func (s *lmuSource) noteTelemetry(cars []lmuCar, et float64) bool {
+	with := 0
+	for i := range cars {
+		if cars[i].tel >= 0 {
+			with++
+		}
+	}
+	now := [2]int{len(cars), with}
+	if now == s.telSeen || (s.telSeen != [2]int{} && et >= s.telLogET && et-s.telLogET < 10) {
+		return false
+	}
+	s.telSeen, s.telLogET = now, et
+	log.Printf("lmu: telemetry for %d of %d cars", with, len(cars))
+	return true
 }
 
 // lmuSpotter: cars alongside, in iRacing's CarLeftRight values.
@@ -773,19 +966,23 @@ func lmuSessionState(phase int) int {
 	return 0
 }
 
+// lmuWetness maps the game's average path wetness (0 dry … 1 soaked) onto iRacing's irsdk_TrackWetness scale: under 0.02
+// is 1 dry (the game rarely says exactly 0), under 0.1 is 2 mostly dry, under 0.2 is 3 very lightly wet, under 0.35 is 4
+// lightly wet (from here the recorder tags the lap "wet"), under 0.55 is 5 moderately wet, under 0.8 is 6 very wet, else 7
+// extremely wet
 func lmuWetness(w float64) int {
 	switch {
-	case w <= 0:
+	case w < 0.02:
 		return 1
-	case w < 0.05:
+	case w < 0.1:
 		return 2
-	case w < 0.15:
+	case w < 0.2:
 		return 3
-	case w < 0.3:
+	case w < 0.35:
 		return 4
-	case w < 0.5:
+	case w < 0.55:
 		return 5
-	case w < 0.75:
+	case w < 0.8:
 		return 6
 	}
 	return 7
@@ -848,7 +1045,9 @@ func (s *lmuSource) writeSession(b []byte, cars []lmuCar, player, playerTel int,
 	}
 	s.sessKey = key.String()
 	if session != s.sessNum {
-		s.sessNum, s.impacts, s.impactET, s.goET = session, 0, 0, 0
+		s.sessNum, s.impacts, s.impactET, s.impactSeen, s.goET = session, 0, 0, false, 0
+		clear(s.carMem) // the bests belong to the session before
+		s.telSeen = [2]int{}
 	}
 	si := lmuOffScoring
 	typ, name := lmuSessionType(session)
