@@ -50,7 +50,7 @@ type carLapProf struct {
 	offT  float64 // time off the track this lap (s)
 	cntD  float64 // where the game first said this lap's time does not count (past 100 m, off the pit road), -1 never
 	pitD  float64 // where the lap first touched the pit road, -1 never
-	wet   bool    // the track was at least lightly wet at some point of this lap
+	wet   uint8   // how wet the track was at its wettest on this lap: 2 wet (TrackWetness 4 or more), 1 damp (2 or 3), 0 dry
 	// the lap just finished, waiting for the game to time it: its bins, when it ended, whether it was judged not valid
 	// while driven, the game's best of the car before its time was taken, and its time once read (then the game's best
 	// is read again: a lap faster than that best that the game does not take was not accepted)
@@ -58,7 +58,7 @@ type carLapProf struct {
 	pend      bool
 	pendAt    float64
 	pendBad   bool
-	pendWet   bool
+	pendWet   uint8
 	pendBest0 float64
 	pendLT    float64
 	prevLT    float64 // the last lap time the game showed, so a lap never takes the time of the lap before
@@ -69,7 +69,7 @@ type carLapProf struct {
 	best      float64
 	bestV     []float32 // the best lap's speed every 10 m (from the revs where the gear held, else the position's)
 	bestB     []fbin    // the best lap's bins (nil for a profile made before the car was seen whole)
-	bestWet   bool      // the best lap was driven on a wet track ("wet" on its trace, never the model's)
+	bestWet   uint8     // the best lap was driven on a wet track (2, "wet" on its trace, never the model's) or a damp one (1, "damp", a note only)
 	org       [2]float64
 	hasOrg    bool      // org: the origin [lat, lon] of the bins' x/y, the same as the player's laps' (geoBase)
 	badT      []float64 // the times of the laps judged not valid (fieldLapInvalid)
@@ -430,7 +430,7 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			// the lap before is done: it waits for its time. The game's best as it stands now is the best before
 			// that time is taken (when the game already took it, the two are equal and the best says nothing)
 			c.endLap(t, fat(s.best, i, 0))
-			c.lap, c.b, c.valid, c.offT, c.cntD, c.pitD, c.wet, c.pit = lap, make([]fbin, nb), true, 0, -1, -1, false, false // a lap through the pit lane counts too
+			c.lap, c.b, c.valid, c.offT, c.cntD, c.pitD, c.wet, c.pit = lap, make([]fbin, nb), true, 0, -1, -1, 0, false // a lap through the pit lane counts too
 		}
 		if fat(s.pit, i, 0) > 0 {
 			if !c.pit {
@@ -439,7 +439,9 @@ func fieldStep(s *fieldSample, L float64, key string) {
 			c.pit = true
 		}
 		if s.wet >= 4 { // lightly wet or more, on iRacing's scale (LMU's is turned into it)
-			c.wet = true
+			c.wet = 2
+		} else if s.wet >= 2 && c.wet < 1 { // mostly dry or very lightly wet: damp
+			c.wet = 1
 		}
 		c.settle(s, i, t)
 		if c.pendS != nil && t-c.pendSAt > 2 {
@@ -835,7 +837,7 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	var raw []float32
 	var bins []fbin
 	var org [2]float64
-	hasOrg, wet := false, false
+	hasOrg, wet := false, uint8(0)
 	if c != nil && c.bestV != nil && math.Abs(c.best-lapTime) < 0.002 {
 		raw = append([]float32{}, c.bestV...)
 		if len(c.bestB) == len(raw) {
@@ -937,8 +939,11 @@ func fieldTrace(carIdx int, lapTime float64) *lapTrace {
 	if real {
 		tr.Src = "real"
 	}
-	if wet {
+	switch wet {
+	case 2:
 		tr.F = []string{"wet"}
+	case 1: // informational only: the model keeps a damp lap
+		tr.F = []string{"damp"}
 	}
 	if geo {
 		tr.X, tr.Y, tr.G = make([]float64, len(sp)), make([]float64, len(sp)), []float64{org[0], org[1]}

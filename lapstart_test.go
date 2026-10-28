@@ -264,7 +264,8 @@ func TestPenaltyMakesLapInvalid(t *testing.T) {
 	}
 }
 
-// the lap's flags: "wet" when the track was at least lightly wet (4 on iRacing's scale) at any point of the lap,
+// the lap's flags: "wet" when the track was at least lightly wet (4 on iRacing's scale) at any point of the lap, "damp"
+// when it was at most mostly dry or very lightly wet (2 or 3),
 // "cmp:<n>" with the tyre compound at the lap's end when the car has several; nothing on a dry lap on the only one
 func TestLapFlagsWetAndCompound(t *testing.T) {
 	cases := []struct {
@@ -274,7 +275,9 @@ func TestLapFlagsWetAndCompound(t *testing.T) {
 		want       string
 	}{
 		{"dry on the only compound", 1, 1, 0, 0, ""},
-		{"very lightly wet is dry", 3, 3, 0, 0, ""},
+		{"very lightly wet is damp", 3, 3, 0, 0, "damp"},
+		{"a mostly dry patch is damp", 2, 1, 0, 0, "damp"},
+		{"wet beats damp", 4, 3, 0, 0, "wet"},
 		{"a wet patch", 4, 1, 0, 0, "wet"},
 		{"soaked on the third compound", 7, 7, 2, 2, "wet cmp:2"},
 		{"dry on the second compound", 1, 1, 1, 1, "cmp:1"},

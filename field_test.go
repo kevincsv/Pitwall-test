@@ -834,7 +834,7 @@ func TestFieldPedalsMustMove(t *testing.T) {
 	resetField()
 }
 
-// a rival's lap on a wet track says so, so the model leaves it aside like yours
+// a rival's lap on a wet track says so, so the model leaves it aside like yours; on a damp one it says "damp" (a note only)
 func TestFieldWetLap(t *testing.T) {
 	resetField()
 	m := newSim("wet")
@@ -845,10 +845,17 @@ func TestFieldWetLap(t *testing.T) {
 	}
 	resetField()
 	m = newSim("dry")
-	m.wet = 2
+	m.wet = 1
 	m.run(1)
 	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 0 {
 		t.Fatalf("a dry lap: %+v", tr)
+	}
+	resetField()
+	m = newSim("damp")
+	m.wet = 3
+	m.run(1)
+	if tr := fieldTrace(0, m.times[0]); tr == nil || len(tr.F) != 1 || tr.F[0] != "damp" {
+		t.Fatalf("a damp lap: %+v", tr)
 	}
 	resetField()
 }
