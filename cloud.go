@@ -532,6 +532,7 @@ type lapRec struct {
 	trafficN, trafficS int
 	cold               bool
 	lastPct            float64 // where on the lap the last sample was (0–1)
+	lastS              float64 // the session time of the last sample
 	early              bool    // started at the line, a moment before iRacing counted the lap
 	st0                float64 // a lap seen crossing the line: the session time it crossed it (its own clock, SessionTime - st0)
 	ownClock           bool
@@ -701,6 +702,7 @@ type lapStream struct {
 	lastBase         int     // the lap offset of the session's current run (sessionrun.go)
 	lastLL           float64 // LapLastLapTime one sample before, to tell when iRacing updates it
 	lastST           float64 // SessionTime one sample before
+	trackM           float64 // the track's length as the samples say it (LapDist / LapDistPct), 0 while unknown
 	tick             int
 	// the session's place (sessionplace.go): the YAML of its event as last seen, the game's live place of the player
 	// (sampled once a second), the laps that ended in it and the place they carried
@@ -709,6 +711,18 @@ type lapStream struct {
 	sessLaps         int
 	sentPlace        sessPlace
 	placeTick        int
+}
+
+// drivable: the car could have driven from the lap's last sample to here (pct, forward along the lap and over the
+// line, where LapDistPct wraps even when the distance runs on past it): at most the 40 m a hole may have beyond what its
+// speed covers in the time between. A reset to a pit box behind the car is not, even when it looks like the line
+// crossed (the end of the lap to a box just past the line). True while the track's length is unknown.
+func (ls *lapStream) drivable(cur *lapRec, pct, speed, st float64) bool {
+	if ls.trackM <= 0 || !cur.hasLast {
+		return true
+	}
+	went := math.Mod(pct-cur.lastPct+1, 1) * ls.trackM
+	return went <= lapHoleM+math.Max(cur.lastSp, speed)*math.Max(0, st-cur.lastS)
 }
 
 func newLapStream(env lapEnv) *lapStream {
@@ -781,7 +795,7 @@ func (ls *lapStream) step(v []float64) {
 	}
 	if sn != ls.sessNum {
 		ls.endSession()
-		ls.sessNum, ls.cur = sn, nil
+		ls.sessNum, ls.cur, ls.trackM = sn, nil, 0
 		ls.sess = env.meta(y, sn)
 		ls.sess.AirTemp, ls.sess.TrackTemp = v[15], v[16]
 		ls.sessY, ls.livePos, ls.liveCls, ls.sentPlace = y, 0, 0, sessPlace{}
@@ -807,7 +821,7 @@ func (ls *lapStream) step(v []float64) {
 	// belong to it, or every lap would start with a hole of tens of metres and never be valid
 	if cur != nil && cur.early && lap == cur.n-1 {
 		lap = cur.n
-	} else if cur != nil && lap == cur.n && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 {
+	} else if cur != nil && lap == cur.n && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 && ls.drivable(cur, pct, speed, v[14]) {
 		lap = cur.n + 1
 	}
 	now := env.now()
@@ -829,7 +843,7 @@ func (ls *lapStream) step(v []float64) {
 		// before's time and be dropped, a hole at the start of every lap
 		var st0 float64
 		own := false
-		if cur != nil && lap == cur.n+1 && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 && prevST > 0 && prevST < v[14] {
+		if cur != nil && lap == cur.n+1 && cur.hasLast && cur.lastPct > 0.9 && pct >= 0 && pct < 0.1 && ls.drivable(cur, pct, speed, v[14]) && prevST > 0 && prevST < v[14] {
 			own = true
 			st0 = v[14]
 			if f := (1 - cur.lastPct) + pct; f > 0 { // between the sample before (at lastPct) and this one (at pct)
@@ -851,6 +865,14 @@ func (ls *lapStream) step(v []float64) {
 	}
 	if pct < 0 || dist < 0 {
 		return
+	}
+	if pct > 0.05 && pct < 0.95 {
+		ls.trackM = dist / pct
+	}
+	// a reset: the car put back on the lap, further back than it was (a pit box behind it), and not over the line. Its
+	// points are filled again as it drives on, so no hole shows: the lap did not go round the whole circuit
+	if cur.hasLast && dist < cur.lastD-lapHoleM && !ls.drivable(cur, pct, speed, v[14]) {
+		cur.bad = true
 	}
 	if hasGeo { // the game's own position: the exact shape of the track, the same frame for every lap
 		cur.place(v[14], env.geo(ls.sessKey, v[23], v[24]), v[23], v[24])
@@ -885,7 +907,7 @@ func (ls *lapStream) step(v []float64) {
 		lt = v[14] - cur.st0
 	}
 	cur.add(dist, lt, speed, [4]float64{v[4], v[5], v[6], v[7]})
-	cur.lastPct = pct
+	cur.lastPct, cur.lastS = pct, v[14]
 	cur.vmax = math.Max(cur.vmax, speed)
 	if v[10] > 0 {
 		cur.pit = true
@@ -1094,7 +1116,14 @@ func (r *lapRec) markHoles() int {
 			seen++
 		}
 	}
-	if !fullLap(seen, len(r.bins)) || maxGap*lapBin > lapHoleM {
+	// the end of the lap never recorded (the telemetry lost before the line, a lap the game counted short of it): from
+	// the last sample to the line, by where the game said that sample was on the lap
+	tail := 0
+	if r.lastPct > 0.05 && r.lastPct < 1 && r.lastD > 0 {
+		tail = int(r.lastD * (1 - r.lastPct) / r.lastPct / lapBin)
+		maxGap = max(maxGap, gap+tail)
+	}
+	if !fullLap(seen, len(r.bins)+tail) || maxGap*lapBin > lapHoleM {
 		r.bad = true
 	}
 	return maxGap

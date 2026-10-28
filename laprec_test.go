@@ -223,3 +223,49 @@ func TestLapTelemetryGap(t *testing.T) {
 		lapCheck(t, c.name+": the lap after", laps[3], true)
 	}
 }
+
+// a reset to a pit box behind the car on the lap: the box just past the line, the car half way round. Every point of
+// the lap is filled again as the car drives on from the box (over the points of its first pass), so no hole shows; the
+// jump back is the reset, and that lap is never valid. A reset in the last tenth of the lap to that box looks like the
+// line being crossed (the end of the lap to its start), but the car could never have driven it: the lap goes on, never
+// valid, and ends at the line once, as the game counts it
+func TestLapResetToABoxBehind(t *testing.T) {
+	for _, at := range []float64{1500, 2800} {
+		s := newLapSim(t, 1, 0)
+		s.sample(60, false, true)
+		s.move(3000, 60, false, true) // lap 1, then into lap 2
+		s.move(at, 60, false, true)
+		s.d = 100 // reset: in the pit box, just past the line
+		s.wait(4, true, true)
+		s.move(300, 20, true, true) // down the pit lane to its exit
+		s.move(2600, 60, false, true)
+		s.move(3000, 60, false, true)
+		s.move(200, 60, false, true)
+		laps := s.ended()
+		if len(laps) != 3 || s.lap != 4 {
+			t.Fatalf("reset at %.0f m: laps ended %d, the game's lap %d", at, len(laps), s.lap)
+		}
+		lapCheck(t, "the lap before", laps[1], true)
+		lapCheck(t, "the lap reset", laps[2], false)
+		lapCheck(t, "the lap after", laps[3], true)
+	}
+}
+
+// the telemetry stops for the last 100 m before the line and comes back after it: the lap that ended has a hole at its
+// end (nothing recorded past 2900 m of 3000), so it is not valid; the next lap starts at the line and is
+func TestLapTelemetryGapAtTheLine(t *testing.T) {
+	s := newLapSim(t, 1, 0)
+	s.sample(60, false, true)
+	s.move(3000, 60, false, true)
+	s.move(2900, 60, false, true)
+	s.move(100, 60, false, false) // lost, up to the line
+	s.move(3000, 60, false, true)
+	s.move(200, 60, false, true)
+	laps := s.ended()
+	if len(laps) != 3 {
+		t.Fatalf("laps ended: %d", len(laps))
+	}
+	lapCheck(t, "the lap before", laps[1], true)
+	lapCheck(t, "the lap cut short", laps[2], false)
+	lapCheck(t, "the lap after", laps[3], true)
+}
