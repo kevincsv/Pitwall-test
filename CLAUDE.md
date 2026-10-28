@@ -409,7 +409,12 @@
   key facts (plus the corners against the straights), every corner as a small bar you can press to pin the charts
   and the map at it (`la-corners`; `CornerStrip` on the phones, where a corner is "T3" too), the charts with the reference's corners as bands labelled by the official turns
   (`cmpCornerBands`), the "Line" chart (how far A was to one side of B, + left, `LAPCH.line`), the map, the sectors,
-  the lap list and the braking points.
+  the lap list and the braking points. The lap list has a column per sector (S1, S2, S3…: the game's official sectors when
+  the session's laps have them, else thirds of the lap from its trace; `lapSecCols`), purple the session's best of each among
+  the valid laps, green one better than your best lap's. The braking points are a table of lap A against lap B per corner of
+  `coachCompare` (`renderBrakeTable`): the turn ("T7"), where A and B brake, Δ m (+ A later), the speed at each apex, the gear
+  at the apex ("3 / 4" when they differ), the time lost and what to do (the corner's tip in a few words, `tipShort`); a row
+  pins the charts and the map like the corner bars. The phones' lap list and lap analysis show the same.
   The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):
   the phase that loses the most says the tip, and every tip follows the measured facts, never against them: braking
   later than the reference and arriving slower at the apex is one mistake whatever phase pays for it ("brake a little
@@ -487,7 +492,10 @@
   the corner drawn with your path, the reference's line and both braking points, big letters for VR with the tip in two
   or three words, `coachCue`; how it names the corner, "Next turn (T7)" by default, "Next turn" or "T7", `turnName`/`coachTurn`; the preview in its settings draws the chosen style, `coachStyleHTML`), which
   corners (the three that cost the most, or the track's turns as chips), the fast drivers' hint, the verdict's seconds and
-  from how far it speaks. The settings travel with the account like every overlay's.
+  from how far it speaks. The settings travel with the account like every overlay's. The coach's plan has "Take the plan
+  to the coach overlay" (`planToOverlay`): the plan's corners become the overlay's chosen ones (`turns`); on the PC it opens
+  the coach overlay when it is closed, on the web it writes `ui.coach` into the account's settings.json (`cpSetUI`) and the
+  PC takes it at its next sync.
 - The model (`cloud/src/model.js`, MODEL_VERSION 10) learns clean traces only (a speed jump over 10 m/s between two
   points is a glitch), never a lap in traffic or on a wet track (`goodLap`: a wet lap teaches braking points of another
   track state) and marks a rival's lap (`field`: pedals and gears estimated from its speed against what that car really does at each speed, full-throttle acceleration, slowing with no pedal and full-brake deceleration learnt from the real laps of the car on any track, `pedals` in the car card, `cloud/src/pedals.js`, partial throttle and brake, never only 0 or 100 %; served that way by the model and `/community/laps/:id`); the next level prefers a
