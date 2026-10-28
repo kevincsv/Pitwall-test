@@ -26,7 +26,10 @@ const LANGS = ["en", "es", "pt"], PRE = { en: "", es: "/es", pt: "/pt" }, NAME =
 const LOCALE = { en: "en_US", es: "es_ES", pt: "pt_BR" }, HLANG = { en: "en", es: "es", pt: "pt-BR" };
 const altsOf = (o) => ({ en: o.en.path, es: o.es.path, pt: o.pt.path });
 // the two games the public pages speak of
-const GNAME = { iracing: "iRacing", lmu: "Le Mans Ultimate" };
+const GNAME = { iracing: "iRacing", lmu: "Le Mans Ultimate" }, GSHORT = { iracing: "iRacing", lmu: "LMU" };
+// a record page's title: the whole game's name while it fits about 60 characters, else the short one, else none
+// (the car and the description say the game)
+const recTitle = (W, car, track, game) => [W.cT(car, track, GNAME[game]), W.cT(car, track, GSHORT[game]), W.cT(car, track, GSHORT[game], true)].find((x) => x.length <= 60) || W.cTs(car, track);
 const CAT = {
   en: { oval: "Oval", sports_car: "Sports Car", formula_car: "Formula Car", dirt_oval: "Dirt Oval", dirt_road: "Dirt Road" },
   es: { oval: "Óvalo", sports_car: "Sports Car", formula_car: "Fórmula", dirt_oval: "Óvalo de tierra", dirt_road: "Tierra" },
@@ -49,7 +52,7 @@ const S = {
       ["Can I stay anonymous?", "Yes. Choose Anonymous in your account and your laps show without a name."]],
     all: "All", track: "Track", car: "Car", record: "Record", drivers: "Drivers", none: "No laps yet.",
     anon: "Anonymous", driver: "Driver", time: "Time", date: "Date", nf: "This page does not exist", nfT: "Not found",
-    cT: (car, track, gn) => `${car} at ${track} · ${gn} lap records`, cD: (car, track, t, n, gn) => `The ${car} lap record at ${track} is ${t}. The ${n} fastest ${gn} laps from Pitlane HQ drivers, one per driver.`,
+    cT: (car, track, gn, short) => `${car} at ${track} · ${gn}${short ? "" : " lap"} records`, cTs: (car, track) => `${car} at ${track} lap records`, cD: (car, track, t, n, gn) => `The ${car} lap record at ${track} is ${t}. ${n === 1 ? `The only ${gn} lap from Pitlane HQ drivers so far.` : `The ${n} fastest ${gn} laps from Pitlane HQ drivers, one per driver.`}`,
     cL: (t) => `The record is ${t}. One lap per driver, their fastest.`, cQ: "Where do you lose time in this car?", cA: (gn) => `Pitlane HQ records your ${gn} laps and compares them with these, corner by corner. It is free.` },
   es: { recH: (gn) => `Récords de ${gn} por coche y circuito`, recD: (gn) => `Las vueltas más rápidas de ${gn} en cada coche y circuito, una por piloto, de pilotos que usan Pitlane HQ. Abre un récord para ver su clasificación.`,
     howT: "Cómo llega aquí una vuelta", how: (gn) => `Pitlane HQ Agent comparte sola la vuelta válida más rápida de cada piloto en cada coche y circuito de ${gn}, con su nombre público o como Anónimo. Una vuelta fuera de pista, con la conexión perdida o que no da la vuelta entera al circuito nunca cuenta.`,
@@ -58,7 +61,7 @@ const S = {
       ["¿Puedo salir como anónimo?", "Sí. Elige Anónimo en tu cuenta y tus vueltas salen sin nombre."]],
     all: "Todas", track: "Circuito", car: "Coche", record: "Récord", drivers: "Pilotos", none: "Aún no hay vueltas.",
     anon: "Anónimo", driver: "Piloto", time: "Tiempo", date: "Fecha", nf: "Esta página no existe", nfT: "No encontrado",
-    cT: (car, track, gn) => `${car} en ${track} · récords de ${gn}`, cD: (car, track, t, n, gn) => `El récord de ${car} en ${track} es ${t}. Las ${n} vueltas más rápidas de ${gn} de pilotos de Pitlane HQ, una por piloto.`,
+    cT: (car, track, gn) => `${car} en ${track} · récords de ${gn}`, cTs: (car, track) => `Récords de ${car} en ${track}`, cD: (car, track, t, n, gn) => `El récord de ${car} en ${track} es ${t}. ${n === 1 ? `La única vuelta de ${gn} de pilotos de Pitlane HQ por ahora.` : `Las ${n} vueltas más rápidas de ${gn} de pilotos de Pitlane HQ, una por piloto.`}`,
     cL: (t) => `El récord es ${t}. Una vuelta por piloto, la más rápida.`, cQ: "¿Dónde pierdes tiempo con este coche?", cA: (gn) => `Pitlane HQ graba tus vueltas en ${gn} y las compara con estas, curva a curva. Es gratis.` },
   pt: { recH: (gn) => `Recordes do ${gn} por carro e pista`, recD: (gn) => `As voltas mais rápidas do ${gn} em cada carro e pista, uma por piloto, de pilotos que usam o Pitlane HQ. Abra um recorde para ver a classificação.`,
     howT: "Como uma volta chega aqui", how: (gn) => `O Pitlane HQ Agent compartilha sozinho a volta válida mais rápida de cada piloto em cada carro e pista do ${gn}, com o nome público ou como Anônimo. Uma volta fora da pista, com a conexão perdida ou que não dá a volta inteira no circuito nunca conta.`,
@@ -67,7 +70,7 @@ const S = {
       ["Posso aparecer como anônimo?", "Sim. Escolha Anônimo na sua conta e suas voltas aparecem sem nome."]],
     all: "Todas", track: "Pista", car: "Carro", record: "Recorde", drivers: "Pilotos", none: "Ainda não há voltas.",
     anon: "Anônimo", driver: "Piloto", time: "Tempo", date: "Data", nf: "Esta página não existe", nfT: "Não encontrado",
-    cT: (car, track, gn) => `${car} em ${track} · recordes do ${gn}`, cD: (car, track, t, n, gn) => `O recorde de ${car} em ${track} é ${t}. As ${n} voltas mais rápidas do ${gn} de pilotos do Pitlane HQ, uma por piloto.`,
+    cT: (car, track, gn) => `${car} em ${track} · recordes do ${gn}`, cTs: (car, track) => `Recordes de ${car} em ${track}`, cD: (car, track, t, n, gn) => `O recorde de ${car} em ${track} é ${t}. ${n === 1 ? `A única volta do ${gn} de pilotos do Pitlane HQ por enquanto.` : `As ${n} voltas mais rápidas do ${gn} de pilotos do Pitlane HQ, uma por piloto.`}`,
     cL: (t) => `O recorde é ${t}. Uma volta por piloto, a mais rápida.`, cQ: "Onde você perde tempo com este carro?", cA: (gn) => `O Pitlane HQ grava suas voltas no ${gn} e as compara com estas, curva a curva. É grátis.` },
 };
 const LOGO = `<svg viewBox="0 0 512 512" width="30" height="30" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2733"/><stop offset="1" stop-color="#0d1116"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="112" fill="url(#g)"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="460 1000"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#f2f4f7" stroke-width="48" stroke-dasharray="0 460 247 1000"/><path d="M149.9 382.1A150 150 0 1 1 362.1 382.1" fill="none" stroke="#ffb02e" stroke-width="48" stroke-dasharray="0 460 31 31 31 31 31 31 31 31 1000"/><path d="M188.1 343.9A96 96 0 1 1 323.9 343.9" fill="none" stroke="#2f3a48" stroke-width="10" stroke-linecap="round"/><path d="M256 276L330 188" stroke="#f2f4f7" stroke-width="20" stroke-linecap="round"/><circle cx="256" cy="276" r="30" fill="#f2f4f7"/><circle cx="256" cy="276" r="12" fill="#ffb02e"/></svg>`;
@@ -126,6 +129,10 @@ async function readHas(env) {
 const TOPIC_BY = Object.fromEntries(TOPICS.map((x) => [x.id, x]));
 // the guides of both games that the Le Mans Ultimate pages list too
 const LMU_TOO = ["phone", "free"];
+// their names on the Le Mans Ultimate pages, without the iRacing of their h1
+const LMU_TOO_H = { phone: { en: "Telemetry on your phone", es: "La telemetría en tu móvil", pt: "A telemetria no seu celular" },
+  free: { en: "Free telemetry", es: "Telemetría gratis", pt: "Telemetria grátis" } };
+const lmuToo = (l) => LMU_TOO.map((id) => ({ ...TOPIC_BY[id][l], h1: LMU_TOO_H[id][l] }));
 // the Le Mans Ultimate pages a page links to (only the ones that exist)
 const lmuLinks = (l) => [[LANDL[l].path, LANDL[l].h1], [OVLL[l].path, OVLL[l].h1], ...TOPICS.filter((x) => x.game === "lmu").map((x) => [x[l].path, x[l].h1]),
   ...(HAS.lmuLeagues ? [[LEAGL[l].path, LEAGL[l].h1]] : []), ...(HAS.lmuRecords ? [[REC_IDX.lmu[l], S[l].recH(GNAME.lmu)]] : [])];
@@ -138,9 +145,9 @@ function page(l, { title, desc, path, alts, body, ld, noindex, game = "iracing" 
   const others = alts ? LANGS.filter((k) => k !== l).map((k) => `<a href="${alts[k]}" hreflang="${HLANG[k]}" lang="${HLANG[k]}">${NAME[k]}</a>`).join("") : "";
   const og = `${SITE}/og${l === "en" ? "" : "-" + l}.png`;
   return `<!doctype html><html lang="${HLANG[l]}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${SITE}${path}">${noindex ? '<meta name="robots" content="noindex,follow">' : '<meta name="robots" content="index,follow,max-image-preview:large">'}
+<title>${esc(title)}</title><meta name="description" content="${esc(desc)}">${path ? `<link rel="canonical" href="${SITE}${path}">` : ""}${noindex ? '<meta name="robots" content="noindex,follow">' : '<meta name="robots" content="index,follow,max-image-preview:large">'}
 ${hl}
-<meta property="og:type" content="website"><meta property="og:site_name" content="Pitlane HQ"><meta property="og:locale" content="${LOCALE[l]}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${SITE}${path}"><meta property="og:image" content="${og}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Pitlane HQ">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Pitlane HQ"><meta property="og:locale" content="${LOCALE[l]}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}">${path ? `<meta property="og:url" content="${SITE}${path}">` : ""}<meta property="og:image" content="${og}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Pitlane HQ">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${og}">
 <meta name="theme-color" content="#11151b"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icon-180.png">
 <style>${CSS}</style><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="${FONTS}" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="${FONTS}"></noscript>
@@ -154,7 +161,7 @@ const crumbs = (items) => ({ "@context": "https://schema.org", "@type": "Breadcr
 const faqLd = (faq) => ({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) });
 // the app, as search engines like it described (never a rating: Pitlane HQ has none to show)
 const appLd = (l, desc, shots) => ({ "@context": "https://schema.org", "@type": "SoftwareApplication", "@id": SITE + "/#app", name: "Pitlane HQ", alternateName: ["PitlaneHQ", "Pitlane HQ Agent"], url: SITE + "/",
-  applicationCategory: "SportsApplication", applicationSubCategory: "Sim racing telemetry", operatingSystem: "Windows, Android, Web", description: desc, inLanguage: HLANG[l], image: SITE + "/og.png",
+  applicationCategory: "SportsApplication", applicationSubCategory: "Sim racing telemetry", operatingSystem: "Windows, Android, Web", description: desc, inLanguage: HLANG[l], image: `${SITE}/og${l === "en" ? "" : "-" + l}.png`,
   ...(shots && shots.length ? { screenshot: shots.map((f) => ({ "@type": "ImageObject", url: SITE + imgSrc(l, f), width: (SHOT[f] || [])[0], height: (SHOT[f] || [])[1] })) } : {}),
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, publisher: { "@id": SITE + "/#org" } });
 const siteLd = (l) => [
@@ -282,7 +289,7 @@ const LANDL = {
   },
   es: {
     path: "/es/telemetria-le-mans-ultimate",
-    title: "Telemetría Le Mans Ultimate, coach y overlays · Pitlane HQ",
+    title: "Telemetría y overlays para Le Mans Ultimate · Pitlane HQ",
     desc: "App de telemetría gratis para Le Mans Ultimate, en beta. Graba cada vuelta de LMU, compárala con pilotos más rápidos y corre con overlays sobre el juego.",
     h1: "Telemetría para Le Mans Ultimate y un coach para tus vueltas",
     lead: "Pitlane HQ graba cada vuelta que das en Le Mans Ultimate y te enseña dónde pierdes tiempo, frente a tu mejor vuelta, el récord y el piloto que va justo por delante con el mismo coche. El soporte de Le Mans Ultimate está en beta y es gratis, en Windows, Android y la web.",
@@ -309,7 +316,7 @@ const LANDL = {
   },
   pt: {
     path: "/pt/telemetria-le-mans-ultimate",
-    title: "Telemetria Le Mans Ultimate, coach e overlays · Pitlane HQ",
+    title: "Telemetria e overlays para Le Mans Ultimate · Pitlane HQ",
     desc: "App de telemetria grátis para Le Mans Ultimate, em beta. Grave cada volta do LMU, compare com pilotos mais rápidos e corra com overlays sobre o jogo.",
     h1: "Telemetria para Le Mans Ultimate e um coach para suas voltas",
     lead: "O Pitlane HQ grava cada volta que você dá no Le Mans Ultimate e mostra onde você perde tempo, contra a sua melhor volta, o recorde e o piloto logo à sua frente no mesmo carro. O suporte ao Le Mans Ultimate está em beta e é grátis, no Windows, no Android e na web.",
@@ -343,15 +350,15 @@ const OV_IMGS = { en: [["ov-l-brakes.png", "Braking markers"], ["ov-l-coach.png"
   es: [["ov-l-brakes.png", "Marcas de frenada"], ["ov-l-coach.png", "Coach"], ["ov-g-inputs.png", "Pedales"], ["ov-g-timing.png", "Tiempos"], ["ov-s-sectors.png", "Minisectores"], ["ov-g-tyres.png", "Neumáticos"], ["ov-weather.png", "Clima"], ["ov-trackbar.png", "Barra de posiciones"]],
   pt: [["ov-l-brakes.png", "Marcas de frenagem"], ["ov-l-coach.png", "Coach"], ["ov-g-inputs.png", "Pedais"], ["ov-g-timing.png", "Tempos"], ["ov-s-sectors.png", "Minissetores"], ["ov-g-tyres.png", "Pneus"], ["ov-weather.png", "Clima"], ["ov-trackbar.png", "Barra de posições"]] };
 const OVW = {
-  en: { listT: "The overlays", expT: "Experimental overlays", exp: "Live lap compare, g-force, mini-sectors, gaps, session stats, telemetry traces and performance (frames a second, CPU, GPU and latency). Switch them on in Settings.",
+  en: { listT: "The overlays", expT: "Experimental overlays", exp: "Live lap compare, DRS and push-to-pass, g-force, mini-sectors, gaps, session stats, telemetry traces and performance (frames a second, CPU, GPU and latency). Switch them on in the Overlays tab.",
     vrT: "Overlays in VR", vr: "Every open overlay also shows in the headset as a SteamVR overlay, where it sits on your screen, so moving it on the screen moves it in VR. Meta headsets work through SteamVR. Turn it on in Settings → VR.",
     howT: "How they work", shotsT: "As Pitlane HQ Agent draws them",
     how: ["Drawn natively by Pitlane HQ Agent on Windows, not in a browser window.", "Only the panel shows. The rest is see-through and every click goes to the game.", "Drag and resize them while you place them. They never leave the screen.", "Four presets built in, and your own, saved in your account.", "Auto opens them when you get in the car and closes them when you get out."] },
-  es: { listT: "Los overlays", expT: "Overlays experimentales", exp: "Comparación de vueltas en vivo, fuerzas g, minisectores, diferencias, estadísticas de la sesión, trazas de telemetría y rendimiento (fotogramas por segundo, CPU, GPU y latencia). Se activan en Ajustes.",
+  es: { listT: "Los overlays", expT: "Overlays experimentales", exp: "Comparación de vueltas en vivo, DRS y push-to-pass, fuerzas g, minisectores, diferencias, estadísticas de la sesión, trazas de telemetría y rendimiento (fotogramas por segundo, CPU, GPU y latencia). Se activan en la pestaña Overlays.",
     vrT: "Overlays en VR", vr: "Cada overlay abierto también se ve en las gafas como un overlay de SteamVR, donde está en tu pantalla, así que moverlo en la pantalla lo mueve en VR. Las gafas Meta funcionan a través de SteamVR. Se activa en Ajustes → VR.",
     howT: "Cómo funcionan", shotsT: "Tal como los dibuja Pitlane HQ Agent",
     how: ["Dibujados de forma nativa por Pitlane HQ Agent en Windows, no en una ventana de navegador.", "Solo se ve el panel. El resto es transparente y cada clic va al juego.", "Los arrastras y cambias de tamaño mientras los colocas. Nunca se salen de la pantalla.", "Cuatro presets incluidos y los tuyos, guardados en tu cuenta.", "Auto los abre al subirte al coche y los cierra al bajarte."] },
-  pt: { listT: "Os overlays", expT: "Overlays experimentais", exp: "Comparação de voltas ao vivo, forças g, minissetores, diferenças, estatísticas da sessão, traços de telemetria e desempenho (quadros por segundo, CPU, GPU e latência). Ative em Configurações.",
+  pt: { listT: "Os overlays", expT: "Overlays experimentais", exp: "Comparação de voltas ao vivo, DRS e push-to-pass, forças g, minissetores, diferenças, estatísticas da sessão, traços de telemetria e desempenho (quadros por segundo, CPU, GPU e latência). Ative na aba Overlays.",
     vrT: "Overlays em VR", vr: "Cada overlay aberto também aparece nos óculos como um overlay do SteamVR, onde ele está na sua tela, então movê-lo na tela o move em VR. Os óculos Meta funcionam pelo SteamVR. Ative em Configurações → VR.",
     howT: "Como funcionam", shotsT: "Como o Pitlane HQ Agent os desenha",
     how: ["Desenhados de forma nativa pelo Pitlane HQ Agent no Windows, não numa janela de navegador.", "Só o painel aparece. O resto é transparente e cada clique vai para o jogo.", "Arraste e redimensione enquanto posiciona. Eles nunca saem da tela.", "Quatro presets incluídos e os seus, salvos na sua conta.", "Auto abre quando você entra no carro e fecha quando sai."] },
@@ -378,17 +385,17 @@ const OVLL = {
     desc: "Free Le Mans Ultimate overlays from Pitlane HQ, in beta. A multiclass relative, standings, radar, delta bar, fuel, track map and a dash with virtual energy.",
     h1: "Le Mans Ultimate overlays", lead: "Pitlane HQ Agent draws its overlays on top of Le Mans Ultimate, read from the game's own data. They are see-through, every click goes to the game, and they open by themselves when you get in the car. Le Mans Ultimate support is in beta.",
     faq: [["Are there free Le Mans Ultimate overlays?", "Yes. The basic overlays are free, and during the beta everything is."], ["What do I need to install?", "Only Pitlane HQ Agent on Windows. In the game, turn on Settings → Gameplay → Enable Plugins."], ["Do they work in VR?", "Yes. Every open overlay also shows in the headset through SteamVR."], ["Is there a fuel calculator?", "The fuel overlay is not a calculator you fill in. It measures each lap and shows what you may use per lap to finish without a stop, and the dash shows the virtual energy left."]],
-    items: [["Relative", "The cars ahead and behind on track with the gaps, their trend, the colours of each class and +1L / −1L, made for multiclass races."], ["Standings", "Overall and by class, the gaps, the last laps and each driver's pace against yours."], ["Radar", "The cars beside and behind you, 60 times a second, with a red side bar and the nearest distance."], ["Delta bar", "Your gap to your best lap, metre by metre, and the lap this pace gives."], ["Fuel", "What each lap uses and what you may use per lap to finish without a stop."], ["Dash", "Gear, speed, revs, the pedals, TC, ABS, engine map, brake bias and the virtual energy and battery left."], ["Track map", "Every car on the track coloured by class, the turns and the sectors."], ["Flags", "The start lights, the flags and the laps to go."], ["Timing", "The official sectors of the lap in purple, green or yellow."], ["Tyres", "Temperatures inside, middle and outside, and the pressure."], ["Pit stop", "Your speed against the pit lane limit and what the stop is doing."], ["Braking markers", "Where to brake in each corner, from the next level above your best lap."], ["Coach", "The next corner's tip and braking point while you drive."], ["Weather", "Track and air temperature and the wind against your car."], ["Track position bar", "Every car along the lap on one line, coloured by class."]] },
-  es: { path: "/es/overlays-le-mans-ultimate", title: "Overlays Le Mans Ultimate, relative y radar · Pitlane HQ",
+    items: [["Relative", "The cars ahead and behind on track with the gaps, their trend, the colours of each class and +1L / −1L, made for multiclass races."], ["Standings", "Overall and by class, the gaps, the last laps and each driver's pace against yours."], ["Radar", "The cars beside and behind you, with a red side bar and the nearest distance."], ["Delta bar", "Your gap to your best lap, metre by metre, and the lap this pace gives."], ["Fuel", "What each lap uses and what you may use per lap to finish without a stop."], ["Dash", "Gear, speed, revs, the pedals, TC, ABS, engine map, brake bias and the virtual energy and battery left."], ["Track map", "Every car on the track coloured by class, the turns and the sectors."], ["Flags", "The start lights, the flags and the laps to go."], ["Timing", "The official sectors of the lap in purple, green or yellow."], ["Tyres", "Temperatures inside, middle and outside, and the pressure."], ["Pit stop", "Your speed on the pit road and whether the pit limiter is on."], ["Braking markers", "Where to brake in each corner, from the next level above your best lap."], ["Coach", "The next corner's tip and braking point while you drive."], ["Weather", "Track and air temperature and the wind against your car."], ["Track position bar", "Every car along the lap on one line, coloured by class."]] },
+  es: { path: "/es/overlays-le-mans-ultimate", title: "Overlays para Le Mans Ultimate, relative y radar · Pitlane HQ",
     desc: "Overlays gratis para Le Mans Ultimate de Pitlane HQ, en beta. Relative multiclase, clasificación, radar, delta, combustible, mapa y un dash con energía virtual.",
     h1: "Overlays para Le Mans Ultimate", lead: "Pitlane HQ Agent dibuja sus overlays encima de Le Mans Ultimate, con los datos del propio juego. Son transparentes, cada clic va al juego y se abren solos al subirte al coche. El soporte de Le Mans Ultimate está en beta.",
     faq: [["¿Hay overlays gratis para Le Mans Ultimate?", "Sí. Los overlays básicos son gratis, y durante la beta lo es todo."], ["¿Qué tengo que instalar?", "Solo Pitlane HQ Agent en Windows. En el juego, activa Settings → Gameplay → Enable Plugins."], ["¿Funcionan en VR?", "Sí. Cada overlay abierto también se ve en las gafas a través de SteamVR."], ["¿Hay una calculadora de combustible?", "El overlay de combustible no es una calculadora que rellenas. Mide cada vuelta y te dice lo que puedes gastar por vuelta para terminar sin parar, y el dash muestra la energía virtual que queda."]],
-    items: [["Relative", "Los coches delante y detrás en pista con las diferencias, su tendencia, los colores de cada clase y +1L / −1L, pensado para carreras multiclase."], ["Clasificación", "General y por clase, las diferencias, las últimas vueltas y el ritmo de cada piloto frente al tuyo."], ["Radar", "Los coches a tu lado y detrás, 60 veces por segundo, con una barra lateral roja y la distancia al más cercano."], ["Barra de delta", "Tu diferencia con tu mejor vuelta, metro a metro, y la vuelta que da este ritmo."], ["Combustible", "Lo que gasta cada vuelta y lo que puedes gastar por vuelta para terminar sin parar."], ["Dash", "Marcha, velocidad, revoluciones, los pedales, TC, ABS, mapa motor, reparto de frenada y la energía virtual y la batería que quedan."], ["Mapa del circuito", "Todos los coches en pista con el color de su clase, las curvas y los sectores."], ["Banderas", "El semáforo de salida, las banderas y las vueltas restantes."], ["Tiempos", "Los sectores oficiales de la vuelta en morado, verde o amarillo."], ["Neumáticos", "Temperaturas por dentro, centro y fuera, y la presión."], ["Parada en boxes", "Tu velocidad frente al límite del pit lane y lo que está haciendo la parada."], ["Marcas de frenada", "Dónde frenar en cada curva, del siguiente nivel por encima de tu mejor vuelta."], ["Coach", "El consejo y el punto de frenada de la siguiente curva mientras conduces."], ["Clima", "Temperatura de pista y aire y el viento contra tu coche."], ["Barra de posiciones", "Todos los coches a lo largo de la vuelta en una línea, con el color de su clase."]] },
-  pt: { path: "/pt/overlays-le-mans-ultimate", title: "Overlays Le Mans Ultimate, relative e radar · Pitlane HQ",
+    items: [["Relative", "Los coches delante y detrás en pista con las diferencias, su tendencia, los colores de cada clase y +1L / −1L, pensado para carreras multiclase."], ["Clasificación", "General y por clase, las diferencias, las últimas vueltas y el ritmo de cada piloto frente al tuyo."], ["Radar", "Los coches a tu lado y detrás, con una barra lateral roja y la distancia al más cercano."], ["Barra de delta", "Tu diferencia con tu mejor vuelta, metro a metro, y la vuelta que da este ritmo."], ["Combustible", "Lo que gasta cada vuelta y lo que puedes gastar por vuelta para terminar sin parar."], ["Dash", "Marcha, velocidad, revoluciones, los pedales, TC, ABS, mapa motor, reparto de frenada y la energía virtual y la batería que quedan."], ["Mapa del circuito", "Todos los coches en pista con el color de su clase, las curvas y los sectores."], ["Banderas", "El semáforo de salida, las banderas y las vueltas restantes."], ["Tiempos", "Los sectores oficiales de la vuelta en morado, verde o amarillo."], ["Neumáticos", "Temperaturas por dentro, centro y fuera, y la presión."], ["Parada en boxes", "Tu velocidad en el pit lane y si el limitador está puesto."], ["Marcas de frenada", "Dónde frenar en cada curva, del siguiente nivel por encima de tu mejor vuelta."], ["Coach", "El consejo y el punto de frenada de la siguiente curva mientras conduces."], ["Clima", "Temperatura de pista y aire y el viento contra tu coche."], ["Barra de posiciones", "Todos los coches a lo largo de la vuelta en una línea, con el color de su clase."]] },
+  pt: { path: "/pt/overlays-le-mans-ultimate", title: "Overlays para Le Mans Ultimate, relative e radar · Pitlane HQ",
     desc: "Overlays grátis para Le Mans Ultimate, em beta. Relative multiclasse, classificação, radar, delta, combustível, mapa e um dash com energia virtual.",
     h1: "Overlays para Le Mans Ultimate", lead: "O Pitlane HQ Agent desenha seus overlays sobre o Le Mans Ultimate, com os dados do próprio jogo. São transparentes, cada clique vai para o jogo e eles abrem sozinhos quando você entra no carro. O suporte ao Le Mans Ultimate está em beta.",
     faq: [["Existem overlays grátis para Le Mans Ultimate?", "Sim. Os overlays básicos são grátis, e durante a beta tudo é."], ["O que preciso instalar?", "Só o Pitlane HQ Agent no Windows. No jogo, ative Settings → Gameplay → Enable Plugins."], ["Funcionam em VR?", "Sim. Cada overlay aberto também aparece nos óculos pelo SteamVR."], ["Tem uma calculadora de combustível?", "O overlay de combustível não é uma calculadora para preencher. Ele mede cada volta e mostra o que você pode gastar por volta para terminar sem parar, e o dash mostra a energia virtual que resta."]],
-    items: [["Relative", "Os carros à frente e atrás na pista com as diferenças, a tendência, as cores de cada classe e +1L / −1L, feito para corridas multiclasse."], ["Classificação", "Geral e por classe, as diferenças, as últimas voltas e o ritmo de cada piloto contra o seu."], ["Radar", "Os carros ao seu lado e atrás, 60 vezes por segundo, com uma barra lateral vermelha e a distância do mais próximo."], ["Barra de delta", "A sua diferença para a sua melhor volta, metro a metro, e a volta que esse ritmo dá."], ["Combustível", "O que cada volta gasta e o que você pode gastar por volta para terminar sem parar."], ["Dash", "Marcha, velocidade, rotação, os pedais, TC, ABS, mapa do motor, balanço de freio e a energia virtual e a bateria que restam."], ["Mapa da pista", "Todos os carros na pista com a cor da classe, as curvas e os setores."], ["Bandeiras", "As luzes de largada, as bandeiras e as voltas restantes."], ["Tempos", "Os setores oficiais da volta em roxo, verde ou amarelo."], ["Pneus", "Temperaturas por dentro, meio e fora, e a pressão."], ["Pit stop", "A sua velocidade contra o limite do pit lane e o que a parada está fazendo."], ["Marcas de frenagem", "Onde frear em cada curva, do próximo nível acima da sua melhor volta."], ["Coach", "A dica e o ponto de frenagem da próxima curva enquanto você pilota."], ["Clima", "Temperatura da pista e do ar e o vento contra o seu carro."], ["Barra de posições", "Todos os carros ao longo da volta numa linha, com a cor da classe."]] },
+    items: [["Relative", "Os carros à frente e atrás na pista com as diferenças, a tendência, as cores de cada classe e +1L / −1L, feito para corridas multiclasse."], ["Classificação", "Geral e por classe, as diferenças, as últimas voltas e o ritmo de cada piloto contra o seu."], ["Radar", "Os carros ao seu lado e atrás, com uma barra lateral vermelha e a distância do mais próximo."], ["Barra de delta", "A sua diferença para a sua melhor volta, metro a metro, e a volta que esse ritmo dá."], ["Combustível", "O que cada volta gasta e o que você pode gastar por volta para terminar sem parar."], ["Dash", "Marcha, velocidade, rotação, os pedais, TC, ABS, mapa do motor, balanço de freio e a energia virtual e a bateria que restam."], ["Mapa da pista", "Todos os carros na pista com a cor da classe, as curvas e os setores."], ["Bandeiras", "As luzes de largada, as bandeiras e as voltas restantes."], ["Tempos", "Os setores oficiais da volta em roxo, verde ou amarelo."], ["Pneus", "Temperaturas por dentro, meio e fora, e a pressão."], ["Pit stop", "A sua velocidade no pit lane e se o limitador está ligado."], ["Marcas de frenagem", "Onde frear em cada curva, do próximo nível acima da sua melhor volta."], ["Coach", "A dica e o ponto de frenagem da próxima curva enquanto você pilota."], ["Clima", "Temperatura da pista e do ar e o vento contra o seu carro."], ["Barra de posições", "Todos os carros ao longo da volta numa linha, com a cor da classe."]] },
 };
 const OVL_ALTS = altsOf(OVL), OVLL_ALTS = altsOf(OVLL);
 function overlaysPage(l, game) {
@@ -431,40 +438,40 @@ const LEAG = {
     desc: "Find an iRacing league to race in. Leagues looking for drivers, the days they race and how many drivers are on their Discord right now.",
     catD: (c) => `${cap(c)} leagues on iRacing you can join, with the days they race, their Discord and how many drivers are online now.`,
     h1: "iRacing leagues", catH: (c) => `iRacing ${c} leagues`, lead: "Leagues to race in on iRacing, posted by their organisers on Pitlane HQ, and the most active leagues sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free.",
-    catLead: (c) => `iRacing ${c} leagues to race in, posted by their organisers on Pitlane HQ or found on r/iRacing and r/iRacingLeagues, sorted by how many drivers are on their Discord right now.`,
+    catLead: (c) => `iRacing ${c} leagues to race in, posted by their organisers on Pitlane HQ or found on Reddit, sorted by how many drivers are on their Discord right now.`,
     active: "The most active iRacing leagues", any: "iRacing league",
     catQ: (c) => [`Where do I find an iRacing ${c} league?`, `Here, sorted by how many drivers are online on its Discord. Every card links to the league's Discord or website.`],
     faq: [["How do I join an iRacing league?", "Pick a league here and join its Discord or its website. The organisers say there when the league races, which cars and tracks it uses and how to sign up."],
       ["Do iRacing leagues cost anything?", "Most leagues are free to join. You need an iRacing subscription and the cars and tracks the league races with."],
-      ["How are these leagues chosen?", "Some are posted by their organisers on Pitlane HQ. The others are leagues posted on r/iRacing and r/iRacingLeagues with a Discord invite, and every few hours Pitlane HQ reads how many members each Discord has and how many are online."],
+      ["How are these leagues chosen?", "Some are posted by their organisers on Pitlane HQ. The others are leagues posted on Reddit with a Discord invite, and every few hours Pitlane HQ reads how many members each Discord has and how many are online."],
       ["Can I add my league?", "Yes. Create a free Pitlane HQ account and post it in Community → Leagues with its race days, its start time, its Discord or its website."]] },
   es: { path: "/es/ligas-iracing", title: "Ligas de iRacing para unirte, con su Discord · Pitlane HQ", catT: (c) => `Ligas de ${c} de iRacing para unirte · Pitlane HQ`,
     desc: "Encuentra una liga de iRacing en la que correr. Ligas que buscan pilotos, los días que corren y cuántos pilotos hay ahora en su Discord.",
     catD: (c) => `Ligas de ${c} en iRacing a las que puedes unirte, con los días que corren, su Discord y cuántos pilotos hay conectados ahora.`,
     h1: "Ligas de iRacing", catH: (c) => `Ligas de ${c} de iRacing`, lead: "Ligas en las que correr en iRacing, publicadas por sus organizadores en Pitlane HQ, y las ligas más activas ordenadas por cuántos pilotos hay ahora mismo en su Discord. Únete a una con un clic, o publica tu liga gratis.",
-    catLead: (c) => `Ligas de ${c} de iRacing en las que correr, publicadas por sus organizadores en Pitlane HQ o encontradas en r/iRacing y r/iRacingLeagues, ordenadas por cuántos pilotos hay ahora en su Discord.`,
+    catLead: (c) => `Ligas de ${c} de iRacing en las que correr, publicadas por sus organizadores en Pitlane HQ o encontradas en Reddit, ordenadas por cuántos pilotos hay ahora en su Discord.`,
     active: "Las ligas de iRacing más activas", any: "Liga de iRacing",
     catQ: (c) => [`¿Dónde encuentro una liga de ${c} de iRacing?`, `Aquí, ordenadas por cuántos pilotos hay conectados en su Discord. Cada tarjeta lleva al Discord o a la web de la liga.`],
     faq: [["¿Cómo me uno a una liga de iRacing?", "Elige una liga aquí y entra en su Discord o en su web. Los organizadores cuentan ahí cuándo corre la liga, con qué coches y circuitos, y cómo apuntarte."],
       ["¿Cuestan algo las ligas de iRacing?", "La mayoría de las ligas son gratis. Necesitas una suscripción de iRacing y los coches y circuitos con los que corre la liga."],
-      ["¿Cómo se eligen estas ligas?", "Unas las publican sus organizadores en Pitlane HQ. Las demás son ligas publicadas en r/iRacing y r/iRacingLeagues con una invitación de Discord, y cada pocas horas Pitlane HQ lee cuántos miembros tiene cada Discord y cuántos están conectados."],
+      ["¿Cómo se eligen estas ligas?", "Unas las publican sus organizadores en Pitlane HQ. Las demás son ligas publicadas en Reddit con una invitación de Discord, y cada pocas horas Pitlane HQ lee cuántos miembros tiene cada Discord y cuántos están conectados."],
       ["¿Puedo añadir mi liga?", "Sí. Crea una cuenta gratis de Pitlane HQ y publícala en Comunidad → Ligas con sus días de carrera, su hora de inicio, su Discord o su web."]] },
   pt: { path: "/pt/ligas-iracing", title: "Ligas de iRacing para entrar, com o Discord · Pitlane HQ", catT: (c) => `Ligas de ${c} do iRacing para entrar · Pitlane HQ`,
     desc: "Encontre uma liga de iRacing para correr. Ligas que procuram pilotos, os dias em que correm e quantos pilotos estão no Discord delas agora.",
     catD: (c) => `Ligas de ${c} no iRacing em que você pode entrar, com os dias em que correm, o Discord e quantos pilotos estão online agora.`,
     h1: "Ligas de iRacing", catH: (c) => `Ligas de ${c} do iRacing`, lead: "Ligas para correr no iRacing, publicadas pelos organizadores no Pitlane HQ, e as ligas mais ativas ordenadas por quantos pilotos estão no Discord delas agora. Entre numa com um clique, ou publique sua liga de graça.",
-    catLead: (c) => `Ligas de ${c} do iRacing para correr, publicadas pelos organizadores no Pitlane HQ ou encontradas no r/iRacing e no r/iRacingLeagues, ordenadas por quantos pilotos estão no Discord agora.`,
+    catLead: (c) => `Ligas de ${c} do iRacing para correr, publicadas pelos organizadores no Pitlane HQ ou encontradas no Reddit, ordenadas por quantos pilotos estão no Discord agora.`,
     active: "As ligas de iRacing mais ativas", any: "Liga de iRacing",
     catQ: (c) => [`Onde encontro uma liga de ${c} do iRacing?`, `Aqui, ordenadas por quantos pilotos estão online no Discord. Cada cartão leva ao Discord ou ao site da liga.`],
     faq: [["Como entro numa liga de iRacing?", "Escolha uma liga aqui e entre no Discord ou no site dela. Os organizadores contam lá quando a liga corre, com quais carros e pistas e como se inscrever."],
       ["As ligas de iRacing custam algo?", "A maioria das ligas é grátis. Você precisa de uma assinatura do iRacing e dos carros e pistas com que a liga corre."],
-      ["Como essas ligas são escolhidas?", "Algumas são publicadas pelos organizadores no Pitlane HQ. As outras são ligas publicadas no r/iRacing e no r/iRacingLeagues com um convite do Discord, e a cada poucas horas o Pitlane HQ lê quantos membros cada Discord tem e quantos estão online."],
+      ["Como essas ligas são escolhidas?", "Algumas são publicadas pelos organizadores no Pitlane HQ. As outras são ligas publicadas no Reddit com um convite do Discord, e a cada poucas horas o Pitlane HQ lê quantos membros cada Discord tem e quantos estão online."],
       ["Posso adicionar minha liga?", "Sim. Crie uma conta grátis no Pitlane HQ e publique em Comunidade → Ligas com os dias de corrida, a hora de início, o Discord ou o site."]] },
 };
 const LEAGL = {
   en: { path: "/le-mans-ultimate-leagues", title: "Le Mans Ultimate leagues to join · Pitlane HQ",
     desc: "Find a Le Mans Ultimate league to race in. LMU leagues looking for drivers, the days they race and how many drivers are on their Discord right now.",
-    h1: "Le Mans Ultimate leagues", lead: "Leagues to race in on Le Mans Ultimate, posted by their organisers on Pitlane HQ or found on r/LeMansUltimateWEC, sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free.",
+    h1: "Le Mans Ultimate leagues", lead: "Leagues to race in on Le Mans Ultimate, posted by their organisers on Pitlane HQ or found on Reddit, sorted by how many drivers are on their Discord right now. Join one in a click, or post your own league for free.",
     active: "The most active Le Mans Ultimate leagues", any: "Le Mans Ultimate league",
     faq: [["How do I join a Le Mans Ultimate league?", "Pick a league here and join its Discord or its website. The organisers say there when it races, which classes and tracks it uses and how to sign up."],
       ["Do LMU leagues cost anything?", "Most are free to join. You need Le Mans Ultimate and the content the league races with."],
@@ -472,7 +479,7 @@ const LEAGL = {
       ["Can I add my league?", "Yes. Create a free Pitlane HQ account and post it in Community → Leagues, choosing Le Mans Ultimate."]] },
   es: { path: "/es/ligas-le-mans-ultimate", title: "Ligas de Le Mans Ultimate para unirte · Pitlane HQ",
     desc: "Encuentra una liga de Le Mans Ultimate en la que correr. Ligas de LMU que buscan pilotos, los días que corren y cuántos pilotos hay ahora en su Discord.",
-    h1: "Ligas de Le Mans Ultimate", lead: "Ligas en las que correr en Le Mans Ultimate, publicadas por sus organizadores en Pitlane HQ o encontradas en r/LeMansUltimateWEC, ordenadas por cuántos pilotos hay ahora en su Discord. Únete a una con un clic, o publica tu liga gratis.",
+    h1: "Ligas de Le Mans Ultimate", lead: "Ligas en las que correr en Le Mans Ultimate, publicadas por sus organizadores en Pitlane HQ o encontradas en Reddit, ordenadas por cuántos pilotos hay ahora en su Discord. Únete a una con un clic, o publica tu liga gratis.",
     active: "Las ligas de Le Mans Ultimate más activas", any: "Liga de Le Mans Ultimate",
     faq: [["¿Cómo me uno a una liga de Le Mans Ultimate?", "Elige una liga aquí y entra en su Discord o en su web. Los organizadores cuentan ahí cuándo corre, con qué clases y circuitos, y cómo apuntarte."],
       ["¿Cuestan algo las ligas de LMU?", "La mayoría son gratis. Necesitas Le Mans Ultimate y el contenido con el que corre la liga."],
@@ -480,7 +487,7 @@ const LEAGL = {
       ["¿Puedo añadir mi liga?", "Sí. Crea una cuenta gratis de Pitlane HQ y publícala en Comunidad → Ligas, eligiendo Le Mans Ultimate."]] },
   pt: { path: "/pt/ligas-le-mans-ultimate", title: "Ligas de Le Mans Ultimate para entrar · Pitlane HQ",
     desc: "Encontre uma liga de Le Mans Ultimate para correr. Ligas de LMU que procuram pilotos, os dias em que correm e quantos pilotos estão no Discord agora.",
-    h1: "Ligas de Le Mans Ultimate", lead: "Ligas para correr no Le Mans Ultimate, publicadas pelos organizadores no Pitlane HQ ou encontradas no r/LeMansUltimateWEC, ordenadas por quantos pilotos estão no Discord agora. Entre numa com um clique, ou publique sua liga de graça.",
+    h1: "Ligas de Le Mans Ultimate", lead: "Ligas para correr no Le Mans Ultimate, publicadas pelos organizadores no Pitlane HQ ou encontradas no Reddit, ordenadas por quantos pilotos estão no Discord agora. Entre numa com um clique, ou publique sua liga de graça.",
     active: "As ligas de Le Mans Ultimate mais ativas", any: "Liga de Le Mans Ultimate",
     faq: [["Como entro numa liga de Le Mans Ultimate?", "Escolha uma liga aqui e entre no Discord ou no site dela. Os organizadores contam lá quando corre, com quais classes e pistas e como se inscrever."],
       ["As ligas de LMU custam algo?", "A maioria é grátis. Você precisa do Le Mans Ultimate e do conteúdo com que a liga corre."],
@@ -552,7 +559,7 @@ const catFor = (cm, game, x, hint, track, car) => (game === "lmu" ? "sports_car"
 
 async function landing(env, l, game) {
   const lmu = game === "lmu", L = (lmu ? LANDL : LAND)[l], combos = await topCombos(env, 8, game);
-  const guides = lmu ? [...TOPICS.filter((x) => x.game === "lmu").map((x) => x[l]), OVLL[l], ...(HAS.lmuLeagues ? [LEAGL[l]] : []), ...LMU_TOO.map((id) => TOPIC_BY[id][l])]
+  const guides = lmu ? [...TOPICS.filter((x) => x.game === "lmu").map((x) => x[l]), OVLL[l], ...(HAS.lmuLeagues ? [LEAGL[l]] : []), ...lmuToo(l)]
     : [...TOPICS.filter((x) => x.game !== "lmu").map((x) => x[l]), OVL[l], LEAG[l]];
   const body = `<h1>${esc(L.h1)}</h1><p class="lead">${esc(L.lead)}</p>
 <div class="cta"><a class="btn p" href="/dl/PitlaneHQ-Setup.exe">${esc(L.dl)}</a><a class="btn" href="/">${esc(L.app)}</a></div>
@@ -605,7 +612,7 @@ async function recordsCombo(env, l, t, c, asked, game = "iracing") {
   const gn = GNAME[game], track = fix(nm.track), car = fix(nm.car), cm = game === "lmu" ? { tc: {}, c: {} } : await catMap(env).catch(() => ({ tc: {}, c: {} }));
   const x = { t, c, track, car }, cat = catFor(cm, game, x, laps[0].cat, laps[0].track, laps[0].car);
   const W = S[l], rec = fmt(laps[0].time), idx = REC_IDX[game][l];
-  const title = W.cT(car, track, gn), desc = W.cD(car, track, rec, laps.length, gn), L = (game === "lmu" ? LANDL : LAND)[l];
+  const title = recTitle(W, car, track, game), desc = W.cD(car, track, rec, laps.length, gn), L = (game === "lmu" ? LANDL : LAND)[l];
   const body = `<p class="m"><a href="${idx}">${esc(W.recH(gn))}</a>${game === "lmu" ? "" : ` · <a href="${idx}?d=${cat}">${esc(CAT[l][cat] || "")}</a>`}</p>
 <h1>${esc(car)}<br><span class="m" style="font-size:.7em">${esc(track)}</span></h1>
 <p class="lead">${esc(W.cL(rec))}</p>
@@ -616,7 +623,7 @@ async function recordsCombo(env, l, t, c, asked, game = "iracing") {
 }
 
 // an address of the public pages that does not exist: a real 404 (never the app), so it is not indexed
-export const notFound = (l) => noIndex(html(page(l, { title: S[l].nfT + " · Pitlane HQ", desc: "", path: REC_IDX.iracing[l], noindex: true,
+export const notFound = (l) => noIndex(html(page(l, { title: S[l].nfT + " · Pitlane HQ", desc: S[l].nf, path: null, noindex: true,
   body: `<h1>${esc(S[l].nf)}</h1><p><a href="${LAND[l].path}">${esc(T[l].tel.iracing)}</a> · <a href="${LANDL[l].path}">${esc(T[l].tel.lmu)}</a> · <a href="${REC_IDX.iracing[l]}">${esc(T[l].rec)}</a> · <a href="/">${esc(T[l].app)}</a></p>` }), 600, 404));
 const noIndex = (r) => { r.headers.set("x-robots-tag", "noindex"); r.headers.set("cache-control", "public, max-age=60"); return r; };
 
@@ -624,7 +631,7 @@ const noIndex = (r) => { r.headers.set("x-robots-tag", "noindex"); r.headers.set
 const topicAlts = (x) => altsOf(x);
 function topicPage(x, l) {
   const G = x[l], lmu = x.game === "lmu", L = (lmu ? LANDL : LAND)[l], game = lmu ? "lmu" : "iracing";
-  const more = lmu ? lmuLinks(l).filter(([p]) => p !== G.path).concat(LMU_TOO.map((id) => [TOPIC_BY[id][l].path, TOPIC_BY[id][l].h1]))
+  const more = lmu ? lmuLinks(l).filter(([p]) => p !== G.path).concat(lmuToo(l).map((x) => [x.path, x.h1]))
     : iracingLinks(l).filter(([p]) => p !== G.path).concat([[L.path, L.h1]]);
   // the same thing for Le Mans Ultimate (or the guide of the other game)
   const to = x.lmu ? (x.lmu === "tel" ? LANDL[l] : TOPIC_BY[x.lmu] ? TOPIC_BY[x.lmu][l] : null) : lmu ? TOPIC_BY.coach[l] : null;
@@ -678,7 +685,7 @@ async function sitemap(env) {
   if (DL.posted.length + DL.found.length) all(LEAGL_ALTS, "daily", 0.8, lgDay(DL));
   all(REC_IDX.iracing, "daily", 0.8, newest(combos));
   if (lmuCombos.length) all(REC_IDX.lmu, "daily", 0.8, newest(lmuCombos));
-  s.push(u("/downloads", "weekly", "0.7", null, SEO_DATE), u("/changelog", "weekly", "0.4"));
+  s.push(u("/downloads", "weekly", "0.7", null, SEO_DATE), u("/changelog", "weekly", "0.4", null, SEO_DATE));
   for (const [game, cs] of [["iracing", combos], ["lmu", lmuCombos]]) for (const x of cs) all(recAlts(x, game), "daily", 0.6, day(x.upd) || SEO_DATE);
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${s.join("\n")}\n</urlset>\n`, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" } });
 }

@@ -354,7 +354,11 @@
   app's links from them are nofollow. The pages show the app's screenshots (`landing/<lang>/`, with width and height,
   lazy), keep their whole style inline, load the fonts without blocking (`media="print"` swapped on load), and are
   kept at the edge (Cache API) for their max-age with an ETag (304); the landing's pictures and the og images are cached
-  a day. No text on them joins two phrases with a colon, and titles stay near 60 characters, each its own.
+  a day. No text on them joins two phrases with a colon, and titles stay near 60 characters, each its own (a record
+  page names the game in full, then as "LMU", then not at all while its car and track do not fit, `recTitle`; one
+  driver's record says it is the only lap). A Le Mans Ultimate page promises only what the game gives (no pit lane
+  limit, the rivals' positions about five times a second), the Le Mans Ultimate pages name the shared guides without
+  "iRacing" (`LMU_TOO_H`), the league pages say their leagues are found on Reddit, and the 404 page has no canonical.
   `cloud/test/seo.test.mjs` draws every page in the three languages and checks the titles, descriptions, canonical,
   hreflang, JSON-LD, links, sitemap and index.html's head and <noscript>. The sitemap carries every language
   (xhtml:link) and a lastmod everywhere (`SEO_DATE` for the pages without data); IndexNow sends every page again when

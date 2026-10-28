@@ -428,7 +428,7 @@ export const TOPICS = [
       ],
     },
     es: {
-      path: "/es/telemetria-iracing-gratis", title: "Telemetría gratis iRacing y Le Mans Ultimate · Pitlane HQ",
+      path: "/es/telemetria-iracing-gratis", title: "Telemetría gratis para iRacing y Le Mans Ultimate · Pitlane HQ",
       desc: "Telemetría gratis para iRacing y Le Mans Ultimate. Análisis de vueltas, un coach con vueltas reales, clasificaciones, overlays y telemetría en el móvil.",
       h1: "Telemetría gratis para iRacing y Le Mans Ultimate",
       lead: "Pitlane HQ reúne en una app gratis lo que suele necesitar varias. Telemetría y análisis de vueltas, un coach que te compara con vueltas reales más rápidas, overlays sobre el juego, clasificaciones y tus resúmenes de carrera.",
@@ -447,7 +447,7 @@ export const TOPICS = [
       ],
     },
     pt: {
-      path: "/pt/telemetria-iracing-gratis", title: "Telemetria grátis iRacing e Le Mans Ultimate · Pitlane HQ",
+      path: "/pt/telemetria-iracing-gratis", title: "Telemetria grátis para iRacing e Le Mans Ultimate · Pitlane HQ",
       desc: "Telemetria grátis para iRacing e Le Mans Ultimate. Análise de voltas, um coach com voltas reais, classificações, overlays e telemetria no celular.",
       h1: "Telemetria grátis para iRacing e Le Mans Ultimate",
       lead: "O Pitlane HQ junta num app grátis o que costuma precisar de vários. Telemetria e análise de voltas, um coach que compara você com voltas reais mais rápidas, overlays sobre o jogo, classificações e seus resumos de corrida.",

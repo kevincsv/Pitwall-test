@@ -128,10 +128,19 @@ for (const [game, pre, t, c] of [["iracing", "", 1, 10], ["lmu", "lmu/", 7001, 9
   assert.ok(p.ld.some((x) => x["@type"] === "BreadcrumbList"));
   assert.match(p.text, /Speedy/); assert.match(p.text, game === "lmu" ? /Le Mans Ultimate/ : /iRacing/);
   assert.ok(!/\S: /.test(p.title), p.title);
+  assert.ok(p.title.length <= 62 || !/iRacing|LMU|Le Mans/.test(p.title), p.title); assert.ok(!/\b1 (fastest|vueltas|voltas)/.test(p.desc), p.desc);
 }
 assert.equal((await get(env, "/records/lmu/1-10")).status, 404, "an iRacing car is no Le Mans Ultimate record");
 assert.equal((await get(env, "/records/999-999/x")).status, 404);
 assert.equal((await get(env, "/es/records/nothing")).status, 404);
+// an error page points nowhere else: no canonical, no og:url
+{ const nf = parse(await (await get(env, "/es/records/nothing")).text()); assert.equal(nf.canon, undefined, "a 404 has no canonical"); }
+// a record of one driver says so, never "the 1 fastest laps"; every record title fits
+for (const [path] of pages) if (/\/records\/(lmu\/)?\d+-\d+\//.test(path)) { const p = pages.get(path); assert.ok(!/\b1 (fastest|vueltas|voltas)/.test(p.desc), p.desc); assert.ok(p.title.length <= 62, p.title); }
+// the Le Mans Ultimate overlays promise only what the game gives (no pit lane limit, no 60 a second radar)
+for (const l of ["", "/es", "/pt"]) { const r = await get(env, l + (l === "" ? "/le-mans-ultimate-overlays" : "/overlays-le-mans-ultimate")); const t = parse(await r.text()).text;
+  assert.ok(!/60 (times|veces|vezes)|pit lane limit|límite del pit lane|limite do pit lane/.test(t), l + " LMU overlays");
+  assert.match(t, /Overlays tab|pestaña Overlays|aba Overlays/, l + " the experimental switch is in Overlays"); }
 
 // a discipline with few leagues is shown but not indexed; one with none does not exist
 { const sc = await get(env, "/iracing-leagues/sports-car"); assert.equal(sc.status, 200); assert.match(parse(await sc.text()).robots, /^index/);
@@ -139,11 +148,11 @@ assert.equal((await get(env, "/es/records/nothing")).status, 404);
   assert.equal((await get(env, "/iracing-leagues/dirt-road")).status, 404);
   assert.equal((await get(env, "/es/ligas-iracing/ovalo")).status, 200); }
 
-// the sitemap: every page, its languages, a lastmod everywhere but the changelog, and no thin discipline
+// the sitemap: every page, its languages, a lastmod everywhere, and no thin discipline
 const sm = await (await get(env, "/sitemap.xml")).text();
 const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].slice(SITE.length));
 for (const set of [...STATIC, ...LMU_DATA]) for (const l of LANGS) assert.ok(locs.includes(set[l]), `sitemap lists ${set[l]}`);
-for (const u of sm.match(/<url>[\s\S]*?<\/url>/g)) if (!u.includes("/changelog")) assert.match(u, /<lastmod>\d{4}-\d\d-\d\d<\/lastmod>/, u.slice(0, 80));
+for (const u of sm.match(/<url>[\s\S]*?<\/url>/g)) assert.match(u, /<lastmod>\d{4}-\d\d-\d\d<\/lastmod>/, u.slice(0, 80));
 assert.ok(locs.includes("/iracing-leagues/sports-car") && !locs.includes("/iracing-leagues/oval"), "only the disciplines with leagues enough");
 assert.ok(locs.some((x) => x.startsWith("/records/lmu/")) && locs.some((x) => x.startsWith("/es/records/lmu/")), "Le Mans Ultimate's cars and tracks");
 assert.ok(!/<loc>https:\/\/pitlanehq\.app\/<\/loc><lastmod>[^<]+<\/lastmod><changefreq>weekly<\/changefreq><priority>1\.0<\/priority><xhtml/.test(sm), '"/" carries no alternates');
