@@ -92,24 +92,28 @@ func (m *irImage) commit() {
 }
 
 // set writes element i of a variable, in the variable's own type.
-func (m *irImage) setAt(name string, i int, val float64) {
-	v := m.vars[name]
+func (m *irImage) setAt(name string, i int, val float64) { m.setVar(m.vars[name], i, val) }
+
+// ref: a variable of the image, looked up once (nil when the image has none), for setVar in a loop
+func (m *irImage) ref(name string) *demoVar { return m.vars[name] }
+
+// setVar writes element i of a variable found with ref (nothing for nil), as setAt does without the lookup
+func (m *irImage) setVar(v *demoVar, i int, val float64) {
 	if v == nil || i < 0 || i >= v.count || math.IsNaN(val) || math.IsInf(val, 0) {
 		return
 	}
-	o := v.offset + typeSize[v.typ]*i
 	switch v.typ {
 	case TypeFloat:
-		binary.LittleEndian.PutUint32(m.buf[o:], math.Float32bits(float32(val)))
+		binary.LittleEndian.PutUint32(m.buf[v.offset+4*i:], math.Float32bits(float32(val)))
 	case TypeDouble:
-		binary.LittleEndian.PutUint64(m.buf[o:], math.Float64bits(val))
+		binary.LittleEndian.PutUint64(m.buf[v.offset+8*i:], math.Float64bits(val))
 	case TypeInt, TypeBitField:
-		binary.LittleEndian.PutUint32(m.buf[o:], uint32(int32(val)))
+		binary.LittleEndian.PutUint32(m.buf[v.offset+4*i:], uint32(int32(val)))
 	case TypeBool, TypeChar:
 		if val != 0 {
-			m.buf[o] = 1
+			m.buf[v.offset+i] = 1
 		} else {
-			m.buf[o] = 0
+			m.buf[v.offset+i] = 0
 		}
 	}
 }

@@ -722,6 +722,7 @@ func sessionResults(y string, sn int) []raceResult {
 		block = block[:j]
 	}
 	parts := resultSplit.Split(block, -1)
+	me := yamlField(y, "DriverCarIdx")
 	var out []raceResult
 	for _, p := range parts[1:] {
 		p = "Position: " + p
@@ -745,7 +746,7 @@ func sessionResults(y string, sn int) []raceResult {
 				r.Inc = max(atoi(yamlField(d, "TeamIncidentCount")), atoi(yamlField(d, "CurDriverIncidentCount")))
 			}
 		}
-		r.Me = idx == yamlField(y, "DriverCarIdx")
+		r.Me = idx == me
 		out = append(out, r)
 	}
 	return out
@@ -909,7 +910,7 @@ func buildReport(y string, t *raceTrack, dnf bool) *raceReport {
 
 func listDrivers(y string) []string {
 	if i := strings.Index(y, "\nDriverInfo:"); i >= 0 {
-		return regexp.MustCompile(`(?m)^\s*- CarIdx: `).FindAllString(y[i:], -1)
+		return carIdxSplit.FindAllString(y[i:], -1)
 	}
 	return nil
 }

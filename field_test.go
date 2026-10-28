@@ -225,7 +225,7 @@ func fieldCar(t *testing.T, i int) *carLapProf {
 
 func resetField() {
 	fieldMu.Lock()
-	fieldCars = map[int]*carLapProf{}
+	fieldCars, fieldWho = map[int]*carLapProf{}, map[int]string{}
 	fieldMu.Unlock()
 }
 
@@ -994,6 +994,147 @@ func TestFieldShareGame(t *testing.T) {
 	for g, want := range map[string]bool{"": true, "iracing": true, "lmu": true, "ac": false, "acc": false, "LMU": false} {
 		if fieldShareGame(g) != want {
 			t.Fatalf("%q: %v", g, !want)
+		}
+	}
+}
+
+// Le Mans Ultimate gives an index again to a new car once all 64 are taken: the newcomer starts with a profile of its
+// own (its laps are taken whatever the car before did there), while the same driver, a team whose driver changes at
+// the wheel or an index the text stops listing keep theirs
+func TestFieldIndexGivenToAnotherCar(t *testing.T) {
+	resetField()
+	text := func(drivers ...string) string {
+		y := "---\nWeekendInfo:\n TrackID: 1\nDriverInfo:\n DriverCarIdx: 5\n Drivers:\n"
+		for _, d := range drivers {
+			y += d
+		}
+		return y + "SplitTimeInfo:\n Sectors:\n - SectorNum: 0\n   UserID: 999\n"
+	}
+	car := func(idx int, uid, name, team string) string {
+		s := fmt.Sprintf(" - CarIdx: %d\n   UserName: %s\n   UserID: %s\n", idx, name, uid)
+		if team != "" {
+			s += "   TeamID: " + team + "\n"
+		}
+		return s
+	}
+	fieldDrivers(text(car(0, "1001", "Ana Duarte", ""), car(1, "1002", "Luca Bianchi", "")))
+	fast := newSim("reuse")
+	fast.speed = func(lap int, d float64) float64 { return simSpeed(lap, d) * 1.1 }
+	fast.run(3)
+	before := fieldCar(t, 0)
+	if before.best <= 0 {
+		t.Fatal("the first car has no best")
+	}
+	// the same drivers in a new version of the text: nothing changes
+	fieldDrivers(text(car(0, "1001", "Ana Duarte", ""), car(1, "1002", "Luca Bianchi", "")))
+	if fieldCar(t, 0) != before {
+		t.Fatal("the same driver lost the profile")
+	}
+	// the index goes to another car, slower (a team's)
+	fieldDrivers(text(car(0, "2001", "Pau Vidal", "77"), car(1, "1002", "Luca Bianchi", "")))
+	fieldMu.Lock()
+	_, kept := fieldCars[0]
+	fieldMu.Unlock()
+	if kept {
+		t.Fatal("the newcomer kept the profile of the car before")
+	}
+	slow := newSim("reuse")
+	slow.speed = func(lap int, d float64) float64 { return simSpeed(lap, d) * 0.9 }
+	slow.run(3)
+	after := fieldCar(t, 0)
+	if after.best <= before.best {
+		t.Fatalf("the newcomer's best %.3f is not its own (the car before did %.3f)", after.best, before.best)
+	}
+	found := false
+	for _, lt := range slow.times {
+		found = found || math.Abs(lt-after.best) < 0.002
+	}
+	if !found {
+		t.Fatalf("the newcomer's best %.3f is none of its laps %v", after.best, slow.times)
+	}
+	// the team's driver changes at the wheel: the car is the same, its profile stays; a car the text stops listing too
+	cur := fieldCar(t, 0)
+	fieldDrivers(text(car(0, "3001", "Nour Haddad", "77")))
+	if fieldCar(t, 0) != cur {
+		t.Fatal("a team's driver change started the car again")
+	}
+	fieldDrivers(text(car(1, "1002", "Luca Bianchi", "")))
+	if fieldCar(t, 0) != cur {
+		t.Fatal("an index the text no longer lists lost its profile")
+	}
+	resetField()
+}
+
+// the same, the whole way: Le Mans Ultimate's source gives a 65th car the index of a car gone five minutes, its session
+// text says the newcomer is there, and the field watcher's own reading of the text (fieldText.update: fieldSession,
+// then fieldDrivers on a new version) starts that index again, the others keeping theirs
+func TestFieldIndexReusedByLMU(t *testing.T) {
+	resetField()
+	defer resetField()
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMUField(64)
+	pi32 := func(o int, v int) { binary.LittleEndian.PutUint32(b[o:], uint32(int32(v))) }
+	pf64 := func(o int, v float64) { binary.LittleEndian.PutUint64(b[o:], math.Float64bits(v)) }
+	ft := newFieldText()
+	frame := func() string {
+		t.Helper()
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, y := lmuRead(t, s)
+		h, err := readHeader(s.img.mem)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ft.update(y, int(h.SessionInfoUpdate), int(get("SessionNum")))
+		return y
+	}
+	name := func(y string, idx int) string { return yamlField(driverBlock(y, fmt.Sprint(idx)), "UserName") }
+	y := frame()
+	const gone = 10
+	if name(y, gone) != "Driver Number 10" {
+		t.Fatalf("index %d is %q", gone, name(y, gone))
+	}
+	// the field watcher has a profile of every car by now
+	fieldMu.Lock()
+	for i := 0; i < 64; i++ {
+		fieldCars[i] = &carLapProf{best: 200 + float64(i)}
+	}
+	fieldMu.Unlock()
+	// car 10 leaves (the game's array closes up), and five minutes go by
+	slot := func(i int) ([]byte, []byte) {
+		o, tt := lmuOffVehScoring+i*lmuVehScSize, lmuOffTelem+i*lmuTelSize
+		return b[o : o+lmuVehScSize], b[tt : tt+lmuTelSize]
+	}
+	sc, te := slot(gone)
+	sc63, te63 := slot(63)
+	copy(sc, sc63)
+	copy(te, te63)
+	pi32(lmuOffScoring+si_mNumVehicles, 63)
+	b[lmuOffActive] = 63
+	frame()
+	pf64(lmuOffScoring+si_mCurrentET, 600+301)
+	frame()
+	// a new car joins: every index is taken, so it gets the one of the car gone longest
+	o := lmuOffVehScoring + 63*lmuVehScSize
+	pi32(o+vs_mID, 999)
+	clear(b[o+vs_mDriverName : o+vs_mDriverName+32])
+	copy(b[o+vs_mDriverName:], "Nour Haddad")
+	pi32(lmuOffTelem+63*lmuTelSize+vt_mID, 999)
+	pi32(lmuOffScoring+si_mNumVehicles, 64)
+	b[lmuOffActive] = 64
+	y = frame()
+	if name(y, gone) != "Nour Haddad" {
+		t.Fatalf("the newcomer is not at index %d: %q", gone, name(y, gone))
+	}
+	fieldMu.Lock()
+	defer fieldMu.Unlock()
+	if c := fieldCars[gone]; c != nil {
+		t.Fatalf("the newcomer at index %d kept the profile of the car before (best %.1f)", gone, c.best)
+	}
+	for _, i := range []int{0, 1, 9, 11, 63} {
+		if c := fieldCars[i]; c == nil || c.best != 200+float64(i) {
+			t.Fatalf("index %d lost its profile", i)
 		}
 	}
 }
