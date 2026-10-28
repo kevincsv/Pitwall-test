@@ -501,6 +501,7 @@ func shareLap(l cloudLap, s cloudSession) {
 		return
 	}
 	game := currentGame()
+	cls := lapClass(game, c.Class) // Le Mans Ultimate's class of the car (its class board)
 	key := gameKey(game, c.CarID, c.TrackID) + "|" + guest
 	commMu.Lock()
 	// a slower lap still goes when the faster one went without its telemetry and this one has it
@@ -523,6 +524,9 @@ func shareLap(l cloudLap, s cloudSession) {
 		}
 		if s.Cat != "" {
 			body["cat"] = s.Cat
+		}
+		if cls != "" {
+			body["cls"] = cls
 		}
 		if s.Official != nil {
 			body["official"] = *s.Official

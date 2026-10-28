@@ -412,3 +412,14 @@ func TestYamlFieldEmptyValue(t *testing.T) {
 		}
 	}
 }
+
+// a shared lap's class: Le Mans Ultimate's only, letters, digits and spaces
+func TestLapClass(t *testing.T) {
+	for _, c := range []struct{ game, in, want string }{
+		{"lmu", "GT3", "GT3"}, {"lmu", "LMP2_ELMS", "LMP2 ELMS"}, {"lmu", "  Hyper ", "Hyper"}, {"iracing", "GT3 Class", ""}, {"lmu", "", ""},
+	} {
+		if got := lapClass(c.game, c.in); got != c.want {
+			t.Errorf("lapClass(%q, %q) = %q, want %q", c.game, c.in, got, c.want)
+		}
+	}
+}

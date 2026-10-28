@@ -711,6 +711,9 @@ func TestLMUReportSharesRivals(t *testing.T) {
 	if len(top) != 2 || top[0]["game"] != "lmu" || top[0]["other"] != res[0].key || top[1]["other"] != res[2].key || top[0]["name"] != "Ana Duarte" {
 		t.Fatalf("rivals shared: %v", top)
 	}
+	if want := lapClass("lmu", res[0].Class); want == "" || top[0]["cls"] != want {
+		t.Fatalf("a rival's class: %v, want %q", top[0]["cls"], want)
+	}
 	// the same frame builds nothing new; a lap more is in the results at once
 	if !s.convert(b) {
 		t.Fatal("no session")

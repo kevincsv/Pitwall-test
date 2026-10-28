@@ -53,6 +53,7 @@ type carTrack struct {
 	Subsession             int
 	Official               bool
 	CarClassID, NumClasses int
+	Class                  string // the car's class (CarClassShortName)
 	Cat                    string // the discipline iRacing names (Oval, Road, DirtOval, DirtRoad…)
 }
 
@@ -78,7 +79,7 @@ func currentCarTrack(y string) carTrack {
 	}
 	if d := driverBlock(y, yamlField(y, "DriverCarIdx")); d != "" {
 		c.CarID, c.Car, c.CarPath = atoi(yamlField(d, "CarID")), yamlField(d, "CarScreenName"), yamlField(d, "CarPath")
-		c.CarClassID = atoi(yamlField(d, "CarClassID"))
+		c.CarClassID, c.Class = atoi(yamlField(d, "CarClassID")), yamlField(d, "CarClassShortName")
 	}
 	return c
 }
@@ -1013,6 +1014,9 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if r.Cat != "" {
 			b["cat"] = r.Cat
 		}
+		if c := lapClass(game, x.Class); c != "" {
+			b["cls"] = c // Le Mans Ultimate's class of their car (its class board)
+		}
 		if len(x.Sectors) == 3 {
 			b["sectors"] = x.Sectors
 		}
@@ -1026,6 +1030,25 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 			b["hidden"] = true
 		}
 		out = append(out, b)
+	}
+	return out
+}
+
+// lapClass: the class a shared lap goes up with, for Le Mans Ultimate's class boards (the game's CarClassShortName, its
+// letters, digits and spaces only; the server names it); "" in every other game
+func lapClass(game, class string) string {
+	if game != "lmu" {
+		return ""
+	}
+	out := strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == ' ' {
+			return r
+		}
+		return ' '
+	}, class)
+	out = strings.Join(strings.Fields(out), " ")
+	if len(out) > 16 {
+		out = strings.TrimSpace(out[:16])
 	}
 	return out
 }
