@@ -240,10 +240,22 @@ async function api(req, env, url, ctx) {
     const admins = (env.ADMINS || env.SEASON_UPLOADERS || "").split(",").map((x) => x.trim()).filter(Boolean);
     if (role !== "account" || !admins.includes(me.name.replace(/^acct:/, ""))) return err("only the admins of this server can do this", 403);
     const sid = decodeURIComponent(mm[1]);
-    // only the laps without incidents: an incident lap stays as it is
-    const r = await env.DB.prepare("UPDATE laps SET valid=1 WHERE session_id=?1 AND time>0 AND COALESCE(inc,0)=0").bind(sid).run();
+    // only the laps without incidents that went round the whole circuit: three sector times, none under half the
+    // session's usual one, and a time over 85 % of its usual lap (a reset or a lap out of the pits in a few seconds
+    // never becomes valid); an incident lap stays as it is
+    const ls = (await env.DB.prepare("SELECT id, time, sectors, COALESCE(inc,0) AS inc FROM laps WHERE session_id=?1 AND time>0").bind(sid).all()).results || [];
+    const secs = (l) => { try { const x = JSON.parse(l.sectors || "null"); return Array.isArray(x) && x.length >= 3 && x.every((v) => v > 0) ? x : null; } catch (e) { return null; } };
+    const med = (a) => { const b = a.filter((x) => x > 0).sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : 0; };
+    const whole = ls.filter((l) => secs(l));
+    let mt = med(whole.map((l) => l.time)), ms = [0, 1, 2].map((k) => med(whole.map((l) => secs(l)[k])));
+    // a session of mostly short laps (resets) has a short usual lap: the record of the car and track says better
+    const ss = await env.DB.prepare("SELECT track_id, car_id, COALESCE(game,'iracing') AS game FROM sessions WHERE id=?1").bind(sid).first().catch(() => null);
+    const rec = ss && ss.track_id && ss.car_id ? await env.DB.prepare("SELECT MIN(time) AS t FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3").bind(ss.track_id, ss.car_id, ss.game).first().catch(() => null) : null;
+    if (rec && rec.t > mt) { const k = rec.t / mt; mt = rec.t; ms = ms.map((x) => x * k); }
+    const ok = ls.filter((l) => !l.inc && secs(l) && mt > 0 && l.time >= 0.85 * mt && secs(l).every((v, k) => v >= 0.5 * ms[k]));
+    if (ok.length) await env.DB.batch(ok.map((l) => env.DB.prepare("UPDATE laps SET valid=1 WHERE id=?1").bind(l.id)));
     await validityChanged(env, sid);
-    return json({ ok: true, laps: r.meta ? r.meta.changes : undefined });
+    return json({ ok: true, laps: ok.length });
   }
 
   // DRINKS mode: who drove a lap of your session, changed by hand ("" or null: you); the session's best follows
