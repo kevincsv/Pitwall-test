@@ -979,6 +979,9 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		if x.Me || x.AI || x.Laps <= 0 || x.Best <= 10 || x.CarID == 0 || x.key == "" {
 			continue // bots never go to the community: only real drivers' laps
 		}
+		if fieldLapInvalid(x.carIdx, x.Best) {
+			continue // the watcher saw that lap leave the track, or the game refused it: never shared, nor the model's
+		}
 		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": "iracing", "other": x.key, "kind": "Race", "official": r.Official}
 		if r.AI {
 			b["ai"] = true
