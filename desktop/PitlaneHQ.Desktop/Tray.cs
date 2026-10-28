@@ -11,7 +11,8 @@ public sealed class Tray : IDisposable
 {
     private readonly WinForms.NotifyIcon _icon;
     private readonly WinForms.ContextMenuStrip _menu;
-    private readonly WinForms.ToolStripMenuItem _open, _quit;
+    private readonly WinForms.ToolStripMenuItem _open, _quit, _ask;
+    private readonly WinForms.ToolStripSeparator _askSep;
     private string _lang = "";
 
     /// <summary>The window is asked for (a click, a double click or "Open Pitlane HQ").</summary>
@@ -24,10 +25,14 @@ public sealed class Tray : IDisposable
         _open = new WinForms.ToolStripMenuItem();
         _open.Font = new System.Drawing.Font(_open.Font, System.Drawing.FontStyle.Bold); // what a click does
         _open.Click += (_, _) => Open?.Invoke();
+        // a device pressed Connect and waits for the driver to accept it in the window
+        _ask = new WinForms.ToolStripMenuItem { Visible = false };
+        _ask.Click += (_, _) => Open?.Invoke();
+        _askSep = new WinForms.ToolStripSeparator { Visible = false };
         _quit = new WinForms.ToolStripMenuItem();
         _quit.Click += (_, _) => Quit?.Invoke();
         _menu = new WinForms.ContextMenuStrip();
-        _menu.Items.AddRange(new WinForms.ToolStripItem[] { _open, new WinForms.ToolStripSeparator(), _quit });
+        _menu.Items.AddRange(new WinForms.ToolStripItem[] { _ask, _askSep, _open, new WinForms.ToolStripSeparator(), _quit });
         _icon = new WinForms.NotifyIcon { Text = "Pitlane HQ", Icon = LoadIcon(), ContextMenuStrip = _menu };
         _icon.MouseClick += (_, e) => { if (e.Button == WinForms.MouseButtons.Left) Open?.Invoke(); };
         _icon.MouseDoubleClick += (_, e) => { if (e.Button == WinForms.MouseButtons.Left) Open?.Invoke(); };
@@ -51,6 +56,19 @@ public sealed class Tray : IDisposable
         _lang = lang;
         _open.Text = lang switch { "es" => "Abrir Pitlane HQ", "pt" => "Abrir o Pitlane HQ", _ => "Open Pitlane HQ" };
         _quit.Text = lang switch { "es" => "Salir", "pt" => "Sair", _ => "Quit" };
+        _ask.Text = lang switch
+        {
+            "es" => "Un dispositivo quiere ver tu telemetría",
+            "pt" => "Um dispositivo quer ver sua telemetria",
+            _ => "A device wants to watch your telemetry",
+        };
+    }
+
+    /// <summary>A device waits to be accepted (Telemetry → Connect): the menu says so first, and opens the window.</summary>
+    public void SetPending(bool on)
+    {
+        _ask.Visible = on;
+        _askSep.Visible = on;
     }
 
     // the app's icon (assets/pitlanehq.ico, embedded) at the notification area's size; the program's own as a fallback

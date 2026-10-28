@@ -10,6 +10,10 @@ public partial class App : Application
     /// area: the window starts hidden there, never shown by itself.</summary>
     public static bool StartMinimized { get; private set; }
 
+    /// <summary>Pitlane HQ was opened again before the window was ready (while it starts, or while an update hands
+    /// over from the old window): the window shows as soon as it is loaded instead of staying hidden.</summary>
+    public static bool ShowRequested { get; set; }
+
     // one Pitlane HQ at a time: a second start brings the open window forward, hidden in the notification area or
     // minimised (never when Windows started it)
     private static Mutex? _single;
@@ -17,6 +21,10 @@ public partial class App : Application
     // MainWindowHandle another process could find)
     private static EventWaitHandle? _show;
     private static RegisteredWaitHandle? _showWait;
+    // the installer sets it before it replaces or removes the app: everything stops as Quit does, so the icon leaves
+    // the notification area (a process killed by force leaves its icon behind)
+    private static EventWaitHandle? _quit;
+    private static RegisteredWaitHandle? _quitWait;
 
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int cmd);
@@ -27,34 +35,36 @@ public partial class App : Application
     {
         var args = e.Args;
         StartMinimized = args.Any(a => a.Equals("-minimized", StringComparison.OrdinalIgnoreCase));
-        // after an update: the old window is closing; this one waits for it before taking its place
         int ri = Array.FindIndex(args, a => a.Equals("-replace", StringComparison.OrdinalIgnoreCase));
-        if (ri >= 0 && ri + 1 < args.Length && int.TryParse(args[ri + 1], out var oldPid))
-        {
-            try { using var old = Process.GetProcessById(oldPid); old.WaitForExit(15000); } catch { }
-        }
+        int oldPid = 0;
+        bool replace = ri >= 0 && ri + 1 < args.Length && int.TryParse(args[ri + 1], out oldPid);
         // local mode (PITLANEHQ_DATA, its own data folder) runs beside the normal window
         var inst = @"Local\PitlaneHQ.Desktop" + (Environment.GetEnvironmentVariable("PITLANEHQ_DATA") ?? "");
-        _single = new Mutex(true, inst, out bool first);
-        if (!first && ri < 0)
+        if (!replace)
         {
-            if (!StartMinimized) ShowRunning(inst + ".Show");
-            Environment.Exit(0);
-            return;
+            _single = new Mutex(true, inst, out bool first);
+            if (!first)
+            {
+                if (!StartMinimized) ShowRunning(inst + ".Show");
+                Environment.Exit(0);
+                return;
+            }
         }
-        if (!first)
+        // waited on before the old window is gone after an update: Pitlane HQ opened again meanwhile reaches this one
+        // (the old window lets go of it when it stops) and the new window shows instead of staying hidden
+        Listen(inst);
+        if (replace)
         {
-            // the old window still holds it: wait for it a little longer, then carry on
-            try { _single.WaitOne(10000); } catch (AbandonedMutexException) { }
+            // after an update: the old window is closing; this one waits for it before taking its place, and a little
+            // longer for the mutex it still holds
+            try { using var old = Process.GetProcessById(oldPid); old.WaitForExit(15000); } catch { }
+            _single = new Mutex(true, inst, out bool first);
+            if (!first)
+            {
+                try { _single.WaitOne(10000); } catch (AbandonedMutexException) { }
+            }
         }
-        try
-        {
-            _show = new EventWaitHandle(false, EventResetMode.AutoReset, inst + ".Show");
-            _showWait = ThreadPool.RegisterWaitForSingleObject(_show, (_, _) =>
-                Dispatcher.BeginInvoke(() => (MainWindow as PitlaneHQ.Desktop.MainWindow)?.ShowFromTray()), null, -1, false);
-        }
-        catch { }
-        // Windows shutting down or signing out: everything stops, as Quit does
+        // Windows shutting down or signing out (the installer's Restart Manager too): everything stops, as Quit does
         SessionEnding += (_, _) => (MainWindow as PitlaneHQ.Desktop.MainWindow)?.Quitting();
         base.OnStartup(e);
         DispatcherUnhandledException += (_, a) =>
@@ -62,6 +72,49 @@ public partial class App : Application
             MessageBox.Show(a.Exception.Message, "Pitlane HQ", MessageBoxButton.OK, MessageBoxImage.Error);
             a.Handled = true;
         };
+    }
+
+    private void Listen(string inst)
+    {
+        try
+        {
+            _show = new EventWaitHandle(false, EventResetMode.AutoReset, inst + ".Show");
+            _showWait = ThreadPool.RegisterWaitForSingleObject(_show, (_, _) => Dispatcher.BeginInvoke(OnShowAsked), null, -1, false);
+        }
+        catch { }
+        try
+        {
+            _quit = new EventWaitHandle(false, EventResetMode.AutoReset, inst + ".Quit");
+            _quitWait = ThreadPool.RegisterWaitForSingleObject(_quit, (_, _) => Dispatcher.BeginInvoke(() =>
+            {
+                if (MainWindow is PitlaneHQ.Desktop.MainWindow w) w.QuitApp();
+                else Shutdown();
+            }), null, -1, true);
+        }
+        catch { }
+    }
+
+    // Pitlane HQ opened again: the window shows; before it is ready it shows once loaded; a window that is stopping
+    // passes it on to the window that takes its place (it no longer waits on the event)
+    private void OnShowAsked()
+    {
+        var w = MainWindow as PitlaneHQ.Desktop.MainWindow;
+        if (w is { Stopped: true })
+        {
+            try { _show?.Set(); } catch { }
+            return;
+        }
+        if (w is { Ready: true }) w.ShowFromTray();
+        else ShowRequested = true;
+    }
+
+    /// <summary>The window stops: a later start or the installer reach the window that comes next, never this one.</summary>
+    public static void StopListening()
+    {
+        try { _showWait?.Unregister(null); } catch { }
+        _showWait = null;
+        try { _quitWait?.Unregister(null); } catch { }
+        _quitWait = null;
     }
 
     // a second start: the running window shows and comes forward, even from the notification area
@@ -91,8 +144,9 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         (MainWindow as PitlaneHQ.Desktop.MainWindow)?.StopAll();
-        try { _showWait?.Unregister(null); } catch { }
+        StopListening();
         _show?.Dispose();
+        _quit?.Dispose();
         try { _single?.ReleaseMutex(); } catch { }
         base.OnExit(e);
     }

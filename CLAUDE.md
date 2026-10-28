@@ -208,7 +208,11 @@
   Alt+F4) hides it there while the engine, the overlays, the sync, the updates and the live link keep running, and only
   Quit on its icon (or Windows shutting down or signing out) stops everything. Settings → "Closing the window keeps
   Pitlane HQ in the notification area" (`trayOnClose` in the agent's settings, on by default, read by the window from
-  `/api/now`; shown only in Pitlane HQ Desktop, `INFO.desktop`) turned off makes closing quit.
+  `/api/now`; shown only in Pitlane HQ Desktop, `INFO.desktop`) turned off makes closing quit. A device that presses
+  Connect while the window is hidden brings it to the taskbar minimised with its button flashing, and the icon's menu
+  says "A device wants to watch your telemetry" until it is answered (`pwAttention` from `liveAskShow`); never in front
+  of the game. The installer asks it to quit first (`Local\PitlaneHQ.Desktop.Quit`, `QuitPitlaneHQ` in the .iss) so no
+  icon is left behind, taskkill only as the fallback.
 - Local mode (the owner's development, `tools/local.cmd`, never a button in the app): the whole of Pitlane HQ on one PC
   without internet. The server (`cloud/`, the same code as pitlanehq.app) runs on the PC with `wrangler dev --local
   --var LOCAL:1 --test-scheduled` (database and files in `cloud/.wrangler`, `DATA_KEY` in `cloud/.dev.vars`; `LOCAL=1`:

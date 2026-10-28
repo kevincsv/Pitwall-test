@@ -8300,12 +8300,15 @@ const DEL_ACC_TXT=()=>(COMPANION?Tx("Deletes the account, your synced data, your
    nothing is sent to it before you accept (an accepted device is remembered while Pitlane HQ runs) */
 let LIVEASK_BUSY=false;
 async function liveAskShow(){if(LIVEASK_BUSY||COMPANION||REMOTE||OV.on||MODE!=="bridge")return;LIVEASK_BUSY=true;const done=new Set();
+  // Pitlane HQ Desktop hidden in the notification area: its taskbar button and its icon's menu say a device waits
+  const attn=on=>{try{if(typeof window.pwAttention==="function")window.pwAttention(on)}catch(e){}};let asked=false;
   try{while(true){let j;try{j=await jget("/api/live/ask")}catch(e){break}const a=(j.asks||[]).find(x=>!done.has(x.id));if(!a)break;done.add(a.id);
     const who=a.name||Tx("A device of your account","Un dispositivo de tu cuenta","Ein Gerät deines Kontos","Um dispositivo da sua conta");
+    asked=true;attn(true);
     const ok=await uiPanel(`<h2 style="margin:6px 0 8px">${esc(Tx("Watch your live telemetry?","¿Ver tu telemetría en vivo?","Deine Live-Telemetrie ansehen?","Ver sua telemetria ao vivo?"))}</h2><p style="margin:0 0 6px"><b>${esc(who)}</b></p><p class="note" style="margin:0 0 14px">${esc(Tx("It pressed Connect with your account. If you accept, it sees your telemetry until it disconnects.","Ha pulsado Conectar con tu cuenta. Si aceptas, ve tu telemetría hasta que se desconecte.","Es hat mit deinem Konto auf Verbinden gedrückt. Wenn du annimmst, sieht es deine Telemetrie, bis es trennt.","Ele apertou Conectar com sua conta. Se você aceitar, ele vê sua telemetria até desconectar."))}</p>
       <div class="uidlg-b"><button type="button" class="btn" id="laNo">${esc(Tx("Decline","Rechazar","Ablehnen","Recusar"))}</button><button type="button" class="btn primary" id="laOk">${esc(Tx("Accept","Aceptar","Annehmen","Aceitar"))}</button></div>`,(d,fin)=>{d.querySelector("#laOk").onclick=()=>fin(true);d.querySelector("#laNo").onclick=()=>fin(false)});
     if(ok===null)continue; // closed without an answer: it asks again when the device does
-    try{await jpost("/api/live/ask",{id:a.id,ok})}catch(e){}}}finally{LIVEASK_BUSY=false}}
+    try{await jpost("/api/live/ask",{id:a.id,ok})}catch(e){}}}finally{LIVEASK_BUSY=false;if(asked)attn(false)}}
 // the Pitlane HQ server's own pages (forgot password) open in the normal browser
 async function acctServer(){if(COMPANION)return CP.server||"";try{const c=await jget("/api/community");return String(c.server||"").replace(/\/+$/,"")}catch(e){return""}}
 function openOutside(url){if(!/^(https:\/\/|mailto:)/.test(url))return;if(COMPANION&&NATIVE_RAW)NATIVE_RAW.postMessage({type:"browser",url});else if(typeof window.pwOpen==="function")window.pwOpen(url);else window.open(url,"_blank","noopener")}
