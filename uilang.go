@@ -30,6 +30,13 @@ func uiLangChoice() string {
 	return uiLanguage()
 }
 
+// uiLangTold: the language the app's page told (en, es or pt), "" before it has, so the desktop shell
+// keeps Windows' own until then
+func uiLangTold() string {
+	v, _ := uiLangPick.Load().(string)
+	return v
+}
+
 func uiLanguage() string {
 	if v, ok := uiLang.Load().(string); ok && v != "" {
 		return v

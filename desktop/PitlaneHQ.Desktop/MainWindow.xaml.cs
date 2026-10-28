@@ -26,6 +26,16 @@ public partial class MainWindow : Window
     private string T(string en, string es) => Es ? es : en;
     private readonly Border[] _rpm = new Border[16];
 
+    // Pitlane HQ lives in the notification area (like Steam or Garage 61): closing the window hides it there while the
+    // engine, the overlays, the sync, the updates and the live link keep running; Quit on the icon stops everything.
+    // trayOnClose off (Settings, /api/now's "tray") closing quits as before
+    private readonly Tray _tray;
+    private bool _quitting, _stopped, _trayOnClose = true;
+    // started with Windows: hidden in the notification area from the start. The window is shown once off the screen
+    // and out of the taskbar (WPF builds the WebView only for a shown window: the page, the rev beep, must run), then
+    // hidden at once
+    private bool _hiddenStart;
+
     // the native screens; every other view is the WebView
     // every screen is the app itself (web/dist in the WebView), exactly the web: no screen is native any more (the
     // owner's choice); the native screens stay in the code, not shown
@@ -42,11 +52,26 @@ public partial class MainWindow : Window
         _poll.Tick += async (_, _) => await RefreshAsync();
         _fast.Tick += async (_, _) => await FastAsync();
         ApplyLanguage(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "es" ? "es" : "en");
-        if (App.StartMinimized) WindowState = WindowState.Minimized; // started with Windows
-        // an update installed by the engine: the new window starts (it waits for this one) and this one closes
+        _tray = new Tray(Tray.WindowsLanguage());
+        _tray.Open += ShowFromTray;
+        // after the menu's click has finished: the menu and the icon are disposed by the shutdown, never inside their
+        // own click
+        _tray.Quit += () => Dispatcher.InvokeAsync(QuitApp);
+        if (App.StartMinimized)
+        {
+            _hiddenStart = true;
+            ShowInTaskbar = false;
+            ShowActivated = false;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = Top = -30000;
+        }
+        // an update installed by the engine: the new window starts (it waits for this one) and this one closes; it
+        // starts hidden in the notification area when this one was there
         _engine.Restart += path => Dispatcher.Invoke(() =>
         {
-            try { Process.Start(new ProcessStartInfo(path, $"-replace {Environment.ProcessId}") { UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? "" }); } catch { return; }
+            var args = $"-replace {Environment.ProcessId}" + (IsVisible && !_hiddenStart ? "" : " -minimized");
+            try { Process.Start(new ProcessStartInfo(path, args) { UseShellExecute = false, WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? "" }); } catch { return; }
+            Quitting();
             Close();
         });
     }
@@ -89,9 +114,21 @@ public partial class MainWindow : Window
     }
 
     // a maximised window without the system's frame goes past the screen's edges by its resize border
+    // the state before the window was minimised: it comes back to it from the notification area or the taskbar
+    private WindowState _lastState = WindowState.Normal, _prevState = WindowState.Normal;
     private void OnWinState(object? sender, EventArgs e)
     {
-        bool max = WindowState == WindowState.Maximized;
+        var s = WindowState;
+        // a window maximised, then minimised (or minimised while hidden), comes back maximised
+        if (s == WindowState.Normal && _prevState == WindowState.Minimized && _lastState == WindowState.Maximized)
+        {
+            _prevState = s;
+            WindowState = WindowState.Maximized;
+            return;
+        }
+        _prevState = s;
+        if (s != WindowState.Minimized) _lastState = s;
+        bool max = s == WindowState.Maximized;
         Root.Margin = max ? SystemParameters.WindowResizeBorderThickness : new Thickness(0);
         Web.Margin = max ? new Thickness(0) : new Thickness(6);
     }
@@ -104,8 +141,23 @@ public partial class MainWindow : Window
     private static double D(JsonNode? n) { try { return n?.GetValue<double>() ?? 0; } catch { return double.TryParse(n?.ToString(), out var v) ? v : 0; } }
     private static bool Bo(JsonNode? n) { try { return n?.GetValue<bool>() ?? false; } catch { return false; } }
 
+    private bool _loaded;
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (_loaded) return; // once: the window coming back from the notification area starts nothing again
+        _loaded = true;
+        if (_hiddenStart)
+        {
+            Hide();
+            EndHiddenStart();
+        }
+        Ready = true;
+        // Pitlane HQ was opened again while this window started (or while an update handed over to it)
+        if (App.ShowRequested)
+        {
+            App.ShowRequested = false;
+            ShowFromTray();
+        }
         Starting.Visibility = Visibility.Visible;
         var exe = Engine.FindExe(Environment.GetCommandLineArgs().Skip(1).ToArray());
         if (exe == null)
@@ -200,6 +252,7 @@ public partial class MainWindow : Window
         (function(){var n=0,w={};
         window.pwWin=function(a){return new Promise(function(res,rej){var id=++n;w[id]=res;try{chrome.webview.postMessage({type:"win",a:a,id:id})}catch(e){delete w[id];rej(e)}})};
         window.pwOpen=function(u){try{chrome.webview.postMessage({type:"open",url:String(u)})}catch(e){}};
+        window.pwAttention=function(on){try{chrome.webview.postMessage({type:"attention",on:!!on})}catch(e){}};
         chrome.webview.addEventListener("message",function(e){var d=e.data;if(d&&d.type==="winr"&&w[d.id]){w[d.id](!!d.v);delete w[d.id]}});
         var ext=function(u){try{var x=new URL(u,location.href);return x.origin!==location.origin&&/^https?:$/.test(x.protocol)}catch(e){return false}};
         document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a&&ext(a.href)){e.preventDefault();window.pwOpen(a.href)}},true);
@@ -215,13 +268,16 @@ public partial class MainWindow : Window
         try { m = JsonNode.Parse(e.WebMessageAsJson); } catch { return; }
         var type = S(m?["type"]);
         if (type == "open") { OpenExternal(S(m?["url"])); return; }
+        // a device pressed Connect and the page asks to accept it (on), or it was answered (off)
+        if (type == "attention") { Attention(Bo(m?["on"])); return; }
         if (type != "win") return;
         var a = S(m?["a"]);
         switch (a)
         {
             case "min": WindowState = WindowState.Minimized; break;
             case "max": WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized; break;
-            case "close": Close(); return;
+            // after the reply: the window stays alive in the notification area, the page's call must end
+            case "close": Dispatcher.InvokeAsync(Close); break;
             case "drag": case "top": case "topleft": case "topright":
                 // WM_NCLBUTTONDOWN with the hit the page asks for: the caption (drag) or a top edge (resize)
                 var hit = a switch { "drag" => 2, "top" => 12, "topleft" => 13, _ => 14 };
@@ -297,7 +353,10 @@ public partial class MainWindow : Window
                 ConnDot.Fill = B("Bad");
                 return;
             }
-            var st = Status.From(await _engine.GetAsync("/api/info"), await _engine.GetAsync("/api/now"));
+            var info = await _engine.GetAsync("/api/info");
+            var now = await _engine.GetAsync("/api/now");
+            ApplyTray(now);
+            var st = Status.From(info, now);
             ConnDot.Fill = B(st.Connected ? "Good" : "Bad");
             ConnText.Text = st.Connected ? st.Game + T(" connected", " conectado") : T("Waiting for ", "Esperando a ") + st.Game;
             TrackText.Text = st.Track == "" ? "–" : st.Track;
@@ -1186,9 +1245,107 @@ public partial class MainWindow : Window
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        // the close button (the page's header, Alt+F4): hidden in the notification area, everything keeps running
+        if (!_quitting && _trayOnClose && _engine.Running)
+        {
+            e.Cancel = true;
+            Hide();
+            return;
+        }
+        StopAll();
+    }
+
+    /// <summary>Quit (the icon's menu, an update's restart, Windows shutting down or signing out): the next close stops everything.</summary>
+    public void Quitting() => _quitting = true;
+
+    /// <summary>Quit now (the icon's menu, the installer): everything stops and the app ends.</summary>
+    public void QuitApp()
+    {
+        if (_stopped) return;
+        Quitting();
+        Close();
+    }
+
+    /// <summary>The window has loaded: Pitlane HQ opened again shows it from now on.</summary>
+    public bool Ready { get; private set; }
+
+    /// <summary>Everything is stopping or stopped: a later start belongs to the next window.</summary>
+    public bool Stopped => _stopped;
+
+    /// <summary>Everything stops, once: the engine (and with it the overlays, the sync, the live link) and the icon.</summary>
+    public void StopAll()
+    {
+        if (_stopped) return;
+        _stopped = true;
+        App.StopListening();
+        _tray.Dispose(); // the icon goes at once, before the wait for the engine
         _poll.Stop();
         _fast.Stop();
         _cts.Cancel();
         _engine.Dispose(); // closing the window stops the engine, like the Go window does
+    }
+
+    // what the engine says for the notification area: the app's language (empty until the page told it: Windows')
+    // and whether closing keeps Pitlane HQ there
+    private void ApplyTray(JsonNode? now)
+    {
+        if (now == null) return;
+        var lang = S(now["lang"]);
+        _tray.SetLanguage(lang == "" ? Tray.WindowsLanguage() : lang);
+        if (now["tray"] != null) _trayOnClose = Bo(now["tray"]);
+    }
+
+    // the window from the hidden start goes back where a window opens (the middle of the main screen) and to the taskbar
+    private void EndHiddenStart()
+    {
+        if (!_hiddenStart) return;
+        _hiddenStart = false;
+        var wa = SystemParameters.WorkArea;
+        Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
+        Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
+        ShowInTaskbar = true;
+        ShowActivated = true;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr h);
+
+    /// <summary>The window back from the notification area (its icon, or Pitlane HQ opened again) and in front.</summary>
+    public void ShowFromTray()
+    {
+        if (_stopped) return;
+        if (_hiddenStart) { Hide(); EndHiddenStart(); }
+        if (!IsVisible) Show();
+        if (WindowState == WindowState.Minimized) WindowState = _lastState;
+        Activate();
+        SetForegroundWindow(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool FlashWindowEx(ref FLASHWINFO fi);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+
+    // a device pressed Connect: the page's question to accept it must be seen even when the window is in the
+    // notification area. The window comes to the taskbar minimised and its button flashes until it is opened (never
+    // in front of the game while driving, never a Windows notification), and the icon's menu says a device waits.
+    // The driver asked for it by pressing Connect, so this is not the window showing by itself
+    private void Attention(bool on)
+    {
+        if (_stopped) return;
+        _tray.SetPending(on);
+        if (!on) return;
+        if (!IsVisible)
+        {
+            if (_hiddenStart) EndHiddenStart();
+            ShowActivated = false;
+            WindowState = WindowState.Minimized;
+            Show();
+            ShowActivated = true;
+        }
+        var h = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (h == IntPtr.Zero || (WindowState != WindowState.Minimized && GetForegroundWindow() == h)) return;
+        var fi = new FLASHWINFO { hwnd = h, dwFlags = 3 | 12 }; // FLASHW_ALL | FLASHW_TIMERNOFG: until it comes to the front
+        fi.cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(fi);
+        FlashWindowEx(ref fi);
     }
 }

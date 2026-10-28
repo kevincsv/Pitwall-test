@@ -4357,7 +4357,7 @@ const UI_DEFAULTS={
   radar:{range:20,autohide:true},boost:{autohide:true},
   delta:{src:"best",range:1,predict:true},inp:{gear:true,speed:true,wheel:true,wheelDeg:false,bars:["clu","brk","thr"],values:true,barDir:"v",abs:true,trace:true,traceSecs:12,traceH:110,traceCh:["thr","brk"]},pit:{loss:25,margin:.3},gaps:{mins:5,cars:2},
   tel:{vars:["LatAccel","LongAccel","YawRate","SteeringWheelAngle","FuelUsePerHour","OilTemp","WaterTemp","Voltage"]}};
-let CFG={autoStart:false,autoWidgets:[],closeOnExit:true,engine:"webview",edit:false,alpha:255,lock:false,scale:1,startWithWindows:false,ui:{}};
+let CFG={autoStart:false,autoWidgets:[],closeOnExit:true,engine:"webview",edit:false,alpha:255,lock:false,scale:1,startWithWindows:false,trayOnClose:true,ui:{}};
 function ui(k){const d=UI_DEFAULTS[k],v=(CFG.ui||{})[k]||{};return Object.assign({},d,v)}
 function setUI(k,patch){CFG.ui=CFG.ui||{};CFG.ui[k]=Object.assign(ui(k),patch);saveCfg()}
 let cfgTimer=0,cfgSeq=0,cfgPending=false;
@@ -6311,11 +6311,14 @@ async function renderCloudPanel(){const box=$("#cloudPanel");if(!box)return;
 /* ===================== settings: start-up and about ===================== */
 Object.assign(I18N,{"set.general":["General","General"],"set.conn":["Connections","Conexiones"],"set.phone":["Phone & sharing telemetry","Móvil y compartir telemetría"],"set.about":["About","Acerca de"]});
 function renderStartPanel(){const box=$("#startPanel");if(!box)return;if(MODE!=="bridge"||REMOTE){box.hidden=true;return}box.hidden=false;
-  box.innerHTML=`<div class="label">${esc(Tx("When the PC starts","Al encender el PC"))}</div><div class="frow" style="margin-top:8px">${chk("sStart",CFG.startWithWindows,L("startWin",true))}</div>
-    <p class="note">${Lp("Pitlane HQ starts minimised with Windows, opens the programs you choose below and your overlays when you get in the car.","Pitlane HQ se inicia minimizado con Windows, abre los programas que elijas abajo y tus overlays al subirte al coche.")}</p>`;
+  // Pitlane HQ Desktop (INFO.desktop: the agent is its engine) lives in the notification area: closing its window keeps it there (trayOnClose)
+  const desk=!!(INFO&&INFO.desktop);
+  box.innerHTML=`<div class="label">${esc(Tx("When the PC starts","Al encender el PC"))}</div><div class="frow" style="margin-top:8px">${chk("sStart",CFG.startWithWindows,L("startWin",true))}${desk?chk("sTray",CFG.trayOnClose!==false,Lp("Closing the window keeps Pitlane HQ in the notification area","Al cerrar la ventana, Pitlane HQ sigue en el área de notificación",true,null,"Fechar a janela mantém o Pitlane HQ na área de notificação")):""}</div>
+    <p class="note">${desk?Lp("Pitlane HQ starts with Windows in the notification area, opens the programs you choose below and your overlays when you get in the car.","Pitlane HQ se inicia con Windows en el área de notificación, abre los programas que elijas abajo y tus overlays al subirte al coche.",false,null,"O Pitlane HQ inicia com o Windows na área de notificação, abre os programas que você escolher abaixo e seus overlays quando você entra no carro."):Lp("Pitlane HQ starts minimised with Windows, opens the programs you choose below and your overlays when you get in the car.","Pitlane HQ se inicia minimizado con Windows, abre los programas que elijas abajo y tus overlays al subirte al coche.")}</p>`;
   rigGet("/api/apps").then(a=>{if(a&&$("#appsPanel"))renderApps(a)}).catch(()=>{});
   if(typeof renderHaptics==="function")renderHaptics();
-  $("#sStart").onclick=()=>{CFG.startWithWindows=!CFG.startWithWindows;saveCfg();renderStartPanel()}}
+  $("#sStart").onclick=()=>{CFG.startWithWindows=!CFG.startWithWindows;saveCfg();renderStartPanel()};
+  if($("#sTray"))$("#sTray").onclick=()=>{CFG.trayOnClose=CFG.trayOnClose===false;saveCfg();renderStartPanel()}}
 function renderAbout(){const box=$("#aboutPanel");if(!box)return;setTimeout(()=>box.querySelectorAll("[data-wn]").forEach(b=>b.onclick=openWhatsNew),0);const v=(INFO&&INFO.version&&INFO.version!=="companion"&&INFO.version)||WEB_VERSION;
   const wnBtn=`<p style="margin:8px 0"><button type="button" class="btn small" data-wn>${esc(Tx("What's new","Novedades","Neuigkeiten","Novidades"))}</button></p>`;
   if(COMPANION){box.innerHTML=`<dl class="kv"><dt>${esc(Tx("Version","Versión","Version","Versão"))}</dt><dd class="mono">Pitlane HQ web ${esc(verText(WEB_VERSION))}</dd></dl>${wnBtn}${supportHTML()}${viewHTML()}${demoHTML()}${drinksHTML()}`;wireDemo(box);wireView(box);wireDrinks(box);return}
@@ -8206,12 +8209,15 @@ const DEL_ACC_TXT=()=>(COMPANION?Tx("Deletes the account, your synced data, your
    nothing is sent to it before you accept (an accepted device is remembered while Pitlane HQ runs) */
 let LIVEASK_BUSY=false;
 async function liveAskShow(){if(LIVEASK_BUSY||COMPANION||REMOTE||OV.on||MODE!=="bridge")return;LIVEASK_BUSY=true;const done=new Set();
+  // Pitlane HQ Desktop hidden in the notification area: its taskbar button and its icon's menu say a device waits
+  const attn=on=>{try{if(typeof window.pwAttention==="function")window.pwAttention(on)}catch(e){}};let asked=false;
   try{while(true){let j;try{j=await jget("/api/live/ask")}catch(e){break}const a=(j.asks||[]).find(x=>!done.has(x.id));if(!a)break;done.add(a.id);
     const who=a.name||Tx("A device of your account","Un dispositivo de tu cuenta","Ein Gerät deines Kontos","Um dispositivo da sua conta");
+    asked=true;attn(true);
     const ok=await uiPanel(`<h2 style="margin:6px 0 8px">${esc(Tx("Watch your live telemetry?","¿Ver tu telemetría en vivo?","Deine Live-Telemetrie ansehen?","Ver sua telemetria ao vivo?"))}</h2><p style="margin:0 0 6px"><b>${esc(who)}</b></p><p class="note" style="margin:0 0 14px">${esc(Tx("It pressed Connect with your account. If you accept, it sees your telemetry until it disconnects.","Ha pulsado Conectar con tu cuenta. Si aceptas, ve tu telemetría hasta que se desconecte.","Es hat mit deinem Konto auf Verbinden gedrückt. Wenn du annimmst, sieht es deine Telemetrie, bis es trennt.","Ele apertou Conectar com sua conta. Se você aceitar, ele vê sua telemetria até desconectar."))}</p>
       <div class="uidlg-b"><button type="button" class="btn" id="laNo">${esc(Tx("Decline","Rechazar","Ablehnen","Recusar"))}</button><button type="button" class="btn primary" id="laOk">${esc(Tx("Accept","Aceptar","Annehmen","Aceitar"))}</button></div>`,(d,fin)=>{d.querySelector("#laOk").onclick=()=>fin(true);d.querySelector("#laNo").onclick=()=>fin(false)});
     if(ok===null)continue; // closed without an answer: it asks again when the device does
-    try{await jpost("/api/live/ask",{id:a.id,ok})}catch(e){}}}finally{LIVEASK_BUSY=false}}
+    try{await jpost("/api/live/ask",{id:a.id,ok})}catch(e){}}}finally{LIVEASK_BUSY=false;if(asked)attn(false)}}
 // the Pitlane HQ server's own pages (forgot password) open in the normal browser
 async function acctServer(){if(COMPANION)return CP.server||"";try{const c=await jget("/api/community");return String(c.server||"").replace(/\/+$/,"")}catch(e){return""}}
 function openOutside(url){if(!/^(https:\/\/|mailto:)/.test(url))return;if(COMPANION&&NATIVE_RAW)NATIVE_RAW.postMessage({type:"browser",url});else if(typeof window.pwOpen==="function")window.pwOpen(url);else window.open(url,"_blank","noopener")}

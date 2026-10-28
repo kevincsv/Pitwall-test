@@ -102,6 +102,35 @@ Type: filesandordirs; Name: "{localappdata}\PitlaneHQ"
 const
   PreviewKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{6F1E2B7A-4C59-4E8B-9C3D-PITLANEHQDSK}_is1';
 
+// handles and BOOLs as Integer: Setup is a 32-bit program
+function OpenEvent(dwDesiredAccess: Cardinal; bInheritHandle: Integer; lpName: String): Integer; external 'OpenEventW@kernel32.dll stdcall';
+function SetEvent(hEvent: Integer): Integer; external 'SetEvent@kernel32.dll stdcall';
+function OpenMutex(dwDesiredAccess: Cardinal; bInheritHandle: Integer; lpName: String): Integer; external 'OpenMutexW@kernel32.dll stdcall';
+function CloseHandle(hObject: Integer): Integer; external 'CloseHandle@kernel32.dll stdcall';
+
+// Pitlane HQ running (in the notification area too) quits as its icon's Quit does, so its icon leaves the notification
+// area; taskkill /F stays as the fallback for a window that does not answer (or one from before the notification area)
+procedure QuitPitlaneHQ();
+var
+  H: Integer;
+  I: Integer;
+begin
+  H := OpenEvent($0002, 0, 'Local\PitlaneHQ.Desktop.Quit'); // EVENT_MODIFY_STATE
+  if H = 0 then
+    Exit;
+  SetEvent(H);
+  CloseHandle(H);
+  // its engine stops within 3 s: wait for the window to be gone, 8 s at most
+  for I := 1 to 80 do
+  begin
+    H := OpenMutex($00100000, 0, 'Local\PitlaneHQ.Desktop'); // SYNCHRONIZE
+    if H = 0 then
+      Exit;
+    CloseHandle(H);
+    Sleep(100);
+  end;
+end;
+
 function RunEntryExists: Boolean;
 begin
   Result := RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'PitlaneHQ');
@@ -120,13 +149,28 @@ var
 begin
   if RegQueryStringValue(HKCU, PreviewKey, 'UninstallString', Cmd) then
   begin
+    QuitPitlaneHQ();
     Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM PitlaneHQ.Desktop.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
     Exec(RemoveQuotes(Cmd), '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART', '', SW_HIDE, ewWaitUntilTerminated, Code);
   end;
+end;
+
+// before the files are checked for programs using them: Pitlane HQ quits by itself (Restart Manager closes what is left)
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  QuitPitlaneHQ();
+  Result := '';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
     RemovePreview();
+end;
+
+// before [UninstallRun]'s taskkill: Pitlane HQ quits by itself first
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    QuitPitlaneHQ();
 end;

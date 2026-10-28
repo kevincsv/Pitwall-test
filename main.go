@@ -562,7 +562,7 @@ func main() {
 			writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": currentStatus(), "remote": true, "account": map[string]any{"loggedIn": false}, "overlays": false})
 			return
 		}
-		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "steam": underSteam(), "profile": activeID(), "profileName": activeName()})
+		writeJSON(w, map[string]any{"app": "PitWall", "host": host, "version": appVersion, "stage": appStage, "status": st, "urls": lanURLs(), "os": runtime.GOOS, "account": accountStatus(), "overlays": overlaysSupported, "steam": underSteam(), "profile": activeID(), "profileName": activeName(), "desktop": engineMode})
 	})
 	// what is on screen right now, for the native desktop window (desktop/): the game and its track and car
 	mux.HandleFunc("/api/now", func(w http.ResponseWriter, r *http.Request) {
@@ -570,7 +570,10 @@ func main() {
 		tel.mu.RLock()
 		y := tel.session
 		tel.mu.RUnlock()
-		out := map[string]any{"connected": st.Connected, "demo": st.Demo, "game": st.Game, "source": st.Source}
+		c, _ := settingsSnapshot()
+		// lang and tray: the shell's notification-area icon speaks the app's language, and closing the window keeps
+		// Pitlane HQ there when trayOnClose is on
+		out := map[string]any{"connected": st.Connected, "demo": st.Demo, "game": st.Game, "source": st.Source, "lang": uiLangTold(), "tray": c.TrayOnClose}
 		if y != "" {
 			ct := currentCarTrack(y)
 			out["track"], out["car"] = ct.Track, ct.Car
