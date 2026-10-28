@@ -161,10 +161,12 @@
   `shareTrackMap`). A track's corners come from the geometry of its layout (`cloud/src/trackgeo.js`: a bend tighter than
   300 m of radius for 20 m or more, bends the same way closer than 60 m are one corner, the apex where it bends most),
   served by `/community/turns` as `auto: true` until an admin places the official turns, so every device numbers the same
-  corners. The coach's corners (`cornerZones` on the web, in ovnative4.go and in the phones' LapMath/Models) are the
+  corners. The coach's corners (`cornerZones` in web/dist/pitwall-analysis.js, which the web, the PC app and the phones run,
+  and in ovnative4.go; the phones' LapMath/Models keep a copy only for when their JavaScript engine cannot run) are the
   reference's braking zones named by those turns (two brake applications in one corner are one corner) plus the turns the
   reference takes without braking (a lift, from its last full throttle before the apex), whose tips never speak of braking.
-- The racing line (`racingline.go`, `lineOffsets`/`cornerLine`/`lineTip` in index.html and the phones' LapMath): both laps'
+- The racing line (`racingline.go`, `lineOffsets`/`cornerLine`/`lineTip` in pitwall-analysis.js; the phones' LapMath only as
+  the fallback): both laps'
   paths (Trace.x/y, same frame) give how far A was to one side of B at every 5 m (drift out with a
   ±400 m moving average); the coach turns it into inside/outside at B's turn-in, apex and exit (1.5 m or more) and says
   it first when you brake at the reference's point on the wrong part of the track. The model's record and next levels
@@ -410,7 +412,8 @@
   and the map at it (`la-corners`; `CornerStrip` on the phones, where a corner is "T3" too), the charts with the reference's corners as bands labelled by the official turns
   (`cmpCornerBands`), the "Line" chart (how far A was to one side of B, + left, `LAPCH.line`), the map, the sectors,
   the lap list and the braking points.
-  The corner tips (`coachCompare` in index.html, `compareLaps` in ovnative4.go, `corners` in the phones' LapMath):
+  The corner tips (`coachCompare` in pitwall-analysis.js wherever the app or the phones analyse a lap, `compareLaps` in
+  ovnative4.go for the coach overlay; the phones' `corners` in LapMath/Models only as the fallback):
   the phase that loses the most says the tip, and every tip follows the measured facts, never against them: braking
   later than the reference and arriving slower at the apex is one mistake whatever phase pays for it ("brake a little
   earlier and carry the speed"); with the same braking point the tip is about the brake (harder at first, trail, or
@@ -422,6 +425,18 @@
   no steering). The plan's habit advice (`coachPlan`) takes its direction from the averages over the corners: where
   you brake against the reference, how fast you reach the apex and when you pick up the throttle. The PC's coach overlay
   measures the last lap against the model's next level when it is faster than the session's best, else the best.
+- The lap analysis and the coach are one file, `web/dist/pitwall-analysis.js` (`PW_ANALYSIS`, pure JavaScript: no page, no
+  storage, no network), run by the web and the PC app (index.html loads it with a relative script tag before its own script
+  and calls it through thin wrappers, `anaCtx` hands it the language, units, official turns, `COACH_W`/`COACH_ME` and the
+  model's corner cards) and by the phones (Android's JavaScriptSandbox, iOS's JavaScriptCore; they download
+  pitlanehq.app/pitwall-analysis.js, served with `no-cache` and its ETag like every app file, keep it on disk and carry a
+  copy in the app used until a download succeeds). It has the corners and their tips, the plan, the sectors, the line, how
+  the lap is driven and the analyzer's key facts; `analyse(A, B, ctx)` gives all of it as plain JSON for the phones. Its
+  texts are in English, Spanish and Portuguese (a corner's `tip` is [en, es, pt], `tipTx` on the web). A change there is
+  a change on every device at once: `cloud/test/analysis.test.mjs` runs index.html's own functions and the module over
+  realistic laps and keeps every answer as it was (`analysis.fixture.json`; a change meant to change them writes it again
+  with `--capture web/dist/index.html` and says why in the commit). The Go copies (`compareLaps`, `cornerZones` in
+  ovnative4.go, racingline.go) still serve the overlays.
 - What makes a lap not valid, and only that (`invalid()` in cloud.go, the same verdict for the race summary's laps):
   leaving the track (an Off Track incident, or all four wheels out for a third of a second) or lost connection (a hole
   of more than 40 m in its telemetry, or not the whole circuit). A Loss of Control (2x) or a Car Contact (4x) counts
