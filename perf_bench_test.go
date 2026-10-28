@@ -296,8 +296,10 @@ func BenchmarkOverlayFrameRead(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for k := 0; k < b.N; k++ {
-		var f struct{ V []json.RawMessage }
-		if json.Unmarshal([]byte(data), &f) != nil {
+		var f struct{ V []json.RawMessage } // as ovState.event reads a frame
+		if v, ok := splitFrame(data); ok {
+			f.V = v
+		} else if json.Unmarshal([]byte(data), &f) != nil {
 			b.Fatal("bad frame")
 		}
 		for i, n := range names {

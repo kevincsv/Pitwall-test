@@ -30,10 +30,23 @@ func splitFrame(data string) ([]json.RawMessage, bool) {
 	}
 	i += 6
 	body := []byte(data[i : len(data)-2]) // the values, without the brackets around them
-	var out []json.RawMessage
 	if len(body) == 0 {
 		return []json.RawMessage{}, true
 	}
+	n, depth := 1, 0 // the values, counted first so the list is made once
+	for _, c := range body {
+		switch c {
+		case '[':
+			depth++
+		case ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				n++
+			}
+		}
+	}
+	out := make([]json.RawMessage, 0, n)
 	for p := 0; p <= len(body); {
 		e := p
 		if e < len(body) && body[e] == '[' { // an array of plain values: up to its closing bracket

@@ -442,8 +442,11 @@
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow;
   a hole over 40 m, `lapHoleM`: two samples further apart than that leave the points between them empty, never filled
-  in), judged when the lap ends (`markHoles`) so the race summary says the same (laprec_test.go drives an out-lap, a
-  reset, a tow and lost telemetry through the recorder),
+  in; the end of a lap never recorded, from its last sample to the line by where the game put that sample on the lap,
+  counts as a hole too; a reset, the car put back further on the lap than it was and not over the line it could have
+  driven to, `drivable`, even to a box just past the line), judged when the lap ends (`markHoles`) so the race summary
+  says the same (laprec_test.go drives an out-lap, a reset to a box ahead and behind, a tow and lost telemetry through
+  the recorder),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
   upload, migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job).
 - The coach learns from what happens after its tips (`cloud/src/coachtips.js`, migration 0051 `coach_tips`; never an LLM
@@ -512,7 +515,8 @@
   rebuilt only when a car crosses the line or sets its best, compared field by field), so an LMU race summary has its
   field and its rivals; every car keeps its index for the session (`carIdx`), given again only to a car long gone (five
   minutes) when all 64 are taken, and the field watcher then starts that index again (`fieldDrivers`: another driver
-  there in the session text, by team, else driver id, else name), so the newcomer never inherits the car before's best; a rival's position comes about five times a second, so the bins it goes through
+  there in the session text, by team, else driver id, else name, read by `fieldText.update` after `fieldSession` when
+  the text changes), so the newcomer never inherits the car before's best; a rival's position comes about five times a second, so the bins it goes through
   between two take the move's speed (`fieldFillBins`); the layouts, pit lanes and turns
   are per game on the server (`track_maps`, `track_pits`, `track_turns` keyed by game and track id, the agent's
   `/api/trackmap` and `/api/turns` default to the game being read). The map's position is made from the game's
@@ -571,8 +575,9 @@
   standings 4/s, radar 30/s). The agent stays light: the stream's frame is written straight from the telemetry buffer
   (`streamFrame`, byte for byte what encoding/json wrote) and an overlay reads it without encoding/json (`ovframe.go`,
   the same values), the session text is read by scanning (`yamlField`/`listItem`, never a regexp compiled per call),
-  the LMU frame decodes a car's texts only when they change, and the loops that run 30 to 60 times a second allocate
-  nothing once warm (`perf_bench_test.go` measures them, `go test -run '^$' -bench . -benchmem`). The relative always has the rows you chose ahead and behind (empty when no car).
+  the LMU frame decodes a car's texts only when they change, the stream's frame and the LMU frame allocate nothing once
+  warm, the lap recorder and the field watcher only as their laps grow, and an overlay a few lists of numbers per frame
+  (`perf_bench_test.go` measures them, `go test -run '^$' -bench . -benchmem`). The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside
