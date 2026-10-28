@@ -346,9 +346,7 @@ func fieldSession(id string) {
 func fieldWatcher() {
 	rd := newTelReader(fieldVars)
 	var s fieldSample
-	ver, sn := -1, -1
-	var sub, trk, key string
-	var L float64
+	ft := newFieldText()
 	for range time.Tick(16 * time.Millisecond) { // the game's own rate
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
@@ -357,24 +355,40 @@ func fieldWatcher() {
 		if !rd.read() || rd.vals[15] == nil {
 			continue
 		}
-		// what the session says is read again only when the game rewrites it
 		y, v := liveLapEnv{}.yaml()
-		n := int(fat(rd.vals[16], 0, 0))
-		if v != ver || n != sn {
-			text := v != ver
-			if text {
-				ver, sub, trk, L, key = v, yamlField(y, "SubSessionID"), yamlField(y, "TrackID"), trackLength(y), sessionKey(y)
-			}
-			sn = n
-			fieldSession(fmt.Sprintf("%s-%d-%s", sub, n, trk))
-			if text { // a car whose index went to another car starts again
-				fieldDrivers(y)
-			}
-		}
+		ft.update(y, v, int(fat(rd.vals[16], 0, 0)))
 		s.pct, s.lap, s.last, s.best, s.pit, s.surf, s.gear, s.rpm = rd.vals[0], rd.vals[1], rd.vals[2], rd.vals[3], rd.vals[4], rd.vals[5], rd.vals[6], rd.vals[7]
 		s.steer, s.thr, s.brk, s.lat, s.lon, s.cnt, s.start = rd.vals[8], rd.vals[9], rd.vals[10], rd.vals[11], rd.vals[12], rd.vals[13], rd.vals[14]
 		s.t, s.mat, s.wet = rd.vals[15][0], rd.vals[17], fat(rd.vals[18], 0, -1)
-		fieldStep(&s, L, key)
+		fieldStep(&s, ft.L, ft.key)
+	}
+}
+
+// fieldText: what the field watcher reads from the session text, read again only when the game rewrites it (its
+// version) or the session number changes
+type fieldText struct {
+	ver, sn       int
+	sub, trk, key string
+	L             float64
+}
+
+func newFieldText() *fieldText { return &fieldText{ver: -1, sn: -1} }
+
+// update takes the session text (y, its version v) and the session number n of this sample: another session starts
+// the field again (fieldSession), and a new text says who is at every index, so a car whose index went to another car
+// starts again (fieldDrivers, after fieldSession, which forgets who was where in a new session)
+func (f *fieldText) update(y string, v, n int) {
+	if v == f.ver && n == f.sn {
+		return
+	}
+	text := v != f.ver
+	if text {
+		f.ver, f.sub, f.trk, f.L, f.key = v, yamlField(y, "SubSessionID"), yamlField(y, "TrackID"), trackLength(y), sessionKey(y)
+	}
+	f.sn = n
+	fieldSession(fmt.Sprintf("%s-%d-%s", f.sub, n, f.trk))
+	if text {
+		fieldDrivers(y)
 	}
 }
 

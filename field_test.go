@@ -1064,3 +1064,77 @@ func TestFieldIndexGivenToAnotherCar(t *testing.T) {
 	}
 	resetField()
 }
+
+// the same, the whole way: Le Mans Ultimate's source gives a 65th car the index of a car gone five minutes, its session
+// text says the newcomer is there, and the field watcher's own reading of the text (fieldText.update: fieldSession,
+// then fieldDrivers on a new version) starts that index again, the others keeping theirs
+func TestFieldIndexReusedByLMU(t *testing.T) {
+	resetField()
+	defer resetField()
+	s := &lmuSource{img: newIRImage(lmuVarDefs())}
+	b := fakeLMUField(64)
+	pi32 := func(o int, v int) { binary.LittleEndian.PutUint32(b[o:], uint32(int32(v))) }
+	pf64 := func(o int, v float64) { binary.LittleEndian.PutUint64(b[o:], math.Float64bits(v)) }
+	ft := newFieldText()
+	frame := func() string {
+		t.Helper()
+		if !s.convert(b) {
+			t.Fatal("no session")
+		}
+		get, y := lmuRead(t, s)
+		h, err := readHeader(s.img.mem)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ft.update(y, int(h.SessionInfoUpdate), int(get("SessionNum")))
+		return y
+	}
+	name := func(y string, idx int) string { return yamlField(driverBlock(y, fmt.Sprint(idx)), "UserName") }
+	y := frame()
+	const gone = 10
+	if name(y, gone) != "Driver Number 10" {
+		t.Fatalf("index %d is %q", gone, name(y, gone))
+	}
+	// the field watcher has a profile of every car by now
+	fieldMu.Lock()
+	for i := 0; i < 64; i++ {
+		fieldCars[i] = &carLapProf{best: 200 + float64(i)}
+	}
+	fieldMu.Unlock()
+	// car 10 leaves (the game's array closes up), and five minutes go by
+	slot := func(i int) ([]byte, []byte) {
+		o, tt := lmuOffVehScoring+i*lmuVehScSize, lmuOffTelem+i*lmuTelSize
+		return b[o : o+lmuVehScSize], b[tt : tt+lmuTelSize]
+	}
+	sc, te := slot(gone)
+	sc63, te63 := slot(63)
+	copy(sc, sc63)
+	copy(te, te63)
+	pi32(lmuOffScoring+si_mNumVehicles, 63)
+	b[lmuOffActive] = 63
+	frame()
+	pf64(lmuOffScoring+si_mCurrentET, 600+301)
+	frame()
+	// a new car joins: every index is taken, so it gets the one of the car gone longest
+	o := lmuOffVehScoring + 63*lmuVehScSize
+	pi32(o+vs_mID, 999)
+	clear(b[o+vs_mDriverName : o+vs_mDriverName+32])
+	copy(b[o+vs_mDriverName:], "Nour Haddad")
+	pi32(lmuOffTelem+63*lmuTelSize+vt_mID, 999)
+	pi32(lmuOffScoring+si_mNumVehicles, 64)
+	b[lmuOffActive] = 64
+	y = frame()
+	if name(y, gone) != "Nour Haddad" {
+		t.Fatalf("the newcomer is not at index %d: %q", gone, name(y, gone))
+	}
+	fieldMu.Lock()
+	defer fieldMu.Unlock()
+	if c := fieldCars[gone]; c != nil {
+		t.Fatalf("the newcomer at index %d kept the profile of the car before (best %.1f)", gone, c.best)
+	}
+	for _, i := range []int{0, 1, 9, 11, 63} {
+		if c := fieldCars[i]; c == nil || c.best != 200+float64(i) {
+			t.Fatalf("index %d lost its profile", i)
+		}
+	}
+}
