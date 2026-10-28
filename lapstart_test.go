@@ -9,6 +9,7 @@ import (
 type lapTestEnv struct {
 	ended []*lapRec
 	t     time.Time
+	vars  map[string]bool // the variables the source sends (nil: PlayerTrackSurface only)
 }
 
 func (e *lapTestEnv) yaml() (string, int)                                { return "", 1 }
@@ -19,8 +20,13 @@ func (e *lapTestEnv) carsAhead(dist, pct, speed float64, me int) (bool, bool) {
 }
 func (e *lapTestEnv) driver() string                              { return "" }
 func (e *lapTestEnv) geo(key string, lat, lon float64) [2]float64 { return [2]float64{} }
-func (e *lapTestEnv) has(name string) bool                        { return name == "PlayerTrackSurface" }
-func (e *lapTestEnv) meta(y string, sn int) cloudSession          { return cloudSession{ID: "t"} }
+func (e *lapTestEnv) has(name string) bool {
+	if e.vars != nil {
+		return e.vars[name]
+	}
+	return name == "PlayerTrackSurface"
+}
+func (e *lapTestEnv) meta(y string, sn int) cloudSession { return cloudSession{ID: "t"} }
 func (e *lapTestEnv) lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLL float64) {
 	e.ended = append(e.ended, done)
 }
@@ -86,5 +92,52 @@ func lapStartCase(t *testing.T, lateCount bool) {
 	}
 	if mid := l.Trace.D[len(l.Trace.D)/2][5]; mid < lapT/2-0.2 || mid > lapT/2+0.2 {
 		t.Fatalf("the lap's clock half way: %.3f", mid)
+	}
+}
+
+// the game's own best lap: a faster lap it does not take was not accepted; a slower one, or no best yet, says nothing
+func TestGameAccepts(t *testing.T) {
+	best := func(v float64) func() float64 { return func() float64 { return v } }
+	if !gameAccepts(100, 101, best(100), 1) {
+		t.Fatal("a slower lap judged")
+	}
+	if !gameAccepts(0, 99, best(0), 1) {
+		t.Fatal("judged with no best yet")
+	}
+	if !gameAccepts(100, 99.5, best(99.5), 1) {
+		t.Fatal("a lap the game took as its best")
+	}
+	if gameAccepts(100, 99.5, best(100), 2) {
+		t.Fatal("a faster lap the game did not take")
+	}
+}
+
+// Le Mans Ultimate says a lap does not count: not valid, except on the pit lane (a lap through it is valid)
+func TestLMUCountFlag(t *testing.T) {
+	for _, flag := range []float64{2, 1} {
+		env := &lapTestEnv{t: time.Unix(1000, 0)}
+		env.vars = map[string]bool{"PlayerTrackSurface": true, "LapCountFlag": true}
+		ls := newLapStream(env)
+		const L, sp, hz = 3000.0, 60.0, 30.0
+		for i := 0; i < int(2.5*L/sp*hz); i++ {
+			st := float64(i) / hz
+			pos := st * sp
+			lap := int(pos / L)
+			d := pos - float64(lap)*L
+			v := make([]float64, len(lapVars))
+			v[0], v[1], v[2], v[3] = float64(lap+1), d, d/L, sp
+			v[9], v[12], v[13], v[14] = 50, 1, 0, st
+			v[17], v[18], v[27] = d/sp, 3, 2
+			if lap == 1 && d > 1000 && d < 1100 {
+				v[27] = flag
+			}
+			ls.step(v)
+		}
+		if len(env.ended) < 2 {
+			t.Fatalf("laps ended: %d", len(env.ended))
+		}
+		if got := env.ended[1].gameNo; got != (flag < 2) {
+			t.Fatalf("flag %v: game said no %v", flag, got)
+		}
 	}
 }

@@ -416,7 +416,7 @@ func sessionMetaGame(y string, sessionNum int, started time.Time, game string) c
 
 var lapVars = []string{"Lap", "LapDist", "LapDistPct", "Speed", "Throttle", "Brake", "Gear", "SteeringWheelAngle",
 	"LapLastLapTime", "FuelLevel", "OnPitRoad", "PlayerCarMyIncidentCount", "IsOnTrack", "SessionNum", "SessionTime", "AirTemp", "TrackTempCrew", "LapCurrentLapTime", "PlayerTrackSurface",
-	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon", "PlayerCarIdx"}
+	"Yaw", "VelocityX", "VelocityY", "CarLeftRight", "Lat", "Lon", "PlayerCarIdx", "LapBestLapTime", "LapCountFlag"}
 
 const lapBin = 5 // metres
 
@@ -446,6 +446,8 @@ type lapRec struct {
 	early              bool    // started at the line, a moment before iRacing counted the lap
 	st0                float64 // a lap seen crossing the line: the session time it crossed it (its own clock, SessionTime - st0)
 	ownClock           bool
+	bestAt0            float64   // the game's own best lap when this lap started (iRacing counts only the laps it accepts)
+	gameNo             bool      // the game itself said this lap does not count (Le Mans Ultimate's LapCountFlag)
 	incPrev            float64   // the incident count at the previous sample
 	incAt              []float64 // [distance, points] of every incident on this lap
 	incK               []string  // the kind of each incident
@@ -734,7 +736,7 @@ func (ls *lapStream) step(v []float64) {
 				st0 = prevST + (v[14]-prevST)*(1-cur.lastPct)/f
 			}
 		}
-		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own}
+		cur = &lapRec{n: lap, fuel0: v[9], inc0: v[11], incPrev: v[11], lastPitB: -1, cold: cur == nil || cur.pit, early: early, st0: st0, ownClock: own, bestAt0: v[26]}
 	}
 	ls.cur = cur
 	cur.noteDriver(now, env.driver)
@@ -788,6 +790,11 @@ func (ls *lapStream) step(v []float64) {
 	if v[10] > 0 {
 		cur.pit = true
 		cur.markPit(dist)
+	} else if env.has("LapCountFlag") && v[27] < 2 && dist > 100 && !cur.pit {
+		// the game says this lap's time does not count (track limits, a cut): the game's verdict is the lap's (the
+		// first 100 m aside, while the flag of the lap before may still show; the pit lane aside, a lap through it
+		// is valid)
+		cur.gameNo, cur.bad = true, true
 	}
 	// an incident alone does not make a lap invalid; leaving the track for a third of a second (all
 	// four wheels out, cutting a corner) does, so it is never shared; only where the game reports the surface
@@ -835,6 +842,13 @@ func (liveLapEnv) lapEnded(sn int, done *lapRec, s cloudSession, fuelNow, prevLa
 	go func() {                                   // iRacing updates the last lap time a moment after the line
 		lt := waitLastLap(done, prevLast)
 		setLapTime(sn, done.n, lt)
+		// iRacing has no "valid" flag for a lap, but its own best lap takes only the laps it accepts: a lap faster
+		// than its best that it does not take, it did not accept, so it is not valid here either
+		if !done.invalid() && currentGame() == "iracing" && !gameAccepts(done.bestAt0, lt, func() float64 { return telNums([]string{"LapBestLapTime"})[0] }, 15) {
+			done.bad = true
+			setLapCut(sn, done.n, true)
+			log.Printf("lap %d: iRacing did not count %.3f as its best (best before %.3f): not valid", done.n, lt, done.bestAt0)
+		}
 		finishLap(done, s, fuelNow, lt)
 	}()
 }
@@ -886,6 +900,24 @@ func waitLastLap(r *lapRec, prev float64) float64 {
 		return measured
 	}
 	return -1
+}
+
+// gameAccepts: false only when the game plainly did not count a lap: faster than its best before and
+// its best did not become it within tries × 200 ms. A slower lap says nothing (the game's best stays as it was).
+func gameAccepts(before, lt float64, best func() float64, tries int) bool {
+	if lt <= 0 || before <= 0 || lt >= before-0.0005 {
+		// not faster, or the game has no best yet this session (its best not proven to move here): it tells nothing
+		return true
+	}
+	for i := 0; i < tries; i++ {
+		if b := best(); b > 0 && math.Abs(b-lt) < 0.002 {
+			return true
+		}
+		if i < tries-1 {
+			time.Sleep(200 * time.Millisecond)
+		}
+	}
+	return false
 }
 
 // fullLap: the car went round the whole circuit, at least 90 % of the lap's points seen on track (a few lost samples

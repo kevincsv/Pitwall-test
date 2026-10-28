@@ -427,7 +427,7 @@
   of more than 40 m in its telemetry, or not the whole circuit). A Loss of Control (2x) or a Car Contact (4x) counts
   only when it takes the car off the track; a lap through the pit lane is valid, a rival's too (field.go). Incidents
   are named as iRacing names them, by their points: 1x Off Track, 2x Loss of Control, 4x Car Contact, 0x Light
-  Contact (never seen in the count); never "spin".
+  Contact (never seen in the count); never "spin". The game's own verdict counts too: Le Mans Ultimate's `LapCountFlag` (the game says the lap's time does not count, the pit lane aside) and iRacing's own best lap (`gameAccepts`: a lap faster than iRacing's best of the session that iRacing does not take as its best was not accepted, so it is not valid; a slower lap, or no best yet, says nothing).
 - A lap goes round the whole circuit (through the pit lane counts): one that did not is never a best, a share or the
   model's. The PC marks it not valid (under 90 % of its points seen on track, `fullLap` in cloud.go: a reset, a tow),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
