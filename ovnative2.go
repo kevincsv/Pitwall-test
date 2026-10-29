@@ -67,6 +67,9 @@ func gaugeVars(name string, st *ovState) []string {
 
 // ---------- what the gauges remember ----------
 
+// ggKeep: the g-force points kept, the longest trail (ui.gg.trail "l"); the normal one draws the last 90
+const ggKeep = 240
+
 type ovLive struct {
 	fuelInit  bool
 	fuelLap   int
@@ -131,7 +134,7 @@ func (st *ovState) collect() {
 			L.ggAcc = math.Max(L.ggAcc, lon)
 		}
 		L.gg = append(L.gg, [2]float64{lat, lon})
-		if len(L.gg) > 90 {
+		if len(L.gg) > ggKeep { // the g-force's longest trail
 			L.gg = L.gg[1:]
 		}
 	}
@@ -422,7 +425,10 @@ func drawFlagOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	r := 10 * z
 	// the start: the lights come on (ready, set) and go out (go), like the gantry
 	goAt, going := st.flagSince(flagStartGo, now)
-	if f&flagStartReady != 0 || f&flagStartSet != 0 || (going && goAt < 3*time.Second) {
+	// its own settings: the start lights, and which flags it warns of (by kind; all of them by default)
+	own := st.uiMap("flag")
+	kinds := uiList(own, "kinds", nil)
+	if uiBool(own, "lights", true) && (f&flagStartReady != 0 || f&flagStartSet != 0 || (going && goAt < 3*time.Second)) {
 		c.roundRect(0.5, 0.5, W-1, H-1, r, 0x0b0d10, 0.96, 0xffffff, 0.25, 1)
 		lit, col, s := 0, uint32(colAmber), st.T("READY", "PREPARADOS")
 		switch {
@@ -448,7 +454,7 @@ func drawFlagOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	}
 	hit := -1
 	for k, x := range ovFlags {
-		if f&x.bit == 0 {
+		if f&x.bit == 0 || (kinds != nil && !uiHas(kinds, x.kind)) {
 			continue
 		}
 		if x.kind == "green" { // the green stays on all race: it shows the first seconds only
@@ -546,8 +552,18 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	y := pad
 	gf, sf := ovFace(fkDisplayB, 64*z), ovFace(fkDisplayB, 48*z)
 	topH := 80 * z
+	// its own settings: the shift lights, the strip's items, the speed's units
+	own := st.uiMap("dash")
+	shiftOn := uiBool(own, "shift", true)
+	items := uiList(own, "strip", []string{"lap", "pos", "delta", "inc"})
 	// gear, speed, the pedals
 	H := pad + topH + 10*z + 16*z + 8*z + 18*z + 6*z + 22*z + pad
+	if !shiftOn {
+		H -= 16*z + 8*z
+	}
+	if len(items) == 0 {
+		H -= 6*z + 22*z
+	}
 	dc := st.dcItems()
 	if len(dc) > 0 {
 		H += 30 * z
@@ -558,7 +574,14 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	sx := pad + math.Max(70*z, textW(gf, "8")+24*z)
 	c.label(z, st.T("Speed", "Velocidad"), sx, y+6*z, 0)
 	sp, _ := st.num("Speed")
-	c.valueUnit(font_{sf, 48 * z}, z, strconv.Itoa(int(math.Round(st.spd(sp)))), st.spdU(), sx, y+topH/2+10*z, colText)
+	sv, su := st.spd(sp), st.spdU()
+	switch uiStr(own, "spdUnit", "app") {
+	case "kmh":
+		sv, su = sp*3.6, "km/h"
+	case "mph":
+		sv, su = sp*2.23694, "mph"
+	}
+	c.valueUnit(font_{sf, 48 * z}, z, strconv.Itoa(int(math.Round(sv))), su, sx, y+topH/2+10*z, colText)
 	bw, bh := 16*z, topH-4*z
 	bx := W - pad - 3*bw - 2*8*z
 	thr, _ := st.num("Throttle")
@@ -584,7 +607,7 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	gap := 3 * z
 	segW := (W - 2*pad - 15*gap) / 16
 	lit := !(rpm >= blink && now.UnixMilli()/80%2 == 0)
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 16 && shiftOn; i++ {
 		x := pad + float64(i)*(segW+gap)
 		if i < on && lit {
 			col := uint32(colGood)
@@ -601,7 +624,9 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			c.roundRect(x, y, segW, 16*z, 2*z, colSurf2, 1, colLine, 1, 1)
 		}
 	}
-	y += 16*z + 8*z
+	if shiftOn {
+		y += 16*z + 8*z
+	}
 	c.label(z, "RPM", pad, y+9*z, 0)
 	c.text(ovFace(fkData, 12*z), fmt.Sprintf("%d", int(rpm)), pad+textWT(ovFace(fkData, 11*z), "RPM", 1.1*z)+8*z, y+9*z, colText, 1, 0)
 	if shift > 0 {
@@ -609,10 +634,12 @@ func drawDashOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	}
 	y += 18 * z
 	// the lap, your place, the delta and the incidents, like the tables' footer
-	y += 6 * z
-	c.rect(pad, y-3*z, W-2*pad, 1, colLine, 1)
-	strip(c, st, []string{"lap", "pos", "delta", "inc"}, pad, y, W-pad, z)
-	y += 22 * z
+	if len(items) > 0 {
+		y += 6 * z
+		c.rect(pad, y-3*z, W-2*pad, 1, colLine, 1)
+		strip(c, st, items, pad, y, W-pad, z)
+		y += 22 * z
+	}
 	if len(dc) > 0 { // the car's controls: TC, ABS, map, bias, energy
 		y += 6 * z
 		x := pad
@@ -704,9 +731,16 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	pad := 14 * z
 	vf := ovFace(fkData, 24*z)
 	cellH := 54 * z
-	H := pad + 2*cellH + 10*z + 8*z + pad
+	// its own settings: the sectors, the last and best laps, the flash of a lap just finished
+	own := st.uiMap("timing")
+	lastBest, flash := uiBool(own, "lastBest", true), uiBool(own, "flash", true)
+	rowsN := 2.0
+	if !lastBest {
+		rowsN = 1
+	}
+	H := pad + rowsN*cellH + 10*z + 8*z + pad
 	secN := 0
-	if st.ses != nil && len(st.ses.Sectors) >= 2 {
+	if st.ses != nil && len(st.ses.Sectors) >= 2 && uiBool(own, "sectors", true) {
 		secN = len(st.ses.Sectors)
 		H += 10*z + 36*z
 	}
@@ -726,7 +760,7 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	if last > 0 && last != m.lastLap {
 		m.lastPrev, m.lastLap, m.lastLapAt = m.lastLap, last, now
 	}
-	if last > 0 && !m.lastLapAt.IsZero() && now.Sub(m.lastLapAt) < 4*time.Second {
+	if flash && last > 0 && !m.lastLapAt.IsZero() && now.Sub(m.lastLapAt) < 4*time.Second {
 		col := uint32(colText)
 		switch {
 		case best > 0 && last <= best+0.001:
@@ -748,13 +782,15 @@ func drawTimingOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	} else {
 		cell(0, 1, st.T("Delta to best", "Delta vs mejor"), "–", colText)
 	}
-	cell(1, 0, st.T("Best lap", "Mejor vuelta"), fmtLap(best), colPB)
-	cell(1, 1, st.T("Last lap", "Última vuelta"), fmtLap(last), colText)
+	if lastBest {
+		cell(1, 0, st.T("Best lap", "Mejor vuelta"), fmtLap(best), colPB)
+		cell(1, 1, st.T("Last lap", "Última vuelta"), fmtLap(last), colText)
+	}
 	p, _ := st.num("LapDistPct")
-	meter(c, pad, pad+2*cellH+10*z, W-2*pad, z, p, colAmber)
+	meter(c, pad, pad+rowsN*cellH+10*z, W-2*pad, z, p, colAmber)
 	if secN > 0 { // the game's sectors: this lap's, purple when the best of the session, green when better than your best lap
 		m := &st.x6
-		y := pad + 2*cellH + 10*z + 8*z + 10*z
+		y := pad + rowsN*cellH + 10*z + 8*z + 10*z
 		gap := 6 * z
 		cw := (W - 2*pad - float64(secN-1)*gap) / float64(secN)
 		tf, df, lf := ovFace(fkData, 13*z), ovFace(fkData, 10*z), ovFace(fkData, 9.5*z)
@@ -846,79 +882,120 @@ func drawFuelOv(c *ovCanvas, st *ovState, z float64) int {
 	pad := 14 * z
 	vf := font_{ovFace(fkData, 24*z), 24 * z}
 	sf := ovFace(fkBody, 12*z)
-	H := pad + th + 56*z + 8*z + 10*z + 26*z + 18*z + pad - 4*z
+	// its own settings: which values (in the tank, laps of fuel, per lap, the verdict to the finish, the last lap's
+	// use) and the safety margin in laps (unset, the verdict keeps 0.3 of a lap and the line to the finish none)
+	own := st.uiMap("fuel")
+	show := uiList(own, "show", []string{"tank", "laps", "per", "finish", "last"})
+	spare, hasSpare := own["spare"].(float64)
+	if !hasSpare || spare < 0 || spare > 5 {
+		spare, hasSpare = 0.3, false
+	}
+	var colsOn []string
+	for _, k := range []string{"tank", "laps", "per"} {
+		if uiHas(show, k) {
+			colsOn = append(colsOn, k)
+		}
+	}
+	H := pad + th + pad - 4*z
+	if len(colsOn) > 0 {
+		H += 56 * z
+	}
+	if uiHas(show, "tank") {
+		H += 8*z + 10*z
+	}
+	if uiHas(show, "finish") {
+		H += 26 * z
+	}
+	if uiHas(show, "last") {
+		H += 18 * z
+	}
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("Fuel", "Combustible"), pad, pad+6*z, 0)
 	}
 	fuel, has := st.num("FuelLevel")
 	per := st.fuelPerLap()
-	colW := (W - 2*pad) / 3
 	y := pad + th
-	col3 := func(j int, v, unit, sub string) {
-		x := pad + float64(j)*colW
-		c.valueUnit(vf, z, v, unit, x, y+18*z, colText)
-		c.text(sf, sub, x, y+42*z, colMuted, 1, 0)
-	}
-	v1, v2, v3 := "–", "–", "–"
-	if has {
-		v1 = strconv.FormatFloat(st.vol(fuel), 'f', 1, 64)
-	}
-	if per > 0 {
-		v3 = strconv.FormatFloat(st.vol(per), 'f', 2, 64)
+	if len(colsOn) > 0 {
+		colW := (W - 2*pad) / float64(len(colsOn))
+		v1, v2, v3 := "–", "–", "–"
 		if has {
-			v2 = strconv.FormatFloat(fuel/per, 'f', 1, 64)
+			v1 = strconv.FormatFloat(st.vol(fuel), 'f', 1, 64)
 		}
+		if per > 0 {
+			v3 = strconv.FormatFloat(st.vol(per), 'f', 2, 64)
+			if has {
+				v2 = strconv.FormatFloat(fuel/per, 'f', 1, 64)
+			}
+		}
+		for j, k := range colsOn {
+			x := pad + float64(j)*colW
+			v, unit, sub := v1, st.volU(), st.T("in tank", "en el depósito")
+			switch k {
+			case "laps":
+				v, unit, sub = v2, "", st.T("laps of fuel", "vueltas posibles")
+			case "per":
+				v, unit, sub = v3, "", st.T("per lap", "por vuelta")
+			}
+			c.valueUnit(vf, z, v, unit, x, y+18*z, colText)
+			c.text(sf, sub, x, y+42*z, colMuted, 1, 0)
+		}
+		y += 56 * z
 	}
-	col3(0, v1, st.volU(), st.T("in tank", "en el depósito"))
-	col3(1, v2, "", st.T("laps of fuel", "vueltas posibles"))
-	col3(2, v3, "", st.T("per lap", "por vuelta"))
-	y += 56 * z
-	max := 0.0
-	if st.ses != nil {
-		max = st.ses.Car["DriverCarFuelMaxLtr"]
+	if uiHas(show, "tank") {
+		max := 0.0
+		if st.ses != nil {
+			max = st.ses.Car["DriverCarFuelMaxLtr"]
+		}
+		if pct, ok := st.num("FuelLevelPct"); max <= 0 && ok && pct > 0 {
+			max = fuel / pct
+		}
+		if max > 0 {
+			meter(c, pad, y, W-2*pad, z, fuel/max, colAmber)
+		}
+		y += 8*z + 10*z
 	}
-	if pct, ok := st.num("FuelLevelPct"); max <= 0 && ok && pct > 0 {
-		max = fuel / pct
-	}
-	if max > 0 {
-		meter(c, pad, y, W-2*pad, z, fuel/max, colAmber)
-	}
-	y += 8*z + 10*z
 	nf := ovFace(fkBody, 13*z)
 	left, ok := st.lapsToGo()
-	switch {
-	case per > 0 && ok && has:
-		add := left*per - fuel + per*0.3
-		if add <= 0 {
-			c.text(nf, st.T("Enough to finish. Spare: ", "Llegas al final. Sobra: ")+strconv.FormatFloat(st.vol(-add), 'f', 1, 64)+" "+st.volU(), pad, y+10*z, colGood, 1, 0)
-		} else {
-			s := st.T("Add at the stop: ", "Añade en la parada: ") + strconv.FormatFloat(st.vol(add), 'f', 1, 64) + " " + st.volU()
-			c.text(nf, s, pad, y+10*z, colBad, 1, 0)
-			c.text(nf, " · "+strconv.FormatFloat(left, 'f', 1, 64)+st.T(" laps to go", " vueltas restantes"), pad+textW(nf, s), y+10*z, colMuted, 1, 0)
+	if uiHas(show, "finish") {
+		switch {
+		case per > 0 && ok && has:
+			add := left*per - fuel + per*spare
+			if add <= 0 {
+				c.text(nf, st.T("Enough to finish. Spare: ", "Llegas al final. Sobra: ")+strconv.FormatFloat(st.vol(-add), 'f', 1, 64)+" "+st.volU(), pad, y+10*z, colGood, 1, 0)
+			} else {
+				s := st.T("Add at the stop: ", "Añade en la parada: ") + strconv.FormatFloat(st.vol(add), 'f', 1, 64) + " " + st.volU()
+				c.text(nf, s, pad, y+10*z, colBad, 1, 0)
+				c.text(nf, " · "+strconv.FormatFloat(left, 'f', 1, 64)+st.T(" laps to go", " vueltas restantes"), pad+textW(nf, s), y+10*z, colMuted, 1, 0)
+			}
+		default:
+			c.text(nf, ellipsis(nf, st.T("Average fuel use appears after your first full lap.", "El consumo medio aparece tras tu primera vuelta completa."), W-2*pad), pad, y+10*z, colMuted, 1, 0)
 		}
-	default:
-		c.text(nf, ellipsis(nf, st.T("Average fuel use appears after your first full lap.", "El consumo medio aparece tras tu primera vuelta completa."), W-2*pad), pad, y+10*z, colMuted, 1, 0)
+		y += 20 * z
 	}
-	// the last lap's use, and what you may use per lap to finish without a stop
-	y += 20 * z
-	sf2 := ovFace(fkBody, 12*z)
-	parts, pcol := "", uint32(colMuted)
-	if u := st.live.fuelUses; len(u) > 0 {
-		parts = st.T("Last lap ", "Última vuelta ") + strconv.FormatFloat(st.vol(u[len(u)-1]), 'f', 2, 64) + " " + st.volU()
-	}
-	if ok && has && left > 0.5 {
-		need := fuel / left
+	// the last lap's use, and what you may use per lap to finish without a stop (with the margin chosen)
+	if uiHas(show, "last") {
+		sf2 := ovFace(fkBody, 12*z)
+		parts, pcol := "", uint32(colMuted)
+		if u := st.live.fuelUses; len(u) > 0 {
+			parts = st.T("Last lap ", "Última vuelta ") + strconv.FormatFloat(st.vol(u[len(u)-1]), 'f', 2, 64) + " " + st.volU()
+		}
+		if ok && has && left > 0.5 {
+			need := fuel / left
+			if hasSpare {
+				need = fuel / (left + spare)
+			}
+			if parts != "" {
+				parts += " · "
+			}
+			parts += st.T("to finish without a stop: ≤ ", "para acabar sin parar: ≤ ") + strconv.FormatFloat(st.vol(need), 'f', 2, 64) + " " + st.volU() + st.T(" a lap", " por vuelta")
+			if per > 0 && per > need*1.02 {
+				pcol = colWarn
+			}
+		}
 		if parts != "" {
-			parts += " · "
+			c.text(sf2, ellipsis(sf2, parts, W-2*pad), pad, y+8*z, pcol, 1, 0)
 		}
-		parts += st.T("to finish without a stop: ≤ ", "para acabar sin parar: ≤ ") + strconv.FormatFloat(st.vol(need), 'f', 2, 64) + " " + st.volU() + st.T(" a lap", " por vuelta")
-		if per > 0 && per > need*1.02 {
-			pcol = colWarn
-		}
-	}
-	if parts != "" {
-		c.text(sf2, ellipsis(sf2, parts, W-2*pad), pad, y+8*z, pcol, 1, 0)
 	}
 	return int(math.Ceil(H))
 }
@@ -931,12 +1008,19 @@ func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
 	wv, _ := st.num("EngineWarnings")
 	// the game's bits: 1 water, 2 fuel pressure, 4 oil pressure, 8 stalled, 16 pit limiter, 32 rev limiter, 64 oil temperature
 	warn := uint32(int64(wv))
+	// its own settings: which rows, and the badges (pit limiter, rev limiter, stalled)
+	own := st.uiMap("engine")
+	want := uiList(own, "rows", nil)
+	badges := uiBool(own, "badges", true)
+	if !badges {
+		warn &^= 8 | 16 | 32
+	}
 	if !ton && warn&(8|16|32) != 0 { // the title hidden: its row stays for the badges while one is lit
 		th = 18 * z
 	}
 	type row struct {
-		k, v string
-		bad  bool
+		id, k, v string
+		bad      bool
 	}
 	t := func(n string) string {
 		if v, ok := st.num(n); ok {
@@ -955,11 +1039,21 @@ func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
 	if v, ok := st.num("Voltage"); ok {
 		vo = strconv.FormatFloat(v, 'f', 1, 64) + " V"
 	}
-	rows := []row{{st.T("Water", "Agua"), t("WaterTemp"), warn&1 != 0}, {st.T("Oil", "Aceite"), t("OilTemp"), warn&64 != 0}, {st.T("Oil pressure", "Presión aceite"), op, warn&4 != 0}}
+	rows := []row{{"water", st.T("Water", "Agua"), t("WaterTemp"), warn&1 != 0}, {"oil", st.T("Oil", "Aceite"), t("OilTemp"), warn&64 != 0}, {"oilp", st.T("Oil pressure", "Presión aceite"), op, warn&4 != 0}}
 	if fp, ok := bar("FuelPress"); ok {
-		rows = append(rows, row{st.T("Fuel pressure", "Presión gasolina"), fp, warn&2 != 0})
+		rows = append(rows, row{"fuelp", st.T("Fuel pressure", "Presión gasolina"), fp, warn&2 != 0})
 	}
-	rows = append(rows, row{st.T("Voltage", "Voltaje"), vo, false}, row{st.T("Air", "Aire"), t("AirTemp"), false}, row{st.T("Track", "Pista"), t("TrackTempCrew"), false})
+	rows = append(rows, row{"volt", st.T("Voltage", "Voltaje"), vo, false}, row{"air", st.T("Air", "Aire"), t("AirTemp"), false}, row{"track", st.T("Track", "Pista"), t("TrackTempCrew"), false})
+	if want != nil {
+		k := 0
+		for _, r := range rows {
+			if uiHas(want, r.id) {
+				rows[k] = r
+				k++
+			}
+		}
+		rows = rows[:k]
+	}
 	H := pad + th + float64(len(rows))*rowH + pad - 6*z
 	panel(c, H, z)
 	if ton {
@@ -1018,7 +1112,13 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 	ton, th := st.titleOn("tyres"), st.titleH("tyres", z)
 	W := float64(c.w)
 	pad := 14 * z
+	// its own settings: the pressure, the wear, and only the average instead of the three zones
+	own := st.uiMap("tyres")
+	showP, showW, avgOnly := uiBool(own, "press", true), uiBool(own, "wear", true), uiBool(own, "avgOnly", false)
 	boxH := 70 * z
+	if avgOnly {
+		boxH = 48 * z
+	}
 	gap := 8 * z
 	H := pad + th + 2*boxH + gap + pad
 	live := false
@@ -1067,7 +1167,9 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("Tyres", "Neumáticos"), pad, pad+6*z, 0)
-		c.textT(ovFace(fkData, 9.5*z), st.T("IN · MID · OUT", "INT · MED · EXT"), W-pad, pad+6*z, colMuted, 1, 1, 0.6*z)
+		if !avgOnly {
+			c.textT(ovFace(fkData, 9.5*z), st.T("IN · MID · OUT", "INT · MED · EXT"), W-pad, pad+6*z, colMuted, 1, 1, 0.6*z)
+		}
 	}
 	bw := (W - 2*pad - gap) / 2
 	vf, zf, sf := ovFace(fkData, 15*z), ovFace(fkData, 11*z), ovFace(fkData, 10.5*z)
@@ -1082,10 +1184,10 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 		c.label(z, k, x+10*z, y+14*z, 0)
 		// the wear and the pressure at the right of the label
 		right := ""
-		if v.wear >= 0 {
+		if v.wear >= 0 && showW {
 			right = strconv.Itoa(int(math.Round(v.wear*100))) + "%"
 		}
-		if v.press > 0 {
+		if v.press > 0 && showP {
 			ps := strconv.Itoa(int(math.Round(v.press))) + " kPa"
 			if st.imperial() {
 				ps = strconv.FormatFloat(v.press*0.145038, 'f', 1, 64) + " psi"
@@ -1106,6 +1208,9 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 		// the three zones: the number over a strip in its colour
 		zw := (bw - 20*z - 2*4*z) / 3
 		for j, zt := range v.zones {
+			if avgOnly {
+				break
+			}
 			zx := x + 10*z + float64(j)*(zw+4*z)
 			if zt <= -999 {
 				c.roundRect(zx, y+boxH-12*z, zw, 4*z, 2*z, colLine, 1, 0, 0, 0)
@@ -1134,6 +1239,7 @@ func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
 	traceH := uiNum(cfg, "traceH", 110) * z
 	traceSecs := uiNum(cfg, "traceSecs", 12)
 	traceCh := uiList(cfg, "traceCh", []string{"thr", "brk"})
+	lineW := uiPick(cfg, "lineW", 1, 0.6, 1.6) // the trace's lines: thin, normal or thick
 	rowH := 96 * z
 	H := pad + th + rowH + pad
 	if trace {
@@ -1280,9 +1386,9 @@ func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
 					}
 					return ty + traceH - 3*z - v*(traceH-6*z)
 				}
-				w := 2 * z
+				w := 2 * z * lineW
 				if ch.i == 3 {
-					w = 1.2 * z
+					w = 1.2 * z * lineW
 				}
 				// one point in two is enough for a smooth line
 				step := 1
@@ -1489,11 +1595,28 @@ func drawGGOv(c *ovCanvas, st *ovState, z float64) int {
 	pad := 14 * z
 	plot := W - 2*pad
 	H := pad + th + plot + 8*z + 22*z + pad - 4*z
+	peaks := uiBool(st.uiMap("gg"), "peaks", true)
+	if !peaks {
+		H -= 8*z + 22*z
+	}
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("G-force circle", "Círculo de fuerzas g"), pad, pad+6*z, 0)
 	}
 	L := st.live
+	// its own settings: the trail's length (short, normal, long) and the lap's peaks under the circle
+	own := st.uiMap("gg")
+	n := 90
+	switch uiStr(own, "trail", "m") {
+	case "s":
+		n = 30
+	case "l":
+		n = ggKeep
+	}
+	pts := L.gg
+	if len(pts) > n {
+		pts = pts[len(pts)-n:]
+	}
 	R := math.Max(2, math.Ceil(math.Max(L.ggLat, math.Max(L.ggBrk, L.ggAcc))*2)/2)
 	cx, cy := W/2, pad+th+plot/2
 	ppg := (plot/2 - 6*z) / R
@@ -1503,14 +1626,17 @@ func drawGGOv(c *ovCanvas, st *ovState, z float64) int {
 	c.rect(cx-R*ppg, cy, 2*R*ppg, 1, colLine, 1)
 	c.rect(cx, cy-R*ppg, 1, 2*R*ppg, colLine, 1)
 	c.text(ovFace(fkData, 10*z), "1g", cx+ppg+3*z, cy-7*z, colMuted, 1, 0)
-	for k, p := range L.gg {
-		c.disc(cx+p[0]*ppg, cy+p[1]*ppg, 2.5*z, colBlue, float64(k+1)/float64(len(L.gg))*0.6)
+	for k, p := range pts {
+		c.disc(cx+p[0]*ppg, cy+p[1]*ppg, 2.5*z, colBlue, float64(k+1)/float64(len(pts))*0.6)
 	}
-	if n := len(L.gg); n > 0 {
-		p := L.gg[n-1]
+	if n := len(pts); n > 0 {
+		p := pts[n-1]
 		c.disc(cx+p[0]*ppg, cy+p[1]*ppg, 6*z, colAmber, 1)
 	}
 	// the most of this lap: cornering, braking, traction
+	if !peaks {
+		return int(math.Ceil(H))
+	}
 	y := pad + th + plot + 8*z
 	lf, vf := ovFace(fkData, 9*z), ovFace(fkData, 12*z)
 	items := [][2]string{{st.T("Corner", "Curva"), fmt.Sprintf("%.2f g", L.ggLat)}, {st.T("Brake", "Frenada"), fmt.Sprintf("%.2f g", L.ggBrk)}, {st.T("Traction", "Tracción"), fmt.Sprintf("%.2f g", L.ggAcc)}}

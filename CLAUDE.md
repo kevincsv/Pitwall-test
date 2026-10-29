@@ -754,7 +754,24 @@
   old setting for all of them, `CFG.alpha`, else opaque; VR too) and, for the overlays with a title (`OV_TITLED`),
   "Show the title" (`ui.<overlay>.title`, on by default, `titleOn`/`titleH`: off, the content moves up and the overlay
   is shorter; the engine's and the pit lane's badges keep their row while lit); Overlays → More → Titles shows or
-  hides them all at once. The relative always has the rows you chose ahead and behind (empty when no car).
+  hides them all at once. Every overlay window's Configure also has its text size (`ui.<overlay>.textScale` 0.85/1/1.2,
+  scaling its whole drawing, `textScale`) and "Hide by itself" (`ui.<overlay>.hide`: "car" out of the car, garage or no
+  game, "pits" that and on the pit road; nothing on the screen, like the radar with nobody near, never while moving the
+  overlays; `autoHidden`, OnPitRoad asked only then; the web widget in an overlay window the same, `ovOwnApply`), and
+  each overlay its own content options (`OV_OPTS` in index.html, the native overlays read the same keys, `ovsettings.go`;
+  unset, everything draws exactly as before, `TestOverlayOptionDefaults`): relative (`ui.rel`: classHead, a band of the
+  classes with their SOF; dimLapped; rowSize s/m/l; notes), standings (`ui.std`: classHead, each class under a header
+  with its cars and SOF; irShort "1.8k"; fastMark; pitTag), delta bar (`ui.deltabar`: barOnly, trend), timing
+  (`ui.timing`: sectors, lastBest, flash), inputs (`ui.inp.lineW`), radar (`ui.radar`: carSize, trails, dist), coach
+  ("text": the tip only, nothing between corners), pit (`ui.pit`: limTol, the margin over the pit limit in m/s, 0.4 by
+  default; pitOnly), gaps (`ui.gaps.numbers`), track bar (`ui.trackbar`: lineOnly, height, near, sectors, myClass), dash
+  (`ui.dash`: shift, strip, spdUnit), fuel (`ui.fuel`: show, spare laps of margin, unset 0.3 in the verdict and none in
+  "to finish without a stop"), tyres (`ui.tyres`: press, wear, avgOnly), weather (`ui.weather`: show, trend; with its
+  title hidden the game's clock moves into the content), flags (`ui.flag`: lights, kinds), map (`ui.map`: turns,
+  sectors, myClass, width), engine (`ui.engine`: rows, badges), incidents (`ui.incidents.list`), braking markers
+  (`ui.brakes`: speeds, fb), mini-sectors (`ui.sectors`: last, legend), stats (`ui.stats`: rows, slipNow), compare
+  (`ui.cmp.last`), g-force (`ui.gg`: trail s/m/l, peaks) and performance (`ui.system.show`).
+  The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside

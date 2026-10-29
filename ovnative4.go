@@ -488,7 +488,10 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	st.loadTurns()
 	// the panel, the track, its line, arrow, sectors and turns change only with the window or the track: drawn once,
 	// then copied under the cars every frame (the same pixels)
-	key := mapLayerKey{w: c.w, h: c.h, z: z, x: &X[0], y: &Y[0], n: N, ny: len(Y), ses: st.ses, turns: st.ext.turns}
+	// its own settings: the turn numbers, the sectors, the track's width and only your class's cars
+	own := st.uiMap("map")
+	turnsOn, secOn, tw := uiBool(own, "turns", true), uiBool(own, "sectors", true), uiPick(own, "width", 1, 0.7, 1.4)
+	key := mapLayerKey{w: c.w, h: c.h, z: z, x: &X[0], y: &Y[0], n: N, ny: len(Y), ses: st.ses, turns: st.ext.turns, opt: [3]float64{b01(turnsOn), b01(secOn), tw}}
 	if L := &st.ext.mapLayer; L.ok && L.key.same(key) && len(L.px) == len(c.px) {
 		copy(c.px, L.px)
 	} else {
@@ -498,7 +501,7 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 		if N > 600 {
 			step = N / 600
 		}
-		for pass, w := range []float64{14 * z, 9 * z} {
+		for pass, w := range []float64{14 * z * tw, 9 * z * tw} {
 			col := uint32(colLine)
 			if pass == 1 {
 				col = colSurf2
@@ -536,7 +539,7 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 			}
 		}
 		// the sectors: a short bar across the track where each one starts (the first is the line)
-		if len(st.ses.Sectors) >= 2 {
+		if len(st.ses.Sectors) >= 2 && secOn {
 			sf := ovFace(fkData, 9*z)
 			for k, f := range st.ses.Sectors[1:] {
 				i := int(math.Floor(f*float64(N))) % N
@@ -550,7 +553,7 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 			}
 		}
 		// the official turns, numbered on the outside of the track
-		if len(st.ext.turns) > 0 {
+		if len(st.ext.turns) > 0 && turnsOn {
 			cxm, cym := 0.0, 0.0
 			for i := range X {
 				cxm += X[i]
@@ -586,8 +589,12 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 		return 0
 	}
 	var idx []int
+	myCls := -1
+	if d := st.ses.Drivers[me]; d != nil && uiBool(own, "myClass", false) {
+		myCls = d.Class
+	}
 	for _, d := range st.ses.Drivers {
-		if !d.Skip && d.Name != "" && d.Idx < len(pct) && pct[d.Idx] >= 0 {
+		if !d.Skip && d.Name != "" && d.Idx < len(pct) && pct[d.Idx] >= 0 && (myCls < 0 || d.Class == myCls || d.Idx == me) {
 			idx = append(idx, d.Idx)
 		}
 	}
@@ -668,7 +675,7 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 	if best != nil {
 		bs = best.series()
 	}
-	if last != nil && last != best {
+	if last != nil && last != best && uiBool(cfg, "last", true) { // the last lap's line (off in its settings)
 		ls = last.series()
 	}
 	cs = cur.series()
@@ -1056,6 +1063,9 @@ func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
 		fb = nil
 	}
 	fbTxt, fbCol := "", uint32(colMuted)
+	if !uiBool(st.uiMap("brakes"), "fb", true) { // no verdict on the corner just taken
+		fb = nil
+	}
 	if fb != nil {
 		fn := st.turnName(fb.d, fb.n)
 		switch {
@@ -1097,7 +1107,9 @@ func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
 		dcol = colBad
 	}
 	c.text(big, ds, pad+textW(big, cn)+18*z, y+22*z, dcol, 1, 0)
-	c.text(ovFace(fkData, 13*z), fmt.Sprintf("%d → %d %s", int(math.Round(st.spd(cur.vref))), int(math.Round(st.spd(cur.vmin))), st.spdU()), W-pad, y+22*z, colMuted, 1, 1)
+	if uiBool(st.uiMap("brakes"), "speeds", true) { // the reference's speed into the corner and at its apex
+		c.text(ovFace(fkData, 13*z), fmt.Sprintf("%d → %d %s", int(math.Round(st.spd(cur.vref))), int(math.Round(st.spd(cur.vmin))), st.spdU()), W-pad, y+22*z, colMuted, 1, 1)
+	}
 	y += 44 * z
 	pct := clamp01(1 - cur.mark/200)
 	col := uint32(colAmber)
@@ -1896,6 +1908,8 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		return drawCoachCurve(c, st, z, next, dTo, lead, verdict, tipText)
 	case "big":
 		return drawCoachBig(c, st, z, next, dTo, lead, verdict)
+	case "text":
+		return drawCoachText(c, st, z, next, dTo, lead, tipText)
 	}
 	// "next": the corner coming, or the verdict of the one just taken
 	tf := ovFace(fkBodyB, 14*z)
@@ -2283,11 +2297,48 @@ type mapLayerKey struct {
 	n, ny int
 	ses   *ovSession
 	turns []float64
+	opt   [3]float64 // its settings: turns, sectors, width
 }
 
 func (a mapLayerKey) same(b mapLayerKey) bool {
-	if a.w != b.w || a.h != b.h || a.z != b.z || a.x != b.x || a.y != b.y || a.n != b.n || a.ny != b.ny || a.ses != b.ses || len(a.turns) != len(b.turns) {
+	if a.w != b.w || a.h != b.h || a.z != b.z || a.opt != b.opt || a.x != b.x || a.y != b.y || a.n != b.n || a.ny != b.ny || a.ses != b.ses || len(a.turns) != len(b.turns) {
 		return false
 	}
 	return len(a.turns) == 0 || &a.turns[0] == &b.turns[0]
+}
+
+// b01: a switch as a number, for the map's still picture's key
+func b01(b bool) float64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// drawCoachText: the coach's tip and nothing else (its settings, "Tip only"): the turn and the tip as the car comes
+// to the corner, nothing on the screen between corners
+func drawCoachText(c *ovCanvas, st *ovState, z float64, next *coachTip, dTo, lead float64, tipText func(*coachTip) string) int {
+	W := float64(c.w)
+	pad := 14 * z
+	tf := ovFace(fkBodyB, 16*z)
+	if next == nil || dTo > lead {
+		if st.edit {
+			H := pad + 20*z + pad
+			panel(c, H, z)
+			c.label(z, st.T("Coach", "Coach"), pad, H/2, 0)
+			return int(math.Ceil(H))
+		}
+		return 0
+	}
+	name := coachTurnLabel(st, next.n, false)
+	nf := ovFace(fkDisplayB, 18*z)
+	nw := textW(nf, name) + 12*z
+	lines := wrapLines(tf, tipText(next), W-2*pad-nw, 3)
+	H := pad + math.Max(22*z, float64(len(lines))*21*z) + pad
+	panel(c, H, z)
+	c.text(nf, name, pad, pad+11*z, colAmber, 1, 0)
+	for k, ln := range lines {
+		c.text(tf, ln, pad+nw, pad+11*z+float64(k)*21*z, colText, 1, 0)
+	}
+	return int(math.Ceil(H))
 }

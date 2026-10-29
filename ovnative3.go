@@ -315,33 +315,49 @@ func drawStatsOv(c *ovCanvas, st *ovState, z float64) int {
 		return strconv.Itoa(int(math.Round(v/s.t*100))) + "%"
 	}
 	type row struct {
-		l string
-		f func(s *lapStats) string
+		id, l string
+		f     func(s *lapStats) string
 	}
 	rows := []row{
-		{st.T("Full throttle", "Gas a fondo"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.full })) }},
-		{st.T("Braking", "Frenando"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.brk })) }},
-		{st.T("Coasting", "Sin pedales"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.coast })) }},
-		{st.T("Gear changes", "Cambios de marcha"), func(s *lapStats) string {
+		{"full", st.T("Full throttle", "Gas a fondo"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.full })) }},
+		{"brk", st.T("Braking", "Frenando"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.brk })) }},
+		{"coast", st.T("Coasting", "Sin pedales"), func(s *lapStats) string { return pc(s, ifs(s, func() float64 { return s.coast })) }},
+		{"shifts", st.T("Gear changes", "Cambios de marcha"), func(s *lapStats) string {
 			if s == nil {
 				return "–"
 			}
 			return strconv.Itoa(s.shifts)
 		}},
-		{st.T("Top speed", "Vel. máxima"), func(s *lapStats) string {
+		{"top", st.T("Top speed", "Vel. máxima"), func(s *lapStats) string {
 			if s == nil || s.top <= 0 {
 				return "–"
 			}
 			return strconv.Itoa(int(math.Round(st.spd(s.top)))) + " " + st.spdU()
 		}},
-		{st.T("Max slip angle", "Deslizamiento máx."), func(s *lapStats) string {
+		{"slip", st.T("Max slip angle", "Deslizamiento máx."), func(s *lapStats) string {
 			if s == nil || s.slip <= 0 {
 				return "–"
 			}
 			return strconv.FormatFloat(s.slip, 'f', 1, 64) + "°"
 		}},
 	}
+	// its own settings: which rows, and the car's slip angle now under them
+	own := st.uiMap("stats")
+	if want := uiList(own, "rows", nil); want != nil {
+		k := 0
+		for _, r := range rows {
+			if uiHas(want, r.id) {
+				rows[k] = r
+				k++
+			}
+		}
+		rows = rows[:k]
+	}
+	slipNow := uiBool(own, "slipNow", true)
 	H := pad + th + 22*z + float64(len(rows))*rowH + 10*z + 18*z + 14*z + pad
+	if !slipNow {
+		H -= 18*z + 14*z
+	}
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("Lap stats", "Estadísticas de vuelta"), pad, pad+6*z, 0)
@@ -361,6 +377,9 @@ func drawStatsOv(c *ovCanvas, st *ovState, z float64) int {
 		c.text(vf, r.f(m.stCur), c1, y+rowH/2, colText, 1, 1)
 		c.text(vf, r.f(m.stLast), c2, y+rowH/2, colMuted, 1, 1)
 		y += rowH
+	}
+	if !slipNow {
+		return int(math.Ceil(H))
 	}
 	y += 10 * z
 	b, ok := st.slipAngle()
@@ -431,7 +450,7 @@ func drawPitLane(c *ovCanvas, st *ovState, z float64) int {
 	if st.ses != nil {
 		lim = st.ses.PitLimit
 	}
-	over := lim > 0 && sp > lim+0.4
+	over := lim > 0 && sp > lim+uiPick(st.uiMap("pit"), "limTol", 0.4, 0, 0.8, 1.4) // the margin over the limit before it warns
 	wv, _ := st.num("EngineWarnings")
 	limiter := uint32(int64(wv))&16 != 0
 	if !ton && limiter { // the title hidden: its row stays for the limiter's badge
@@ -502,6 +521,9 @@ func drawPitOv(c *ovCanvas, st *ovState, z float64) int {
 		return drawPitLane(c, st, z)
 	}
 	cfg := st.uiMap("pit")
+	if uiBool(cfg, "pitOnly", false) && !st.edit { // only in the pit lane: nothing on the screen outside it
+		return 0
+	}
 	loss, margin := uiNum(cfg, "loss", 25), uiNum(cfg, "margin", .3)
 	fuel, hasFuel := st.num("FuelLevel")
 	per := st.fuelPerLap()
@@ -618,9 +640,15 @@ func drawSectorsOv(c *ovCanvas, st *ovState, z float64) int {
 	pad := 14 * z
 	m := st.mem()
 	cellH := 18 * z
+	// its own settings: the last lap's row and the legend
+	own := st.uiMap("sectors")
+	showLast, legend := m.msLast != nil && uiBool(own, "last", true), uiBool(own, "legend", true)
 	H := pad + th + 22*z + 6*z + cellH + pad + 18*z
-	if m.msLast != nil {
+	if showLast {
 		H += 18*z + cellH
+	}
+	if !legend {
+		H -= 18 * z
 	}
 	panel(c, H, z)
 	if ton {
@@ -687,10 +715,13 @@ func drawSectorsOv(c *ovCanvas, st *ovState, z float64) int {
 		y += cellH
 	}
 	cells(m.msCur, true)
-	if m.msLast != nil {
+	if showLast {
 		c.label(z, st.T("Last", "Última"), pad, y+9*z, 0)
 		y += 18 * z
 		cells(m.msLast, false)
+	}
+	if !legend {
+		return int(math.Ceil(H))
 	}
 	// the legend
 	y += 9 * z
@@ -717,6 +748,10 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 	cfg := st.uiMap("gaps")
 	span, near := uiNum(cfg, "mins", 5)*60, int(uiNum(cfg, "cars", 2))
 	plotH := 200 * z
+	chart := !uiBool(cfg, "numbers", false) // numbers only: no chart
+	if !chart {
+		plotH = 0
+	}
 	t, _ := st.num("SessionTime")
 	pos := st.arr("CarIdxPosition")
 	mev, _ := st.num("PlayerCarIdx")
@@ -765,6 +800,9 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 	X := func(s float64) float64 { return pad + (s-(t-span))/span*pw }
 	af := ovFace(fkData, 10.5*z)
 	for _, v := range []float64{mx, mx / 2, 0, -mx / 2, -mx} {
+		if !chart {
+			break
+		}
 		c.rect(pad, Y(v), pw, 1, colLine, 1)
 		s := strconv.FormatFloat(v, 'f', 0, 64)
 		if math.Mod(v, 1) != 0 {
@@ -775,7 +813,9 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 		c.text(af, s+"s", W-pad, Y(v), colMuted, 1, 1)
 	}
-	c.rect(pad, Y(0)-1, pw, 2, colAmber, 1)
+	if chart {
+		c.rect(pad, Y(0)-1, pw, 2, colAmber, 1)
+	}
 	type leg struct {
 		col uint32
 		k   string
@@ -793,7 +833,7 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 			continue
 		}
 		col := gapColours[k%len(gapColours)]
-		for j := 1; j < len(a); j++ {
+		for j := 1; j < len(a) && chart; j++ {
 			c.line(X(a[j-1][0]), Y(a[j-1][1]), X(a[j][0]), Y(a[j][1]), 2*z, col, 1)
 		}
 		g := a[len(a)-1][1]
@@ -821,6 +861,9 @@ func drawGapsOv(c *ovCanvas, st *ovState, z float64) int {
 		legs = append(legs, l)
 	}
 	y := top + plotH + 8*z
+	if !chart {
+		y = top
+	}
 	kf, vf := ovFace(fkData, 10.5*z), ovFace(fkData, 13*z)
 	if len(legs) == 0 {
 		nf := ovFace(fkBody, 12.5*z)
@@ -889,6 +932,10 @@ func drawIncidentsOv(c *ovCanvas, st *ovState, z float64) int {
 	if rows > 8 {
 		rows = 8
 	}
+	list := uiBool(st.uiMap("incidents"), "list", true) // the list of incidents, or only the count
+	if !list {
+		rows = 0
+	}
 	rowH := 22 * z
 	H := pad + th + 56*z + float64(rows)*rowH + pad
 	if lim > 0 {
@@ -920,7 +967,7 @@ func drawIncidentsOv(c *ovCanvas, st *ovState, z float64) int {
 		y += 18 * z
 	}
 	kf, vf := ovFace(fkBody, 13*z), ovFace(fkData, 13*z)
-	if len(m.incLog) == 0 {
+	if len(m.incLog) == 0 && list {
 		c.text(kf, st.T("Clean so far", "Limpio hasta ahora"), pad, y+rowH/2, colMuted, 1, 0)
 	}
 	for k, e := range m.incLog {

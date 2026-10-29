@@ -94,22 +94,46 @@ func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	ton, th := st.titleOn("weather"), st.titleH("weather", z)
 	W := float64(c.w)
 	pad := 14 * z
-	H := pad + th + 48*z + 58*z + 24*z + 26*z + pad - 6*z
+	// its own settings: which values (the track's and the air's temperature, the wind, the sky, the rain, how wet the
+	// track is, the game's clock) and the track's trend
+	own := st.uiMap("weather")
+	show := uiList(own, "show", []string{"track", "air", "wind", "sky", "rain", "wet", "clock"})
+	has := func(k string) bool { return uiHas(show, k) }
+	temps, rainRow := has("track") || has("air"), has("rain") || has("wet")
+	tod, okT := st.num("SessionTimeOfDay")
+	clockOn := has("clock") && okT && tod >= 0
+	if !ton && clockOn && !temps { // the title hidden: the clock keeps a row of its own at the top
+		th = 18 * z
+	}
+	H := pad + th + pad - 6*z
+	if temps {
+		H += 48 * z
+	}
+	if has("wind") {
+		H += 58 * z
+	}
+	if has("sky") {
+		H += 24 * z
+	}
+	if rainRow {
+		H += 26 * z
+	}
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("Weather", "Tiempo"), pad, pad+6*z, 0)
 	}
-	// the game's clock at the right, with the sun up or down
-	if tod, ok := st.num("SessionTimeOfDay"); ton && ok && tod >= 0 {
+	// the game's clock at the right, with the sun up or down (in the title's row, or the first row without it)
+	if clockOn {
 		f := ovFace(fkData, 12*z)
 		s := fmt.Sprintf("%02d:%02d", int(tod)/3600%24, int(tod)/60%60)
-		c.text(f, s, W-pad, pad+6*z, colText, 1, 1)
+		cy := pad + 6*z // the title's row, else the temperatures' labels or a row of its own
+		c.text(f, s, W-pad, cy, colText, 1, 1)
 		if alt, ok := st.num("SolarAltitude"); ok {
 			x := W - pad - textW(f, s) - 10*z
 			if alt > 0 {
-				c.disc(x, pad+6*z, 4.5*z, colAmber, 1)
+				c.disc(x, cy, 4.5*z, colAmber, 1)
 			} else {
-				c.ring(x, pad+6*z, 4*z, 1.5*z, colMuted, 1)
+				c.ring(x, cy, 4*z, 1.5*z, colMuted, 1)
 			}
 		}
 	}
@@ -127,99 +151,124 @@ func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		}
 		c.valueUnit(font_{ovFace(fkDisplayB, 26*z), 26 * z}, z, s, st.tmpU(), x, y+32*z, col)
 	}
-	temp("TrackTempCrew", "TrackTemp", "Track", "Pista", pad)
-	// where the track's temperature is going (the tyres' pressures follow it)
-	if v, ok := st.num("TrackTempCrew"); ok {
-		if d, has := st.trackTrend(v, now); has {
-			s, col := "▲ +"+strconv.FormatFloat(st.tmp(v)-st.tmp(v-d), 'f', 1, 64)+"°", uint32(colAmber)
-			if d < 0 {
-				s, col = "▼ −"+strconv.FormatFloat(st.tmp(v-d)-st.tmp(v), 'f', 1, 64)+"°", colBlue
+	if temps {
+		ax := pad + (W-2*pad)/2
+		if !has("track") {
+			ax = pad
+		}
+		if has("track") {
+			temp("TrackTempCrew", "TrackTemp", "Track", "Pista", pad)
+		}
+		// where the track's temperature is going (the tyres' pressures follow it)
+		if v, ok := st.num("TrackTempCrew"); ok && has("track") {
+			if d, has := st.trackTrend(v, now); has && uiBool(own, "trend", true) {
+				s, col := "▲ +"+strconv.FormatFloat(st.tmp(v)-st.tmp(v-d), 'f', 1, 64)+"°", uint32(colAmber)
+				if d < 0 {
+					s, col = "▼ −"+strconv.FormatFloat(st.tmp(v-d)-st.tmp(v), 'f', 1, 64)+"°", colBlue
+				}
+				c.text(ovFace(fkDataB, 11*z), s, pad+(W-2*pad)/2-10*z, y+32*z, col, 1, 1)
 			}
-			c.text(ovFace(fkDataB, 11*z), s, pad+(W-2*pad)/2-10*z, y+32*z, col, 1, 1)
 		}
+		if has("air") {
+			temp("AirTemp", "", "Air", "Aire", ax)
+		}
+		y += 48 * z
 	}
-	temp("AirTemp", "", "Air", "Aire", pad+(W-2*pad)/2)
-	y += 48 * z
-	// the wind against your car: a ring with your nose at the top, the arrow blows across it
-	r := 22 * z
-	cx, cy := pad+r, y+r+5*z
-	c.ring(cx, cy, r, 1.5*z, colLine, 1)
-	c.tri(cx, cy-r-3*z, cx-4*z, cy-r+4*z, cx+4*z, cy-r+4*z, colMuted, 1)
 	tf, sf := ovFace(fkDataB, 14*z), ovFace(fkBody, 12*z)
-	tx := pad + 2*r + 12*z
-	wv, hasW := st.num("WindVel")
-	wd, hasD := st.num("WindDir")
-	if hasW && hasD {
-		// the wind comes from WindDir (from the north, clockwise); against the car's heading, where it comes from
-		// relative to the nose; both come from the game in the same sense, so their difference is the angle
-		rel := wd
-		if yn, ok := st.num("YawNorth"); ok {
-			rel = wd - yn
+	if has("wind") {
+		// the wind against your car: a ring with your nose at the top, the arrow blows across it
+		r := 22 * z
+		cx, cy := pad+r, y+r+5*z
+		c.ring(cx, cy, r, 1.5*z, colLine, 1)
+		c.tri(cx, cy-r-3*z, cx-4*z, cy-r+4*z, cx+4*z, cy-r+4*z, colMuted, 1)
+		tx := pad + 2*r + 12*z
+		wv, hasW := st.num("WindVel")
+		wd, hasD := st.num("WindDir")
+		if hasW && hasD {
+			// the wind comes from WindDir (from the north, clockwise); against the car's heading, where it comes from
+			// relative to the nose; both come from the game in the same sense, so their difference is the angle
+			rel := wd
+			if yn, ok := st.num("YawNorth"); ok {
+				rel = wd - yn
+			}
+			fx, fy := math.Sin(rel), -math.Cos(rel) // the point of the ring the wind comes from (nose up)
+			col := uint32(colBlue)
+			if wv*3.6 > 25 {
+				col = colAmber
+			}
+			x0, y0, x1, y1 := cx+fx*r*0.78, cy+fy*r*0.78, cx-fx*r*0.78, cy-fy*r*0.78
+			c.line(x0, y0, x1, y1, 2.2*z, col, 1)
+			hx, hy := -fx, -fy // the arrowhead where it blows to
+			c.tri(x1+hx*4*z, y1+hy*4*z, x1-hy*5*z-hx*6*z, y1+hx*5*z-hy*6*z, x1+hy*5*z-hx*6*z, y1-hx*5*z-hy*6*z, col, 1)
+			c.text(tf, st.T("Wind", "Viento")+" "+strconv.FormatFloat(st.spd(wv), 'f', 0, 64)+" "+st.spdU()+" · "+st.T("from", "del")+" "+compassFrom(wd), tx, y+16*z, colText, 1, 0)
+			a := math.Abs(math.Mod(rel+3*math.Pi, 2*math.Pi) - math.Pi) // 0 from ahead … π from behind
+			kind := st.T("Crosswind", "Viento cruzado")
+			switch {
+			case a < math.Pi/4:
+				kind = st.T("Headwind", "Viento de cara")
+			case a > 3*math.Pi/4:
+				kind = st.T("Tailwind", "Viento de cola")
+			}
+			c.text(sf, kind, tx, y+36*z, colMuted, 1, 0)
+		} else {
+			c.text(tf, st.T("Wind", "Viento")+" –", tx, y+16*z, colMuted, 1, 0)
 		}
-		fx, fy := math.Sin(rel), -math.Cos(rel) // the point of the ring the wind comes from (nose up)
-		col := uint32(colBlue)
-		if wv*3.6 > 25 {
-			col = colAmber
-		}
-		x0, y0, x1, y1 := cx+fx*r*0.78, cy+fy*r*0.78, cx-fx*r*0.78, cy-fy*r*0.78
-		c.line(x0, y0, x1, y1, 2.2*z, col, 1)
-		hx, hy := -fx, -fy // the arrowhead where it blows to
-		c.tri(x1+hx*4*z, y1+hy*4*z, x1-hy*5*z-hx*6*z, y1+hx*5*z-hy*6*z, x1+hy*5*z-hx*6*z, y1-hx*5*z-hy*6*z, col, 1)
-		c.text(tf, st.T("Wind", "Viento")+" "+strconv.FormatFloat(st.spd(wv), 'f', 0, 64)+" "+st.spdU()+" · "+st.T("from", "del")+" "+compassFrom(wd), tx, y+16*z, colText, 1, 0)
-		a := math.Abs(math.Mod(rel+3*math.Pi, 2*math.Pi) - math.Pi) // 0 from ahead … π from behind
-		kind := st.T("Crosswind", "Viento cruzado")
-		switch {
-		case a < math.Pi/4:
-			kind = st.T("Headwind", "Viento de cara")
-		case a > 3*math.Pi/4:
-			kind = st.T("Tailwind", "Viento de cola")
-		}
-		c.text(sf, kind, tx, y+36*z, colMuted, 1, 0)
-	} else {
-		c.text(tf, st.T("Wind", "Viento")+" –", tx, y+16*z, colMuted, 1, 0)
+		y += 58 * z
 	}
-	y += 58 * z
-	// the sky and the humidity
-	sky := "–"
-	if v, ok := st.num("Skies"); ok {
-		en := []string{"Clear", "Partly cloudy", "Mostly cloudy", "Overcast"}
-		es := []string{"Despejado", "Parcialmente nublado", "Muy nublado", "Cubierto"}
-		if k := int(v); k >= 0 && k < len(en) {
-			sky = st.T(en[k], es[k])
+	if has("sky") {
+		// the sky and the humidity
+		sky := "–"
+		if v, ok := st.num("Skies"); ok {
+			en := []string{"Clear", "Partly cloudy", "Mostly cloudy", "Overcast"}
+			es := []string{"Despejado", "Parcialmente nublado", "Muy nublado", "Cubierto"}
+			if k := int(v); k >= 0 && k < len(en) {
+				sky = st.T(en[k], es[k])
+			}
 		}
-	}
-	hum := ""
-	if v, ok := st.num("RelativeHumidity"); ok {
-		if v <= 1 {
-			v *= 100
+		hum := ""
+		if v, ok := st.num("RelativeHumidity"); ok {
+			if v <= 1 {
+				v *= 100
+			}
+			hum = " · " + st.T("humidity", "humedad") + " " + strconv.Itoa(int(math.Round(v))) + "%"
 		}
-		hum = " · " + st.T("humidity", "humedad") + " " + strconv.Itoa(int(math.Round(v))) + "%"
+		c.text(sf, st.T("Sky", "Cielo")+": "+sky+hum, pad, y+10*z, colText, 1, 0)
+		y += 24 * z
 	}
-	c.text(sf, st.T("Sky", "Cielo")+": "+sky+hum, pad, y+10*z, colText, 1, 0)
-	y += 24 * z
-	// rain and how wet the track is
-	rain := "–"
-	if v, ok := st.num("Precipitation"); ok {
-		if v <= 1 {
-			v *= 100
+	if rainRow {
+		// rain and how wet the track is
+		line := ""
+		if has("rain") {
+			rain := "–"
+			if v, ok := st.num("Precipitation"); ok {
+				if v <= 1 {
+					v *= 100
+				}
+				rain = strconv.Itoa(int(math.Round(v))) + "%"
+			}
+			line = st.T("Rain", "Lluvia") + " " + rain
 		}
-		rain = strconv.Itoa(int(math.Round(v))) + "%"
-	}
-	wet := ""
-	if v, ok := st.num("TrackWetness"); ok {
-		en := []string{"", "dry", "mostly dry", "very lightly wet", "lightly wet", "moderately wet", "very wet", "extremely wet"}
-		es := []string{"", "seca", "casi seca", "muy ligeramente mojada", "ligeramente mojada", "moderadamente mojada", "muy mojada", "extremadamente mojada"}
-		if k := int(v); k > 0 && k < len(en) {
-			wet = " · " + st.T("track", "pista") + " " + st.T(en[k], es[k])
+		if v, ok := st.num("TrackWetness"); ok && has("wet") {
+			en := []string{"", "dry", "mostly dry", "very lightly wet", "lightly wet", "moderately wet", "very wet", "extremely wet"}
+			es := []string{"", "seca", "casi seca", "muy ligeramente mojada", "ligeramente mojada", "moderadamente mojada", "muy mojada", "extremadamente mojada"}
+			if k := int(v); k > 0 && k < len(en) {
+				w := st.T("track", "pista") + " " + st.T(en[k], es[k])
+				if line == "" {
+					w = st.T("Track", "Pista") + " " + st.T(en[k], es[k])
+				} else {
+					w = " · " + w
+				}
+				line += w
+			}
 		}
-	}
-	c.text(sf, st.T("Rain", "Lluvia")+" "+rain+wet, pad, y+10*z, colText, 1, 0)
-	if v, _ := st.num("WeatherDeclaredWet"); v != 0 {
-		pf := ovFace(fkDataB, 10.5*z)
-		s := st.T("DECLARED WET", "EN MOJADO")
-		w := textW(pf, s) + 12*z
-		c.roundRect(W-pad-w, y+2*z, w, 17*z, 4*z, colBad, 0.9, 0, 0, 0)
-		c.text(pf, s, W-pad-w/2, y+10*z, 0xffffff, 1, 2)
+		c.text(sf, line, pad, y+10*z, colText, 1, 0)
+		if v, _ := st.num("WeatherDeclaredWet"); v != 0 {
+			pf := ovFace(fkDataB, 10.5*z)
+			s := st.T("DECLARED WET", "EN MOJADO")
+			w := textW(pf, s) + 12*z
+			c.roundRect(W-pad-w, y+2*z, w, 17*z, 4*z, colBad, 0.9, 0, 0, 0)
+			c.text(pf, s, W-pad-w/2, y+10*z, 0xffffff, 1, 2)
+		}
 	}
 	return int(math.Ceil(H))
 }
@@ -258,11 +307,18 @@ func classColor(st *ovState, d *ovDriver) uint32 {
 func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 	W := float64(c.w)
 	pad := 14 * z
-	H := 62 * z
-	panel(c, H, z)
+	// its own settings: the line alone (no panel), its height, the nearest numbers, the sector marks, only your class
+	own := st.uiMap("trackbar")
+	hs := sizeOf(own, "height", 0.8, 1.3)
+	near2, secOn := uiBool(own, "near", true), uiBool(own, "sectors", true)
+	H := 62 * z * hs
+	if !uiBool(own, "lineOnly", false) {
+		panel(c, H, z)
+	}
 	x0, x1 := pad+6*z, W-pad-6*z
 	by := H/2 + 3*z
-	c.roundRect(x0, by-4*z, x1-x0, 8*z, 4*z, colSurf2, 1, colLine, 1, 1)
+	bh := 8 * z * hs
+	c.roundRect(x0, by-bh/2, x1-x0, bh, bh/2, colSurf2, 1, colLine, 1, 1)
 	for k := 0; k < 4; k++ { // the start/finish line, a small checker at the left end
 		col := uint32(colText)
 		if k%2 == 1 {
@@ -277,7 +333,7 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 		return int(H)
 	}
 	// the sectors, as ticks on the bar
-	if len(st.ses.Sectors) >= 2 {
+	if len(st.ses.Sectors) >= 2 && secOn {
 		sf := ovFace(fkData, 9*z)
 		for k, f := range st.ses.Sectors[1:] {
 			x := x0 + f*(x1-x0)
@@ -297,9 +353,13 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 		d   float64 // along the track from you, as a part of the lap (+ ahead)
 	}
 	nears := []near{}
+	myCls := -1
+	if d := st.ses.Drivers[me]; d != nil && uiBool(own, "myClass", false) {
+		myCls = d.Class
+	}
 	for i, p := range pct {
 		d := st.ses.Drivers[i]
-		if i == me || p < 0 || d == nil || d.Skip || (i < len(surf) && (surf[i] < 0 || surf[i] == 1)) {
+		if i == me || p < 0 || d == nil || d.Skip || (i < len(surf) && (surf[i] < 0 || surf[i] == 1)) || (myCls >= 0 && d.Class != myCls) {
 			continue
 		}
 		col, a := classColor(st, d), 1.0
@@ -334,6 +394,9 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 	}
 	var tags []tag
 	for _, n := range nears {
+		if !near2 {
+			break
+		}
 		if n.d > 0 && ahead < 2 || n.d < 0 && behind < 2 {
 			if n.d > 0 {
 				ahead++
@@ -391,7 +454,19 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		}
 	}
 	rowH := 26 * z
-	H := pad + th + 50*z + 3*rowH + pad - 6*z
+	// its own settings: which values (the frames a second, their last minute, GPU, CPU, the connection)
+	show := uiList(st.uiMap("system"), "show", []string{"fps", "graph", "gpu", "cpu", "net"})
+	top := uiHas(show, "fps") || uiHas(show, "graph")
+	nRows := 0
+	for _, k := range []string{"gpu", "cpu", "net"} {
+		if uiHas(show, k) {
+			nRows++
+		}
+	}
+	H := pad + th + float64(nRows)*rowH + pad - 6*z
+	if top {
+		H += 50 * z
+	}
 	panel(c, H, z)
 	if ton {
 		c.label(z, st.T("Performance", "Rendimiento"), pad, pad+6*z, 0)
@@ -408,8 +483,10 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			col = colWarn
 		}
 	}
-	c.valueUnit(font_{ovFace(fkDisplayB, 34*z), 34 * z}, z, s, "fps", pad, y+22*z, col)
-	if len(m.fps) > 1 {
+	if uiHas(show, "fps") {
+		c.valueUnit(font_{ovFace(fkDisplayB, 34*z), 34 * z}, z, s, "fps", pad, y+22*z, col)
+	}
+	if len(m.fps) > 1 && uiHas(show, "graph") {
 		gx0, gx1, gy0, gy1 := W/2, W-pad, y+4*z, y+42*z
 		top := 60.0
 		for _, v := range m.fps {
@@ -424,7 +501,9 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			c.line(xa, ya, xb, yb, 1.5*z, colMuted, 0.9)
 		}
 	}
-	y += 50 * z
+	if top {
+		y += 50 * z
+	}
 	kf, vf := ovFace(fkBody, 13.5*z), ovFace(fkData, 14*z)
 	use := func(label, name string) {
 		c.rect(pad, y, W-2*pad, 1, colLine, 1)
@@ -447,8 +526,15 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		}
 		y += rowH
 	}
-	use("GPU", "GpuUsage")
-	use("CPU", "CpuUsageFG")
+	if uiHas(show, "gpu") {
+		use("GPU", "GpuUsage")
+	}
+	if uiHas(show, "cpu") {
+		use("CPU", "CpuUsageFG")
+	}
+	if !uiHas(show, "net") {
+		return int(math.Ceil(H))
+	}
 	// the connection with iRacing's server
 	c.rect(pad, y, W-2*pad, 1, colLine, 1)
 	c.text(kf, st.T("Connection", "Conexión"), pad, y+rowH/2, colMuted, 1, 0)

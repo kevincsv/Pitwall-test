@@ -413,6 +413,7 @@ html.ov #radarC{max-width:none}
 html.ov [data-w=radar]>.label,html.ov [data-w=boost]>.label{display:none}
 html.ov .wpanel.notitle>.label:first-child,html.ov .wpanel.notitle>.vhead:first-child>.label:first-child{display:none}
 html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
+html.ov .wpanel.lineonly{background:transparent;border-color:transparent;box-shadow:none}html.ov .wpanel.lineonly>.label{display:none}
 @media (max-width:520px){.inrow{grid-template-columns:auto 1fr}.wheel{display:none}}
 /* sections and sub-pages */
 nav.tabs button{display:inline-flex;align-items:center;gap:7px}
@@ -475,6 +476,8 @@ html.ov.ovwin #dbTrend{position:absolute;top:50%;left:calc(50% + 52px);transform
 .lcmp-corners{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px}.lc-c{flex:1 0 56px;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface2,#222b37);border:1px solid var(--line);border-radius:8px;padding:7px 4px;color:var(--fg);min-height:44px}.lc-c.off{opacity:.45}.lc-c.good .mono{color:var(--good)}.lc-c.bad .mono{color:var(--bad)}
 html.ov .wtable tr.me td{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 html.ov .wtable td{padding-top:4px;padding-bottom:4px}
+.wtable tr.dim td{opacity:.45}.wtable tr.clsh td{font:600 11px var(--f-data);letter-spacing:.06em;text-transform:uppercase;color:var(--fg);padding-top:8px}.wtable tr.clsh i,.clsband i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.rs-s .wtable td{padding-top:2px!important;padding-bottom:2px!important}.rs-l .wtable td{padding-top:8px!important;padding-bottom:8px!important}
 html.ov .wtable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--fg) 4%,transparent)}
 html.ov .gear{text-shadow:0 0 18px color-mix(in srgb,var(--accent) 40%,transparent)}
 /* free resize of Live blocks */
@@ -3266,12 +3269,13 @@ function frameTick(){
   if(now-lastSt>250){lastSt=now;if(lv("stats"))renderStats()}
   trackSectors();trackIncidents();sampleGaps();shiftTick();estTick();brakeTick();
   if(lv("brakes")&&now-(window._bmT||0)>66){window._bmT=now;renderBrakes()}
-  if(now-lastPit>500){lastPit=now;if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(lv("weather"))renderWeather();if(lv("system"))renderSystem();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
+  if(now-lastPit>500){lastPit=now;ovOwnApply();if(lv("pit"))renderPit();if(lv("sectors"))renderSectors();if(lv("incidents"))renderIncidents();if(lv("gaps"))drawGaps();if(lv("coach"))renderCoachWidget();if(lv("weather"))renderWeather();if(lv("system"))renderSystem();if(view==="strategy"&&now-(window._stT||0)>5000){window._stT=now;renderStrategy()}}
   if(now-lastMap>66&&(view==="live")&&LIVE_SHOWN.has("map")||now-lastMap>66&&OV.on&&OV.list.includes("map")){lastMap=now;drawMap()}
   if(now-lastTy>500){lastTy=now;trackTyreHistory();trackPositions();if(view==="tyres")renderTyres()}
   if(view==="live"&&LIVE_MODE!=="basic"&&now-(window._trcT||0)>100){window._trcT=now;if(LIVE_MODE==="full")drawLiveTraces();else tickLiveCmp()}
   if(view==="live"){
-    const kmh=spd(T.Speed||0);$("#spd").textContent=Math.round(kmh);
+    // the dash's own settings: its speed's units and the shift lights
+    const dsh=ui("dash"),su=dsh.spdUnit,kmh=su==="kmh"?(T.Speed||0)*3.6:su==="mph"?(T.Speed||0)*2.23694:spd(T.Speed||0);$("#spd").textContent=Math.round(kmh);$("#spdU").textContent=su==="kmh"?"km/h":su==="mph"?"mph":spdU();rpmEl.hidden=dsh.shift===false;
     const g=T.Gear;$("#gear").textContent=g==null?"–":g===0?"N":g<0?"R":g;
     const rpm=T.RPM||0,di=S.DriverInfo||{},first=di.DriverCarSLFirstRPM||5000,sc=SHIFT.cars[carKey()],shift=sc&&sc.on&&sc.mode!=="ir"?shiftRPM(T.Gear,shiftCfg()):(di.DriverCarSLShiftRPM||(di.DriverCarRedLine||7500)*.94),blink=di.DriverCarSLBlinkRPM||shift*1.03;
     $("#rpmV").textContent=Math.round(rpm).toLocaleString();const on=Math.round(Math.max(0,Math.min(16,(rpm-first)/(shift-first)*16)));rpmSeg.forEach((s,i)=>s.classList.toggle("on",i<on));
@@ -3279,7 +3283,7 @@ function frameTick(){
     $("#thrB").style.height=(T.Throttle||0)*100+"%";$("#brkB").style.height=(T.Brake||0)*100+"%";$("#cluB").style.height=(1-(T.Clutch??1))*100+"%";
     $("#cur").textContent=fmtT(T.LapCurrentLapTime);
     const dl=deltaNow(),de=$("#delta");if(dl!=null){de.textContent=sgn(dl);de.className="mid mono "+(dl<=0?"good":"bad")}else{de.textContent="–";de.className="mid mono"}
-    $("#best").textContent=fmtT(T.LapBestLapTime);$("#last").textContent=fmtT(T.LapLastLapTime);
+    $("#best").textContent=fmtT(T.LapBestLapTime);$("#last").textContent=fmtT(T.LapLastLapTime);$("#best").closest(".row").hidden=ui("timing").lastBest===false;
     $("#lapProg").style.width=((T.LapDistPct||0)*100)+"%";
 
     if(now-lastDraw>66){lastDraw=now;drawTrace();liveSlow()}
@@ -3293,9 +3297,10 @@ function liveSlow(){renderDC();
   const rem=T.SessionLapsRemainEx,tot=T.SessionLapsTotal;$("#lapNo").textContent=T.Lap??"–";$("#lapOf").textContent=tot&&tot<32767?"/ "+tot:"";
   // flags
   const f=T.SessionFlags||0,fl=$("#flag"),nowF=Date.now();for(let b=1;b<=0x80000000;b*=2){const on=!!(f&b),was=!!(FLAG_AT.last&b);if(on&&!was)FLAG_AT.on[b]=nowF;else if(!on&&was)delete FLAG_AT.on[b]}FLAG_AT.last=f;
-  const goAt=FLAG_AT.on[0x80000000],start=(f&0x20000000)||(f&0x40000000)||(goAt&&nowF-goAt<3000);
+  // its own settings: the start lights, and which flags it warns of
+  const fo=ui("flag"),goAt=FLAG_AT.on[0x80000000],start=fo.lights!==false&&((f&0x20000000)||(f&0x40000000)||(goAt&&nowF-goAt<3000));
   if(start){const lit=goAt&&nowF-goAt<3000?[5,"go","GO"]:f&0x40000000?[5,"set",Tx("SET","LISTOS")]:[2,"ready",Tx("READY","PREPARADOS")];fl.className="flag on start "+lit[1];fl.innerHTML=`<span class="lights">${[0,1,2,3,4].map(i=>`<i class="${i<lit[0]?"lit":""}"></i>`).join("")}</span><span>${esc(lit[2])}</span>`}
-  else{const hit=FLAGS.find(x=>f&x[0]&&(x[1]!=="green"||(FLAG_AT.on[x[0]]&&nowF-FLAG_AT.on[x[0]]<4000)));if(hit){fl.className="flag on "+hit[1];fl.innerHTML=Lp(hit[2],hit[3],true)}else fl.className="flag"}
+  else{const hit=FLAGS.find(x=>f&x[0]&&(fo.kinds||[]).includes(x[1])&&(x[1]!=="green"||(FLAG_AT.on[x[0]]&&nowF-FLAG_AT.on[x[0]]<4000)));if(hit){fl.className="flag on "+hit[1];fl.innerHTML=Lp(hit[2],hit[3],true)}else fl.className="flag"}
   // fuel
   const fuel=T.FuelLevel;if(fuel!=null){
     const max=(S.DriverInfo||{}).DriverCarFuelMaxLtr||fuel/(T.FuelLevelPct||1)||45;
@@ -3305,27 +3310,33 @@ function liveSlow(){renderDC();
     $("#fpl").textContent=per?vol(per).toFixed(2):"–";const fl2=per?fuel/per:null;$("#fuelLaps").textContent=fl2?fl2.toFixed(1):"–";
     let left=null;if(rem!=null&&rem<32767&&rem>=0)left=Math.max(0,rem-(T.LapDistPct||0));else if(T.SessionTimeRemain>0&&T.SessionTimeRemain<604800&&estLap())left=T.SessionTimeRemain/estLap()+1;
     FUELPER=per;FUELMAX=max;
-    const v=$("#fuelVerdict");if(per&&left!=null){const need=left*per,add=need-fuel+per*.3;
+    // its own settings: which values, and the safety margin in laps (unset, 0.3 of a lap in the verdict, none in the line to the finish)
+    {const fo=ui("fuel"),sh=fo.show||[],fw=$("#fuel")&&$("#fuel").closest(".wpanel");if(fw){const cols=fw.querySelectorAll(".row>div");[["tank",0],["laps",1],["per",2]].forEach(([k,i])=>{if(cols[i])cols[i].hidden=!sh.includes(k)});
+      fw.querySelector(".row").hidden=!["tank","laps","per"].some(k=>sh.includes(k));$("#fuelBar").parentElement.hidden=!sh.includes("tank");$("#fuelVerdict").hidden=!sh.includes("finish");$("#fuelLast").hidden=!sh.includes("last")}}
+    const spare=ui("fuel").spare,margin=spare>=0?spare:.3;
+    const v=$("#fuelVerdict");if(per&&left!=null){const need=left*per,add=need-fuel+per*margin;
       v.innerHTML=add<=0?`<span class="good">${Lp("Enough to finish. Spare: ","Llegas al final. Sobra: ",true)}${vol(-add).toFixed(1)} ${volU()}</span>`:`<span class="bad">${Lp("Add at the stop: ","Añade en la parada: ",true)}${vol(add).toFixed(1)} ${volU()}</span> <span class="muted">· ${left.toFixed(1)} ${Lp("laps to go","vueltas restantes",true)}</span>`}
     else v.innerHTML=Lp("Average fuel use appears after your first full lap.","El consumo medio aparece tras tu primera vuelta completa.");
     // the last lap's use, and what you may use per lap to finish without a stop
     const fl=$("#fuelLast");if(fl){const parts=[];const lu=fuelLog.uses.at(-1);if(lu>0)parts.push(`${Lp("Last lap","Última vuelta",true)} ${vol(lu).toFixed(2)} ${volU()}`);
-      if(left>0.5){const need=fuel/left;parts.push(`${Lp("to finish without a stop: ≤","para acabar sin parar: ≤",true)} ${vol(need).toFixed(2)} ${volU()}${Lp(" a lap"," por vuelta",true)}`);fl.classList.toggle("warn",!!(per&&per>need*1.02))}else fl.classList.remove("warn");
+      if(left>0.5){const need=fuel/(left+(spare>=0?spare:0));parts.push(`${Lp("to finish without a stop: ≤","para acabar sin parar: ≤",true)} ${vol(need).toFixed(2)} ${volU()}${Lp(" a lap"," por vuelta",true)}`);fl.classList.toggle("warn",!!(per&&per>need*1.02))}else fl.classList.remove("warn");
       fl.textContent=parts.join(" · ")}
   }
   const T1=v=>v==null?"–":tmp(v).toFixed(1)+" "+tmpU();
   $("#water").textContent=T1(T.WaterTemp);$("#oil").textContent=T1(T.OilTemp);$("#oilP").textContent=T.OilPress==null?"–":T.OilPress.toFixed(2)+" bar";$("#volt").textContent=T.Voltage==null?"–":T.Voltage.toFixed(1)+" V";$("#air").textContent=T1(T.AirTemp);$("#trk").textContent=T1(T.TrackTempCrew);
   // the game's warnings: 1 water, 2 fuel pressure, 4 oil pressure, 8 stalled, 16 pit limiter, 32 rev limiter, 64 oil temperature
   {const w=T.EngineWarnings|0;$("#water").classList.toggle("bad",!!(w&1));$("#oil").classList.toggle("bad",!!(w&64));$("#oilP").classList.toggle("bad",!!(w&4));
-    const eb=$("#engBadges");if(eb){const b=[];if(w&8)b.push(`<span class="pill bad">${esc(Tx("Stalled","Calado"))}</span>`);if(w&32)b.push(`<span class="pill bad">${esc(Tx("Rev limiter","Corte"))}</span>`);if(w&16)b.push(`<span class="pill acc">${esc(Tx("Pit limiter","Limitador"))}</span>`);if(w&2)b.push(`<span class="pill bad">${esc(Tx("Fuel pressure","Presión de gasolina"))}</span>`);eb.innerHTML=b.join("");eb.hidden=!b.length}}
-  $("#tyres").innerHTML=["LF","RF","LR","RR"].map(k=>{const v=tyreVals(k),tv=[v.L,v.M,v.R].every(x=>x!=null)?(v.L+v.M+v.R)/3:v.M,w=v.wM;return `<div class="tyre" style="border-color:${tv==null?"var(--line)":heatColor(tv)}"><div class="label">${k}</div><div class="mono">${tv==null?"–":tmp(tv).toFixed(0)+tmpU()} · ${w==null?"–":Math.round(w*100)+"%"}</div></div>`}).join("");
+    // its own settings: which rows, and the badges
+    {const eo=ui("engine"),rows=eo.rows||[];[["water","#water"],["oil","#oil"],["oilp","#oilP"],["volt","#volt"],["air","#air"],["track","#trk"]].forEach(([k,id])=>{const dd=$(id);if(dd){dd.hidden=!rows.includes(k);dd.previousElementSibling.hidden=dd.hidden}});if(eo.badges===false&&$("#engBadges")){$("#engBadges").hidden=true}}
+    const eb=ui("engine").badges===false?null:$("#engBadges");if(eb){const b=[];if(w&8)b.push(`<span class="pill bad">${esc(Tx("Stalled","Calado"))}</span>`);if(w&32)b.push(`<span class="pill bad">${esc(Tx("Rev limiter","Corte"))}</span>`);if(w&16)b.push(`<span class="pill acc">${esc(Tx("Pit limiter","Limitador"))}</span>`);if(w&2)b.push(`<span class="pill bad">${esc(Tx("Fuel pressure","Presión de gasolina"))}</span>`);eb.innerHTML=b.join("");eb.hidden=!b.length}}
+  {const ty=ui("tyres");$("#tyres").innerHTML=["LF","RF","LR","RR"].map(k=>{const v=tyreVals(k),tv=[v.L,v.M,v.R].every(x=>x!=null)?(v.L+v.M+v.R)/3:v.M,w=v.wM;return `<div class="tyre" style="border-color:${tv==null?"var(--line)":heatColor(tv)}"><div class="label">${k}</div><div class="mono">${tv==null?"–":tmp(tv).toFixed(0)+tmpU()}${ty.wear===false?"":` · ${w==null?"–":Math.round(w*100)+"%"}`}</div></div>`}).join("")}
   const wi=S.WeekendInfo||{},ses=((S.SessionInfo||{}).Sessions||[]).find(s=>s.SessionNum===T.SessionNum)||{};
   $("#sessLine").textContent=[ses.SessionName,wi.TrackConfigName,(drivers().find(d=>d.CarIdx===T.PlayerCarIdx)||{}).CarScreenNameShort].filter(Boolean).join(" · ");
 }
 function drawTrace(){const cv=$("#trace");if(!cv||cv.hidden)return;const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);x.strokeStyle=css("--line");x.lineWidth=1;[.25,.5,.75].forEach(f=>{x.beginPath();x.moveTo(0,h*f);x.lineTo(w,h*f);x.stroke()});
   const c=ui("inp"),N=Math.round((c.traceSecs||12)*30),data=hist.slice(-N),n=data.length;if(n<2)return;const sx=w/N;
   if(c.traceCh.includes("abs")){x.fillStyle=css("--bad");x.globalAlpha=.18;data.forEach((p,i)=>{if(p[4])x.fillRect((N-n+i)*sx,0,Math.max(1,sx),h)});x.globalAlpha=1}
-  [["thr",0,"--good"],["brk",1,"--bad"],["clu",2,"--blue"],["steer",3,"--fg"]].filter(t=>c.traceCh.includes(t[0])).forEach(([,k,col])=>{x.beginPath();data.forEach((p,i)=>{const X=(N-n+i)*sx,Y=h-3-(k===3?(p[3]+1)/2:p[k])*(h-6);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.strokeStyle=css(col);x.lineWidth=k===3?1.2:2;x.stroke()})}
+  [["thr",0,"--good"],["brk",1,"--bad"],["clu",2,"--blue"],["steer",3,"--fg"]].filter(t=>c.traceCh.includes(t[0])).forEach(([,k,col])=>{x.beginPath();data.forEach((p,i)=>{const X=(N-n+i)*sx,Y=h-3-(k===3?(p[3]+1)/2:p[k])*(h-6);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.strokeStyle=css(col);x.lineWidth=(k===3?1.2:2)*(c.lineW||1);x.stroke()})}
 
 /* ===================== standings ===================== */
 
@@ -4389,7 +4400,8 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
     if(!colorAt){x.beginPath();for(let i=0;i<=n;i++){const k=i%n;if(xs[k]==null)continue;const[a,b]=P(xs[k],ys[k]);i?x.lineTo(a,b):x.moveTo(a,b)}x.strokeStyle=col;x.stroke();return}
     let prev=null,pc=null;x.beginPath();for(let i=0;i<n;i++){if(xs[i]==null)continue;const q=P(xs[i],ys[i]),cc=colorAt(i);if(prev&&cc!==pc){x.strokeStyle=pc;x.stroke();x.beginPath();x.moveTo(prev[0],prev[1])}if(!prev)x.moveTo(q[0],q[1]);else x.lineTo(q[0],q[1]);prev=q;pc=cc}if(pc){x.strokeStyle=pc;x.stroke()}};
   const good=css("--good"),bad=css("--bad"),acc=css("--accent"),pb=css("--pb"),mut=css("--muted");
-  const sm=d?mapSmooth(d):null,rw=Math.max(8,Math.min(18,Math.min(w,h)/24));
+  // its own settings: the track's thickness, the turn numbers and only your class's cars
+  const mo=ui("map"),sm=d?mapSmooth(d):null,rw=Math.max(8,Math.min(18,Math.min(w,h)/24))*(mo.width||1);
   if(d){const n=sm.x.length,alpha=(a,f)=>{x.save();x.globalAlpha=a;f();x.restore()};
     // the track as a road with depth, like the coach's maps: its shadow, the kerb-coloured rim and the darker asphalt
     x.save();x.translate(2,3.5);x.globalAlpha=.38;line(sm.x,sm.y,"#000",rw+5);x.restore();
@@ -4403,7 +4415,7 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
     x.beginPath();x.moveTo(bx,by);x.lineTo(tx-ux*hh,ty-uy*hh);x.stroke();x.beginPath();x.moveTo(tx,ty);x.lineTo(tx-ux*hh+nx*hh*.6,ty-uy*hh+ny*hh*.6);x.lineTo(tx-ux*hh-nx*hh*.6,ty-uy*hh-ny*hh*.6);x.closePath();x.fill();
     // the official turn numbers, beside the road
     const tid=(S.WeekendInfo||{}).TrackID,oc=tid&&liveGame()==="iracing"?officialCorners(tid,"iracing",n,d.len||trackLenM()):null;
-    if(oc){x.font="700 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";x.lineJoin="round";
+    if(oc&&mo.turns!==false){x.font="700 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";x.lineJoin="round";
       oc.forEach(cn=>{const i=cn.i,[a,b]=P(sm.x[i],sm.y[i]),[a1,b1]=P(sm.x[(i+2)%n],sm.y[(i+2)%n]),[a0,b0]=P(sm.x[(i-2+n)%n],sm.y[(i-2+n)%n]),tm=Math.hypot(a1-a0,b1-b0)||1;
         let qx=-(b1-b0)/tm,qy=(a1-a0)/tm;if((a-w/2)*qx+(b-h/2)*qy<0){qx=-qx;qy=-qy}const X=a+qx*(rw/2+9),Y=b+qy*(rw/2+9);
         x.lineWidth=3;x.strokeStyle=css("--bg");x.strokeText(cn.n,X,Y);x.fillStyle=css("--muted");x.fillText(cn.n,X,Y)})}
@@ -4418,7 +4430,7 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
   if(d){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,pos=T.CarIdxPosition||[],pit=T.CarIdxOnPitRoad||[],laps=T.CarIdxLap||[];const N=d.N;
     const at=q=>{const f=q*N,i=Math.floor(f)%N,j=(i+1)%N,t=f-Math.floor(f);return P(sm.x[i]+(sm.x[j]-sm.x[i])*t,sm.y[i]+(sm.y[j]-sm.y[i])*t)};
     x.font="700 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";
-    const list=drivers().filter(dr=>!dr.IsSpectator&&!dr.CarIsPaceCar&&pct[dr.CarIdx]>=0).sort((a,b)=>(a.CarIdx===me)-(b.CarIdx===me));
+    const meD=driverBy(me),list=drivers().filter(dr=>!dr.IsSpectator&&!dr.CarIsPaceCar&&pct[dr.CarIdx]>=0&&(!mo.myClass||!meD||dr.CarIdx===me||classOf(dr)===classOf(meD))).sort((a,b)=>(a.CarIdx===me)-(b.CarIdx===me));
     list.forEach(dr=>{const i=dr.CarIdx;if(i!==me&&!MAPL.cars)return;const[a,b]=at(pct[i]);const lapDiff=(laps[i]+pct[i])-(laps[me]+pct[me]);
       const col=i===me?acc:lapDiff>.5?bad:lapDiff<-.5?css("--blue"):css("--fg");const r=i===me?9:MAPL.nums?7.5:4.5;x.globalAlpha=pit[i]?.45:1;
       x.fillStyle=col;x.beginPath();x.arc(a,b,r,0,7);x.fill();x.lineWidth=2;x.strokeStyle=css("--surface");x.stroke();
@@ -4455,10 +4467,10 @@ function markBrakeRow(){const pin=CMP_HOVER&&CMP_HOVER.pin?CMP_HOVER.i:null;docu
 
 /* ===================== shared settings (overlays read them too) ===================== */
 const UI_DEFAULTS={
-  rel:{cols:["pos","num","name","lic","ir","irc","last","gap"],head:["session","timeleft","sof"],foot:["irc","inc","fuel"],ahead:3,behind:3},
-  std:{cols:["pos","num","name","lic","ir","irc","laps","last","best","gap","int","pit","pgain"],head:["session","lapsleft","sof"],foot:["pos","irc","inc"],top:5,around:3,myClass:true},
-  radar:{range:20,autohide:true},boost:{autohide:true},
-  delta:{src:"best",range:1,predict:true},inp:{gear:true,speed:true,wheel:true,wheelDeg:false,bars:["clu","brk","thr"],values:true,barDir:"v",abs:true,trace:true,traceSecs:12,traceH:110,traceCh:["thr","brk"]},pit:{loss:25,margin:.3},gaps:{mins:5,cars:2},
+  rel:{cols:["pos","num","name","lic","ir","irc","last","gap"],head:["session","timeleft","sof"],foot:["irc","inc","fuel"],ahead:3,behind:3,classHead:false,dimLapped:false,rowSize:"m",notes:true},
+  std:{cols:["pos","num","name","lic","ir","irc","laps","last","best","gap","int","pit","pgain"],head:["session","lapsleft","sof"],foot:["pos","irc","inc"],top:5,around:3,myClass:true,classHead:false,irShort:true,fastMark:true,pitTag:true},
+  radar:{range:20,autohide:true,carSize:1,trails:true,dist:true},boost:{autohide:true},
+  delta:{src:"best",range:1,predict:true},inp:{gear:true,speed:true,wheel:true,wheelDeg:false,bars:["clu","brk","thr"],values:true,barDir:"v",abs:true,trace:true,traceSecs:12,traceH:110,traceCh:["thr","brk"],lineW:1},pit:{loss:25,margin:.3,limTol:.4,pitOnly:false},gaps:{mins:5,cars:2,numbers:false},
   tel:{vars:["LatAccel","LongAccel","YawRate","SteeringWheelAngle","FuelUsePerHour","OilTemp","WaterTemp","Voltage"]}};
 let CFG={autoStart:false,autoWidgets:[],closeOnExit:true,engine:"webview",edit:false,alpha:255,lock:false,scale:1,startWithWindows:false,trayOnClose:true,ui:{}};
 function ui(k){const d=UI_DEFAULTS[k],v=(CFG.ui||{})[k]||{};return Object.assign({},d,v)}
@@ -4531,10 +4543,10 @@ const COLS={
   pos:{n:["Position","Posición"],h:"P",c:"mono",f:c=>c.pos>0?"P"+c.pos:"–"},
   cpos:{n:["Class position","Posición en clase"],h:"PC",c:"mono",f:c=>c.cpos>0?c.cpos:"–"},
   num:{n:["Car number","Número"],h:"#",c:"mono",f:c=>esc(c.d.CarNumber)},
-  name:{n:["Driver","Piloto"],h:["Driver","Piloto"],c:"nm",f:c=>{const mine=c.i===(T.PlayerCarIdx??(S.DriverInfo||{}).DriverCarIdx),n=mine?null:drvOfD(c.d),k=drvKeyOf(c.d.UserID);return(n&&n.tag?`<span class="dmark" title="${esc(dtagName(n.tag)+(n.note?" · "+n.note:""))}">${dtagIcon(n.tag,14)}</span>`:"")+esc(c.d.UserName)+(c.lapUp?` <span class="pill lapup ${c.lapUp>0?"up":"down"}" title="${esc(c.lapUp>0?Tx("Laps ahead of you","Vueltas por delante de ti"):Tx("Laps behind you","Vueltas por detrás de ti"))}">${c.lapUp>0?"+":"−"}${Math.abs(c.lapUp)}L</span>`:"")+(c.pit?' <span class="pill">PIT</span>':"")+(!mine&&!OV.on&&!REMOTE&&k?`<button type="button" class="dnote-b" data-dnote="${k}" data-dname="${esc(c.d.UserName)}" aria-label="${esc(Tx("Note","Nota"))}">✎</button>`:"")}},
+  name:{n:["Driver","Piloto"],h:["Driver","Piloto"],c:"nm",f:c=>{const mine=c.i===(T.PlayerCarIdx??(S.DriverInfo||{}).DriverCarIdx),n=mine?null:drvOfD(c.d),k=drvKeyOf(c.d.UserID);return(n&&n.tag&&!c.noNote?`<span class="dmark" title="${esc(dtagName(n.tag)+(n.note?" · "+n.note:""))}">${dtagIcon(n.tag,14)}</span>`:"")+esc(c.d.UserName)+(c.lapUp?` <span class="pill lapup ${c.lapUp>0?"up":"down"}" title="${esc(c.lapUp>0?Tx("Laps ahead of you","Vueltas por delante de ti"):Tx("Laps behind you","Vueltas por detrás de ti"))}">${c.lapUp>0?"+":"−"}${Math.abs(c.lapUp)}L</span>`:"")+(c.pit&&!c.noPit?' <span class="pill">PIT</span>':"")+(!mine&&!OV.on&&!REMOTE&&k?`<button type="button" class="dnote-b" data-dnote="${k}" data-dname="${esc(c.d.UserName)}" aria-label="${esc(Tx("Note","Nota"))}">✎</button>`:"")}},
   car:{n:["Car","Coche"],h:["Car","Coche"],c:"muted",f:c=>esc(c.d.CarScreenNameShort||"")},
   lic:{n:["Licence","Licencia"],h:["Lic.","Lic."],c:"",f:c=>lic(c.d.LicString)},
-  ir:{n:["iRating","iRating"],h:"iR",c:"r mono",f:c=>c.d.IRating?(c.d.IRating/1000).toFixed(1)+"k":"–"},
+  ir:{n:["iRating","iRating"],h:"iR",c:"r mono",f:c=>c.d.IRating?(c.irFull?String(c.d.IRating):(c.d.IRating/1000).toFixed(1)+"k"):"–"},
   irc:{n:["iRating change (est.)","Cambio iRating (est.)"],h:"±iR",c:"r mono",f:c=>c.irc==null?"–":`<span class="${c.irc>=0?"good":"bad"}">${c.irc>=0?"+":"−"}${Math.abs(c.irc)}</span>`},
   laps:{n:["Laps","Vueltas"],h:["Laps","Vtas"],c:"r mono",f:c=>c.laps??"–"},
   last:{n:["Last lap","Última vuelta"],h:["Last","Última"],c:"r mono",f:c=>`<span class="${c.lastBest?"pb":""}">${fmtT(c.last)}</span>`},
@@ -4551,26 +4563,40 @@ Object.entries(COLS).forEach(([k,v])=>I18N["col."+k]=v.n);
 function colHead(k){const h=COLS[k].h;return Array.isArray(h)?esc(Tx(h[0],h[1]).split(" / ")[0]):esc(h)}
 function rowCtx(i,extra){const d=driverBy(i)||{};const pos=T.CarIdxPosition||[],cpos=T.CarIdxClassPosition||[],last=T.CarIdxLastLapTime||[],best=T.CarIdxBestLapTime||[],laps=T.CarIdxLapCompleted||[],pit=T.CarIdxOnPitRoad||[],tyre=T.CarIdxTireCompound||[];
   const g=gridPos(i);return Object.assign({i,d,pos:pos[i],cpos:cpos[i],last:last[i],best:best[i],laps:laps[i],pit:pit[i],pits:PITS[i]||0,tyre:tyre[i],irc:irChanges().get(i),pgain:g&&pos[i]>0?g-pos[i]:null,lastBest:last[i]>0&&last[i]===best[i]},extra||{})}
-function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>{const nd=colLacks(k);return `<th class="col-${k} ${COLS[k].c.includes("r")?"r":""}${nd?" nd":""}"${nd?` title="${esc(nd)}"`:""}>${colHead(k)}</th>`}).join("")}</tr></thead><tbody>${rows.map(r=>r.blank?`<tr class="blank"><td colspan="${cols.length}">&nbsp;</td></tr>`:r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":""].join(" ")}">${cols.map(k=>`<td class="col-${k} ${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
+function tableHTML(cols,rows,me){return `<div class="tscroll"><table class="wtable"><thead><tr>${cols.map(k=>{const nd=colLacks(k);return `<th class="col-${k} ${COLS[k].c.includes("r")?"r":""}${nd?" nd":""}"${nd?` title="${esc(nd)}"`:""}>${colHead(k)}</th>`}).join("")}</tr></thead><tbody>${rows.map(r=>r.head?`<tr class="clsh"><td colspan="${cols.length}"><i style="background:${r.head.col}"></i>${esc(r.head.name+" · "+r.head.n+Tx(" cars"," coches",null," carros")+(r.head.sof?" · SOF "+r.head.sof:""))}</td></tr>`:r.blank?`<tr class="blank"><td colspan="${cols.length}">&nbsp;</td></tr>`:r.sep?`<tr class="sep"><td colspan="${cols.length}">⋯</td></tr>`:`<tr class="${[r.i===me?"me":"",r.cls||"",r.pit?"pit":"",r.dim?"dim":""].join(" ")}">${cols.map(k=>`<td class="col-${k} ${COLS[k].c}">${COLS[k].f(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 
 /* relative */
 function renderRelative(target){const box=target||$("#relBox");if(!box)return;const cfg=ui("rel"),all=relList(),me=T.PlayerCarIdx;
   if(!all.length){box.innerHTML=strip(cfg.head)+`<p class="empty">${Lp("Waiting for cars on track","Esperando coches en pista")}</p>`;return}
   const ahead=all.filter(r=>r.g>0&&r.i!==me).sort((a,b)=>a.g-b.g).slice(0,cfg.ahead).reverse(),behind=all.filter(r=>r.g<=0&&r.i!==me).sort((a,b)=>b.g-a.g).slice(0,cfg.behind),mine=all.find(r=>r.i===me);
-  const race=isRace(),ctx=r=>rowCtx(r.i,{gap:r.i===me?"—":(r.g>0?"−":"+")+Math.abs(r.g).toFixed(1),cls:r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"",int:"–",lapUp:race&&r.i!==me?Math.round(r.lapDiff):0}),blank=n=>Array.from({length:Math.max(0,n)},()=>({blank:true}));
+  const race=isRace(),ctx=r=>rowCtx(r.i,{gap:r.i===me?"—":(r.g>0?"−":"+")+Math.abs(r.g).toFixed(1),cls:r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"",int:"–",lapUp:race&&r.i!==me?Math.round(r.lapDiff):0,
+    noNote:cfg.notes===false,dim:cfg.dimLapped&&r.i!==me&&Math.abs(r.lapDiff)>.5}),blank=n=>Array.from({length:Math.max(0,n)},()=>({blank:true}));
   const rows=[...blank(cfg.ahead-ahead.length),...ahead.map(ctx),...(mine?[ctx(mine)]:[]),...behind.map(ctx),...blank(cfg.behind-behind.length)];
-  box.innerHTML=(cfg.head.length?strip(cfg.head):"")+tableHTML(cfg.cols,rows,me)+(cfg.foot.length?strip(cfg.foot):"");
+  // its own settings: the classes' band with their SOF (several classes) and the rows' size
+  const cls=cfg.classHead?classInfos():[],band=cls.length>1?`<div class="hstrip clsband">${cls.map(k=>`<div><i style="background:${k.col}"></i><span class="v">${esc(k.name)}${k.sof?" · SOF "+k.sof:""}</span></div>`).join("")}</div>`:"";
+  box.classList.toggle("rs-s",cfg.rowSize==="s");box.classList.toggle("rs-l",cfg.rowSize==="l");
+  box.innerHTML=(cfg.head.length?strip(cfg.head):"")+band+tableHTML(cfg.cols,rows,me)+(cfg.foot.length?strip(cfg.foot):"");
   const st=target?null:$("#trackStrip");if(st&&!st.hidden){let html='<div class="sf"></div>';const pct=T.CarIdxLapDistPct||[];all.forEach(r=>{const cls=r.i===me?"me":r.lapDiff>.5?"ahead":r.lapDiff<-.5?"behind":"";html+=`<div class="car ${cls}" style="left:${(pct[r.i]*100).toFixed(2)}%"></div>`});st.innerHTML=html}}
 /* standings (widget and tab) */
 function standingsRows(full){const cfg=ui("std"),me=T.PlayerCarIdx,meD=driverBy(me),pos=T.CarIdxPosition||[],cpos=T.CarIdxClassPosition||[],f2=T.CarIdxF2Time||[],best=T.CarIdxBestLapTime||[];
   let list=field();const multi=new Set(list.map(classOf)).size>1;if(cfg.myClass&&multi&&meD)list=list.filter(d=>classOf(d)===classOf(meD));
-  const key=i=>(multi&&cfg.myClass?cpos[i]:pos[i])||999;list.sort((a,b)=>key(a.CarIdx)-key(b.CarIdx));
-  const fast=Math.min(...list.map(d=>best[d.CarIdx]).filter(v=>v>0));let prev=null;
   // in a race, whole laps each car is ahead of you (+) or behind you (−), like the relative
   const race=isRace(),lp=T.CarIdxLap||[],pc=T.CarIdxLapDistPct||[],prog=i=>lp[i]!=null&&pc[i]!=null&&pc[i]>=0?lp[i]+pc[i]:null,pm=prog(me);
-  const rows=list.map((d,k)=>{const i=d.CarIdx,lead=k===0;const gap=lead?Tx("Leader","Líder"):f2[i]>0?"+"+f2[i].toFixed(1):"–";const iv=prev==null?"–":f2[i]>0&&f2[prev]>=0?"+"+(f2[i]-f2[prev]).toFixed(1):"–";prev=i;const p=prog(i);return rowCtx(i,{gap,int:iv,fastest:best[i]===fast,lapUp:race&&i!==me&&p!=null&&pm!=null?Math.trunc(p-pm):0})});
-  if(full)return rows;const idx=rows.findIndex(r=>r.i===me);const keep=new Set();rows.forEach((r,k)=>{if(k<cfg.top||(idx>=0&&Math.abs(k-idx)<=cfg.around))keep.add(k)});
-  const out=[];let last=-1;rows.forEach((r,k)=>{if(!keep.has(k))return;if(last>=0&&k>last+1)out.push({sep:true});out.push(r);last=k});return out}
+  // its own settings: the short iRating, the fastest lap's mark, the PIT tag, and each class under its header
+  const build=(list,byClass)=>{const key=i=>(byClass?cpos[i]:pos[i])||999;list.sort((a,b)=>key(a.CarIdx)-key(b.CarIdx));
+    const fast=Math.min(...list.map(d=>best[d.CarIdx]).filter(v=>v>0));let prev=null;
+    return list.map((d,k)=>{const i=d.CarIdx,lead=k===0;const gap=lead?Tx("Leader","Líder"):f2[i]>0?"+"+f2[i].toFixed(1):"–";const iv=prev==null?"–":f2[i]>0&&f2[prev]>=0?"+"+(f2[i]-f2[prev]).toFixed(1):"–";prev=i;const p=prog(i);
+      return rowCtx(i,{gap,int:iv,fastest:(full||cfg.fastMark!==false)&&best[i]===fast,irFull:!full&&cfg.irShort===false,noPit:!full&&cfg.pitTag===false,lapUp:race&&i!==me&&p!=null&&pm!=null?Math.trunc(p-pm):0})})};
+  const pick=(rows,out)=>{const idx=rows.findIndex(r=>r.i===me);const keep=new Set();rows.forEach((r,k)=>{if(k<cfg.top||(idx>=0&&Math.abs(k-idx)<=cfg.around))keep.add(k)});
+    let last=-1;rows.forEach((r,k)=>{if(!keep.has(k))return;if(last>=0&&k>last+1)out.push({sep:true});out.push(r);last=k});return out};
+  if(full)return build(list,multi&&cfg.myClass);
+  if(!(cfg.classHead&&multi))return pick(build(list,multi&&cfg.myClass),[]);
+  const out=[];classInfos().forEach(k=>{const l=list.filter(d=>classOf(d)===k.id);if(!l.length)return;out.push({head:k});pick(build(l,true),out)});return out}
+/* the session's classes (the one with the race leader first): name, colour, cars and strength of field */
+function classInfos(){const pos=T.CarIdxPosition||[],m=new Map(),all=field(),ids=[...new Set(all.map(classOf))].sort((a,b)=>a-b),pal=["#5c9dff","#ffb02e","#38c97c","#ff6fb5","#b98cff","#5ad1c8"];
+  all.forEach(d=>{const id=classOf(d);let k=m.get(id);if(!k){const cc=+d.CarClassColor;k={id,name:d.CarClassShortName||d.CarScreenNameShort||Tx("Class","Clase"),col:cc&&cc!==0xffffff?"#"+cc.toString(16).padStart(6,"0"):pal[ids.indexOf(id)%pal.length],list:[],best:999};m.set(id,k)}
+    k.list.push(d);if(pos[d.CarIdx]>0)k.best=Math.min(k.best,pos[d.CarIdx])});
+  return[...m.values()].map(k=>Object.assign(k,{n:k.list.length,sof:sofOf(k.list)})).sort((a,b)=>a.best-b.best||a.id-b.id)}
 function renderStandingsWidget(target){const box=target||$("#stdBox");if(!box||(!target&&box.closest("[hidden]")))return;const cfg=ui("std");box.innerHTML=(cfg.head.length?strip(cfg.head):"")+tableHTML(cfg.cols,standingsRows(false),T.PlayerCarIdx)+(cfg.foot.length?strip(cfg.foot):"")}
 /* the Standings tab: the session's own classes as a filter (only when several race: a single-class race has none) and
    the gap to the leader or to the car ahead; under it every car's position lap by lap */
@@ -4608,7 +4634,7 @@ function drawRadar(){const cv=$("#radarC");if(!cv||cv.closest("[hidden]")&&!OV.o
   x.save();x.beginPath();x.arc(cx,cy,rad-1,0,Math.PI*2);x.clip();
   x.strokeStyle="rgba(255,255,255,.08)";x.lineWidth=1;x.setLineDash([2,5]);[R/2,R].forEach(m=>{x.beginPath();x.arc(cx,cy,m*ppm,0,Math.PI*2);x.stroke()});
   x.beginPath();x.moveTo(cx,cy-rad);x.lineTo(cx,cy+rad);x.moveTo(cx-rad,cy);x.lineTo(cx+rad,cy);x.stroke();x.setLineDash([]);
-  const LW=2.7,CL=4.6,CW=1.9;
+  const LW=2.7,CL=4.6*(cfg.carSize||1),CW=1.9*(cfg.carSize||1);
   // someone alongside: that whole side glows
   const sideGlow=dir=>{const g=x.createLinearGradient(cx+dir*rad,0,cx,0);g.addColorStop(0,bad);g.addColorStop(1,"rgba(0,0,0,0)");x.globalAlpha=.45;x.fillStyle=g;x.beginPath();x.moveTo(cx,cy-rad);x.arc(cx,cy,rad,-Math.PI/2,Math.PI/2,dir<0);x.closePath();x.fill();x.globalAlpha=1};
   if(lr===2||lr===4||lr===5)sideGlow(-1);if(lr===3||lr===4||lr===6)sideGlow(1);
@@ -4621,11 +4647,11 @@ function drawRadar(){const cv=$("#radarC");if(!cv||cv.closest("[hidden]")&&!OV.o
   // the nearest car's distance
   const n=near.filter(c=>!c.lat&&Math.abs(c.dm)<=R).sort((a,b)=>Math.abs(a.dm)-Math.abs(b.dm))[0];
   x.restore();x.textAlign="center";x.font="700 "+Math.max(10,Math.round(rad*.11))+"px "+css("--f-data");
-  if(n){x.fillStyle=Math.abs(n.dm)<10?warn:fg;x.fillText((n.dm>0?"▲ ":"▼ ")+Math.abs(n.dm).toFixed(1)+" m",cx,n.dm>0?cy+rad*.62:cy-rad*.52)}
+  if(n&&cfg.dist!==false){x.fillStyle=Math.abs(n.dm)<10?warn:fg;x.fillText((n.dm>0?"▲ ":"▼ ")+Math.abs(n.dm).toFixed(1)+" m",cx,n.dm>0?cy+rad*.62:cy-rad*.52)}
   if(!busy){x.fillStyle=css("--muted");x.fillText(Tx("CLEAR","DESPEJADO"),cx,cy+rad*.62)}}
 /* the radar over the game: nothing but your car's outline, the cars coming (grey far, amber close, red alongside),
    a red bar on the side where someone is next to you and the nearest car's distance, on a see-through window */
-function radarClean(x,o){const{cx,cy,ppm,R,near,lr,bad,warn}=o,CL=4.6,CW=1.9,LW=2.7,f=css("--f-data");
+function radarClean(x,o){const{cx,cy,ppm,R,near,lr,bad,warn}=o,rc=ui("radar"),cs=rc.carSize||1,CL=4.6*cs,CW=1.9*cs,LW=2.7,f=css("--f-data");
   const box=(dx,dy,fill,stroke,lw)=>{const W=CW*ppm,H=CL*ppm,X=cx+dx*ppm-W/2,Y=cy-dy*ppm-H/2,r=Math.min(W,H)*.35;x.beginPath();x.roundRect?x.roundRect(X,Y,W,H,r):x.rect(X,Y,W,H);if(fill){x.fillStyle=fill;x.fill()}if(stroke){x.lineWidth=lw||2;x.strokeStyle=stroke;x.stroke()}};
   // someone alongside: a red bar down that side, brightest level with your car
   const bar=dir=>{const X=cx+dir*(LW*ppm+CW*ppm*1.1),H=CL*ppm*2.6,g=x.createLinearGradient(0,cy-H/2,0,cy+H/2);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(.5,bad);g.addColorStop(1,"rgba(0,0,0,0)");
@@ -4635,7 +4661,7 @@ function radarClean(x,o){const{cx,cy,ppm,R,near,lr,bad,warn}=o,CL=4.6,CW=1.9,LW=
     x.globalAlpha=c.lat?1:Math.max(.35,1-d/(R+3)*.65);x.shadowColor="rgba(0,0,0,.8)";x.shadowBlur=6;box(c.lat*LW,c.dm,col,"rgba(0,0,0,.6)",1.5);x.shadowBlur=0;x.globalAlpha=1});
   box(0,0,"rgba(255,255,255,.10)","rgba(255,255,255,.85)",2);
   const n=near.filter(c=>!c.lat&&Math.abs(c.dm)<=R).sort((a,b)=>Math.abs(a.dm)-Math.abs(b.dm))[0];
-  if(n){const t=Math.abs(n.dm).toFixed(1)+" m",y=cy-n.dm*ppm+(n.dm>0?-1:1)*(CL*ppm/2+12);x.font="700 "+Math.max(12,Math.round(ppm*1.6))+"px "+f;x.textAlign="center";x.textBaseline="middle";
+  if(n&&rc.dist!==false){const t=Math.abs(n.dm).toFixed(1)+" m",y=cy-n.dm*ppm+(n.dm>0?-1:1)*(CL*ppm/2+12);x.font="700 "+Math.max(12,Math.round(ppm*1.6))+"px "+f;x.textAlign="center";x.textBaseline="middle";
     x.lineWidth=4;x.strokeStyle="rgba(0,0,0,.85)";x.strokeText(t,cx,y);x.fillStyle=Math.abs(n.dm)<10?warn:"#e8edf3";x.fillText(t,cx,y)}}
 function radarVisible(on){if(!OV.on||OV.preview||OV.list.length!==1||OV.list[0]!=="radar"||RADAR.native===on)return;RADAR.native=on;nativeVisible("radar",on)}
 function nativeVisible(w,on){if(typeof window.pwVisible==="function")window.pwVisible(on);else if(MODE==="bridge"&&OV.win)fetch(`/api/overlay/visible?w=${w}&on=${on?1:0}`,{method:"POST"}).catch(()=>{});else document.body.style.visibility=on?"":"hidden"}
@@ -4944,7 +4970,7 @@ function addPopButtons(){if(OV.on)return;document.querySelectorAll("#v-live .wpa
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';b.onclick=()=>popOut(p.dataset.w);p.appendChild(b)})}
 function updatePopTitles(){document.querySelectorAll(".popbtn").forEach(b=>{b.title=Tx("Open as overlay","Abrir como overlay");b.setAttribute("aria-label",b.title);b.hidden=MODE!=="bridge"})}
 /* overlay window chrome: drag and resize in edit mode */
-function ovChrome(){if(!OV.on)return;document.querySelectorAll(".wpanel[data-w]").forEach(p=>p.classList.toggle("notitle",OV_TITLED.includes(p.dataset.w)&&ui(p.dataset.w).title===false));let bar=$("#ovBar");if(!bar){bar=document.createElement("div");bar.id="ovBar";document.body.appendChild(bar);const rs=document.createElement("div");rs.id="ovRes";document.body.appendChild(rs);
+function ovChrome(){if(!OV.on)return;ovOwnApply();document.querySelectorAll(".wpanel[data-w]").forEach(p=>p.classList.toggle("notitle",OV_TITLED.includes(p.dataset.w)&&ui(p.dataset.w).title===false));let bar=$("#ovBar");if(!bar){bar=document.createElement("div");bar.id="ovBar";document.body.appendChild(bar);const rs=document.createElement("div");rs.id="ovRes";document.body.appendChild(rs);
     document.addEventListener("mousedown",e=>{if(!CFG.edit||e.button!==0||e.target.closest("#ovRes,button,input,select,a"))return;if(typeof window.pwDrag==="function"){e.preventDefault();window.pwDrag()}});
     rs.addEventListener("pointerdown",e=>{if(typeof window.pwSize!=="function")return;e.preventDefault();rs.setPointerCapture(e.pointerId);const sx=e.screenX,sy=e.screenY,w0=outerWidth,h0=outerHeight;let t=0;
       const mv=ev=>{const now=performance.now();if(now-t<30)return;t=now;window.pwSize(Math.round(w0+ev.screenX-sx),Math.round(h0+ev.screenY-sy))};const up=()=>{rs.removeEventListener("pointermove",mv);rs.removeEventListener("pointerup",up)};rs.addEventListener("pointermove",mv);rs.addEventListener("pointerup",up)})}
@@ -4989,6 +5015,73 @@ function openLayout(){floatDrawer(false);LAYOUT_VIEW=openLayout;CFG_BACK=null;
   document.querySelectorAll("#dBody [data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();openLayout()});
   document.querySelectorAll("#dBody [data-cfg]").forEach(b=>b.onclick=()=>openWidgetCfg(b.dataset.cfg));
   if($("#drawer").hidden){$("#drawer").hidden=false;$("#dClose").focus()}}
+/* each overlay's own settings beyond its title and opacity (the agent's ovsettings.go and the native overlays read the
+   same keys): a list of [field, kind, label, choices] under its ui key; b a switch, c one choice, m several */
+const T3=(en,es,pt)=>Tx(en,es,null,pt);
+const OV_SIZES=[["s","Small","Pequeño","Pequeno"],["m","Normal","Normal","Normal"],["l","Large","Grande","Grande"]];
+Object.assign(UI_DEFAULTS,{deltabar:{barOnly:false,trend:true},timing:{sectors:true,lastBest:true,flash:true},
+  trackbar:{lineOnly:false,height:"m",near:true,sectors:true,myClass:false},dash:{shift:true,strip:["lap","pos","delta","inc"],spdUnit:"app"},
+  fuel:{show:["tank","laps","per","finish","last"]},tyres:{press:true,wear:true,avgOnly:false},weather:{show:["track","air","wind","sky","rain","wet","clock"],trend:true},
+  flag:{lights:true,kinds:["black","red","checkered","white","yellow","blue","info","green"]},map:{turns:true,sectors:true,myClass:false,width:1},
+  engine:{rows:["water","oil","oilp","fuelp","volt","air","track"],badges:true},incidents:{list:true},sectors:{last:true,legend:true},
+  stats:{rows:["full","brk","coast","shifts","top","slip"],slipNow:true},gg:{trail:"m",peaks:true},system:{show:["fps","graph","gpu","cpu","net"]}});
+const OV_OPTS={
+  relative:{k:"rel",o:[["classHead","b",["Class headers with their SOF","Cabeceras por clase con su SOF","Cabeçalhos por classe com o SOF"]],["dimLapped","b",["Dim the cars a lap or more away","Atenuar los coches a una vuelta o más","Escurecer os carros a uma volta ou mais"]],
+    ["notes","b",["Driver notes","Notas de pilotos","Notas de pilotos"]],["rowSize","c",["Row size","Tamaño de fila","Tamanho da linha"],OV_SIZES]]},
+  standings:{k:"std",o:[["classHead","b",["Class headers with cars and SOF","Cabeceras por clase con coches y SOF","Cabeçalhos por classe com carros e SOF"]],["irShort","b",["Short iRating (1.8k)","iRating corto (1.8k)","iRating curto (1.8k)"]],
+    ["fastMark","b",["Fastest lap mark","Marca de vuelta rápida","Marca da volta mais rápida"]],["pitTag","b",["PIT tag","Etiqueta PIT","Etiqueta PIT"]]]},
+  deltabar:{k:"deltabar",o:[["barOnly","b",["Bar only, no number","Solo la barra, sin número","Só a barra, sem número"]],["trend","b",["Trend arrow","Flecha de tendencia","Seta de tendência"]]]},
+  timing:{k:"timing",o:[["sectors","b",["Sectors","Sectores","Setores"]],["lastBest","b",["Last and best lap","Última y mejor vuelta","Última e melhor volta"]],["flash","b",["Flash when a lap ends","Destello al cerrar vuelta","Destaque ao fechar a volta"]]]},
+  inputs:{k:"inp",o:[["lineW","c",["Line thickness","Grosor de las líneas","Espessura das linhas"],[[.6,"Thin","Finas","Finas"],[1,"Normal","Normal","Normal"],[1.6,"Thick","Gruesas","Grossas"]]]]},
+  radar:{k:"radar",o:[["carSize","c",["Car size","Tamaño del coche","Tamanho do carro"],[[.8,"Small","Pequeño","Pequeno"],[1,"Normal","Normal","Normal"],[1.25,"Large","Grande","Grande"]]],
+    ["trails","b",["Trails","Estelas","Rastros"]],["dist","b",["Distance in metres","Distancia en metros","Distância em metros"]]]},
+  pit:{k:"pit",o:[["limTol","c",["Speed limit margin","Margen del límite de velocidad","Margem do limite de velocidade"],()=>[0,.4,.8,1.4].map(v=>[v,Math.round(spd(v)*10)/10+" "+spdU()])],
+    ["pitOnly","b",["Only in the pit lane","Solo en el pit lane","Só no pit lane"]]]},
+  gaps:{k:"gaps",o:[["numbers","b",["Numbers only, no chart","Solo números, sin gráfica","Só números, sem gráfico"]]]},
+  trackbar:{k:"trackbar",o:[["lineOnly","b",["Line only","Solo la línea","Só a linha"]],["height","c",["Height","Altura","Altura"],OV_SIZES],["near","b",["Numbers of the nearest two","Números de los dos más cercanos","Números dos dois mais próximos"]],
+    ["sectors","b",["Sector marks","Marcas de sector","Marcas de setor"]],["myClass","b",["My class only","Solo mi clase","Só minha classe"]]]},
+  dash:{k:"dash",o:[["shift","b",["Shift lights","Luces de cambio","Luzes de troca"]],["strip","m",["Bottom strip","Tira de abajo","Faixa de baixo"],[["lap","Lap","Vuelta","Volta"],["pos","Position","Posición","Posição"],["delta","Delta","Delta","Delta"],["inc","Incidents","Incidentes","Incidentes"]]],
+    ["spdUnit","c",["Speed units","Unidades de velocidad","Unidades de velocidade"],[["app","As the app","Como la app","Como o app"],["kmh","km/h","km/h","km/h"],["mph","mph","mph","mph"]]]]},
+  fuel:{k:"fuel",o:[["show","m",["Values","Datos","Dados"],[["tank","In tank","En el depósito","No tanque"],["laps","Laps of fuel","Vueltas posibles","Voltas possíveis"],["per","Per lap","Por vuelta","Por volta"],["finish","To the finish","Para acabar","Até o final"],["last","Last lap use","Consumo de la última vuelta","Consumo da última volta"]]],
+    ["spare","c",["Safety margin","Margen de seguridad","Margem de segurança"],()=>[0,.3,.5,1,2].map(v=>[v,T3(v+(v===1?" lap":" laps"),String(v).replace(".",",")+(v===1?" vuelta":" vueltas"),String(v).replace(".",",")+(v===1?" volta":" voltas"))])]]},
+  tyres:{k:"tyres",o:[["press","b",["Pressure","Presión","Pressão"]],["wear","b",["Wear","Desgaste","Desgaste"]],["avgOnly","b",["Average only","Solo la media","Só a média"]]]},
+  weather:{k:"weather",o:[["show","m",["Values","Datos","Dados"],[["track","Track","Pista","Pista"],["air","Air","Aire","Ar"],["wind","Wind","Viento","Vento"],["sky","Sky","Cielo","Céu"],["rain","Rain","Lluvia","Chuva"],["wet","Wet track","Pista mojada","Pista molhada"],["clock","Time","Hora","Hora"]]],
+    ["trend","b",["Track temperature trend","Tendencia de la temperatura de pista","Tendência da temperatura da pista"]]]},
+  flag:{k:"flag",o:[["lights","b",["Start lights","Luces de salida","Luzes de largada"]],["kinds","m",["Flags that warn","Banderas que avisan","Bandeiras que avisam"],[["black","Black","Negra","Preta"],["red","Red","Roja","Vermelha"],["checkered","Checkered","A cuadros","Quadriculada"],["white","Last lap","Última vuelta","Última volta"],
+    ["yellow","Yellow","Amarilla","Amarela"],["blue","Blue","Azul","Azul"],["info","Laps to go","Vueltas restantes","Voltas restantes"],["green","Green","Verde","Verde"]]]]},
+  map:{k:"map",o:[["turns","b",["Turn numbers","Números de curva","Números das curvas"]],["sectors","b",["Sectors","Sectores","Setores"]],["myClass","b",["My class only","Solo mi clase","Só minha classe"]],
+    ["width","c",["Track thickness","Grosor de la pista","Espessura da pista"],[[.7,"Thin","Fina","Fina"],[1,"Normal","Normal","Normal"],[1.4,"Thick","Gruesa","Grossa"]]]]},
+  engine:{k:"engine",o:[["rows","m",["Values","Datos","Dados"],[["water","Water","Agua","Água"],["oil","Oil","Aceite","Óleo"],["oilp","Oil pressure","Presión aceite","Pressão do óleo"],["fuelp","Fuel pressure","Presión gasolina","Pressão do combustível"],["volt","Voltage","Voltaje","Voltagem"],["air","Air","Aire","Ar"],["track","Track","Pista","Pista"]]],
+    ["badges","b",["Limiter and stalled engine","Limitador y motor calado","Limitador e motor apagado"]]]},
+  incidents:{k:"incidents",o:[["list","b",["List of incidents","Lista de incidentes","Lista de incidentes"]]]},
+  brakes:{k:"brakes",o:[["speeds","b",["Speeds","Velocidades","Velocidades"]],["fb","b",["Verdict after each corner","Veredicto tras cada curva","Veredito após cada curva"]]]},
+  sectors:{k:"sectors",o:[["last","b",["Last lap","Última vuelta","Última volta"]],["legend","b",["Legend","Leyenda","Legenda"]]]},
+  stats:{k:"stats",o:[["rows","m",["Values","Datos","Dados"],[["full","Full throttle","Gas a fondo","Acelerador no fundo"],["brk","Braking","Frenando","Freando"],["coast","Coasting","Sin pedales","Sem pedais"],["shifts","Gear changes","Cambios de marcha","Trocas de marcha"],["top","Top speed","Vel. máxima","Vel. máxima"],["slip","Max slip angle","Deslizamiento máx.","Deslizamento máx."]]],
+    ["slipNow","b",["Car slip angle now","Deslizamiento del coche ahora","Deslizamento do carro agora"]]]},
+  compare:{k:"cmp",o:[["last","b",["Last lap","Última vuelta","Última volta"]]]},
+  gg:{k:"gg",o:[["trail","c",["Trail","Estela","Rastro"],[["s","Short","Corta","Curto"],["m","Normal","Normal","Normal"],["l","Long","Larga","Longo"]]],["peaks","b",["Lap peaks","Máximos de la vuelta","Máximos da volta"]]]},
+  system:{k:"system",o:[["show","m",["Values","Datos","Dados"],[["fps","FPS","FPS","FPS"],["graph","Last minute","Último minuto","Último minuto"],["gpu","GPU","GPU","GPU"],["cpu","CPU","CPU","CPU"],["net","Connection","Conexión","Conexão"]]]]}};
+const ovChoices=ch=>(typeof ch==="function"?ch():ch).map(x=>[x[0],x.length>2?T3(x[1],x[2],x[3]):x[1]]);
+/* the settings window's part for an overlay's own options, and for an overlay window its text size and when it hides */
+function ovOptsHTML(w,ov){const sp=OV_OPTS[w];let h="";
+  if(sp){const c=ui(sp.k);h+=sp.o.map(([f,t,lb,ch],i)=>{const lab=esc(T3(lb[0],lb[1],lb[2]));
+      if(t==="b")return `<div class="frow" style="margin:0 0 8px"><button type="button" class="chip" data-oo="${i}" aria-pressed="${c[f]!==false}">${lab}</button></div>`;
+      const opts=ovChoices(ch),on=v=>t==="m"?(c[f]||[]).includes(v):String(c[f]??(f==="spare"?.3:""))===String(v);
+      return `<div class="label">${lab}</div><div class="frow" style="margin:6px 0 12px">${opts.map(([v,l],j)=>`<button type="button" class="chip" data-o${t}="${i}:${j}" aria-pressed="${on(v)}">${esc(l)}</button>`).join("")}</div>`}).join("")}
+  if(ov){const g=ui(w),ts=g.textScale||1,hd=g.hide||"";
+    h+=`<div class="label">${esc(T3("Text size","Tamaño del texto","Tamanho do texto"))}</div><div class="frow" style="margin:6px 0 12px">${[[.85,"Small","Pequeño","Pequeno"],[1,"Normal","Normal","Normal"],[1.2,"Large","Grande","Grande"]].map(([v,a,b,p])=>`<button type="button" class="chip" data-ots="${v}" aria-pressed="${ts===v}">${esc(T3(a,b,p))}</button>`).join("")}</div>
+      <div class="label">${esc(T3("Hide by itself","Ocultarse solo","Ocultar sozinho"))}</div><div class="frow" style="margin:6px 0 12px">${[["","Never","Nunca","Nunca"],["car","Out of the car","Fuera del coche","Fora do carro"],["pits","Out of the car and in the pits","Fuera del coche y en boxes","Fora do carro e nos boxes"]].map(([v,a,b,p])=>`<button type="button" class="chip" data-ohd="${v}" aria-pressed="${hd===v}">${esc(T3(a,b,p))}</button>`).join("")}</div>`}
+  return h}
+function ovOptsWire(w,ov){const sp=OV_OPTS[w],again=()=>openWidgetCfg(w,ov);
+  document.querySelectorAll("#dBody [data-oo]").forEach(b=>b.onclick=()=>{const f=sp.o[+b.dataset.oo][0];setUI(sp.k,{[f]:ui(sp.k)[f]===false});again()});
+  document.querySelectorAll("#dBody [data-oc]").forEach(b=>b.onclick=()=>{const[i,j]=b.dataset.oc.split(":").map(Number),o=sp.o[i];setUI(sp.k,{[o[0]]:ovChoices(o[3])[j][0]});again()});
+  document.querySelectorAll("#dBody [data-om]").forEach(b=>b.onclick=()=>{const[i,j]=b.dataset.om.split(":").map(Number),o=sp.o[i],all=ovChoices(o[3]).map(x=>x[0]),v=all[j],cur=ui(sp.k)[o[0]]||[];
+    setUI(sp.k,{[o[0]]:all.filter(x=>x===v?!cur.includes(v):cur.includes(x))});again()});
+  document.querySelectorAll("#dBody [data-ots]").forEach(b=>b.onclick=()=>{setUI(w,{textScale:+b.dataset.ots});again()});
+  document.querySelectorAll("#dBody [data-ohd]").forEach(b=>b.onclick=()=>{setUI(w,{hide:b.dataset.ohd});again()})}
+/* in an overlay window: its text size, and hiding by itself out of the car (and in the pits) like the native ones */
+function ovOwnApply(){if(!OV.on)return;document.querySelectorAll(".wpanel[data-w]").forEach(p=>{const g=ui(p.dataset.w),ts=g.textScale;p.style.zoom=ts&&ts!==1?String(ts):"";
+  const h=g.hide,hid=!OV.preview&&!CFG.edit&&(h==="car"||h==="pits")&&(!T.IsOnTrack||(h==="pits"&&!!T.OnPitRoad));p.style.visibility=hid?"hidden":""})}
 function openWidgetCfg(w,ov){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(w,ov);const c=ui(k);$("#dTitle").innerHTML=L("w."+w);$("#dSub").innerHTML=L("configure");
   const listEd=(field,catalog,prefix)=>{const sel=c[field];const rest=Object.keys(catalog).filter(x=>!sel.includes(x));
     return `<div class="cfglist">${sel.map((x,i)=>`<div class="cfgitem on"><span>${L(prefix+x,true)}</span><span><button type="button" class="pin" data-mv="${field}:${i}:-1" aria-label="Up">↑</button><button type="button" class="pin" data-mv="${field}:${i}:1" aria-label="Down">↓</button><button type="button" class="pin" data-rm="${field}:${x}">✕</button></span></div>`).join("")}
@@ -5016,12 +5109,14 @@ function openWidgetCfg(w,ov){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VI
   // the coach overlay before the session: the reference, what it shows, which corners, the fast drivers' hint, the verdict, how far ahead it speaks
   else if(k==="coach"){const chip=(f,v,t)=>`<button type="button" class="chip" data-cch="${f}:${v}" aria-pressed="${String(c[f])===String(v)}">${esc(t)}</button>`,tid=(S.WeekendInfo||{}).TrackID,turns=tid?turnsFor(tid):null,tn=turns&&turns.length?turns.length:0,ct=coachTurnsHere(c);
     body=`<div class="panel"><div class="label">${esc(Tx("Reference","Referencia"))}</div><div class="frow" style="margin:6px 0 12px">${chip("ref","level","▲ "+Tx("Next level","Siguiente nivel"))}${chip("ref","best",Tx("My best lap","Mi mejor vuelta"))}</div>
-      <div class="label">${esc(Tx("What it shows","Qué muestra"))}</div><div class="frow" style="margin:6px 0 12px">${chip("mode","next",Tx("Card","Tarjeta"))}${chip("mode","column",Tx("Column","Columna"))}${chip("mode","curve",Tx("Corner drawn","Curva dibujada"))}${chip("mode","big",Tx("Big, for VR","Grande, para VR"))}</div>
+      <div class="label">${esc(Tx("What it shows","Qué muestra"))}</div><div class="frow" style="margin:6px 0 12px">${chip("mode","next",Tx("Card","Tarjeta"))}${chip("mode","column",Tx("Column","Columna"))}${chip("mode","curve",Tx("Corner drawn","Curva dibujada"))}${chip("mode","big",Tx("Big, for VR","Grande, para VR"))}${chip("mode","text",T3("Tip only","Solo el consejo","Só a dica"))}</div>
       <div class="label">${esc(Tx("How it names the corner","Cómo nombra la curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("turnName","both",Tx("Next turn (T7)","Próxima curva (T7)"))}${chip("turnName","words",Tx("Next turn","Próxima curva"))}${chip("turnName","num","T7")}</div>
       <div class="label">${esc(Tx("Corners","Curvas"))}</div><div class="frow" style="margin:6px 0 12px"><button type="button" class="chip" data-cturn="" aria-pressed="${!ct.length}">${esc(Tx("The 3 that cost the most","Las 3 que más cuestan"))}</button>${tn?Array.from({length:tn},(_,i)=>`<button type="button" class="chip" data-cturn="T${i+1}" aria-pressed="${ct.includes("T"+(i+1))}">T${i+1}</button>`).join(""):`<span class="note">${esc(Tx("The track's corners appear here when the game is open on a track the community knows.","Las curvas del circuito aparecen aquí cuando el juego está en un circuito que la comunidad conoce."))}</span>`}</div>
       <div class="frow" style="margin:6px 0 12px">${chk("cHint",c.hint!==false,esc(Tx("The fast drivers' braking and apex speed","La frenada y el vértice de los rápidos")))}</div>
       <div class="label">${esc(Tx("Verdict after each corner","Veredicto tras cada curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("verdict",0,Tx("Off","Apagado"))}${chip("verdict",4,"4 s")}${chip("verdict",8,"8 s")}</div>
       <div class="label">${esc(Tx("Speaks from","Avisa desde"))}</div><div class="frow" style="margin:6px 0 0">${chip("lead",200,"200 m")}${chip("lead",300,"300 m")}${chip("lead",500,"500 m")}</div></div>`}
+  // its own options (what it shows), and for an overlay window its text size and when it hides by itself
+  {const own=ovOptsHTML(w,ov);if(own)body+=`<div class="panel"${body?' style="margin-top:10px"':""}>${own}</div>`}
   // an overlay window's own: its title (the overlays that have one) and its opacity
   const ovA=ovAlphaOf(w);
   if(ov)body+=`<div class="panel"${body?' style="margin-top:10px"':""}>${OV_TITLED.includes(w)?`<div class="frow" style="margin:0 0 10px">${chk("cTitle",ui(w).title!==false,esc(Tx("Show the title","Mostrar el título","Titel anzeigen","Mostrar o título")))}</div>`:""}<label class="frow"><span class="label" style="min-width:150px">${esc(Tx("Opacity","Opacidad","Deckkraft","Opacidade"))}</span><input type="range" id="cAlpha" min="60" max="255" value="${ovA}" style="max-width:220px"></label></div>`;
@@ -5032,7 +5127,8 @@ function openWidgetCfg(w,ov){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VI
   {const pv=$("#cfgPreview");if(pv)pv.style.opacity=ov&&ovA<255?String(ovA/255):""}
   if($("#cTitle"))$("#cTitle").onclick=()=>{setUI(w,{title:ui(w).title===false});openWidgetCfg(w,ov)};
   if($("#cAlpha")){const e=$("#cAlpha"),pv=$("#cfgPreview");e.oninput=()=>{if(pv)pv.style.opacity=String(+e.value/255)};e.onchange=()=>setUI(w,{alpha:Math.max(60,Math.min(255,+e.value||255))})}
-  const upd=patch=>{setUI(k,patch);openWidgetCfg(w)};
+  ovOptsWire(w,ov);
+  const upd=patch=>{setUI(k,patch);openWidgetCfg(w,ov)};
   document.querySelectorAll("#dBody [data-add]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.add.split(":");upd({[f]:[...ui(k)[f],x]})});
   document.querySelectorAll("#dBody [data-rm]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.rm.split(":");upd({[f]:ui(k)[f].filter(y=>y!==x)})});
   document.querySelectorAll("#dBody [data-mv]").forEach(b=>b.onclick=()=>{const[f,i,d]=b.dataset.mv.split(":");const a=ui(k)[f].slice(),j=+i+ +d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];upd({[f]:a})});
@@ -5394,7 +5490,7 @@ function sizeLabel(w){const p=document.querySelector(`#liveGrid>.wpanel[data-w="
 /* ===================== live lap comparison: best vs last vs current ===================== */
 Object.assign(I18N,{"w.compare":["Lap comparison","Comparación de vueltas"],"d.compare":["Best, last and current lap traces","Trazas de mejor, última y actual"],follow:["Follow me","Seguirme"],
  "it.cmpbest":["Best","Mejor"],"it.cmplast":["Last","Última"],"it.cmpnow":["Now vs best","Ahora vs mejor"]});
-UI_DEFAULTS.cmp={ch:"speed",follow:false};
+UI_DEFAULTS.cmp={ch:"speed",follow:false,last:true};
 const CMPCH=[["speed","Speed","Velocidad"],["pedals","Throttle & brake","Acelerador y freno"],["delta","Time delta","Diferencia de tiempo"],["gear","Gear","Marcha"],["steer","Steering","Volante"],["rpm","RPM","RPM"]];
 function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const k=c.ch+"|"+c.follow+"|"+LANG+"|"+(G61REF?1:0)+"|"+MODE;if(box.dataset.k===k)return;box.dataset.k=k;
   box.innerHTML=CMPCH.map(([v,en,es])=>`<button type="button" class="chip" data-ch="${v}" aria-pressed="${c.ch===v}">${esc(Tx(en,es))}</button>`).join("")+`<button type="button" class="chip" data-follow aria-pressed="${!!c.follow}">${esc(Tx("Follow me","Seguirme"))}</button>`
@@ -5405,7 +5501,7 @@ function cmpCtl(){const box=$("#cmpCtl");if(!box)return;const c=ui("cmp");const 
 function serOf(l){return PWA.serOf(l)}
 function drawCompare(){const cv=$("#cmpLive");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;cmpCtl();if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1)-cv.getBoundingClientRect().top-16));if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}const c=ui("cmp");
   const best=liveBest(),last=LAPS.length?LAPS.at(-1):null,cur=rec;
-  const bs=best?serOf(best):null,ls=last&&last!==best?serOf(last):null,rs=G61REF?serOf(G61REF):null,base=rs||bs;
+  const bs=best?serOf(best):null,ls=last&&last!==best&&ui("cmp").last!==false?serOf(last):null,rs=G61REF?serOf(G61REF):null,base=rs||bs;
   const curD=T.LapDist||0,len=Math.max(trackLenM(),(bs?bs.length:0)*BIN);
   // header: lap times and live delta
   let now=null;if(base&&T.LapCurrentLapTime>0&&T.IsOnTrack){const r=lapTimeAt(base,curD);if(r!=null&&curD>20)now=T.LapCurrentLapTime-r}
@@ -5662,7 +5758,7 @@ let DB_HIST=[];
 const DELTA_SRC={best:["LapDeltaToBestLap","My best lap","Mi mejor vuelta"],session:["LapDeltaToSessionBestLap","Session best lap","Mejor vuelta de la sesión"],optimal:["LapDeltaToOptimalLap","My optimal lap (best sectors)","Mi vuelta óptima (mejores sectores)"],sessopt:["LapDeltaToSessionOptimalLap","Session optimal lap","Vuelta óptima de la sesión"],own:[null,"Pitlane HQ: best recorded lap","Pitlane HQ: mejor vuelta grabada"]};
 function ownDelta(){const best=liveBest(),d=T.LapDist;if(!best||d==null||d<20||T.LapCurrentLapTime==null)return null;const r=lapTimeAt(serOf(best),d);return r==null?null:T.LapCurrentLapTime-r}
 function deltaNow(){if(drvNow().on)return ownDelta();const src=ui("delta").src,def=DELTA_SRC[src]||DELTA_SRC.best;if(def[0]){const ok=T[def[0]+"_OK"],v=T[def[0]];if(ok!==false&&v!=null)return v;if(ok===false)return null}return ownDelta()}
-function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const d=deltaNow(),now=performance.now();
+function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const d=deltaNow(),now=performance.now(),own=ui("deltabar");$("#dbVal").hidden=!!own.barOnly;$("#dbTrend").hidden=own.trend===false;
   DB_HIST.push([now,d]);while(DB_HIST.length&&now-DB_HIST[0][0]>600)DB_HIST.shift();const old=DB_HIST[0][1];
   if(d==null){fill.style.width="0";$("#dbVal").textContent="–";$("#dbTrend").textContent="";return}
   const r=ui("delta").range||1,f=Math.min(Math.abs(d),r)/r*50;fill.style.width=f+"%";fill.style.left=d<0?(50-f)+"%":"50%";fill.className=d<0?"good":"bad";
@@ -5670,12 +5766,12 @@ function renderDeltaBar(){const fill=$("#dbFill");if(!fill)return;const d=deltaN
 const GG=[];let GGMAX={lat:0,brk:0,acc:0,lap:null};
 function drawGG(){const cv=$("#ggC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;const g=9.81,lat=(T.LatAccel||0)/g,lon=(T.LongAccel||0)/g;
   if(GGMAX.lap!==T.LapCompleted){GGMAX={lat:0,brk:0,acc:0,lap:T.LapCompleted}}GGMAX.lat=Math.max(GGMAX.lat,Math.abs(lat));if(lon<0)GGMAX.brk=Math.max(GGMAX.brk,-lon);else GGMAX.acc=Math.max(GGMAX.acc,lon);
-  GG.push([lat,lon]);if(GG.length>90)GG.shift();
+  GG.push([lat,lon]);if(GG.length>240)GG.shift();const go=ui("gg"),pts=GG.slice(-(go.trail==="s"?30:go.trail==="l"?240:90));$("#ggStats").hidden=go.peaks===false;
   const sz=Math.min(cv.clientWidth||220,OV.on?innerHeight-60:260);if(+cv.getAttribute("height")!==Math.round(sz))cv.setAttribute("height",Math.round(sz));const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);
   const R=Math.max(2,Math.ceil(Math.max(GGMAX.lat,GGMAX.brk,GGMAX.acc)*2)/2),cx=w/2,cy=h/2,ppg=(Math.min(w,h)/2-12)/R;
   x.strokeStyle=css("--line");x.lineWidth=1;for(let k=1;k<=R;k++){x.beginPath();x.arc(cx,cy,k*ppg,0,7);x.stroke()}x.beginPath();x.moveTo(cx-R*ppg,cy);x.lineTo(cx+R*ppg,cy);x.moveTo(cx,cy-R*ppg);x.lineTo(cx,cy+R*ppg);x.stroke();
   x.fillStyle=css("--muted");x.font="10px "+css("--f-data");x.textAlign="left";x.fillText("1g",cx+ppg+3,cy-3);
-  GG.forEach(([a,b],k)=>{x.globalAlpha=(k+1)/GG.length*.6;x.fillStyle=css("--blue");x.beginPath();x.arc(cx+a*ppg,cy+b*ppg,2.5,0,7);x.fill()});x.globalAlpha=1;
+  pts.forEach(([a,b],k)=>{x.globalAlpha=(k+1)/pts.length*.6;x.fillStyle=css("--blue");x.beginPath();x.arc(cx+a*ppg,cy+b*ppg,2.5,0,7);x.fill()});x.globalAlpha=1;
   x.fillStyle=css("--accent");x.beginPath();x.arc(cx+lat*ppg,cy+lon*ppg,6,0,7);x.fill();
   $("#ggStats").innerHTML=`<div><span class="k">${L("it.ggLat",true)}</span><span class="v">${GGMAX.lat.toFixed(2)} g</span></div><div><span class="k">${L("it.ggBrk",true)}</span><span class="v">${GGMAX.brk.toFixed(2)} g</span></div><div><span class="k">${L("it.ggAcc",true)}</span><span class="v">${GGMAX.acc.toFixed(2)} g</span></div>`}
 Object.assign(I18N,{"it.ggLat":["Max cornering","Máx. en curva"],"it.ggBrk":["Max braking","Máx. frenada"],"it.ggAcc":["Max traction","Máx. tracción"]});
@@ -5685,9 +5781,9 @@ function trackStats(){const t=T.SessionTime,lc=T.LapCompleted;if(t==null||lc==nu
   if(T.Gear!=null&&c.g!=null&&T.Gear!==c.g&&T.Gear>0)c.shifts++;c.g=T.Gear;c.top=Math.max(c.top,T.Speed||0);const b=slipAngle();if(b!=null)c.slip=Math.max(c.slip,Math.abs(b))}
 function slipAngle(){const vx=T.VelocityX,vy=T.VelocityY;if(vx==null||vy==null||Math.abs(vx)<5)return null;return Math.atan2(vy,vx)*180/Math.PI}
 function renderStats(){const box=$("#statsBox");if(!box)return;const c=ST.cur,l=ST.last,pc=(s,k)=>s&&s.t>0?Math.round(s[k]/s.t*100)+"%":"–";const b=slipAngle();
-  const rows=[["Full throttle","Gas a fondo",s=>pc(s,"full")],["Braking","Frenando",s=>pc(s,"brk")],["Coasting","Sin pedales",s=>pc(s,"coast")],["Gear changes","Cambios de marcha",s=>s?s.shifts:"–"],["Top speed","Vel. máxima",s=>s&&s.top?Math.round(spd(s.top))+" "+spdU():"–"],["Max slip angle","Deslizamiento máx.",s=>s&&s.slip?s.slip.toFixed(1)+"°":"–"]];
+  const so=ui("stats"),ids=["full","brk","coast","shifts","top","slip"],rows=[["Full throttle","Gas a fondo",s=>pc(s,"full")],["Braking","Frenando",s=>pc(s,"brk")],["Coasting","Sin pedales",s=>pc(s,"coast")],["Gear changes","Cambios de marcha",s=>s?s.shifts:"–"],["Top speed","Vel. máxima",s=>s&&s.top?Math.round(spd(s.top))+" "+spdU():"–"],["Max slip angle","Deslizamiento máx.",s=>s&&s.slip?s.slip.toFixed(1)+"°":"–"]].filter((r,i)=>(so.rows||ids).includes(ids[i]));
   box.innerHTML=`<table class="wtable"><thead><tr><th></th><th class="r">${esc(Tx("This lap","Esta vuelta"))}</th><th class="r">${esc(Tx("Last","Última"))}</th></tr></thead><tbody>${rows.map(([en,es,f])=>`<tr><td>${esc(Tx(en,es))}</td><td class="r mono">${f(c)}</td><td class="r mono">${f(l)}</td></tr>`).join("")}</tbody></table>
-   <div class="label" style="margin-top:8px">${L("it.slip",true)} <span class="mono" style="color:var(--fg)">${b==null?"–":b.toFixed(1)+"°"}</span></div><div class="slipbar"><b style="left:${b==null?50:50+Math.max(-1,Math.min(1,b/10))*50}%"></b></div>`}
+   <div${so.slipNow===false?" hidden":""}><div class="label" style="margin-top:8px">${L("it.slip",true)} <span class="mono" style="color:var(--fg)">${b==null?"–":b.toFixed(1)+"°"}</span></div><div class="slipbar"><b style="left:${b==null?50:50+Math.max(-1,Math.min(1,b/10))*50}%"></b></div></div>`}
 Object.assign(I18N,{"it.slip":["Car slip angle now","Deslizamiento del coche ahora"]});
 
 /* ---------- Garage 61 ---------- */
@@ -6176,7 +6272,9 @@ async function openShortcutPicker(){LAYOUT_VIEW=null;$("#dTitle").innerHTML=Lp("
 let FUELPER=null,FUELMAX=null;
 function pitLimitMs(){const s=String(((S.WeekendInfo||{}).TrackPitSpeedLimit)||""),m=s.match(/([\d.]+)\s*(kph|mph)?/i);if(!m)return 0;const v=+m[1];return /mph/i.test(m[2]||"")?v*0.44704:v/3.6}
 function renderPit(){const box=$("#pitBox");if(!box)return;const c=ui("pit"),fuel=T.FuelLevel,per=FUELPER,ll=lapsLeft();
-  if(T.OnPitRoad){const lim=pitLimitMs(),sp=T.Speed||0,over=lim>0&&sp>lim+.4,w=T.EngineWarnings|0,parts=[];
+  // only in the pit lane (its settings): an overlay window shows nothing outside it
+  if(OV.on){const p=box.closest(".wpanel");if(p)p.style.visibility=c.pitOnly&&!T.OnPitRoad&&!OV.preview&&!CFG.edit?"hidden":""}
+  if(T.OnPitRoad){const lim=pitLimitMs(),sp=T.Speed||0,over=lim>0&&sp>lim+(c.limTol??.4),w=T.EngineWarnings|0,parts=[];
     if(T.PitstopActive){parts.push(Tx("Stopped","Parado"));if(T.PitRepairLeft>0||T.PitOptRepairLeft>0)parts.push(`${Tx("repairs","reparaciones")} ${(+T.PitRepairLeft||0).toFixed(1)} s${T.PitOptRepairLeft>0?` (+${(+T.PitOptRepairLeft).toFixed(1)} ${Tx("optional","opcionales")})`:""}`);if(T.PitSvFuel>0)parts.push(`${Tx("fuel","gasolina")} ${vol(T.PitSvFuel).toFixed(1)} ${volU()}`)}
     box.innerHTML=`<div class="row" style="align-items:baseline;gap:8px;margin-top:4px"><div class="big mono" style="color:${over?"var(--bad)":lim>0?"var(--good)":"var(--fg)"}">${Math.round(spd(sp))}</div><div class="muted mono">${lim>0?`/ ${Math.round(spd(lim))} `:""}${spdU()}</div>${over?`<b style="color:var(--bad);margin-left:auto">${esc(Tx("SLOW DOWN","FRENA"))}</b>`:w&16?`<span class="pill good" style="margin-left:auto">${esc(Tx("Limiter on","Limitador"))}</span>`:""}</div>
       <p class="note" style="margin:6px 0 0">${esc(parts.length?parts.join(" · "):Tx("Keep it under the limit until the pit exit.","Mantén la velocidad bajo el límite hasta la salida."))}</p>`;return}
@@ -6212,8 +6310,8 @@ function trackSectors(){const p=T.LapDistPct,t=T.SessionTime;if(p==null||t==null
 function renderSectors(){const box=$("#secBox");if(!box)return;const cells=(a,now)=>`<div class="msec">${Array.from({length:MS.n},(_,i)=>`<i class="${a[i]?a[i].c:""}${now&&i===MS.idx?" now":""}"></i>`).join("")}</div>`;
   const done=MS.cur.filter(Boolean),dsum=done.reduce((s,x)=>s+x.dt,0),ref=MS.bestLap?MS.cur.reduce((s,x,i)=>x?s+MS.bestLap[i]:s,0):null;
   box.innerHTML=`<div class="hstrip"><div><span class="k">${L("curLap",true)}</span><span class="v mono ${ref!=null?(dsum-ref<=0?"good":"bad"):""}">${ref!=null&&done.length?sgn(dsum-ref):"–"}</span></div><div><span class="k">${L("best",true)}</span><span class="v mono">${fmtT(MS.bestLapT)}</span></div></div>
-    ${cells(MS.cur,true)}${MS.last.length?`<div class="label" style="margin-top:2px">${L("last",true)}</div>${cells(MS.last)}`:""}
-    <div class="legend"><span><i style="background:var(--pb)"></i>${Lp("best of session","mejor de la sesión",true)}</span><span><i style="background:var(--good)"></i>${Lp("faster than best lap","más rápido que tu mejor vuelta",true)}</span><span><i style="background:var(--warn)"></i>${Lp("slower","más lento",true)}</span></div>`}
+    ${cells(MS.cur,true)}${MS.last.length&&ui("sectors").last!==false?`<div class="label" style="margin-top:2px">${L("last",true)}</div>${cells(MS.last)}`:""}
+    <div class="legend"${ui("sectors").legend===false?" hidden":""}><span><i style="background:var(--pb)"></i>${Lp("best of session","mejor de la sesión",true)}</span><span><i style="background:var(--good)"></i>${Lp("faster than best lap","más rápido que tu mejor vuelta",true)}</span><span><i style="background:var(--warn)"></i>${Lp("slower","más lento",true)}</span></div>`}
 
 /* ===================== gap graph ===================== */
 const GAPH=new Map();let GAP_AT=0,GAP_SESS=null;const GAPCOL=["#5c9dff","#38c97c","#ffb02e","#ff6363","#b98cff","#2ec4c4","#f28cd0","#c9d1dc","#9acd32","#ff8f45"];
@@ -6222,8 +6320,9 @@ function sampleGaps(){const t=T.SessionTime;if(t==null||t-GAP_AT<1&&t>=GAP_AT)re
 /* a gap history without its one-sample spikes: at the line the game counts a car's lap a moment before or after its
    distance wraps, so one sample can be a whole lap off; a point more than half a lap from both neighbours goes */
 function cleanGaps(a,le){if(a.length<3||!(le>0))return a;const lim=le/2,out=[];a.forEach((p,j)=>{const d=k=>Math.abs(p[1]-a[k][1]);if(j===0?d(1)>lim&&Math.abs(a[1][1]-a[2][1])<=lim:j===a.length-1?d(j-1)>lim:d(j-1)>lim&&d(j+1)>lim)return;out.push(p)});return out}
-function drawGaps(){const cv=$("#gapC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1))-70);if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}
-  const[x,w,h]=fitCanvas(cv);if(!x)return;x.clearRect(0,0,w,h);const c=ui("gaps"),t=T.SessionTime||0,span=c.mins*60,pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me]||0;
+function drawGaps(){const cv=$("#gapC");if(!cv||(!OV.on&&cv.closest("[hidden]")))return;cv.hidden=!!ui("gaps").numbers;if(OV.on){const hh=Math.max(120,Math.round(innerHeight/(OV.scale||1))-70);if(+cv.getAttribute("height")!==hh)cv.setAttribute("height",hh)}
+  // numbers only (its settings): the chart is hidden, the legend still made from the same lines (drawn off screen)
+  const[x,w,h]=cv.hidden?[(drawGaps.off||(drawGaps.off=document.createElement("canvas").getContext("2d"))),300,200]:fitCanvas(cv);if(!x)return;if(!cv.hidden)x.clearRect(0,0,w,h);const c=ui("gaps"),t=T.SessionTime||0,span=c.mins*60,pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,my=pos[me]||0;
   const pick=[...GAPH.keys()].filter(i=>my&&pos[i]>0&&Math.abs(pos[i]-my)<=c.cars).sort((a,b)=>pos[a]-pos[b]);
   const le=estLap(),ser=new Map();pick.forEach(i=>ser.set(i,cleanGaps(GAPH.get(i).filter(p=>p[0]>=t-span),le)));
   let m=2;ser.forEach(a=>a.forEach(p=>{m=Math.max(m,Math.abs(p[1]))}));m=Math.ceil(m*1.15);
@@ -6242,7 +6341,7 @@ function trackIncidents(){const n=T.PlayerCarMyIncidentCount;if(n==null)return;i
 function renderIncidents(){const box=$("#incBox");if(!box)return;const lim=+((S.WeekendInfo||{}).WeekendOptions||{}).IncidentLimit||null,n=INC.n??T.PlayerCarMyIncidentCount??0;
   box.innerHTML=`<div class="row" style="margin-top:4px"><div><div class="big mono ${lim&&n>=lim*.75?"bad":""}">${n}x</div><div class="sub">${lim?Lp(`of ${lim}x limit`,`de ${lim}x de límite`,0,`von ${lim}x Limit`,`de ${lim}x de limite`):Lp("no limit","sin límite")}</div></div></div>
     ${lim?`<div class="meter"><b style="width:${Math.min(100,n/lim*100)}%;background:${n>=lim*.75?"var(--bad)":"var(--accent)"}"></b></div>`:""}
-    <div class="inclist">${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
+    <div class="inclist"${ui("incidents").list===false?" hidden":""}>${INC.log.map(e=>`<div><span>${Lp("Lap","Vuelta",true)} ${e.lap??"–"} · ${Math.round((e.pct||0)*100)}%</span><span class="bad">+${e.d}x</span><span class="muted">${e.tot}x</span></div>`).join("")||`<div class="muted">${Lp("Clean so far","Limpio hasta ahora",true)}</div>`}</div>`}
 
 /* ---------- weather, the track position bar and the PC's performance (the same as the native overlays) ---------- */
 const COMPASS=["N","NE","E","SE","S","SW","W","NW"];
@@ -6258,24 +6357,33 @@ function renderWeather(){const box=$("#wxBox");if(!box)return;const t=v=>v==null
   const hum=T.RelativeHumidity!=null?` · ${Tx("humidity","humedad")} ${Math.round(T.RelativeHumidity<=1?T.RelativeHumidity*100:T.RelativeHumidity)}%`:"";
   const p=precipPct(),wetN=["","dry","mostly dry","very lightly wet","lightly wet","moderately wet","very wet","extremely wet"],wetS=["","seca","casi seca","muy ligeramente mojada","ligeramente mojada","moderadamente mojada","muy mojada","extremadamente mojada"];
   const wet=T.TrackWetness>0&&wetN[T.TrackWetness]?` · ${Tx("track","pista")} ${Tx(wetN[T.TrackWetness],wetS[T.TrackWetness])}`:"";
-  box.innerHTML=`<div class="row" style="justify-content:space-between;margin-top:4px"><div><small class="muted">${esc(Tx("Track","Pista"))}</small><div class="big mono">${t(trk)}</div></div><div><small class="muted">${esc(Tx("Air","Aire"))}</small><div class="big mono">${t(T.AirTemp)}</div></div>${clock?`<div class="mono muted">${T.SolarAltitude>0?"☀":"☾"} ${clock}</div>`:""}</div>
-    <div class="wxwind"><svg width="48" height="48" viewBox="-24 -24 48 48"><circle r="21" fill="none" stroke="var(--line)" stroke-width="1.5"/><path d="M0,-23 L-4,-16 L4,-16 Z" fill="var(--muted)"/>${rel!=null?`<g transform="rotate(${(rel*180/Math.PI).toFixed(1)})"><line x1="0" y1="-16" x2="0" y2="16" stroke="${wc}" stroke-width="2.2"/><path d="M0,19 L-5,11 L5,11 Z" fill="${wc}"/></g>`:""}</svg><div><b>${esc(wind)}</b><div class="sub">${esc(kind)}</div></div></div>
-    <p class="note" style="margin:8px 0 0">${esc(Tx("Sky","Cielo"))}: ${esc(sky)}${esc(hum)}<br>${esc(Tx("Rain","Lluvia"))} ${p==null?"–":p+"%"}${esc(wet)}${T.WeatherDeclaredWet?` <span class="pill bad">${esc(Tx("Declared wet","En mojado"))}</span>`:""}</p>`}
+  // its own settings: which values
+  const sh=ui("weather").show||[],has=k=>sh.includes(k);
+  const rainTxt=[has("rain")?`${esc(Tx("Rain","Lluvia"))} ${p==null?"–":p+"%"}`:"",has("wet")?esc(has("rain")?wet:wet.replace(/^ · /,"")):""].join("");
+  box.innerHTML=(has("track")||has("air")||has("clock")&&clock?`<div class="row" style="justify-content:space-between;margin-top:4px">${has("track")?`<div><small class="muted">${esc(Tx("Track","Pista"))}</small><div class="big mono">${t(trk)}</div></div>`:""}${has("air")?`<div><small class="muted">${esc(Tx("Air","Aire"))}</small><div class="big mono">${t(T.AirTemp)}</div></div>`:""}${clock&&has("clock")?`<div class="mono muted">${T.SolarAltitude>0?"☀":"☾"} ${clock}</div>`:""}</div>`:"")
+    +(has("wind")?`<div class="wxwind"><svg width="48" height="48" viewBox="-24 -24 48 48"><circle r="21" fill="none" stroke="var(--line)" stroke-width="1.5"/><path d="M0,-23 L-4,-16 L4,-16 Z" fill="var(--muted)"/>${rel!=null?`<g transform="rotate(${(rel*180/Math.PI).toFixed(1)})"><line x1="0" y1="-16" x2="0" y2="16" stroke="${wc}" stroke-width="2.2"/><path d="M0,19 L-5,11 L5,11 Z" fill="${wc}"/></g>`:""}</svg><div><b>${esc(wind)}</b><div class="sub">${esc(kind)}</div></div></div>`:"")
+    +(has("sky")||rainTxt?`<p class="note" style="margin:8px 0 0">${has("sky")?`${esc(Tx("Sky","Cielo"))}: ${esc(sky)}${esc(hum)}`:""}${has("sky")&&rainTxt?"<br>":""}${rainTxt}${T.WeatherDeclaredWet&&rainTxt?` <span class="pill bad">${esc(Tx("Declared wet","En mojado"))}</span>`:""}</p>`:"")}
 function tbRound(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
 /* every car along the lap on one line: class colours, the leader ringed, cars in the pits dimmed, you in amber with the two nearest numbers each way */
-function drawTrackbar(){const cv=$("#tbC");if(!cv||!cv.clientWidth)return;const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=56;if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=h*dpr}
+function drawTrackbar(){const cv=$("#tbC");if(!cv||!cv.clientWidth)return;
+  // its own settings: the line alone, its height, the nearest numbers, the sector marks and only your class
+  const own=ui("trackbar"),hs=own.height==="s"?.8:own.height==="l"?1.3:1,dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=Math.round(56*hs);
+  {const p=cv.closest(".wpanel");if(p)p.classList.toggle("lineonly",!!own.lineOnly)}if(cv.style.height!==h+"px")cv.style.height=h+"px";
+  if(cv.width!==Math.round(w*dpr)||cv.height!==h*dpr){cv.width=Math.round(w*dpr);cv.height=h*dpr}
   const g=cv.getContext("2d"),cs=getComputedStyle(document.documentElement),col=n=>cs.getPropertyValue(n).trim()||"#888";g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-  const pad=12,x0=pad+6,x1=w-pad-6,by=h/2+3;g.fillStyle=col("--surface2");g.strokeStyle=col("--line");g.lineWidth=1;tbRound(g,x0,by-4,x1-x0,8,4);g.fill();g.stroke();
+  const pad=12,x0=pad+6,x1=w-pad-6,by=h/2+3,bH=8*hs;g.fillStyle=col("--surface2");g.strokeStyle=col("--line");g.lineWidth=1;tbRound(g,x0,by-bH/2,x1-x0,bH,bH/2);g.fill();g.stroke();
+  const secs=((S.SplitTimeInfo||{}).Sectors||[]).map(x=>+x.SectorStartPct).filter(v=>v>0&&v<1);
+  if(own.sectors!==false&&secs.length){g.font="9px "+col("--f-data");g.textAlign="center";secs.forEach((f,k)=>{const sx=x0+f*(x1-x0);g.fillStyle=col("--muted");g.fillRect(sx-.75,by-7,1.5,14);g.fillText("S"+(k+2),sx,by-10)})}
   for(let k=0;k<4;k++){g.fillStyle=k%2?"#000":col("--fg");g.fillRect(x0-1.5,by-6+k*3,3,3)}
   const pct=T.CarIdxLapDistPct||[],pit=T.CarIdxOnPitRoad||[],surf=T.CarIdxTrackSurface||[],pos=T.CarIdxPosition||[],me=T.PlayerCarIdx,drv=((S.DriverInfo||{}).Drivers||[]),byIdx={};
   drv.forEach(d=>byIdx[d.CarIdx]=d);const real=drv.filter(d=>!+d.CarIsPaceCar&&!+d.IsSpectator),classes=[...new Set(real.map(d=>+d.CarClassID))].sort((a,b)=>a-b),pal=["#5c9dff","#ffb02e","#38c97c","#ff6fb5","#b98cff","#5ad1c8"];
   const ccol=d=>{if(classes.length<=1)return "#c9d1da";const cc=+d.CarClassColor;return cc&&cc!==0xffffff?"#"+cc.toString(16).padStart(6,"0"):pal[classes.indexOf(+d.CarClassID)%pal.length]};
-  const xOf=p=>x0+p*(x1-x0),nears=[];
-  pct.forEach((p,i)=>{const d=byIdx[i];if(i===me||p<0||!d||+d.CarIsPaceCar||+d.IsSpectator||surf[i]<0||surf[i]===1)return;g.globalAlpha=pit[i]?.4:1;g.fillStyle=ccol(d);g.beginPath();g.arc(xOf(p),by,4.2,0,7);g.fill();
+  const xOf=p=>x0+p*(x1-x0),nears=[],myCls=own.myClass&&byIdx[me]?+byIdx[me].CarClassID:null;
+  pct.forEach((p,i)=>{const d=byIdx[i];if(i===me||p<0||!d||+d.CarIsPaceCar||+d.IsSpectator||surf[i]<0||surf[i]===1||(myCls!=null&&+d.CarClassID!==myCls))return;g.globalAlpha=pit[i]?.4:1;g.fillStyle=ccol(d);g.beginPath();g.arc(xOf(p),by,4.2,0,7);g.fill();
     if(pos[i]===1){g.strokeStyle=col("--fg");g.lineWidth=1.2;g.beginPath();g.arc(xOf(p),by,5.6,0,7);g.stroke()}g.globalAlpha=1;
     if(pct[me]>=0){let dd=p-pct[me];if(dd>.5)dd--;else if(dd<-.5)dd++;nears.push([i,dd])}});
   if(!(pct[me]>=0))return;nears.sort((a,b)=>Math.abs(a[1])-Math.abs(b[1]));let ah=0,bh=0;g.font="10.5px "+col("--f-data");g.textAlign="center";g.fillStyle=col("--muted");
-  const tags=[];nears.forEach(([i,dd])=>{if(dd>0&&ah<2||dd<0&&bh<2){if(dd>0)ah++;else bh++;const d=byIdx[i];if(d&&d.CarNumber){const s="#"+d.CarNumber;tags.push({x:xOf(pct[i]),w:g.measureText(s).width,s})}}});
+  const tags=[];nears.forEach(([i,dd])=>{if(own.near===false)return;if(dd>0&&ah<2||dd<0&&bh<2){if(dd>0)ah++;else bh++;const d=byIdx[i];if(d&&d.CarNumber){const s="#"+d.CarNumber;tags.push({x:xOf(pct[i]),w:g.measureText(s).width,s})}}});
   // two numbers never overlap: one too close to the one on its left moves right, and none leaves the bar
   tags.sort((a,b)=>a.x-b.x);for(let k=1;k<tags.length;k++){const lim=tags[k-1].x+(tags[k-1].w+tags[k].w)/2+4;if(tags[k].x<lim)tags[k].x=lim}
   for(let k=tags.length-1;k>=0;k--){const over=tags[k].x+tags[k].w/2-x1;if(over>0)tags[k].x-=over;if(k<tags.length-1){const lim=tags[k+1].x-(tags[k+1].w+tags[k].w)/2-4;if(tags[k].x>lim)tags[k].x=lim}}
@@ -6289,8 +6397,9 @@ function renderSystem(){const box=$("#sysBox");if(!box)return;const now=Date.now
   const bar=(l,v)=>`<div class="row" style="align-items:center;gap:8px;margin-top:6px"><span class="muted" style="min-width:36px">${l}</span><div class="meter" style="flex:1;margin:0"><b style="width:${v||0}%;background:${v>90?"var(--bad)":v>75?"var(--accent)":"var(--blue)"}"></b></div><b class="mono" style="min-width:40px;text-align:right">${v==null?"–":v+"%"}</b></div>`;
   const top=Math.max(60,...SYS.fps),pts=SYS.fps.map((v,i)=>`${((i+59-(SYS.fps.length-1))/59*120).toFixed(1)},${(40-36*Math.min(1,v/top)).toFixed(1)}`).join(" ");
   const fc=f==null?"var(--muted)":f<30?"var(--bad)":f<55?"var(--warn,#ffb02e)":"var(--fg)",cc=lat>300||q<60?"var(--bad)":lat>150||q<80?"var(--warn,#ffb02e)":"var(--fg)";
-  box.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:4px"><div class="big mono" style="color:${fc}">${f==null?"–":Math.round(f)} <small>fps</small></div>${SYS.fps.length>1?`<svg width="120" height="42" viewBox="0 0 120 42"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg>`:""}</div>
-    ${bar("GPU",gpu)}${bar("CPU",cpu)}<div class="row" style="justify-content:space-between;margin-top:8px"><span class="muted">${esc(Tx("Connection","Conexión"))}</span><b class="mono" style="color:${cc}">${lat==null?"–":Math.round(lat)+" ms"}${q!=null?` · ${q}%`:""}</b></div>`}
+  const sh=ui("system").show||[];
+  box.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:4px"${sh.includes("fps")||sh.includes("graph")?"":" hidden"}>${sh.includes("fps")?`<div class="big mono" style="color:${fc}">${f==null?"–":Math.round(f)} <small>fps</small></div>`:"<span></span>"}${SYS.fps.length>1&&sh.includes("graph")?`<svg width="120" height="42" viewBox="0 0 120 42"><polyline points="${pts}" fill="none" stroke="var(--muted)" stroke-width="1.5"/></svg>`:""}</div>
+    ${sh.includes("gpu")?bar("GPU",gpu):""}${sh.includes("cpu")?bar("CPU",cpu):""}<div class="row" style="justify-content:space-between;margin-top:8px"${sh.includes("net")?"":" hidden"}><span class="muted">${esc(Tx("Connection","Conexión"))}</span><b class="mono" style="color:${cc}">${lat==null?"–":Math.round(lat)+" ms"}${q!=null?` · ${q}%`:""}</b></div>`}
 
 /* ===================== race scheduler (calendar) ===================== */
 Object.assign(I18N,{"g.race":["Telemetry","Telemetría","Telemetrie","Telemetria"],"g.overlays":["Overlays","Overlays"],"g.analysis":["Analysis","Análisis"],"g.season":["Season","Temporada"],"g.rig":["Rig","Rig"],"g.account":["Account","Cuenta"],
@@ -6580,6 +6689,7 @@ function coachStyleHTML(){const m=ui("coach").mode,t=coachTips()[0],sample=!t,n=
   if(m==="column")return`<div class="cso" style="position:relative"><div class="cso-col"><span class="label">${esc(tn.w||Tx("Coach","Coach"))}</span>${tn.num?`<span class="cso-t" style="font-size:22px">${tn.num}</span>`:""}<div class="cso-bar"><i style="height:50%"></i></div><b class="mono">150</b></div>${tag}</div>`;
   if(m==="curve")return`<div class="cso panel" style="position:relative;display:flex;gap:14px;align-items:flex-start"><svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true" style="flex:none;width:96px;height:96px"><path d="M20 92 C20 50 30 22 80 12" fill="none" stroke="#2b3542" stroke-width="14" stroke-linecap="round"/><path d="M20 92 C20 50 30 22 80 12" fill="none" stroke="#e7ebf1" stroke-width="2" stroke-dasharray="6 4"/><path d="M23 92 C23 52 33 25 80 15" fill="none" stroke="var(--accent)" stroke-width="2.5"/><path d="M12 70 h18" stroke="#e7ebf1" stroke-width="2.5"/><path d="M14 62 h18" stroke="var(--accent)" stroke-width="2.5"/></svg>
     <div style="min-width:0"><div class="frow" style="gap:10px">${pill(17)}<b class="mono" style="font-size:20px;flex:0 0 auto">150 m</b></div><p style="margin:8px 0 6px;font-weight:600">${esc(tip)}</p><span class="note">${esc(Tx("white the reference, amber you","blanca la referencia, amarilla tú"))}</span></div>${tag}</div>`;
+  if(m==="text")return`<div class="cso panel" style="position:relative"><b style="color:var(--accent);margin-right:8px">${esc(full)}</b><span style="font-weight:600">${esc(tip)}</span>${tag}</div>`;
   if(m==="big")return`<div class="cso panel" style="position:relative">${tn.w?`<div class="cso-cue" style="color:var(--muted);text-transform:uppercase;font-size:22px">${esc(tn.w)}</div>`:""}<div style="display:flex;gap:18px;align-items:center">${tn.num?`<span class="cso-big">${tn.num}</span>`:""}<div><b class="mono" style="font-size:36px;line-height:1">150</b><div class="cso-cue">${esc(Tx("BRAKE EARLIER","FRENA ANTES"))}</div></div></div>${tag}</div>`;
   return`<div class="cso panel" style="position:relative"><div class="frow" style="gap:14px;align-items:flex-start">${pill(22)}<div style="flex:1;min-width:0"><span class="label">${esc(Tx("Brake in","Frena en"))}</span> <b class="mono" style="font-size:22px">150 m</b><div class="cso-bar h"><i style="width:50%"></i></div></div></div>
     <p style="margin:10px 0 4px;padding-left:10px;border-left:4px solid var(--accent);font-weight:600">${esc(tip)}</p><span class="mono bad">${sgn(lost,2)} s</span>${tag}</div>`}
@@ -6953,7 +7063,7 @@ $("#setupQ").oninput=()=>renderSetups();$("#setupFolder").onclick=()=>MODE==="br
 /* Beeps play in the screens where "Beeps in this screen" is on: by default the
    PC itself (not the phone, not overlay windows), so they are not heard twice. */
 Object.assign(I18N,{"w.brakes":["Braking markers","Marcas de frenada"],"d.brakes":["Where to brake in the next corner, from your best lap, with beeps; brakes earlier with a car just ahead","Dónde frenar en la próxima curva según tu mejor vuelta, con pitidos; frena antes con un coche justo delante"]});
-UI_DEFAULTS.brakes={on:true,beeps:"count",traffic:true,vol:.7};
+UI_DEFAULTS.brakes={on:true,beeps:"count",traffic:true,vol:.7,speeds:true,fb:true};
 UI_DEFAULTS.coach={mode:"next",turnName:"both",ref:"level",turns:[],turnsTrack:0,hint:true,verdict:4,lead:300}; // the coach overlay (drawCoachOv in ovnative4.go): what it shows and which corners, chosen before the session
 function beepHere(){if(OV.on)return false;const v=store.get("pw.beepHere",null);if(v!=null)return v;return MODE==="local"||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
 let ACTX=null;
@@ -7043,12 +7153,12 @@ function renderBrakes(){const box=$("#bmBox");if(!box)return;const c=ui("brakes"
     ctl.querySelectorAll("[data-bmb]").forEach(b=>b.onclick=()=>{setUI("brakes",{beeps:b.dataset.bmb});renderBrakes()});ctl.querySelector("[data-bmt]").onclick=()=>{setUI("brakes",{traffic:!ui("brakes").traffic});renderBrakes()}}
   if(!c.on){box.innerHTML=`<p class="note">${esc(Tx("Off","Apagado"))}</p>`;return}
   if(!z.length){box.innerHTML=`<p class="note">${Lp("Drive one clean lap: your braking points appear here, with beeps.","Da una vuelta limpia: aquí aparecen tus puntos de frenada, con pitidos.")}</p>`;return}
-  const fb=BM.fb&&Date.now()-BM.fb.at<6000?BM.fb:null;
+  const fb=c.fb!==false&&BM.fb&&Date.now()-BM.fb.at<6000?BM.fb:null;
   const fbTxt=fb?(fb.dd==null?Tx(`T${fb.n}: no braking`,`T${fb.n}: sin frenar`,`T${fb.n}: kein Bremsen`,`T${fb.n}: sem frear`):Math.abs(fb.dd)<=3?Tx(`T${fb.n}: on the mark`,`T${fb.n}: en el punto`,`T${fb.n}: genau richtig`,`T${fb.n}: no ponto`):fb.dd>0?Tx(`T${fb.n}: ${fb.dd} m late`,`T${fb.n}: ${fb.dd} m tarde`,`T${fb.n}: ${fb.dd} m zu spät`,`T${fb.n}: ${fb.dd} m tarde`):Tx(`T${fb.n}: ${-fb.dd} m early`,`T${fb.n}: ${-fb.dd} m antes`,`T${fb.n}: ${-fb.dd} m zu früh`,`T${fb.n}: ${-fb.dd} m antes`))+(fb.traffic?Tx(" · traffic"," · tráfico"):""):"";
   const fbCls=!fb?"":fb.traffic?"muted":fb.dd==null?"bad":Math.abs(fb.dd)<=3?"good":fb.dd>0?"bad":"warn";
   if(!cur){box.innerHTML=`<div class="bm"><div class="bmfb ${fbCls}">${esc(fbTxt)}</div></div>`;return}
   const now=cur.tTo<=0&&cur.tTo>-.6,pct=Math.max(0,Math.min(1,1-cur.mark/200));
-  box.innerHTML=`<div class="bm${now?" now":""}${BM.traffic?" traffic":""}"><div class="bmtop"><span class="bmn">T${cur.n}</span><span class="bmd mono">${now?esc(Tx("BRAKE","FRENA")):cur.mark>999?"–":Math.max(0,Math.round(cur.mark))+" m"}</span><span class="bmv muted">${Math.round(spd(cur.vref))} → ${Math.round(spd(cur.vmin))} ${spdU()}</span></div>
+  box.innerHTML=`<div class="bm${now?" now":""}${BM.traffic?" traffic":""}"><div class="bmtop"><span class="bmn">T${cur.n}</span><span class="bmd mono">${now?esc(Tx("BRAKE","FRENA")):cur.mark>999?"–":Math.max(0,Math.round(cur.mark))+" m"}</span>${c.speeds===false?"":`<span class="bmv muted">${Math.round(spd(cur.vref))} → ${Math.round(spd(cur.vmin))} ${spdU()}</span>`}</div>
     <div class="bmbar"><b style="width:${(pct*100).toFixed(1)}%"></b></div>
     <div class="bmrow">${BM.traffic?`<span class="warn">${esc(Tx(`Car ahead ${BM.traffic.dt.toFixed(1)} s · brake ${Math.round(cur.early)} m earlier`,`Coche delante a ${BM.traffic.dt.toFixed(1)} s · frena ${Math.round(cur.early)} m antes`,`Auto vor dir ${BM.traffic.dt.toFixed(1)} s · ${Math.round(cur.early)} m früher bremsen`,`Carro à frente a ${BM.traffic.dt.toFixed(1)} s · freie ${Math.round(cur.early)} m antes`))}</span>`:cur.side&&cur.early>0?`<span class="warn">${esc(Tx(`Car alongside · brake ${Math.round(cur.early)} m earlier`,`Coche al lado · frena ${Math.round(cur.early)} m antes`))}</span>`:Math.abs(cur.fast)>=5?`<span class="muted">${esc(cur.fast>0?Tx(`Faster than the reference · ${Math.round(cur.fast)} m earlier`,`Más rápido que la referencia · ${Math.round(cur.fast)} m antes`):Tx(`Slower than the reference · ${Math.round(-cur.fast)} m later`,`Más lento que la referencia · ${Math.round(-cur.fast)} m después`))}</span>`:`<span class="muted">${esc(BM.src==="model"?Tx("From the model: the driver just ahead","Del modelo: el piloto justo por delante"):Tx("From your best lap","De tu mejor vuelta"))}</span>`}<span class="bmfb ${fbCls}">${esc(fbTxt)}</span></div></div>`}
 
