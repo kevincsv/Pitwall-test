@@ -7,14 +7,18 @@
 //   feedback window's six hours of use.
 // GET  /community/admin/analytics?days=N (admins)  the numbers of the Summary and the Users tabs, from two reads of
 //   usage_days over the days asked (at most 90) and one of presence; never a query per account.
-// POST /community/feedback (signed in)  {text, rating, device, v, view}  kept and emailed to support@ (email.js)
-// GET  /community/feedback/ask (signed in)  {ask}: the web and the PC show "Share your feedback" when it says so
-// POST /community/feedback/seen (signed in)  the window was shown and put off (Not now): it waits again
+// POST /community/feedback (signed in)  {text, rating, device, v, view, kind, style}  kept and emailed to support@
+//   (email.js); kind "overlays" is the overlay window's answer, with the overlay design it was about (style)
+// GET  /community/feedback/ask (signed in)  {ask, ov, ovStyle}: the web and the PC show "Share your feedback" when ask
+//   says so, and the PC the overlay window when ov does (after the first race with overlays, once answered every six)
+// POST /community/feedback/seen (signed in)  the window was shown and put off (Not now): it waits again; with
+//   {kind: "overlays"} the overlay window, which waits for the next races with overlays
+// POST /community/feedback/ovrace (signed in, the PC)  {style, ovs, game, sid}  a race ended with overlays open
 // GET  /community/admin/feedback (admins)  every answer, newest first
 import { sessionAccount, isAdmin } from "./accounts.js";
 import { openEscrow } from "./escrow.js";
 import { sendFeedback } from "./email.js";
-import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE, day, cleanUsage, cleanFeedback, shouldAsk, analyticsOf, ASK_USED, FEEDBACK_PER_DAY, MAX_DAYS } from "./usagelib.js";
+import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE, SQL_OV_RACE, SQL_OV_SEEN, SQL_OV_ANSWERED, day, cleanUsage, cleanFeedback, cleanOvRace, shouldAsk, shouldAskOv, analyticsOf, ASK_USED, FEEDBACK_PER_DAY, MAX_DAYS } from "./usagelib.js";
 
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 const err = (m, s) => json({ error: m }, s);
@@ -22,7 +26,7 @@ const err = (m, s) => json({ error: m }, s);
 /** The routes above; null when the path is none of them. */
 export async function usageRoute(req, env, url) {
   const p = url.pathname, m = req.method;
-  const ours = ["/community/usage", "/community/feedback", "/community/feedback/ask", "/community/feedback/seen", "/community/admin/analytics", "/community/admin/feedback"];
+  const ours = ["/community/usage", "/community/feedback", "/community/feedback/ask", "/community/feedback/seen", "/community/feedback/ovrace", "/community/admin/analytics", "/community/admin/feedback"];
   if (!ours.includes(p)) return null;
   const acc = await sessionAccount(req, env);
   if (!acc) return err("sign in with your Pitlane HQ account", 401);
@@ -38,18 +42,26 @@ export async function usageRoute(req, env, url) {
     return json({ ok: true, kept: u.counts.length });
   }
   if (p === "/community/feedback/ask" && m === "GET") {
-    const r = await env.DB.prepare("SELECT shown, used FROM feedback_ask WHERE account_id=?1").bind(acc.id).first();
+    const r = await env.DB.prepare("SELECT shown, used, ov_races, ov_answered, ov_last_style FROM feedback_ask WHERE account_id=?1").bind(acc.id).first();
     // the first time: the clock starts now, nobody is asked the day this comes out
-    if (!r) { await env.DB.prepare("INSERT OR IGNORE INTO feedback_ask (account_id, shown, used) VALUES (?1,?2,0)").bind(acc.id, now).run(); return json({ ask: false }); }
+    if (!r) { await env.DB.prepare("INSERT OR IGNORE INTO feedback_ask (account_id, shown, used) VALUES (?1,?2,0)").bind(acc.id, now).run(); return json({ ask: false, ov: false }); }
     let races = 0;
     if (r.used < ASK_USED) {
       const c = await env.DB.prepare(SQL_RACES_SINCE).bind("acct:" + acc.id, r.shown).first();
       races = (c && c.n) || 0;
     }
-    return json({ ask: shouldAsk(r.used, races), used: r.used, races });
+    return json({ ask: shouldAsk(r.used, races), used: r.used, races, ov: shouldAskOv(!!r.ov_answered, r.ov_races || 0), ovRaces: r.ov_races || 0, ovStyle: r.ov_last_style || "classic" });
   }
   if (p === "/community/feedback/seen" && m === "POST") {
-    await env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now).run();
+    const b = await req.json().catch(() => null);
+    if (b && b.kind === "overlays") await env.DB.prepare(SQL_OV_SEEN).bind(acc.id).run();
+    else await env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now).run();
+    return json({ ok: true });
+  }
+  if (p === "/community/feedback/ovrace" && m === "POST") {
+    const o = cleanOvRace(await req.json().catch(() => null));
+    if (o.error) return err(o.error, 400);
+    await env.DB.prepare(SQL_OV_RACE).bind(acc.id, now, o.style, o.sid || crypto.randomUUID()).run();
     return json({ ok: true });
   }
   if (p === "/community/feedback" && m === "POST") {
@@ -58,9 +70,10 @@ export async function usageRoute(req, env, url) {
     const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback WHERE account_id=?1 AND created>?2").bind(acc.id, now - 86400e3).first();
     if (c && c.n >= FEEDBACK_PER_DAY) return err("thank you, that is enough for today", 429);
     const id = crypto.randomUUID();
+    // an answer puts its own window off: the general one for its six hours or two races, the overlay one for six races
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO feedback (id, account_id, created, device, v, rating, text, view) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)").bind(id, acc.id, now, f.device, f.v, f.rating, f.text, f.view),
-      env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now),
+      env.DB.prepare("INSERT INTO feedback (id, account_id, created, device, v, rating, text, view, kind, style) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)").bind(id, acc.id, now, f.device, f.v, f.rating, f.text, f.view, f.kind, f.style),
+      f.kind === "overlays" ? env.DB.prepare(SQL_OV_ANSWERED).bind(acc.id, now) : env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now),
     ]);
     const esc = await openEscrow(env, acc.escrow).catch(() => null);
     const mailed = await sendFeedback(env, { ...f, nick: acc.display || "", accountId: acc.id, email: (esc && esc.email) || "" }).catch(() => false);
@@ -68,7 +81,7 @@ export async function usageRoute(req, env, url) {
   }
   if (!isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
   if (p === "/community/admin/feedback" && m === "GET") {
-    const r = await env.DB.prepare("SELECT f.id, f.account_id AS accountId, f.created, f.device, f.v, f.rating, f.text, f.view, a.display AS nick FROM feedback f LEFT JOIN accounts a ON a.id=f.account_id ORDER BY f.created DESC LIMIT 300").all();
+    const r = await env.DB.prepare("SELECT f.id, f.account_id AS accountId, f.created, f.device, f.v, f.rating, f.text, f.view, f.kind, f.style, a.display AS nick FROM feedback f LEFT JOIN accounts a ON a.id=f.account_id ORDER BY f.created DESC LIMIT 300").all();
     const items = r.results || [];
     const rated = items.filter((x) => x.rating);
     return json({ items, count: items.length, avg: rated.length ? Math.round((rated.reduce((s, x) => s + x.rating, 0) / rated.length) * 10) / 10 : null });

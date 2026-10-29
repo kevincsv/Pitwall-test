@@ -553,6 +553,9 @@ type raceTrack struct {
 	rid               string // the report's id: the session's, plus the run when a finished race is run again
 	incDone, fuelDone float64
 	pendPit           bool // the lap at the line went through the pits (the next one starts with the car where it is)
+	// the overlay windows open while this race was driven (ovfeedback.go), and its game
+	ovs  map[string]bool
+	game string
 }
 
 var raceVars = []string{"SessionNum", "SessionState", "LapCompleted", "PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "OnPitRoad", "LapLastLapTime", "IsOnTrack", "LapDist", "PlayerTrackSurface", "CarLeftRight", "SessionTime", "Lap"}
@@ -574,9 +577,12 @@ func raceWatcher() {
 		if cur != nil && cur.started && !cur.saved && len(cur.laps) > 0 {
 			cur.saved = true
 			saveRace(buildReport(sessionYAML(), cur, dnf))
+			reportOvRace(cur.rid, cur.game, cur.ovs) // a race with overlays: the overlay feedback window may ask
 		}
 	}
+	tick := 0
 	for range time.Tick(500 * time.Millisecond) {
+		tick++
 		st := currentStatus()
 		if !st.connected() || (st.Demo && !cloudDemo) {
 			end(cur != nil && cur.state < 5)
@@ -651,6 +657,12 @@ func raceWatcher() {
 		cur.state = state
 		if !cur.started {
 			continue
+		}
+		if cur.game == "" {
+			cur.game = currentGame()
+		}
+		if tick%10 == 0 && !st.Demo { // every 5 s: the overlays open during the race
+			cur.ovs = noteOverlays(cur.ovs, listOverlays())
 		}
 		if pos > 0 {
 			cur.lastPos, cur.lastClass = pos, cpos
