@@ -1,6 +1,42 @@
 {
   "versions": [
     {
+      "v": "0.8.0",
+      "en": [
+        "Five new overlay designs in beta beside the classic one. Choose one for all the overlays or a different one for each.",
+        "Every overlay has its own settings. Hide its title, choose its opacity and text size, and pick what it shows.",
+        "The overlays can hide by themselves in the pits or when you are out of the car.",
+        "The relative and the standings show each driver's flag, and a clock when a driver has a penalty to serve.",
+        "Each overlay says if it works in iRacing, Le Mans Ultimate or both, and you choose which ones open by themselves in each game.",
+        "After a race with overlays you can tell us how they went.",
+        "Records say if they are from iRacing or Le Mans Ultimate.",
+        "A Le Mans Ultimate lap from the community opens in Le Mans Ultimate.",
+        "Fixes and improvements."
+      ],
+      "es": [
+        "Cinco diseños nuevos de overlays en beta, junto al clásico. Elige uno para todos los overlays o uno distinto para cada uno.",
+        "Cada overlay tiene sus propios ajustes. Quita su título, elige su opacidad y el tamaño del texto, y decide qué muestra.",
+        "Los overlays pueden ocultarse solos en boxes o cuando estás fuera del coche.",
+        "El relativo y la clasificación muestran la bandera de cada piloto, y un reloj cuando un piloto tiene una penalización pendiente.",
+        "Cada overlay dice si funciona en iRacing, en Le Mans Ultimate o en los dos, y eliges cuáles se abren solos en cada juego.",
+        "Después de una carrera con overlays puedes contarnos qué tal fueron.",
+        "Los récords dicen si son de iRacing o de Le Mans Ultimate.",
+        "Una vuelta de Le Mans Ultimate de la comunidad se abre en Le Mans Ultimate.",
+        "Arreglos y mejoras."
+      ],
+      "pt": [
+        "Cinco novos designs de overlays em beta, ao lado do clássico. Escolha um para todos os overlays ou um diferente para cada um.",
+        "Cada overlay tem seus próprios ajustes. Esconda o título, escolha a opacidade e o tamanho do texto, e decida o que ele mostra.",
+        "Os overlays podem se esconder sozinhos nos boxes ou quando você está fora do carro.",
+        "O relativo e a classificação mostram a bandeira de cada piloto, e um relógio quando um piloto tem uma punição a cumprir.",
+        "Cada overlay diz se funciona no iRacing, no Le Mans Ultimate ou nos dois, e você escolhe quais abrem sozinhos em cada jogo.",
+        "Depois de uma corrida com overlays você pode nos contar como foram.",
+        "Os recordes dizem se são do iRacing ou do Le Mans Ultimate.",
+        "Uma volta do Le Mans Ultimate da comunidade abre no Le Mans Ultimate.",
+        "Correções e melhorias."
+      ]
+    },
+    {
       "v": "0.7.2",
       "en": [
         "Le Mans Ultimate practice laps are valid again.",
