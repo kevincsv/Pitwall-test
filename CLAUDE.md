@@ -531,10 +531,29 @@
   minutes, never in the car (the PC while the car is on track), in demo data, from an overlay window, over another window
   or to an admin in admin mode; shown, it is marked at once (POST `/community/feedback/seen`), so Not now waits six more
   hours of use or two races. "Send feedback" is always in Settings → About and the inbox, and a round floating
-  button with a square speech bubble sits at the bottom right of every screen ("Send feedback", `fbFab` in index.html, counted
+  button with a square speech bubble sits at the bottom right of every screen ("Support", `fbFab` in index.html, counted
   `act:feedback_button`; PC app, web and phones): signed in only, never for a visitor, in an overlay window or in demo
   data, hidden while the car is on the track and under any open window, a toast or the voice call's bar, above the
-  phone-width tab bar. POST `/community/feedback`
+  phone-width tab bar. It opens the support chat (`supportOpen`/`SUP` in index.html, `cloud/src/support.js`, the routes
+  and statements in `supportlib.js`, migration 0075 `support_msgs` and `support_threads`, which brought in every answer
+  of before): one conversation per account, the window "Support" (filling a phone's screen), the driver's messages on the
+  right, Support's on the left as "Pitlane HQ Support" (never an admin's name), the newest at the bottom, Enter sends and
+  Shift+Enter is a new line, "Write to us. We answer here." while empty. What the feedback and overlay windows send is a
+  message of the chat too (POST `/community/feedback` adds it). GET `/community/support` {msgs [{id, me, text, created,
+  kind, rating?}], unread} marks Support's replies read; POST `/community/support` {text, device, v, view, lang} (20 a
+  day) emails support@ ("Support chat · nick", Reply-To the driver's email from the escrow); GET
+  `/community/support/unread` {n, last?, at?} is one row by key, polled every 2 minutes while the page is on the screen
+  (and the phones the same). The button carries the count of Support's replies not read ("1"… "9+", amber like the
+  inbox's), and a reply not read is an inbox notice "Support replied" with its first line, both cleared when the chat
+  opens. For an admin with admin mode on the button opens the support inbox and counts the conversations with messages
+  not read (GET `/community/admin/support` {items [{accountId, nick, last, lastAt, lastSupport, unread}], unread}, GET
+  `/community/admin/support/unread` {n}): a conversation (GET `/community/admin/support/:id` {accountId, nick, gone,
+  msgs [{id, support, text, created, read, rating, device, v, view, kind, style}]}, marking the driver's read) with the
+  driver's profile and the reply box (POST `/community/admin/support/:id` {text} → {ok, mailed, msg}: a reply as
+  Support, emailed to the driver in the language they last wrote in, "Pitlane HQ Support replied" with "Open Pitlane HQ"
+  to pitlanehq.app/app?support=1, which opens the chat on arrival; ?support=<account> opens that conversation for an
+  admin, the link of support@'s email). The admin page's Feedback tab has "Open the support chat" on every answer.
+  Counted `act:support_open`, `act:support_sent`, `act:support_reply`; deleting an account deletes its conversation. POST `/community/feedback`
   {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 5 a day per account) and emails it through
   Resend to support@pitlanehq.app (`sendFeedback` in email.js: the nickname, account id, device, version, stars, where it
   was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). The

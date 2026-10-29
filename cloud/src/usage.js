@@ -15,9 +15,11 @@
 //   {kind: "overlays"} the overlay window, which waits for the next races with overlays
 // POST /community/feedback/ovrace (signed in, the PC)  {style, ovs, game, sid}  a race ended with overlays open
 // GET  /community/admin/feedback (admins)  every answer, newest first
+// Every answer is also a driver's message of their support chat (support.js, migration 0075).
 import { sessionAccount, isAdmin } from "./accounts.js";
 import { openEscrow } from "./escrow.js";
 import { sendFeedback } from "./email.js";
+import { driverMessage, cleanLang } from "./supportlib.js";
 import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE, SQL_OV_RACE, SQL_OV_SEEN, SQL_OV_ANSWERED, day, cleanUsage, cleanFeedback, cleanOvRace, shouldAsk, shouldAskOv, analyticsOf, ASK_USED, FEEDBACK_PER_DAY, MAX_DAYS } from "./usagelib.js";
 
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json", "cache-control": "no-store" } });
@@ -65,7 +67,7 @@ export async function usageRoute(req, env, url) {
     return json({ ok: true });
   }
   if (p === "/community/feedback" && m === "POST") {
-    const f = cleanFeedback(await req.json().catch(() => null));
+    const b = await req.json().catch(() => null), f = cleanFeedback(b);
     if (f.error) return err(f.error, 400);
     const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback WHERE account_id=?1 AND created>?2").bind(acc.id, now - 86400e3).first();
     if (c && c.n >= FEEDBACK_PER_DAY) return err("thank you, that is enough for today", 429);
@@ -74,6 +76,8 @@ export async function usageRoute(req, env, url) {
     await env.DB.batch([
       env.DB.prepare("INSERT INTO feedback (id, account_id, created, device, v, rating, text, view, kind, style) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)").bind(id, acc.id, now, f.device, f.v, f.rating, f.text, f.view, f.kind, f.style),
       f.kind === "overlays" ? env.DB.prepare(SQL_OV_ANSWERED).bind(acc.id, now) : env.DB.prepare(SQL_ASK_SEEN).bind(acc.id, now),
+      // and it is a message of the driver's support chat (support.js), so they see it there
+      ...driverMessage(env, acc.id, id, now, { ...f, lang: cleanLang(b && b.lang) }),
     ]);
     const esc = await openEscrow(env, acc.escrow).catch(() => null);
     const mailed = await sendFeedback(env, { ...f, nick: acc.display || "", accountId: acc.id, email: (esc && esc.email) || "" }).catch(() => false);

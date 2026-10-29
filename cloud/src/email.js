@@ -1,6 +1,7 @@
 // Emails (verify the address, reset the password) go out through Resend (resend.com): secret RESEND_API_KEY +
 // EMAIL_FROM, with the domain verified there. EMAIL_FROM looks like "Pitlane HQ <support@pitlanehq.app>".
 // What people write to support@ (and the replies to our emails) arrives by Cloudflare Email Routing (the MX).
+import { chatMail, replyMail } from "./supportlib.js";
 export const mailReady = (env) => !!env.EMAIL_FROM && !!env.RESEND_API_KEY;
 // where people write to us; the answers to our emails land there too (Reply-To)
 export const SUPPORT = "support@pitlanehq.app";
@@ -172,4 +173,16 @@ export function feedbackMail(f) {
 export async function sendFeedback(env, f) {
   const { subject, text } = feedbackMail(f);
   return send(env, SUPPORT, subject, text, SITE + "/admin", "Open the admin page", "en", f.email || "");
+}
+
+// The support chat (support.js): a driver's message goes to support@ like the feedback (Reply-To the driver's email when
+// the server knows it); Support's reply goes to the driver in their language with a button back to the chat, Reply-To
+// support@ as every email.
+export async function sendSupportChat(env, f) {
+  const { subject, text, link } = chatMail(f);
+  return send(env, SUPPORT, subject, text, link, "Open the support chat", "en", f.email || "");
+}
+export async function sendSupportReply(env, to, reply, l) {
+  const m = replyMail(reply, l);
+  return send(env, to, m.subject, m.text, m.link, m.button, m.lang);
 }

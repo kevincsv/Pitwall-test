@@ -22,6 +22,7 @@ import { steamReturn } from "./steam.js";
 import { scanLeagues } from "./leaguescan.js";
 import { onlineRoute, prunePresence } from "./presence.js";
 import { usageRoute, pruneUsage } from "./usage.js";
+import { supportRoute } from "./support.js";
 import { sessionSummary } from "./sessionsum.js";
 export { LiveRoom } from "./live.js";
 
@@ -515,6 +516,11 @@ async function handle(req, env, ctx) {
     // what the drivers use and what they tell us (usage.js): the usage batches, the feedback window, the admin's analytics
     if (url.pathname.startsWith("/community/usage") || url.pathname.startsWith("/community/feedback") || url.pathname === "/community/admin/analytics" || url.pathname === "/community/admin/feedback") {
       const r = await usageRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+      if (r) return r;
+    }
+    // the support chat behind the floating button (support.js)
+    if (url.pathname.startsWith("/community/support") || url.pathname.startsWith("/community/admin/support")) {
+      const r = await supportRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
       if (r) return r;
     }
     if (url.pathname.startsWith("/community/")) {
