@@ -6,14 +6,14 @@ import (
 )
 
 func TestOverlayFeedbackRace(t *testing.T) {
-	if s := ovStyle(map[string]any{}); s != "classic" {
+	if s := ovStyle(map[string]any{}); s != ovDefaultStyle {
 		t.Fatalf("no design chosen: %q", s)
 	}
 	if s := ovStyle(map[string]any{"ovstyle": "neon_2"}); s != "neon_2" {
 		t.Fatalf("a new design: %q", s)
 	}
 	for _, bad := range []any{"Bad Style", "", 3, "x123456789012345678901"} {
-		if s := ovStyle(map[string]any{"ovstyle": bad}); s != "classic" {
+		if s := ovStyle(map[string]any{"ovstyle": bad}); s != ovDefaultStyle {
 			t.Fatalf("%v: %q", bad, s)
 		}
 	}

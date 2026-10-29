@@ -524,7 +524,7 @@
   overlay window (the PC only, "How are the overlays?", the stars, the text box and the overlay design used, "Design ·
   Classic"): a race of iRacing or Le Mans Ultimate (vs AI too, never in demo data) that ends or is left with an overlay
   open goes to the server once (the agent's `reportOvRace` in ovfeedback.go, POST `/community/feedback/ovrace` {style,
-  ovs, game, sid}, the same session counted once; `style` is `ui.ovstyle`, "classic" by default, a free name matching
+  ovs, game, sid}, the same session counted once; `style` is `ui.ovstyle`, else the default design, a free name matching
   `^[a-z0-9_-]{1,20}$` so new designs come beside the old one), and the page checks a moment later once the car is off
   the track (the "ovrace" notice, `fbOvSoon`). The ask answers `ov` after the first such race and, once answered, every
   six (`ov_races`, `ov_answered`, `ov_last_style` on `feedback_ask`, migration 0073); shown, it is marked at once (POST
@@ -810,8 +810,9 @@
   height, each overlay turned to face you), so moving them in Overlays → Edit positions moves them in VR. It joins
   SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
   work through SteamVR as the OpenXR runtime.
-  There is no car controls overlay. The overlays' designs (the owner's choice): Classic, the native look and the default,
-  drawn exactly as before, and beside it the Beta designs Lane, Wall, Board, Frameless and Light (Carril, Muro, Pizarra,
+  There is no car controls overlay. The overlays' designs (the owner's choice): Lane is the default (still labelled Beta,
+  `ovDefaultStyle` in ovtheme.go, `OV_DEFAULT_STYLE` in index.html: every overlay nobody chose a design for), Classic is
+  the native look drawn exactly as before, and beside them the Beta designs Lane, Wall, Board, Frameless and Light (Carril, Muro, Pizarra,
   Sin marco, Claro; Faixa, Muro, Quadro, Sem moldura, Claro), each labelled "Beta" wherever it is offered, never replacing
   Classic. One design for all the overlays (Overlays → Design, `ui.ovstyle`) and one per overlay over it (its Configure
   window's Design, `ui.<overlay>.style`, empty follows the one for all); `ovtheme.go` draws them (an `ovTheme` set per
@@ -822,7 +823,7 @@
   (`OV_STYLES`, `ovStyleOf`, `data-ovs`). The relative and the standings overlays (only the overlays, the owner's choice: never the
   Telemetry tables, the race summary, the leaderboards or the phones) show the
   driver's country flag before the name where the game gives it (iRacing's FlairName; `flagCode`, the flag-icons set, MIT,
-  `web/dist/flags/` made by `tools/flags-sprite.js`; "Flags" in their settings, `ui.rel.flags`/`ui.std.flags`, on by
+  `web/dist/flags/` made by `tools/flags-sprite.js`; "Country flags" in their overlay settings, `ui.rel.flags`/`ui.std.flags`, off by
   default; the race results keep `cc` and `flair` but show no flag) and a clock after it for a penalty to serve (iRacing's black or furled
   black flag on the car, `CarIdxSessionFlags`, which cannot tell a slowdown from another black flag; Le Mans Ultimate's
   `CarIdxNumPenalties`).

@@ -100,13 +100,13 @@ func TestOverlayStyleChoice(t *testing.T) {
 		ovDraw("relative", c, st, st.at)
 		return c.px
 	}
-	plain, classic := draw(map[string]any{}), draw(map[string]any{"ovstyle": "classic"})
-	if !samePixels(plain, classic) {
-		t.Fatal("Classic chosen draws another picture")
+	plain, def := draw(map[string]any{}), draw(map[string]any{"ovstyle": ovDefaultStyle})
+	if !samePixels(plain, def) {
+		t.Fatal("nothing chosen is not the default design")
 	}
-	for _, s := range ovStyles[1:] {
-		if samePixels(plain, draw(map[string]any{"ovstyle": s})) {
-			t.Errorf("%s draws the classic picture", s)
+	for _, s := range ovStyles {
+		if s != ovDefaultStyle && samePixels(plain, draw(map[string]any{"ovstyle": s})) {
+			t.Errorf("%s draws the default design's picture", s)
 		}
 	}
 	if !samePixels(draw(map[string]any{"ovstyle": "lane", "relative": map[string]any{"style": "board"}}), draw(map[string]any{"ovstyle": "board"})) {
@@ -115,7 +115,7 @@ func TestOverlayStyleChoice(t *testing.T) {
 	if !samePixels(draw(map[string]any{"ovstyle": "lane", "relative": map[string]any{"style": ""}}), draw(map[string]any{"ovstyle": "lane"})) {
 		t.Error("an empty design does not follow the one for all")
 	}
-	if ovStyleOf("relative", map[string]any{"ovstyle": "glass"}) != "classic" || ovStyleOf("relative", map[string]any{"ovstyle": "light", "relative": map[string]any{"style": "classic"}}) != "classic" {
+	if ovStyleOf("relative", map[string]any{"ovstyle": "glass"}) != ovDefaultStyle || ovStyleOf("relative", map[string]any{"ovstyle": "light", "relative": map[string]any{"style": "classic"}}) != "classic" {
 		t.Error("an unknown design or Classic for one overlay")
 	}
 }

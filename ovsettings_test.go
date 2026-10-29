@@ -212,7 +212,7 @@ func TestOverlayClassHeads(t *testing.T) {
 	}{{"standings", "std", map[string]any{"classHead": true, "myClass": false}}, {"relative", "rel", map[string]any{"classHead": true}}} {
 		draw := func(cfg map[string]any) (int, []uint32) {
 			st := multi()
-			st.ui = map[string]any{tc.key: cfg}
+			st.ui = map[string]any{"ovstyle": "classic", tc.key: cfg} // Classic: the Beta designs band the classes anyway
 			c := newCanvas(int(ovDesign[tc.name]), 900)
 			st.at = now
 			return ovDraw(tc.name, c, st, now), c.px

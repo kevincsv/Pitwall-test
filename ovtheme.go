@@ -105,17 +105,20 @@ var ovTitled = map[string]bool{"fuel": true, "engine": true, "tyres": true, "inp
 // ovStyles: every design in the order the app offers them
 var ovStyles = []string{"classic", "lane", "wall", "board", "frameless", "light"}
 
-// ovStyleOf: the design of one overlay, its own (ui.<overlay>.style) else the one for all (ui.ovstyle), else Classic
+// ovDefaultStyle: the design of the overlays nobody chose one for (the owner's choice: Lane, still in beta)
+var ovDefaultStyle = "lane"
+
+// ovStyleOf: the design of one overlay, its own (ui.<overlay>.style) else the one for all (ui.ovstyle), else ovDefaultStyle
 func ovStyleOf(name string, ui map[string]any) string {
 	if m, ok := ui[name].(map[string]any); ok {
 		if s, ok := m["style"].(string); ok && (s == "classic" || ovThemes[s] != nil) {
 			return s
 		}
 	}
-	if s, ok := ui["ovstyle"].(string); ok && ovThemes[s] != nil {
+	if s, ok := ui["ovstyle"].(string); ok && (s == "classic" || ovThemes[s] != nil) {
 		return s
 	}
-	return "classic"
+	return ovDefaultStyle
 }
 
 // ovThemeFor: the theme ovDraw draws one overlay with (nil for Classic)

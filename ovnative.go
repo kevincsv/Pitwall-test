@@ -1517,7 +1517,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	rows := st.tableRows(rel, cfg, me)
 	th := ovTh // the design (nil Classic)
 	multi := st.multiClass()
-	flags := uiBool(cfg, "flags", true)
+	flags := uiBool(cfg, "flags", false)
 	// its own settings: the row size, the driver notes, the cars a lap away dimmed, the PIT tag, the short iRating,
 	// the fastest lap's mark and the classes' band (the relative); the standings' class bands come from tableRows
 	notes, dimLapped, pitTag := uiBool(cfg, "notes", true), uiBool(cfg, "dimLapped", false), uiBool(cfg, "pitTag", true)

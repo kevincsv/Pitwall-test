@@ -12,12 +12,12 @@ import (
 
 var ovStyleRe = regexp.MustCompile(`^[a-z0-9_-]{1,20}$`)
 
-// ovStyle is the overlay design in use (ui.ovstyle in the settings): "classic" until other designs come beside it.
+// ovStyle is the overlay design for all of them (ui.ovstyle in the settings), else the default one (ovDefaultStyle).
 func ovStyle(ui map[string]any) string {
 	if s, ok := ui["ovstyle"].(string); ok && ovStyleRe.MatchString(s) {
 		return s
 	}
-	return "classic"
+	return ovDefaultStyle
 }
 
 // noteOverlays adds the overlays open now to the ones a race saw.
