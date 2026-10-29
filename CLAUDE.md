@@ -335,13 +335,14 @@
   the app, same account, Telemetry → Connect, accept on the PC; a QR to the web app and the Android download) and
   sharing with a code; no Wi-Fi addresses, PIN or local links (`renderPhoneHow`).
 - Telemetry has three modes (`LIVE_MODE`, `liveModeBar`): Basic (the essentials below), Full (every basic widget, the
-  experimental ones too when switched on, and the lap's traces of speed, throttle/brake, delta and gear, `drawLiveTraces`)
+  experimental ones too (not on a PC without Pro), and the lap's traces of speed, throttle/brake, delta and gear, `drawLiveTraces`)
   and Compare laps, live (`renderLiveCmp`/`tickLiveCmp`: the lap now against B, "My best" in purple, the last lap, other
   laps, and "▲ Next level" / "★ Record" only when the model has a full-telemetry lap of someone else, corner by corner by
   the official turns). Standings: gap to the leader or interval, the class filter only when several classes race, your
   position lap by lap (`renderStandings`, `drawPosHistory`); Tyres show their wear. The rev beep page is a list of cars
   and the chosen car's mode as three cards (iRacing lights, My laps, My RPM with one number or one per gear) and its
-  sound (early, pitch, volume, test). Overlays is one list (`renderOverlaysTab`, `.ov-row`): each overlay with its "when I
+  sound (early, pitch, volume, test). Overlays is one list (`renderOverlaysTab`, `.ov-row`): every overlay always (no switch for the
+  experimental ones, which keep their "Experimental" pill and ask for Pro on a PC without it), each with its "when I
   get in the car" switch, Open/Closed and Configure, the presets and the buttons on top, "Place on the screen" shows
   the screen editor. The PC app never zooms (Ctrl+wheel and Ctrl +/− blocked, `IsZoomControlEnabled` off).
 - In Basic, the Telemetry screen shows only the essentials (`LIVE_ESSENTIAL`: flags, the top card with position, delta, last
@@ -698,7 +699,7 @@
   the air's temperature, the wind against your car with the game's clock, rain and how wet the track is; the track position
   bar: every car along the lap on one line, class colours, you marked, the two nearest numbers each way; performance:
   frames a second with the last minute, GPU and CPU, the connection's latency and quality) and `ovnative_windows.go` (a
-  layered window with alpha per pixel and the overlays' opacity). Only the panel and its content show, the rest is
+  layered window with alpha per pixel and each overlay's opacity). Only the panel and its content show, the rest is
   see-through, every click goes to the game, and while
   moving the overlays they are dragged and resized from the corner. They scale with the window's width and fit
   their height to what they show (the map and the radar keep the window's). The radar is only your car's outline,
@@ -737,7 +738,12 @@
   the per-pixel distance where the answer is known and the text's glyphs and widths are kept (`textMask`, `ovWidths`),
   the map's still part is drawn once per size and track (`mapLayer`), always the same pixels as before
   (`TestOverlayShapesSameAsBefore`, `TestOverlaysRedrawTheSame`; `ovbench_test.go` measures every overlay's draw), and
-  Overlays → More → Frame rate (30 by default, 20, 15 or 10 a second, `ui.ovfps`; the radar twice it) lowers it. The relative always has the rows you chose ahead and behind (empty when no car).
+  Overlays → More → Frame rate (30 by default, 20, 15 or 10 a second, `ui.ovfps`; the radar twice it) lowers it.
+  Every overlay's Configure window has its own Opacity (`ui.<overlay>.alpha`, 60–255, `ovAlpha`/`ovAlphaOf`; unset, the
+  old setting for all of them, `CFG.alpha`, else opaque; VR too) and, for the overlays with a title (`OV_TITLED`),
+  "Show the title" (`ui.<overlay>.title`, on by default, `titleOn`/`titleH`: off, the content moves up and the overlay
+  is shorter; the engine's and the pit lane's badges keep their row while lit); Overlays → More → Titles shows or
+  hides them all at once. The relative always has the rows you chose ahead and behind (empty when no car).
   A widget's or overlay's settings open in a floating window you drag by its title (`floatDrawer`), not a side
   panel, with its live preview always in view on the left and the settings on the right (`.cfgsplit`; stacked on a phone). Changing tab closes the side panel and any open window (`closeOpenPanels`), on the PC as on the web.
   Its live preview is the overlay itself; with no real telemetry it runs the demo data's invented race only inside
@@ -766,9 +772,9 @@
   SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
   work through SteamVR as the OpenXR runtime.
   There is no car controls overlay and no overlay looks (glass, carbon, minimal): one look, the native one.
-  The basic overlays, shown without the experimental switch (`OV_BASIC`): radar, delta bar, relative, standings,
+  The basic overlays (`OV_BASIC`): radar, delta bar, relative, standings,
   flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, track bar.
-  Experimental: compare, boost, gg, stats, sectors, gaps, telemetry, system.
+  Experimental (listed with the rest, an "Experimental" pill): compare, boost, gg, stats, sectors, gaps, telemetry, system.
 - Sync is automatic and covers everything in the account: every app reads the account when it starts,
   when it comes back to the screen and every minute (the PC also a few seconds after any change), and
   changes from several devices are merged (`syncmerge.go`), never a "which copy" question. The moment any device

@@ -640,12 +640,13 @@ var cmpChannels = []struct{ k, en, es string }{{"speed", "Speed", "Velocidad"}, 
 	{"gear", "Gear", "Marcha"}, {"steer", "Steering", "Volante"}, {"rpm", "RPM", "RPM"}}
 
 func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("compare"), st.titleH("compare", z)
 	W := float64(c.w)
 	pad := 14 * z
 	cfg := st.uiMap("cmp")
 	ch, follow := uiStr(cfg, "ch", "speed"), uiBool(cfg, "follow", false)
 	plotH := 200 * z
-	H := pad + 18*z + 24*z + plotH + pad
+	H := pad + th + 24*z + plotH + pad
 	panel(c, H, z)
 	title := st.T("Live compare", "Comparación en vivo")
 	for _, x := range cmpChannels {
@@ -653,7 +654,9 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 			title += " · " + st.T(x.en, x.es)
 		}
 	}
-	c.label(z, title, pad, pad+6*z, 0)
+	if ton {
+		c.label(z, title, pad, pad+6*z, 0)
+	}
 	E := &st.ext
 	var last *ovLap
 	if n := len(E.laps); n > 0 {
@@ -671,7 +674,7 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 	cs = cur.series()
 	curD, _ := st.num("LapDist")
 	// the strip: best, last, now against the best
-	y := pad + 18*z
+	y := pad + th
 	lf, vf := ovFace(fkData, 10*z), ovFace(fkData, 13*z)
 	x := pad
 	item := func(l, v string, lc, vc uint32) {
@@ -701,7 +704,7 @@ func drawCompareOv(c *ovCanvas, st *ovState, z float64) int {
 		}
 	}
 	item(st.T("Now", "Ahora"), nowS, colAmber, nowC)
-	top := pad + 18*z + 24*z
+	top := pad + th + 24*z
 	c.roundRect(pad, top, W-2*pad, plotH, 6*z, colSurf2, 0.6, colLine, 1, 1)
 	if bs == nil {
 		nf := ovFace(fkBody, 13*z)
@@ -1028,15 +1031,18 @@ func (st *ovState) bmTick() {
 }
 
 func drawBrakesOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("brakes"), st.titleH("brakes", z)
 	W := float64(c.w)
 	pad := 14 * z
 	st.bmTick()
 	B := &st.ext.bm
-	H := pad + 18*z + 44*z + 14*z + 12*z + 22*z + pad
+	H := pad + th + 44*z + 14*z + 12*z + 22*z + pad
 	panel(c, H, z)
-	c.label(z, st.T("Braking markers", "Marcas de frenada"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("Braking markers", "Marcas de frenada"), pad, pad+6*z, 0)
+	}
 	nf := ovFace(fkBody, 13*z)
-	y := pad + 18*z
+	y := pad + th
 	if !uiBool(st.uiMap("brakes"), "on", true) {
 		c.text(nf, st.T("Off", "Apagado"), pad, y+20*z, colMuted, 1, 0)
 		return int(math.Ceil(H))
@@ -1792,6 +1798,7 @@ func wrapLines(f font.Face, s string, w float64, max int) []string {
 }
 
 func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("coach"), st.titleH("coach", z)
 	W := float64(c.w)
 	pad := 14 * z
 	cfg := st.uiMap("coach")
@@ -1869,11 +1876,13 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	}
 	// nothing to measure yet
 	if len(C.tips) == 0 {
-		H := pad + 18*z + 34*z + pad - 4*z
+		H := pad + th + 34*z + pad - 4*z
 		panel(c, H, z)
-		c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+		if ton {
+			c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+		}
 		msg := st.T("Tips appear after your second lap (or your first, once the model knows a faster driver).", "Los consejos aparecen tras tu segunda vuelta (o la primera, si el modelo conoce a un piloto más rápido).")
-		c.text(nf, ellipsis(nf, msg, W-2*pad), pad, pad+18*z+17*z, colMuted, 1, 0)
+		c.text(nf, ellipsis(nf, msg, W-2*pad), pad, pad+th+17*z, colMuted, 1, 0)
 		return int(math.Ceil(H))
 	}
 	next, dTo := st.coachNext(cfg)
@@ -1896,7 +1905,7 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 		lines = wrapLines(tf, tipText(next), W-2*pad-10*z, 2)
 		hl = hint(next)
 	}
-	H := pad + 18*z + 56*z + 10*z
+	H := pad + th + 56*z + 10*z
 	if verdict {
 		H += 24 * z
 	} else if next != nil && dTo <= lead {
@@ -1907,9 +1916,13 @@ func drawCoachOv(c *ovCanvas, st *ovState, z float64) int {
 	}
 	H += 18*z + pad - 4*z
 	panel(c, H, z)
-	c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
-	c.labelFit(z, C.ref, W/2, pad+6*z, W/2-pad)
-	y := pad + 18*z
+	if ton {
+		c.label(z, st.T("Coach", "Coach"), pad, pad+6*z, 0)
+	}
+	if ton {
+		c.labelFit(z, C.ref, W/2, pad+6*z, W/2-pad)
+	}
+	y := pad + th
 	if verdict {
 		v := C.verdict
 		col := uint32(colGood)

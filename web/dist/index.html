@@ -411,6 +411,7 @@ html.ov.edit body{cursor:move}
 html.ov .wpanel{min-height:0}
 html.ov #radarC{max-width:none}
 html.ov [data-w=radar]>.label,html.ov [data-w=boost]>.label{display:none}
+html.ov .wpanel.notitle>.label:first-child,html.ov .wpanel.notitle>.vhead:first-child>.label:first-child{display:none}
 html.ov-clear [data-w=radar]{background:transparent;border-color:transparent}
 @media (max-width:520px){.inrow{grid-template-columns:auto 1fr}.wheel{display:none}}
 /* sections and sub-pages */
@@ -4697,7 +4698,7 @@ if(OV.on&&new URLSearchParams(location.search).get("fl")==="1"&&typeof window.pw
 function liveEssentialsOnce(){if(OV.on||+store.get("pw.liveV",0)>=2)return;HIDDEN=new Set(liveNonEssential());store.set("pw.hiddenW",[...HIDDEN]);store.set("pw.order",null);try{ORDER=null}catch(e){}store.set("pw.liveV",2)}
 function applyLayout(){liveEssentialsOnce();setTimeout(markGameGaps,0);if(!OV.on)applyOrderAndSizes();setTimeout(packGrid,0);if(OV.on){document.querySelectorAll(".wpanel").forEach(p=>p.hidden=!OV.list.includes(p.dataset.w));$("#liveEmpty").hidden=true;return}
   const full=LIVE_MODE==="full",cmp=LIVE_MODE==="cmp";LIVE_SHOWN.clear();
-  document.querySelectorAll("#v-live .wpanel").forEach(p=>{const w=p.dataset.w;p.hidden=full?!(OV_BASIC.includes(w)||ovExpOn()):HIDDEN.has(w);if(!p.hidden&&!(cmp&&w!=="flag"))LIVE_SHOWN.add(w)});
+  document.querySelectorAll("#v-live .wpanel").forEach(p=>{const w=p.dataset.w;p.hidden=full?!(OV_BASIC.includes(w)||!proGated()):HIDDEN.has(w);if(!p.hidden&&!(cmp&&w!=="flag"))LIVE_SHOWN.add(w)});
   $("#liveGrid").hidden=cmp;$("#liveTraces").hidden=!full;$("#liveCmp").hidden=!cmp;if(cmp)renderLiveCmp();liveModeBar();
   const vis=WIDGETS.filter(w=>(full||!HIDDEN.has(w))&&w!=="flag");$("#liveEmpty").hidden=vis.length>0;$("#liveEmpty").innerHTML=Lp("Every widget is in an overlay or hidden. Use Layout to bring them back.","Todos los widgets están en overlays u ocultos. Usa Diseño para recuperarlos.")}
 function isPC(){return MODE==="bridge"&&INFO&&INFO.overlays&&/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)}
@@ -4939,7 +4940,7 @@ function addPopButtons(){if(OV.on)return;document.querySelectorAll("#v-live .wpa
   b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';b.onclick=()=>popOut(p.dataset.w);p.appendChild(b)})}
 function updatePopTitles(){document.querySelectorAll(".popbtn").forEach(b=>{b.title=Tx("Open as overlay","Abrir como overlay");b.setAttribute("aria-label",b.title);b.hidden=MODE!=="bridge"})}
 /* overlay window chrome: drag and resize in edit mode */
-function ovChrome(){if(!OV.on)return;let bar=$("#ovBar");if(!bar){bar=document.createElement("div");bar.id="ovBar";document.body.appendChild(bar);const rs=document.createElement("div");rs.id="ovRes";document.body.appendChild(rs);
+function ovChrome(){if(!OV.on)return;document.querySelectorAll(".wpanel[data-w]").forEach(p=>p.classList.toggle("notitle",OV_TITLED.includes(p.dataset.w)&&ui(p.dataset.w).title===false));let bar=$("#ovBar");if(!bar){bar=document.createElement("div");bar.id="ovBar";document.body.appendChild(bar);const rs=document.createElement("div");rs.id="ovRes";document.body.appendChild(rs);
     document.addEventListener("mousedown",e=>{if(!CFG.edit||e.button!==0||e.target.closest("#ovRes,button,input,select,a"))return;if(typeof window.pwDrag==="function"){e.preventDefault();window.pwDrag()}});
     rs.addEventListener("pointerdown",e=>{if(typeof window.pwSize!=="function")return;e.preventDefault();rs.setPointerCapture(e.pointerId);const sx=e.screenX,sy=e.screenY,w0=outerWidth,h0=outerHeight;let t=0;
       const mv=ev=>{const now=performance.now();if(now-t<30)return;t=now;window.pwSize(Math.round(w0+ev.screenX-sx),Math.round(h0+ev.screenY-sy))};const up=()=>{rs.removeEventListener("pointermove",mv);rs.removeEventListener("pointerup",up)};rs.addEventListener("pointermove",mv);rs.addEventListener("pointerup",up)})}
@@ -4984,7 +4985,7 @@ function openLayout(){floatDrawer(false);LAYOUT_VIEW=openLayout;CFG_BACK=null;
   document.querySelectorAll("#dBody [data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();openLayout()});
   document.querySelectorAll("#dBody [data-cfg]").forEach(b=>b.onclick=()=>openWidgetCfg(b.dataset.cfg));
   if($("#drawer").hidden){$("#drawer").hidden=false;$("#dClose").focus()}}
-function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(w);const c=ui(k);$("#dTitle").innerHTML=L("w."+w);$("#dSub").innerHTML=L("configure");
+function openWidgetCfg(w,ov){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=()=>openWidgetCfg(w,ov);const c=ui(k);$("#dTitle").innerHTML=L("w."+w);$("#dSub").innerHTML=L("configure");
   const listEd=(field,catalog,prefix)=>{const sel=c[field];const rest=Object.keys(catalog).filter(x=>!sel.includes(x));
     return `<div class="cfglist">${sel.map((x,i)=>`<div class="cfgitem on"><span>${L(prefix+x,true)}</span><span><button type="button" class="pin" data-mv="${field}:${i}:-1" aria-label="Up">↑</button><button type="button" class="pin" data-mv="${field}:${i}:1" aria-label="Down">↓</button><button type="button" class="pin" data-rm="${field}:${x}">✕</button></span></div>`).join("")}
       ${rest.map(x=>`<div class="cfgitem"><span class="muted">${L(prefix+x,true)}</span><button type="button" class="pin" data-add="${field}:${x}">+</button></div>`).join("")}</div>`};
@@ -5017,10 +5018,16 @@ function openWidgetCfg(w){floatDrawer(true);const k=CONFIGURABLE[w];LAYOUT_VIEW=
       <div class="frow" style="margin:6px 0 12px">${chk("cHint",c.hint!==false,esc(Tx("The fast drivers' braking and apex speed","La frenada y el vértice de los rápidos")))}</div>
       <div class="label">${esc(Tx("Verdict after each corner","Veredicto tras cada curva"))}</div><div class="frow" style="margin:6px 0 12px">${chip("verdict",0,Tx("Off","Apagado"))}${chip("verdict",4,"4 s")}${chip("verdict",8,"8 s")}</div>
       <div class="label">${esc(Tx("Speaks from","Avisa desde"))}</div><div class="frow" style="margin:6px 0 0">${chip("lead",200,"200 m")}${chip("lead",300,"300 m")}${chip("lead",500,"500 m")}</div></div>`}
+  // an overlay window's own: its title (the overlays that have one) and its opacity
+  const ovA=ovAlphaOf(w);
+  if(ov)body+=`<div class="panel"${body?' style="margin-top:10px"':""}>${OV_TITLED.includes(w)?`<div class="frow" style="margin:0 0 10px">${chk("cTitle",ui(w).title!==false,esc(Tx("Show the title","Mostrar el título","Titel anzeigen","Mostrar o título")))}</div>`:""}<label class="frow"><span class="label" style="min-width:150px">${esc(Tx("Opacity","Opacidad","Deckkraft","Opacidade"))}</span><input type="range" id="cAlpha" min="60" max="255" value="${ovA}" style="max-width:220px"></label></div>`;
   const keepPv=$("#cfgPreview")&&$("#cfgPreview").dataset.w===w&&!$("#drawer").hidden;
   if(keepPv)$("#cfgForm").innerHTML=body;
   else{$("#dBody").innerHTML=`<button type="button" class="btn small" id="cfgBack">← ${L("back",true)}</button><div class="cfgsplit"><div class="cfgpv"><div class="label" style="margin:0 0 6px">${Lp("Live preview","Vista previa en vivo",true)}</div><div class="pvbox" id="cfgPreview" data-w="${w}"></div></div><div id="cfgForm">${body}</div></div>`;startPreview(w)}
   $("#cfgBack").onclick=()=>{const b=CFG_BACK;CFG_BACK=null;(b||openLayout)()};
+  {const pv=$("#cfgPreview");if(pv)pv.style.opacity=ov&&ovA<255?String(ovA/255):""}
+  if($("#cTitle"))$("#cTitle").onclick=()=>{setUI(w,{title:ui(w).title===false});openWidgetCfg(w,ov)};
+  if($("#cAlpha")){const e=$("#cAlpha"),pv=$("#cfgPreview");e.oninput=()=>{if(pv)pv.style.opacity=String(+e.value/255)};e.onchange=()=>setUI(w,{alpha:Math.max(60,Math.min(255,+e.value||255))})}
   const upd=patch=>{setUI(k,patch);openWidgetCfg(w)};
   document.querySelectorAll("#dBody [data-add]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.add.split(":");upd({[f]:[...ui(k)[f],x]})});
   document.querySelectorAll("#dBody [data-rm]").forEach(b=>b.onclick=()=>{const[f,x]=b.dataset.rm.split(":");upd({[f]:ui(k)[f].filter(y=>y!==x)})});
@@ -5056,8 +5063,7 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     :Lp("Changes here apply to the overlays on your PC.","Los cambios aquí se aplican a los overlays de tu PC.");
   $("#ovSub").textContent=Tx(`${auto.size} open automatically`,`${auto.size} se abren automáticamente`,`${auto.size} öffnen sich automatisch`,`${auto.size} abrem automaticamente`);
   const dis=remote?"":" disabled";
-  const ovExp=ovExpOn(),list=WIDGETS.filter(w=>ovExp||OV_BASIC.includes(w)||OV_OPEN.has(w)); // an open one always has its card, so it can be closed
-  if(!ovExp&&!proGated()&&(CFG.autoWidgets||[]).some(w=>!OV_BASIC.includes(w))&&MODE==="bridge"){CFG.autoWidgets=CFG.autoWidgets.filter(w=>OV_BASIC.includes(w));saveCfg()}
+  const list=WIDGETS; // every overlay, the experimental ones with their pill
   if(!PRO.tried)loadPro().then(()=>{if(PRO.loaded&&typeof CUR_VIEW!=="undefined"&&CUR_VIEW==="overlays")renderOverlaysTab()});
   // without Pro on this PC once the beta is over the experimental ones close; the Auto list is left as it is (it goes
   // with the account, so the PC with Pro keeps it): the agent opens only the first basic ones (proAutoList in pcid.go)
@@ -5074,26 +5080,27 @@ function renderOverlaysTab(){const box=$("#ovCards");if(!box)return;renderScreen
     ${list.map(w=>{const op=OV_OPEN.has(w);return`<div class="ov-row" data-ovw="${w}"><span class="ov-n"><b>${L("w."+w)}</b>${OV_BASIC.includes(w)?"":`<span class="pill">${esc(Tx("Experimental","Experimental"))}</span>`}</span>
       <button type="button" class="ov-swb" data-auto="${w}" aria-pressed="${auto.has(w)}" aria-label="${esc(L("w."+w)+" · "+Tx("when I get in the car","al entrar al coche"))}">${sw(auto.has(w))}</button>
       ${remote?`<button type="button" class="ov-st${op?" on":""}" data-ovt="${w}">${esc(op?Tx("Open","Abierto","Offen","Aberto"):Tx("Closed","Cerrado","Geschlossen","Fechado"))}</button>`:MODE==="bridge"?`<button type="button" class="ov-st" data-view="${w}">${L("openHere",true)}</button>`:`<span></span>`}
-      ${CONFIGURABLE[w]?`<button type="button" class="btn small" data-cfg="${w}">${L("configure",true)}</button>`:"<span></span>"}</div>`}).join("")}</div>
-    <div class="ov-foot frow" style="margin-top:12px;align-items:center">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}${chk("oExp",ovExp,esc(Tx("Show the experimental ones","Mostrar los experimentales","Experimentelle anzeigen","Mostrar os experimentais")))}
+      <button type="button" class="btn small" data-cfg="${w}">${L("configure",true)}</button></div>`}).join("")}</div>
+    <div class="ov-foot frow" style="margin-top:12px;align-items:center">${chk("oAuto",CFG.autoStart,L("autoOpen",true))}${chk("oClose",CFG.closeOnExit,L("closeExit",true))}
       <details><summary class="label">${esc(Tx("More","Más","Mehr","Mais"))}</summary><div class="frow" style="margin-top:8px"><span class="label">${L("engineSel",true)}</span><select id="oEngine"><option value="webview">${esc(Tx("Frameless (recommended)","Sin bordes (recomendado)"))}</option><option value="edge">${esc(Tx("Edge window","Ventana de Edge"))}</option></select>
-        <label class="label" for="oAlpha">${L("opacity",true)}</label><input type="range" id="oAlpha" min="60" max="255" value="${CFG.alpha||255}" style="max-width:220px"><label class="label" for="oFps">${esc(Tx("Frame rate","Fotogramas por segundo","Bildrate","Quadros por segundo"))}</label><select id="oFps">${[30,20,15,10].map(n=>`<option value="${n}">${esc(Tx(n+" a second",n+" por segundo",n+" pro Sekunde",n+" por segundo"))}</option>`).join("")}</select>${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details></div>`;
+        <span class="label">${esc(Tx("Titles","Títulos","Titel","Títulos"))}</span><span class="seg3"><button type="button" data-ttl="1" aria-pressed="${OV_TITLED.every(w=>ui(w).title!==false)}">${esc(Tx("Show all","Mostrar todos","Alle anzeigen","Mostrar todos"))}</button><button type="button" data-ttl="0" aria-pressed="${OV_TITLED.every(w=>ui(w).title===false)}">${esc(Tx("Hide all","Ocultar todos","Alle ausblenden","Ocultar todos"))}</button></span><label class="label" for="oFps">${esc(Tx("Frame rate","Fotogramas por segundo","Bildrate","Quadros por segundo"))}</label><select id="oFps">${[30,20,15,10].map(n=>`<option value="${n}">${esc(Tx(n+" a second",n+" por segundo",n+" pro Sekunde",n+" por segundo"))}</option>`).join("")}</select>${chk("oLock",CFG.lock,L("clickThrough",true))}</div></details></div>`;
   $("#ovScreenPanel").hidden=!CFG.edit;
   const q=s=>document.querySelector(s),tog=(id,k)=>{const e=q("#"+id);if(e)e.onclick=()=>{CFG[k]=!CFG[k];saveCfg();renderOverlaysTab()}};
-  {const e=q("#oExp");if(e)e.onclick=()=>{if(proGated()&&!ovExpOn()){proDialog(Tx("The experimental overlays need Pro.","Los overlays experimentales necesitan Pro.","The experimental overlays need Pro.","Os overlays experimentais precisam do Pro."));renderOverlaysTab();return}const on=!ovExpOn();store.set("pw.ovExp",on);if(!on){CFG.autoWidgets=(CFG.autoWidgets||[]).filter(w=>OV_BASIC.includes(w));saveCfg();WIDGETS.filter(w=>!OV_BASIC.includes(w)&&OV_OPEN.has(w)).forEach(w=>fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}))}renderOverlaysTab()}}
+  document.querySelectorAll("#ovCards [data-ttl]").forEach(b=>b.onclick=()=>{const on=b.dataset.ttl==="1";CFG.ui=CFG.ui||{};OV_TITLED.forEach(w=>{const m=Object.assign({},CFG.ui[w]||{});if(on)delete m.title;else m.title=false;CFG.ui[w]=m});saveCfg();renderOverlaysTab()});
   tog("oAuto","autoStart");tog("oClose","closeOnExit");tog("oEdit","edit");tog("oStart","startWithWindows");tog("oLock","lock");
-  q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oAlpha").onchange=e=>{CFG.alpha=+e.target.value;saveCfg()};q("#oFps").value=String((CFG.ui||{}).ovfps||30);q("#oFps").onchange=e=>{CFG.ui=CFG.ui||{};const n=+e.target.value;if(n>=30)delete CFG.ui.ovfps;else CFG.ui.ovfps=n;saveCfg()};
+  q("#oEngine").value=CFG.engine||"webview";q("#oEngine").onchange=e=>{CFG.engine=e.target.value;saveCfg()};q("#oFps").value=String((CFG.ui||{}).ovfps||30);q("#oFps").onchange=e=>{CFG.ui=CFG.ui||{};const n=+e.target.value;if(n>=30)delete CFG.ui.ovfps;else CFG.ui.ovfps=n;saveCfg()};
   q("#oOpenSel").onclick=async()=>{if(!(CFG.autoWidgets||[]).length){toast(Tx("Mark some overlays with Auto first.","Marca primero algunos overlays con Auto."));return}for(const w of CFG.autoWidgets){await openOverlayOnPC(w)}toast(Tx("Opened on your PC.","Abiertos en tu PC."))};
   const backToLive=w=>{if(HIDDEN.has(w)){HIDDEN.delete(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout()}}; // a closed overlay comes back to Telemetry
   q("#oCloseAll").onclick=()=>{[...OV_OPEN].forEach(backToLive);OV_OPEN.clear();markOvOpen();fetch("/api/overlay/close?w=*",{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))};
   q("#oReset").onclick=()=>fetch("/api/overlay/reset",{method:"POST"}).then(()=>toast(Tx("Positions reset. Reopen overlays to apply.","Posiciones restablecidas. Vuelve a abrir los overlays.")));
-  box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
+  const proNeed=w=>{if(!proGated()||OV_BASIC.includes(w))return false;proDialog(Tx("The experimental overlays need Pro.","Los overlays experimentales necesitan Pro.","The experimental overlays need Pro.","Os overlays experimentais precisam do Pro."));return true};
+  box.querySelectorAll("[data-auto]").forEach(b=>b.onclick=()=>{const w=b.dataset.auto,a=new Set(CFG.autoWidgets||[]);if(!a.has(w)&&proNeed(w))return;a.has(w)?a.delete(w):a.add(w);CFG.autoWidgets=WIDGETS.filter(x=>a.has(x));saveCfg();renderOverlaysTab()});
   box.querySelectorAll("[data-ovt]").forEach(b=>b.onclick=async()=>{const w=b.dataset.ovt;
-    if(!OV_OPEN.has(w)){await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600);return}
+    if(!OV_OPEN.has(w)){if(proNeed(w))return;await popOut(w);OV_OPEN.add(w);markOvOpen();setTimeout(refreshScreenRects,600);return}
     OV_OPEN.delete(w);backToLive(w);markOvOpen();fetch(`/api/overlay/close?w=${w}`,{method:"POST"}).catch(()=>{}).finally(()=>setTimeout(refreshScreenRects,400))});
   markOvOpen();markGameGaps();refreshScreenRects(); // what is really open on the PC, at once
   box.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>window.open(`/?overlay=${b.dataset.view}`,"_blank"));
-  box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg)});
+  box.querySelectorAll("[data-cfg]").forEach(b=>b.onclick=()=>{CFG_BACK=()=>{closeDrawer();renderOverlaysTab()};openWidgetCfg(b.dataset.cfg,true)});
   box.querySelectorAll("[data-show]").forEach(b=>b.onclick=()=>{const w=b.dataset.show;HIDDEN.has(w)?HIDDEN.delete(w):HIDDEN.add(w);store.set("pw.hiddenW",[...HIDDEN]);applyLayout();renderOverlaysTab()});
 }
 
@@ -5517,9 +5524,12 @@ function ovFit(){if(!OV.on||!OV.win||OV.list.length!==1)return;const sz=OVSZ[OV.
 if(OV.on&&OV.win){addEventListener("resize",()=>ovFit());setTimeout(ovFit,300);setInterval(ovFit,1000)}
 /* which overlays are open on the PC right now (shown on the Overlays cards) */
 let OV_OPEN=new Set();
-/* the overlays that are ready; the rest stay behind the "experimental" switch */
+/* the overlays that are ready; the rest carry an "Experimental" pill */
 const OV_BASIC=["radar","deltabar","relative","standings","flag","dash","timing","map","fuel","tyres","inputs","pit","brakes","coach","incidents","engine","weather","trackbar"];
-function ovExpOn(){return !!store.get("pw.ovExp",false)&&!proGated()}
+/* the overlays that draw a title, which their settings can hide (ui.<overlay>.title; the agent's titleOn) */
+const OV_TITLED=["fuel","engine","tyres","inputs","boost","telemetry","gg","stats","pit","sectors","gaps","incidents","compare","brakes","coach","weather","system"];
+/* an overlay's opacity (ui.<overlay>.alpha, 60–255), else the old one for all of them, else opaque (the agent's ovAlpha) */
+function ovAlphaOf(w){const a=((CFG.ui||{})[w]||{}).alpha;if(a>=60&&a<=255)return a;return CFG.alpha>=60&&CFG.alpha<=255?CFG.alpha:255}
 /* Pitlane HQ Pro: during the beta everything is free; once the admins end it (the admin page), the experimental overlays
    and more than PRO.freeApps programs starting by themselves need Pro. Admins always have it. */
 var PRO={gate:false,beta:true,freeApps:3,lifetime:{},loaded:false};

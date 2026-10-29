@@ -91,13 +91,16 @@ func compassFrom(rad float64) string {
 }
 
 func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
+	ton, th := st.titleOn("weather"), st.titleH("weather", z)
 	W := float64(c.w)
 	pad := 14 * z
-	H := pad + 18*z + 48*z + 58*z + 24*z + 26*z + pad - 6*z
+	H := pad + th + 48*z + 58*z + 24*z + 26*z + pad - 6*z
 	panel(c, H, z)
-	c.label(z, st.T("Weather", "Tiempo"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("Weather", "Tiempo"), pad, pad+6*z, 0)
+	}
 	// the game's clock at the right, with the sun up or down
-	if tod, ok := st.num("SessionTimeOfDay"); ok && tod >= 0 {
+	if tod, ok := st.num("SessionTimeOfDay"); ton && ok && tod >= 0 {
 		f := ovFace(fkData, 12*z)
 		s := fmt.Sprintf("%02d:%02d", int(tod)/3600%24, int(tod)/60%60)
 		c.text(f, s, W-pad, pad+6*z, colText, 1, 1)
@@ -110,7 +113,7 @@ func drawWeatherOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			}
 		}
 	}
-	y := pad + 18*z
+	y := pad + th
 	// the track and the air, side by side
 	temp := func(name, alt, en, es string, x float64) {
 		v, ok := st.num(name)
@@ -375,6 +378,7 @@ func drawTrackbarOv(c *ovCanvas, st *ovState, z float64) int {
 // ---------- the PC's performance ----------
 
 func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
+	ton, th := st.titleOn("system"), st.titleH("system", z)
 	W := float64(c.w)
 	pad := 14 * z
 	m := &st.x5
@@ -387,10 +391,12 @@ func drawSystemOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 		}
 	}
 	rowH := 26 * z
-	H := pad + 18*z + 50*z + 3*rowH + pad - 6*z
+	H := pad + th + 50*z + 3*rowH + pad - 6*z
 	panel(c, H, z)
-	c.label(z, st.T("Performance", "Rendimiento"), pad, pad+6*z, 0)
-	y := pad + 18*z
+	if ton {
+		c.label(z, st.T("Performance", "Rendimiento"), pad, pad+6*z, 0)
+	}
+	y := pad + th
 	// frames a second, big, with the last minute beside it
 	s, col := "–", uint32(colMuted)
 	if hasFps {

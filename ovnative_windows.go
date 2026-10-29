@@ -288,9 +288,7 @@ func ovPaint(hwnd uintptr) {
 	nat.st.mu.Lock()
 	alpha, ui := nat.st.alpha, nat.st.ui
 	nat.st.mu.Unlock()
-	if alpha < 40 || alpha > 255 {
-		alpha = 255
-	}
+	alpha = ovAlpha(nat.name, ui, alpha) // its own opacity, else the one for all of them
 	px := unsafe.Slice((*uint32)(nat.bits), w*h)
 	// the same picture at the same place as the one on the screen: Windows is not asked to compose it again
 	at := [5]int{x, y, w, h, int(alpha)}

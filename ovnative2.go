@@ -841,17 +841,20 @@ func (st *ovState) lapsToGo() (float64, bool) {
 }
 
 func drawFuelOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("fuel"), st.titleH("fuel", z)
 	W := float64(c.w)
 	pad := 14 * z
 	vf := font_{ovFace(fkData, 24*z), 24 * z}
 	sf := ovFace(fkBody, 12*z)
-	H := pad + 18*z + 56*z + 8*z + 10*z + 26*z + 18*z + pad - 4*z
+	H := pad + th + 56*z + 8*z + 10*z + 26*z + 18*z + pad - 4*z
 	panel(c, H, z)
-	c.label(z, st.T("Fuel", "Combustible"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("Fuel", "Combustible"), pad, pad+6*z, 0)
+	}
 	fuel, has := st.num("FuelLevel")
 	per := st.fuelPerLap()
 	colW := (W - 2*pad) / 3
-	y := pad + 18*z
+	y := pad + th
 	col3 := func(j int, v, unit, sub string) {
 		x := pad + float64(j)*colW
 		c.valueUnit(vf, z, v, unit, x, y+18*z, colText)
@@ -921,11 +924,16 @@ func drawFuelOv(c *ovCanvas, st *ovState, z float64) int {
 }
 
 func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("engine"), st.titleH("engine", z)
 	W := float64(c.w)
 	pad := 14 * z
 	rowH := 26 * z
 	wv, _ := st.num("EngineWarnings")
-	warn := uint32(int64(wv)) // the game's bits: 1 water, 2 fuel pressure, 4 oil pressure, 8 stalled, 16 pit limiter, 32 rev limiter, 64 oil temperature
+	// the game's bits: 1 water, 2 fuel pressure, 4 oil pressure, 8 stalled, 16 pit limiter, 32 rev limiter, 64 oil temperature
+	warn := uint32(int64(wv))
+	if !ton && warn&(8|16|32) != 0 { // the title hidden: its row stays for the badges while one is lit
+		th = 18 * z
+	}
 	type row struct {
 		k, v string
 		bad  bool
@@ -952,9 +960,11 @@ func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
 		rows = append(rows, row{st.T("Fuel pressure", "Presión gasolina"), fp, warn&2 != 0})
 	}
 	rows = append(rows, row{st.T("Voltage", "Voltaje"), vo, false}, row{st.T("Air", "Aire"), t("AirTemp"), false}, row{st.T("Track", "Pista"), t("TrackTempCrew"), false})
-	H := pad + 18*z + float64(len(rows))*rowH + pad - 6*z
+	H := pad + th + float64(len(rows))*rowH + pad - 6*z
 	panel(c, H, z)
-	c.label(z, st.T("Engine", "Motor"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("Engine", "Motor"), pad, pad+6*z, 0)
+	}
 	// the badges: the pit limiter, the rev limiter, a stalled engine
 	bx := W - pad
 	pf := ovFace(fkDataB, 10*z)
@@ -971,7 +981,7 @@ func drawEngineOv(c *ovCanvas, st *ovState, z float64) int {
 		c.text(pf, b.s, bx-w/2, pad+6*z, b.col, 1, 2)
 		bx -= w + 6*z
 	}
-	y := pad + 18*z
+	y := pad + th
 	kf, vf := ovFace(fkBody, 13.5*z), ovFace(fkData, 14*z)
 	for k, r := range rows {
 		if k > 0 {
@@ -1005,11 +1015,12 @@ func heatColor(t float64) uint32 {
 }
 
 func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("tyres"), st.titleH("tyres", z)
 	W := float64(c.w)
 	pad := 14 * z
 	boxH := 70 * z
 	gap := 8 * z
-	H := pad + 18*z + 2*boxH + gap + pad
+	H := pad + th + 2*boxH + gap + pad
 	live := false
 	type tyre struct {
 		zones [3]float64 // inside, middle, outside (−999 when unknown)
@@ -1054,12 +1065,14 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 		H += 20 * z
 	}
 	panel(c, H, z)
-	c.label(z, st.T("Tyres", "Neumáticos"), pad, pad+6*z, 0)
-	c.textT(ovFace(fkData, 9.5*z), st.T("IN · MID · OUT", "INT · MED · EXT"), W-pad, pad+6*z, colMuted, 1, 1, 0.6*z)
+	if ton {
+		c.label(z, st.T("Tyres", "Neumáticos"), pad, pad+6*z, 0)
+		c.textT(ovFace(fkData, 9.5*z), st.T("IN · MID · OUT", "INT · MED · EXT"), W-pad, pad+6*z, colMuted, 1, 1, 0.6*z)
+	}
 	bw := (W - 2*pad - gap) / 2
 	vf, zf, sf := ovFace(fkData, 15*z), ovFace(fkData, 11*z), ovFace(fkData, 10.5*z)
 	for i, k := range []string{"LF", "RF", "LR", "RR"} {
-		x, y := pad+float64(i%2)*(bw+gap), pad+18*z+float64(i/2)*(boxH+gap)
+		x, y := pad+float64(i%2)*(bw+gap), pad+th+float64(i/2)*(boxH+gap)
 		v := vals[k]
 		border := uint32(colLine)
 		if v.avg > -999 {
@@ -1110,6 +1123,7 @@ func drawTyresOv(c *ovCanvas, st *ovState, z float64) int {
 }
 
 func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("inputs"), st.titleH("inputs", z)
 	cfg := st.uiMap("inp")
 	W := float64(c.w)
 	pad := 14 * z
@@ -1121,13 +1135,15 @@ func drawInputsOv(c *ovCanvas, st *ovState, z float64) int {
 	traceSecs := uiNum(cfg, "traceSecs", 12)
 	traceCh := uiList(cfg, "traceCh", []string{"thr", "brk"})
 	rowH := 96 * z
-	H := pad + 18*z + rowH + pad
+	H := pad + th + rowH + pad
 	if trace {
 		H += 10*z + traceH
 	}
 	panel(c, H, z)
-	c.label(z, st.T("Inputs", "Pedales"), pad, pad+6*z, 0)
-	y := pad + 18*z
+	if ton {
+		c.label(z, st.T("Inputs", "Pedales"), pad, pad+6*z, 0)
+	}
+	y := pad + th
 	x := pad
 	thr, _ := st.num("Throttle")
 	brk, _ := st.num("Brake")
@@ -1293,9 +1309,10 @@ func uiStr(m map[string]any, k, def string) string {
 }
 
 func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
+	ton, th := st.titleOn("boost"), st.titleH("boost", z)
 	W := float64(c.w)
 	pad := 14 * z
-	H := pad + 18*z + 70*z + pad
+	H := pad + th + 70*z + pad
 	drs, hasDRS := st.num("DRS_Status")
 	p2s, hasP2s := st.num("P2P_Status")
 	p2c, hasP2c := st.num("P2P_Count")
@@ -1307,13 +1324,17 @@ func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 			return int(math.Ceil(H)) // this car has none: nothing over the game
 		}
 		panel(c, H, z)
-		c.label(z, st.T("DRS & push-to-pass", "DRS y push-to-pass"), pad, pad+6*z, 0)
+		if ton {
+			c.label(z, st.T("DRS & push-to-pass", "DRS y push-to-pass"), pad, pad+6*z, 0)
+		}
 		nf := ovFace(fkBody, 13*z)
-		c.text(nf, ellipsis(nf, st.T("This car has no DRS, push-to-pass or hybrid boost.", "Este coche no tiene DRS, push-to-pass ni híbrido."), W-2*pad), pad, pad+50*z, colMuted, 1, 0)
+		c.text(nf, ellipsis(nf, st.T("This car has no DRS, push-to-pass or hybrid boost.", "Este coche no tiene DRS, push-to-pass ni híbrido."), W-2*pad), pad, pad+50*z-(18*z-th), colMuted, 1, 0)
 		return int(math.Ceil(H))
 	}
 	panel(c, H, z)
-	c.label(z, st.T("DRS & push-to-pass", "DRS y push-to-pass"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("DRS & push-to-pass", "DRS y push-to-pass"), pad, pad+6*z, 0)
+	}
 	type cell struct {
 		l, v, sub string
 		col, bg   uint32
@@ -1359,7 +1380,7 @@ func drawBoostOv(c *ovCanvas, st *ovState, z float64, now time.Time) int {
 	cw := (W - 2*pad - (n-1)*gap) / n
 	vf, sf := ovFace(fkDisplay, 24*z), ovFace(fkBody, 11.5*z)
 	for k, ce := range cells {
-		x, y := pad+float64(k)*(cw+gap), pad+18*z
+		x, y := pad+float64(k)*(cw+gap), pad+th
 		c.roundRect(x, y, cw, 70*z, 8*z, colSurf2, 1, colLine, 1, 1)
 		if ce.bg != colText {
 			c.roundRect(x, y, cw, 70*z, 8*z, ce.bg, 0.14, ce.bg, 0.7, 1)
@@ -1389,6 +1410,7 @@ func telValue(v float64) string {
 }
 
 func drawTelOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("telemetry"), st.titleH("telemetry", z)
 	W := float64(c.w)
 	pad := 14 * z
 	vars := uiList(st.uiMap("tel"), "vars", telDefault)
@@ -1398,21 +1420,23 @@ func drawTelOv(c *ovCanvas, st *ovState, z float64) int {
 	}
 	tileH, gap := 72*z, 8*z
 	rows := (len(vars) + cols - 1) / cols
-	H := pad + 18*z + float64(rows)*tileH + float64(max0(rows-1))*gap + pad
+	H := pad + th + float64(rows)*tileH + float64(max0(rows-1))*gap + pad
 	if len(vars) == 0 {
-		H = pad + 18*z + 30*z + pad
+		H = pad + th + 30*z + pad
 	}
 	panel(c, H, z)
-	c.label(z, st.T("Telemetry", "Telemetría"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("Telemetry", "Telemetría"), pad, pad+6*z, 0)
+	}
 	if len(vars) == 0 {
 		nf := ovFace(fkBody, 13*z)
-		c.text(nf, ellipsis(nf, st.T("Add values in the overlay's settings.", "Añade valores en los ajustes del overlay."), W-2*pad), pad, pad+34*z, colMuted, 1, 0)
+		c.text(nf, ellipsis(nf, st.T("Add values in the overlay's settings.", "Añade valores en los ajustes del overlay."), W-2*pad), pad, pad+34*z-(18*z-th), colMuted, 1, 0)
 		return int(math.Ceil(H))
 	}
 	tw := (W - 2*pad - float64(cols-1)*gap) / float64(cols)
 	vf := ovFace(fkData, 20*z)
 	for k, n := range vars {
-		x, y := pad+float64(k%cols)*(tw+gap), pad+18*z+float64(k/cols)*(tileH+gap)
+		x, y := pad+float64(k%cols)*(tw+gap), pad+th+float64(k/cols)*(tileH+gap)
 		c.roundRect(x, y, tw, tileH, 8*z, colSurf2, 1, colLine, 1, 1)
 		lab := strings.ToUpper(telName(n, st.lang == "es" || st.lang == "both"))
 		c.textT(ovFace(fkData, 10*z), ellipsis(ovFace(fkData, 10*z), lab, tw-20*z-float64(len([]rune(lab)))*0.6*z), x+10*z, y+13*z, colMuted, 1, 0, 0.6*z)
@@ -1460,15 +1484,18 @@ func max0(n int) int {
 }
 
 func drawGGOv(c *ovCanvas, st *ovState, z float64) int {
+	ton, th := st.titleOn("gg"), st.titleH("gg", z)
 	W := float64(c.w)
 	pad := 14 * z
 	plot := W - 2*pad
-	H := pad + 18*z + plot + 8*z + 22*z + pad - 4*z
+	H := pad + th + plot + 8*z + 22*z + pad - 4*z
 	panel(c, H, z)
-	c.label(z, st.T("G-force circle", "Círculo de fuerzas g"), pad, pad+6*z, 0)
+	if ton {
+		c.label(z, st.T("G-force circle", "Círculo de fuerzas g"), pad, pad+6*z, 0)
+	}
 	L := st.live
 	R := math.Max(2, math.Ceil(math.Max(L.ggLat, math.Max(L.ggBrk, L.ggAcc))*2)/2)
-	cx, cy := W/2, pad+18*z+plot/2
+	cx, cy := W/2, pad+th+plot/2
 	ppg := (plot/2 - 6*z) / R
 	for k := 1.0; k <= R; k++ {
 		c.ring(cx, cy, k*ppg, 1, colLine, 1)
@@ -1484,7 +1511,7 @@ func drawGGOv(c *ovCanvas, st *ovState, z float64) int {
 		c.disc(cx+p[0]*ppg, cy+p[1]*ppg, 6*z, colAmber, 1)
 	}
 	// the most of this lap: cornering, braking, traction
-	y := pad + 18*z + plot + 8*z
+	y := pad + th + plot + 8*z
 	lf, vf := ovFace(fkData, 9*z), ovFace(fkData, 12*z)
 	items := [][2]string{{st.T("Corner", "Curva"), fmt.Sprintf("%.2f g", L.ggLat)}, {st.T("Brake", "Frenada"), fmt.Sprintf("%.2f g", L.ggBrk)}, {st.T("Traction", "Tracción"), fmt.Sprintf("%.2f g", L.ggAcc)}}
 	cw := (W - 2*pad) / 3

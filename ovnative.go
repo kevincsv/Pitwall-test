@@ -639,6 +639,34 @@ func (s *ovState) uiMap(k string) map[string]any {
 	return map[string]any{}
 }
 
+// titleOn: the overlay draws its title (ui.<overlay>.title, on by default; off, its content moves up)
+func (s *ovState) titleOn(name string) bool {
+	m, _ := s.ui[name].(map[string]any)
+	v, ok := m["title"].(bool)
+	return !ok || v
+}
+
+// titleH: the height of an overlay's title row, none when its title is hidden
+func (s *ovState) titleH(name string, z float64) float64 {
+	if s.titleOn(name) {
+		return 18 * z
+	}
+	return 0
+}
+
+// ovAlpha: an overlay's opacity (ui.<overlay>.alpha, 60–255), else the old setting for all of them, else opaque
+func ovAlpha(name string, ui map[string]any, all int) int {
+	if m, ok := ui[name].(map[string]any); ok {
+		if v, ok := m["alpha"].(float64); ok && v >= 40 && v <= 255 {
+			return int(v)
+		}
+	}
+	if all < 40 || all > 255 {
+		return 255
+	}
+	return all
+}
+
 func uiNum(m map[string]any, k string, def float64) float64 {
 	if v, ok := m[k].(float64); ok {
 		return v
