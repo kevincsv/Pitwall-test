@@ -3570,6 +3570,7 @@ function openSessPicker(px){const ss=(CLOUD.sessions||[]).slice().sort((a,b)=>(b
     m.querySelectorAll(".lb-cats [data-cat]").forEach(b=>b.onclick=()=>{F.cat=b.dataset.cat===F.cat?"":b.dataset.cat;draw()});
     m.querySelectorAll("[data-spk]").forEach(b=>b.onclick=()=>{F.kind=b.dataset.spk;draw()});
     m.querySelector("#spCar").onchange=e=>{F.car=e.target.value;draw()};m.querySelector("#spTrk").onchange=e=>{F.track=e.target.value;draw()};
+    m.querySelectorAll(".hm-cal").forEach(c=>{c.scrollLeft=c.scrollWidth}); // the newest weeks in view on a narrow screen
     m.querySelectorAll(".hm-cal [data-day]").forEach(b=>{const k=dayKey(+b.dataset.day);if(k===F.day)b.classList.add("sel");b.onclick=()=>{F.day=F.day===k?"":k;draw()}});
     {const d0=m.querySelector("[data-spday0]");if(d0)d0.onclick=()=>{F.day="";draw()}}
     m.querySelectorAll("[data-spid]").forEach(b=>b.onclick=()=>{Object.assign(LAPF,F);const id=b.dataset.spid;close();const rs=$("#"+px+"Ref");if(rs)delete rs.dataset.user;
