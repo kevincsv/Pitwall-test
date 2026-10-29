@@ -488,7 +488,7 @@ func drawMapOv(c *ovCanvas, st *ovState, z float64) int {
 	st.loadTurns()
 	// the panel, the track, its line, arrow, sectors and turns change only with the window or the track: drawn once,
 	// then copied under the cars every frame (the same pixels)
-	key := mapLayerKey{w: c.w, h: c.h, z: z, x: &X[0], y: &Y[0], n: N, ny: len(Y), ses: st.ses, turns: st.ext.turns}
+	key := mapLayerKey{w: c.w, h: c.h, z: z, x: &X[0], y: &Y[0], n: N, ny: len(Y), ses: st.ses, turns: st.ext.turns, th: ovTh}
 	if L := &st.ext.mapLayer; L.ok && L.key.same(key) && len(L.px) == len(c.px) {
 		copy(c.px, L.px)
 	} else {
@@ -2283,10 +2283,11 @@ type mapLayerKey struct {
 	n, ny int
 	ses   *ovSession
 	turns []float64
+	th    *ovTheme // the design it was drawn in
 }
 
 func (a mapLayerKey) same(b mapLayerKey) bool {
-	if a.w != b.w || a.h != b.h || a.z != b.z || a.x != b.x || a.y != b.y || a.n != b.n || a.ny != b.ny || a.ses != b.ses || len(a.turns) != len(b.turns) {
+	if a.w != b.w || a.h != b.h || a.z != b.z || a.x != b.x || a.y != b.y || a.n != b.n || a.ny != b.ny || a.ses != b.ses || a.th != b.th || len(a.turns) != len(b.turns) {
 		return false
 	}
 	return len(a.turns) == 0 || &a.turns[0] == &b.turns[0]
