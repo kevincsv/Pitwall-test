@@ -3,7 +3,7 @@
 export const DEVICES = ["web", "pc", "android", "ios"];
 export const KEY_RE = /^(view|act|game):[a-z0-9_.-]{1,40}$/;
 export const MAX_KEYS = 100, MAX_N = 1000, MAX_DAYS = 90;
-export const FEEDBACK_MAX = 4000, FEEDBACK_PER_DAY = 5;
+export const FEEDBACK_MAX = 4000, FEEDBACK_PER_DAY = 20;
 export const ASK_USED = 6 * 3600e3, ASK_RACES = 2, MAX_MS = 10 * 60e3;
 // the overlay window: after the first race with overlays, and once answered every six
 export const OV_FIRST = 1, OV_AGAIN = 6, OV_GAMES = ["iracing", "lmu"], OV_MAX = 30;

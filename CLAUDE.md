@@ -531,7 +531,7 @@
   minutes, never in the car (the PC while the car is on track), in demo data, from an overlay window, over another window
   or to an admin in admin mode; shown, it is marked at once (POST `/community/feedback/seen`), so Not now waits six more
   hours of use or two races. "Send feedback" is always in Settings → About and the inbox, and a round floating
-  button with a square speech bubble sits at the bottom right of every screen ("Support", `fbFab` in index.html, counted
+  button with a square speech bubble sits at the bottom right of every screen (its menu: "Send feedback", the stars and the text as often as they like, or "Chat with support", `fbMenu`; an admin in admin mode goes straight to the support inbox) ("Support", `fbFab` in index.html, counted
   `act:feedback_button`; PC app, web and phones): signed in only, never for a visitor, in an overlay window or in demo
   data, hidden while the car is on the track and under any open window, a toast or the voice call's bar, above the
   phone-width tab bar. It opens the support chat (`supportOpen`/`SUP` in index.html, `cloud/src/support.js`, the routes
@@ -554,7 +554,7 @@
   to pitlanehq.app/app?support=1, which opens the chat on arrival; ?support=<account> opens that conversation for an
   admin, the link of support@'s email). The admin page's Feedback tab has "Open the support chat" on every answer.
   Counted `act:support_open`, `act:support_sent`, `act:support_reply`; deleting an account deletes its conversation. POST `/community/feedback`
-  {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 5 a day per account) and emails it through
+  {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 20 a day per account) and emails it through
   Resend to support@pitlanehq.app (`sendFeedback` in email.js: the nickname, account id, device, version, stars, where it
   was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). The
   overlay window (the PC only, "How are the overlays?", the stars, the text box and the overlay design used, "Design ·
