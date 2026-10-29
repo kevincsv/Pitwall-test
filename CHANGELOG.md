@@ -9,7 +9,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - Five new overlay designs in beta beside the classic one. Choose one for all the overlays or a different one for each.
 - Every overlay has its own settings. Hide its title, choose its opacity and text size, and pick what it shows.
 - The overlays can hide by themselves in the pits or when you are out of the car.
-- The relative and the standings show each driver's flag, and a clock when a driver has a penalty to serve.
+- The relative and the standings overlays can show each driver's flag, and a clock when a driver has a penalty to serve.
 - Each overlay says if it works in iRacing, Le Mans Ultimate or both, and you choose which ones open by themselves in each game.
 - After a race with overlays you can tell us how they went.
 - Records say if they are from iRacing or Le Mans Ultimate.

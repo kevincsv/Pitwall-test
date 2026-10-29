@@ -819,10 +819,11 @@
   rows: Lane's big white names, the class bar in our palette, turquoise, violet and orange, straight and rounded, never
   slanted stripes, the class bands with their cars and SOF, the iRating pill, your row in muted gold, the cars out of the
   race faded), the numbers white and bold in every Beta design, and the app's overlay windows approximate them in CSS
-  (`OV_STYLES`, `ovStyleOf`, `data-ovs`). The relative and the standings (overlays, the app, the race summary) show the
+  (`OV_STYLES`, `ovStyleOf`, `data-ovs`). The relative and the standings overlays (only the overlays, the owner's choice: never the
+  Telemetry tables, the race summary, the leaderboards or the phones) show the
   driver's country flag before the name where the game gives it (iRacing's FlairName; `flagCode`, the flag-icons set, MIT,
   `web/dist/flags/` made by `tools/flags-sprite.js`; "Flags" in their settings, `ui.rel.flags`/`ui.std.flags`, on by
-  default; the race results keep `cc` and `flair`) and a clock after it for a penalty to serve (iRacing's black or furled
+  default; the race results keep `cc` and `flair` but show no flag) and a clock after it for a penalty to serve (iRacing's black or furled
   black flag on the car, `CarIdxSessionFlags`, which cannot tell a slowdown from another black flag; Le Mans Ultimate's
   `CarIdxNumPenalties`).
   The basic overlays (`OV_BASIC`): radar, delta bar, relative, standings,
