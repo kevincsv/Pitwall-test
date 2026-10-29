@@ -12,6 +12,8 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - The relative and the standings overlays can show each driver's flag, and a clock when a driver has a penalty to serve.
 - Each overlay says if it works in iRacing, Le Mans Ultimate or both, and you choose which ones open by themselves in each game.
 - Records say if they are from iRacing or Le Mans Ultimate.
+- Maps show the track's own layout, and turn numbers follow the official count of each iRacing track.
+- A button at the bottom left to send us your feedback.
 - Fixes and improvements.
 
 ## 0.7.2 beta
