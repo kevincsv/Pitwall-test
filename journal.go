@@ -407,8 +407,10 @@ type raceResult struct {
 	Out      string    `json:"out,omitempty"`
 	Me       bool      `json:"me,omitempty"`
 	IRChange int       `json:"irChange,omitempty"`
-	Lic      string    `json:"lic,omitempty"` // the license class (R, D, C, B, A, P) of the driver in this discipline
-	K        string    `json:"k,omitempty"`   // the driver's opaque key (driverKey): your notes on them find them by it
+	Lic      string    `json:"lic,omitempty"`   // the license class (R, D, C, B, A, P) of the driver in this discipline
+	K        string    `json:"k,omitempty"`     // the driver's opaque key (driverKey): your notes on them find them by it
+	CC       string    `json:"cc,omitempty"`    // the driver's country, ISO 3166 alpha-2 in lower case (or a region, gb-sct), from flagCode
+	Flair    string    `json:"flair,omitempty"` // iRacing's FlairName as the game gives it
 	carIdx   int
 	key      string // an opaque key of the driver (never their id or name): the same driver gets the same key
 	AI       bool   `json:"ai,omitempty"` // an AI driver (or the pace car): marked in the summary; never shared, never on a leaderboard nor in the model
@@ -765,6 +767,8 @@ func sessionResults(y string, sn int) []raceResult {
 			r.AI = yamlField(d, "CarIsAI") == "1" || yamlField(d, "CarIsPaceCar") == "1"
 			r.K = r.key
 			r.Lic = licClass(yamlField(d, "LicString"))
+			r.Flair = yamlField(d, "FlairName")
+			r.CC = flagCode(firstNonEmpty(yamlField(d, "FlairShortName"), r.Flair))
 			// iRacing leaves the results' Incidents at 0 during the session: the counts it does keep
 			// up to date are the ones per driver (the team's in a team race, else the driver's own)
 			if r.Inc == 0 {

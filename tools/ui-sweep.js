@@ -1,7 +1,7 @@
 // The web app's phone-width check: opens every main view of web/dist at a PC width (1300) and a phone width (390)
 // with the demo data on, as an admin, and reports the page errors and every element wider than the screen, with a
 // full-page screenshot of each view in <outdir>/ui/. Serve web/dist first (python3 -m http.server 8799 from
-// web/dist); needs Playwright (npm i playwright, and its Chromium). Run: node tools/ui-sweep.js <outdir>
+// web/dist, or another port given as SWEEP_PORT); needs Playwright (npm i playwright, and its Chromium). Run: node tools/ui-sweep.js <outdir>
 const { chromium } = require('playwright');
 const views=["home","laps","coach","cloudlaps","races","live","overlays","community","leagues","me","settings","admin"];
 const ADMIN_SECS=["summary","users","feedback","content","sessions","coach","server"]; // the admin page's sections, each checked too
@@ -12,7 +12,7 @@ const ADMIN_SECS=["summary","users","feedback","content","sessions","coach","ser
     const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type()==='error' && !/404|Failed to load|net::|pitlanehq\.app/.test(m.text())) errs.push('console: '+m.text()); });
     const now=Date.now();
     await p.route('**/api/ratings*', r => r.fulfill({ json: { ratings: { sports_car: { ir: 1875, lic: 'B 3.21', at: now-3600e3, src: 'session' }, formula_car: { ir: 980, lic: 'C', at: now-864e5, src: 'race' } } } }));
-    await p.goto('http://localhost:8799/index.html?lang=es'); await p.waitForTimeout(2000);
+    await p.goto(`http://localhost:${process.env.SWEEP_PORT||8799}/index.html?lang=es`); await p.waitForTimeout(2000);
     const st = await p.evaluate(()=>{try{localStorage.setItem("pw.demo","1");localStorage.setItem("pw.adminMode","1")}catch(e){} let ok=false; try{if(typeof ME==="undefined"||!ME)ME={};ME.admin=true; ok=isAdmin()}catch(e){} const h=document.getElementById('lpT');let e=h;while(e&&e.parentElement&&e.parentElement!==document.body)e=e.parentElement;if(e)e.remove(); return {demo:!!window.PITLANE_DEMO, admin:ok, on: (typeof demoOn==="function")&&demoOn()}});
     console.log(width, 'state', JSON.stringify(st));
     await p.evaluate(()=>{try{rerenderAll()}catch(e){}}); await p.waitForTimeout(800);

@@ -123,6 +123,9 @@ var baseDemoVars = []demoVar{
 	{name: "CarIdxTireCompound", desc: "Cars current tire compound", typ: TypeInt, count: 64},
 }
 
+// the demo drivers' countries (FlairName, as iRacing writes it)
+var demoFlairs = []string{"Spain", "Germany", "Brazil", "United States", "Italy", "France", "United Kingdom", "Netherlands", "Portugal", "Japan", "Australia", "Belgium"}
+
 type demoCar struct {
 	pace      float64 // >1 = slower than reference
 	dist      float64 // total meters driven
@@ -746,11 +749,12 @@ DriverInfo:
    LicSubLevel: 341
    LicString: %s %.2f
    LicColor: %s
+   FlairName: %s
    IsSpectator: 0
    CarIsPaceCar: 0
    CarIsAI: 0
    CurDriverIncidentCount: %d
-`, i, c.name, c.name, c.name[:1], 400000+i*137, c.name, c.num, c.num, c.ir, c.lic, 1.5+float64((i*37)%250)/100, c.licColor, (i*3)%7)
+`, i, c.name, c.name, c.name[:1], 400000+i*137, c.name, c.num, c.num, c.ir, c.lic, 1.5+float64((i*37)%250)/100, c.licColor, demoFlairs[i%len(demoFlairs)], (i*3)%7)
 	}
 	sb.WriteString("QualifyResultsInfo:\n Results:\n")
 	for i := range d.cars {

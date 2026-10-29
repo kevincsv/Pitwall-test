@@ -99,6 +99,8 @@ func lmuFieldVars() []demoVar {
 		{name: "CarIdxThrottle", desc: "Throttle by car index, -1 unknown", unit: "%", typ: TypeFloat, count: lmuCars},
 		{name: "CarIdxBrake", desc: "Brake by car index, -1 unknown", unit: "%", typ: TypeFloat, count: lmuCars},
 		{name: "PlayerNumPenalties", desc: "Penalties outstanding against the player", typ: TypeInt},
+		// every car's penalties to serve (mNumPenalties): the clock beside its name in the relative and the standings
+		{name: "CarIdxNumPenalties", desc: "Penalties outstanding by car index", typ: TypeInt, count: lmuCars},
 		{name: "PlayerTrackSurfaceMaterial", desc: "Players car track surface material type", unit: "irsdk_TrkSurf", typ: TypeInt},
 	}
 }
@@ -156,6 +158,7 @@ type lmuRefs struct {
 	img                                                                        *irImage
 	lap, lapDone, pct, pos, clsPos, est, f2, last, best, bestNum, pit, cntFlag *demoVar
 	lapStart, lat, lon, gear, rpm, tyre, steer, surf, thr, brk                 *demoVar
+	pen                                                                        *demoVar
 }
 
 func (s *lmuSource) carRefs() *lmuRefs {
@@ -168,7 +171,7 @@ func (s *lmuSource) carRefs() *lmuRefs {
 		last: m.ref("CarIdxLastLapTime"), best: m.ref("CarIdxBestLapTime"), bestNum: m.ref("CarIdxBestLapNum"), pit: m.ref("CarIdxOnPitRoad"),
 		cntFlag: m.ref("CarIdxLapCountFlag"), lapStart: m.ref("CarIdxLapStartET"), lat: m.ref("CarIdxLat"), lon: m.ref("CarIdxLon"),
 		gear: m.ref("CarIdxGear"), rpm: m.ref("CarIdxRPM"), tyre: m.ref("CarIdxTireCompound"), steer: m.ref("CarIdxSteer"),
-		surf: m.ref("CarIdxTrackSurface"), thr: m.ref("CarIdxThrottle"), brk: m.ref("CarIdxBrake")}
+		surf: m.ref("CarIdxTrackSurface"), thr: m.ref("CarIdxThrottle"), brk: m.ref("CarIdxBrake"), pen: m.ref("CarIdxNumPenalties")}
 	return s.refs
 }
 
@@ -670,6 +673,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		}
 		m.setVar(r.pit, i, b2f(c.inPits))
 		m.setVar(r.cntFlag, i, float64(c.countFlag))
+		m.setVar(r.pen, i, float64(c.penalties))
 		m.setVar(r.lapStart, i, c.lapStart)
 		lat, lon := lmuLatLon(c.pos)
 		m.setVar(r.lat, i, lat)
@@ -711,6 +715,7 @@ func (s *lmuSource) convert(b []byte) bool {
 		m.setVar(r.cntFlag, i, -1)
 		m.setVar(r.thr, i, -1)
 		m.setVar(r.brk, i, -1)
+		m.setVar(r.pen, i, 0)
 	}
 
 	connected := player >= 0 && playerTel >= 0 && inReal

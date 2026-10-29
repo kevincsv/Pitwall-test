@@ -793,7 +793,21 @@
   height, each overlay turned to face you), so moving them in Overlays → Edit positions moves them in VR. It joins
   SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
   work through SteamVR as the OpenXR runtime.
-  There is no car controls overlay and no overlay looks (glass, carbon, minimal): one look, the native one.
+  There is no car controls overlay. The overlays' designs (the owner's choice): Classic, the native look and the default,
+  drawn exactly as before, and beside it the Beta designs Lane, Wall, Board, Frameless and Light (Carril, Muro, Pizarra,
+  Sin marco, Claro; Faixa, Muro, Quadro, Sem moldura, Claro), each labelled "Beta" wherever it is offered, never replacing
+  Classic. One design for all the overlays (Overlays → Design, `ui.ovstyle`) and one per overlay over it (its Configure
+  window's Design, `ui.<overlay>.style`, empty follows the one for all); `ovtheme.go` draws them (an `ovTheme` set per
+  frame in `ovDraw`, read by the panel, the title, the labels, the faces, the colours and the relative's and standings'
+  rows: Lane's big white names, the class bar in our palette, turquoise, violet and orange, straight and rounded, never
+  slanted stripes, the class bands with their cars and SOF, the iRating pill, your row in muted gold, the cars out of the
+  race faded), the numbers white and bold in every Beta design, and the app's overlay windows approximate them in CSS
+  (`OV_STYLES`, `ovStyleOf`, `data-ovs`). The relative and the standings (overlays, the app, the race summary) show the
+  driver's country flag before the name where the game gives it (iRacing's FlairName; `flagCode`, the flag-icons set, MIT,
+  `web/dist/flags/` made by `tools/flags-sprite.js`; "Flags" in their settings, `ui.rel.flags`/`ui.std.flags`, on by
+  default; the race results keep `cc` and `flair`) and a clock after it for a penalty to serve (iRacing's black or furled
+  black flag on the car, `CarIdxSessionFlags`, which cannot tell a slowdown from another black flag; Le Mans Ultimate's
+  `CarIdxNumPenalties`).
   The basic overlays (`OV_BASIC`): radar, delta bar, relative, standings,
   flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, track bar.
   Experimental (listed with the rest, an "Experimental" pill): compare, boost, gg, stats, sectors, gaps, telemetry, system.
