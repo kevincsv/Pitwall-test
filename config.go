@@ -167,7 +167,7 @@ func autoOverlays() {
 			for _, n := range listOverlays() {
 				open[n] = true
 			}
-			for _, wdg := range proAutoList(c.AutoWidgets) {
+			for _, wdg := range proAutoList(autoFor(c, currentGame())) { // only what works in this game (gamesupport.go)
 				if !open[wdg] && widgetRe.MatchString(wdg) && wdg != "*" {
 					go openNamedOverlay(wdg)
 				}

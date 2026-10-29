@@ -8,6 +8,9 @@ export const ASK_USED = 6 * 3600e3, ASK_RACES = 2, MAX_MS = 10 * 60e3;
 // the overlay window: after the first race with overlays, and once answered every six
 export const OV_FIRST = 1, OV_AGAIN = 6, OV_GAMES = ["iracing", "lmu"], OV_MAX = 30;
 export const STYLE_RE = /^[a-z0-9_-]{1,20}$/, OV_RE = /^[a-z]{2,12}$/;
+// the games a "game:" key may name: the game really driven, never the Settings choice ("auto") nor the demo
+export const USAGE_GAMES = ["iracing", "lmu", "acc", "ac"];
+const gameKeyOk = (k) => !k.startsWith("game:") || USAGE_GAMES.includes(k.slice(5));
 
 export const day = (t) => new Date(t).toISOString().slice(0, 10);
 const cleanV = (v) => String(v == null ? "" : v).replace(/[^0-9a-zA-Z.+-]/g, "").slice(0, 24);
@@ -22,7 +25,7 @@ export function cleanUsage(b) {
     for (const [k0, n0] of Object.entries(b.counts)) {
       if (counts.length >= MAX_KEYS) break;
       const k = String(k0).toLowerCase(), n = Math.floor(Number(n0));
-      if (!KEY_RE.test(k) || !(n > 0)) continue;
+      if (!KEY_RE.test(k) || !gameKeyOk(k) || !(n > 0)) continue;
       counts.push([k, Math.min(n, MAX_N)]);
     }
   }
@@ -84,6 +87,7 @@ export function analyticsOf(days, perDay, rows, presence, accounts) {
   const byDev = new Map(), byKey = new Map(), byGame = new Map(), byUser = new Map();
   const add = (m, k, acc, n) => { let x = m.get(k); if (!x) m.set(k, (x = { n: 0, users: new Set() })); x.n += n; x.users.add(acc); };
   for (const r of rows) {
+    if (!gameKeyOk(r.key)) continue; // "game:auto" rows of the PCs before 0.7.3 counted the Settings choice
     add(byDev, r.device, r.account_id, r.n);
     if (r.key.startsWith("game:")) add(byGame, r.key.slice(5), r.account_id, r.n);
     else add(byKey, r.key, r.account_id, r.n);

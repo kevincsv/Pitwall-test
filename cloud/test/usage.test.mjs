@@ -59,6 +59,8 @@ assert.equal(shouldAskOv(true, 6), true, "answered, six races");
 assert.equal(cleanFeedback({ text: "ok", device: "toaster" }).device, "");
 assert.equal(cleanFeedback({ text: "ok" }).rating, null, "the stars are optional");
 
+assert.deepEqual(cleanUsage({ device: "pc", counts: { "game:auto": 1, "game:demo": 1, "game:lmu": 1 } }).counts, [["game:lmu", 1]], "only a game really driven is counted");
+
 // when to ask
 assert.equal(shouldAsk(0, 0), false);
 assert.equal(shouldAsk(ASK_USED - 1, 1), false);
@@ -72,13 +74,14 @@ const rows = [
   { account_id: "a", device: "pc", key: "game:iracing", n: 1, last: "2026-10-28" },
   { account_id: "b", device: "android", key: "view:laps", n: 1, last: "2026-10-20" },
   { account_id: "b", device: "android", key: "game:lmu", n: 3, last: "2026-10-20" },
+  { account_id: "a", device: "pc", key: "game:auto", n: 9, last: "2026-10-28" },
 ];
 const pres = [{ account_id: "a", kind: "pc", app_version: "0.9.14", last_seen: 1000 }, { account_id: "a", kind: "web", app_version: "0.9.14", last_seen: 2000 }, { account_id: "c", kind: "ios", app_version: "", last_seen: 5 }];
 const A = analyticsOf(30, [{ day: "2026-10-27", users: 1 }, { day: "2026-10-28", users: 1 }], rows, pres, new Map([["a", { display: "Ana" }], ["b", { display: "Bea" }]]));
 assert.equal(A.days, 30);
 assert.deepEqual(A.active, [{ day: "2026-10-27", users: 1 }, { day: "2026-10-28", users: 1 }]);
 assert.deepEqual(A.top, [{ key: "view:laps", users: 2, n: 6 }, { key: "act:compare", users: 1, n: 2 }], "the games are apart from the features");
-assert.deepEqual(A.games, [{ game: "lmu", users: 1, n: 3 }, { game: "iracing", users: 1, n: 1 }]);
+assert.deepEqual(A.games, [{ game: "lmu", users: 1, n: 3 }, { game: "iracing", users: 1, n: 1 }], "the old game:auto rows never show");
 assert.deepEqual(A.byDevice.map((x) => [x.device, x.users, x.n]), [["web", 1, 5], ["pc", 1, 3], ["android", 1, 4]].sort((a, b) => b[2] - a[2]));
 assert.deepEqual(A.versions, [{ device: "pc", v: "0.9.14", devices: 1 }, { device: "web", v: "0.9.14", devices: 1 }]);
 const ua = A.users.find((x) => x.id === "a"), ub = A.users.find((x) => x.id === "b");

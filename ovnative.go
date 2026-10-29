@@ -531,6 +531,7 @@ type ovState struct {
 	sesNum  int
 	lang    string
 	units   string             // "metric" or "imperial", as the app
+	game    string             // the game the agent reads (the stream's status), for the columns it sends (gamesupport.go)
 	clearAt time.Time          // radar: since when nobody has been near
 	hz      int                // the stream's samples a second (30, the radar 60)
 	dataSeq uint64             // a frame with other values than the one before arrived (ovPace)
@@ -970,6 +971,17 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		st.mu.Lock()
 		st.ext.drinks, st.ext.driver = d.On, d.Name
 		st.cfgSeq++
+		st.mu.Unlock()
+	case "status": // the game being read: the relative and the standings leave out what it does not send
+		var s struct{ Source string }
+		if json.Unmarshal([]byte(data), &s) != nil {
+			return
+		}
+		st.mu.Lock()
+		if s.Source != st.game {
+			st.game = s.Source
+			st.cfgSeq++
+		}
 		st.mu.Unlock()
 	case "config":
 		var c struct {
@@ -1425,6 +1437,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	}
 	cfg := st.uiMap(key)
 	cols, head, foot := uiList(cfg, "cols", defCols), uiList(cfg, "head", defHead), uiList(cfg, "foot", defFoot)
+	cols, head, foot = gameKeep(st.game, "columns", cols), gameKeep(st.game, "items", head), gameKeep(st.game, "items", foot)
 	me := -1
 	if v, ok := st.num("PlayerCarIdx"); ok {
 		me = int(v)
