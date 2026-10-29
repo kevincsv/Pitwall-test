@@ -310,6 +310,14 @@ table.plan td.sname{position:sticky;left:0;background:var(--surface);z-index:1;m
 @media (max-width:640px){.voicebar{right:16px;left:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));justify-content:center}}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:6px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:calc(100% - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%)}
+/* the feedback button, always at the bottom left (fbFab): above the content, below every window, never over the tab bar,
+   a toast, the voice call's bar or an open window */
+.fbfab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;cursor:pointer;background:var(--surface2);color:var(--accent);border:1px solid var(--line2,var(--line));box-shadow:0 4px 16px rgba(0,0,0,.35);transition:opacity .15s,transform .15s}
+.fbfab:hover{transform:translateY(-1px);border-color:var(--accent)}.fbfab svg{width:20px;height:20px}.fbfab[hidden]{display:none}
+@media (min-width:821px){:root:not(.ov,.ovwin,.signwall,.phone) .fbfab{left:calc(var(--rail) + 14px)}}
+@media (max-width:820px){.fbfab{left:12px;bottom:calc(74px + env(safe-area-inset-bottom,0px))}}
+html.phone .fbfab{left:12px;bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+body:has(#toast.on) .fbfab,body:has(#voiceBar:not([hidden])) .fbfab,body:has(.uidlg) .fbfab,body:has(#drawer:not([hidden])) .fbfab{opacity:0;pointer-events:none;visibility:hidden}
 html.ov body{padding:0}
 html.ov header.top,html.ov nav.tabs,html.ov .lhead,html.ov #v-field .vhead,html.ov .popbtn,html.ov .ovhide,html.ov #tyreMore{display:none!important}
 html.ov section.view{padding:6px}
@@ -692,8 +700,8 @@ label.btn{display:inline-flex;align-items:center;cursor:pointer}
 .rbmap{width:100%;max-width:600px;height:auto;display:block;margin:0 auto}.rbmap.rbmap-wide{max-width:620px;max-height:44vh}.rbmap .trk{fill:none;stroke:var(--line);stroke-width:9;stroke-linejoin:round}
 /* the track as a road with some depth: its shadow, the kerb-coloured rim and the darker asphalt inside */
 .rbmap .trkS{fill:none;stroke:#000;stroke-opacity:.38;stroke-width:24;stroke-linejoin:round;transform:translate(2px,3.5px)}.rbmap .trkS+.trk{stroke-width:22;stroke:color-mix(in srgb,var(--line) 80%,#fff 20%)}.rbmap .trkI{fill:none;stroke:color-mix(in srgb,var(--surface2) 70%,#000 30%);stroke-width:17;stroke-linejoin:round}
-.rbmap .trkI~.seg{stroke-width:15}.rbmap .lnB{fill:none;stroke:#cfe3ff;stroke-opacity:.85;stroke-width:1.6;stroke-dasharray:5 4;stroke-linejoin:round}.rbmap .lnA{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
-.chip i.lnA,.chip i.lnB{display:inline-block;width:14px;height:0;border-top:3px solid var(--accent);vertical-align:middle;margin:0 2px}.chip i.lnB{border-top:2px dashed #cfe3ff}.rbmap .mine{fill:var(--accent);stroke:var(--bg);stroke-width:2}.rbmap .oth{fill:var(--blue);stroke:var(--bg);stroke-width:2}.rbmap .lbl{fill:var(--fg);font:700 12px var(--f-data)}
+.rbmap .trkI~.seg{stroke-width:15}
+.rbmap .mine{fill:var(--accent);stroke:var(--bg);stroke-width:2}.rbmap .oth{fill:var(--blue);stroke:var(--bg);stroke-width:2}.rbmap .lbl{fill:var(--fg);font:700 12px var(--f-data)}
 .lgd{display:inline-flex;align-items:center;gap:5px;font-size:13px;margin-right:10px}.dotm,.doto{width:10px;height:10px;border-radius:50%;display:inline-block}.dotm{background:var(--accent)}.dotc{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid var(--pb)}.incx{color:var(--bad);font-weight:700}
 .rbmap .seg{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}.rbmap .secdot{fill:var(--muted)}svg.rchart{touch-action:pan-y;cursor:crosshair}svg.rchart .hovl{stroke:var(--fg);stroke-width:1.2;stroke-dasharray:3 3;opacity:.6}svg.rchart circle.on{r:7;stroke:var(--fg);stroke-width:1.5}.rc-tip{position:fixed!important;z-index:60;pointer-events:none}.rbmap .secbar{stroke:var(--fg);stroke-width:2.5;stroke-linecap:round;opacity:.8}.rbmap .sfbar{stroke:var(--fg);stroke-width:4;stroke-dasharray:3 3;stroke-linecap:butt}.rbmap .sec{fill:var(--accent);font:800 11px var(--f-data);letter-spacing:.04em;opacity:.9}.rbmap .hdot{fill:var(--fg);stroke:var(--bg);stroke-width:2}
 .rbmap .coachring{fill:color-mix(in srgb,var(--pb) 18%,transparent);stroke:var(--pb);stroke-width:2.5}.rbmap .incl{fill:var(--bad);font:800 10px var(--f-data);paint-order:stroke;stroke:var(--bg);stroke-width:3px}.rbmap .incmk path{stroke:var(--bad);stroke-width:3;stroke-linecap:round}.rbmap .incmk text{fill:var(--bad);font:700 11px var(--f-data)}
@@ -1539,8 +1547,6 @@ html .hl-sec{padding:0 0 12px;border-radius:var(--radius);display:flex;flex-dire
 /* lap B in blue on the charts and maps, purple when it is your own best lap */
 #lapsBody .legend i[style*="--pb"]{background:var(--blue)!important}#lapsBody.bmine .legend i[style*="--pb"]{background:var(--pb)!important}
 #lapsBody .ch-read .tb,#lapsBody .ss-b{color:var(--blue)}#lapsBody.bmine .ch-read .tb,#lapsBody.bmine .ss-b{color:var(--pb)}
-:is(#lapMap,#coachMap) .rbmap .lnB{stroke:var(--blue)}:is(#lapMap,#coachMap).bmine .rbmap .lnB{stroke:var(--pb)}
-:is(#lapMap,#coachMap) .chip i.lnB{border-top-color:var(--blue)}:is(#lapMap,#coachMap).bmine .chip i.lnB{border-top-color:var(--pb)}
 :is(#v-laps,#v-coach) .lapcmp .name{grid-area:name;font:600 13px/1.3 var(--f-body);margin:0}
 :is(#v-laps,#v-coach) .lapcmp .time{grid-area:time;font:600 13px/1.3 var(--f-data);margin:0;color:var(--accent)}.lapcmp.b .time{color:var(--pb)}
 :is(#v-laps,#v-coach) .lapcmp .meta{grid-area:meta;font-size:11px;margin:0}
@@ -2657,6 +2663,7 @@ function wireAdminProfile(){const p=$("#admP");if(!p)return;const mainBody=p.que
             ${COMPANION?"":`<div class="admr"><b>${esc(T("iRacing telemetry files","Archivos de telemetría de iRacing","iRacing-Telemetriedateien","Arquivos de telemetria do iRacing"))}</b><small id="admIbtSt">…</small><div class="frow adm-act"><button type="button" class="btn small" id="admIbt">${esc(T("Import them now","Importarlos ahora","Jetzt importieren","Importar agora"))}</button></div></div>`}
             <div class="admr"><b>${esc(T("Demo data","Datos de prueba","Demodaten","Dados de demonstração"))} ${demoOn()?`<span class="pill acc" style="font-size:9px">${esc(T("on","encendidos","an","ligados"))}</span>`:""}</b><small>${esc(T("Invented sessions, laps and races on this device, never uploaded, with a banner on every screen.","Sesiones, vueltas y carreras inventadas en este dispositivo, nunca se suben, con un aviso en cada pantalla.","Erfundene Sitzungen, Runden und Rennen auf diesem Gerät, nie hochgeladen, mit Hinweis auf jedem Bildschirm.","Sessões, voltas e corridas inventadas neste dispositivo, nunca enviadas, com um aviso em cada tela."))}</small><div class="frow adm-act"><button type="button" class="btn small" id="admDemo">${esc(demoOn()?T("Turn off","Apagar","Ausschalten","Desligar"):T("Turn on","Encender","Einschalten","Ligar"))}</button></div></div>
             <div class="admr"><b>${esc(T("Rebuild the coach models","Reconstruir los modelos del coach","Coach-Modelle neu bauen","Reconstruir os modelos do coach"))}</b><small>${esc(T("Every car and track learns again from all its laps; the server does it a few at a time.","Cada coche y circuito vuelve a aprender de todas sus vueltas; el servidor lo hace poco a poco.","Jedes Auto und jede Strecke lernt neu aus allen Runden; der Server macht es nach und nach.","Cada carro e pista aprende de novo com todas as voltas; o servidor faz aos poucos."))} (${c.models||0} ${esc(T("cars and tracks","coches y circuitos","Autos und Strecken","carros e pistas"))} · ${c.cars||0} ${esc(T("car cards","fichas de coche","Auto-Karten","fichas de carro"))} · ${c.modelsDirty||0} ${esc(T("waiting","pendientes","wartend","pendentes"))})</small><div class="frow adm-act"><button type="button" class="btn small" id="admModels">${esc(T("Rebuild","Reconstruir","Neu bauen","Reconstruir"))}</button></div></div>
+            <div class="admr"><b>${esc(T("Rebuild the track maps","Reconstruir los mapas de los circuitos","Streckenkarten neu bauen","Reconstruir os mapas das pistas"))}</b><small>${esc(T("A map drawn without the game's position takes a lap of that track that has it. The server also does it by itself once a day.","Un mapa dibujado sin la posición del juego toma una vuelta de ese circuito que la tenga. El servidor también lo hace solo una vez al día.","Eine Karte ohne die Position des Spiels nimmt eine Runde dieser Strecke, die sie hat. Der Server macht es auch selbst einmal am Tag.","Um mapa desenhado sem a posição do jogo usa uma volta dessa pista que a tenha. O servidor também faz isso sozinho uma vez por dia."))}</small><div class="frow adm-act"><button type="button" class="btn small" id="admMaps">${esc(T("Rebuild","Reconstruir","Neu bauen","Reconstruir"))}</button></div></div>
             <div class="admr"><b>${esc(T("Blocked sign-ins","Accesos bloqueados","Gesperrte Anmeldungen","Acessos bloqueados"))}</b><small>${esc(T("After wrong passwords or codes, or too many emails, a sign-in waits 15 minutes. Unblock one, an email, or all of them.","Tras contraseñas o códigos incorrectos, o demasiados emails, un acceso espera 15 minutos. Desbloquea uno, un email o todos.","Nach falschen Passwörtern oder Codes wartet eine Anmeldung 15 Minuten. Entsperre eine, eine E-Mail oder alle.","Após senhas ou códigos errados, um acesso espera 15 minutos. Desbloqueie um, um email ou todos."))}</small><div id="admBl" class="admt" style="margin-top:6px"><p class="note">…</p></div>
               <form class="me-row" id="admUE" style="margin-top:6px"><input type="email" id="admUEi" placeholder="${esc(T("Email of the driver","Email del piloto","E-Mail des Fahrers","Email do piloto"))}" style="flex:1"><button class="btn small" type="submit">${esc(T("Unblock this email","Desbloquear este email","Diese E-Mail entsperren","Desbloquear este email"))}</button></form></div>
             <div class="admr"><b>${esc(T("Unblock everything","Desbloquear todo","Alles entsperren","Desbloquear tudo"))}</b><small>${esc(T("After 5 wrong passwords a sign-in waits 15 minutes; this opens them all again now.","Tras 5 contraseñas incorrectas un acceso espera 15 minutos; esto los abre todos ya.","Nach 5 falschen Passwörtern wartet eine Anmeldung 15 Minuten; das öffnet alle sofort.","Após 5 senhas erradas um acesso espera 15 minutos; isto abre todos agora."))} (${c.authFails||0})</small><div class="frow adm-act"><button type="button" class="btn small" id="admUnlock">${esc(T("Unblock","Desbloquear","Entsperren","Desbloquear"))}</button></div></div></div>`;
@@ -2676,6 +2683,7 @@ function wireAdminProfile(){const p=$("#admP");if(!p)return;const mainBody=p.que
             ib.disabled=!!j.running;clearTimeout(tm);if(j.running)tm=setTimeout(()=>jget("/api/ibt").then(show).catch(()=>{}),2000)};
           jget("/api/ibt").then(show).catch(()=>{const st=$("#admIbtSt");if(st)st.textContent=""});
           ib.onclick=async()=>{ib.disabled=true;try{show(await jpost("/api/ibt",{}))}catch(e){toast(e.message);ib.disabled=false}}}}
+        $("#admMaps").onclick=async()=>{const b=$("#admMaps");b.disabled=true;try{const r=await cloudPost("/community/admin/trackmaps-rebuild",{});toast(T(`${r.rebuilt} of ${r.checked} maps drawn again`,`${r.rebuilt} de ${r.checked} mapas dibujados de nuevo`,`${r.rebuilt} von ${r.checked} Karten neu gezeichnet`,`${r.rebuilt} de ${r.checked} mapas desenhados de novo`));TRACKMAPS_CLEAR()}catch(e){toast(e.message)}b.disabled=false};
         $("#admModels").onclick=async()=>{try{const r=await cloudPost("/community/admin/models",{});toast(T(`${r.models} models will learn again`,`${r.models} modelos volverán a aprender`,`${r.models} Modelle lernen neu`,`${r.models} modelos vão aprender de novo`));load("server")}catch(e){toast(e.message)}};
         (async()=>{const bl=$("#admBl");if(!bl)return;try{const r=await cloudGet("/community/admin/blocked"),L=r.blocked||[];const KN={login:T("Sign-in","Acceso","Anmeldung","Acesso"),"2fa":T("Two-step code","Código en dos pasos","Zwei-Schritt-Code","Código de duas etapas"),mail:T("Emails","Emails","E-Mails","Emails"),reset:T("Password resets","Restablecer contraseña","Passwort-Resets","Redefinições de senha"),reg:T("New accounts","Cuentas nuevas","Neue Konten","Contas novas"),ip:T("Network","Red","Netzwerk","Rede")};
             bl.innerHTML=L.length?L.map(x=>`<div class="admr"><b>${esc(KN[x.kind]||x.kind)} · ${esc(x.account?x.account.display:x.net?T("a network","una red","ein Netzwerk","uma rede")+" "+x.net:T("an email without account","un email sin cuenta","eine E-Mail ohne Konto","um email sem conta"))}${x.blocked?` <span class="pill" style="font-size:9px;border-color:var(--bad);color:var(--bad)">${esc(T("blocked","bloqueado","gesperrt","bloqueado"))}</span>`:""}</b><small>${x.n} ${esc(T("tries","intentos","Versuche","tentativas"))} · ${esc(when(x.last))}</small><div class="frow adm-act"><button type="button" class="btn small" data-admk1="${esc(x.k)}">${esc(T("Unblock","Desbloquear","Entsperren","Desbloquear"))}</button></div></div>`).join(""):`<p class="note">${esc(T("Nothing is blocked now.","Ahora no hay nada bloqueado.","Gerade ist nichts gesperrt.","Nada está bloqueado agora."))}</p>`;
@@ -3740,7 +3748,7 @@ async function lapTrackId(A,B){let id=A.trackId||B.trackId;if(id)return id;const
 const lapShape=l=>PWA.lapShape(l);
 /* the racing line (pitwall-analysis.js, racingline.go does the same): where lap A's car was across the track against lap B's, every 5 m */
 function lineOffsets(A,B){return PWA.lineOffsets(A,B)}
-const LAPV=Object.assign({inc:true,brk:true,coach:true,delta:true,line:true},store.get("pw.lapv",{}));
+const LAPV=Object.assign({inc:true,brk:true,coach:true,delta:true},store.get("pw.lapv",{}));
 /* the incidents of a lap as [{d,pts,k}] from the trace's [d,pts,d,pts…] */
 /* every incident of lap A's session, like the race summary's map: from the laps when they carry them, else from the
    race summary of that session; each one knows its lap */
@@ -3749,13 +3757,13 @@ function sessionIncs(A){try{const LP=(typeof analysisLaps==="function"?analysisL
     if(!out.length&&A&&A.sessionId){const x=(CLOUD.sessions||[]).find(z=>z.id===A.sessionId),r=x&&raceForSession(x);if(r)out=(r.incidents||[]).map(e=>({d:e.d||0,pts:e.pts||e.p||1,k:incKind(e),lap:e.lap}))}
     return out}catch(e){return lapIncs(A)}}
 const lapIncs=l=>{const a=(l&&l.incAt)||[],ks=(l&&l.incK)||[],o=[];for(let i=0;i+1<a.length;i+=2)o.push({d:a[i],pts:a[i+1],k:incKind({pts:a[i+1],kind:ks[i/2]})});return o};
-async function renderCmpMap(A,B,box){if(!box)return;box.classList.toggle("bmine",bMine(B));const tok=box._tok=++CMP_MAPTOK;let map=lapShape(B)||lapShape(A); // the road is B's path when it has one: B runs along the middle, A beside it by how far it was from B
+async function renderCmpMap(A,B,box){if(!box)return;box.classList.toggle("bmine",bMine(B));const tok=box._tok=++CMP_MAPTOK;let map=null; // the road is the track's generated layout; a lap's own path only while the track has none
   lapTrackId(A,B).then(t=>{if(!t||t===TURN_TID)return;TURN_TID=t;const k=turnsFor(t,A.game||B.game);if(k&&k.length)turnsChanged()}).catch(()=>{});
-  if(!map){try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}}
+  try{const tid=await lapTrackId(A,B);map=tid?await trackMapFor(tid,A.game||B.game||liveGame()):null;if(!map&&!(A.track||B.track)&&MAP.data&&MAP.data.x&&MAP.data.x.length>10)map=MAP.data}catch(e){}
+  if(!map||!map.x||map.x.length<=10)map=lapShape(B)||lapShape(A);
   if(tok!==box._tok||!box.isConnected)return;box._at=null;
   if(!map||!map.x||map.x.length<=10){box.innerHTML=`<p class="note">${esc(Tx("This track is not scanned yet: a lap recorded with Pitlane HQ Agent at this track draws its map by itself.","Este circuito aún no está escaneado: una vuelta grabada con Pitlane HQ Agent en él dibuja el mapa sola.","Noch keine Karte dieser Strecke: Runden, die mit Pitlane HQ Agent aufgezeichnet wurden, zeichnen sie von selbst.","Ainda não há mapa desta pista: voltas gravadas com o Pitlane HQ Agent desenham-no sozinhas."))}</p>`;return}
   const sa=lapSeries(A),sb=lapSeries(B),n=Math.min(sa.end,sb.end);if(n<8){box.innerHTML="";return}
-  const lat=lineOffsets(A,B);
   // the track turned to fill the wide panel (a tall circuit lies down), only when that makes it clearly bigger
   const [xs,ys]=fitTurn(map.x,map.y,600,400,26);
   const L=n*BIN,N=map.x.length,minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys),W=600,H=400,pad=26,k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1)),f=q=>q.map(z=>z.toFixed(1)).join(",");
@@ -3771,15 +3779,10 @@ async function renderCmpMap(A,B,box){if(!box)return;box.classList.toggle("bmine"
   const incSum=incs.length?`<p class="rb-sum"><b class="bad">${incs.length} ${esc(Tx(incs.length>1?"incidents":"incident",incs.length>1?"incidentes":"incidente",incs.length>1?"Zwischenfälle":"Zwischenfall",incs.length>1?"incidentes":"incidente"))} (${pts}x)</b>: ${["off","loss","contact"].filter(q=>byK[q]).map(q=>`<span class="ik ${q}">${esc(incN(q,byK[q]))}</span>`).join(" · ")}${worst&&worst[1]>1?` · ${esc(Tx("most in","la mayoría en","die meisten in","a maioria em"))} <b>T${worst[0]}</b> (${worst[1]})`:""}</p>`:"";
   const X=(x,y,cls,title)=>`<g class="incmk ${cls}"><path d="M${(x-5).toFixed(1)} ${(y-5).toFixed(1)}L${(x+5).toFixed(1)} ${(y+5).toFixed(1)}M${(x+5).toFixed(1)} ${(y-5).toFixed(1)}L${(x-5).toFixed(1)} ${(y+5).toFixed(1)}"/><title>${title}</title></g>`;
   box.innerHTML=`<div class="rb-bar"><span class="lgd"><i class="dotm"></i>${esc(Tx("A brakes","A frena","A bremst","A freia"))}</span><span class="lgd"><i class="doto"></i>${esc(Tx("B brakes","B frena","B bremst","B freia"))}</span>
-      <button type="button" class="chip" data-lv="brk" aria-pressed="${LAPV.brk}">${esc(Tx("Braking","Frenadas","Bremsen","Freadas"))}</button>${incs.length?`<button type="button" class="chip" data-lv="inc" aria-pressed="${LAPV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${co.length?`<button type="button" class="chip" data-lv="coach" aria-pressed="${LAPV.coach}"><i class="dotc"></i> Coach</button>`:""}${lat?`<button type="button" class="chip" data-lv="line" aria-pressed="${LAPV.line}" title="${esc(Tx("Where each car was across the track (the difference drawn bigger so it shows)","Por dónde iba cada coche en la pista (la diferencia dibujada más grande para que se vea)","Wo jedes Auto auf der Strecke war (größer gezeichnet)","Por onde cada carro passou na pista (diferença ampliada)"))}"><i class="lnA"></i> ${esc(Tx("Line A","Trazada A","Linie A","Trajetória A"))} <i class="lnB"></i> B</button>`:""}<button type="button" class="chip" data-lv="delta" aria-pressed="${LAPV.delta}"><span class="good">■</span><span class="bad">■</span> ${esc(Tx("A vs B time","Tiempo A vs B","Zeit A vs B","Tempo A vs B"))}</button></div>
+      <button type="button" class="chip" data-lv="brk" aria-pressed="${LAPV.brk}">${esc(Tx("Braking","Frenadas","Bremsen","Freadas"))}</button>${incs.length?`<button type="button" class="chip" data-lv="inc" aria-pressed="${LAPV.inc}"><span class="incx">✕</span> ${esc(Tx("Incidents","Incidentes","Zwischenfälle","Incidentes"))}</button>`:""}${co.length?`<button type="button" class="chip" data-lv="coach" aria-pressed="${LAPV.coach}"><i class="dotc"></i> Coach</button>`:""}<button type="button" class="chip" data-lv="delta" aria-pressed="${LAPV.delta}"><span class="good">■</span><span class="bad">■</span> ${esc(Tx("A vs B time","Tiempo A vs B","Zeit A vs B","Tempo A vs B"))}</button></div>
     <svg class="rbmap rbmap-wide" viewBox="0 0 600 400" role="img" aria-label="${esc(Tx("Track map: corners, braking points, incidents, coach, and where lap A gains or loses time against lap B","Mapa del circuito: curvas, frenadas, incidentes, coach y dónde la vuelta A gana o pierde tiempo frente a la B"))}">${(()=>{const pl=`${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}`;return `<polyline class="trkS" points="${pl}"/><polyline class="trk" points="${pl}"/><polyline class="trkI" points="${pl}"/>`})()}
     ${dirArrowSvg(P(0),P(Math.max(2,Math.round(N/60))),W/2,H/2)}
     ${LAPV.delta?segs.map(g=>{const m0=Math.round(g.i0*BIN/L*N),m1=Math.round(g.i1*BIN/L*N),pts2=[];for(let m=m0;m<=m1;m++)pts2.push(f(P(m)));const op=g.v>0?.3+.7*Math.min(1,g.v/mx):.3+.7*Math.min(1,-g.v/mx);return Math.abs(g.v)<.003?"":`<polyline class="seg" points="${pts2.join(" ")}" style="stroke:var(${g.v>0?"--bad":"--good"});opacity:${op.toFixed(2)}"/>`}).join(""):""}
-    ${lat&&LAPV.line?(()=>{/* the two lines on the track: B along the middle, A beside it by how far it was from B (2.2 px a metre) */
-      const EX=2.2,nb=lat.length,dir=m=>{const i0=((m-2)%N+N)%N,i1=(m+2)%N;let tx=xs[i1]-xs[i0],ty=ys[i1]-ys[i0];const tm=Math.hypot(tx,ty)||1;return[-ty/tm,tx/tm]};
-      const runs=[];let cur=[];for(let m=0;m<=N;m++){const i=Math.round((m%N)/N*L/BIN),v=i<nb?lat[i]:NaN;if(isNaN(v)){if(cur.length>1)runs.push(cur);cur=[];continue}
-        const q=P(m),d=dir(m%N),o=Math.max(-5,Math.min(5,v))*EX;cur.push(f([q[0]+d[0]*o,q[1]-d[1]*o]))}if(cur.length>1)runs.push(cur);
-      return runs.map(r=>`<polyline class="lnA" points="${r.join(" ")}"/>`).join("")+`<polyline class="lnB" points="${xs.map((_,i)=>f(P(i))).join(" ")} ${f(P(0))}"/>`})():""}
     ${cs.map(c=>{const q=f(out(at(c.d),22)).split(",");return `<text class="cn" x="${q[0]}" y="${q[1]}" text-anchor="middle">T${c.n}</text>`}).join("")}
     ${secMarks(cnt,L,at,cx,cy)}
     ${LAPV.coach?co.map(c=>{const q=at(c.d);return `<circle class="coachring" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="13"><title>T${c.n} · +${c.lost.toFixed(2)} s: ${esc(tipTx(c))}</title></circle>`}).join(""):""}
@@ -4353,7 +4356,8 @@ async function mapSession(){const k=mapKey();if(!k||k===MAP.key)return;MAP.key=k
   MAP.commTime=null;const tid=(S.WeekendInfo||{}).TrackID;
   if(MODE==="bridge"&&!STATUS.demo&&(liveGame()==="iracing"||liveGame()==="lmu")&&tid){try{const r=await fetch("/api/trackmap?trackId="+tid+"&game="+liveGame());if(r.ok){const c=await r.json();MAP.commTime=c.time||null;
     MAP.commGeo=Array.isArray(c.g)&&c.g.length===2;
-    if(MAP.key===k&&(!MAP.data||!(MAP.data.laps>0))&&Array.isArray(c.x)&&c.x.length===c.n){MAP.data={key:k,name:c.track||(S.WeekendInfo||{}).TrackDisplayName||"",N:c.n,src:MAP.commGeo?"geo":"dr",geo:MAP.commGeo?c.g:null,len:c.len||trackLenM(),laps:0,x:c.x,y:c.y,community:true,commTime:c.time}}}}catch(e){}}
+    // the community's generated layout is the map whenever the track has one (your own laps only draw it while it has none)
+    if(MAP.key===k&&Array.isArray(c.x)&&c.x.length===c.n){MAP.data={key:k,name:c.track||(S.WeekendInfo||{}).TrackDisplayName||"",N:c.n,src:MAP.commGeo?"geo":"dr",geo:MAP.commGeo?c.g:null,len:c.len||trackLenM(),laps:0,x:c.x,y:c.y,community:true,commTime:c.time}}}}catch(e){}}
   drawMapSoon()}
 const wrapA=a=>((a+3*Math.PI)%(2*Math.PI))-Math.PI;
 function mapSample(){
@@ -4386,21 +4390,21 @@ function shareTrackMap(lap,src){const wi=S.WeekendInfo||{};if(MODE!=="bridge"||O
   fetch("/api/trackmap",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({trackId:wi.TrackID,track:(wi.TrackDisplayName||"")+(wi.TrackConfigName?" · "+wi.TrackConfigName:""),time:lap.time,n:lap.N,len:trackLenM(),x:lap.x,y:lap.y,clean:true,...(g?{g}:{})})}).then(r=>{if(r&&r.ok&&src==="geo")MAP.commGeo=true}).catch(()=>{})}
 function brakePts(L){const out=[],N=L.b.length;let i=1;while(i<N){if(L.b[i]>.12&&L.b[i-1]<=.12){let k=i,vmin=L.v[i];while(k<N&&k<i+400&&!(L.th[k]>.6&&L.b[k]<.05)){vmin=Math.min(vmin,L.v[k]);k++}out.push({i,v:L.v[i],vmin});i=k+1}else i++}return out}
 function updateMapData(lap,src){const k=MAP.key;if(!k)return;let d=MAP.data;
-  if(d&&d.community&&d.N===lap.N&&d.src===src){d.laps=0;d.ownLaps=(d.ownLaps||0)+1}
+  if(d&&d.community){d.laps=0;d.ownLaps=(d.ownLaps||0)+1} // the generated layout stays as it is: your laps never move it
   else if(!d||d.N!==lap.N||d.src!==src){d={key:k,name:(S.WeekendInfo||{}).TrackDisplayName||"",N:lap.N,src,geo:MAP.geo||null,len:trackLenM(),laps:0,x:lap.x.slice(),y:lap.y.slice()}}
   else if(d.laps<8){const w=d.laps/(d.laps+1);d.x=d.x.map((v,i)=>v*w+lap.x[i]*(1-w));d.y=d.y.map((v,i)=>v*w+lap.y[i]*(1-w))}
   d.laps=(d.laps||0)+1;
   // best lap and estimated ideal line from the fastest mini-sectors
-  const valid=MAP.laps.filter(l=>l.N===d.N);const best=valid.reduce((a,b)=>!a||b.time<a.time?b:a,null);
+  const valid=MAP.laps.filter(l=>l.N===(d.community?lap.N:d.N));const best=valid.reduce((a,b)=>!a||b.time<a.time?b:a,null);
   if(best&&(!d.best||best.time<d.best.time))d.best={time:best.time,x:best.x,y:best.y,v:best.v,b:best.b,th:best.th,t:best.t,brakes:best.brakes};
-  const M=40,N=d.N,cands=valid.slice();if(d.ideal&&d.ideal.st)cands.push({ideal:true,...d.ideal});
+  const M=40,N=d.community?lap.N:d.N,cands=valid.slice();if(d.ideal&&d.ideal.st)cands.push({ideal:true,...d.ideal});
   const ideal={x:new Array(N),y:new Array(N),v:new Array(N),b:new Array(N),th:new Array(N),t:new Array(N),st:[]};let acc=0;
   for(let m=0;m<M;m++){const a=Math.floor(m*N/M),b=Math.floor((m+1)*N/M);let bestC=null,bt=1e9;
     cands.forEach(L=>{const st=L.ideal?L.st[m]:((b>=N?L.time:L.t[b])-L.t[a]);if(st>0&&st<bt){bt=st;bestC=L}});if(!bestC)return;
     for(let i=a;i<b;i++){ideal.x[i]=bestC.x[i];ideal.y[i]=bestC.y[i];ideal.v[i]=bestC.v[i];ideal.b[i]=bestC.b[i];ideal.th[i]=bestC.th[i];ideal.t[i]=acc+(bestC.t[i]-bestC.t[a])}
     ideal.st[m]=bt;acc+=bt}
   ideal.time=acc;ideal.brakes=brakePts(ideal);d.ideal=ideal;d.updated=Date.now();
-  MAP.data=d;store.set("pw.map."+k,d);
+  MAP.data=d;if(d.community){drawMapSoon();return}store.set("pw.map."+k,d);
   if(MODE==="bridge"&&!OV.on){fetch("/api/map?key="+k,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).catch(()=>{})}
   drawMapSoon()}
 /* the outline drawn a little smoothed (the dead reckoning's small wobbles), kept beside the map, never saved with it */
@@ -4441,13 +4445,14 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
       oc.forEach(cn=>{const i=cn.i,[a,b]=P(sm.x[i],sm.y[i]),[a1,b1]=P(sm.x[(i+2)%n],sm.y[(i+2)%n]),[a0,b0]=P(sm.x[(i-2+n)%n],sm.y[(i-2+n)%n]),tm=Math.hypot(a1-a0,b1-b0)||1;
         let qx=-(b1-b0)/tm,qy=(a1-a0)/tm;if((a-w/2)*qx+(b-h/2)*qy<0){qx=-qx;qy=-qy}const X=a+qx*(rw/2+9),Y=b+qy*(rw/2+9);
         x.lineWidth=3;x.strokeStyle=css("--bg");x.strokeText(cn.n,X,Y);x.fillStyle=css("--muted");x.fillText(cn.n,X,Y)})}
-    if(MAPL.tel&&MAPL.best&&d.best)line(d.best.x,d.best.y,pb,1.6)}
-  if(MAPL.line&&c&&c.pts.length>1&&(!d||c.p0<.03||c.src==="geo")){const ps=c.pts;line(ps.map(p=>p[1]),ps.map(p=>p[2]),MAPL.tel?null:acc,2.6,MAPL.tel?(i=>ps[i][5]>.12?bad:ps[i][4]>.5?good:mut):null)}
+  }
+  // no map yet: the lap being driven draws the road's shape (no line over a map)
+  if(!d&&c&&c.pts.length>1){const ps=c.pts;line(ps.map(p=>p[1]),ps.map(p=>p[2]),mut,2.6)}
   // braking markers with comparison to the reference
   if(d&&MAPL.tel&&MAPL.brakes){const ref=(d.best&&d.best.brakes)||[],refL=d.best,last=MAP.laps.at(-1),len=d.len||trackLenM();
     x.font="600 10px "+css("--f-data");x.textAlign="center";x.textBaseline="middle";
-    ref.forEach((bp,n)=>{if(!refL)return;const[a,b]=P(refL.x[bp.i],refL.y[bp.i]);x.fillStyle=bad;x.beginPath();x.arc(a,b,8,0,7);x.fill();x.fillStyle="#fff";x.fillText(n+1,a,b+.5);
-      if(last&&last.brakes&&last.N===d.N){const m=last.brakes.find(q=>Math.abs(q.i-bp.i)<d.N*.03);if(m){const dm=(m.i-bp.i)/d.N*len;if(Math.abs(dm)>=3){x.fillStyle=dm>0?good:bad;x.textAlign="left";x.fillText((dm>0?"+":"−")+Math.abs(dm).toFixed(0)+" m",a+11,b);x.textAlign="center"}}}});}
+    ref.forEach((bp,n)=>{if(!refL)return;const j=Math.round(bp.i/(refL.x.length||1)*sm.x.length)%sm.x.length,[a,b]=P(sm.x[j],sm.y[j]); // on the drawn road, by where on the lapx.fillStyle=bad;x.beginPath();x.arc(a,b,8,0,7);x.fill();x.fillStyle="#fff";x.fillText(n+1,a,b+.5);
+      if(last&&last.brakes&&last.N===refL.x.length){const m=last.brakes.find(q=>Math.abs(q.i-bp.i)<last.N*.03);if(m){const dm=(m.i-bp.i)/last.N*len;if(Math.abs(dm)>=3){x.fillStyle=dm>0?good:bad;x.textAlign="left";x.fillText((dm>0?"+":"−")+Math.abs(dm).toFixed(0)+" m",a+11,b);x.textAlign="center"}}}});}
   // cars
   if(d){const pct=T.CarIdxLapDistPct||[],me=T.PlayerCarIdx,pos=T.CarIdxPosition||[],pit=T.CarIdxOnPitRoad||[],laps=T.CarIdxLap||[];const N=d.N;
     const at=q=>{const f=q*N,i=Math.floor(f)%N,j=(i+1)%N,t=f-Math.floor(f);return P(sm.x[i]+(sm.x[j]-sm.x[i])*t,sm.y[i]+(sm.y[j]-sm.y[i])*t)};
@@ -4462,7 +4467,7 @@ function drawMap(){const cv=$("#mapC");if(!cv||!cv.offsetParent)return;if(!OV.on
   else{const I=d.ideal;note.innerHTML=(d.community?Lp(`Track layout from the community: the fastest lap without incidents (${fmtT(d.commTime)}). `,`Trazado de la comunidad: la vuelta más rápida sin incidentes (${fmtT(d.commTime)}). `,0,`Streckenverlauf aus der Community: die schnellste Runde ohne Zwischenfälle (${fmtT(d.commTime)}). `,`Traçado da comunidade: a volta mais rápida sem incidentes (${fmtT(d.commTime)}). `):"")
     +(MAPL.brakes&&MAP.laps.length?" "+Lp("Numbers next to braking points: your last lap vs the reference (+ = braked later).","Números junto a las frenadas: tu última vuelta vs la referencia (+ = frenaste más tarde)."):"")}
 }
-function renderMapLayers(){const box=$("#mapLayers");const items=MAPL.tel?["tel","best","line","brakes","cars","nums"]:["tel","line","cars","nums"];
+function renderMapLayers(){const box=$("#mapLayers");const items=MAPL.tel?["tel","brakes","cars","nums"]:["tel","cars","nums"];
   box.innerHTML=items.map(k=>`<button type="button" class="chip" data-ly="${k}" aria-pressed="${!!MAPL[k]}">${L("ly."+k,true)}</button>`).join("")+
    `<button type="button" class="chip" data-act="rot">⟳ ${L("ly.rot",true)}</button><button type="button" class="chip" data-act="mirror" aria-pressed="${!!MAPL.mirror}">⇋ ${L("ly.mirror",true)}</button><button type="button" class="chip" data-act="reset">${L("ly.reset",true)}</button>`;
   box.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{MAPL[b.dataset.ly]=!MAPL[b.dataset.ly];store.set("pw.maplayers",MAPL);renderMapLayers();drawMap()});
@@ -6150,6 +6155,15 @@ async function feedbackAsk(auto,ov){if(FB.busy)return;if(!usageDev()){openOutsid
     sb.onclick=async()=>{const text=t.value.trim();if(!text){e.textContent=Tx("Write something first.","Escribe algo primero.","Write something first.","Escreva algo primeiro.");t.focus();return}
       sb.disabled=true;e.textContent="";try{await cloudPost("/community/feedback",{text,rating:rating||undefined,device:usageDev(),v:WEB_VERSION,view:auto?where:"menu:"+where,...(ov?{kind:"overlays",style:ov.style}:{})});usageCount("act:feedback_sent");done(true);toast(Tx("Thank you. Your feedback was sent.","Gracias. Tu opinión se ha enviado.","Thank you. Your feedback was sent.","Obrigado. Sua opinião foi enviada."))}catch(x){e.textContent=x.message;sb.disabled=false}}});
   FB.busy=false}
+/* the feedback button at the bottom left of every screen (PC app and web): signed in only, never for a visitor, in an
+   overlay window, in demo data or while the car is on the track; hidden under any open window (its CSS) */
+function fbFab(){let b=document.getElementById("fbFab"),on=false;try{on=!!usageDev()&&!OV.on&&!REMOTE&&!demoOn()&&!(!COMPANION&&STATUS.connected&&!!T.IsOnTrack)}catch(e){}
+  if(!on){if(b)b.hidden=true;return}
+  if(!b){b=document.createElement("button");b.type="button";b.id="fbFab";b.className="fbfab";
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/></svg>';
+    b.onclick=()=>{usageCount("act:feedback_button");feedbackAsk(false)};document.body.appendChild(b)}
+  const l=Tx("Send feedback","Enviar tu opinión","Send feedback","Enviar sua opinião");if(b.getAttribute("aria-label")!==l){b.setAttribute("aria-label",l);b.title=l}b.hidden=false}
+setTimeout(fbFab,800);setInterval(fbFab,1500);
 /* the permanent way to it, in Settings → About */
 function feedbackHTML(){return`<div class="panel" style="margin:12px 0;padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:200px"><b>${esc(Tx("Send feedback","Enviar tu opinión","Send feedback","Enviar sua opinião"))}</b><p class="note" style="margin:2px 0 0">${esc(Tx("A bug, an idea or something confusing. Every message is read.","Un fallo, una idea o algo confuso. Leemos todos los mensajes.","A bug, an idea or something confusing. Every message is read.","Um erro, uma ideia ou algo confuso. Lemos todas as mensagens."))}</p></div><button type="button" class="btn" data-fbopen>${esc(Tx("Send feedback","Enviar tu opinión","Send feedback","Enviar sua opinião"))}</button></div>`}
 function closeAdmMenu(){const m=document.getElementById("admMenu");if(m)m.remove()}
@@ -7338,12 +7352,17 @@ function onRaceReport(r){fixRace(r);if(gameMatch(r))RACES=[r,...(RACES||[]).filt
 function brakePointsJS(raw,bin){const n=raw.length,v=raw.slice();let last=-1;for(let i=0;i<n;i++)if(v[i]>0){if(last>=0&&i-last>1)for(let k=last+1;k<i;k++)v[k]=v[last]+(v[i]-v[last])*(k-last)/(i-last);last=i}
   const s=v.map((x,i)=>{let a=0,c=0;for(let k=i-1;k<=i+1;k++)if(k>=0&&k<n&&v[k]>0){a+=v[k];c++}return c?a/c:0}),d=[],vm=[];
   for(let i=1;i<n-6;i++){if(s[i]<=0||s[i]<s[i-1]||s[i+6]<=0||s[i]-s[i+6]<4)continue;while(i<n-7&&s[i+1]>=s[i]-.3)i++;let lo=s[i],k=i;while(k<n-1&&s[k+1]>0&&s[k+1]<=s[k]+.3){k++;lo=Math.min(lo,s[k])}d.push(Math.round(i*bin));vm.push(+lo.toFixed(1));i=k}return{d,vmin:vm}}
-async function trackMapFor(id,game){if(MAP.data&&MAP.key&&MAP.key.replace(/^demo_|^t/,"")===String(id))return MAP.data;const loc=store.get("pw.map.t"+id,null)||store.get("pw.map.demo_"+id,null);if(loc)return loc;
+/* a track's map: the layout the community generated from the laps (the same on every device), first; the map this
+   device drew from your own laps only while the track has none */
+async function trackMapFor(id,game){const comm=await commTrackMap(id,game);if(comm)return comm;
+  if(MAP.data&&MAP.key&&MAP.key.replace(/^demo_|^t/,"")===String(id))return MAP.data;const loc=store.get("pw.map.t"+id,null)||store.get("pw.map.demo_"+id,null);if(loc)return loc;
   if(MODE==="bridge"&&!COMPANION){for(const k of["t"+id,"demo_"+id]){try{const r=await fetch("/api/map?key="+k);if(r.ok){const d=await r.json();if(d&&d.x&&d.x.length)return d}}catch(e){}}}
-  // the layout the community drew from clean laps: any track someone has driven with Pitlane HQ
+  return null}
+async function commTrackMap(id,game){if(!id||STATUS.demo||demoOn())return null;
   const key=(game||"iracing")+":"+id;if(key in TRACKMAPS&&(TRACKMAPS[key]||Date.now()-(TRACKMAPS_T[key]||0)<30000))return TRACKMAPS[key];TRACKMAPS[key]=null;TRACKMAPS_T[key]=Date.now();
-  if(MODE==="bridge"&&id){try{const d=await jget("/api/trackmap?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||"iracing"));if(d&&d.x&&d.x.length>10)TRACKMAPS[key]=d}catch(e){}}return TRACKMAPS[key]}
+  if(MODE==="bridge"){try{const d=await jget("/api/trackmap?trackId="+encodeURIComponent(id)+"&game="+encodeURIComponent(game||"iracing"));if(d&&d.x&&d.x.length>10)TRACKMAPS[key]=d}catch(e){}}return TRACKMAPS[key]}
 const TRACKMAPS={},TRACKMAPS_T={},RB_CORNERS={};
+const TRACKMAPS_CLEAR=()=>{for(const k in TRACKMAPS)delete TRACKMAPS[k];for(const k in TRACKMAPS_T)delete TRACKMAPS_T[k];for(const k in TURNS_T)delete TURNS_T[k]};
 const RBV={inc:true,coach:true};let RB_AT=null; // distance on the lap → point on the drawn map (set when the map is drawn)
 /* the corners of a track from the shape of its map: where the direction changes, in order from the line */
 function trackCorners(map,L){const xs=map&&map.x,ys=map&&map.y,N=xs?xs.length:0;if(N<60||!(L>300))return[];const step=L/N,P=i=>((i%N)+N)%N;
@@ -8036,8 +8055,10 @@ async function commMapGeo(s,laps){const key=aGame()+":"+s.trackId+":"+s.carId;if
   const src=laps.find(l=>l.hasTrace&&l.sectors&&l.sectors.length>1)||laps.find(l=>l.hasTrace);
   if(src){try{const l=await cget(`/api/community/laps?id=${encodeURIComponent(src.id)}`),tr=l.trace,xy=traceXY(tr),sec=(l.sectors&&l.sectors.length?l.sectors:src.sectors)||[];
     if(tr&&tr.d&&tr.d.length>10&&sec.length>1){const N=tr.d.length,cuts=[0];let acc=0,i=0;for(let k=0;k<sec.length-1;k++){acc+=+sec[k];while(i<N-1&&!(tr.d[i][5]>=acc))i++;cuts.push(i/N)}cuts.push(1);if(cuts.every((v,k)=>!k||v>cuts[k-1]))g.cuts=cuts}
-    if(xy){g.x=xy.x;g.y=xy.y}}catch(e){}}
-  if(!g.x){try{const P=await cget(`/api/community/track?trackId=${s.trackId}`),lay=P.layout;if(lay&&lay.x&&lay.x.length>10){g.x=lay.x;g.y=lay.y}}catch(e){}}
+    if(xy){g.lx=xy.x;g.ly=xy.y}}catch(e){}}
+  // the road is the track's generated layout; the lap's own path only while the track has none
+  try{const lay=await commTrackMap(s.trackId,aGame());if(lay&&lay.x&&lay.x.length>10){g.x=lay.x;g.y=lay.y}}catch(e){}
+  if(!g.x&&g.lx){g.x=g.lx;g.y=g.ly}delete g.lx;delete g.ly;
   return COMM_MAPC[key]=g}
 function commMapSvg(g,secs){const W=360,H=250,pad=22,[X,Y]=fitTurn(g.x,g.y,W,H,pad),N=X.length,minx=Math.min(...X),maxx=Math.max(...X),miny=Math.min(...Y),maxy=Math.max(...Y),k=Math.min((W-2*pad)/(maxx-minx||1),(H-2*pad)/(maxy-miny||1));
   const Q=i=>{i=((i%N)+N)%N;return[pad+(X[i]-minx)*k+(W-2*pad-(maxx-minx)*k)/2,H-pad-(Y[i]-miny)*k-(H-2*pad-(maxy-miny)*k)/2]},P=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");

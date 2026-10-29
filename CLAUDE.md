@@ -72,8 +72,8 @@
   internal, server and small fixes are one "Fixes and improvements" line. These notes read as a person wrote them, in plain short sentences: no "Title: text" headings and never a
   ";" or a ":". A version gets a GitHub release.
 - Every feature goes to the PC app, the web and the phone apps (the one exception, the owner's choice: the "Share your
-  feedback" window and "Send feedback" are on the PC app and the web only; the phones still send their usage and their
-  admin panel lists the feedback). Equivalent screens show the same information under the
+  feedback" window that asks by itself is on the PC app and the web only; the phones have the floating feedback button,
+  send their usage and their admin panel lists the feedback). Equivalent screens show the same information under the
   same names on every device (the phones' sub-tabs and labels are the PC's, never shortened versions; the web's
   phone-width layout is checked with `tools/ui-sweep.js`, a Playwright sweep of every view at 1300 and 390 px: no page
   error and no element wider than the screen, tables only inside a scrolling container).
@@ -169,10 +169,21 @@
   paths line up only in one frame (`sameFrame` on the web and the phones: both with `g`, B moved to A's origin, or both
   without); a layout from the game's position (`track_maps.geo`, migration 0052, `g` on `/community/trackmaps`) replaces
   one by dead reckoning whatever the lap time and is never replaced by one (the agent's `shareLayout`, the web's
-  `shareTrackMap`). A track's corners come from the geometry of its layout (`cloud/src/trackgeo.js`: a bend tighter than
-  300 m of radius for 20 m or more, bends the same way closer than 60 m are one corner, the apex where it bends most),
-  served by `/community/turns` as `auto: true` until an admin places the official turns, so every device numbers the same
-  corners. The coach's corners (`cornerZones` in web/dist/pitwall-analysis.js, which the web, the PC app and the phones run,
+  `shareTrackMap`). The layouts drawn by dead reckoning are rebuilt from a stored lap of the same game and track with the
+  game's position (`cloud/src/trackmaps.js`, `rebuildTrackMaps`: a few tracks per ten-minute run, looked at again once a
+  day, app_state `trackmaps_rebuild`; Admin → Server → "Rebuild the track maps" does them all, POST
+  `/community/admin/trackmaps-rebuild`), and the PC replays the newest .ibt files of a track whose community map has no
+  `g` to share its fastest valid lap with the game's position (`ibtTrackScan` in trackturns.go). A track's corners come
+  from the geometry of its layout (`cloud/src/trackgeo.js`: a bend tighter than 300 m of radius for 20 m or more, bends
+  the same way closer than 60 m are one corner, the apex where it bends most), fitted to the track's official number of
+  turns when the game says it (iRacing's `WeekendInfo.TrackNumTurns`, `track_info` on the server, migration 0074, POST
+  `/community/trackinfo` and `nturns` with every layout; the agent sends it once per track while it runs, for the session
+  driven, `noteTrackTurns`, and for every track of the .ibt files on the PC, their header only, `ibtTrackScan`): more
+  bends than turns join the closest neighbours bending the same way under 100 m apart, else the gentlest bend is no turn;
+  fewer split a corner with two clear apexes (peaks 30 m or more apart, the bend easing under 60 % between them), then
+  relax the radius limit step by step (400, 550, 750, 1000 m), never inventing a turn on a straight (`fitCount`). Served
+  by `/community/turns` as `auto: true` (with `count` when known) until an admin places the official turns, which always
+  win, so every device numbers the same corners. The coach's corners (`cornerZones` in web/dist/pitwall-analysis.js, which the web, the PC app and the phones run,
   and in ovnative4.go; the phones' LapMath/Models keep a copy only for when their JavaScript engine cannot run) are the
   reference's braking zones named by those turns (two brake applications in one corner are one corner) plus the turns the
   reference takes without braking (a lift, from its last full throttle before the apex), whose tips never speak of braking.
@@ -181,12 +192,14 @@
   paths (Trace.x/y, same frame) give how far A was to one side of B at every 5 m (drift out with a
   ±400 m moving average); the coach turns it into inside/outside at B's turn-in, apex and exit (1.5 m or more) and says
   it first when you brake at the reference's point on the wrong part of the track. The model's record and next levels
-  carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). Every coach map (analyzer, coach, race summary,
-  phones) draws the track as a road with depth (shadow, rim, asphalt) and, with a line, B's dashed along the middle
-  and A's beside it at 2.2 px a metre (1 px/pt on the phones), "Line A / B" switch: the road is B's own path when
-  both laps have one (`lapShape(B)` first on the web, `c.bx`/`c.by` on the phones), so the dashed line really is B
-  and the offsets are A's; else the lap's own path, else the community's layout (web, PC and phones: `trackLayout`,
-  `layout` in the phones' `LapAnalysis`).
+  carry their line (`idealXY`, ladder x/y, `lapPath` in model.js). The line is read in the coach's tips and the "Line"
+  chart only: no map draws it (the owner's choice, they never looked right). Every map (analyzer, coach, race summary,
+  track page, the live map, the Community board's map, the map overlay, phones) draws the track as a road with depth
+  (shadow, rim, asphalt) from the community's generated layout (`trackMapFor`/`commTrackMap` on the web, `loadMap` in
+  ovnative4.go, `trackLayout`, `layout` in the phones' `LapAnalysis`), never a lap's own path, no lap's line on it and no
+  "Line A / B" switch; a lap's own path (or the live map's own laps) draws only the road's shape while the track has no
+  layout. What goes on the road is placed by where on the lap it is: braking points, the coach's rings, incidents, the
+  turns, the sectors, the gain and loss colours, the start/finish line, the direction arrow and the cars.
 - Official turn numbers (`track_turns` on the server, `/community/turns`, `/api/turns`): an admin places T1 … Tn on a
   track's map in the race summary ("Official turns · Admin", clicks in order, saved for everyone, as fractions of the lap).
   The coach, the lap analyzer and the race summary (PC, web, phones: `turnNo`) give every corner the number of the
@@ -511,13 +524,17 @@
   n}], versions [{device, v, devices}] from presence, users [{id, nick, lastSeen, devices, n, top [{key, n}]}]} from two
   grouped reads of usage_days and one of presence, never a query per account; the Summary draws it (active drivers per
   day, devices, games, screens and actions with how many drivers, versions) and Users merges it into every account.
-- "Share your feedback" (PC app and web only): a window with a text box, 1 to 5 optional stars, Send and Not now
+- "Share your feedback" (the window that asks by itself, PC app and web only): a window with a text box, 1 to 5 optional stars, Send and Not now
   (`feedbackAsk` in index.html). The server says when (GET `/community/feedback/ask` → {ask}: six hours of use, the
   usage batches' ms, or two race sessions uploaded since it was last shown; `feedback_ask` per account, so the devices
   never ask twice, its clock starting the first time the account asks). The page asks 3 minutes after it opens and every 10
   minutes, never in the car (the PC while the car is on track), in demo data, from an overlay window, over another window
   or to an admin in admin mode; shown, it is marked at once (POST `/community/feedback/seen`), so Not now waits six more
-  hours of use or two races. "Send feedback" is always in Settings → About and the inbox. POST `/community/feedback`
+  hours of use or two races. "Send feedback" is always in Settings → About and the inbox, and a round floating
+  button with a speech bubble sits at the bottom left of every screen ("Send feedback", `fbFab` in index.html, counted
+  `act:feedback_button`; PC app, web and phones): signed in only, never for a visitor, in an overlay window or in demo
+  data, hidden while the car is on the track and under any open window, a toast or the voice call's bar, above the
+  phone-width tab bar. POST `/community/feedback`
   {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 5 a day per account) and emails it through
   Resend to support@pitlanehq.app (`sendFeedback` in email.js: the nickname, account id, device, version, stars, where it
   was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). The

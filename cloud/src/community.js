@@ -54,6 +54,7 @@ import { proRoutes } from "./lemon.js";
 import { coachTipRoutes } from "./coachtips.js";
 import { lmuApiRoutes } from "./lmuapi.js";
 import { turnsFromPath } from "./trackgeo.js";
+import { turnCount, noteTurnCount, rebuildTrackMaps } from "./trackmaps.js";
 import { estimateTrace } from "./pedals.js";
 import { discordLapAlert } from "./discord.js";
 import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
@@ -425,15 +426,17 @@ export async function community(req, env, url, ctx) {
     const t = +url.searchParams.get("trackId");
     if (!t) return err("trackId", 400);
     const r = await env.DB.prepare("SELECT turns, updated FROM track_turns WHERE game=?1 AND track_id=?2").bind(game, t).first();
-    let turns = [], auto = false;
+    let turns = [], auto = false, count = 0;
     try { turns = r ? JSON.parse(r.turns) : []; } catch (e) { turns = []; }
     // no official turns placed yet: the corners come from the geometry of the track's layout (trackgeo.js), the same on
     // every device, until an admin places them
     if (!turns.length) {
-      const lay = await env.DB.prepare("SELECT pts FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first();
-      if (lay) { try { const p = JSON.parse(lay.pts); turns = turnsFromPath(p.x, p.y); auto = true; } catch (e) { turns = []; } }
+      // fitted to the track's official number of turns when the game said it (iRacing's TrackNumTurns, track_info)
+      const [lay, want] = await Promise.all([env.DB.prepare("SELECT pts FROM track_maps WHERE game=?1 AND track_id=?2").bind(game, t).first(), turnCount(env, game, t)]);
+      if (lay) { try { const p = JSON.parse(lay.pts); turns = turnsFromPath(p.x, p.y, want); auto = true; } catch (e) { turns = []; } }
+      if (want) count = want;
     }
-    return new Response(JSON.stringify({ trackId: t, game, turns, auto, updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
+    return new Response(JSON.stringify({ trackId: t, game, turns, auto, ...(count ? { count } : {}), updated: r ? r.updated : 0 }), { headers: { ...JSONH, "cache-control": "public, max-age=300" } });
   }
   // the pit lane of a track, from laps through the pits: [point of the lap (5 m), metres to the left of the track]
   if (p === "/pitlane" && m === "GET") {
@@ -562,6 +565,12 @@ export async function community(req, env, url, ctx) {
     if (since !== null && !(isFinite(since) && since > 946684800000 && since < Date.now() + 86400e3)) return err("that date is not valid", 400);
     const r = await env.DB.prepare("UPDATE accounts SET member_since=?2 WHERE id=?1").bind(String(body.id || ""), since === null ? null : Math.round(since)).run();
     return r.meta && r.meta.changes ? json({ ok: true, since }) : err("account not found", 404);
+  }
+  // the track maps drawn by dead reckoning take a lap of the same track with the game's own position (trackmaps.js)
+  if (p === "/admin/trackmaps-rebuild" && m === "POST") {
+    const acc = await sessionAccount(req, env);
+    if (!acc || !isAdmin(env, acc.id)) return err("only the admins of this server can do this", 403);
+    return json({ ok: true, ...(await rebuildTrackMaps(env, { all: true })) });
   }
   // the coach models of every car and track learn again from all their laps (the cron rebuilds them)
   if (p === "/admin/models" && m === "POST") {
@@ -1186,9 +1195,17 @@ export async function community(req, env, url, ctx) {
     if (r.limit) return err("too many uploads today", 429);
     return json(r.kept ? { kept: "your faster lap is already shared" } : { shared: true });
   }
+  // what the game says of a track: its official number of turns (iRacing's WeekendInfo.TrackNumTurns), once per track
+  // and program run, also from the .ibt files on the PC
+  if (p === "/trackinfo" && m === "POST") {
+    const trackId = int(body.trackId);
+    if (!trackId || !(Number.isInteger(body.nturns) && body.nturns >= 1 && body.nturns <= 60)) return err("trackInfo needs trackId and nturns", 400);
+    return json({ ok: true, changed: await noteTurnCount(env, game, trackId, str(body.track), body.nturns) });
+  }
   // a track outline from a lap without incidents: kept when it is the fastest one
   if (p === "/trackmaps" && m === "POST") {
     const trackId = int(body.trackId), time = num(body.time), n = int(body.n);
+    if (trackId && Number.isInteger(body.nturns)) await noteTurnCount(env, game, trackId, str(body.track), body.nturns).catch(() => {});
     const x = body.x, y = body.y;
     if (!trackId || !time || time <= 10 || time > 3600) return err("layout needs trackId and the lap time", 400);
     if (body.clean !== true) return err("only laps without incidents", 400);

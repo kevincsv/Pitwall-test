@@ -1316,6 +1316,9 @@ func shareLayoutFor(l cloudLap, game, y string) {
 	n := len(l.Trace.X)
 	body := map[string]any{"game": game, "clean": true, "trackId": c.TrackID, "track": c.Track, "time": l.Time, "n": n,
 		"len": trackLengthM(y), "x": l.Trace.X, "y": l.Trace.Y}
+	if n := trackNumTurns(y); n > 0 && game == "iracing" { // the official number of turns travels with the layout
+		body["nturns"] = n
+	}
 	geo := len(l.Trace.G) == 2 // the path comes from the game's position: exact, with the origin of its frame
 	if geo {
 		body["g"] = l.Trace.G

@@ -619,6 +619,9 @@ func raceWatcher() {
 		// per game (in Le Mans Ultimate by the id made from the name the game shows, lmuDriverID). Your own id, never
 		// the car's driver block: in an iRacing team race that block names whoever is in the car, and a swap would link
 		// a teammate for good (LMU's own id is the player's name; the block only says whether it is a default one)
+		if onTrack && tick%20 == 1 { // the track's official number of turns, once per track (trackturns.go)
+			noteTrackTurns(currentGame(), y)
+		}
 		if onTrack {
 			linkOwnDriver(currentGame(), yamlField(y, "DriverUserID"), yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "UserName"))
 		}

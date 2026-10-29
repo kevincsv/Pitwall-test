@@ -279,7 +279,8 @@ func (st *ovState) fetchJSON(path string, out any) bool {
 	return json.NewDecoder(r.Body).Decode(out) == nil
 }
 
-// loadMap gets the track's outline: the one this PC learnt, else the community's (both from the PC); st.mu is held
+// loadMap gets the track's outline: the community's generated layout (the same map on every device), else the one this
+// PC learnt from your laps while the track has none (both from the PC); st.mu is held
 func (st *ovState) loadMap() {
 	if st.ses == nil || st.ses.TrackID <= 0 {
 		return
@@ -292,18 +293,18 @@ func (st *ovState) loadMap() {
 	tid := st.ses.TrackID
 	go func() {
 		var d struct {
-			N    int
-			Laps int
+			N    int `json:"n"`
 			X, Y []float64
 		}
-		ok := st.fetchJSON("/api/map?key="+key, &d) && len(d.X) > 10 && len(d.X) == len(d.Y)
-		if !ok || d.Laps == 0 {
-			var c struct {
-				N    int `json:"n"`
+		ok := st.fetchJSON("/api/trackmap?trackId="+strconv.Itoa(tid), &d) && len(d.X) > 10 && len(d.X) == len(d.Y)
+		if !ok {
+			var o struct {
+				N    int
+				Laps int
 				X, Y []float64
 			}
-			if st.fetchJSON("/api/trackmap?trackId="+strconv.Itoa(tid), &c) && len(c.X) > 10 && len(c.X) == len(c.Y) {
-				d.X, d.Y, ok = c.X, c.Y, true
+			if st.fetchJSON("/api/map?key="+key, &o) && len(o.X) > 10 && len(o.X) == len(o.Y) {
+				d.X, d.Y, ok = o.X, o.Y, true
 			}
 		}
 		if ok {

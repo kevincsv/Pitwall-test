@@ -3,6 +3,7 @@
 import { voiceIce } from "./voiceice.js";
 import { downloads, latestBuild } from "./downloads.js";
 import { markModel, rebuildDirty, reconcileIds } from "./model.js";
+import { rebuildTrackMaps } from "./trackmaps.js";
 import { autoShare, reshareSession, unshareInvalid } from "./community.js";
 import { catMap, catOf, licOf } from "./categories.js";
 import { patreonWebhook } from "./patreon.js";
@@ -487,7 +488,7 @@ export default {
     // the repairs of old data once an hour (the first run of each hour), the rest every ten minutes
     const hourly = new Date(ev.scheduledTime || Date.now()).getUTCMinutes() < 10;
     ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {}));
-    if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
+    if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(rebuildTrackMaps(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

@@ -299,6 +299,7 @@ type ibtSeen struct {
 type ibtMemory struct {
 	Accounts map[string]map[string]ibtSeen `json:"accounts"`
 	Backlog  map[string]int64              `json:"backlog,omitempty"`
+	Tracks   map[string]int64              `json:"tracks,omitempty"` // when the tracks of every file were last read (trackturns.go)
 }
 
 var ibtMemMu sync.Mutex
@@ -779,6 +780,12 @@ func ibtImportRound(stop func() bool) (time.Duration, bool) {
 		if !ibtIsFast() && ibtRestFor(5*time.Second, stop) {
 			return ibtPaused, false
 		}
+	}
+	// every track's official number of turns, and its map again from the game's position (trackturns.go)
+	if ibtTrackScan(files, acct, &mem, stop) {
+		saveIBTMemory(mem)
+	} else if simBusy() || (stop != nil && stop()) {
+		return ibtPaused, false
 	}
 	if mem.Backlog == nil {
 		mem.Backlog = map[string]int64{}
