@@ -2,9 +2,9 @@
 // the feedback window asks after six hours of use or two races, and the analytics add the rows up per device, feature,
 // game and account. The feedback email says who wrote it and answers them.
 import assert from "node:assert/strict";
-import { cleanUsage, cleanFeedback, shouldAsk, analyticsOf, MAX_KEYS, MAX_N, MAX_MS, ASK_USED } from "../src/usagelib.js";
+import { cleanUsage, cleanFeedback, cleanOvRace, cleanStyle, shouldAsk, shouldAskOv, analyticsOf, MAX_KEYS, MAX_N, MAX_MS, ASK_USED } from "../src/usagelib.js";
 import { feedbackMail } from "../src/email.js";
-import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE } from "../src/usagelib.js";
+import { SQL_USAGE_ADD, SQL_ASK_USED, SQL_ASK_SEEN, SQL_RACES_SINCE, SQL_OV_RACE, SQL_OV_SEEN, SQL_OV_ANSWERED } from "../src/usagelib.js";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -27,7 +27,35 @@ assert.ok(cleanFeedback({ text: "x".repeat(4001) }).error.startsWith("too long")
 assert.equal(cleanFeedback({ text: "ok", rating: 6 }).error, "the rating goes from 1 to 5");
 assert.equal(cleanFeedback({ text: "ok", rating: 2.5 }).error, "the rating goes from 1 to 5");
 const f = cleanFeedback({ text: " The coach is great\r\nbut slow \u0007", rating: 4, device: "web", v: "0.9.14", view: "home<x>" });
-assert.deepEqual(f, { text: "The coach is great\nbut slow", rating: 4, device: "web", v: "0.9.14", view: "homex" });
+assert.deepEqual(f, { text: "The coach is great\nbut slow", rating: 4, kind: "general", style: null, device: "web", v: "0.9.14", view: "homex" });
+// the overlay window's answers carry the design they were about
+assert.deepEqual([cleanFeedback({ text: "ok", kind: "overlays" }).kind, cleanFeedback({ text: "ok", kind: "overlays" }).style], ["overlays", "classic"]);
+assert.equal(cleanFeedback({ text: "ok", kind: "overlays", style: "Neon_2" }).style, "neon_2");
+assert.equal(cleanFeedback({ text: "ok", kind: "overlays", style: "bad style!" }).error, "unknown overlay design");
+assert.equal(cleanFeedback({ text: "ok", kind: "junk", style: "x" }).kind, "general", "any other kind is the general window");
+assert.equal(cleanFeedback({ text: "ok", kind: "junk", style: "x" }).style, null);
+
+// the overlay design and the races with overlays
+assert.equal(cleanStyle(undefined), "classic");
+assert.equal(cleanStyle(""), "classic");
+assert.equal(cleanStyle("classic"), "classic");
+assert.equal(cleanStyle("x".repeat(20)), "x".repeat(20));
+assert.equal(cleanStyle("x".repeat(21)), null);
+assert.equal(cleanStyle("a b"), null);
+assert.equal(cleanStyle("<b>"), null);
+assert.equal(cleanOvRace(null).error, "missing body");
+assert.equal(cleanOvRace({ game: "iracing", ovs: ["radar"], style: "no way" }).error, "unknown overlay design");
+assert.equal(cleanOvRace({ game: "acc", ovs: ["radar"] }).error, "unknown game");
+assert.equal(cleanOvRace({ game: "lmu", ovs: [] }).error, "no overlay was open");
+assert.equal(cleanOvRace({ game: "lmu", ovs: ["1", "a b"] }).error, "no overlay was open");
+assert.deepEqual(cleanOvRace({ game: "LMU", ovs: ["radar", "Radar", "relative", "x/y"], sid: "123-4 <x>" }), { style: "classic", game: "lmu", ovs: ["radar", "relative"], sid: "123-4x" });
+
+// when to show the overlay window: the first race with overlays, then every six once answered
+assert.equal(shouldAskOv(false, 0), false);
+assert.equal(shouldAskOv(false, 1), true, "never answered, one race");
+assert.equal(shouldAskOv(true, 1), false);
+assert.equal(shouldAskOv(true, 5), false, "answered, five races");
+assert.equal(shouldAskOv(true, 6), true, "answered, six races");
 assert.equal(cleanFeedback({ text: "ok", device: "toaster" }).device, "");
 assert.equal(cleanFeedback({ text: "ok" }).rating, null, "the stars are optional");
 
@@ -67,6 +95,10 @@ assert.equal(m.subject, "Pitlane HQ feedback · Ana · 5/5");
 assert.ok(m.text.startsWith("Love it\n"));
 assert.ok(m.text.includes("acct_1") && m.text.includes("pc") && m.text.includes("0.9.14") && m.text.includes("★★★★★") && m.text.includes("ana@example.com"));
 assert.ok(feedbackMail({ text: "x" }).text.includes("No email known"));
+const mo = feedbackMail({ text: "The radar lags", rating: 3, nick: "Ana", kind: "overlays", style: "classic" });
+assert.equal(mo.subject, "Pitlane HQ overlay feedback · Ana · 3/5");
+assert.ok(mo.text.includes("About the overlays · design classic"));
+assert.ok(!m.text.includes("overlays"), "a general answer says nothing of the overlays");
 // the migration and the statements on SQLite: the counts add up, the use adds up, Not now starts again, races count
 const db = new DatabaseSync(":memory:");
 db.exec("CREATE TABLE sessions (id TEXT PRIMARY KEY, started INTEGER, kind TEXT, uploader TEXT);");
@@ -82,4 +114,25 @@ db.prepare(SQL_ASK_SEEN).run("a", 500);
 assert.deepEqual({ ...db.prepare("SELECT shown, used FROM feedback_ask").get() }, { shown: 500, used: 0 }, "shown: it waits again");
 for (const [id, t, k] of [["1", 400, "Race"], ["2", 600, "Race"], ["3", 700, "Practice"], ["4", 800, "Heat race"]]) db.prepare("INSERT INTO sessions VALUES (?,?,?,?)").run(id, t, k, "acct:a");
 assert.equal(db.prepare(SQL_RACES_SINCE).get("acct:a", 500).n, 2, "two races since it was shown");
+// 0073: the overlay window's counts, and the old answers read as general ones
+db.exec("INSERT INTO feedback (id, account_id, created, text) VALUES ('old','a',1,'hi')");
+db.exec(readFileSync(new URL("../migrations/0073_overlay_feedback.sql", import.meta.url), "utf8"));
+assert.deepEqual({ ...db.prepare("SELECT kind, style FROM feedback WHERE id='old'").get() }, { kind: "general", style: null });
+const ovr = () => ({ ...db.prepare("SELECT ov_races AS n, ov_answered AS a, ov_last_style AS s FROM feedback_ask WHERE account_id=?").get("a") });
+assert.deepEqual(ovr(), { n: 0, a: 0, s: null });
+db.prepare(SQL_OV_RACE).run("a", 900, "classic", "s1");
+db.prepare(SQL_OV_RACE).run("a", 901, "classic", "s1");
+assert.deepEqual(ovr(), { n: 1, a: 0, s: "classic" }, "the same race told twice counts once");
+db.prepare(SQL_OV_RACE).run("a", 902, "neon", "s2");
+assert.deepEqual(ovr(), { n: 2, a: 0, s: "neon" });
+db.prepare(SQL_OV_SEEN).run("a");
+assert.deepEqual(ovr(), { n: 0, a: 0, s: "neon" }, "shown, it waits for the next race");
+db.prepare(SQL_OV_RACE).run("a", 903, "classic", "s3");
+db.prepare(SQL_OV_ANSWERED).run("a", 904);
+assert.deepEqual(ovr(), { n: 0, a: 1, s: "classic" }, "answered");
+assert.deepEqual({ ...db.prepare("SELECT shown, used FROM feedback_ask").get() }, { shown: 500, used: 0 }, "the overlay window leaves the general one's clock alone");
+db.prepare(SQL_OV_RACE).run("b", 1000, "classic", "x1");
+assert.deepEqual({ ...db.prepare("SELECT shown, used, ov_races AS n FROM feedback_ask WHERE account_id='b'").get() }, { shown: 1000, used: 0, n: 1 }, "a first race with overlays starts the account's row");
+db.prepare(SQL_OV_ANSWERED).run("c", 1100);
+assert.deepEqual({ ...db.prepare("SELECT ov_races AS n, ov_answered AS a FROM feedback_ask WHERE account_id='c'").get() }, { n: 0, a: 1 });
 console.log("ok");

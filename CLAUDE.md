@@ -514,8 +514,19 @@
   hours of use or two races. "Send feedback" is always in Settings → About and the inbox. POST `/community/feedback`
   {text 1–4000, rating 1–5 or none, device, v, view} keeps it (`feedback`, 5 a day per account) and emails it through
   Resend to support@pitlanehq.app (`sendFeedback` in email.js: the nickname, account id, device, version, stars, where it
-  was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). GET
-  `/community/admin/feedback` (admins) lists them, the newest first, with the count and the average stars. Deleting an
+  was asked and the text; Reply-To the driver's email when the server keeps one in the escrow, else support@). The
+  overlay window (the PC only, "How are the overlays?", the stars, the text box and the overlay design used, "Design ·
+  Classic"): a race of iRacing or Le Mans Ultimate (vs AI too, never in demo data) that ends or is left with an overlay
+  open goes to the server once (the agent's `reportOvRace` in ovfeedback.go, POST `/community/feedback/ovrace` {style,
+  ovs, game, sid}, the same session counted once; `style` is `ui.ovstyle`, "classic" by default, a free name matching
+  `^[a-z0-9_-]{1,20}$` so new designs come beside the old one), and the page checks a moment later once the car is off
+  the track (the "ovrace" notice, `fbOvSoon`). The ask answers `ov` after the first such race and, once answered, every
+  six (`ov_races`, `ov_answered`, `ov_last_style` on `feedback_ask`, migration 0073); shown, it is marked at once (POST
+  `/community/feedback/seen` {kind: "overlays"}). The same blocking rules as the general window, and when both are due
+  only the overlay one shows. Its answers are `kind` "overlays" with their `style` (`feedback`, the general ones
+  "general") and their email says so. GET `/community/admin/feedback` (admins) lists them, the newest first, with the
+  count and the average stars; the Feedback tab tags the overlay answers ("Overlays · Classic") and filters All, General
+  and Overlays. Deleting an
   account deletes its usage and its feedback.
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three

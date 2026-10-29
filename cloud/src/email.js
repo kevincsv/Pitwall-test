@@ -160,11 +160,13 @@ export const sendReset = (env, to, link, l) => send(env, to, T.resetSubject[lang
 
 // "Share your feedback" (usage.js): what a driver wrote goes to support@, in English (it is for us), with who wrote it,
 // from which device and version, the stars and where it was asked. Reply-To is the driver's email when the server knows
-// it (the escrowed one), so answering the email answers them; else support@ as every email.
+// it (the escrowed one), so answering the email answers them; else support@ as every email. The overlay window's answers
+// (kind "overlays") say so in the subject and name the overlay design they were about.
 export function feedbackMail(f) {
   const stars = f.rating ? "★".repeat(f.rating) + "☆".repeat(5 - f.rating) + " (" + f.rating + "/5)" : "no stars";
-  const subject = "Pitlane HQ feedback · " + (f.nick || "a driver") + (f.rating ? " · " + f.rating + "/5" : "");
-  const text = [f.text, "", "From " + (f.nick || "–") + " (" + (f.accountId || "–") + ")", "Device " + (f.device || "–") + " · version " + (f.v || "–") + " · asked in " + (f.view || "–"), stars, f.email ? "Reply to answer " + f.email : "No email known for this account"].join("\n");
+  const ov = f.kind === "overlays";
+  const subject = (ov ? "Pitlane HQ overlay feedback · " : "Pitlane HQ feedback · ") + (f.nick || "a driver") + (f.rating ? " · " + f.rating + "/5" : "");
+  const text = [f.text, "", ...(ov ? ["About the overlays · design " + (f.style || "classic")] : []), "From " + (f.nick || "–") + " (" + (f.accountId || "–") + ")", "Device " + (f.device || "–") + " · version " + (f.v || "–") + " · asked in " + (f.view || "–"), stars, f.email ? "Reply to answer " + f.email : "No email known for this account"].join("\n");
   return { subject, text };
 }
 export async function sendFeedback(env, f) {

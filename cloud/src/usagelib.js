@@ -5,6 +5,9 @@ export const KEY_RE = /^(view|act|game):[a-z0-9_.-]{1,40}$/;
 export const MAX_KEYS = 100, MAX_N = 1000, MAX_DAYS = 90;
 export const FEEDBACK_MAX = 4000, FEEDBACK_PER_DAY = 5;
 export const ASK_USED = 6 * 3600e3, ASK_RACES = 2, MAX_MS = 10 * 60e3;
+// the overlay window: after the first race with overlays, and once answered every six
+export const OV_FIRST = 1, OV_AGAIN = 6, OV_GAMES = ["iracing", "lmu"], OV_MAX = 30;
+export const STYLE_RE = /^[a-z0-9_-]{1,20}$/, OV_RE = /^[a-z]{2,12}$/;
 
 export const day = (t) => new Date(t).toISOString().slice(0, 10);
 const cleanV = (v) => String(v == null ? "" : v).replace(/[^0-9a-zA-Z.+-]/g, "").slice(0, 24);
@@ -39,9 +42,39 @@ export function cleanFeedback(b) {
     if (!Number.isInteger(r) || r < 1 || r > 5) return { error: "the rating goes from 1 to 5" };
     rating = r;
   }
+  const kind = b.kind === "overlays" ? "overlays" : "general";
+  let style = null;
+  if (kind === "overlays") {
+    style = cleanStyle(b.style);
+    if (!style) return { error: "unknown overlay design" };
+  }
   const device = String(b.device || "").toLowerCase();
-  return { text, rating, device: DEVICES.includes(device) ? device : "", v: cleanV(b.v), view: String(b.view || "").replace(/[^a-z0-9_.:-]/gi, "").slice(0, 40) };
+  return { text, rating, kind, style, device: DEVICES.includes(device) ? device : "", v: cleanV(b.v), view: String(b.view || "").replace(/[^a-z0-9_.:-]/gi, "").slice(0, 40) };
 }
+
+/** The overlay design: a free name (new designs come beside the classic one), "classic" when none is given; null when
+ *  it is not a valid name. */
+export function cleanStyle(v) {
+  if (v == null || v === "") return "classic";
+  const s = String(v).toLowerCase();
+  return STYLE_RE.test(s) ? s : null;
+}
+
+/** A race driven with overlays, as the PC tells it (POST /community/feedback/ovrace), or {error}. */
+export function cleanOvRace(b) {
+  if (!b || typeof b !== "object") return { error: "missing body" };
+  const style = cleanStyle(b.style);
+  if (!style) return { error: "unknown overlay design" };
+  const game = String(b.game || "").toLowerCase();
+  if (!OV_GAMES.includes(game)) return { error: "unknown game" };
+  const ovs = [...new Set((Array.isArray(b.ovs) ? b.ovs : []).map((x) => String(x).toLowerCase()).filter((x) => OV_RE.test(x)))].slice(0, OV_MAX);
+  if (!ovs.length) return { error: "no overlay was open" };
+  const sid = String(b.sid == null ? "" : b.sid).replace(/[^A-Za-z0-9._:-]/g, "").slice(0, 80);
+  return { style, game, ovs, sid };
+}
+
+/** Whether to show the overlay window: after the first race with overlays, and once answered after six more. */
+export const shouldAskOv = (answered, races) => (answered ? races >= OV_AGAIN : races >= OV_FIRST);
 
 /** Whether to ask now: six hours of use, or two races, since the window was last shown. */
 export const shouldAsk = (used, races) => used >= ASK_USED || races >= ASK_RACES;
@@ -87,3 +120,7 @@ export const SQL_USAGE_ADD = "INSERT INTO usage_days (day, account_id, device, k
 export const SQL_ASK_USED = "INSERT INTO feedback_ask (account_id, shown, used) VALUES (?1,?2,?3) ON CONFLICT(account_id) DO UPDATE SET used=feedback_ask.used+excluded.used";
 export const SQL_ASK_SEEN = "INSERT INTO feedback_ask (account_id, shown, used) VALUES (?1,?2,0) ON CONFLICT(account_id) DO UPDATE SET shown=excluded.shown, used=0";
 export const SQL_RACES_SINCE = "SELECT COUNT(*) AS n FROM sessions WHERE uploader=?1 AND started>?2 AND lower(COALESCE(kind,'')) LIKE '%race%'";
+// the overlay window: one more race with overlays (the same session told again counts once), shown, answered
+export const SQL_OV_RACE = "INSERT INTO feedback_ask (account_id, shown, used, ov_races, ov_last_style, ov_last_sid) VALUES (?1,?2,0,1,?3,?4) ON CONFLICT(account_id) DO UPDATE SET ov_races=MIN(feedback_ask.ov_races+(CASE WHEN COALESCE(feedback_ask.ov_last_sid,'')=excluded.ov_last_sid THEN 0 ELSE 1 END), 1000), ov_last_style=excluded.ov_last_style, ov_last_sid=excluded.ov_last_sid";
+export const SQL_OV_SEEN = "UPDATE feedback_ask SET ov_races=0 WHERE account_id=?1";
+export const SQL_OV_ANSWERED = "INSERT INTO feedback_ask (account_id, shown, used, ov_races, ov_answered) VALUES (?1,?2,0,0,1) ON CONFLICT(account_id) DO UPDATE SET ov_races=0, ov_answered=1";
