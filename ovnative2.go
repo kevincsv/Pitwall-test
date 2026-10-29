@@ -318,12 +318,20 @@ func hsl(h, s, l float64) uint32 {
 
 // the app's labels: small, uppercase, spaced (.label)
 func (c *ovCanvas) label(z float64, s string, x, cy float64, align int) {
-	c.textT(ovFace(fkData, 11*z), strings.ToUpper(s), x, cy, colMuted, 1, align, 1.1*z)
+	if t := ovTh; t != nil && t.armed { // the first label at the top of a design's panel is the overlay's title
+		t.armed = false
+		if cy <= 40*z && x <= 30*z {
+			themeTitle(c, t, z, s, x, cy, align)
+			return
+		}
+	}
+	f, tr := labelFace(z)
+	c.textT(f, strings.ToUpper(s), x, cy, colMuted, 1, align, tr)
 }
 
 // labelFit is a label cut with "…" to fit maxW
 func (c *ovCanvas) labelFit(z float64, s string, x, cy, maxW float64) {
-	f, tr := ovFace(fkData, 11*z), 1.1*z
+	f, tr := labelFace(z)
 	s = strings.ToUpper(s)
 	r := []rune(s)
 	for len(r) > 1 && textWT(f, string(r), tr) > maxW {

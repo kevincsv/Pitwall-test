@@ -100,8 +100,8 @@ type ovClass struct {
 	col        uint32
 }
 
-// classInfo: a class's name (the game's short name, else its first car's), colour, cars and strength of field
-func (st *ovState) classInfo(id int) ovClass {
+// clsInfo: a class's name (the game's short name, else its first car's), colour, cars and strength of field
+func (st *ovState) clsInfo(id int) ovClass {
 	k := ovClass{id: id}
 	var irs []int
 	if st.ses == nil {
@@ -115,8 +115,8 @@ func (st *ovState) classInfo(id int) ovClass {
 		if d.IR > 0 {
 			irs = append(irs, d.IR)
 		}
-		if k.name == "" || (d.ClassName != "" && k.name == d.CarSht) {
-			k.name = firstNonEmpty(d.ClassName, d.CarSht)
+		if k.name == "" || (d.ClsName != "" && k.name == d.CarSht) {
+			k.name = firstNonEmpty(d.ClsName, d.CarSht)
 		}
 		if k.col == 0 {
 			k.col = classColor(st, d)

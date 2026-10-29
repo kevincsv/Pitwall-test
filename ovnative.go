@@ -64,6 +64,12 @@ func (c *ovCanvas) blend(x, y int, col uint32, a float64) {
 	if x < 0 || y < 0 || x >= c.w || y >= c.h || a <= 0 {
 		return
 	}
+	if t := ovTh; t != nil && !t.raw && t.remaps() {
+		var am float64
+		if col, am = t.mapCol(col); am > 0 {
+			a *= am
+		}
+	}
 	i := y*c.w + x
 	c.px[i] = blendPx(c.px[i], col, a)
 }
@@ -103,17 +109,24 @@ type pxBlender struct {
 	has     bool
 	px      []uint32
 	w, h    int
+	am      float64 // a design's factor on every alpha (ovTheme.mapCol), 0 none
 }
 
 func (b *pxBlender) at(x, y int, a float64) {
 	if x < 0 || y < 0 || x >= b.w || y >= b.h || a <= 0 {
 		return
 	}
+	if b.am != 0 {
+		a *= b.am
+	}
 	b.atI(y*b.w+x, a)
 }
 
 // span: atI for the pixels i0..i1 under one alpha
 func (b *pxBlender) span(i0, i1 int, a float64) {
+	if b.am != 0 {
+		a *= b.am
+	}
 	if b.has && a != b.lastA {
 		b.has = false
 	}
@@ -139,7 +152,11 @@ func (b *pxBlender) atI(i int, a float64) {
 }
 
 func (c *ovCanvas) blender(col uint32) pxBlender {
-	return pxBlender{col: col, px: c.px, w: c.w, h: c.h}
+	b := pxBlender{col: col, px: c.px, w: c.w, h: c.h}
+	if t := ovTh; t != nil && !t.raw && t.remaps() { // a design's palette (Classic has none)
+		b.col, b.am = t.mapCol(col)
+	}
+	return b
 }
 
 func clamp01(v float64) float64 { return math.Max(0, math.Min(1, v)) }
@@ -284,6 +301,9 @@ func ovFace(kind int, px float64) font.Face {
 			ovFonts[k], _ = opentype.Parse(b)
 		}
 	})
+	if t := ovTh; t != nil { // the design's type
+		kind, px = t.face(kind, px)
+	}
 	px = math.Max(6, math.Round(px*4)/4)
 	key := ovFaceKey{kind, px}
 	ovFacesMu.Lock()
@@ -342,6 +362,10 @@ func (c *ovCanvas) textT(f font.Face, s string, x, cy float64, col uint32, a flo
 	if f == nil || s == "" {
 		return
 	}
+	th := ovTh
+	if th != nil && th.bandBot > 0 && cy < th.bandBot { // on Board's amber header: dark ink
+		col = th.ink
+	}
 	w := textWT(f, s, track)
 	switch align {
 	case 1:
@@ -362,6 +386,17 @@ func (c *ovCanvas) textT(f font.Face, s string, x, cy float64, col uint32, a flo
 	dot := fixed.Point26_6{X: fixed.Int26_6((2 + fx) * 64), Y: fixed.Int26_6((math.Ceil(asc) + 2 + fy) * 64)}
 	mask := textMask(f, s, track, dot, int(w)+6, int(asc+desc)+6)
 	ox, oy := int(math.Floor(x))-2, int(math.Floor(base))-int(math.Ceil(asc))-2
+	if th != nil && th.shadow { // Frameless: a soft shadow under the text, so it reads over the game
+		sh := pxBlender{px: c.px, w: c.w, h: c.h} // black, never a design's colour
+		for yy := 0; yy < mask.h; yy++ {
+			row := mask.pix[yy*mask.w : (yy+1)*mask.w]
+			for xx, v := range row {
+				if v > 0 {
+					sh.at(ox+xx, oy+yy+1, a*0.65*covPow[v])
+				}
+			}
+		}
+	}
 	bl := c.blender(col)
 	for yy := 0; yy < mask.h; yy++ {
 		row := mask.pix[yy*mask.w : (yy+1)*mask.w]
@@ -496,7 +531,8 @@ type ovDriver struct {
 	UID                    string // the iRacing id: stays in this process, only its key is looked up in your notes
 	IR, Class, Inc, CarID  int
 	ClassCol               uint32 // the class's colour the game gives (CarClassColor)
-	ClassName              string // the class's short name (CarClassShortName)
+	ClsName                string // the class's short name (CarClassShortName)
+	Flag                   string // the driver's country flag (flagCode of iRacing's FlairName), "" none
 	Skip                   bool   // pace car, spectators
 }
 
@@ -532,6 +568,7 @@ type ovState struct {
 	sesNum  int
 	lang    string
 	units   string             // "metric" or "imperial", as the app
+	game    string             // the game the agent reads (the stream's status), for the columns it sends (gamesupport.go)
 	clearAt time.Time          // radar: since when nobody has been near
 	hz      int                // the stream's samples a second (30, the radar 60)
 	dataSeq uint64             // a frame with other values than the one before arrived (ovPace)
@@ -783,12 +820,20 @@ func parseOvSession(y string) *ovSession {
 				if n, err := strconv.ParseUint(strings.TrimPrefix(strings.TrimSpace(v), "0x"), 16, 32); err == nil {
 					drv.ClassCol = uint32(n)
 				}
-			case "CarClassShortName":
-				drv.ClassName = v
 			case "CarID":
 				drv.CarID = atoi(v)
 			case "CarScreenNameShort":
 				drv.CarSht = v
+			case "CarClassShortName":
+				drv.ClsName = v
+			case "FlairName":
+				if drv.Flag == "" {
+					drv.Flag = flagCode(v)
+				}
+			case "FlairShortName", "CountryCode":
+				if c := flagCode(v); c != "" {
+					drv.Flag = c
+				}
 			case "CurDriverIncidentCount":
 				drv.Inc = atoi(v)
 			case "IsSpectator", "CarIsPaceCar":
@@ -973,6 +1018,17 @@ func (st *ovState) event(ev, data string, fields *[]string) {
 		st.mu.Lock()
 		st.ext.drinks, st.ext.driver = d.On, d.Name
 		st.cfgSeq++
+		st.mu.Unlock()
+	case "status": // the game being read: the relative and the standings leave out what it does not send
+		var s struct{ Source string }
+		if json.Unmarshal([]byte(data), &s) != nil {
+			return
+		}
+		st.mu.Lock()
+		if s.Source != st.game {
+			st.game = s.Source
+			st.cfgSeq++
+		}
 		st.mu.Unlock()
 	case "config":
 		var c struct {
@@ -1280,6 +1336,13 @@ func ovDraw(name string, c *ovCanvas, st *ovState, now time.Time) int {
 	c.clear()
 	st.mu.Lock()
 	defer st.mu.Unlock()
+	// the overlay's design for this frame (nil: Classic, drawn as it always was)
+	ovThMu.Lock()
+	ovTh = ovThemeFor(name, st.ui)
+	if ovTh != nil {
+		ovTh.ttl, ovTh.armed, ovTh.bandBot, ovTh.raw = ovTitled[name] && st.titleOn(name), false, 0, false
+	}
+	defer func() { ovTh = nil; ovThMu.Unlock() }()
 	z := math.Max(0.5, math.Min(2.5, float64(c.w)/ovDesign[name]))
 	fresh := now.Sub(st.at) < 2*time.Second
 	if !fresh && len(st.frame) > 0 { // no data from the game: the overlay waits, empty, without old values
@@ -1333,6 +1396,10 @@ func mix(a, b uint32, t float64) uint32 {
 
 // a panel: the app's card (--surface, a --line border, rounded corners)
 func panel(c *ovCanvas, h float64, z float64) {
+	if t := ovTh; t != nil {
+		themedPanel(c, t, h, z)
+		return
+	}
 	c.roundRect(0.5, 0.5, float64(c.w)-1, h-1, 10*z, colPanel, 0.94, colLine, 1, 1)
 }
 
@@ -1422,14 +1489,14 @@ func drawDeltaOv(c *ovCanvas, st *ovState, z float64) int {
 type ovRow struct {
 	idx        int
 	blank, sep bool
+	band       bool // the designs' standings: a band over a class (cls)
+	cls        int
 	gap, iv    string // the gap (to you, or to the leader) and the interval to the car ahead
 	nameCol    uint32
 	laps       int    // in a race, the relative: laps this car is ahead of you (+) or behind you (−)
 	trend      string // the relative: ▲ the gap grows, ▼ it shrinks, over the last ten seconds
 	trendCol   uint32 // green when that is good for you, red when the car behind is catching you
 	lapped     bool   // a lap or more away from you (ui.rel.dimLapped dims it)
-	head       bool   // a class's header row (ui.std.classHead), cls is the class
-	cls        int
 }
 
 // drawTableOv: the relative (cars around you) or the standings (race order), like the app's widget table
@@ -1442,19 +1509,23 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	}
 	cfg := st.uiMap(key)
 	cols, head, foot := uiList(cfg, "cols", defCols), uiList(cfg, "head", defHead), uiList(cfg, "foot", defFoot)
+	cols, head, foot = gameKeep(st.game, "columns", cols), gameKeep(st.game, "items", head), gameKeep(st.game, "items", foot)
 	me := -1
 	if v, ok := st.num("PlayerCarIdx"); ok {
 		me = int(v)
 	}
 	rows := st.tableRows(rel, cfg, me)
+	th := ovTh // the design (nil Classic)
+	multi := st.multiClass()
+	flags := uiBool(cfg, "flags", true)
 	// its own settings: the row size, the driver notes, the cars a lap away dimmed, the PIT tag, the short iRating,
-	// the fastest lap's mark and the class headers (several classes)
+	// the fastest lap's mark and the classes' band (the relative); the standings' class bands come from tableRows
 	notes, dimLapped, pitTag := uiBool(cfg, "notes", true), uiBool(cfg, "dimLapped", false), uiBool(cfg, "pitTag", true)
 	irShort, fastMark := uiBool(cfg, "irShort", true), uiBool(cfg, "fastMark", true)
 	var band []ovClass // the relative's class band
-	if rel && uiBool(cfg, "classHead", false) && st.multiClass() {
+	if rel && uiBool(cfg, "classHead", false) && multi {
 		for _, id := range st.classOrder() {
-			band = append(band, st.classInfo(id))
+			band = append(band, st.clsInfo(id))
 		}
 	}
 	irc := st.irEstimates()
@@ -1472,6 +1543,9 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	}
 	pad, gapX := 12*z, 12*z
 	rowH, headH := 27*z*sizeOf(cfg, "rowSize", 0.82, 1.2), 22*z
+	if th != nil {
+		rowH *= th.rowScale
+	}
 	W := float64(c.w)
 	H := pad
 	if len(head) > 0 {
@@ -1495,7 +1569,13 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 	panel(c, H, z)
 	y := pad - 2*z
 	if len(head) > 0 {
+		if th != nil && (th.hdr == hdrBand || th.hdr == hdrBlock) {
+			themeBand(c, th, z, y+24*z)
+		}
 		y += strip(c, st, head, pad, y, W-pad, z) + 4*z
+		if th != nil {
+			th.bandBot = 0
+		}
 	}
 	if len(band) > 0 { // each class with its colour and strength of field
 		bf := ovFace(fkData, 10.5*z)
@@ -1515,8 +1595,10 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		}
 		y += 20 * z
 	}
-	multi := st.multiClass()
 	tf, nf, mf := ovFace(fkData, 10.5*z), ovFace(fkBody, 14*z), ovFace(fkData, 13*z)
+	if th != nil {
+		nf, mf = ovFace(fkBody, 14*z*th.nameScale), ovFace(fkData, 13*z*th.monoScale)
+	}
 	lf, pf := ovFace(fkDataB, 10.5*z), ovFace(fkData, 9.5*z)
 	ttr := 0.6 * z
 	pitW := textWT(pf, "PIT", 0.5*z) + 12*z
@@ -1537,7 +1619,7 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		}
 		ci := colInfo{key: k, title: strings.ToUpper(t), right: right, w: textWT(tf, strings.ToUpper(t), ttr)}
 		for _, r := range rows {
-			if r.blank || r.sep || r.head {
+			if r.blank || r.sep || r.band {
 				continue
 			}
 			v, _, mono := cellOf(k, r)
@@ -1548,6 +1630,9 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			w := textW(f, v)
 			if k == "lic" && v != "–" {
 				w = licW(v)
+			}
+			if k == "ir" && th != nil && th.irPill && v != "–" {
+				w += 10 * z
 			}
 			if k == "gap" && r.trend != "" {
 				w += textW(pf, r.trend) + 3*z
@@ -1586,8 +1671,22 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			break
 		}
 		rx, rw := pad-4*z, W-2*pad+8*z
-		if k%2 == 1 {
+		if th == nil && k%2 == 1 {
 			c.rect(rx, y, rw, rowH, colText, 0.04)
+		} else if th != nil && th.rowLineA > 0 && !r.blank {
+			c.themeRect(rx, y+rowH-1, rw, 1, 0, th.rowLine, th.rowLineA)
+		}
+		if r.band { // a class's band: the designs' own, Classic's header row (its colour, name, cars and SOF)
+			if th != nil {
+				st.drawBand(c, r.cls, rx, y, rw, rowH, z)
+			} else {
+				k := st.clsInfo(r.cls)
+				c.roundRect(rx, y+3*z, 3*z, rowH-6*z, 1.5*z, k.col, 1, 0, 0, 0)
+				hf := ovFace(fkDataB, 11*z)
+				c.text(hf, ellipsis(hf, strings.ToUpper(st.classHeadText(k)), rw-12*z), pad+4*z, y+rowH/2, colText, 0.9, 0)
+			}
+			y += rowH
+			continue
 		}
 		if r.sep {
 			c.text(mf, "⋯", W/2, y+rowH/2, colMuted, 1, 2)
@@ -1595,14 +1694,6 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			continue
 		}
 		if r.blank {
-			y += rowH
-			continue
-		}
-		if r.head { // a class's header: its colour, its name, its cars and its strength of field
-			k := st.classInfo(r.cls)
-			c.roundRect(rx, y+3*z, 3*z, rowH-6*z, 1.5*z, k.col, 1, 0, 0, 0)
-			hf := ovFace(fkDataB, 11*z)
-			c.text(hf, ellipsis(hf, strings.ToUpper(st.classHeadText(k)), rw-12*z), pad+4*z, y+rowH/2, colText, 0.9, 0)
 			y += rowH
 			continue
 		}
@@ -1615,9 +1706,17 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 		if dimLapped && r.lapped && !mine {
 			a = math.Min(a, 0.45)
 		}
-		if mine {
+		if th != nil && th.dimOut && !mine && st.outOfRace(r.idx) { // out of the race (not in the world): faded
+			a = 0.4
+		}
+		if mine && th == nil {
 			c.roundRect(rx, y+1, rw, rowH-2, 5*z, colAmber, 0.22, 0, 0, 0)
 			c.roundRect(rx, y+3*z, 3*z, rowH-6*z, 1.5*z, colAmber, 1, 0, 0, 0)
+		} else if mine {
+			c.themeRect(rx, y+1, rw, rowH-2, th.meRad*z, th.me, th.meA)
+			if th.meBar {
+				c.themeRect(rx, y+1, 2*z, rowH-2, 0, colAmber, 1)
+			}
 		}
 		x := pad
 		for _, ci := range info {
@@ -1625,6 +1724,9 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			f := nf
 			if mono {
 				f = mf
+			}
+			if mine && th != nil && th.meInk != 0 {
+				col = th.meInk
 			}
 			cy := y + rowH/2
 			switch {
@@ -1636,7 +1738,9 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 			case ci.key == "num" && multi:
 				// several classes: the car's number in its class's colour, so you see who races you
 				nc := col
-				if d := st.ses.Drivers[r.idx]; d != nil && d.ClassCol != 0 && d.ClassCol != 0xffffff {
+				if d := st.ses.Drivers[r.idx]; th != nil && d != nil {
+					nc = st.classColor(d.Class) // the designs: our palette
+				} else if d != nil && d.ClassCol != 0 && d.ClassCol != 0xffffff {
 					nc = d.ClassCol
 				}
 				c.text(f, v, x, cy, nc, a, 0)
@@ -1646,10 +1750,34 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 				bw, bh := licW(v), 19*z
 				c.roundRect(x, cy-bh/2, bw, bh, 4*z, mix(lc, 0x0b0d10, 0.62), a, lc, a, 1.5*z)
 				c.text(lf, v, x+bw/2, cy, 0xffffff, a, 2)
+			case ci.key == "ir" && th != nil && th.irPill && v != "–":
+				// the designs' iRating, short ("1.8k") in a light pill
+				pw := textW(f, v) + 10*z
+				c.themeRect(x+ci.w-pw, cy-9*z, pw, 18*z, 4*z, th.pillBg, a)
+				t := ovTh
+				t.raw = true
+				c.text(f, v, x+ci.w-5*z, cy, th.pillFg, a, 1)
+				t.raw = false
 			case ci.key == "name":
 				room, nx := ci.w, x
 				if onPit && pitTag {
 					room -= pitW + 6*z
+				}
+				if d := st.ses.Drivers[r.idx]; th != nil && th.clsBar > 0 && multi && d != nil { // the class bar
+					bw := th.clsBar * z
+					c.themeRect(nx, cy-rowH*0.32, bw, rowH*0.64, th.clsRad*z, st.classColor(d.Class), a)
+					nx += bw + 6*z
+					room -= bw + 6*z
+				}
+				if fl := st.rowFlag(r.idx); flags && fl != "" { // the driver's country
+					if fw := c.flag(fl, nx, cy, math.Round(11*z), a); fw > 0 {
+						nx += fw + 5*z
+						room -= fw + 5*z
+					}
+				}
+				pen := st.penalty(r.idx)
+				if pen {
+					room -= 16 * z
 				}
 				if tag := st.rowTag(r.idx); notes && tag != "" && !mine {
 					drawDriverTag(c, tag, x+7*z, cy, z, a)
@@ -1666,6 +1794,10 @@ func drawTableOv(c *ovCanvas, st *ovState, z float64, rel bool) int {
 				}
 				n := ellipsis(f, v, room)
 				c.text(f, n, nx, cy, col, a, 0)
+				if pen { // a penalty to serve: the clock after the name
+					c.clock(nx+textW(f, n)+12*z, cy, 6.5*z, colAmber, a)
+					nx += 16 * z
+				}
 				if lapTxt != "" { // laps up (red: they lap you) or down (blue: you lap them), in a pill like the PIT one
 					lc := uint32(colAhead)
 					if r.laps < 0 {
@@ -2002,8 +2134,8 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 		myClass = d.Class
 	}
 	mine := multi && uiBool(cfg, "myClass", true)
-	// class headers (ui.std.classHead, several classes): each class under its own header, ordered by its place
-	heads := multi && uiBool(cfg, "classHead", false)
+	// each class under its band (several classes): the Beta designs always, Classic with ui.std.classHead
+	heads := multi && (uiBool(cfg, "classHead", false) || (ovTh != nil && ovTh.bands))
 	if mine {
 		k := 0
 		for _, d := range drivers {
@@ -2101,7 +2233,7 @@ func (st *ovState) tableRows(rel bool, cfg map[string]any, me int) []ovRow {
 		if len(list) == 0 { // another class while only yours is shown
 			continue
 		}
-		out = append(out, ovRow{head: true, cls: cl, idx: -1})
+		out = append(out, ovRow{band: true, cls: cl, idx: -1})
 		out = pick(build(list, true), out)
 	}
 	return out
@@ -2407,5 +2539,5 @@ func ovVars(name string, st *ovState) []string {
 	return append(base, "CarIdxLapDistPct", "CarIdxEstTime", "CarIdxLap", "CarIdxLapCompleted", "CarIdxPosition", "CarIdxClassPosition", "CarIdxF2Time",
 		"CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxOnPitRoad", "CarIdxTireCompound", "SessionTimeRemain", "SessionLapsRemainEx", "Lap",
 		"PlayerCarPosition", "PlayerCarClassPosition", "PlayerCarMyIncidentCount", "FuelLevel", "FuelUsePerLap", "LapBestLapTime", "LapLastLapTime",
-		"LapDeltaToBestLap", "LapDeltaToBestLap_OK", "AirTemp", "TrackTempCrew")
+		"LapDeltaToBestLap", "LapDeltaToBestLap_OK", "AirTemp", "TrackTempCrew", "CarIdxSessionFlags", "CarIdxNumPenalties", "CarIdxTrackSurface")
 }

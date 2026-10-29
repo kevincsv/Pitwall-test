@@ -307,20 +307,22 @@ export async function community(req, env, url, ctx) {
   if (p === "/records" && m === "GET") {
     const lim = Math.min(100, Math.max(1, +url.searchParams.get("limit") || 40));
     const who = await me(req, env).catch(() => null);
+    // game=all (the admin page's newest records): every game's together, each record saying its game
+    const all = url.searchParams.get("game") === "all";
     const r = await env.DB.prepare(
-      `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY track_id, car_id) AS n
-         FROM community_laps WHERE game=?1 AND COALESCE(shown,'')<>'model')
-       SELECT l.id, l.user_id AS uid, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n, l.wet,
+      `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY game, track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY game, track_id, car_id) AS n
+         FROM community_laps WHERE ${all ? "game IN ('iracing','lmu')" : "game=?1"} AND COALESCE(shown,'')<>'model')
+       SELECT l.id, l.user_id AS uid, l.game, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n, l.wet,
          CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
          (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
          (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
          p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE CASE WHEN p.anon=1 THEN 'Anonymous' WHEN p.shown='iracing' AND COALESCE(pu.iracing,'')<>'' THEN pu.iracing ELSE pu.alias END END AS prevAlias
        FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
-         LEFT JOIN rk p ON p.track_id=l.track_id AND p.car_id=l.car_id AND p.rk=2 LEFT JOIN community_users pu ON pu.id=p.user_id
+         LEFT JOIN rk p ON p.game=l.game AND p.track_id=l.track_id AND p.car_id=l.car_id AND p.rk=2 LEFT JOIN community_users pu ON pu.id=p.user_id
        WHERE l.rk=1 ORDER BY l.created DESC LIMIT ?2`
     ).bind(game, lim).all();
-    const cm = game === "iracing" ? await catMap(env) : null;
-    return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), cat: cm ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
+    const cm = all || game === "iracing" ? await catMap(env) : null;
+    return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, game: gameOf(x.game), car: famName(gameOf(x.game), x.carId, x.car), cat: cm && gameOf(x.game) === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
   }
   // one track: its layout and official turns, how many drivers and laps it has, and the record of every car on it
   // (the track page, in development)

@@ -283,7 +283,10 @@
   lap A (only "wet" does).
   Community's "Recent records" (PC, web, Pitlane HQ Desktop, phones; `/community/records`): the fastest lap of every
   car and track, the newest first, with the lap it beat ("beat Juan by 0.312 s", or "the first lap here"), filtered
-  by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page.
+  by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page. Every
+  record, track page row, profile lap and admin record says its game (`gameChip`, `game` on each record; the admin's
+  newest records are every game's, `/records?game=all`), and a lap, board, record or session of a game opens in that
+  game (`toGame`: Analysis looks for your sessions of that game on that track).
   The track page (`/community/track`, `openTrackPage` on the web, `TrackPageScreen`/`TrackPageView` on the phones):
   the map with the official turns and the direction arrow, how many drivers and laps the track has and the record of
   every car on it. It opens from the leaderboard's "Track page" chip and from every record; on Pitlane HQ Desktop
@@ -342,8 +345,8 @@
   position lap by lap (`renderStandings`, `drawPosHistory`); Tyres show their wear. The rev beep page is a list of cars
   and the chosen car's mode as three cards (iRacing lights, My laps, My RPM with one number or one per gear) and its
   sound (early, pitch, volume, test). Overlays is one list (`renderOverlaysTab`, `.ov-row`): every overlay always (no switch for the
-  experimental ones, which keep their "Experimental" pill and ask for Pro on a PC without it), each with its "when I
-  get in the car" switch, Open/Closed and Configure, the presets and the buttons on top, "Place on the screen" shows
+  experimental ones, which keep their "Experimental" pill and ask for Pro on a PC without it), each with its games and its
+  "when I get in the car" switch for each game, Open/Closed and Configure, the presets and the buttons on top, "Place on the screen" shows
   the screen editor. The PC app never zooms (Ctrl+wheel and Ctrl +/− blocked, `IsZoomControlEnabled` off).
 - In Basic, the Telemetry screen shows only the essentials (`LIVE_ESSENTIAL`: flags, the top card with position, delta, last
   lap and fuel beside the cars ahead and behind, incidents and what is left, the delta bar, the map, the relative,
@@ -495,7 +498,9 @@
 - What the drivers use (`cloud/src/usage.js`, the pure part in `usagelib.js`, migration 0070 `usage_days`): every app
   counts the views it opens (`view:<name>`), its notable actions (`act:<name>`: race summary opened, plan to the coach
   overlay, track page, leaderboard, overlay opened, profile, coach report, feedback sent…) and the game it drives
-  (`game:iracing`, `game:lmu`, once when the car goes on track in a new session) and sends them as POST `/community/usage`
+  (`game:iracing`, `game:lmu`, once when the car goes on track in a new session; the game read, `STATUS.source`, never the
+  Settings choice "auto", and the server keeps only real games, `USAGE_GAMES`, and leaves the old `game:auto` rows out of
+  the analytics) and sends them as POST `/community/usage`
   {device: web|pc|android|ios, v, counts, ms} every 5 minutes and when the page goes to the background (fetch with
   keepalive; `USAGE`/`usageCount`/`usageFlush` in index.html, through the agent's `/api/sync/get` on the PC); never in
   demo data, never for a visitor (dropped unsent), never from an overlay window, never while an admin has admin mode on.
@@ -674,7 +679,13 @@
   `irimage.go`) so every overlay, the recorder, the journal and the coach work unchanged. Its official sectors are
   learnt from the game's sector changes (`lmuSectors`, kept per track in `lmu-sectors.json`) and written as
   SplitTimeInfo; start lights, wind and the fuel rate come from the game; it has no iRating, licences or incident
-  count (contacts stand in, `GAME_NO.lmu`). A session is "vs AI" when the game marks AI drivers (`CarIsAI`), an
+  count (contacts stand in, `GAME_NO.lmu`). What works in which game is one table, `web/dist/pitwall-games.js`
+  (`PW_GAMES`: what each game lacks, what each overlay, column and item needs), read by the app (`gameHas`,
+  `gameBadges`) and the agent (`gamesupport.go`, `gamesupport_test.go`): the Overlays tab badges the games each overlay
+  works in and its Auto switch is per game (`CFG.autoWidgets` plus `ui.autoOff[game]`, `setAutoIn`/`autoIn`; a game it
+  does not work in is disabled and the agent never opens it there, `autoFor`), the settings of the relative and the
+  standings badge the iRacing-only columns and items and do not offer them while LMU is chosen, and the native
+  relative and standings leave them out in LMU (the stream's status names the game). A session is "vs AI" when the game marks AI drivers (`CarIsAI`), an
   online one counts as official for the model, a test day is "Offline Testing"; the session text carries the results
   as iRacing writes them (`lmuResults`: ResultsPositions with the place, class place, laps and best of every car,
   rebuilt only when a car crosses the line or sets its best, compared field by field), so an LMU race summary has its
@@ -761,7 +772,7 @@
   each overlay its own content options (`OV_OPTS` in index.html, the native overlays read the same keys, `ovsettings.go`;
   unset, everything draws exactly as before, `TestOverlayOptionDefaults`): relative (`ui.rel`: classHead, a band of the
   classes with their SOF; dimLapped; rowSize s/m/l; notes), standings (`ui.std`: classHead, each class under a header
-  with its cars and SOF; irShort "1.8k"; fastMark; pitTag), delta bar (`ui.deltabar`: barOnly, trend), timing
+  with its cars and SOF, the same class bands the Beta designs always draw, made in `tableRows`; irShort "1.8k"; fastMark; pitTag), delta bar (`ui.deltabar`: barOnly, trend), timing
   (`ui.timing`: sectors, lastBest, flash), inputs (`ui.inp.lineW`), radar (`ui.radar`: carSize, trails, dist), coach
   ("text": the tip only, nothing between corners), pit (`ui.pit`: limTol, the margin over the pit limit in m/s, 0.4 by
   default; pitOnly), gaps (`ui.gaps.numbers`), track bar (`ui.trackbar`: lineOnly, height, near, sectors, myClass), dash
@@ -799,7 +810,21 @@
   height, each overlay turned to face you), so moving them in Overlays → Edit positions moves them in VR. It joins
   SteamVR only when it is running (a background app, never starting it), lets go when it quits, and Meta headsets
   work through SteamVR as the OpenXR runtime.
-  There is no car controls overlay and no overlay looks (glass, carbon, minimal): one look, the native one.
+  There is no car controls overlay. The overlays' designs (the owner's choice): Classic, the native look and the default,
+  drawn exactly as before, and beside it the Beta designs Lane, Wall, Board, Frameless and Light (Carril, Muro, Pizarra,
+  Sin marco, Claro; Faixa, Muro, Quadro, Sem moldura, Claro), each labelled "Beta" wherever it is offered, never replacing
+  Classic. One design for all the overlays (Overlays → Design, `ui.ovstyle`) and one per overlay over it (its Configure
+  window's Design, `ui.<overlay>.style`, empty follows the one for all); `ovtheme.go` draws them (an `ovTheme` set per
+  frame in `ovDraw`, read by the panel, the title, the labels, the faces, the colours and the relative's and standings'
+  rows: Lane's big white names, the class bar in our palette, turquoise, violet and orange, straight and rounded, never
+  slanted stripes, the class bands with their cars and SOF, the iRating pill, your row in muted gold, the cars out of the
+  race faded), the numbers white and bold in every Beta design, and the app's overlay windows approximate them in CSS
+  (`OV_STYLES`, `ovStyleOf`, `data-ovs`). The relative and the standings (overlays, the app, the race summary) show the
+  driver's country flag before the name where the game gives it (iRacing's FlairName; `flagCode`, the flag-icons set, MIT,
+  `web/dist/flags/` made by `tools/flags-sprite.js`; "Flags" in their settings, `ui.rel.flags`/`ui.std.flags`, on by
+  default; the race results keep `cc` and `flair`) and a clock after it for a penalty to serve (iRacing's black or furled
+  black flag on the car, `CarIdxSessionFlags`, which cannot tell a slowdown from another black flag; Le Mans Ultimate's
+  `CarIdxNumPenalties`).
   The basic overlays (`OV_BASIC`): radar, delta bar, relative, standings,
   flags, dash, timing, map, fuel, tyres, inputs, pit, brakes, coach, incidents, engine, weather, track bar.
   Experimental (listed with the rest, an "Experimental" pill): compare, boost, gg, stats, sectors, gaps, telemetry, system.

@@ -190,7 +190,7 @@ func TestOverlayClassHeads(t *testing.T) {
 		st := ovBenchState(t)
 		for i, d := range st.ses.Drivers {
 			if !d.Skip && i%2 == 1 {
-				d.Class, d.ClassName, d.ClassCol = 2, "GTP", 0xff6fb5
+				d.Class, d.ClsName, d.ClassCol = 2, "GTP", 0xff6fb5
 			}
 		}
 		return st
@@ -199,7 +199,7 @@ func TestOverlayClassHeads(t *testing.T) {
 	rows := st.tableRows(false, map[string]any{"classHead": true, "myClass": false, "top": 3.0, "around": 1.0}, 0)
 	heads := 0
 	for _, r := range rows {
-		if r.head {
+		if r.band {
 			heads++
 		}
 	}
