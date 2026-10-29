@@ -531,7 +531,7 @@
   minutes, never in the car (the PC while the car is on track), in demo data, from an overlay window, over another window
   or to an admin in admin mode; shown, it is marked at once (POST `/community/feedback/seen`), so Not now waits six more
   hours of use or two races. "Send feedback" is always in Settings → About and the inbox, and a round floating
-  button with a speech bubble sits at the bottom left of every screen ("Send feedback", `fbFab` in index.html, counted
+  button with a square speech bubble sits at the bottom right of every screen ("Send feedback", `fbFab` in index.html, counted
   `act:feedback_button`; PC app, web and phones): signed in only, never for a visitor, in an overlay window or in demo
   data, hidden while the car is on the track and under any open window, a toast or the voice call's bar, above the
   phone-width tab bar. POST `/community/feedback`
