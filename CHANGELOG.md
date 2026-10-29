@@ -13,7 +13,7 @@ improvements". 1.0.0 comes when the beta ends. Newest first.
 - Each overlay says if it works in iRacing, Le Mans Ultimate or both, and you choose which ones open by themselves in each game.
 - Records say if they are from iRacing or Le Mans Ultimate.
 - Maps show the track's own layout, and turn numbers follow the official count of each iRacing track.
-- A button at the bottom left to send us your feedback.
+- A support chat on the button at the bottom right. Write to us and we answer there.
 - Fixes and improvements.
 
 ## 0.7.2 beta
