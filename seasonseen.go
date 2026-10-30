@@ -2,7 +2,7 @@ package main
 
 // seasonseen: when an official iRacing race you are in really started, sent once per race to the Pitlane HQ server
 // (/community/season/seen) so the planner can check and correct the season's race times without iRacing's data
-// API. Only the subsession, season, series, track and the minute it started: nothing about you.
+// API. Only the subsession, season, series, track, car and the minute it started: nothing about you.
 
 import (
 	"sync"
@@ -23,7 +23,7 @@ func raceStart(now time.Time, sessionTime float64) (time.Time, bool) {
 	return now.Add(-time.Duration(sessionTime * float64(time.Second))).Round(time.Minute), true
 }
 
-func noteRaceStart(meta carTrack, sn int, sessionTime float64) {
+func noteRaceStart(meta carTrack, y string, sn int, sessionTime float64) {
 	if !meta.Official || meta.Subsession <= 0 || meta.SeasonID <= 0 || meta.SeriesID <= 0 || meta.TrackID <= 0 || sn != 0 || currentGame() != "iracing" || tel.isDemo() {
 		return
 	}
@@ -38,8 +38,11 @@ func noteRaceStart(meta carTrack, sn int, sessionTime float64) {
 	}
 	seenSent[meta.Subsession] = true
 	seenMu.Unlock()
+	// the names as the sim shows them: a season imported from iRacing's schedule PDF has no ids to match
+	trackName, trackConfig := yamlField(y, "TrackDisplayName"), yamlField(y, "TrackConfigName")
 	go func() {
-		body := map[string]any{"sub": meta.Subsession, "season": meta.SeasonID, "series": meta.SeriesID, "track": meta.TrackID, "start": start.UnixMilli()}
+		body := map[string]any{"sub": meta.Subsession, "season": meta.SeasonID, "series": meta.SeriesID, "track": meta.TrackID, "start": start.UnixMilli(),
+			"trackName": trackName, "trackConfig": trackConfig, "car": meta.Car}
 		commCall("POST", "/season/seen", body, true) // best effort: a race not reported is one time fewer to check
 	}()
 }

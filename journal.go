@@ -625,7 +625,7 @@ func raceWatcher() {
 		if onTrack {
 			linkOwnDriver(currentGame(), yamlField(y, "DriverUserID"), yamlField(driverBlock(y, yamlField(y, "DriverCarIdx")), "UserName"))
 		}
-		noteRaceStart(meta, sn, v[13]) // an official race's real start, for the planner's race times (seasonseen.go)
+		noteRaceStart(meta, y, sn, v[13]) // an official race's real start, for the planner's race times (seasonseen.go)
 		if !strings.EqualFold(kind, "Race") {
 			end(cur != nil && cur.state < 5)
 			cur = nil

@@ -16,7 +16,7 @@ const stmt = (sql) => {
 };
 const env = { DB: { prepare: stmt } };
 const now = Date.UTC(2026, 9, 30, 14, 20), slot = Date.UTC(2026, 9, 30, 14, 15);
-const race = (sub, start = slot + 20e3) => ({ sub, season: 5101, series: 139, track: 166, start });
+const race = (sub, start = slot + 20e3) => ({ sub, season: 5101, series: 139, track: 166, trackName: "Okayama International Circuit", trackConfig: "Full Course", car: "Mazda MX-5 Cup", start });
 
 assert.deepEqual(await recordSeen(env, "a", race(1), now), { ok: true, kept: true });
 assert.deepEqual(await recordSeen(env, "b", race(1, slot), now), { ok: true, kept: false }, "the same race once");
@@ -24,7 +24,7 @@ assert.equal((await recordSeen(env, "b", race(2, slot - 20e3), now)).kept, true,
 assert.equal((await recordSeen(env, "a", race(3, now - 7 * 3600e3), now)).status, 400, "an old start is not believed");
 assert.equal((await recordSeen(env, "a", { ...race(4), track: 0 }, now)).status, 400);
 let s = await seenSummary(env, now);
-assert.deepEqual(s, { 5101: [[slot, 2]] }, "both splits started in the same minute");
+assert.deepEqual(s, { 5101: [[slot, 2, "Okayama International Circuit", "Full Course", "Mazda MX-5 Cup"]] }, "both splits started in the same minute");
 for (let i = 0; i < SEEN_PER_DAY; i++) await recordSeen(env, "c", race(100 + i), now);
 assert.equal((await recordSeen(env, "c", race(999), now)).status, 429);
 await pruneSeen(env, now + 200 * 864e5);

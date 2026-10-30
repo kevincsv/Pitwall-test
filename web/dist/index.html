@@ -4148,11 +4148,18 @@ function sessions(w,from,to){const out=[],ws=weekStart(w),we=weekEnd(w),r=w.rtd|
    week whose race times miss them moves its times (or learns them), and the season's later weeks with the same times
    follow. Checked to 3 minutes: a PC's clock and the launch are never to the second */
 function applySeen(ser,seen){if(!seen||!ser)return;const M=6e4,key=r=>JSON.stringify([!!(r&&r.r),r&&r.f,r&&r.m,r&&r.d]);
-  ser.seasons.forEach(s=>{const obs=(seen[s.id]||[]).map(x=>x[0]);if(!obs.length)return;
+  ser.seasons.forEach(s=>{const obs=(seen[s.id]||seenByName(ser,s,seen)).map(x=>x[0]);if(!obs.length)return;
     s.weeks.forEach(w=>{const ws=weekStart(w),we=weekEnd(w),o=obs.filter(t=>t>=ws&&t<we);if(!o.length)return;
       const p=sessions(w,ws,we);if(p.length&&o.every(t=>p.some(x=>Math.abs(x-t)<=3*M))){w.seen=true;return}
       const k=key(w.rtd),fix=seenFix(w.rtd||{},o);if(!fix)return;
       s.weeks.forEach(x=>{if(x===w||(weekStart(x)>ws&&key(x.rtd)===k&&!obs.some(t=>t>=weekStart(x)&&t<weekEnd(x)))){x.rtd={...(x.rtd||{}),...fix};x.seen=true}})})})}
+/* a season imported from iRacing's schedule PDF has no iRacing ids: the starts of the iRacing season whose races were
+   all at this season's track of their week (name and configuration as the sim shows them) with one of its cars */
+function seenByName(ser,s,seen){const n=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const fits=e=>{const w=s.weeks.find(w=>e[0]>=weekStart(w)&&e[0]<weekEnd(w));if(!w||!e[2]||!e[4])return false;const t=ser.tracks[w.tr]||[w.trn,""];
+    if(n(t[0])!==n(e[2])||n(t[1])!==n(e[3]))return false;const c=n(e[4]);return(w.cars&&w.cars.length?w.cars:s.cc||[]).some(id=>{const k=ser.cars[id];return k&&[k[0],k[1]].some(x=>{x=n(x);return x&&(x===c||(x.length>5&&c.includes(x))||(c.length>5&&x.includes(c)))})})};
+  const hit=Object.keys(seen).filter(k=>!ser.seasons.some(x=>String(x.id)===k)&&seen[k].length&&seen[k].every(fits));
+  return hit.length===1?seen[hit[0]]:[]}
 function seenFix(r,o){const M=6e4,mod=(a,b)=>((a%b)+b)%b,mins=[...new Set(o.map(t=>Math.round(mod(t,DAY)/M)))],hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
   if(r.r&&r.m>0){const[h,mi]=(r.f||"00:00").split(":").map(Number),f=h*60+mi,sh=mins.map(x=>mod(x-f,r.m));
     // the shift most starts agree on (a start a minute either side of it agrees)
