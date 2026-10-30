@@ -3597,7 +3597,7 @@ function openSessPicker(px){const ss=(CLOUD.sessions||[]).slice().sort((a,b)=>(b
     m.querySelectorAll(".hm-cal [data-day]").forEach(b=>{const k=dayKey(+b.dataset.day);if(k===F.day)b.classList.add("sel");b.onclick=()=>{F.day=F.day===k?"":k;draw()}});
     {const d0=m.querySelector("[data-spday0]");if(d0)d0.onclick=()=>{F.day="";draw()}}
     m.querySelectorAll("[data-spid]").forEach(b=>b.onclick=()=>{Object.assign(LAPF,F);const id=b.dataset.spid;close();const rs=$("#"+px+"Ref");if(rs)delete rs.dataset.user;
-      if(pcPick())setPcSrc("acct");if(id!==CLOUD.sid){CLOUD.bid="";CLOUD.lapsB=[];cloudLoadSession(id)}else if(CUR_VIEW==="coach")renderCoach();else renderLaps()});
+      if(pcPick())setPcSrc("acct");if(id!==CLOUD.sid||!CLOUD.laps.length&&!CLOUD.busy){if(id!==CLOUD.sid){CLOUD.bid="";CLOUD.lapsB=[]}CLOUD_CACHE.delete(id);cloudLoadSession(id)}else if(CUR_VIEW==="coach")renderCoach();else renderLaps()});
     {const cur=m.querySelector(".sp-row.cur");if(cur)cur.scrollIntoView({block:"nearest"})}};
   draw()}
 /* the supporter badge (people who donate; given by hand by the owner of Pitlane HQ) */
@@ -6993,7 +6993,7 @@ async function cloudSessionLaps(id){if(CLOUD_CACHE.has(id))return CLOUD_CACHE.ge
   const meta=j.session||(CLOUD.sessions||[]).find(x=>x.id===id)||{};
   const res={laps:ls.filter(l=>l&&l.trace&&l.trace.d&&l.trace.d.length).map(l=>({n:l.n,time:l.time,valid:!!l.valid,pit:!!l.pit,inc:l.inc||0,incAt:Array.isArray(l.trace.inc)?l.trace.inc:[],incK:Array.isArray(l.trace.incK)?l.trace.incK:[],cloud:l.id,...(l.drv?{drv:l.drv}:{}),...(meta.other?{who:meta.who||""}:{}),sessionId:id,trackId:meta.trackId??meta.track_id??null,carId:meta.carId??meta.car_id??null,track:meta.track,track_config:meta.track_config,car:meta.car,game:meta.game,sectors:l.sectors||null,vmax:l.vmax||null,fuel:l.fuel??null,...traceBins(l.trace)})),any:ls.length};
   await mergeRaceIncidents(id,meta,res.laps);
-  CLOUD_CACHE.set(id,res);if(CLOUD_CACHE.size>6)CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);return res}
+  if(res.laps.length)CLOUD_CACHE.set(id,res);if(CLOUD_CACHE.size>6)CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);return res}
 /* laps recorded before 0.5.1 have no incidents of their own: the race summary of the same session has them per lap
    (and where they happened), so they are copied over here and sent to your account once, so every device gets them */
 async function mergeRaceIncidents(id,meta,laps){try{if(!laps.length||laps.every(l=>l.inc||l.incAt.length))return;if(RACES===null)await loadRaces();const r=raceForSession({id,track:meta.track,car:meta.car,started:meta.started});if(!r||!(r.laps||[]).some(l=>l.i))return;

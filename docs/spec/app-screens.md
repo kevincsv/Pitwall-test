@@ -18,7 +18,9 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
 - Analysis (lap analyzer and coach): "Choose a session" is a window (discipline, kind of session, car
   and track, a day you drove on the calendar, then the session) that opens by itself when you enter
   Analysis from another tab; the bars only show what is chosen; the car and the track are two
-  filters. The phone apps filter their session list the same way. Laps A and B are one choice for the
+  filters. Clicking a session always opens it, the highlighted (current) one too: when its laps did not load (an error,
+  or the laps were still going up), it is read again, never from the page's cache (an empty answer is never cached).
+  The phone apps filter their session list the same way. Laps A and B are one choice for the
   lap analyzer and the coach (`ANASEL`, a lap known by itself, not by its place in a list), with the same
   default and the model's references as B in both, each once ("▲ Next level", "★ Record"); with
   "+ Session" lap B is only the laps of the other session (and the references). A community lap is compared only with
