@@ -1,6 +1,12 @@
 {
   "versions": [
     {
+      "v": "0.8.1",
+      "en": ["The newest session opens in the analyser again when you choose it.", "Fixes and improvements."],
+      "es": ["La sesión más reciente vuelve a abrirse en el analizador cuando la eliges.", "Arreglos y mejoras."],
+      "pt": ["A sessão mais recente volta a abrir no analisador quando você a escolhe.", "Correções e melhorias."]
+    },
+    {
       "v": "0.8.0",
       "en": [
         "The overlays have a new look, Lane, in beta. The classic one is still there, with four more new designs. Choose one for all the overlays or a different one for each.",

@@ -4,6 +4,11 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.8.1 beta
+
+- The newest session opens in the analyser again when you choose it.
+- Fixes and improvements.
+
 ## 0.8.0 beta
 
 - The overlays have a new look, Lane, in beta. The classic one is still there, with four more new designs. Choose one for all the overlays or a different one for each.
