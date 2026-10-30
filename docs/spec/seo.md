@@ -13,9 +13,12 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   /es/overlays-le-mans-ultimate, /pt/overlays-le-mans-ultimate (short addresses such as /lmu, /lmu-telemetry,
   /lmu-overlays, /lmu-coach go there with 301); the guides (`seo-topics.js`, one page per thing people search for, each in
   the three languages, linked at the foot of every public page and in the app's <noscript>: the coach, comparing laps,
-  braking points, the racing line, the iRating, the shift beep, telemetry on the phone, free telemetry, and the Le Mans
-  Ultimate coach /le-mans-ultimate-coach; the iRacing guides that work in Le Mans Ultimate say so and link its page, the
-  iRating one stays iRacing only); /records, /es/records and /pt/records, one page per car and track (BreadcrumbList; the
+  braking points, the racing line, the iRating, the shift beep, telemetry on the phone, free telemetry, the fuel
+  calculator /iracing-fuel-calculator (the fuel overlay, which measures each lap; never a form to fill in), and for Le
+  Mans Ultimate the coach /le-mans-ultimate-coach, comparing laps /le-mans-ultimate-lap-comparison and braking points
+  /le-mans-ultimate-braking-points; the iRacing guides that work in Le Mans Ultimate say so and link its page (its
+  guide, its telemetry page or its overlays page), the iRating one stays iRacing only); the overlays pages name the six
+  looks and the per-overlay settings; /records, /es/records and /pt/records, one page per car and track (BreadcrumbList; the
   records index an ItemList and a FAQPage; the landings WebSite, Organization, SoftwareApplication and FAQPage; every
   guide and overlays page a SoftwareApplication with its screenshots); Le Mans Ultimate's records
   (/le-mans-ultimate-records, /es/records-le-mans-ultimate, /pt/recordes-le-mans-ultimate, its cars and tracks under

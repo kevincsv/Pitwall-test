@@ -13,7 +13,7 @@ import { foundLeagues } from "./leaguescan.js";
 const SITE = "https://pitlanehq.app";
 // SEO_VER: raised when the public pages change (new languages, new addresses, new texts): every page is sent to
 // IndexNow again once. SEO_DATE: the day their texts last changed, the sitemap's lastmod of the pages without data.
-const SEO_VER = "11", SEO_DATE = "2026-10-28";
+const SEO_VER = "12", SEO_DATE = "2026-10-30";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const slug = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 const fmt = (t) => { if (!(t > 0)) return "–"; const m = Math.floor(t / 60), s = t - m * 60; return (m ? m + ":" + (s < 10 ? "0" : "") : "") + s.toFixed(3); };
@@ -353,15 +353,15 @@ const OVW = {
   en: { listT: "The overlays", expT: "Experimental overlays", exp: "Live lap compare, DRS and push-to-pass, g-force, mini-sectors, gaps, session stats, telemetry traces and performance (frames a second, CPU, GPU and latency). Switch them on in the Overlays tab.",
     vrT: "Overlays in VR", vr: "Every open overlay also shows in the headset as a SteamVR overlay, where it sits on your screen, so moving it on the screen moves it in VR. Meta headsets work through SteamVR. Turn it on in Settings → VR.",
     howT: "How they work", shotsT: "As Pitlane HQ Agent draws them",
-    how: ["Drawn natively by Pitlane HQ Agent on Windows, not in a browser window.", "Only the panel shows. The rest is see-through and every click goes to the game.", "Drag and resize them while you place them. They never leave the screen.", "Four presets built in, and your own, saved in your account.", "Auto opens them when you get in the car and closes them when you get out."] },
+    how: ["Drawn natively by Pitlane HQ Agent on Windows, not in a browser window.", "Only the panel shows. The rest is see-through and every click goes to the game.", "Drag and resize them while you place them. They never leave the screen.", "Four presets built in, and your own, saved in your account.", "Six looks, Lane, Wall, Light, Board, Frameless and Classic, for every overlay or a different one for each.", "Each overlay has its own opacity, text size and rows, and can hide by itself in the pits or when you are out of the car.", "Auto opens them when you get in the car and closes them when you get out."] },
   es: { listT: "Los overlays", expT: "Overlays experimentales", exp: "Comparación de vueltas en vivo, DRS y push-to-pass, fuerzas g, minisectores, diferencias, estadísticas de la sesión, trazas de telemetría y rendimiento (fotogramas por segundo, CPU, GPU y latencia). Se activan en la pestaña Overlays.",
     vrT: "Overlays en VR", vr: "Cada overlay abierto también se ve en las gafas como un overlay de SteamVR, donde está en tu pantalla, así que moverlo en la pantalla lo mueve en VR. Las gafas Meta funcionan a través de SteamVR. Se activa en Ajustes → VR.",
     howT: "Cómo funcionan", shotsT: "Tal como los dibuja Pitlane HQ Agent",
-    how: ["Dibujados de forma nativa por Pitlane HQ Agent en Windows, no en una ventana de navegador.", "Solo se ve el panel. El resto es transparente y cada clic va al juego.", "Los arrastras y cambias de tamaño mientras los colocas. Nunca se salen de la pantalla.", "Cuatro presets incluidos y los tuyos, guardados en tu cuenta.", "Auto los abre al subirte al coche y los cierra al bajarte."] },
+    how: ["Dibujados de forma nativa por Pitlane HQ Agent en Windows, no en una ventana de navegador.", "Solo se ve el panel. El resto es transparente y cada clic va al juego.", "Los arrastras y cambias de tamaño mientras los colocas. Nunca se salen de la pantalla.", "Cuatro presets incluidos y los tuyos, guardados en tu cuenta.", "Seis estilos, Lane, Wall, Light, Board, Frameless y Classic, para todos los overlays o uno distinto para cada uno.", "Cada overlay tiene su propia opacidad, tamaño de texto y filas, y puede ocultarse solo en boxes o al bajarte del coche.", "Auto los abre al subirte al coche y los cierra al bajarte."] },
   pt: { listT: "Os overlays", expT: "Overlays experimentais", exp: "Comparação de voltas ao vivo, DRS e push-to-pass, forças g, minissetores, diferenças, estatísticas da sessão, traços de telemetria e desempenho (quadros por segundo, CPU, GPU e latência). Ative na aba Overlays.",
     vrT: "Overlays em VR", vr: "Cada overlay aberto também aparece nos óculos como um overlay do SteamVR, onde ele está na sua tela, então movê-lo na tela o move em VR. Os óculos Meta funcionam pelo SteamVR. Ative em Configurações → VR.",
     howT: "Como funcionam", shotsT: "Como o Pitlane HQ Agent os desenha",
-    how: ["Desenhados de forma nativa pelo Pitlane HQ Agent no Windows, não numa janela de navegador.", "Só o painel aparece. O resto é transparente e cada clique vai para o jogo.", "Arraste e redimensione enquanto posiciona. Eles nunca saem da tela.", "Quatro presets incluídos e os seus, salvos na sua conta.", "Auto abre quando você entra no carro e fecha quando sai."] },
+    how: ["Desenhados de forma nativa pelo Pitlane HQ Agent no Windows, não numa janela de navegador.", "Só o painel aparece. O resto é transparente e cada clique vai para o jogo.", "Arraste e redimensione enquanto posiciona. Eles nunca saem da tela.", "Quatro presets incluídos e os seus, salvos na sua conta.", "Seis estilos, Lane, Wall, Light, Board, Frameless e Classic, para todos os overlays ou um diferente para cada um.", "Cada overlay tem sua própria opacidade, tamanho de texto e linhas, e pode se esconder sozinho nos boxes ou quando você sai do carro.", "Auto abre quando você entra no carro e fecha quando sai."] },
 };
 const OVL = {
   en: { path: "/iracing-overlays", title: "iRacing overlays, relative, radar and fuel · Pitlane HQ",
@@ -634,7 +634,7 @@ function topicPage(x, l) {
   const more = lmu ? lmuLinks(l).filter(([p]) => p !== G.path).concat(lmuToo(l).map((x) => [x.path, x.h1]))
     : iracingLinks(l).filter(([p]) => p !== G.path).concat([[L.path, L.h1]]);
   // the same thing for Le Mans Ultimate (or the guide of the other game)
-  const to = x.lmu ? (x.lmu === "tel" ? LANDL[l] : TOPIC_BY[x.lmu] ? TOPIC_BY[x.lmu][l] : null) : lmu ? TOPIC_BY.coach[l] : null;
+  const to = x.lmu ? (x.lmu === "tel" ? LANDL[l] : x.lmu === "ov" ? OVLL[l] : TOPIC_BY[x.lmu] ? TOPIC_BY[x.lmu][l] : null) : lmu ? TOPIC_BY.coach[l] : null;
   const body = `<h1>${esc(G.h1)}</h1><p class="lead">${esc(G.lead)}</p>
 <div class="cta"><a class="btn p" href="/dl/PitlaneHQ-Setup.exe">${esc(L.dl)}</a><a class="btn" href="/">${esc(L.app)}</a></div>
 <div class="g">${G.secs.map(([h, p]) => `<section class="c"><h2>${esc(h)}</h2><p>${esc(p)}</p></section>`).join("")}</div>

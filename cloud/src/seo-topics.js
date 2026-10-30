@@ -1,5 +1,6 @@
 // The guides: one public page per thing people search for (the coach, comparing laps, braking points, the racing
-// line, the iRating, the shift beep, telemetry on the phone, free telemetry, and the coach for Le Mans Ultimate), in
+// line, the iRating, the shift beep, telemetry on the phone, free telemetry, fuel, and for Le Mans Ultimate the coach,
+// comparing laps and braking points), in
 // English, Spanish and Portuguese, each naming the other two. Plain words about what Pitlane HQ really does, never
 // hype, and no text that joins two phrases with a colon; seo.js draws them.
 // img: a screenshot of the app (web/dist/landing/<lang>/), shown under the cards; phones: the phone app's own screens.
@@ -68,7 +69,7 @@ export const TOPICS = [
     },
   },
   {
-    id: "compare", img: "compare.jpg", lmu: "lmu-coach",
+    id: "compare", img: "compare.jpg", lmu: "lmu-compare",
     en: {
       path: "/iracing-lap-comparison", title: "Compare iRacing laps side by side · Pitlane HQ",
       desc: "Compare two iRacing laps for free. Speed, throttle, brake, gear, steering and the time gap along the lap, with the track map, sectors and braking points.",
@@ -128,7 +129,7 @@ export const TOPICS = [
     },
   },
   {
-    id: "braking", lmu: "lmu-coach",
+    id: "braking", lmu: "lmu-braking",
     en: {
       path: "/iracing-braking-points", title: "iRacing braking points and braking markers · Pitlane HQ",
       desc: "Find your braking points in iRacing. Pitlane HQ shows where you brake against a faster lap, on the map, in the charts and live on track with markers.",
@@ -463,6 +464,189 @@ export const TOPICS = [
         ["É grátis mesmo?", "Sim. O app do PC, a web e o app Android são grátis."],
         ["Procurando uma alternativa grátis ao RaceLab, Garage 61, Track Titan ou VRS?", "O Pitlane HQ junta overlays, telemetria de voltas com comparações e um coach com voltas de referência das suas próprias classificações num só app grátis."],
         ["Quais simuladores?", "iRacing e Le Mans Ultimate (em beta). ACC e Assetto Corsa estão em desenvolvimento."],
+      ],
+    },
+  },
+  {
+    id: "fuel", lmu: "ov",
+    en: {
+      path: "/iracing-fuel-calculator", title: "iRacing fuel calculator that measures every lap · Pitlane HQ",
+      desc: "A live iRacing fuel calculator. The Pitlane HQ fuel overlay measures each lap and shows the laps left and what you may use per lap to finish without a stop.",
+      h1: "An iRacing fuel calculator that measures every lap",
+      lead: "No table to fill in before the race. The fuel overlay of Pitlane HQ measures what each lap really uses, with your pace and the traffic you meet, and tells you while you drive if the tank reaches the flag.",
+      secs: [
+        ["What each lap uses", "The last lap's use and the average of the clean laps, measured from the car itself, not from a guess made before the start."],
+        ["Laps left in the tank", "How many laps the fuel you carry gives at the pace you are driving, with the spare laps of margin you choose."],
+        ["To finish without a stop", "What you may use per lap to reach the flag on the fuel you have. Lift and coast until the number turns green."],
+        ["The pit stop", "On the pit road the pit overlay shows your speed against the limit and the fuel and repairs of the stop."],
+        ["Every race in your account", "Each lap's fuel goes into your laps, so the next race at the same track starts with what you used last time."],
+      ],
+      faq: [
+        ["Do I need to type the race length or the tank size?", "No. The overlay reads the session, the tank and every lap from iRacing by itself."],
+        ["How much margin does it keep?", "0.3 laps by default. You choose the spare laps in the overlay's settings."],
+        ["Does it work in Le Mans Ultimate?", "Yes, in beta. The fuel overlay works the same, and the dash shows the virtual energy left."],
+        ["Is it free?", "Yes. The fuel overlay is one of the free overlays."],
+      ],
+    },
+    es: {
+      path: "/es/calculadora-combustible-iracing", title: "Calculadora de combustible para iRacing en vivo · Pitlane HQ",
+      desc: "Una calculadora de combustible en vivo para iRacing. El overlay de Pitlane HQ mide cada vuelta y te dice cuántas te quedan y cuánto gastar para no parar.",
+      h1: "Una calculadora de combustible para iRacing que mide cada vuelta",
+      lead: "Sin tablas que rellenar antes de la carrera. El overlay de combustible de Pitlane HQ mide lo que gasta de verdad cada vuelta, con tu ritmo y el tráfico que encuentras, y te dice mientras conduces si el depósito llega a la bandera.",
+      secs: [
+        ["Lo que gasta cada vuelta", "El consumo de la última vuelta y la media de las vueltas limpias, medidos en el propio coche, no estimados antes de la salida."],
+        ["Vueltas que quedan en el depósito", "Cuántas vueltas da el combustible que llevas al ritmo al que vas, con las vueltas de margen que elijas."],
+        ["Para terminar sin parar", "Lo que puedes gastar por vuelta para llegar a la bandera con el combustible que tienes. Levanta y deja rodar hasta que el número se ponga verde."],
+        ["La parada en boxes", "En el pit lane el overlay de boxes muestra tu velocidad frente al límite y el combustible y las reparaciones de la parada."],
+        ["Cada carrera en tu cuenta", "El combustible de cada vuelta se guarda con tus vueltas, así que la próxima carrera en el mismo circuito empieza con lo que gastaste la última vez."],
+      ],
+      faq: [
+        ["¿Tengo que escribir la duración de la carrera o el depósito?", "No. El overlay lee la sesión, el depósito y cada vuelta de iRacing él solo."],
+        ["¿Cuánto margen deja?", "0,3 vueltas por defecto. Las vueltas de margen se eligen en los ajustes del overlay."],
+        ["¿Funciona en Le Mans Ultimate?", "Sí, en beta. El overlay de combustible funciona igual, y el dash muestra la energía virtual que queda."],
+        ["¿Es gratis?", "Sí. El overlay de combustible es uno de los overlays gratis."],
+      ],
+    },
+    pt: {
+      path: "/pt/calculadora-combustivel-iracing", title: "Calculadora de combustível para iRacing ao vivo · Pitlane HQ",
+      desc: "Uma calculadora de combustível ao vivo para iRacing. O overlay do Pitlane HQ mede cada volta e mostra quantas restam e quanto gastar para não parar.",
+      h1: "Uma calculadora de combustível para iRacing que mede cada volta",
+      lead: "Sem tabela para preencher antes da corrida. O overlay de combustível do Pitlane HQ mede o que cada volta realmente gasta, com o seu ritmo e o tráfego que encontra, e diz enquanto você pilota se o tanque chega à bandeirada.",
+      secs: [
+        ["O que cada volta gasta", "O consumo da última volta e a média das voltas limpas, medidos no próprio carro, não estimados antes da largada."],
+        ["Voltas que restam no tanque", "Quantas voltas o combustível que você leva dá no ritmo em que está, com as voltas de margem que escolher."],
+        ["Para terminar sem parar", "O que você pode gastar por volta para chegar à bandeirada com o combustível que tem. Tire o pé antes da frenagem até o número ficar verde."],
+        ["O pit stop", "No pit lane o overlay de boxes mostra sua velocidade contra o limite e o combustível e os reparos da parada."],
+        ["Cada corrida na sua conta", "O combustível de cada volta fica com as suas voltas, então a próxima corrida na mesma pista começa com o que você gastou da última vez."],
+      ],
+      faq: [
+        ["Preciso digitar a duração da corrida ou o tanque?", "Não. O overlay lê a sessão, o tanque e cada volta do iRacing sozinho."],
+        ["Quanta margem ele deixa?", "0,3 voltas por padrão. As voltas de margem são escolhidas nos ajustes do overlay."],
+        ["Funciona no Le Mans Ultimate?", "Sim, em beta. O overlay de combustível funciona igual, e o dash mostra a energia virtual que resta."],
+        ["É grátis?", "Sim. O overlay de combustível é um dos overlays grátis."],
+      ],
+    },
+  },
+  {
+    id: "lmu-compare", game: "lmu", img: "compare.jpg", lmu: "compare",
+    en: {
+      path: "/le-mans-ultimate-lap-comparison", title: "Compare Le Mans Ultimate laps side by side · Pitlane HQ",
+      desc: "Compare two Le Mans Ultimate laps on charts and on the map. Speed, throttle, brake, gear and the time gap, against your best or a faster real lap. Free.",
+      h1: "Compare Le Mans Ultimate laps side by side",
+      lead: "Pitlane HQ records every Le Mans Ultimate lap by itself and lays two of them over each other, yours against your best, a team mate's or a faster lap from the leaderboard of the same car and track.",
+      secs: [
+        ["Every channel on one chart", "Speed, throttle, brake, gear, steering and the time gap along the lap, so you see where the gap opens and why."],
+        ["On the track map", "Both racing lines drawn on the circuit, with the braking points and the corners where the time goes."],
+        ["Sector by sector", "The official sectors of Le Mans Ultimate, learnt from the game, and the time of each against the other lap."],
+        ["A faster lap to compare with", "The record of the car and track, or the next level above your pace, from the laps of Pitlane HQ drivers and their rivals."],
+        ["Hypercar, LMP2, LMP3, GTE and LMGT3", "Every car is compared with laps of the same car on the same track, never another class."],
+        ["On the PC, the web and the phone", "Open the comparison wherever you are, the laps are in your account."],
+      ],
+      faq: [
+        ["Do I need to export anything from the game?", "No. Turn on Settings → Gameplay → Enable Plugins in Le Mans Ultimate and Pitlane HQ Agent records the laps by itself."],
+        ["Can I compare with a faster driver?", "Yes. Lap B can be the record of the car and track or the next level above your pace, both laps someone really drove."],
+        ["Does it count laps off the track?", "A lap off the track or not round the whole circuit is never valid, and never a reference."],
+        ["Is it free?", "Yes. Le Mans Ultimate support is in beta and free."],
+      ],
+    },
+    es: {
+      path: "/es/comparar-vueltas-le-mans-ultimate", title: "Comparar vueltas de Le Mans Ultimate · Pitlane HQ",
+      desc: "Compara dos vueltas de Le Mans Ultimate en gráficas y en el mapa. Velocidad, acelerador, freno, marcha y diferencia, frente a tu mejor vuelta o una más rápida.",
+      h1: "Comparar vueltas de Le Mans Ultimate una junto a otra",
+      lead: "Pitlane HQ graba cada vuelta de Le Mans Ultimate él solo y pone dos una encima de otra, la tuya frente a tu mejor vuelta, la de un compañero o una más rápida de la clasificación del mismo coche y circuito.",
+      secs: [
+        ["Todos los canales en una gráfica", "Velocidad, acelerador, freno, marcha, volante y la diferencia de tiempo a lo largo de la vuelta, para ver dónde se abre la diferencia y por qué."],
+        ["En el mapa del circuito", "Las dos trazadas dibujadas sobre el circuito, con los puntos de frenada y las curvas donde se va el tiempo."],
+        ["Sector a sector", "Los sectores oficiales de Le Mans Ultimate, aprendidos del juego, y el tiempo de cada uno frente a la otra vuelta."],
+        ["Una vuelta más rápida con la que comparar", "El récord del coche y circuito, o el siguiente nivel por encima de tu ritmo, de las vueltas de los pilotos de Pitlane HQ y de sus rivales."],
+        ["Hypercar, LMP2, LMP3, GTE y LMGT3", "Cada coche se compara con vueltas del mismo coche en el mismo circuito, nunca de otra clase."],
+        ["En el PC, la web y el móvil", "Abre la comparación donde estés, las vueltas están en tu cuenta."],
+      ],
+      faq: [
+        ["¿Tengo que exportar algo del juego?", "No. Activa Settings → Gameplay → Enable Plugins en Le Mans Ultimate y Pitlane HQ Agent graba las vueltas él solo."],
+        ["¿Puedo compararme con un piloto más rápido?", "Sí. La vuelta B puede ser el récord del coche y circuito o el siguiente nivel por encima de tu ritmo, las dos vueltas que alguien condujo de verdad."],
+        ["¿Cuenta las vueltas fuera de pista?", "Una vuelta fuera de pista o que no recorre todo el circuito nunca es válida, ni sirve de referencia."],
+        ["¿Es gratis?", "Sí. El soporte de Le Mans Ultimate está en beta y es gratis."],
+      ],
+    },
+    pt: {
+      path: "/pt/comparar-voltas-le-mans-ultimate", title: "Comparar voltas do Le Mans Ultimate · Pitlane HQ",
+      desc: "Compare duas voltas do Le Mans Ultimate em gráficos e no mapa. Velocidade, acelerador, freio, marcha e a diferença, contra a sua melhor ou uma mais rápida.",
+      h1: "Comparar voltas do Le Mans Ultimate lado a lado",
+      lead: "O Pitlane HQ grava cada volta do Le Mans Ultimate sozinho e coloca duas uma sobre a outra, a sua contra a sua melhor, a de um colega ou uma mais rápida da classificação do mesmo carro e pista.",
+      secs: [
+        ["Todos os canais num gráfico", "Velocidade, acelerador, freio, marcha, volante e a diferença de tempo ao longo da volta, para ver onde a diferença abre e por quê."],
+        ["No mapa da pista", "Os dois traçados desenhados na pista, com os pontos de frenagem e as curvas onde o tempo vai embora."],
+        ["Setor a setor", "Os setores oficiais do Le Mans Ultimate, aprendidos do jogo, e o tempo de cada um contra a outra volta."],
+        ["Uma volta mais rápida para comparar", "O recorde do carro e pista, ou o próximo nível acima do seu ritmo, das voltas dos pilotos do Pitlane HQ e dos seus rivais."],
+        ["Hypercar, LMP2, LMP3, GTE e LMGT3", "Cada carro é comparado com voltas do mesmo carro na mesma pista, nunca de outra classe."],
+        ["No PC, na web e no celular", "Abra a comparação onde estiver, as voltas estão na sua conta."],
+      ],
+      faq: [
+        ["Preciso exportar algo do jogo?", "Não. Ative Settings → Gameplay → Enable Plugins no Le Mans Ultimate e o Pitlane HQ Agent grava as voltas sozinho."],
+        ["Posso comparar com um piloto mais rápido?", "Sim. A volta B pode ser o recorde do carro e pista ou o próximo nível acima do seu ritmo, as duas voltas que alguém realmente pilotou."],
+        ["Conta voltas fora da pista?", "Uma volta fora da pista ou que não percorre a pista inteira nunca é válida, nem serve de referência."],
+        ["É grátis?", "Sim. O suporte ao Le Mans Ultimate está em beta e é grátis."],
+      ],
+    },
+  },
+  {
+    id: "lmu-braking", game: "lmu", lmu: "braking",
+    en: {
+      path: "/le-mans-ultimate-braking-points", title: "Le Mans Ultimate braking points and markers · Pitlane HQ",
+      desc: "Find your braking points in Le Mans Ultimate. Pitlane HQ shows where you brake against a faster lap of the same car, on the map and live on track. In beta.",
+      h1: "Braking points for Le Mans Ultimate",
+      lead: "At Le Mans, Spa or Bahrain most of the time is won or lost under braking. Pitlane HQ shows where you brake, how hard and how long, next to a faster lap of the same car, and marks the next point on track while you drive.",
+      secs: [
+        ["Where you brake against a faster lap", "Both laps' braking points on the track map, in metres, with the speed before the corner and the lowest speed in it."],
+        ["How you brake", "The brake trace of both laps, the peak pressure, trail braking into the corner and when you release"],
+        ["Braking markers on track", "An overlay marks the next braking point while you drive, taken from the next level above your best lap, and moves with your speed and the car close ahead."],
+        ["What the fast drivers do", "Under each corner, the range of braking points and apex speeds of the fastest drivers there, from their real laps."],
+        ["Every class on its own", "A Hypercar brakes much later than an LMGT3, so each car is compared only with laps of the same car."],
+      ],
+      faq: [
+        ["Where do the braking points come from?", "From real laps of the same car and track, the next level above your pace, or your own best lap while there is none."],
+        ["Do the markers work in VR?", "Yes. The overlays also show in the headset through SteamVR."],
+        ["What do I need?", "Pitlane HQ Agent on Windows and, in the game, Settings → Gameplay → Enable Plugins turned on."],
+        ["Is it free?", "Yes. Le Mans Ultimate support is in beta and free."],
+      ],
+    },
+    es: {
+      path: "/es/puntos-de-frenada-le-mans-ultimate", title: "Puntos de frenada en Le Mans Ultimate · Pitlane HQ",
+      desc: "Encuentra tus puntos de frenada en Le Mans Ultimate. Pitlane HQ te enseña dónde frenas frente a una vuelta más rápida del mismo coche, en el mapa y en pista.",
+      h1: "Puntos de frenada para Le Mans Ultimate",
+      lead: "En Le Mans, Spa o Bahréin casi todo el tiempo se gana o se pierde frenando. Pitlane HQ te enseña dónde frenas, cuánto y durante cuánto, junto a una vuelta más rápida del mismo coche, y marca el siguiente punto en pista mientras conduces.",
+      secs: [
+        ["Dónde frenas frente a una vuelta más rápida", "Los puntos de frenada de las dos vueltas en el mapa, en metros, con la velocidad antes de la curva y la mínima dentro."],
+        ["Cómo frenas", "La traza de freno de las dos vueltas, la presión máxima, el trail braking hasta la curva y cuándo sueltas"],
+        ["Marcas de frenada en pista", "Un overlay marca el siguiente punto de frenada mientras conduces, sacado del siguiente nivel por encima de tu mejor vuelta, y se ajusta a tu velocidad y al coche que llevas delante."],
+        ["Lo que hacen los rápidos", "En cada curva, entre qué metros frenan y a qué velocidad pasan por el vértice los pilotos más rápidos de allí, de sus vueltas reales."],
+        ["Cada clase por su lado", "Un Hypercar frena mucho más tarde que un LMGT3, así que cada coche se compara solo con vueltas del mismo coche."],
+      ],
+      faq: [
+        ["¿De dónde salen los puntos de frenada?", "De vueltas reales del mismo coche y circuito, del siguiente nivel por encima de tu ritmo, o de tu mejor vuelta mientras no haya otra."],
+        ["¿Las marcas funcionan en VR?", "Sí. Los overlays también se ven en las gafas a través de SteamVR."],
+        ["¿Qué necesito?", "Pitlane HQ Agent en Windows y, en el juego, Settings → Gameplay → Enable Plugins activado."],
+        ["¿Es gratis?", "Sí. El soporte de Le Mans Ultimate está en beta y es gratis."],
+      ],
+    },
+    pt: {
+      path: "/pt/pontos-de-frenagem-le-mans-ultimate", title: "Pontos de frenagem no Le Mans Ultimate · Pitlane HQ",
+      desc: "Encontre seus pontos de frenagem no Le Mans Ultimate. O Pitlane HQ mostra onde você freia contra uma volta mais rápida do mesmo carro, no mapa e na pista.",
+      h1: "Pontos de frenagem para Le Mans Ultimate",
+      lead: "Em Le Mans, Spa ou Bahrein quase todo o tempo é ganho ou perdido na frenagem. O Pitlane HQ mostra onde você freia, quanto e por quanto tempo, ao lado de uma volta mais rápida do mesmo carro, e marca o próximo ponto na pista enquanto você pilota.",
+      secs: [
+        ["Onde você freia contra uma volta mais rápida", "Os pontos de frenagem das duas voltas no mapa, em metros, com a velocidade antes da curva e a mínima dentro dela."],
+        ["Como você freia", "O traço de freio das duas voltas, a pressão máxima, o trail braking até a curva e quando você solta"],
+        ["Marcas de frenagem na pista", "Um overlay marca o próximo ponto de frenagem enquanto você pilota, tirado do próximo nível acima da sua melhor volta, e se ajusta à sua velocidade e ao carro logo à frente."],
+        ["O que os rápidos fazem", "Em cada curva, entre quais metros freiam e com que velocidade passam pelo ápice os pilotos mais rápidos dali, das voltas reais deles."],
+        ["Cada classe separada", "Um Hypercar freia muito mais tarde que um LMGT3, então cada carro é comparado só com voltas do mesmo carro."],
+      ],
+      faq: [
+        ["De onde vêm os pontos de frenagem?", "De voltas reais do mesmo carro e pista, do próximo nível acima do seu ritmo, ou da sua melhor volta enquanto não houver outra."],
+        ["As marcas funcionam em VR?", "Sim. Os overlays também aparecem nos óculos pelo SteamVR."],
+        ["Do que preciso?", "Do Pitlane HQ Agent no Windows e, no jogo, de Settings → Gameplay → Enable Plugins ativado."],
+        ["É grátis?", "Sim. O suporte ao Le Mans Ultimate está em beta e é grátis."],
       ],
     },
   },
