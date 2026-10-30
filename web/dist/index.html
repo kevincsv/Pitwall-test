@@ -4154,10 +4154,14 @@ function applySeen(ser,seen){if(!seen||!ser)return;const M=6e4,key=r=>JSON.strin
       const k=key(w.rtd),fix=seenFix(w.rtd||{},o);if(!fix)return;
       s.weeks.forEach(x=>{if(x===w||(weekStart(x)>ws&&key(x.rtd)===k&&!obs.some(t=>t>=weekStart(x)&&t<weekEnd(x)))){x.rtd={...(x.rtd||{}),...fix};x.seen=true}})})})}
 /* a season imported from iRacing's schedule PDF has no iRacing ids: the starts of the iRacing season whose races were
-   all at this season's track of their week (name and configuration as the sim shows them) with one of its cars */
-function seenByName(ser,s,seen){const n=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  const fits=e=>{const w=s.weeks.find(w=>e[0]>=weekStart(w)&&e[0]<weekEnd(w));if(!w||!e[2]||!e[4])return false;const t=ser.tracks[w.tr]||[w.trn,""];
-    if(n(t[0])!==n(e[2])||n(t[1])!==n(e[3]))return false;const c=n(e[4]);return(w.cars&&w.cars.length?w.cars:s.cc||[]).some(id=>{const k=ser.cars[id];return k&&[k[0],k[1]].some(x=>{x=n(x);return x&&(x===c||(x.length>5&&c.includes(x))||(c.length>5&&x.includes(c)))})})};
+   all at this season's track of their week with one of its cars, the sim's names matched to the season's by the words
+   they share (ownBest: "Tsukuba Circuit 2k Full" is "Tsukuba Circuit · 2000 Full", "Ray Formula 1600" the "Ray FF1600") */
+function seenByName(ser,s,seen){
+  if(!ser.seenIdx)ser.seenIdx={t:Object.entries(ser.tracks||{}).map(([id,x])=>[+id,[ownToks(x[0]),ownToks(x[0]+" "+(x[1]||""))]]),c:Object.entries(ser.cars||{}).map(([id,x])=>[+id,[ownToks(x[0])]])};
+  const ix=ser.seenIdx,memo=ser.seenMemo||(ser.seenMemo=new Map()),best=(k,f)=>{if(!memo.has(k))memo.set(k,new Set(f()));return memo.get(k)};
+  const fits=e=>{const w=s.weeks.find(w=>e[0]>=weekStart(w)&&e[0]<weekEnd(w));if(!w||!e[2]||!e[4])return false;const cfg=String(e[3]||"").includes(":")?"":e[3];
+    if(!best("t|"+e[2]+"|"+cfg,()=>ownBest([ownToks(e[2]),ownToks(e[2]+" "+cfg)],ix.t)).has(w.tr))return false;
+    const cs=best("c|"+e[4],()=>ownBest([ownToks(e[4])],ix.c));return(w.cars&&w.cars.length?w.cars:s.cc||[]).some(id=>cs.has(id))};
   const hit=Object.keys(seen).filter(k=>!ser.seasons.some(x=>String(x.id)===k)&&seen[k].length&&seen[k].every(fits));
   return hit.length===1?seen[hit[0]]:[]}
 function seenFix(r,o){const M=6e4,mod=(a,b)=>((a%b)+b)%b,mins=[...new Set(o.map(t=>Math.round(mod(t,DAY)/M)))],hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
