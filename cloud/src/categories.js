@@ -58,7 +58,7 @@ export function guessCat(track, car) {
 // hint: what the PC saw (Oval, DirtOval, DirtRoad are sure; Road can be a sports car or a formula car)
 export function catOf(map, trackId, carId, hint, track, car) {
   const h = String(hint || "").toLowerCase().replace(/[^a-z]/g, "");
-  const sure = { oval: "oval", dirtoval: "dirt_oval", dirtroad: "dirt_road", formulacar: "formula_car", sportscar: "sports_car" }[h];
+  const sure = { oval: "oval", dirtoval: "dirt_oval", dirtroad: "dirt_road", formulacar: "formula_car", formula: "formula_car", sportscar: "sports_car" }[h];
   const x = map.tc[trackId + ":" + carId] || sure || map.c[carId] || guessCat(track, car);
   // "Road" from the PC: a sports car or a formula car, never an oval or dirt
   if (h === "road" && !["sports_car", "formula_car"].includes(x)) { const g = guessCat("", car); return g === "formula_car" ? g : "sports_car"; }

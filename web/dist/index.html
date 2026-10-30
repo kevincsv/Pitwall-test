@@ -3640,7 +3640,7 @@ let COMM_HL="";
 function openBoard(l){if(!l)return;toGame(l.game);CMV="board";CMF.cat=l.cat||"";CMF.q="";CMF.mine=false;COMMSEL={trackId:l.trackId,carId:l.carId};COMM_HL=l.id;show("community")}
 /* your profile's recent races: a summary of your own result in each (the race history itself stays encrypted in your account) */
 async function publishProfileRaces(){if(demoOn()||!(COMPANION?!!CP.acc:!!PCACC))return;try{
-  const ss=CLOUD.sessions||[],catOfRaw=c=>({oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",sportscar:"sports_car"})[String(c||"").toLowerCase().replace(/[^a-z]/g,"")]||null;
+  const ss=CLOUD.sessions||[],catOfRaw=c=>({oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",formula:"formula_car",sportscar:"sports_car"})[String(c||"").toLowerCase().replace(/[^a-z]/g,"")]||null;
   const list=(RACES||[]).filter(r=>r&&!r.shared&&!r.partial&&r.finish>0&&r.when>0&&!(Array.isArray(r.drinks)&&r.drinks.length)&&!isAIRace(r)).sort((a,b)=>b.when-a.when).slice(0,20).map(r=>{const x=ss.find(z=>raceForSession(z)===r),me=(r.results||[]).find(z=>z.me)||{};
     return{id:String(r.id).replace(/[^A-Za-z0-9_.:-]/g,"").slice(0,80)||"r"+r.when,when:r.when,game:r.game||"iracing",track:r.track,car:r.car,cat:(x&&x.cat)||catOfRaw(r.cat),lic:(x&&x.lic)||me.lic||null,official:!!r.official,start:r.start||null,finish:r.finish,field:r.field||null,inc:r.inc||0,best:r.best||null,laps:(r.laps||[]).length,ir:r.ir||null,irChange:r.irChange||0,sof:r.sof||null,dnf:!!r.dnf}});
   let h=2166136261;const k0=JSON.stringify(list);for(let i=0;i<k0.length;i++)h=Math.imul(h^k0.charCodeAt(i),16777619)>>>0;const key=String(h);if(store.get("pw.profRaces","")===key)return;await cloudPost("/community/profile/races",{races:list});store.set("pw.profRaces",key)}catch(e){}}
@@ -3648,7 +3648,7 @@ async function publishProfileRaces(){if(demoOn()||!(COMPANION?!!CP.acc:!!PCACC))
 function lapCtx(px){const el=$("#"+px+"Ctx");if(!el)return;let x=null;
   if(coachCloudOn()){const ss=CLOUD.sessions||[];x=ss.find(z=>z.id===CLOUD.sid)||null}
   else if(typeof S!=="undefined"&&S&&S.WeekendInfo&&typeof myDriver==="function"){const d=myDriver()||{},c=String(S.WeekendInfo.Category||"").toLowerCase().replace(/[^a-z]/g,"");
-    x={car:d.CarScreenName,track:S.WeekendInfo.TrackDisplayName,track_config:S.WeekendInfo.TrackConfigName,cat:{oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",sportscar:"sports_car"}[c]||"",lic:licLetter(d.LicString)}}
+    x={car:d.CarScreenName,track:S.WeekendInfo.TrackDisplayName,track_config:S.WeekendInfo.TrackConfigName,cat:{oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",formula:"formula_car",sportscar:"sports_car"}[c]||"",lic:licLetter(d.LicString)}}
   if(!x||!x.car){el.hidden=true;return}el.hidden=false;
   el.innerHTML=`<span>${esc(Tx("Looking at","Estás viendo","Du siehst","Você está vendo"))}</span><b>${esc(x.car)}</b><span>·</span><span>${esc((x.track||"")+(x.track_config?" · "+x.track_config:""))}</span>${catOf(x)?`<span>·</span><b>${esc(catName(catOf(x)))}</b>`:""}${sesPosTxt(x)?`<span>·</span><b>${esc(sesPosTxt(x))}</b>`:""}${sessIsAI(x)?aiBadge({ai:1}):""}${gameBadge(x)}`}
 const licLetter=v=>{const t=String(v||"").trim().toUpperCase();return /^(WC|PRO)/.test(t)?"P":/^[RDCBAP]\b/.test(t)?t[0]:""};
@@ -8451,11 +8451,15 @@ function homeRacesHTML(){if(RACES===null||!RACES.length&&(HOME.rt||0)<6&&!HOME.r
   return`<section class="hm-sec"><div class="hm-h"><h2>${esc(Tx("Your recent races","Tus carreras recientes","Deine letzten Rennen","Suas corridas recentes"))}</h2>${all.length>5?`<button type="button" data-go="races">${esc(Tx("See all","Ver todas","Alle","Ver todas"))}</button>`:""}</div><div class="hm-card hm-rcs">${list.map(r=>{const ir=isAIRace(r)||!r.irChange?null:r.irChange,inc=r.inc;
     return`<button type="button" class="hm-rc" data-rid="${esc(r.id)}"><div class="inf"><div class="nm">${esc(r.track||"")}${drinksBadge(r)}${aiBadge(r)}${gameBadge(r)}</div><div class="sub2">${esc(r.car||"")} · ${esc(new Date(r.when||Date.now()).toLocaleDateString(loc,{day:"numeric",month:"short"}))}</div></div><div class="rt"><b>${r.partial?"–":"P"+(r.finish??"–")}<small>${r.partial?"":"/"+(r.field??"–")}</small></b><span>${ir==null?"":`<em class="${ir>=0?"good":"bad"}">${ir>=0?"+":""}${ir} iR</em>`}${inc==null?"":` · ${inc}x`}</span></div><span class="pkgo">›</span></button>`}).join("")}</div></section>`}
 /* your iRating of every discipline, as the PC saw it (ratings.json in the account): iRacing's telemetry says the one of
-   the session you are in, so each card is the last one Pitlane HQ saw there (in a session, or from a recorded race) */
+   the session you are in, so each card is the last one Pitlane HQ saw there (in a session, or from a recorded race);
+   Home asks again every 30 s, the races with it, so a race just finished moves its card */
 let RATINGS=null,RATINGS_AT=0;
-function loadRatingsSoon(){if(Date.now()-RATINGS_AT<30000)return;RATINGS_AT=Date.now();jget("/api/ratings").then(j=>{const n=JSON.stringify((j&&j.ratings)||{});if(n!==JSON.stringify(RATINGS||{})){RATINGS=(j&&j.ratings)||{};if(CUR_VIEW==="home")renderHome(true)}else RATINGS=RATINGS||{}}).catch(()=>{})}
-/* the discipline of a race as the PC tells it (discipline in journal.go): iRacing says "Road" for sports and formula cars */
-function raceDisc(cat,car){const c=String(cat||"").toLowerCase().replace(/[ _-]/g,"");const m={oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",sportscar:"sports_car"}[c];if(m)return m;
+function loadRatingsSoon(){if(Date.now()-RATINGS_AT<30000)return;RATINGS_AT=Date.now();
+  /* the races too: a race you just finished changes its discipline's iRating, and Home stays open through it */
+  if(MODE==="bridge"&&RACES&&RACES.length){const was=JSON.stringify(RACES.slice(0,3).map(r=>[r.id,r.ir,r.irChange]));loadRaces().then(rs=>{if(CUR_VIEW==="home"&&JSON.stringify((rs||[]).slice(0,3).map(r=>[r.id,r.ir,r.irChange]))!==was)renderHome(true)}).catch(()=>{})}
+  jget("/api/ratings").then(j=>{const n=JSON.stringify((j&&j.ratings)||{});if(n!==JSON.stringify(RATINGS||{})){RATINGS=(j&&j.ratings)||{};if(CUR_VIEW==="home")renderHome(true)}else RATINGS=RATINGS||{}}).catch(()=>{})}
+/* the discipline of a race as the PC tells it (discipline in journal.go): iRacing says "Formula" for formula cars and, before, "Road" for sports and formula cars */
+function raceDisc(cat,car){const c=String(cat||"").toLowerCase().replace(/[ _-]/g,"");const m={oval:"oval",dirtoval:"dirt_oval",dirtroad:"dirt_road",formulacar:"formula_car",formula:"formula_car",sportscar:"sports_car"}[c];if(m)return m;
   if(c&&c!=="road")return c;car=String(car||"");if(!car)return"";if(/p217|lmp|\bgtp\b|\bdpi?\b|prototype|hypercar/i.test(car))return"sports_car";
   return /formula|\bf[1-4]\b|super ?formula|dallara|indy|\bir-?\d+|skip barber|ff1600|pro mazda|\busf\b|lotus (18|49|79)|williams fw|mercedes-amg w1|tatuus|\bvee\b|\bfr ?[23]\./i.test(car)?"formula_car":"sports_car"}
 /* each discipline's iRating: the newest of what the PC saw in a session (ratings.json) and what your last race of it left you;

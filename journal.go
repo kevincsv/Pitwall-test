@@ -263,7 +263,7 @@ func discipline(cat, car string) string {
 		return "dirt_oval"
 	case "dirtroad":
 		return "dirt_road"
-	case "formulacar":
+	case "formulacar", "formula": // iRacing's sessions say "Formula"
 		return "formula_car"
 	case "sportscar", "hypercar", "lmp2", "lmp3", "lmgt3", "gt3", "gte": // LMU's category and its classes
 		return "sports_car"

@@ -210,7 +210,8 @@
   (analyzer, coach, race summary, phones, map overlay) draws the direction arrow beside the start/finish line.
 - The coach's line: when the reference is a rival's lap (no path), the model's `lineXY` (the fastest lap of the car
   and track with a path) or, on the phones, your own best lap gives the line to compare with.
-- Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`): the game
+- Your iRating and licence of every discipline (`ratings.go`, `ratings.json` in the account, `/api/ratings`; iRacing's
+  sessions say "Formula" for the formula cars, `discipline`/`raceDisc`/`catOf` read it as Formula Car): the game
   only says the one of the session you are in, so the PC keeps the last seen of each (every session, and from the
   recorded races, ir + irChange); Home's "Licence summary" (PC, web, Pitlane HQ Desktop; the phones' Licence summary)
   shows them per discipline with Community's symbols and colours (`DISC_IC`, `.c-*`; `DiscIcons.cs` on the Desktop),

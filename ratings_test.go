@@ -82,3 +82,25 @@ func TestClassLetterIsNoLicence(t *testing.T) {
 		t.Fatalf("sports %+v, formula %+v", r["sports_car"], r["formula_car"])
 	}
 }
+
+// iRacing's sessions say "Formula" for the formula cars (the owner's races): their iRating and licence go to the
+// Formula Car card, never to a discipline of their own that no card shows
+func TestFormulaCategory(t *testing.T) {
+	for _, car := range []string{"Super Formula SF23", "Ligier JS F4", ""} {
+		if d := discipline("Formula", car); d != "formula_car" {
+			t.Errorf("Formula, %q: %s", car, d)
+		}
+	}
+	ratingsMu.Lock()
+	saved := ratings
+	ratings = map[string]*discRating{}
+	ratingsMu.Unlock()
+	defer func() { ratingsMu.Lock(); ratings = saved; ratingsMu.Unlock() }()
+	ratingsMu.Lock()
+	noteRating(discipline("Formula", "Ligier JS F4"), 1350, "D 3.41", "session", 5)
+	r := ratings["formula_car"]
+	ratingsMu.Unlock()
+	if r == nil || r.IR != 1350 || r.Lic != "D 3.41" {
+		t.Fatalf("a Formula session: %+v", r)
+	}
+}
