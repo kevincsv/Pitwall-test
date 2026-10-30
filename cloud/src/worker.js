@@ -194,6 +194,22 @@ async function api(req, env, url, ctx) {
     return json(await sessionSummary(env.DB, { from: q.get("from"), tz: q.get("tz"), game: q.get("game") ? gameOf(q.get("game")) : null, uploader: own || q.get("who") || null }));
   }
 
+  // the iRacing tracks and cars the account has driven outside a test drive (official, hosted, league or AI sessions all
+  // need the content bought): the planner's "you own it" without iRacing's API
+  if (p === "/api/sessions-owned" && m === "GET") {
+    if (!own) return json({ tracks: [], cars: [] });
+    const { results } = await env.DB.prepare(
+      "SELECT DISTINCT track, track_config, car FROM sessions WHERE uploader=?1 AND COALESCE(game,'iracing')='iracing' AND LOWER(COALESCE(kind,'')) NOT LIKE '%test%' LIMIT 2000"
+    ).bind(own).all();
+    const tracks = new Map(), cars = new Set();
+    for (const r of results || []) {
+      const cfg = /^TrackCity:/i.test(r.track_config || "") ? "" : r.track_config || "";
+      if (r.track) tracks.set(r.track + "\u0000" + cfg, [r.track, cfg]);
+      if (r.car) cars.add(r.car);
+    }
+    return json({ tracks: [...tracks.values()], cars: [...cars] });
+  }
+
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
