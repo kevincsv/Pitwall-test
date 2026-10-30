@@ -16,6 +16,9 @@
   const IMG = () => "landing/" + L() + "/"; // the pictures in the page's language
   const LEAGP = () => ({ es: "/es/ligas-iracing", pt: "/pt/ligas-iracing" })[L()] || "/iracing-leagues";
   const RECP = () => ({ es: "/es/records", pt: "/pt/records" })[L()] || "/records";
+  // the public pages of each game, linked from the foot so search engines reach them from "/"
+  const IRP = () => ({ es: "/es/telemetria-iracing", pt: "/pt/telemetria-iracing" })[L()] || "/iracing-telemetry";
+  const LMUP = () => ({ es: "/es/telemetria-le-mans-ultimate", pt: "/pt/telemetria-le-mans-ultimate" })[L()] || "/le-mans-ultimate-telemetry";
 
   const ICON = {
     dl: '<svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>',
@@ -156,7 +159,7 @@
     const ovs = OVS().map(([f, c]) => `<figure${f === "gg" ? ' class="tr-gg"' : ""}><img src="${IMG()}ov-${f}.png" alt="${esc("Overlay " + c)}" loading="lazy" decoding="async"><figcaption>${esc(c)}</figcaption></figure>`).join("");
     return `<section class="tr-hero"><div><div class="tr-eyb">iRacing <span>·</span> Le Mans Ultimate <span>(beta)</span></div>
 <h1>${t("Telemetry, coach and <em>overlays</em> for your laps", "Telemetría, coach y <em>overlays</em> para tus vueltas", "Telemetria, coach e <em>overlays</em> para suas voltas")}</h1>
-<p class="tr-lead">${esc(t("Pitlane HQ records every lap while you drive, tells you which corner costs you time and puts the overlays over the game.", "Pitlane HQ guarda cada vuelta mientras conduces, te dice en qué curva pierdes tiempo y pone los overlays encima del juego.", "O Pitlane HQ grava cada volta enquanto você pilota, diz em qual curva você perde tempo e coloca os overlays sobre o jogo."))}</p>
+<p class="tr-lead">${esc(t("Pitlane HQ records every iRacing and Le Mans Ultimate lap while you drive, tells you which corner costs you time and puts the overlays over the game.", "Pitlane HQ guarda cada vuelta de iRacing y Le Mans Ultimate mientras conduces, te dice en qué curva pierdes tiempo y pone los overlays encima del juego.", "O Pitlane HQ grava cada volta do iRacing e do Le Mans Ultimate enquanto você pilota, diz em qual curva você perde tempo e coloca os overlays sobre o jogo."))}</p>
 <div class="tr-ctas"><button type="button" class="tr-b tr-p" data-tr="create">${esc(t("Create account", "Crear cuenta", "Criar conta"))}</button><a class="tr-b" href="/dl/PitlaneHQ-Setup.exe">${ICON.win}${esc(t("Download for Windows", "Descargar para Windows", "Baixar para Windows"))}</a><a class="tr-b" href="/dl/PitlaneHQ-Android.apk">${ICON.and}Android</a></div>
 <p class="tr-hint">${esc(t("Run an iRacing or LMU league?", "¿Organizas una liga de iRacing o LMU?", "Organiza uma liga de iRacing ou LMU?"))} <button type="button" data-tr="league">${esc(t("Post it for free", "Publícala gratis", "Publique de graça"))} →</button></p></div>
 <div class="tr-auth"></div></section>
@@ -169,7 +172,7 @@
 <p class="tr-ex">${esc(t("And also radar, map, flags, engine, incidents, stats, live compare and performance.", "Y también radar, mapa, banderas, motor, incidentes, estadísticas, comparación en vivo y rendimiento.", "E também radar, mapa, bandeiras, motor, incidentes, estatísticas, comparação ao vivo e desempenho."))}</p></div></section>
 <section class="tr-sec">${head(t("Start in two minutes", "Empieza en dos minutos", "Comece em dois minutos"), t("Three steps", "Tres pasos", "Três passos"))}
 <div class="tr-steps">${STEPS().map(([h, p], i) => `<div class="tr-card"><s>${i + 1}</s><h3>${esc(h)}</h3><p>${esc(p)}</p></div>`).join("")}</div></section>
-<footer class="tr-foot"><span>Pitlane HQ</span><a href="/downloads">${esc(t("Downloads", "Descargas", "Downloads"))}</a><a href="${RECP()}">${esc(t("Records", "Récords", "Recordes"))}</a><a href="${LEAGP()}">${esc(t("Leagues", "Ligas", "Ligas"))}</a><a href="/changelog">${esc(t("What's new", "Novedades", "Novidades"))}</a><a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a></footer>`;
+<footer class="tr-foot"><span>Pitlane HQ</span><a href="${IRP()}">${esc(t("iRacing telemetry", "Telemetría iRacing", "Telemetria iRacing"))}</a><a href="${LMUP()}">${esc(t("Le Mans Ultimate telemetry", "Telemetría Le Mans Ultimate", "Telemetria Le Mans Ultimate"))}</a><a href="/downloads">${esc(t("Downloads", "Descargas", "Downloads"))}</a><a href="${RECP()}">${esc(t("Records", "Récords", "Recordes"))}</a><a href="${LEAGP()}">${esc(t("Leagues", "Ligas", "Ligas"))}</a><a href="/changelog">${esc(t("What's new", "Novedades", "Novidades"))}</a><a href="mailto:support@pitlanehq.app">support@pitlanehq.app</a></footer>`;
   }
   // a tab changes what the window shows: a screenshot, or the live telemetry drawn from the real laps
   function showTab(b) {

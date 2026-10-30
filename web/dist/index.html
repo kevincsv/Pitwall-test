@@ -20,7 +20,7 @@
 <meta name="twitter:title" content="Pitlane HQ · Free iRacing and Le Mans Ultimate telemetry">
 <meta name="twitter:description" content="Pitlane HQ (PitlaneHQ) is free telemetry for iRacing and Le Mans Ultimate, with a lap coach, overlays, leaderboards and leagues on PC, web and phone.">
 <meta name="twitter:image" content="https://pitlanehq.app/og.png">
-<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","@id":"https://pitlanehq.app/#app","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane HQ Agent"],"url":"https://pitlanehq.app/","applicationCategory":"SportsApplication","applicationSubCategory":"Sim racing telemetry","operatingSystem":"Windows, Android, Web","description":"Free sim racing telemetry for iRacing and Le Mans Ultimate (in beta). Record your laps, see where you lose time, compare with faster drivers and race with overlays on top of the game.","inLanguage":["en","es","pt-BR"],"image":"https://pitlanehq.app/og.png","screenshot":[{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/coach.jpg","width":2880,"height":1040},{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/compare.jpg","width":2880,"height":1000}],"featureList":["Lap telemetry for iRacing and Le Mans Ultimate","A coach that compares your lap with real faster laps","Overlays on top of the game, also in VR","Leaderboards by car and track","Live telemetry on your phone","Leagues to join"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"WebSite","@id":"https://pitlanehq.app/#website","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane"],"url":"https://pitlanehq.app/","inLanguage":["en","es","pt-BR"],"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"Organization","@id":"https://pitlanehq.app/#org","name":"Pitlane HQ","alternateName":"PitlaneHQ","url":"https://pitlanehq.app/","logo":"https://pitlanehq.app/icon-512.png","email":"support@pitlanehq.app"}]</script>
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"SoftwareApplication","@id":"https://pitlanehq.app/#app","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane HQ Agent"],"url":"https://pitlanehq.app/","applicationCategory":"SportsApplication","applicationSubCategory":"Sim racing telemetry","operatingSystem":"Windows, Android, Web","description":"Free sim racing telemetry for iRacing and Le Mans Ultimate (in beta). Record your laps, see where you lose time, compare with faster drivers and race with overlays on top of the game.","inLanguage":["en","es","pt-BR"],"image":"https://pitlanehq.app/og.png","screenshot":[{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/coach.jpg","width":2880,"height":1040},{"@type":"ImageObject","url":"https://pitlanehq.app/landing/en/compare.jpg","width":2880,"height":1000}],"featureList":["Lap telemetry for iRacing and Le Mans Ultimate","A coach that compares your lap with real faster laps","Overlays on top of the game, also in VR, in six looks","Braking points and braking markers on track","A fuel overlay that measures every lap","Leaderboards by car and track","Live telemetry on your phone","Leagues to join"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"WebSite","@id":"https://pitlanehq.app/#website","name":"Pitlane HQ","alternateName":["PitlaneHQ","Pitlane"],"url":"https://pitlanehq.app/","inLanguage":["en","es","pt-BR"],"publisher":{"@id":"https://pitlanehq.app/#org"}},{"@context":"https://schema.org","@type":"Organization","@id":"https://pitlanehq.app/#org","name":"Pitlane HQ","alternateName":"PitlaneHQ","url":"https://pitlanehq.app/","logo":"https://pitlanehq.app/icon-512.png","email":"support@pitlanehq.app"}]</script>
 <meta name="theme-color" content="#11151b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4038,7 +4038,7 @@ async function loadSeries(force){if(serLoading||(SER&&!force))return;serLoading=
       const[seasons,tracks,cars,classes,member,credits,guide,ta,ca]=await Promise.all([api("series/seasons"),api("track/get"),api("car/get"),api("carclass/get").catch(()=>[]),MEMBER?Promise.resolve(MEMBER):api("member/info"),api("member/participation_credits").catch(()=>[]),api("season/race_guide").catch(()=>null),api("track/assets").catch(()=>null),api("car/assets").catch(()=>null)]);
       MEMBER=member;SER=normSeries(seasons,tracks,cars,classes,member);CREDITS=Array.isArray(credits)?credits:[];setGuide(guide);setIR(tracks,cars,ta,ca)}
     else{const pub=await loadPublicSeason();
-      if(pub){SER_SRC="public";const z=pub.season;SER=normSeries(z.seasons,z.tracks,z.cars,z.classes||[],{});SER.member.unknown=true;CREDITS=[];setGuide(z.guide);setIR(z.tracks,z.cars,z.trackAssets,z.carAssets)}
+      if(pub){SER_SRC="public";const z=pub.season;SER=normSeries(z.seasons,z.tracks,z.cars,z.classes||[],{});applySeen(SER,pub.seen);SER.member.unknown=true;CREDITS=[];setGuide(z.guide);setIR(z.tracks,z.cars,z.trackAssets,z.carAssets)}
       else{SER_SRC="none";SER={seasons:[],tracks:{},cars:{},member:normMember({})};CREDITS=[]}}}
   catch(e){SER={seasons:[],tracks:{},cars:{},member:normMember({}),error:e.message}}
   serLoading=false;irFallback();renderSeries();if(CUR_VIEW==="tracks")renderTrackCat()}
@@ -4144,6 +4144,25 @@ function sessions(w,from,to){const out=[],ws=weekStart(w),we=weekEnd(w),r=w.rtd|
     for(let k=0;k<8;k++){const dayStart=base+k*7*DAY;if(dayStart>to)break;for(const d of days){const ds=dayStart+d*DAY;if(ds+DAY<from||ds>to)continue;for(let t=ds+first;t<ds+DAY;t+=r.m*60e3){if(t>=from&&t<to)out.push(t)}}}}
   else(r.t||[]).forEach(x=>{const t=Date.parse(x);if(t>=from&&t<to)out.push(t)});
   return out.sort((a,b)=>a-b)}
+/* when official races really started lately, as the PCs that drove them saw it (the server's "seen", seasonseen.js): a
+   week whose race times miss them moves its times (or learns them), and the season's later weeks with the same times
+   follow. Checked to 3 minutes: a PC's clock and the launch are never to the second */
+function applySeen(ser,seen){if(!seen||!ser)return;const M=6e4,key=r=>JSON.stringify([!!(r&&r.r),r&&r.f,r&&r.m,r&&r.d]);
+  ser.seasons.forEach(s=>{const obs=(seen[s.id]||[]).map(x=>x[0]);if(!obs.length)return;
+    s.weeks.forEach(w=>{const ws=weekStart(w),we=weekEnd(w),o=obs.filter(t=>t>=ws&&t<we);if(!o.length)return;
+      const p=sessions(w,ws,we);if(p.length&&o.every(t=>p.some(x=>Math.abs(x-t)<=3*M))){w.seen=true;return}
+      const k=key(w.rtd),fix=seenFix(w.rtd||{},o);if(!fix)return;
+      s.weeks.forEach(x=>{if(x===w||(weekStart(x)>ws&&key(x.rtd)===k&&!obs.some(t=>t>=weekStart(x)&&t<weekEnd(x)))){x.rtd={...(x.rtd||{}),...fix};x.seen=true}})})})}
+function seenFix(r,o){const M=6e4,mod=(a,b)=>((a%b)+b)%b,mins=[...new Set(o.map(t=>Math.round(mod(t,DAY)/M)))],hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+  if(r.r&&r.m>0){const[h,mi]=(r.f||"00:00").split(":").map(Number),f=h*60+mi,sh=mins.map(x=>mod(x-f,r.m));
+    // the shift most starts agree on (a start a minute either side of it agrees)
+    let best=null,n=0;sh.forEach(b=>{const c=sh.filter(x=>Math.min(mod(x-b,r.m),mod(b-x,r.m))<=3).length;if(c>n){n=c;best=b}});
+    if(best!==null&&n*2>sh.length){let nf=f+best;if(nf>=1440)nf-=r.m;return{f:hm(Math.max(0,nf))}}}
+  else if((r.t||[]).length)return null; // set times: a race seen at another time was a special one
+  // no times (or the interval itself is wrong): the interval the starts share, from three different starts
+  if(mins.length<3)return null;const st=[...new Set(o.map(t=>Math.round(t/(5*M))*5))].sort((a,b)=>a-b),gcd=(a,b)=>b?gcd(b,a%b):a;
+  let g=0;for(let i=1;i<st.length;i++)g=gcd(g,st[i]-st[0]);if(g<15||g>1440)return null;
+  return{r:true,m:g,f:hm(mod(Math.min(...mins),g)),d:null,t:[]}}
 function nextRace(s,now=Date.now()){for(const w of s.weeks){if(weekEnd(w)<now)continue;const n=sessions(w,now,now+14*DAY)[0];if(n)return{t:n,w}}return null}
 function trackInfo(w){const t=SER.tracks[w.tr];return t?{name:t[0],cfg:t[1],pkg:t[2],free:t[3],price:t[4]}:{name:w.trn||"Track "+w.tr,cfg:"",pkg:null,free:false,price:0}}
 function ownsTrack(w){const t=trackInfo(w);return t.free||SER.member.unknown||SER.member.tp.has(t.pkg)}
