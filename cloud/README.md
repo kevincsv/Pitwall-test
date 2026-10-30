@@ -112,7 +112,7 @@ iRacing only gives the season schedule to signed-in apps. So that the planner sh
 2. Find your account id: `npx wrangler d1 execute pitlanehq --remote --command "select id, display from accounts"`.
 3. In Cloudflare → the Worker → Settings → Variables add **`SEASON_UPLOADERS`** = that id (several ids separated by commas).
 
-Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
+Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. The PCs also report when each official race they drive really started (`POST /community/season/seen`: subsession, season, series, track and the minute, nothing about the driver; table `season_seen`, migration 0077). `GET /community/season` adds the last eight days of those starts under `seen`, and the planner moves a week's race times that miss them (or learns them when the schedule has none). Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
 
 ## Admins and your own domain
 

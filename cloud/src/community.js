@@ -7,6 +7,7 @@ import { mailReady, mailLog, mailDomain } from "./email.js";
 import { sealData, openData } from "./crypt.js";
 import { getModel, forCompound, getCarCard, markModel, forgetLap, pseudoId, PSEUDO_MIN, moveDriver } from "./model.js";
 import { linkDriver, unlinkDriver } from "./driverlinks.js";
+import { recordSeen, seenSummary } from "./seasonseen.js";
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" };
 const json = (v, status = 200) => new Response(JSON.stringify(v), { status, headers: JSONH });
 const err = (msg, status) => json({ error: msg }, status);
@@ -927,7 +928,9 @@ export async function community(req, env, url, ctx) {
     const c = await env.DB.prepare("SELECT updated, chunks FROM season_cache WHERE k='current'").first();
     if (!c) return err("no season schedule on this server yet", 404);
     const r = await env.DB.prepare("SELECT data FROM season_chunks WHERE k='current' AND idx<?1 ORDER BY idx").bind(c.chunks).all();
-    return new Response('{"updated":' + c.updated + ',"season":' + (r.results || []).map((x) => x.data).join("") + "}", { headers: { ...JSONH, "cache-control": "public, max-age=900" } });
+    // and when the official races of each season really started lately (seasonseen.js): the planner corrects its times
+    const seen = await seenSummary(env).catch(() => ({}));
+    return new Response('{"updated":' + c.updated + ',"seen":' + JSON.stringify(seen) + ',"season":' + (r.results || []).map((x) => x.data).join("") + "}", { headers: { ...JSONH, "cache-control": "public, max-age=900" } });
   }
   if (p === "/setups/cars" && m === "GET") {
     const r = await env.DB.prepare("SELECT car_path AS carPath, MAX(car) AS car, COUNT(*) AS n FROM community_setups WHERE game=?1 GROUP BY car_path ORDER BY n DESC LIMIT 500").bind(game).all();
@@ -1006,6 +1009,11 @@ export async function community(req, env, url, ctx) {
   if (p === "/name-check" && m === "POST") {
     if (!u.account || !isAdmin(env, u.id)) return err("only the admins of this server can do this", 403);
     return json({ free: !(await nameTaken(env, cleanAlias(body.name), u.id)) });
+  }
+  // an official race this PC is in: when it really started (no driver, only the season, track and minute)
+  if (p === "/season/seen" && m === "POST") {
+    const r = await recordSeen(env, u.id, body);
+    return r.error ? err(r.error, r.status) : json(r);
   }
   if (p === "/season" && m === "POST") {
     const allowed = String(env.SEASON_UPLOADERS || env.ADMINS || "").split(",").map((x) => x.trim()).filter(Boolean);
