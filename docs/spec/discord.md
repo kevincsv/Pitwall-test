@@ -17,5 +17,5 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   everyone while `enforce` is false): /coach, /compare, /board (the server's ranking), /alerts (a channel for the
   server's new best laps and records, `discordLapAlert` from autoShare, `/laps` and `reshareSession`). /link gives a
   one-use button to pitlanehq.app (`?discord=`) where the signed-in web app confirms (`discordLinkAsk`). It shows
-  what the public pages show: nicknames; race rivals, anonymous laps and accounts as
+  what the public pages show: nicknames, race rivals by their whole name, anonymous laps and accounts as
   "Anonymous"; an anonymous account's answers only to itself; the Windows app is "Pitlane HQ for Windows", as on the downloads page.

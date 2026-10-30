@@ -1002,8 +1002,8 @@ func licClass(s string) string {
 // fieldTopLaps: the best lap of every other real driver of your class (your own laps go the usual way; AI drivers
 // never), as
 // the community takes them: time, sectors, car and track, the speed trace their position gave when
-// the PC saw the lap whole and an opaque key per driver, never their name (they did not join Pitlane HQ: they show as
-// Anonymous). Only the faster rivals with a trace show on the leaderboard; the rest feed the model unseen.
+// the PC saw the lap whole, an opaque key per driver and their whole name as the game shows it. Only the faster rivals with a trace show on the leaderboard; the rest feed the
+// model unseen.
 func fieldTopLaps(r *raceReport) []map[string]any {
 	var out []map[string]any
 	if r == nil || r.TrackID == 0 {
@@ -1023,6 +1023,9 @@ func fieldTopLaps(r *raceReport) []map[string]any {
 		b := map[string]any{"carId": x.CarID, "car": x.Car, "trackId": r.TrackID, "track": r.Track, "time": x.Best, "game": game, "other": x.key, "kind": "Race", "official": r.Official}
 		if r.AI {
 			b["ai"] = true
+		}
+		if n := strings.TrimSpace(x.Name); n != "" {
+			b["name"] = n // their whole name, as the game shows it
 		}
 		if x.Lic != "" {
 			b["lic"] = x.Lic

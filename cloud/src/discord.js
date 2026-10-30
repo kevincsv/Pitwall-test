@@ -1,8 +1,8 @@
 // The Pitlane HQ bot for Discord. Discord sends every slash command here (POST /discord/interactions,
 // signed with the application's Ed25519 key, DISCORD_PUBLIC_KEY) and the answer goes back in the same
 // request: no gateway, no other server. The lap alerts are posted with the bot's token (DISCORD_BOT_TOKEN).
-// What it shows follows the public pages: the accounts' nicknames (never their iRacing names), race rivals
-// (who did not join Pitlane HQ), anonymous laps and accounts as "Anonymous", and an anonymous account's
+// What it shows follows the public pages: the accounts' nicknames (never their iRacing names), race rivals by
+// their whole name as the game shows it, anonymous laps and accounts as "Anonymous", and an anonymous account's
 // own answers only to itself. It answers in English, Spanish or Portuguese (Brazil), the Discord user's language.
 // The Pro commands are the "discordPro" list of license_plans.json: everyone has them while the
 // subscription is off (enforce: false); then admins, supporters (Patreon) and Pro accounts.

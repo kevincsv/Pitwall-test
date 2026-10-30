@@ -577,7 +577,7 @@ func syncWatcher() {
 	time.Sleep(3 * time.Second)
 	var stamp string
 	var changedAt, nextRemote, lastRun time.Time
-	adopted, kicked := false, false
+	adopted, kicked, rivalsNamed := false, false, false
 	for {
 		plMu.Lock()
 		signed := plAcc.Token != ""
@@ -589,6 +589,9 @@ func syncWatcher() {
 			plRefreshMe()
 			if !adopted {
 				adopted = plAdopt()
+			}
+			if !rivalsNamed {
+				rivalsNamed = nameOldRivals()
 			}
 		}
 		if on {

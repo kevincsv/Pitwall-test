@@ -2,8 +2,8 @@
 // (no app, no sign-in): what Pitlane HQ does for iRacing and for Le Mans Ultimate, in English, Spanish and Portuguese
 // (each page names the other two with hreflang), the guides, the leagues and the leaderboards of every car and track.
 // The app stays at "/"; these pages link to it, to each other and to the downloads.
-// Leaderboards show the accounts' nicknames (never their iRacing names) ; race rivals (who did not join Pitlane HQ) and
-// anonymous laps are "Anonymous". A page about Le Mans Ultimate's leagues or records exists only while
+// Leaderboards show the accounts' nicknames (never their iRacing names) and race rivals by their whole name as the game
+// shows it; anonymous laps are "Anonymous". A page about Le Mans Ultimate's leagues or records exists only while
 // there is something to show (never an empty page indexed). No text joins two phrases with a colon.
 import { catMap, catOf } from "./categories.js";
 import { famId, famName } from "./carfamily.js";
