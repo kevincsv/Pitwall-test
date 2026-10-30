@@ -708,7 +708,7 @@ func TestLMUReportSharesRivals(t *testing.T) {
 		}
 		return res
 	}()})
-	if len(top) != 2 || top[0]["game"] != "lmu" || top[0]["other"] != res[0].key || top[1]["other"] != res[2].key || top[0]["name"] != "Ana Duarte" {
+	if len(top) != 2 || top[0]["game"] != "lmu" || top[0]["other"] != res[0].key || top[1]["other"] != res[2].key || top[0]["name"] != nil {
 		t.Fatalf("rivals shared: %v", top)
 	}
 	if want := lapClass("lmu", res[0].Class); want == "" || top[0]["cls"] != want {

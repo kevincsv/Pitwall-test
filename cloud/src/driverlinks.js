@@ -98,6 +98,9 @@ export async function unlinkDriver(env, acct, game, deps = {}) {
     if (proofNeeded(g)) q.push(env.DB.prepare("INSERT OR IGNORE INTO driver_link_seen (game, oid, account_id, day) VALUES (?1,?2,?3,?4)").bind(g, oid, acct, UNDONE));
     q.push(env.DB.prepare("DELETE FROM driver_links WHERE account_id=?1 AND game=?2").bind(acct, g));
     q.push(env.DB.prepare("DELETE FROM driver_link_moves WHERE account_id=?1 AND game=?2").bind(acct, g));
+    // a rival again: "Anonymous", never by the name of before
+    q.push(env.DB.prepare("UPDATE community_users SET alias='Anonymous' WHERE id=?1").bind(oid));
+    q.push(env.DB.prepare("UPDATE community_laps SET anon=1 WHERE user_id=?1").bind(oid));
     await env.DB.batch(q);
     for (const { row } of moves.filter((x) => x.kind === "model")) await back(env, row, "acct:" + acct, "acct:" + oid);
     for (const c of combos) { const [cg, tr, ca] = c.split("|"); await mark(env, cg, +tr, +ca); }

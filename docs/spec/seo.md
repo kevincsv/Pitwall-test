@@ -44,5 +44,4 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   JSON-LD) and what it is (iRacing and Le Mans Ultimate telemetry, sim racing telemetry, lap analysis, overlays), plainly,
   never stuffed, never claiming an iPhone app before it is on the App Store; competitors' names only in a question, never a
   claim about them.
-  They show the accounts' nicknames (never their iRacing names), race rivals by their whole name as the game shows it,
-  or Anonymous.
+  They show the accounts' nicknames (never their iRacing names), or Anonymous (race rivals always).

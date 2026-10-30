@@ -118,9 +118,11 @@ func TestRaceReport(t *testing.T) {
 			t.Fatalf("the wrong key went with a top-3 lap: %v", b)
 		}
 	}
-	// their whole name, as the game shows it
-	if top[0]["name"] == nil || top[0]["name"] == "" {
-		t.Fatalf("name of a rival: %v", top[0])
+	// never their name: they did not join Pitlane HQ
+	for _, b := range top {
+		if _, ok := b["name"]; ok {
+			t.Fatalf("a rival's name went to the community: %v", b)
+		}
 	}
 	if driverKey("") != "" || driverKey("-1") != "" || driverKey("100002") != top[0]["other"] {
 		t.Fatalf("driver keys: %q %q", driverKey(""), driverKey("100002"))
@@ -362,11 +364,11 @@ func TestFieldSkipsAI(t *testing.T) {
 	}
 	r := &raceReport{TrackID: 515, Track: "Navarra", Best: 99, Results: res}
 	for _, b := range fieldTopLaps(r) {
-		if b["name"] == "Fast One" {
+		if b["other"] == res[0].key {
 			t.Fatalf("a bot's lap would go to the community: %v", b)
 		}
 	}
-	if top := fieldTopLaps(r); len(top) != 1 || top[0]["name"] != "Slow One" {
+	if top := fieldTopLaps(r); len(top) != 1 || res[2].Name != "Slow One" || top[0]["other"] != res[2].key {
 		t.Fatalf("only the real rival goes: %v", top)
 	}
 }

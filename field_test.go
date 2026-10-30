@@ -714,7 +714,7 @@ func TestFieldShareSkipsInvalid(t *testing.T) {
 		{Name: "y", Laps: 5, Best: 98.9, CarID: 67, key: "k2", carIdx: 2},
 	}}
 	top := fieldTopLaps(r)
-	if len(top) != 1 || top[0]["name"] != "y" {
+	if len(top) != 1 || top[0]["other"] != "k2" {
 		t.Fatalf("the rival's refused lap went to the community: %v", top)
 	}
 	resetField()
