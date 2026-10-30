@@ -185,3 +185,30 @@ func saveStylePNG(t *testing.T, c *ovCanvas, h int, path string) {
 	defer f.Close()
 	png.Encode(f, img)
 }
+
+// at the highest opacity a design's panel hides the game: the window's alpha alone makes it see-through (the owner saw
+// the game through the Beta panels at 255). Frameless has no panel by design.
+func TestOverlayStylesOpaque(t *testing.T) {
+	for _, style := range ovStyles {
+		if style == "classic" || style == "frameless" {
+			continue
+		}
+		for _, name := range []string{"relative", "standings", "fuel", "inputs"} {
+			st := styleState(t, style)
+			w := int(ovDesign[name])
+			c := newCanvas(w, 1000)
+			st.at = time.Now()
+			h := ovDraw(name, c, st, st.at)
+			if h <= 20 {
+				continue
+			}
+			for _, y := range []int{h / 2, h - 6} {
+				for _, x := range []int{4, w / 2, w - 5} {
+					if a := c.px[y*w+x] >> 24; a != 255 {
+						t.Errorf("%s in %s: alpha %d at %d,%d", name, style, a, x, y)
+					}
+				}
+			}
+		}
+	}
+}

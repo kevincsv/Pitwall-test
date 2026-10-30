@@ -74,12 +74,14 @@ var (
 // the class colours of the designs: our own palette (turquoise, violet, orange, then blue, yellow, pink)
 var ovClassPal = []uint32{0x22c7b0, 0x9a7bff, 0xff7a2f, 0x4da3ff, 0xffd23f, 0xff5d8f}
 
+// The panels are opaque (fillA 1) so the overlay's opacity setting alone makes them see-through: at 255 nothing of the
+// game shows behind them. Frameless is the one see-through by design (no panel, a light shade behind the text).
 var ovThemes = map[string]*ovTheme{
-	"lane": {id: "lane", fill: 0x12151b, fillA: 0.92, line: 0xffffff, lineA: 0.06, lineW: 1, rad: 6, hdr: hdrBand,
+	"lane": {id: "lane", fill: 0x12151b, fillA: 1, line: 0xffffff, lineA: 0.06, lineW: 1, rad: 6, hdr: hdrBand,
 		titleKind: fkDisplayB, titleSz: 14, titleTr: 0.8, titleCol: colText, titleA: 1, numBold: true,
 		nameScale: 1.14, rowScale: 1.18, monoScale: 0.96, me: 0xc49e4a, meA: 0.42, meRad: 2,
 		rowLine: 0xffffff, rowLineA: 0.05, clsBar: 5, clsRad: 2.5, irPill: true, pillBg: 0xe6e9ef, pillFg: 0x0b0e14, bands: true, dimOut: true},
-	"wall": {id: "wall", fill: 0x0b0e14, fillA: 0.78, line: 0xffffff, lineA: 0.08, lineW: 1, rad: 12, hdr: hdrDot,
+	"wall": {id: "wall", fill: 0x0b0e14, fillA: 1, line: 0xffffff, lineA: 0.08, lineW: 1, rad: 12, hdr: hdrDot,
 		titleKind: fkDisplay, titleSz: 12, titleTr: 1.9, titleCol: colMuted, titleA: 1, numBold: true,
 		nameScale: 1, rowScale: 1.04, monoScale: 1, me: colAmber, meA: 0.16, meRad: 6, meBar: true,
 		rowLineA: 0, clsBar: 3, clsRad: 1.5, bands: true, dimOut: true},
@@ -91,7 +93,7 @@ var ovThemes = map[string]*ovTheme{
 		titleKind: fkDisplay, titleSz: 11, titleTr: 2, titleCol: colText, titleA: 0.6, shadow: true, numBold: true, surfA: 0.35,
 		nameScale: 1.07, rowScale: 1.04, monoScale: 0.96, me: colAmber, meA: 0.22, meRad: 4,
 		clsBar: 3, clsRad: 1.5, dimOut: true},
-	"light": {id: "light", fill: 0xf6f8fb, fillA: 0.92, line: 0xffffff, lineA: 0.7, lineW: 1, rad: 12, hdr: hdrNone,
+	"light": {id: "light", fill: 0xf6f8fb, fillA: 1, line: 0xffffff, lineA: 0.7, lineW: 1, rad: 12, hdr: hdrNone,
 		titleKind: fkDisplayB, titleSz: 13, titleTr: 1.5, titleCol: 0x9a6200, titleA: 1, light: true, numBold: true,
 		nameScale: 1.07, rowScale: 1.04, monoScale: 0.96, me: 0xffe7b3, meA: 1, meRad: 6,
 		rowLine: 0xe3e8ef, rowLineA: 1, clsBar: 4, clsRad: 2, irPill: true, pillBg: 0x10141c, pillFg: 0xffffff, bands: true, dimOut: true},

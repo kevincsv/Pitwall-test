@@ -798,7 +798,7 @@
   (`TestOverlayShapesSameAsBefore`, `TestOverlaysRedrawTheSame`; `ovbench_test.go` measures every overlay's draw), and
   Overlays → More → Frame rate (30 by default, 20, 15 or 10 a second, `ui.ovfps`; the radar twice it) lowers it.
   Every overlay's Configure window has its own Opacity (`ui.<overlay>.alpha`, 60–255, `ovAlpha`/`ovAlphaOf`; unset, the
-  old setting for all of them, `CFG.alpha`, else opaque; VR too) and, for the overlays with a title (`OV_TITLED`),
+  old setting for all of them, `CFG.alpha`, else opaque; VR too; the designs' panels are opaque themselves, fillA 1, so at 255 nothing of the game shows through, Frameless aside, `TestOverlayStylesOpaque`) and, for the overlays with a title (`OV_TITLED`),
   "Show the title" (`ui.<overlay>.title`, on by default, `titleOn`/`titleH`: off, the content moves up and the overlay
   is shorter; the engine's and the pit lane's badges keep their row while lit); Overlays → More → Titles shows or
   hides them all at once. Every overlay window's Configure also has its text size (`ui.<overlay>.textScale` 0.85/1/1.2,
