@@ -43,6 +43,11 @@ func noteRaceStart(meta carTrack, y string, sn int, sessionTime float64) {
 	go func() {
 		body := map[string]any{"sub": meta.Subsession, "season": meta.SeasonID, "series": meta.SeriesID, "track": meta.TrackID, "start": start.UnixMilli(),
 			"trackName": trackName, "trackConfig": trackConfig, "car": meta.Car}
+		// every PC that races reports, whatever its sharing settings or access to the planner: a PC that never
+		// shared anything gets its community token first (nothing about the driver goes with it)
+		if ensureRegistered() != nil {
+			return
+		}
 		commCall("POST", "/season/seen", body, true) // best effort: a race not reported is one time fewer to check
 	}()
 }
