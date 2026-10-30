@@ -2533,7 +2533,7 @@ const cpOrigFetch=window.fetch.bind(window);
 /* files inside the app bundle: fetch() cannot read file:// pages, XMLHttpRequest can */
 function cpLocal(url){return cpOrigFetch(url,{cache:"no-store"}).catch(()=>new Promise((res,rej)=>{const x=new XMLHttpRequest();x.open("GET",url);x.onload=()=>res(new Response(x.responseText,{status:x.status||200,headers:{"Content-Type":"application/json"}}));x.onerror=()=>rej(new Error("cannot read "+url));x.send()}))}
 async function cpCall(method,path,body,auth=true){if(!CP.server)throw new Error(Tx("The Pitlane HQ server is not set up yet.","El servidor de Pitlane HQ aún no está configurado."));
-  const h={"Content-Type":"application/json"};if(auth&&CP.acc)h.Authorization="Bearer "+CP.acc.token;try{h["X-Pitlane-Client"]="web/"+WEB_VERSION}catch(e){}
+  const h={"Content-Type":"application/json"};if(auth&&CP.acc)h.Authorization="Bearer "+CP.acc.token;try{h["X-Pitlane-Client"]="web/"+WEB_VERSION}catch(e){}try{if(auth&&CP.acc&&adminMode())h["X-Pitlane-Admin"]="1"}catch(e){}/* admin mode on: the race rivals show by their name (only an admin's account) */
   let r;try{r=await cpOrigFetch(CP.server+path,{method,headers:h,body:body?JSON.stringify(body):undefined,cache:"no-store"})}catch(e){throw new Error(Tx("No internet connection","Sin conexión a internet","Keine Internetverbindung","Sem conexão com a internet"))}
   const j=await r.json().catch(()=>({}));if(!r.ok){if(r.status===401&&auth&&CP.acc&&!/password|contraseña/i.test(j.error||""))cpForget();throw new Error(j.code==="name_taken"?nameTakenMsg(j.error):j.error||("HTTP "+r.status))}return j}
 // nicknames are unique on Pitlane HQ: the message when someone picks one that is taken

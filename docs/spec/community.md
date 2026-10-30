@@ -3,7 +3,7 @@
 How this part of Pitlane HQ behaves. Read it before changing this area; keep it up to date when the behaviour changes.
 
 - Race rivals named after the fact: the PC sends its race history's rivals once (`nameOldRivals`, `/rival-names`:
-  matched by car, track and best lap; Anonymous or "Juan M." rivals this account shared take their whole name).
+  matched by car, track and best lap; Anonymous or "Juan M." rivals this account shared take their whole name, which only admins see).
 - One car under several badges is one car (`cloud/src/carfamily.js`, `CAR_FAMILIES` by the car's name: the Super
   Formula SF23, NASCAR's Cup Next Gen, Gen 6, Xfinity, Truck and ARCA, the Supercars Gen3, Gen2 and V8): they share one
   leaderboard, record, track page row, public page, Discord board and coach model under the first badge the server saw
@@ -46,9 +46,15 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   every car on it. It opens from the leaderboard's "Track page" chip and from every record; on Pitlane HQ Desktop
   it is the "Track page" button beside the car (`TrackPage.cs`), a row opening that car's leaderboard.
 - Race rivals (the other real drivers of your races, whose best laps your PC shares, in iRacing and in Le Mans Ultimate (LMU gives no driver id: `lmuDriverID`, a stable hash of the name the game shows, far above iRacing's ids, is the driver's `UserID` in the synthesized YAML); AI drivers and the pace car never,
-  `CarIsAI`/`CarIsPaceCar`, `ai` in journal.go) show on the leaderboards with their
-  whole name as the game shows it (`driverName` on the server; rivals named "Juan M." before take it from the PC's race
-  history, `rivalnames.v2`), with no "rival" tag beside them, on the public pages too. When a driver's own signed-in PC sees them at the wheel
+  `CarIsAI`/`CarIsPaceCar`, `ai` in journal.go) show on the leaderboards as Anonymous,
+  with no "rival" tag beside them, on the public pages too: they did not join Pitlane HQ, so they never agreed to be
+  there by name. Everywhere (leaderboards, records and "beat … by", track pages, the coach's fastest shared lap, public
+  pages, Discord, a shared race analysis's other drivers) their laps are anonymous (`community_laps.anon` 1 for every
+  `o:…` driver, migration 0076; an admin's undo of a driver link gives them back anonymous too). Their whole name as the
+  game shows it is still kept (`driverName`; rivals named "Juan M." before take it from the PC's race history,
+  `rivalnames.v2`), and only an admin with admin mode on sees it: the web, the agent and the phones send
+  `X-Pitlane-Admin: 1` then, and the server shows it only to an admin's account (`seesRivals`/`shownName` in
+  community.js). When a driver's own signed-in PC sees them at the wheel
   in iRacing or Le Mans Ultimate, what was shared of them as a rival in that game goes to their account, and so does what
   comes later (`/link-driver` with the game, `driver_links` per game, migration 0067: one driver of each game per account
   and one account per driver of each game; `linkOwnDriver`/`ownLinkKey`: iRacing by the driver's own id, LMU by

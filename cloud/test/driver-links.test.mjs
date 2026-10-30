@@ -100,7 +100,8 @@ const ana = db.prepare("SELECT track_id AS t, time, trace FROM community_laps WH
 assert.deepEqual(ana, [{ t: 5, time: 100.0, trace: "ana-fast" }, { t: 6, time: 120.0, trace: "ana-slow" }], "both of the rival's laps are theirs again");
 const mine = db.prepare("SELECT track_id AS t, time, trace FROM community_laps WHERE user_id='acc3' ORDER BY track_id").all().map((x) => ({ ...x }));
 assert.deepEqual(mine, [{ t: 5, time: 99.0, trace: "mine-new" }, { t: 6, time: 119.0, trace: "mine-fast" }], "the account keeps its own laps, the newer one too");
-assert.equal(db.prepare("SELECT alias FROM community_users WHERE id='o:ana'").get().alias, "Ana García", "the rival is back with their name");
+assert.equal(db.prepare("SELECT alias FROM community_users WHERE id='o:ana'").get().alias, "Ana García", "the rival is back with their name (kept for the admins)");
+assert.ok(db.prepare("SELECT anon FROM community_laps WHERE user_id='o:ana'").all().every((x) => x.anon === 1), "their laps are anonymous again (only admins see the name)");
 assert.deepEqual({ ...learnt() }, { drv: await sha("drv:acct:o:ana"), k: await sha("acct:o:ana:100.000") }, "and so is the model's memory of them");
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM driver_links WHERE account_id='acc3'").get().n, 0);
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM driver_link_moves WHERE account_id='acc3'").get().n, 0, "the record of what moved goes");

@@ -203,6 +203,9 @@ func commRequestWith(client *http.Client, method, path string, body any, tok str
 	req.Header.Set("X-Pitlane-Client", clientTag())
 	if tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
+		if adminMode() {
+			req.Header.Set("X-Pitlane-Admin", "1") // the race rivals' names, for an admin's account only (the server checks)
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {

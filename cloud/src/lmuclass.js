@@ -43,12 +43,12 @@ export const clsParam = (v) => {
 
 // the class board of a track: each driver's best lap of any car of that class, one per driver, the fastest first, with
 // its car (the per-car boards stay as they are: the coach and the reference laps are per car). opts.admin: an admin
-// opens every account's profile; opts.acctTrace: the SQL that says the lap's telemetry is in its driver's account
+// opens every account's profile; opts.rivals: an admin with admin mode on sees the race rivals' names; opts.acctTrace: the SQL that says the lap's telemetry is in its driver's account
 export async function classLaps(env, trackId, cls, opts = {}) {
   const r = await env.DB.prepare(
     `WITH b AS (SELECT l.*, ROW_NUMBER() OVER (PARTITION BY l.user_id ORDER BY l.time) AS rk
          FROM community_laps l WHERE l.game='lmu' AND l.track_id=?1 AND l.cls=?2 AND COALESCE(l.shown,'')<>'model')
-     SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
+     SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1${opts.rivals ? " AND l.user_id NOT LIKE 'o:%'" : ""} THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
        l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${opts.acctTrace || "0"}) AS hasTrace, l.car, l.car_id AS carId, l.track, l.lic, l.wet, l.cls,
        (${opts.admin ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup
      FROM b l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id

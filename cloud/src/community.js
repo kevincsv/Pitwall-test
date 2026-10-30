@@ -37,6 +37,11 @@ async function me(req, env) {
   if (t.length < 20) return null;
   return env.DB.prepare("SELECT id, alias, uploads_day, uploads FROM community_users WHERE token_hash=?1").bind(await sha256(t)).first();
 }
+// race rivals (ids "o:…") did not join Pitlane HQ: their laps are anonymous and only an admin with admin mode on (the
+// apps send X-Pitlane-Admin: 1 then) sees their name. The SQL of a lap's shown name, for the lap table as `l` and its
+// community user as `u`
+const seesRivals = (req, env, who) => !!who && isAdmin(env, who.id) && req.headers.get("x-pitlane-admin") === "1";
+export const shownName = (l, u, rivals) => `CASE WHEN ${l}.anon=1${rivals ? ` AND ${l}.user_id NOT LIKE 'o:%'` : ""} THEN 'Anonymous' WHEN ${l}.shown='iracing' AND COALESCE(${u}.iracing,'')<>'' THEN ${u}.iracing ELSE ${u}.alias END`;
 const CAR_RE = /^[A-Za-z0-9 _.\-]{1,80}$/;
 const cleanFile = (n) => (typeof n === "string" ? n : "").replace(/[^A-Za-z0-9 _\-()+.,]/g, "").replace(/^[ .]+|[ .]+$/g, "").slice(0, 60) || "setup";
 // at most 300 uploads a day per driver
@@ -73,7 +78,7 @@ const officialOf = (v) => (typeof v === "boolean" ? (v ? 1 : 0) : v === 1 || v =
 async function otherId(env, key) {
   return "o:" + (await sha256("other|" + (env.DATA_KEY || "") + "|" + String(key).toLowerCase())).slice(0, 24);
 }
-// how a race rival shows on the leaderboards: their whole name as the game shows it ("Juan Pablo Montoya"), cleaned
+// a race rival's name as the game shows it ("Juan Pablo Montoya"), kept for the admins only (seesRivals), cleaned
 // of anything that is not a letter, a number or ' . -; "" when there is no name
 export function driverName(v) {
   const w = String(v || "").normalize("NFC").split(/\s+/).map((x) => x.replace(/[^\p{L}\p{N}'.-]/gu, "")).filter(Boolean);
@@ -252,12 +257,6 @@ async function rememberLic(env, uid, cat, lic) {
   await env.DB.prepare("UPDATE community_users SET lics=?2 WHERE id=?1").bind(uid, JSON.stringify(cur)).run();
 }
 
-/** "Max Verstappen2" → "Max": only the first name of another driver is shown. */
-function firstName(n) {
-  const w = String(n || "").trim().split(/\s+/);
-  return w[0] ? w[0].replace(/\d+$/, "") : "";
-}
-
 export async function community(req, env, url, ctx) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
@@ -292,7 +291,8 @@ export async function community(req, env, url, ctx) {
     // the model has them apart, else the model of every lap
     const cq = url.searchParams.get("cmp");
     const md = forCompound(await getModel(env, game, t, c), cq != null && /^\d{1,2}$/.test(cq) ? +cq : null);
-    const fs = await env.DB.prepare(`SELECT l.time, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
+    const rivals = seesRivals(req, env, await me(req, env).catch(() => null));
+    const fs = await env.DB.prepare(`SELECT l.time, ${shownName("l", "u", rivals)} AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.track_id=?1 AND l.car_id=?2 AND l.game=?3 AND COALESCE(l.shown,'')<>'model' ORDER BY l.time LIMIT 1`).bind(t, c, game).first();
     // with the card of the car: what it does on other tracks, for when nobody known drove it here yet
     return json({ ...md, car: await getCarCard(env, game, c).catch(() => null), fastShared: fs || null });
   }
@@ -314,10 +314,10 @@ export async function community(req, env, url, ctx) {
       `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY game, track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY game, track_id, car_id) AS n
          FROM community_laps WHERE ${all ? "game IN ('iracing','lmu')" : "game=?1"} AND COALESCE(shown,'')<>'model')
        SELECT l.id, l.user_id AS uid, l.game, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n, l.wet,
-         CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
+         ${shownName("l", "u", seesRivals(req, env, who))} AS alias,
          (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
          (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
-         p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE CASE WHEN p.anon=1 THEN 'Anonymous' WHEN p.shown='iracing' AND COALESCE(pu.iracing,'')<>'' THEN pu.iracing ELSE pu.alias END END AS prevAlias
+         p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE ${shownName("p", "pu", seesRivals(req, env, who))} END AS prevAlias
        FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
          LEFT JOIN rk p ON p.game=l.game AND p.track_id=l.track_id AND p.car_id=l.car_id AND p.rk=2 LEFT JOIN community_users pu ON pu.id=p.user_id
        WHERE l.rk=1 ORDER BY l.created DESC LIMIT ?2`
@@ -338,7 +338,7 @@ export async function community(req, env, url, ctx) {
         `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY car_id) AS n
            FROM community_laps WHERE game=?1 AND track_id=?2 AND COALESCE(shown,'')<>'model')
          SELECT l.id, l.user_id AS uid, l.car_id AS carId, l.car, l.track, l.cat AS hint, l.time, l.created, l.n, l.wet, l.cls,
-           CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias,
+           ${shownName("l", "u", seesRivals(req, env, who))} AS alias,
            (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
            (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace
          FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
@@ -361,7 +361,7 @@ export async function community(req, env, url, ctx) {
     const cq = game === "lmu" ? clsParam(url.searchParams.get("cls")) : null;
     if (cq && +url.searchParams.get("trackId")) {
       const who = await me(req, env).catch(() => null);
-      const rows = await classLaps(env, +url.searchParams.get("trackId"), cq, { admin: !!who && isAdmin(env, who.id), acctTrace: ACCT_TRACE });
+      const rows = await classLaps(env, +url.searchParams.get("trackId"), cq, { admin: !!who && isAdmin(env, who.id), rivals: seesRivals(req, env, who), acctTrace: ACCT_TRACE });
       return json({ cat: "sports_car", cls: cq, laps: rows.map(({ uid, ...x }) => ({ ...x, car: famName(game, x.carId, x.car), lic: licOf(x.lic), prof: !!x.prof, sup: !!x.sup, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
     }
     const t = +url.searchParams.get("trackId"), c = await famId(env, game, url.searchParams.get("carId"));
@@ -371,7 +371,7 @@ export async function community(req, env, url, ctx) {
     const h = await env.DB.prepare("SELECT MAX(cat) AS hint, MAX(track) AS track, MAX(car) AS car, MAX(cls) AS cls FROM community_laps WHERE track_id=?1 AND car_id=?2 AND game=?3").bind(t, c, game).first().catch(() => null);
     const cat = game === "iracing" ? catOf(await catMap(env), t, c, h && h.hint, h && h.track, h && h.car) : "sports_car";
     const r = await env.DB.prepare(
-      `SELECT l.id, l.user_id AS uid, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track, l.wet,
+      `SELECT l.id, l.user_id AS uid, ${shownName("l", "u", seesRivals(req, env, who))} AS alias, l.time, l.sectors, l.created, (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace, l.car, l.track, l.wet,
          COALESCE(json_extract(u.lics, '$.' || ?4), l.lic) AS lic,
          (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup
        FROM community_laps l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
@@ -382,7 +382,8 @@ export async function community(req, env, url, ctx) {
     return json({ cat, cls: game === "lmu" ? (h && h.cls) || lmuClass(null, h && h.car) : null, laps: (r.results || []).map(({ uid, ...x }) => ({ ...x, lic: licOf(x.lic), prof: !!x.prof, sup: !!x.sup, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), hasTrace: !!x.hasTrace, sectors: x.sectors ? JSON.parse(x.sectors) : null })) });
   }
   if (p.startsWith("/laps/") && m === "GET") {
-    const l = await env.DB.prepare("SELECT l.*, CASE WHEN l.anon=1 THEN 'Anonymous' WHEN l.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1").bind(p.slice(6)).first();
+    const rivals = seesRivals(req, env, await me(req, env).catch(() => null));
+    const l = await env.DB.prepare(`SELECT l.*, ${shownName("l", "u", rivals)} AS alias FROM community_laps l JOIN community_users u ON u.id=l.user_id WHERE l.id=?1`).bind(p.slice(6)).first();
     if (!l) return err("not found", 404);
     let trace = l.trace;
     if (!trace) {
@@ -914,8 +915,10 @@ export async function community(req, env, url, ctx) {
     const r = await env.DB.prepare("SELECT r.*, CASE WHEN r.anon=1 THEN 'Anonymous' WHEN r.shown='iracing' AND COALESCE(u.iracing,'')<>'' THEN u.iracing ELSE u.alias END AS alias FROM community_reports r JOIN community_users u ON u.id=r.user_id WHERE r.id=?1").bind(p.slice(9)).first();
     if (!r) return err("not found", 404);
     const data = JSON.parse(await openData(env, r.data));
-    // the other drivers only by their first name (their privacy); the sharer as "Anonymous" when asked
-    for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (!x ? x : x.me ? (r.anon ? { ...x, name: "Anonymous" } : x) : { ...x, name: firstName(x.name) }));
+    // the other drivers of the race are anonymous (they did not join Pitlane HQ; an admin with admin mode on sees their
+    // name); the sharer as "Anonymous" when asked
+    const rivals = seesRivals(req, env, await me(req, env).catch(() => null));
+    for (const k of ["results", "brakes"]) if (Array.isArray(data[k])) data[k] = data[k].map((x) => (!x ? x : x.me ? (r.anon ? { ...x, name: "Anonymous" } : x) : rivals ? x : { ...x, name: "Anonymous" }));
     return json({ ...data, id: r.id, alias: r.alias, game: r.game, shared: true });
   }
 
@@ -1088,10 +1091,8 @@ export async function community(req, env, url, ctx) {
       ).bind(await famId(env, gameOf(x && x.game), carId), trackId, time, u.id, short).all();
       const ids = (hit.results || []).map((r) => r.id);
       if (ids.length !== 1) continue; // two unnamed rivals with the very same lap: no guessing
-      await env.DB.batch([
-        env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1 AND (alias='Anonymous' OR alias=?3)").bind(ids[0], full, short),
-        env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1").bind(ids[0]),
-      ]);
+      // the name is kept for the admins; their laps stay anonymous
+      await env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1 AND (alias='Anonymous' OR alias=?3)").bind(ids[0], full, short).run();
       named++;
     }
     return json({ named });
@@ -1177,13 +1178,13 @@ export async function community(req, env, url, ctx) {
         if (r.limit) return err("too many uploads today", 429);
         return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
       }
-      // everyone else: their whole name as the game shows it
+      // everyone else did not join Pitlane HQ: their whole name as the game shows it is kept, but their laps are
+      // anonymous (only an admin with admin mode on sees the name, seesRivals)
       const short = driverName(body.name || body.short);
       await env.DB.prepare("INSERT INTO community_users (id, token_hash, alias, created, owner) VALUES (?1,?2,?5,?3,?4) ON CONFLICT(id) DO UPDATE SET alias=excluded.alias WHERE excluded.alias<>'Anonymous'")
         .bind(oid, "other:" + oid, Date.now(), u.id, short || "Anonymous").run();
-      if (short) await env.DB.prepare("UPDATE community_laps SET anon=0 WHERE user_id=?1 AND anon=1").bind(oid).run();
       // on the leaderboard only when the PC says so (faster than you, with their trace); the rest teach the model unseen
-      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), cls: body.cls, wet: wetOf(body.trace && body.trace.f), anon: !short, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
+      const r = await keepBestLap(env, oid, { game, carId, trackId, car: body.car, track: body.track, time, sectors, trace: await sealData(env, plain), cls: body.cls, wet: wetOf(body.trace && body.trace.f), anon: true, shown: body.hidden ? "model" : "nick", lic: body.lic, cat: body.cat, official: body.official, ai: body.ai === true, count: () => countUpload(env, u) });
       if (r.limit) return err("too many uploads today", 429);
       return json(r.kept ? { kept: "a faster lap of this driver is already shared" } : { shared: true });
     }
