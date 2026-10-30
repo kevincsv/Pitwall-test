@@ -112,7 +112,16 @@ iRacing only gives the season schedule to signed-in apps. So that the planner sh
 2. Find your account id: `npx wrangler d1 execute pitlanehq --remote --command "select id, display from accounts"`.
 3. In Cloudflare → the Worker → Settings → Variables add **`SEASON_UPLOADERS`** = that id (several ids separated by commas).
 
-Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. The PCs also report when each official race they drive really started (`POST /community/season/seen`: subsession, season, series, track and the minute, nothing about the driver; table `season_seen`, migration 0077). `GET /community/season` adds the last eight days of those starts under `seen`, and the planner moves a week's race times that miss them (or learns them when the schedule has none). Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
+Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. The PCs also report when each official race they drive really started (`POST /community/season/seen`: subsession, season, series, track, the track and car names as the sim shows them and the minute, nothing about the driver; table `season_seen`, migration 0077). `GET /community/season` adds the last eight days of those starts under `seen`, and the planner moves a week's race times that miss them (or learns them when the schedule has none). A season imported from the schedule PDF has no iRacing ids, so it takes the starts of the iRacing season whose races were all at its week's track with one of its cars. Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
+
+**Without the iRacing API** (iRacing stopped giving out new API clients), the season comes from iRacing's quarterly
+schedule PDF instead: `node tools/season-import.mjs <schedule.pdf or its text> --check` reads it and lists the series
+whose race times it did not understand (the ones with only "4 Timeslots Per Week" get no times, and the real starts the
+PCs report fill them in); `--out season.json` writes the season, and `PITLANE_TOKEN=<an uploader account's token>
+node tools/season-import.mjs <file> --publish` sends it to `POST /community/season` like the PC does. A PDF needs
+`pdftotext` (poppler-utils). The PDF has no iRacing ids, so series, tracks, cars and classes get stable ids made from
+their names (1 000 000 and up: a series keeps its id, and its favourites, from one season to the next), there are no
+pictures, and the season is marked `"source": "schedule-pdf"`. Test: `node cloud/test/season-import.test.mjs`.
 
 ## Admins and your own domain
 

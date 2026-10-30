@@ -1,11 +1,15 @@
 -- When official iRacing races really started, as the PCs that drove them saw it (one row per subsession). The
 -- planner checks the season's race times against these and corrects them, so it keeps working without iRacing's
--- data API. Only the schedule: which season, track and minute, never who drove (user_id is for limits, not shown).
+-- data API. The track and car names as the sim shows them let the planner match a season imported from iRacing's
+-- schedule PDF, which has no iRacing ids. Only the schedule: which season, track, car and minute, never who drove (user_id is for limits, not shown).
 CREATE TABLE IF NOT EXISTS season_seen (
   sub INTEGER PRIMARY KEY,
   season_id INTEGER NOT NULL,
   series_id INTEGER NOT NULL,
   track_id INTEGER NOT NULL,
+  track_name TEXT NOT NULL DEFAULT '',
+  track_cfg TEXT NOT NULL DEFAULT '',
+  car TEXT NOT NULL DEFAULT '',
   start INTEGER NOT NULL,
   user_id TEXT NOT NULL,
   at INTEGER NOT NULL
