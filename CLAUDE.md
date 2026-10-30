@@ -19,6 +19,9 @@ area you are changing before you change it, and update it in the same commit whe
   broken for people) is the one exception, and only when the owner says so.
 - `master` is the main branch the builds come from (Windows and the server). Builds of other branches only check;
   nothing is published unless it is master.
+- Pushing never builds or deploys: `windows.yml` and `cloud.yml` run only when started by hand (Actions → Run
+  workflow, or `gh workflow run <file> --ref master`). Never start one unless the owner says "build"/"compila";
+  "sube"/"push" means push only.
 - The notices the apps show in their inbox (`web/dist/app-news.json`, every device reads it from the server) are
   never added or changed without asking the owner first, one by one, even when they say "sube todo" for everything
   else: show the text and wait for their yes before it goes in.

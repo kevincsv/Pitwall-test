@@ -5,20 +5,7 @@ name: Build PitlaneHQ.exe
 # Artifacts) and, from master, on the downloads page.
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - "**.go"
-      - "installer/**"
-      - "license_plans.json"
-      - "web/**"
-      - "assets/**"
-      - ".github/workflows/windows.yml"
-      - ".github/scripts/**"
-      - ".github/release-notes.md"
-      - "desktop/**"
-      - "CHANGELOG.md" # the notes on pitlanehq.app come from here
+  workflow_dispatch: # by hand only (Actions → Run workflow, or `gh workflow run windows.yml --ref master`): a push never builds
 
 # one build per branch at a time: a check on another branch never cancels master's (which publishes)
 concurrency:
