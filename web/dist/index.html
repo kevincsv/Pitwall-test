@@ -4038,7 +4038,7 @@ async function loadSeries(force){if(serLoading||(SER&&!force))return;serLoading=
       const[seasons,tracks,cars,classes,member,credits,guide,ta,ca]=await Promise.all([api("series/seasons"),api("track/get"),api("car/get"),api("carclass/get").catch(()=>[]),MEMBER?Promise.resolve(MEMBER):api("member/info"),api("member/participation_credits").catch(()=>[]),api("season/race_guide").catch(()=>null),api("track/assets").catch(()=>null),api("car/assets").catch(()=>null)]);
       MEMBER=member;SER=normSeries(seasons,tracks,cars,classes,member);CREDITS=Array.isArray(credits)?credits:[];setGuide(guide);setIR(tracks,cars,ta,ca)}
     else{const pub=await loadPublicSeason();
-      if(pub){SER_SRC="public";const z=pub.season;SER=normSeries(z.seasons,z.tracks,z.cars,z.classes||[],{});applySeen(SER,pub.seen);SER.member.unknown=true;CREDITS=[];setGuide(z.guide);setIR(z.tracks,z.cars,z.trackAssets,z.carAssets)}
+      if(pub){SER_SRC="public";const z=pub.season;SER=normSeries(z.seasons,z.tracks,z.cars,z.classes||[],{});applySeen(SER,pub.seen);SER.member.unknown=true;CREDITS=[];loadRaced();setGuide(z.guide);setIR(z.tracks,z.cars,z.trackAssets,z.carAssets)}
       else{SER_SRC="none";SER={seasons:[],tracks:{},cars:{},member:normMember({})};CREDITS=[]}}}
   catch(e){SER={seasons:[],tracks:{},cars:{},member:normMember({}),error:e.message}}
   serLoading=false;irFallback();renderSeries();if(CUR_VIEW==="tracks")renderTrackCat()}
@@ -4154,10 +4154,14 @@ function applySeen(ser,seen){if(!seen||!ser)return;const M=6e4,key=r=>JSON.strin
       const k=key(w.rtd),fix=seenFix(w.rtd||{},o);if(!fix)return;
       s.weeks.forEach(x=>{if(x===w||(weekStart(x)>ws&&key(x.rtd)===k&&!obs.some(t=>t>=weekStart(x)&&t<weekEnd(x)))){x.rtd={...(x.rtd||{}),...fix};x.seen=true}})})})}
 /* a season imported from iRacing's schedule PDF has no iRacing ids: the starts of the iRacing season whose races were
-   all at this season's track of their week (name and configuration as the sim shows them) with one of its cars */
-function seenByName(ser,s,seen){const n=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  const fits=e=>{const w=s.weeks.find(w=>e[0]>=weekStart(w)&&e[0]<weekEnd(w));if(!w||!e[2]||!e[4])return false;const t=ser.tracks[w.tr]||[w.trn,""];
-    if(n(t[0])!==n(e[2])||n(t[1])!==n(e[3]))return false;const c=n(e[4]);return(w.cars&&w.cars.length?w.cars:s.cc||[]).some(id=>{const k=ser.cars[id];return k&&[k[0],k[1]].some(x=>{x=n(x);return x&&(x===c||(x.length>5&&c.includes(x))||(c.length>5&&x.includes(c)))})})};
+   all at this season's track of their week with one of its cars, the sim's names matched to the season's by the words
+   they share (ownBest: "Tsukuba Circuit 2k Full" is "Tsukuba Circuit · 2000 Full", "Ray Formula 1600" the "Ray FF1600") */
+function seenByName(ser,s,seen){
+  if(!ser.seenIdx)ser.seenIdx={t:Object.entries(ser.tracks||{}).map(([id,x])=>[+id,[ownToks(x[0]),ownToks(x[0]+" "+(x[1]||""))]]),c:Object.entries(ser.cars||{}).map(([id,x])=>[+id,[ownToks(x[0])]])};
+  const ix=ser.seenIdx,memo=ser.seenMemo||(ser.seenMemo=new Map()),best=(k,f)=>{if(!memo.has(k))memo.set(k,new Set(f()));return memo.get(k)};
+  const fits=e=>{const w=s.weeks.find(w=>e[0]>=weekStart(w)&&e[0]<weekEnd(w));if(!w||!e[2]||!e[4])return false;const cfg=String(e[3]||"").includes(":")?"":e[3];
+    if(!best("t|"+e[2]+"|"+cfg,()=>ownBest([ownToks(e[2]),ownToks(e[2]+" "+cfg)],ix.t)).has(w.tr))return false;
+    const cs=best("c|"+e[4],()=>ownBest([ownToks(e[4])],ix.c));return(w.cars&&w.cars.length?w.cars:s.cc||[]).some(id=>cs.has(id))};
   const hit=Object.keys(seen).filter(k=>!ser.seasons.some(x=>String(x.id)===k)&&seen[k].length&&seen[k].every(fits));
   return hit.length===1?seen[hit[0]]:[]}
 function seenFix(r,o){const M=6e4,mod=(a,b)=>((a%b)+b)%b,mins=[...new Set(o.map(t=>Math.round(mod(t,DAY)/M)))],hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
@@ -4175,6 +4179,22 @@ function trackInfo(w){const t=SER.tracks[w.tr];return t?{name:t[0],cfg:t[1],pkg:
 function ownsTrack(w){const t=trackInfo(w);return t.free||SER.member.unknown||SER.member.tp.has(t.pkg)}
 function seasonCars(s,w){const ids=(w&&w.cars&&w.cars.length?w.cars:s.cc)||[];return[...new Set(ids)].map(id=>{const c=SER.cars[id];return c?{id,name:c[0],abbr:c[1],pkg:c[2],free:c[3]}:{id,name:"Car "+id,abbr:"",pkg:null,free:false}})}
 function ownsCar(s,w){const cs=seasonCars(s,w);return SER.member.unknown||cs.some(c=>c.free||SER.member.cp.has(c.pkg))}
+/* what the marks show: true, false, or null when nobody knows (the season from the server and no iRacing account: then
+   only what the account has raced, RACED, is known to be owned) */
+function ownT(w){if(!SER.member.unknown)return ownsTrack(w);return SER.raced&&SER.raced.t.has(w.tr)?true:null}
+function ownC1(c){if(!SER.member.unknown)return!!(c.free||SER.member.cp.has(c.pkg));return SER.raced&&SER.raced.c.has(c.id)?true:null}
+function ownC(s,w){if(!SER.member.unknown)return ownsCar(s,w);return seasonCars(s,w).some(c=>ownC1(c))?true:null}
+/* the tracks and cars the account drove outside a test drive (an official, hosted, league or AI session needs them
+   bought), named as the sim names them ("Tsukuba Circuit 2k Full", "Ray Formula 1600"), matched to the season's names
+   ("Tsukuba Circuit · 2000 Full", "Ray FF1600") by the words they share; a track counts with all its layouts */
+const ownToks=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\b(\d+)k\b/g,(_,n)=>String(n*1000)).split(/[^a-z0-9]+/).filter(t=>t&&(t.length>1||/\d/.test(t)));
+function ownScore(a,b){if(!a.length||!b.length)return 0;const eq=(x,y)=>x===y||(Math.min(x.length,y.length)>=3&&(x.includes(y)||y.includes(x)));return 2*a.filter(x=>b.some(y=>eq(x,y))).length/(a.length+b.length)}
+function ownBest(forms,cands){let best=0,ids=[];for(const[id,cf]of cands){const sc=Math.max(...forms.flatMap(f=>cf.map(g=>ownScore(f,g))));if(sc>best+1e-9){best=sc;ids=[id]}else if(Math.abs(sc-best)<1e-9)ids.push(id)}return best>=0.6?ids:[]}
+function racedOwned(ser,r){const t=new Set(),c=new Set();if(!ser||!r)return{t,c};
+  const tc=Object.entries(ser.tracks||{}).map(([id,x])=>[+id,[ownToks(x[0]),ownToks(x[0]+" "+(x[1]||""))]]),cc=Object.entries(ser.cars||{}).map(([id,x])=>[+id,[ownToks(x[0])]]);
+  (r.tracks||[]).forEach(([n,cfg])=>ownBest([ownToks(n),ownToks(n+" "+(cfg||""))],tc).forEach(id=>{const nm=ser.tracks[id][0];Object.entries(ser.tracks).forEach(([i,x])=>{if(x[0]===nm)t.add(+i)})}));
+  (r.cars||[]).forEach(n=>ownBest([ownToks(n)],cc).forEach(id=>c.add(id)));return{t,c}}
+async function loadRaced(){if(!SER||!SER.member.unknown)return;try{const r=await cloudGet("/api/sessions-owned");if(!SER||!SER.member.unknown)return;SER.raced=racedOwned(SER,r);if(CUR_VIEW==="series")renderSeries()}catch(e){}}
 function seasonCat(s){const w=curWeek(s)||s.weeks[0]||{};return w.cat||"sports_car"}
 function memberLic(cat){return SER.member.lic[cat]||null}
 function eligible(s){const l=memberLic(seasonCat(s));if(!l)return SER_SRC==="sample"||SER_SRC==="public"?true:null;return(l.group_id||0)>=(s.lic||1)}
@@ -4215,7 +4235,7 @@ function renderFilters(){const n=activeFilters(),open=$("#serFilters").classList
 $("#fq").oninput=()=>{F.q=$("#fq").value;renderSeriesList()};
 $("#fsort").onchange=()=>{F.sort=$("#fsort").value;saveF();renderSeriesList()};$("#flen").onchange=()=>{F.len=$("#flen").value;saveF();renderSeriesList()};$("#fsetup").onchange=()=>{F.setup=$("#fsetup").value;saveF();renderSeriesList()};
 /* without the driver's iRacing account (the season from the server) nobody knows what they own: no ✓ or ✗ */
-function ownTag(ok,en,es){if(SER&&SER.member&&SER.member.unknown)return"";return `<span class="own ${ok?"y":"n"}">${ok?"✓":"✗"} ${esc(Tx(en,es))}</span>`}
+function ownTag(ok,en,es){if(ok==null)return"";return `<span class="own ${ok?"y":"n"}">${ok?"✓":"✗"} ${esc(Tx(en,es))}</span>`}
 function renderSeriesList(){if(!SER)return;const list=filtered(),now=Date.now();
   $("#serCount").textContent=Tx(`${list.length} series`,`${list.length} series`,`${list.length} Serien`,`${list.length} séries`);
   $("#serList").innerHTML=list.length?list.map(x=>{const t=trackInfo(x.w),cars=seasonCars(x.s,x.w),wi=weekIdx(x.s);
@@ -4244,18 +4264,18 @@ function openSeries(id){LAYOUT_VIEW=null;const s=SER.seasons.find(x=>x.id===id);
   $("#dBody").innerHTML=`
    <div class="grid">
     <div class="panel s6"><div class="label">${Lp("This week","Esta semana",true)}</div><div class="mid">${esc(t.name)}</div><div class="sub">${esc(t.cfg)}</div>
-      <div class="pills" style="margin-top:8px">${ownTag(ownsTrack(w),"Track","Circuito")} ${ownTag(ownsCar(s,w),"Car","Coche")}</div>
+      <div class="pills" style="margin-top:8px">${ownTag(ownT(w),"Track","Circuito")} ${ownTag(ownC(s,w),"Car","Coche")}</div>
       <dl class="kv" style="margin-top:10px"><dt>${Lp("Length","Duración",true)}</dt><dd>${esc(lenText(w))}</dd><dt>${Lp("Sessions","Sesiones",true)}</dt><dd>${esc(every(w))}</dd>
       <dt>${Lp("Weather","Clima",true)}</dt><dd>${wx.hi==null?"–":`${Math.round(tmp(tu(wx.lo)))===Math.round(tmp(tu(wx.hi)))?"":tmp(tu(wx.lo)).toFixed(0)+"–"}${tmp(tu(wx.hi)).toFixed(0)}${tmpU()} · ${Tx("rain","lluvia")} ${wx.rain??0}%`}</dd>
       <dt>${Lp("Setup","Setup",true)}</dt><dd>${esc(s.fixed?Tx("Fixed","Fijo"):Tx("Open","Libre"))}</dd><dt>${Lp("Incident limit","Límite de incidentes",true)}</dt><dd>${s.inc||"–"}</dd><dt>${Lp("Drop weeks","Semanas descartables",true)}</dt><dd>${s.drops??"–"}</dd>
-      <dt>${Lp("Cars","Coches",true)}</dt><dd style="font-family:var(--f-body)">${cars.map(c=>`${esc(c.name)} ${SER.member.unknown?"":c.free||SER.member.cp.has(c.pkg)?'<span class="own y">✓</span>':'<span class="own n">✗</span>'}`).join("<br>")}</dd></dl>
+      <dt>${Lp("Cars","Coches",true)}</dt><dd style="font-family:var(--f-body)">${cars.map(c=>`${esc(c.name)} ${ownC1(c)==null?"":ownC1(c)?'<span class="own y">✓</span>':'<span class="own n">✗</span>'}`).join("<br>")}</dd></dl>
       ${cr?`<p class="note">${Lp(`Participation: ${cr.weeks} of ${cr.min_weeks} weeks raced.`,`Participación: ${cr.weeks} de ${cr.min_weeks} semanas corridas.`,0,`Teilnahme: ${cr.weeks} von ${cr.min_weeks} Wochen gefahren.`,`Participação: ${cr.weeks} de ${cr.min_weeks} semanas corridas.`)}</p>`:""}</div>
     <div class="panel s6"><div class="label">${Lp("Next 7 days (your time) · tap Add to put a race in your calendar","Próximos 7 días (tu hora) · pulsa Añadir para ponerla en tu calendario",true)}</div>
       <div style="max-height:420px;overflow:auto">${today.length?today.map((tt,k)=>`${k===0||new Date(today[k-1]).toDateString()!==new Date(tt).toDateString()?`<div class="agday">${esc(dayName(tt))}</div>`:""}<div class="agrow"><span class="t">${hm(tt)}</span><span class="s muted">${esc(new Date(tt).toLocaleDateString(locale(),{weekday:"short"}))} · ${esc(until(tt))}</span><button type="button" class="pin" data-t="${tt}" aria-pressed="${inPlan(s.sid,tt)}">${esc(inPlan(s.sid,tt)?Tx("In plan","En el plan"):Tx("Add","Añadir"))}</button></div>`).join(""):`<p class="note">${Lp("No more sessions this week.","No hay más sesiones esta semana.")}</p>`}</div></div>
-    ${cars.length?`<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(Tx("The cars","Los coches","Die Autos","Os carros"))}</div><div class="carcards">${cars.map(c=>{const u=carPic(c.id,true),own=c.free||SER.member.cp.has(c.pkg);const kind={oval:"oval",dirt_oval:"dirt_oval",dirt_road:"dirt_road",formula_car:"formula_car"}[seasonCat(s)]||"sports_car";return `<figure class="carcard">${u?`<img loading="lazy" alt="" src="${esc(u)}">`:`<div class="noimg carill">${carArt(kind,"RDCBAP"[Math.max(0,Math.min(5,(s.lic||1)-1))])}</div>`}<figcaption><b>${esc(c.name)}</b>${SER.member.unknown?"":` <span class="own ${own?"y":"n"}">${own?"✓":"✗"}</span>`}</figcaption></figure>`}).join("")}</div></div>`:""}
+    ${cars.length?`<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(Tx("The cars","Los coches","Die Autos","Os carros"))}</div><div class="carcards">${cars.map(c=>{const u=carPic(c.id,true),own=ownC1(c);const kind={oval:"oval",dirt_oval:"dirt_oval",dirt_road:"dirt_road",formula_car:"formula_car"}[seasonCat(s)]||"sports_car";return `<figure class="carcard">${u?`<img loading="lazy" alt="" src="${esc(u)}">`:`<div class="noimg carill">${carArt(kind,"RDCBAP"[Math.max(0,Math.min(5,(s.lic||1)-1))])}</div>`}<figcaption><b>${esc(c.name)}</b>${own==null?"":` <span class="own ${own?"y":"n"}">${own?"✓":"✗"}</span>`}</figcaption></figure>`}).join("")}</div></div>`:""}
     ${trackCardHTML(w.tr,true)||(()=>{const tt=trackInfo(w);return `<div class="panel s12"><div class="label" style="margin-bottom:8px">${esc(tt.name+(tt.cfg?" · "+tt.cfg:""))}</div>${osmHTML(tt.name.replace(/^\[Legacy\] /,""),trackLoc(tt.name))}</div>`})()}
     <div class="panel s12"><div class="label" style="margin-bottom:4px">${Lp("Season schedule","Calendario de la temporada",true)}</div><div class="tscroll"><table><thead><tr><th>${esc(Tx("Wk","Sem"))}</th><th>${esc(Tx("Dates","Fechas"))}</th><th>${esc(Tx("Track","Circuito"))}</th><th>${esc(Tx("Length","Duración"))}</th><th>${esc(Tx("Owned","Comprado"))}</th></tr></thead><tbody>
-      ${s.weeks.map((x,i)=>{const ti=trackInfo(x),o=ownsTrack(x);const ds=new Date(weekStart(x)),de=new Date(weekEnd(x)-1);return `<tr class="${i===wi?"me":""}" style="${weekEnd(x)<now?"opacity:.5":""}"><td class="mono">${i+1}</td><td class="mono">${ds.toLocaleDateString(locale(),{day:"2-digit",month:"short"})} – ${de.toLocaleDateString(locale(),{day:"2-digit",month:"short"})}</td><td>${esc(ti.name)}${ti.cfg?` <span class="muted">· ${esc(ti.cfg)}</span>`:""}</td><td class="mono">${esc(lenText(x))}</td><td>${SER.member.unknown?"":o?'<span class="own y">✓</span>':`<span class="own n">✗</span> <span class="muted mono">${ti.price?"$"+ti.price:""}</span>`}</td></tr>`}).join("")}</tbody></table></div>
+      ${s.weeks.map((x,i)=>{const ti=trackInfo(x),o=ownT(x);const ds=new Date(weekStart(x)),de=new Date(weekEnd(x)-1);return `<tr class="${i===wi?"me":""}" style="${weekEnd(x)<now?"opacity:.5":""}"><td class="mono">${i+1}</td><td class="mono">${ds.toLocaleDateString(locale(),{day:"2-digit",month:"short"})} – ${de.toLocaleDateString(locale(),{day:"2-digit",month:"short"})}</td><td>${esc(ti.name)}${ti.cfg?` <span class="muted">· ${esc(ti.cfg)}</span>`:""}</td><td class="mono">${esc(lenText(x))}</td><td>${o==null?"":o?'<span class="own y">✓</span>':`<span class="own n">✗</span> <span class="muted mono">${ti.price?"$"+ti.price:""}</span>`}</td></tr>`}).join("")}</tbody></table></div>
       <p class="note">${(()=>{const rem=s.weeks.filter(x=>weekEnd(x)>now),can=rem.filter(ownsTrack).length;return Lp(`You can race ${can} of the ${rem.length} remaining weeks with your tracks.`,`Puedes correr ${can} de las ${rem.length} semanas restantes con tus circuitos.`,0,`Mit deinen Strecken kannst du ${can} der ${rem.length} verbleibenden Wochen fahren.`,`Com suas pistas você pode correr ${can} das ${rem.length} semanas restantes.`)})()}</p></div>
    </div>`;
   fillOsm($("#dBody"));
@@ -4294,8 +4314,8 @@ $("#agSrc").onchange=()=>renderSeries();$("#agRange").onchange=()=>renderAgenda(
 $("#icsBtn").onclick=exportICS;
 function renderSeasonPlan(){const now=Date.now();let pool=SER.seasons.filter(s=>FAV.has(s.sid));const usingFav=pool.length>0;if(!usingFav)pool=filtered().map(x=>x.s).slice(0,15);
   const nW=Math.max(...pool.map(s=>s.weeks.length),12);
-  $("#seasonGrid").innerHTML=pool.length?`<thead><tr><th>${esc(Tx("Series","Serie"))}</th>${[...Array(Math.min(nW,13))].map((_,i)=>`<th>${esc(Tx("Wk","Sem"))} ${i+1}</th>`).join("")}<th class="r">${esc(Tx("Can race","Puedes"))}</th></tr></thead><tbody>${pool.map(s=>{const rem=s.weeks.filter(w=>weekEnd(w)>now);const can=rem.filter(ownsTrack).length;
-    return `<tr><td class="sname">${esc(s.name)}</td>${s.weeks.slice(0,13).map(w=>{const ti=trackInfo(w),o=ownsTrack(w),cur=now>=weekStart(w)&&now<weekEnd(w);return `<td class="cell ${o?"y":"n"} ${cur?"cur":""} ${weekEnd(w)<now?"past":""}" title="${esc(ti.name+" "+ti.cfg)}">${esc(ti.name.replace(/ (International )?(Raceway|Circuit|Speedway|Motor Speedway|International Raceway|Grand Prix Circuit)$/,""))}</td>`}).join("")}${s.weeks.length<13?"<td></td>".repeat(13-s.weeks.length):""}<td class="r mono ${can>=8||can>=rem.length?"good":"bad"}">${can}/${rem.length}</td></tr>`}).join("")}</tbody>`:"";
+  $("#seasonGrid").innerHTML=pool.length?`<thead><tr><th>${esc(Tx("Series","Serie"))}</th>${[...Array(Math.min(nW,13))].map((_,i)=>`<th>${esc(Tx("Wk","Sem"))} ${i+1}</th>`).join("")}<th class="r">${esc(Tx("Can race","Puedes"))}</th></tr></thead><tbody>${pool.map(s=>{const rem=s.weeks.filter(w=>weekEnd(w)>now);const can=rem.filter(w=>ownT(w)!==false).length;
+    return `<tr><td class="sname">${esc(s.name)}</td>${s.weeks.slice(0,13).map(w=>{const ti=trackInfo(w),o=ownT(w),cur=now>=weekStart(w)&&now<weekEnd(w);return `<td class="cell ${o==null?"":o?"y":"n"} ${cur?"cur":""} ${weekEnd(w)<now?"past":""}" title="${esc(ti.name+" "+ti.cfg)}">${esc(ti.name.replace(/ (International )?(Raceway|Circuit|Speedway|Motor Speedway|International Raceway|Grand Prix Circuit)$/,""))}</td>`}).join("")}${s.weeks.length<13?"<td></td>".repeat(13-s.weeks.length):""}<td class="r mono ${can>=8||can>=rem.length?"good":"bad"}">${can}/${rem.length}</td></tr>`}).join("")}</tbody>`:"";
   if(!usingFav)$("#seasonGrid").insertAdjacentHTML("beforebegin","");
   // buy advice
   const miss=new Map();pool.forEach(s=>s.weeks.filter(w=>weekEnd(w)>now&&!ownsTrack(w)).forEach(w=>{const ti=trackInfo(w),k=ti.pkg??ti.name;const e=miss.get(k)||{name:ti.name,price:ti.price,weeks:0,series:new Set()};e.weeks++;e.series.add(s.name);miss.set(k,e)}));
@@ -7659,7 +7679,7 @@ async function renderPrep(p){const box=$("#prepBox");if(!box)return;box.innerHTM
     if(car)car.files.map(f=>({f,b:f.bests&&f.bests[e.track]})).sort((a,b)=>(a.b||1e9)-(b.b||1e9)||Date.parse(b.f.changed)-Date.parse(a.f.changed)).slice(0,3).forEach(x=>setups.push(x))}
   const row=(k,v)=>`<dt>${esc(k)}</dt><dd>${v}</dd>`;
   box.innerHTML=`<div class="panel" style="margin-top:10px"><h2>${esc(Tx("Prepare","Preparar"))}</h2><dl class="kv">
-    ${row(Tx("Track","Circuito"),esc(ti.name+(ti.cfg?" · "+ti.cfg:""))+" "+ownTag(ownsTrack(w),"Track","Circuito"))}${row(Tx("Car","Coche"),cars.map(c=>esc(c.name)).join("<br>")+" "+ownTag(ownsCar(s,w),"Car","Coche"))}
+    ${row(Tx("Track","Circuito"),esc(ti.name+(ti.cfg?" · "+ti.cfg:""))+" "+ownTag(ownT(w),"Track","Circuito"))}${row(Tx("Car","Coche"),cars.map(c=>esc(c.name)).join("<br>")+" "+ownTag(ownCar(s,w),"Car","Coche"))}
     ${row(Tx("Length","Duración"),esc(lenText(w))+(laps&&!w.laps?` · ≈ ${laps} ${esc(Tx("laps","vueltas"))}`:""))}
     ${row(Tx("Weather","Clima"),wx.hi==null?"–":`${tmp(tu(wx.hi)).toFixed(0)}${tmpU()} · ${esc(Tx("rain","lluvia"))} ${wx.rain??0}%${(wx.rain||0)>=30?` · <span class="warn">${esc(Tx("bring a wet setup","lleva un setup de lluvia"))}</span>`:""}`)}
     ${row(Tx("Your best here","Tu mejor vuelta aquí"),e&&e.best?`<b class="mono">${fmtT(e.best)}</b> <small class="muted">${esc(e.car)} · ${e.laps} ${esc(Tx("laps","vueltas"))}</small>`:esc(Tx("You have not driven this car here yet","Aún no has rodado con este coche aquí")))}
