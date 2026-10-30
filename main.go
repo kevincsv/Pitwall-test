@@ -658,6 +658,7 @@ func main() {
 	registerCommunityRoutes(mux)
 	registerPLRoutes(mux)
 	registerVoiceRoutes(mux)
+	registerSimhubRoutes(mux)
 	files := http.FileServer(http.FS(sub))
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
@@ -701,6 +702,7 @@ func main() {
 		log.Fatalf("Could not open a port: %v", err)
 	}
 	local := fmt.Sprintf("http://localhost:%d", listenPort)
+	writeSimhubFile(listenPort) // the SimHub plugin finds the agent and its key there (simhub.go)
 	if *engine {
 		// the native desktop shell (desktop/) owns the window: it reads these two lines, opens the
 		// address in its own WebView and calls the API with the cookie; when it closes stdin we quit

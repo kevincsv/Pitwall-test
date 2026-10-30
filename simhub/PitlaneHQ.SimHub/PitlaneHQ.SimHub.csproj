@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Pitlane HQ plugin for SimHub: a DLL SimHub loads from its own folder. SimHub plugins are .NET Framework
+       4.8 and build against SimHub's own DLLs, which are never copied here nor shipped with Pitlane HQ: set
+       SimHubPath to the SimHub folder (C:\Program Files (x86)\SimHub\ by default). -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>PitlaneHQ.SimHub</AssemblyName>
+    <RootNamespace>PitlaneHQ.SimHub</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Version>0.5.2</Version>
+    <Company>Pitlane HQ</Company>
+    <Product>Pitlane HQ</Product>
+    <SimHubPath Condition="'$(SimHubPath)' == ''">C:\Program Files (x86)\SimHub\</SimHubPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- builds without the .NET Framework targeting pack installed (CI, another PC) -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="SimHub.Plugins">
+      <HintPath>$(SimHubPath)SimHub.Plugins.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GameReaderCommon">
+      <HintPath>$(SimHubPath)GameReaderCommon.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
