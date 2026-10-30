@@ -33,7 +33,7 @@ export async function seenSummary(env, now = Date.now()) {
   return out;
 }
 
-// pruneSeen: starts older than a season are of no use to anyone
+// pruneSeen: the planner reads eight days: older starts are kept two weeks, then go (the database stays small)
 export async function pruneSeen(env, now = Date.now()) {
-  await env.DB.prepare("DELETE FROM season_seen WHERE start<?1").bind(now - 120 * DAY).run();
+  await env.DB.prepare("DELETE FROM season_seen WHERE start<?1").bind(now - 14 * DAY).run();
 }
