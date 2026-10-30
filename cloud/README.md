@@ -114,6 +114,15 @@ iRacing only gives the season schedule to signed-in apps. So that the planner sh
 
 Everyone reads it from `GET /community/season`; if it is not there yet, the apps show the bundled sample season. The PCs also report when each official race they drive really started (`POST /community/season/seen`: subsession, season, series, track and the minute, nothing about the driver; table `season_seen`, migration 0077). `GET /community/season` adds the last eight days of those starts under `seen`, and the planner moves a week's race times that miss them (or learns them when the schedule has none). Check that sharing the schedule this way fits iRacing's Data API terms before turning it on.
 
+**Without the iRacing API** (iRacing stopped giving out new API clients), the season comes from iRacing's quarterly
+schedule PDF instead: `node tools/season-import.mjs <schedule.pdf or its text> --check` reads it and lists the series
+whose race times it did not understand (the ones with only "4 Timeslots Per Week" get no times, and the real starts the
+PCs report fill them in); `--out season.json` writes the season, and `PITLANE_TOKEN=<an uploader account's token>
+node tools/season-import.mjs <file> --publish` sends it to `POST /community/season` like the PC does. A PDF needs
+`pdftotext` (poppler-utils). The PDF has no iRacing ids, so series, tracks, cars and classes get stable ids made from
+their names (1 000 000 and up: a series keeps its id, and its favourites, from one season to the next), there are no
+pictures, and the season is marked `"source": "schedule-pdf"`. Test: `node cloud/test/season-import.test.mjs`.
+
 ## Admins and your own domain
 
 - **Admins** see *Settings → Connections* (iRacing, Garage 61, own site, Discord) and the iRacing page in the app; everyone else does not. In GitHub → Settings → Secrets and variables → Actions → **Variables**, add `ADMINS` with your Pitlane HQ account id (My account shows it; several ids separated by commas). Without `ADMINS`, the ids in `SEASON_UPLOADERS` are the admins. Run the workflow again, then sign out and in once in the app (or wait a few hours).
