@@ -37,7 +37,8 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   lap A (only "wet" does).
   Community's "Recent records" (PC, web, Pitlane HQ Desktop, phones; `/community/records`): the fastest lap of every
   car and track, the newest first, with the lap it beat ("beat Juan by 0.312 s", or "the first lap here"), filtered
-  by the discipline chosen; a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page. Every
+  by the discipline chosen (the server reads them from the database once a minute for everyone who sees the same names,
+  `minuteCache`, to stay under D1's daily reads); a record opens as lap B (Compare), its leaderboard (`commGoBoard`) or its track page. Every
   record, track page row, profile lap and admin record says its game (`gameChip`, `game` on each record; the admin's
   newest records are every game's, `/records?game=all`), and a lap, board, record or session of a game opens in that
   game (`toGame`: Analysis looks for your sessions of that game on that track).

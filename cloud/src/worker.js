@@ -23,7 +23,7 @@ import { scanLeagues } from "./leaguescan.js";
 import { onlineRoute, prunePresence } from "./presence.js";
 import { usageRoute, pruneUsage } from "./usage.js";
 import { supportRoute } from "./support.js";
-import { sessionSummary } from "./sessionsum.js";
+import { sessionSummary, SESSION_SUMS, ALL_SESSION_SUMS } from "./sessionsum.js";
 import { pruneSeen } from "./seasonseen.js";
 export { LiveRoom } from "./live.js";
 
@@ -92,9 +92,6 @@ const placeOut = ({ pos_cls, ...x }) => ({ ...x, pos: x.pos || null, field: x.fi
 
 // DRINKS mode: the friend who drove a lap (null: the account's own)
 const lapDrv = (l) => (typeof l.drv === "string" && l.drv.trim() ? l.drv.trim().slice(0, 32) : null);
-// a session's lap count and its best: the account's own laps only (a friend's lap in DRINKS mode is never yours)
-const SESSION_SUMS = `UPDATE sessions SET laps=(SELECT COUNT(*) FROM laps WHERE session_id=?1),
-       best=(SELECT MIN(time) FROM laps WHERE session_id=?1 AND valid=1 AND drv IS NULL) WHERE id=?1`;
 
 // a lap goes round the whole circuit, through the pit lane too: one that did not is never a best, a share or the
 // model's. A lap without sector times where the session's other laps have them never crossed the sector lines (a
@@ -213,7 +210,9 @@ async function api(req, env, url, ctx) {
   if (p === "/api/sessions" && m === "GET") {
     const q = url.searchParams;
     const lim = Math.min(200, +q.get("limit") || 60);
-    let sql = "SELECT sessions.*, (SELECT MIN(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.valid=1 AND l.time>0 AND l.drv IS NULL) AS best, (SELECT group_concat(DISTINCT l.drv) FROM laps l WHERE l.session_id=sessions.id AND l.drv IS NOT NULL) AS drvs, (SELECT SUM(l.time) FROM laps l WHERE l.session_id=sessions.id AND l.time>0 AND l.time<3600) AS secs FROM sessions";
+    // the best, the friends' names and the time on track are kept on each session (SESSION_SUMS): no lap is read here,
+    // and an account's page comes straight from its index (sessions_uploader_started)
+    let sql = "SELECT * FROM sessions";
     const args = [];
     if (q.get("track")) { args.push(q.get("track")); sql += ` WHERE track=?${args.length}`; }
     if (q.get("car")) { args.push(q.get("car")); sql += `${args.length > 1 ? " AND" : " WHERE"} car=?${args.length}`; }
@@ -504,9 +503,12 @@ export default {
   // every 10 minutes: the models of the cars and tracks that got new laps
   async scheduled(ev, env, ctx) {
     // the repairs of old data once an hour (the first run of each hour), the rest every ten minutes
-    const hourly = new Date(ev.scheduledTime || Date.now()).getUTCMinutes() < 10;
-    ctx.waitUntil(rebuildDirty(env)); ctx.waitUntil(indexNow(env).catch(() => {}));
-    if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(pruneSeen(env).catch(() => {})); ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(rebuildTrackMaps(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
+    // the database's reads per day are limited: the repairs that read the whole laps table (and find nothing almost
+    // always: the uploads repair their own laps) run once a day, at 03:00 UTC
+    const at = new Date(ev.scheduledTime || Date.now()), hourly = at.getUTCMinutes() < 10, daily = hourly && at.getUTCHours() === 3;
+    ctx.waitUntil(rebuildDirty(env, { daily })); ctx.waitUntil(indexNow(env).catch(() => {}));
+    if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(pruneSeen(env).catch(() => {})); }
+    if (daily) { ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(env.DB.prepare(ALL_SESSION_SUMS).run().catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(rebuildTrackMaps(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
   async fetch(req, env, ctx) {
     return harden(await handle(req, env, ctx));
   },

@@ -18,7 +18,9 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   does on every track it was driven on (hardest braking, the speeds the fast drivers shift up at, top
   speed and where), from the model's memory. The coach shows it against lap A only when nobody known
   is ahead on that car and track; the phone apps show it in the lap analysis. It is a hint of what the
-  car can do, never a reference lap.
+  car can do, never a reference lap. The ten-minute job (`rebuildDirty`) builds only what the uploads marked
+  (`markModel`, `markCar`); the sweep that adds every car and track with laps but no model runs once a day (03:00 UTC),
+  and a car card row is never left dirty after a try (a family badge is built under its family's id).
 - The coach and the lap analyzer stay short: the coach is the gap, what to work on first, the plan,
   the map, the sectors and the corners that cost the most; the analyzer is the gap with its three
   key facts (plus the corners against the straights), every corner as a small bar you can press to pin the charts

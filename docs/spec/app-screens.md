@@ -52,6 +52,10 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   sessions (races and the other sessions together, tagged Race, Qualifying, Practice, Test drive, vs AI and DRINKS), the
   licence summary (each discipline with "iRating" over its numbers; the chosen one draws its iRating over your races)
   and the days you drove. Each block of Home and Community sits on a card (the downloads' surface and border) for depth.
+  The four numbers (`/api/sessions/summary`, sessionsum.js) and the session list (`/api/sessions`) read only the
+  account's sessions (index `sessions_uploader_started`) and never their laps: each session keeps its lap count, best,
+  time on track and friends' names (`SESSION_SUMS` on every change, all of them again once a day, migration 0078),
+  because every open app asks about once a minute and D1 limits the rows read per day.
 - Analysis's sub-tabs: Laps, Coach, My sessions (`cloudlaps`, every session in the account) and My races (`races`, the
   race summaries with the driver notes); Home's "See all" opens My races. The phone apps have the same four (and
   Telemetry, Standings and Tyres under Telemetry). A finished race shows no notice on the PC

@@ -47,4 +47,5 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   says the same (laprec_test.go drives an out-lap, a reset to a box ahead and behind, a tow and lost telemetry through
   the recorder),
   and the server a lap without sector times where its session's other laps have them (`dropImpossibleLaps` on every
-  upload, migration 0046 for the old ones, `repairImpossibleShares` in the ten-minute job).
+  upload, migration 0046 for the old ones, `repairImpossibleShares` once a day at 03:00 UTC, like `fixLapTimes`, because both read the whole laps table and
+  D1's reads per day are limited).

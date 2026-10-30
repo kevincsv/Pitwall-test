@@ -258,6 +258,19 @@ async function rememberLic(env, uid, cat, lic) {
   await env.DB.prepare("UPDATE community_users SET lics=?2 WHERE id=?1").bind(uid, JSON.stringify(cur)).run();
 }
 
+// an answer of the database kept a minute in the server's cache (the same for everyone who asks it): fn() → {results}
+async function minuteCache(env, k, fn) {
+  const cache = env.LOCAL !== "1" && typeof caches !== "undefined" && caches.default ? caches.default : null;
+  const key = new Request("https://db.cache/" + k);
+  if (cache) {
+    const hit = await cache.match(key).catch(() => null);
+    if (hit) { try { return await hit.json(); } catch (e) {} }
+  }
+  const r = await fn();
+  if (cache) await cache.put(key, new Response(JSON.stringify({ results: r.results || [] }), { headers: { "content-type": "application/json", "cache-control": "max-age=60" } })).catch(() => {});
+  return r;
+}
+
 export async function community(req, env, url, ctx) {
   if (env.COMMUNITY !== "1") return err("the community is not enabled on this server", 404);
   const p = url.pathname.replace(/^\/community/, ""), m = req.method;
@@ -311,18 +324,21 @@ export async function community(req, env, url, ctx) {
     const who = await me(req, env).catch(() => null);
     // game=all (the admin page's newest records): every game's together, each record saying its game
     const all = url.searchParams.get("game") === "all";
-    const r = await env.DB.prepare(
+    const rv = seesRivals(req, env, who), adm = !!who && isAdmin(env, who.id);
+    // every open app asks for them every minute: the answer is read from the database once a minute for everyone who
+    // sees the same (the database's reads per day are limited); "mine" is worked out per driver below
+    const r = await minuteCache(env, `records/${all ? "all" : game}/${lim}/${rv ? 1 : 0}${adm ? 1 : 0}`, () => env.DB.prepare(
       `WITH rk AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY game, track_id, car_id ORDER BY time) AS rk, COUNT(*) OVER (PARTITION BY game, track_id, car_id) AS n
          FROM community_laps WHERE ${all ? "game IN ('iracing','lmu')" : "game=?1"} AND COALESCE(shown,'')<>'model')
        SELECT l.id, l.user_id AS uid, l.game, l.track_id AS trackId, l.track, l.car_id AS carId, l.car, l.cat AS hint, l.time, l.created, l.n, l.wet,
-         ${shownName("l", "u", seesRivals(req, env, who))} AS alias,
-         (${who && isAdmin(env, who.id) ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
+         ${shownName("l", "u", rv)} AS alias,
+         (${adm ? "ac.id IS NOT NULL OR " : ""}(l.anon=0 AND ac.id IS NOT NULL AND COALESCE(ac.anon,0)=0)) AS prof, (l.anon=0 AND COALESCE(ac.supporter,0)=1 AND COALESCE(ac.supporter_hidden,0)=0) AS sup,
          (l.trace IS NOT NULL OR ${ACCT_TRACE}) AS hasTrace,
-         p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE ${shownName("p", "pu", seesRivals(req, env, who))} END AS prevAlias
+         p.time AS prevTime, CASE WHEN p.id IS NULL THEN NULL ELSE ${shownName("p", "pu", rv)} END AS prevAlias
        FROM rk l JOIN community_users u ON u.id=l.user_id LEFT JOIN accounts ac ON ac.id=l.user_id
          LEFT JOIN rk p ON p.game=l.game AND p.track_id=l.track_id AND p.car_id=l.car_id AND p.rk=2 LEFT JOIN community_users pu ON pu.id=p.user_id
        WHERE l.rk=1 ORDER BY l.created DESC LIMIT ?2`
-    ).bind(game, lim).all();
+    ).bind(game, lim).all());
     const cm = all || game === "iracing" ? await catMap(env) : null;
     return json({ records: (r.results || []).map(({ uid, hint, prevTime, prevAlias, ...x }) => ({ ...x, game: gameOf(x.game), car: famName(gameOf(x.game), x.carId, x.car), cat: cm && gameOf(x.game) === "iracing" ? catOf(cm, x.trackId, x.carId, hint, x.track, x.car) : "sports_car", prof: !!x.prof, sup: !!x.sup, hasTrace: !!x.hasTrace, mine: !!who && uid === who.id, field: String(uid).startsWith("o:"), prev: prevTime ? { time: prevTime, alias: prevAlias } : null })) });
   }
@@ -1003,6 +1019,8 @@ export async function community(req, env, url, ctx) {
     if (row) await env.DB.prepare("UPDATE community_users SET alias=?2 WHERE id=?1").bind(row.id, to).run();
     // and their laps in the account's sessions
     await env.DB.prepare("UPDATE laps SET drv=?3 WHERE lower(drv)=lower(?2) AND session_id IN (SELECT id FROM sessions WHERE uploader=?1)").bind("acct:" + u.id, from, to).run().catch(() => {});
+    // the names each session keeps of its friends (migration 0078) follow
+    await env.DB.prepare("UPDATE sessions SET drvs=(SELECT group_concat(DISTINCT drv) FROM laps WHERE session_id=sessions.id) WHERE uploader=?1 AND drvs IS NOT NULL").bind("acct:" + u.id).run().catch(() => {});
     return json({ ok: true, renamed: !!row, name: to });
   }
   // is this name free? (Drinks drivers of an admin only clash with other people on the platform)

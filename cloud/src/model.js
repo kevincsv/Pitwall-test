@@ -670,18 +670,24 @@ export async function getModel(env, game, trackId, carId) {
   try { return await rebuild(env, game, trackId, carId); } catch (e) { if (row && row.data) return JSON.parse(await gunz(row.data)); throw e; }
 }
 
-// the cron: whatever got new laps and nobody looked at yet
-export async function rebuildDirty(env) {
-  // cars and tracks with laps that never had a model (laps from before the model): they get one
-  await env.DB.prepare(
+// the cron: whatever got new laps and nobody looked at yet (the uploads mark them: markModel, markCar)
+export async function rebuildDirty(env, { daily = false } = {}) {
+  // cars and tracks with laps that never had a model (laps from before the model): they get one. It reads every lap
+  // and session, so once a day only: the uploads already mark what is new
+  if (daily) await env.DB.prepare(
     `INSERT INTO model_cache (game, track_id, car_id, dirty, built, data)
      SELECT DISTINCT game, track_id, car_id, 1, 0, NULL FROM community_laps WHERE track_id>0 AND car_id>0
      UNION SELECT DISTINCT game, track_id, car_id, 1, 0, NULL FROM sessions WHERE track_id>0 AND car_id>0 AND uploader LIKE 'acct:%'
      ON CONFLICT DO NOTHING`).run().catch(() => {});
   const r = await env.DB.prepare("SELECT game, track_id, car_id FROM model_cache WHERE dirty=1 ORDER BY built LIMIT 25").all();
   for (const x of r.results || []) { try { await rebuild(env, x.game, x.track_id, x.car_id); } catch (e) {} }
-  // the car cards: every car the memory knows gets one, and the ones with new laps learn again
-  await env.DB.prepare("INSERT INTO car_cards (game, car_id, dirty, built, data) SELECT DISTINCT game, car_id, 1, 0, NULL FROM model_laps WHERE car_id>0 ON CONFLICT DO NOTHING").run().catch(() => {});
+  // the car cards: every car the memory knows gets one (once a day too), and the ones with new laps learn again
+  if (daily) await env.DB.prepare("INSERT INTO car_cards (game, car_id, dirty, built, data) SELECT DISTINCT game, car_id, 1, 0, NULL FROM model_laps WHERE car_id>0 ON CONFLICT DO NOTHING").run().catch(() => {});
   const c = await env.DB.prepare("SELECT game, car_id FROM car_cards WHERE dirty=1 ORDER BY built LIMIT 10").all().catch(() => ({ results: [] }));
-  for (const x of c.results || []) { try { await buildCarCard(env, x.game, x.car_id); } catch (e) {} }
+  for (const x of c.results || []) {
+    try { await buildCarCard(env, x.game, x.car_id); } catch (e) {}
+    // a badge of a family is built under the family's id (famId), and a card that failed waits for new laps: its own
+    // row is never left dirty, which had it built again every ten minutes forever
+    await env.DB.prepare("UPDATE car_cards SET dirty=0, built=?3 WHERE game=?1 AND car_id=?2 AND dirty=1").bind(x.game, x.car_id, Date.now()).run().catch(() => {});
+  }
 }
