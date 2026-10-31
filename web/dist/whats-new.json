@@ -1,6 +1,12 @@
 {
   "versions": [
     {
+      "v": "0.8.2",
+      "en": ["Pitlane HQ starts with Windows without leaving a black window on the screen.", "Fixes and improvements."],
+      "es": ["Pitlane HQ se inicia con Windows sin dejar una ventana negra en la pantalla.", "Arreglos y mejoras."],
+      "pt": ["O Pitlane HQ inicia com o Windows sem deixar uma janela preta na tela.", "Correções e melhorias."]
+    },
+    {
       "v": "0.8.1",
       "en": ["The newest session opens in the analyser again when you choose it.", "Fixes and improvements."],
       "es": ["La sesión más reciente vuelve a abrirse en el analizador cuando la eliges.", "Arreglos y mejoras."],

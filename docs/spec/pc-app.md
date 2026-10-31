@@ -40,7 +40,9 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   and without it the app looks the same.
 - Started with Windows (the installer's or Settings' "PitlaneHQ" Run entry, one only), PitlaneHQ.exe starts Pitlane HQ
   in the notification area (the window with `-minimized`: hidden there, nothing in the taskbar, the engine running,
-  never shown by itself) and never brings an already open window forward.
+  never shown by itself) and never brings an already open window forward. Until it is opened the window stays
+  off the screen and cloaked (`DWMWA_CLOAK`, `Cloak` in MainWindow.xaml.cs), so a slow start never leaves an unpainted
+  black window on the screen; opening it uncloaks it and centres it.
 - Uninstalling PitlaneHQ.exe removes everything it keeps on the PC (`[UninstallDelete]` in
   installer/PitlaneHQ.iss); nothing on the server is touched (the account, the leaderboards, the model).
 - Pitlane HQ never shows Windows notifications (nothing in the action centre; `notify` only logs, and the PC app

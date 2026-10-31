@@ -64,6 +64,9 @@ public partial class MainWindow : Window
             ShowActivated = false;
             WindowStartupLocation = WindowStartupLocation.Manual;
             Left = Top = -30000;
+            // and cloaked: Windows never draws it, even when it ends up shown before the app has painted it (a slow
+            // start with Windows left a black window in the middle of the screen)
+            Cloak(new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle(), true);
         }
         // an update installed by the engine: the new window starts (it waits for this one) and this one closes; it
         // starts hidden in the notification area when this one was there
@@ -148,8 +151,14 @@ public partial class MainWindow : Window
         _loaded = true;
         if (_hiddenStart)
         {
+            // it stays off the screen and cloaked until it is opened (ShowFromTray, Attention); hidden again once
+            // the start has settled, in case Windows showed it after WPF hid it
             Hide();
-            EndHiddenStart();
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+            {
+                var h = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (_hiddenStart && h != IntPtr.Zero && IsWindowVisible(h)) ShowWindow(h, 0); // SW_HIDE
+            });
         }
         Ready = true;
         // Pitlane HQ was opened again while this window started (or while an update handed over to it)
@@ -1295,11 +1304,26 @@ public partial class MainWindow : Window
         if (now["tray"] != null) _trayOnClose = Bo(now["tray"]);
     }
 
-    // the window from the hidden start goes back where a window opens (the middle of the main screen) and to the taskbar
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int value, int size);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr h, int cmd);
+
+    private static void Cloak(IntPtr h, bool on)
+    {
+        if (h == IntPtr.Zero) return;
+        int v = on ? 1 : 0;
+        try { DwmSetWindowAttribute(h, 13, ref v, sizeof(int)); } catch { } // DWMWA_CLOAK
+    }
+
+    // the window from the hidden start, when it is opened: back where a window opens (the middle of the main
+    // screen), uncloaked and to the taskbar. Only while it is hidden: a window WPF never painted shows black
     private void EndHiddenStart()
     {
         if (!_hiddenStart) return;
         _hiddenStart = false;
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero && IsWindowVisible(hwnd)) ShowWindow(hwnd, 0); // SW_HIDE
+        Cloak(hwnd, false);
         var wa = SystemParameters.WorkArea;
         Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
         Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
