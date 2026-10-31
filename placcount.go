@@ -1063,7 +1063,8 @@ func registerPLRoutes(mux *http.ServeMux) {
 			p == "/community/profile/races" || p == "/community/profile/badge" || strings.HasPrefix(p, "/community/coach/") || p == "/community/pro/pc" || p == "/community/lics" || p == "/community/leagues" || strings.HasPrefix(p, "/community/leagues/") ||
 			strings.HasPrefix(p, "/community/admin/") || // the admin panel (the server checks the account is an admin)
 			p == "/community/usage" || p == "/community/feedback" || p == "/community/feedback/seen" || // what the app is used for, and the feedback window (usage.js)
-			p == "/community/support") // the support chat (support.js)
+			p == "/community/support" || // the support chat (support.js)
+			p == "/community/crash") // the page's errors (reports.js)
 		// and the admin panel deletes shared items and accounts
 		del := r.Method == http.MethodDelete && strings.HasPrefix(p, "/community/admin/")
 		if (r.Method != http.MethodGet && !post && !del) || !ok || strings.Contains(p, "..") {

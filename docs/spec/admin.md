@@ -25,7 +25,7 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   opens its laps one by one with their top speed and sectors, and an admin marks a lap not valid or valid again:
   `admSessionLaps`, `/api/laps/:id/valid`; the session's best, the driver's share and the model follow), Coach (the
   coach's buckets) and Server (the server's emails and the domain's records, the tools: rebuild the coach models, the
-  blocked sign-ins one by one, by email or all, the .ibt import, demo data, admin mode; and Pro). Networks are only ever a
+  blocked sign-ins one by one, by email or all, the .ibt import, demo data, admin mode; and Pro) and Health (below). Networks are only ever a
   hash of their address.
 - What the drivers use (`cloud/src/usage.js`, the pure part in `usagelib.js`, migration 0070 `usage_days`): every app
   counts the views it opens (`view:<name>`), its notable actions (`act:<name>`: race summary opened, plan to the coach
@@ -43,3 +43,12 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   n}], versions [{device, v, devices}] from presence, users [{id, nick, lastSeen, devices, n, top [{key, n}]}]} from two
   grouped reads of usage_days and one of presence, never a query per account; the Summary draws it (active drivers per
   day, devices, games, screens and actions with how many drivers, versions) and Users merges it into every account.
+- Health (`cloud/src/reports.js`, the pure part in `reportslib.js`, migration 0079): Crashes and errors lists every kind
+  of error the agent, the web and the phones sent in the last 7 days (POST `/community/crash` {app pc|web|android|ios, v,
+  os, where, msg, stack}, signed in or not; one row per kind, `crashSig`: the app, the part and the message with its
+  numbers left out and the top frames; how many times, the newest version, the last account), with its stack and
+  Fixed (DELETE `/community/admin/crashes/:sig`, it comes back if it happens again); kinds not seen for 30 days go.
+  Database reads shows the rows read and written per day and per route (`d1_usage`): every request's `env.DB` is wrapped
+  (`countingDB`, the route is the method and the path with ids left out, `routeKey`; the cron runs count as "cron 10
+  min", "cron hourly" and "cron daily"), `first()` reads through `all()` to get D1's meta, and each Worker instance writes
+  its counts about once a minute (`flushUsage`), so counting costs one write per route and minute.

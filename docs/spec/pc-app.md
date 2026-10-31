@@ -52,3 +52,12 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   when no sim is connected (unless switched off in Settings → About). A required update (the PC's version is older
   than version.json's `min`, `appMinVersion`) installs as soon as the car is not on the track, whatever that switch,
   never while driving. The client tag (`clientTag`, `X-Pitlane-Client`) carries the build, shown in Admin → Users → Online now.
+- Crashes (reports.go): each long-lived part of the agent (the game reader, the recorder, the uploader, the watchers)
+  runs under `keepAlive`, so a panic is logged, reported to the server (POST `/community/crash`, once per kind and run)
+  and that part starts again (2 s, then longer, at most 20 times a run); the race summary's notices run under `safeGo`.
+  A crash Go cannot catch goes to `crash.txt` in the data folder (`debug.SetCrashOutput`) and is reported at the next
+  start. The page's own errors are reported the same way (`pwCrash` in index.html, the web's too).
+- Home on the PC app shows what the driver should act on (GET `/api/health`, `healthWatcher`): laps waiting more than
+  two minutes to upload with Retry (POST `/api/health/retry`), or a line asking to sign in when no account takes them,
+  and Le Mans Ultimate running for a minute while the agent cannot read it (its plugins off) with where to turn them
+  on (`homeHealth`).

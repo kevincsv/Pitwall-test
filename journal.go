@@ -970,8 +970,8 @@ func saveRace(r *raceReport) {
 	pushNoticeLocked("race", r)
 	journalMu.Unlock()
 	log.Printf("Race report: P%d from P%d at %s", r.Finish, r.Start, r.Track)
-	go notifyRaceSummary(r)
-	go discordRace(r)
+	safeGo("notifyRaceSummary", func() { notifyRaceSummary(r) })
+	safeGo("discordRace", func() { discordRace(r) })
 	shareReport(r)
 	go shareFieldTop(r)
 }

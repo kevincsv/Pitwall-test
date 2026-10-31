@@ -48,3 +48,10 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   count and the average stars; the Feedback tab tags the overlay answers ("Overlays · Classic") and filters All, General
   and Overlays. Deleting an
   account deletes its usage and its feedback.
+- "Send the agent's logs" (the PC app only, under the chat's box, `supLogsOk`): the agent sends the end of its log
+  (400 KB, the older file first when the current one is short, with a line naming the agent's version, the game and
+  whether Le Mans Ultimate runs; `logTail` in reports.go, local POST `/api/support/logs`) to POST
+  `/community/support/logs` {text ≤ 512 KB, device, v} (3 a day, `support_logs`, migration 0079), which adds "Logs sent,
+  N KB" to the chat (kind "logs", view "log:<id>"). In the support inbox an admin opens it ("Open the logs", GET
+  `/community/admin/support/logs/:id`, Copy and Download). Logs older than 30 days go, and deleting the account deletes
+  them. The phones send their own log the same way.

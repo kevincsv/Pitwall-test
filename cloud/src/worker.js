@@ -25,6 +25,7 @@ import { usageRoute, pruneUsage } from "./usage.js";
 import { supportRoute } from "./support.js";
 import { sessionSummary, SESSION_SUMS, ALL_SESSION_SUMS } from "./sessionsum.js";
 import { pruneSeen } from "./seasonseen.js";
+import { reportsRoute, pruneReports, countingDB, flushUsage, routeKey } from "./reports.js";
 export { LiveRoom } from "./live.js";
 
 const JSONH = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
@@ -506,11 +507,22 @@ export default {
     // the database's reads per day are limited: the repairs that read the whole laps table (and find nothing almost
     // always: the uploads repair their own laps) run once a day, at 03:00 UTC
     const at = new Date(ev.scheduledTime || Date.now()), hourly = at.getUTCMinutes() < 10, daily = hourly && at.getUTCHours() === 3;
+    // the rows the jobs read count on the admin page's Health under the run's kind (reports.js)
+    const raw = env.DB; env = { ...env, DB: countingDB(raw, daily ? "cron daily" : hourly ? "cron hourly" : "cron 10 min") };
+    if (hourly) ctx.waitUntil(pruneReports({ DB: raw }).catch(() => {}));
+    const all = [];
+    const wait = ctx.waitUntil.bind(ctx); ctx = { ...ctx, waitUntil: (pr) => { all.push(pr); wait(pr); } };
     ctx.waitUntil(rebuildDirty(env, { daily })); ctx.waitUntil(indexNow(env).catch(() => {}));
     if (hourly) { ctx.waitUntil(pruneUsage(env).catch(() => {})); ctx.waitUntil(pruneSeen(env).catch(() => {})); }
-    if (daily) { ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(env.DB.prepare(ALL_SESSION_SUMS).run().catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(rebuildTrackMaps(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {})); },
+    if (daily) { ctx.waitUntil(fixLapTimes(env).catch(() => {})); ctx.waitUntil(repairImpossibleShares(env).catch(() => {})); ctx.waitUntil(env.DB.prepare(ALL_SESSION_SUMS).run().catch(() => {})); } ctx.waitUntil(resharePending(env).catch(() => {})); ctx.waitUntil(rebuildTrackMaps(env).catch(() => {})); ctx.waitUntil(scanLeagues(env).catch(() => {})); ctx.waitUntil(prunePresence(env).catch(() => {}));
+    wait(Promise.allSettled(all).then(() => flushUsage(raw, true)));
+  },
   async fetch(req, env, ctx) {
-    return harden(await handle(req, env, ctx));
+    // the rows each route reads and writes, for the admin page's Health (reports.js); about once a minute they are kept
+    if (!env.DB) return harden(await handle(req, env, ctx));
+    const raw = env.DB, url = new URL(req.url);
+    try { return harden(await handle(req, { ...env, DB: countingDB(raw, routeKey(req.method, url.pathname)) }, ctx)); }
+    finally { ctx.waitUntil(flushUsage(raw)); }
   },
 };
 
@@ -535,6 +547,11 @@ async function handle(req, env, ctx) {
     // what the drivers use and what they tell us (usage.js): the usage batches, the feedback window, the admin's analytics
     if (url.pathname.startsWith("/community/usage") || url.pathname.startsWith("/community/feedback") || url.pathname === "/community/admin/analytics" || url.pathname === "/community/admin/feedback") {
       const r = await usageRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+      if (r) return r;
+    }
+    // crash and error reports, the logs sent from the support chat and the database's rows per route (reports.js)
+    if (url.pathname === "/community/crash" || url.pathname === "/community/support/logs" || url.pathname.startsWith("/community/admin/crashes") || url.pathname.startsWith("/community/admin/support/logs/") || url.pathname === "/community/admin/d1") {
+      const r = await reportsRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
       if (r) return r;
     }
     // the support chat behind the floating button (support.js)
