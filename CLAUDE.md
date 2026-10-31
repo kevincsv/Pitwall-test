@@ -96,10 +96,13 @@ must keep this server's protocol.
 
 ## Checks before committing
 
+- `checks.yml` runs these tests on every push to a working branch and on pull requests (tests only: it never builds,
+  deploys or publishes). New server tests in `cloud/test/*.test.mjs` are picked up by it.
+
 - Go: `go test -mod=vendor ./...` (benchmarks: `go test -run '^$' -bench . -benchmem`).
 - Lap analysis and coach: `node cloud/test/analysis.test.mjs`. A change meant to change its answers rewrites the
   fixture with `--capture web/dist/index.html` and says why in the commit.
-- Server: `node cloud/test/<name>.test.mjs` for the area changed (`seo.test.mjs` for any public page), and
+- Server: `node cloud/test/<name>.test.mjs` for the area changed (`seo.test.mjs` for any public page, `migrations.test.mjs` for a new migration), and
   `cd cloud && npx wrangler deploy --dry-run --outdir dist` to check it builds.
 - Web layout: `node tools/ui-sweep.js` (Playwright, every view at 1300 and 390 px).
 

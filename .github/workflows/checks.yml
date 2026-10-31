@@ -1,0 +1,39 @@
+name: Checks (tests only)
+
+# Runs the tests on every push to a working branch and on pull requests. It never builds an installer, never
+# deploys and never publishes anything: the builds stay in windows.yml and cloud.yml, started by hand.
+
+on:
+  push:
+    branches-ignore: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test -mod=vendor ./...
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Server, analysis and migration tests
+        run: for f in cloud/test/*.test.mjs; do echo "== $f"; node "$f" || exit 1; done
+      - name: The Worker builds
+        working-directory: cloud
+        run: npm ci && npx wrangler deploy --dry-run --outdir dist
