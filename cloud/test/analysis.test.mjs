@@ -269,7 +269,8 @@ function answers(api, cs, set) {
 }
 
 const indexHtml = (p) => fs.readFileSync(p || new URL("web/dist/index.html", ROOT), "utf8");
-const moduleSrc = () => fs.readFileSync(new URL("web/dist/pitwall-analysis.js", ROOT), "utf8");
+// PW_ANALYSIS_FILE: another copy of the module to check against the fixture (the phones' copies, tools/check-analysis.mjs there)
+const moduleSrc = () => fs.readFileSync(process.env.PW_ANALYSIS_FILE || new URL("web/dist/pitwall-analysis.js", ROOT), "utf8");
 
 if (process.argv[2] === "--capture") {
   // an index.html from before the module has the functions itself; a newer one runs the pitwall-analysis.js beside it
