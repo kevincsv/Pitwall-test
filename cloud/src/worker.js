@@ -25,6 +25,7 @@ import { usageRoute, pruneUsage } from "./usage.js";
 import { supportRoute } from "./support.js";
 import { sessionSummary, SESSION_SUMS, ALL_SESSION_SUMS } from "./sessionsum.js";
 import { pruneSeen } from "./seasonseen.js";
+import { digestRoute, sendDigests } from "./digest.js";
 import { reportsRoute, pruneReports, countingDB, flushUsage, routeKey } from "./reports.js";
 export { LiveRoom } from "./live.js";
 
@@ -510,6 +511,8 @@ export default {
     // the rows the jobs read count on the admin page's Health under the run's kind (reports.js)
     const raw = env.DB; env = { ...env, DB: countingDB(raw, daily ? "cron daily" : hourly ? "cron hourly" : "cron 10 min") };
     if (hourly) ctx.waitUntil(pruneReports({ DB: raw }).catch(() => {}));
+    // Monday from 07:00 UTC: the weekly emails, a few drivers each hourly run (digest.js)
+    if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 7) ctx.waitUntil(sendDigests(env, at.getTime()).catch(() => {}));
     const all = [];
     const wait = ctx.waitUntil.bind(ctx); ctx = { ...ctx, waitUntil: (pr) => { all.push(pr); wait(pr); } };
     ctx.waitUntil(rebuildDirty(env, { daily })); ctx.waitUntil(indexNow(env).catch(() => {}));
@@ -547,6 +550,11 @@ async function handle(req, env, ctx) {
     // what the drivers use and what they tell us (usage.js): the usage batches, the feedback window, the admin's analytics
     if (url.pathname.startsWith("/community/usage") || url.pathname.startsWith("/community/feedback") || url.pathname === "/community/admin/analytics" || url.pathname === "/community/admin/feedback") {
       const r = await usageRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+      if (r) return r;
+    }
+    // the weekly email a driver turns on in Settings, and its link that turns it off (digest.js)
+    if (url.pathname === "/community/digest" || url.pathname === "/community/digest/off") {
+      const r = await digestRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
       if (r) return r;
     }
     // crash and error reports, the logs sent from the support chat and the database's rows per route (reports.js)
