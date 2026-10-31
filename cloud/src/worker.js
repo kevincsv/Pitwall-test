@@ -25,7 +25,7 @@ import { usageRoute, pruneUsage } from "./usage.js";
 import { supportRoute } from "./support.js";
 import { sessionSummary, SESSION_SUMS, ALL_SESSION_SUMS } from "./sessionsum.js";
 import { pruneSeen } from "./seasonseen.js";
-import { digestRoute, sendDigests } from "./digest.js";
+import { alertsRoute, weeklyAlerts, pruneAlerts } from "./alerts.js";
 import { reportsRoute, pruneReports, countingDB, flushUsage, routeKey } from "./reports.js";
 export { LiveRoom } from "./live.js";
 
@@ -511,8 +511,9 @@ export default {
     // the rows the jobs read count on the admin page's Health under the run's kind (reports.js)
     const raw = env.DB; env = { ...env, DB: countingDB(raw, daily ? "cron daily" : hourly ? "cron hourly" : "cron 10 min") };
     if (hourly) ctx.waitUntil(pruneReports({ DB: raw }).catch(() => {}));
-    // Monday from 07:00 UTC: the weekly emails, a few drivers each hourly run (digest.js)
-    if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 7) ctx.waitUntil(sendDigests(env, at.getTime()).catch(() => {}));
+    if (hourly) ctx.waitUntil(pruneAlerts({ DB: raw }).catch(() => {}));
+    // Monday from 07:00 UTC: the week's summary for the phones with notifications on, some drivers each hourly run (alerts.js)
+    if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 7) ctx.waitUntil(weeklyAlerts(env, at.getTime()).catch(() => {}));
     // Monday from 09:00 UTC: the Discord servers' best laps of the week (discord.js)
     if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 9) ctx.waitUntil(discordWeekly(env, at.getTime()).catch(() => {}));
     const all = [];
@@ -554,9 +555,9 @@ async function handle(req, env, ctx) {
       const r = await usageRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
       if (r) return r;
     }
-    // the weekly email a driver turns on in Settings, and its link that turns it off (digest.js)
-    if (url.pathname === "/community/digest" || url.pathname === "/community/digest/off") {
-      const r = await digestRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
+    // the phones' notifications: a beaten record, the week's summary (alerts.js)
+    if (url.pathname === "/community/alerts" || url.pathname === "/community/alerts/on") {
+      const r = await alertsRoute(req, env, url).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));
       if (r) return r;
     }
     // crash and error reports, the logs sent from the support chat and the database's rows per route (reports.js)

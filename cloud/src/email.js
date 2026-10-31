@@ -187,7 +187,3 @@ export async function sendSupportReply(env, to, reply, l) {
   return send(env, to, m.subject, m.text, m.link, m.button, m.lang);
 }
 
-// The weekly email (digest.js): the driver's week, in their language, with the link that turns it off.
-export async function sendDigest(env, to, m) {
-  return send(env, to, m.subject, m.text, m.link, m.button, m.lang);
-}

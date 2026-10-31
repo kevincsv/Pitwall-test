@@ -63,6 +63,7 @@ import { turnsFromPath } from "./trackgeo.js";
 import { turnCount, noteTurnCount, rebuildTrackMaps } from "./trackmaps.js";
 import { estimateTrace } from "./pedals.js";
 import { discordLapAlert } from "./discord.js";
+import { recordBeaten } from "./alerts.js";
 import { addFound, editFound, foundLeagues, leagueGame, scanLeagues } from "./leaguescan.js";
 import { catMap, catOf, licOf, CATS } from "./categories.js";
 import { lmuClass, wetOf, clsParam, classLaps } from "./lmuclass.js";
@@ -108,6 +109,8 @@ export async function keepBestLap(env, uid, x) {
   const old = await env.DB.prepare("SELECT time, game, trace IS NOT NULL AS traced FROM community_laps WHERE user_id=?1 AND car_id=?2 AND track_id=?3").bind(uid, x.carId, x.trackId).first();
   if (old && old.game === x.game && old.time <= x.time && (old.traced || !x.trace)) return { kept: true, traced: !!old.traced };
   if (x.count && !(await x.count())) return { limit: true };
+  // a faster lap than another driver's record here: that driver hears about it (alerts.js)
+  await recordBeaten(env, uid, x).catch(() => {});
   // Le Mans Ultimate's class (its class boards), and whether the track was wet or damp and whether it rained (every game): from the flags of the trace before it was
   // sealed when the caller has them, else from the sealed trace itself (only here, when the lap is really kept)
   const cls = x.game === "lmu" ? lmuClass(x.cls, x.car) : null;

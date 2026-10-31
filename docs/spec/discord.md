@@ -26,7 +26,7 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
 - /league (the server's managers): links the server to its league in the leagues hub (picked as you type; empty
   unlinks). The league's invite must lead to that server (the bot asks Discord where it goes, `inviteGuild`), so nobody
   takes another server's league. A linked league shows "Pitlane HQ bot" in the hub (`bot` on GET /community/leagues;
-  migration 0081 `discord_guilds.league_id`).
+  migration 0080 `discord_guilds.league_id`).
 - The weekly post (`discordWeekly`, Monday from 09:00 UTC, up to 20 servers each hourly run, each once a week,
   `week_at`): every server with alerts on gets "The week's best laps" in its alerts channel (with its league's name when
   linked), each of its drivers' laps of the last seven days with the place on the leaderboard, the best places first,

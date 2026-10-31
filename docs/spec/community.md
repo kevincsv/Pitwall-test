@@ -73,3 +73,14 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   the game, the track, the car, the time, "P3 of 42 on the leaderboard", wet when it was, pitlanehq.app). The share
   sheet when the device has one (phones, most browsers), else the picture is saved. Counted `act:share_card`. The phones
   draw the same picture natively.
+- Alerts (`cloud/src/alerts.js`, the pure part in `alertslib.js`, migration 0081): when a driver keeps a lap faster than
+  another driver's record of that car and track (`recordBeaten`, called by `keepBestLap` before it keeps the lap; never
+  for beating your own, a DRINKS driver of the same account, or the model's laps), the account that had it gets a
+  `record_beaten` alert {track, car, time, was, by} (`by` empty for an anonymous driver; a DRINKS driver's record goes
+  to the account it is joined to). On Monday from 07:00 UTC the accounts with notifications on in a phone (`alert_subs`,
+  GET/POST `/community/alerts/on` {on, lang}) get a `week` alert {title, text} in their language (sessions, laps, time on
+  track, races and top 5s, new personal bests; nothing for a week without driving). GET `/community/alerts?since=` gives
+  the newest 20 of the last 30 days; they are deleted after 30 days and with the account. The phones read them in the
+  background and show a notification (only with Account → Notifications on); the PC app and the web show the newest
+  beaten record of the last 7 days on Home ("Your record at Spa was beaten", the time, the car and the gap,
+  Leaderboard and OK; `homeAlerts`), never as a Windows notification. Nothing goes by email.
