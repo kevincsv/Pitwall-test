@@ -1,6 +1,12 @@
 {
   "versions": [
     {
+      "v": "0.9.0",
+      "en": ["Turn on notifications on your phone to hear when another driver beats your record and to get a summary of your week.", "Home tells you when another driver beats one of your records.", "Home tells you when laps are waiting to upload or when Pitlane HQ cannot read Le Mans Ultimate.", "Share a picture of your lap from any leaderboard you are on.", "Send your logs to us from the support chat when something goes wrong.", "The Discord bot has /recent, /track and /league, and posts the week's best laps every Monday.", "Fixes and improvements."],
+      "es": ["Activa las notificaciones en tu móvil para saber cuándo otro piloto bate tu récord y recibir un resumen de tu semana.", "Inicio te avisa cuando otro piloto bate uno de tus récords.", "Inicio te avisa cuando hay vueltas esperando para subir o cuando Pitlane HQ no puede leer Le Mans Ultimate.", "Comparte una imagen de tu vuelta desde cualquier leaderboard en la que estés.", "Envíanos tus registros desde el chat de soporte cuando algo falle.", "El bot de Discord tiene /recent, /track y /league, y publica las mejores vueltas de la semana cada lunes.", "Arreglos y mejoras."],
+      "pt": ["Ligue as notificações no celular para saber quando outro piloto bate seu recorde e receber um resumo da sua semana.", "O Início avisa quando outro piloto bate um dos seus recordes.", "O Início avisa quando há voltas esperando para enviar ou quando o Pitlane HQ não consegue ler o Le Mans Ultimate.", "Compartilhe uma imagem da sua volta de qualquer classificação em que você esteja.", "Envie seus registros pelo chat de suporte quando algo der errado.", "O bot do Discord tem /recent, /track e /league, e publica as melhores voltas da semana toda segunda-feira.", "Correções e melhorias."]
+    },
+    {
       "v": "0.8.2",
       "en": ["Pitlane HQ starts with Windows without leaving a black window on the screen.", "Fixes and improvements."],
       "es": ["Pitlane HQ se inicia con Windows sin dejar una ventana negra en la pantalla.", "Arreglos y mejoras."],

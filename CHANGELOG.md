@@ -4,6 +4,16 @@ Pitlane HQ is in **beta**. Pitlane HQ Agent (the PC app), the web app and the ph
 number, `0.MINOR.PATCH`. A MINOR version brings a set of new features, and fixes go in as "Fixes and
 improvements". 1.0.0 comes when the beta ends. Newest first.
 
+## 0.9.0 beta
+
+- Turn on notifications on your phone to hear when another driver beats your record and to get a summary of your week.
+- Home tells you when another driver beats one of your records.
+- Home tells you when laps are waiting to upload or when Pitlane HQ cannot read Le Mans Ultimate.
+- Share a picture of your lap from any leaderboard you are on.
+- Send your logs to us from the support chat when something goes wrong.
+- The Discord bot has /recent, /track and /league, and posts the week's best laps every Monday.
+- Fixes and improvements.
+
 ## 0.8.2 beta
 
 - Pitlane HQ starts with Windows without leaving a black window on the screen.
