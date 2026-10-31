@@ -84,3 +84,10 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   background and show a notification (only with Account → Notifications on); the PC app and the web show the newest
   beaten record of the last 7 days on Home ("Your record at Spa was beaten", the time, the car and the gap,
   Leaderboard and OK; `homeAlerts`), never as a Windows notification. Nothing goes by email.
+- Instant notifications (`cloud/src/pushlib.js`, migration 0082 `push_tokens`): a phone turning notifications on sends
+  its Firebase Cloud Messaging token with POST `/community/alerts/on` {on, lang, push: {token, platform}}; off forgets
+  that phone's token. Each new alert (a beaten record, the week's summary) sends every phone of the account a data
+  message {kind: "alerts"} through FCM HTTP v1 (a JWT of the FCM_SERVICE_ACCOUNT secret, Google's access token kept for
+  the hour), never the alert's text; the phone then reads GET `/community/alerts`. A token Firebase no longer knows is
+  deleted, an unused one after 270 days (daily), all of them with the account. Without the secret nothing is sent and the
+  phones' background check finds the alerts as before.

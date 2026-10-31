@@ -3,7 +3,8 @@
 // notifications on in a phone, the summary of their week on Monday. The phones read GET /community/alerts?since= in the
 // background and show a notification; the PC and the web show a beaten record on Home. Nothing goes by email. The
 // statements, the route and the job take the sign-in and the summary handed in, so cloud/test/alerts.test.mjs runs them
-// on SQLite without the server.
+// on SQLite without the server. A new alert also wakes the account's phones at once (pushlib.js, Firebase).
+import { pushAccount, isPushToken, SQL_TOKEN_ADD, SQL_TOKEN_DEL } from "./pushlib.js";
 
 export const ALERT_DAYS = 30, ALERT_MAX = 20, WEEK = 7 * 864e5, PER_RUN = 100;
 const L3 = (l) => (["en", "es", "pt"].includes(l) ? l : "en");
@@ -60,6 +61,14 @@ export function weekNote(sum, pbs, l) {
   return { title: w.title, text: lines.join(" ") };
 }
 
+/** The account's phones hear about a new alert at once (after the answer when there is a ctx); a failure only waits
+ *  for their next background check. */
+function wake(env, acc, ctx) {
+  const p = (env.push || pushAccount)(env, acc).catch(() => {});
+  if (ctx && ctx.waitUntil) ctx.waitUntil(p);
+  return p;
+}
+
 /** Before driver `uid` keeps lap `x` ({game, trackId, carId, track, car, time, anon, shown}): when it beats another
  *  driver's record there, that driver's account hears about it. Never for the model's laps or a driver beating their own. */
 export async function recordBeaten(env, uid, x, now = Date.now()) {
@@ -73,12 +82,15 @@ export async function recordBeaten(env, uid, x, now = Date.now()) {
   const data = { game: x.game, trackId: x.trackId, carId: x.carId, track: String(x.track || "").slice(0, 80), car: String(x.car || "").slice(0, 80),
     time: x.time, was: rec.time, by: (who && who.alias) || "" };
   await env.DB.prepare(SQL_ALERT_ADD).bind(rid(), acc, "record_beaten", now, JSON.stringify(data)).run();
+  const w = wake(env, acc, x.ctx);
+  if (!x.ctx) await w;
   return { account: acc, ...data };
 }
 
 // GET  /community/alerts?since=<ms>  the account's alerts after that time, the newest first (at most 30 days back)
 // GET  /community/alerts/on           {on}: notifications on in one of the account's phones
-// POST /community/alerts/on           {on, lang} → {on}
+// POST /community/alerts/on           {on, lang, push?: {token, platform}} → {on}; on keeps the phone's Firebase token
+//                                     (pushlib.js), off forgets that phone's token
 export async function handleAlerts(req, env, url, { sessionAccount }, now = Date.now()) {
   const p = url.pathname, m = req.method;
   if (p !== "/community/alerts" && p !== "/community/alerts/on") return null;
@@ -94,6 +106,11 @@ export async function handleAlerts(req, env, url, { sessionAccount }, now = Date
     const b = (await req.json().catch(() => null)) || {};
     if (b.on) await env.DB.prepare(SQL_SUB_ON).bind(acc.id, L3(String(b.lang || "").slice(0, 2))).run();
     else await env.DB.prepare(SQL_SUB_OFF).bind(acc.id).run();
+    const tok = b.push && b.push.token;
+    if (isPushToken(tok)) {
+      if (b.on) await env.DB.prepare(SQL_TOKEN_ADD).bind(tok, acc.id, b.push.platform === "ios" ? "ios" : "android", now).run();
+      else await env.DB.prepare(SQL_TOKEN_DEL).bind(tok).run();
+    }
     return json({ on: !!b.on });
   }
   return json({ error: "not found" }, 404);
@@ -109,7 +126,7 @@ export async function weeklyAlerts(env, { sessionSummary }, now = Date.now()) {
       const up = "acct:" + d.account_id, from = now - WEEK;
       const sum = await sessionSummary(env.DB, { from, tz: 0, game: null, uploader: up, now });
       const note = sum && sum.sessions ? weekNote(sum, pbsOf(((await env.DB.prepare(SQL_PBS).bind(up, from).all()).results) || []), d.lang) : null;
-      if (note) { await env.DB.prepare(SQL_ALERT_ADD).bind(rid(), d.account_id, "week", now, JSON.stringify(note)).run(); written++; }
+      if (note) { await env.DB.prepare(SQL_ALERT_ADD).bind(rid(), d.account_id, "week", now, JSON.stringify(note)).run(); written++; await wake(env, d.account_id); }
     } catch (e) {}
     await env.DB.prepare(SQL_WEEK_DONE).bind(d.account_id, now).run();
   }

@@ -25,7 +25,8 @@ import { usageRoute, pruneUsage } from "./usage.js";
 import { supportRoute } from "./support.js";
 import { sessionSummary, SESSION_SUMS, ALL_SESSION_SUMS } from "./sessionsum.js";
 import { pruneSeen } from "./seasonseen.js";
-import { alertsRoute, weeklyAlerts, pruneAlerts } from "./alerts.js";
+import { legal } from "./legal.js";
+import { alertsRoute, weeklyAlerts, pruneAlerts, prunePushTokens } from "./alerts.js";
 import { reportsRoute, pruneReports, countingDB, flushUsage, routeKey } from "./reports.js";
 export { LiveRoom } from "./live.js";
 
@@ -512,6 +513,7 @@ export default {
     const raw = env.DB; env = { ...env, DB: countingDB(raw, daily ? "cron daily" : hourly ? "cron hourly" : "cron 10 min") };
     if (hourly) ctx.waitUntil(pruneReports({ DB: raw }).catch(() => {}));
     if (hourly) ctx.waitUntil(pruneAlerts({ DB: raw }).catch(() => {}));
+    if (daily) ctx.waitUntil(prunePushTokens({ DB: raw }).catch(() => {}));
     // Monday from 07:00 UTC: the week's summary for the phones with notifications on, some drivers each hourly run (alerts.js)
     if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 7) ctx.waitUntil(weeklyAlerts(env, at.getTime()).catch(() => {}));
     // Monday from 09:00 UTC: the Discord servers' best laps of the week (discord.js)
@@ -547,6 +549,8 @@ async function handle(req, env, ctx) {
     if (url.pathname === "/news") return news(req, env, ctx);
     // the public pages for search engines: what Pitlane HQ does, the records of every car and track, the sitemap
     { const sp = await seoPage(req, env, url, ctx).catch(() => null); if (sp) return sp; }
+    // the privacy policy and how to delete an account, the addresses the app stores ask for (legal.js)
+    { const lp = legal(req, url); if (lp) return lp; }
     if (url.pathname.startsWith("/dl/") || url.pathname.startsWith("/downloads") || url.pathname.startsWith("/changelog")) return downloads(req, env, url);
     // the admin page's Online tab: who is on the web, the PC or the phones now (presence.js)
     if (url.pathname === "/community/admin/online" && req.method === "GET") return onlineRoute(req, env).catch((e) => new Response(JSON.stringify({ error: "server error: " + (e && e.message) }), { status: 500, headers: { "content-type": "application/json" } }));

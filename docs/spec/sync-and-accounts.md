@@ -31,4 +31,4 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   public name per account: changing it anywhere changes it everywhere, shared laps included.
 - Deleting your own account never deletes what the leaderboard shows or what the model learns from:
   those laps stay as an anonymous driver (`deleteAccount` in `cloud/src/accounts.js`); everything
-  else of the account goes. Only an admin removing an account (abuse) removes its shares (`purgeAccount`).
+  else of the account goes (its alerts, notification settings and phone tokens too). Only an admin removing an account (abuse) removes its shares (`purgeAccount`).

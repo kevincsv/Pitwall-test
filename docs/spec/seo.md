@@ -48,3 +48,7 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   never stuffed, never claiming an iPhone app before it is on the App Store; competitors' names only in a question, never a
   claim about them.
   They show the accounts' nicknames (never their iRacing names), or Anonymous (race rivals always).
+- `/privacy` (the privacy policy) and `/delete-account` (how to delete an account, from the app, the web or by email),
+  `cloud/src/legal.js`, the addresses Google Play and the App Store ask for: English, Spanish or Portuguese by `?lang=` or
+  the browser's language; what is kept, why and for how long, never how it is stored or protected
+  (`cloud/test/legal.test.mjs`).

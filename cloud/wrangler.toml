@@ -29,6 +29,8 @@ migrations_dir = "migrations"
 #                      comes back to /discord/oauth, its one redirect address in the Discord application's OAuth2 page)
 #   STEAM_WEB_API_KEY  optional, "Sign in with Steam" (Steam's sign-in comes back to /steam/return) names the linked
 #                      Steam account; without it the sign-in works and the link has no name
+#   FCM_SERVICE_ACCOUNT  optional, the Firebase service account's JSON key: a new alert wakes the phones at once
+#                      (pushlib.js); without it they find their alerts in their background check
 #   STEAM_APP_ID       the app's id on Steam, for the Steamworks session ticket of the PC (a later step)
 
 [vars]
