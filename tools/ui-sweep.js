@@ -4,7 +4,7 @@
 // web/dist, or another port given as SWEEP_PORT); needs Playwright (npm i playwright, and its Chromium). Run: node tools/ui-sweep.js <outdir>
 const { chromium } = require('playwright');
 const views=["home","laps","coach","cloudlaps","races","live","overlays","community","leagues","me","settings","admin"];
-const ADMIN_SECS=["summary","users","feedback","content","sessions","coach","server"]; // the admin page's sections, each checked too
+const ADMIN_SECS=["summary","users","feedback","content","sessions","coach","health","server"]; // the admin page's sections, each checked too
 (async () => {
   const b = await chromium.launch();
   for (const width of [1300, 390]) {
