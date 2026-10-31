@@ -68,3 +68,8 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   (`driver_link_moves`: the laps taken and dropped, the rival, the model's memory), and the admin's undo gives all of it
   back to the rival (a lap the account improved since stays the account's) and is never linked again by itself
   ("undone"). An iRacing undo leaves the laps where they are, as before.
+- "Share my lap" (the leaderboard's title, when the driver is on that board, never in demo data): a 1200×630 picture
+  drawn on the device (`lapCardCanvas`/`shareLapCard` in index.html: the dark card with the amber edge, Pitlane HQ and
+  the game, the track, the car, the time, "P3 of 42 on the leaderboard", wet when it was, pitlanehq.app). The share
+  sheet when the device has one (phones, most browsers), else the picture is saved. Counted `act:share_card`. The phones
+  draw the same picture natively.

@@ -8393,8 +8393,9 @@ async function renderCommLaps(){const box=$("#cmLaps");if(!box||!COMMSEL)return;
   // the title: the car and the track of this board, how many drivers and its track page
   const tt=$("#cmTitle"),ts=$("#cmTrk"),cs=$("#cmCar"),tn=s.track||(ts&&ts.selectedOptions[0]?ts.selectedOptions[0].textContent:""),cn=s.car||(cs&&cs.selectedOptions[0]?cs.selectedOptions[0].textContent:"");
   const clsSw=lmu&&cls?`<span class="seg cl-clsw" role="group" aria-label="${esc(Tx("Leaderboard","Leaderboard","Rangliste","Classificação"))}"><button type="button" data-whole="0" aria-pressed="${!whole}">${esc(Tx("This car","Este coche","Dieses Auto","Este carro"))}</button><button type="button" data-whole="1" aria-pressed="${whole}">${esc(Tx("Whole class","Toda la clase","Ganze Klasse","Classe inteira"))}</button></span>`:"";
-  if(tt){tt.innerHTML=`<h2>${esc(whole?lmuCls({cls})||cls:unMojibake(cn))}</h2><span class="muted">${esc(unMojibake(tn))}</span>${clsSw}<span class="cl-tr">${esc(Tx(`${laps.length} drivers`,`${laps.length} pilotos`,`${laps.length} Fahrer`,`${laps.length} pilotos`))} · <button type="button" class="cl-link" id="cmTrkPg">${esc(Tx("Track page","Página del circuito","Streckenseite","Página da pista"))}</button></span>`;
+  if(tt){tt.innerHTML=`<h2>${esc(whole?lmuCls({cls})||cls:unMojibake(cn))}</h2><span class="muted">${esc(unMojibake(tn))}</span>${clsSw}<span class="cl-tr">${esc(Tx(`${laps.length} drivers`,`${laps.length} pilotos`,`${laps.length} Fahrer`,`${laps.length} pilotos`))} · <button type="button" class="cl-link" id="cmTrkPg">${esc(Tx("Track page","Página del circuito","Streckenseite","Página da pista"))}</button>${me&&!demoOn()?` · <button type="button" class="cl-link" id="cmShare">${esc(Tx("Share my lap","Compartir mi vuelta","Share my lap","Compartilhar minha volta"))}</button>`:""}</span>`;
     $("#cmTrkPg").onclick=()=>openTrackPage(s.trackId,unMojibake(tn));
+    {const sh=$("#cmShare");if(sh)sh.onclick=()=>shareLapCard({track:unMojibake(tn),car:whole&&me.car?unMojibake(me.car):unMojibake(cn),time:me.time,pos:me.pos,of:laps.length,wet:!!me.wet,game:aGame()})}
     tt.querySelectorAll("[data-whole]").forEach(b=>b.onclick=()=>{const w=b.dataset.whole==="1";if(w===CMF.whole)return;CMF.whole=w;renderCommLaps()})}
   // the driver chosen for the map: the one highlighted, else the driver just ahead of you, else the record
   if(COMM_HL&&laps.some(l=>l.id===COMM_HL))COMM_BSEL=COMM_HL;else if(!laps.some(l=>l.id===COMM_BSEL))COMM_BSEL=(me&&me.pos>1?laps[me.pos-2]:laps[0]||{}).id||"";
@@ -8409,6 +8410,25 @@ async function renderCommLaps(){const box=$("#cmLaps");if(!box||!COMMSEL)return;
   box.querySelectorAll("tr[data-bsel]").forEach(r=>{r.onmouseenter=()=>{if(matchMedia("(hover:hover)").matches)pick(r.dataset.bsel)};r.onclick=()=>pick(r.dataset.bsel);r.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick(r.dataset.bsel)}}});
   {const h=box.querySelector("tr.on");if(h&&COMM_HL){COMM_HL="";setTimeout(()=>h.scrollIntoView({block:"center",behavior:"smooth"}),60)}}
   drawCommMap(s,laps)}
+/* "Share my lap": a picture of the driver's place on a leaderboard (track, car, time, place) to post anywhere; the
+   phone's share sheet when there is one, else the picture is saved */
+function lapCardCanvas(c){const W=1200,H=630,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
+  const F=(w,px,f)=>`${w} ${px}px ${f||"'Barlow Condensed','Arial Narrow',Arial,sans-serif"}`,fit=(t,px,max,w,f)=>{let p=px;g.font=F(w,p,f);while(g.measureText(t).width>max&&p>20){p-=2;g.font=F(w,p,f)}return p};
+  g.fillStyle="#0D1116";g.fillRect(0,0,W,H);g.fillStyle="#161C24";g.strokeStyle="#263140";g.lineWidth=2;
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
+  rr(40,40,W-80,H-80,24);g.fill();g.stroke();g.fillStyle="#FFB02E";g.fillRect(40,92,8,H-184);
+  g.textBaseline="alphabetic";g.fillStyle="#FFB02E";g.font=F("800",30);g.fillText("PITLANE HQ",88,100);
+  g.fillStyle="#8a96a8";g.font=F("600",26);const gm=c.game==="lmu"?"Le Mans Ultimate":"iRacing";g.textAlign="right";g.fillText(gm,W-88,100);g.textAlign="left";
+  g.fillStyle="#e7ebf1";fit(c.track.toUpperCase(),76,W-176,"800");g.fillText(c.track.toUpperCase(),88,200);
+  g.fillStyle="#aab4c3";fit(c.car,40,W-176,"600");g.fillText(c.car,88,256);
+  g.fillStyle="#FFB02E";g.font=F("800",170,"'JetBrains Mono',Consolas,monospace");g.fillText(fmtT(c.time),82,440);
+  g.fillStyle="#e7ebf1";g.font=F("800",54);const pl="P"+c.pos;g.fillText(pl,88,524);const pw=g.measureText(pl).width;
+  g.fillStyle="#8a96a8";g.font=F("600",34);g.fillText(Tx(`of ${c.of} on the leaderboard`,`de ${c.of} en la leaderboard`,`of ${c.of} on the leaderboard`,`de ${c.of} na classificação`)+(c.wet?" · "+Tx("wet","mojado","wet","molhado"):""),88+pw+18,522);
+  g.textAlign="right";g.fillStyle="#6c7789";g.font=F("600",28);g.fillText("pitlanehq.app",W-88,524);return cv}
+async function shareLapCard(c){usageCount("act:share_card");try{const cv=lapCardCanvas(c),blob=await new Promise(r=>cv.toBlob(r,"image/png"));if(!blob)throw new Error("no picture");
+  const name="pitlanehq-"+(c.track||"lap").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+".png",file=new File([blob],name,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],text:`${c.track} · ${c.car} · ${fmtT(c.time)} · P${c.pos} · pitlanehq.app`});return}catch(e){if(e&&e.name==="AbortError")return}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5e3);toast(Tx("Picture saved","Imagen guardada","Picture saved","Imagem salva"))}catch(e){toast(e.message)}}
 let COMM_LOADED=[];
 const NO_TRACE=()=>Tx("This driver shared the time but not the telemetry of this lap.","Este piloto compartió el tiempo pero no la telemetría de esta vuelta.","Dieser Fahrer hat die Zeit geteilt, aber nicht die Telemetrie dieser Runde.","Este piloto compartilhou o tempo, mas não a telemetria desta volta.");
 /* a community lap is compared only with your own laps of the same track: without a session of yours there with a
