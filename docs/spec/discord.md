@@ -19,3 +19,15 @@ How this part of Pitlane HQ behaves. Read it before changing this area; keep it 
   one-use button to pitlanehq.app (`?discord=`) where the signed-in web app confirms (`discordLinkAsk`). It shows
   what the public pages show: nicknames; race rivals, anonymous laps and accounts as
   "Anonymous"; an anonymous account's answers only to itself; the Windows app is "Pitlane HQ for Windows", as on the downloads page.
+- /recent (free, only to you): the account's last 8 sessions (date, track, car, Race/Qualifying/Practice with the place,
+  laps, best lap, LMU marked) with "Open Pitlane HQ". /track (free, public): a track's record on each of its 10 most
+  driven cars with how many drivers, and your three best places there (not for an anonymous account); the track picked
+  from a list as you type (`tracks`).
+- /league (the server's managers): links the server to its league in the leagues hub (picked as you type; empty
+  unlinks). The league's invite must lead to that server (the bot asks Discord where it goes, `inviteGuild`), so nobody
+  takes another server's league. A linked league shows "Pitlane HQ bot" in the hub (`bot` on GET /community/leagues;
+  migration 0081 `discord_guilds.league_id`).
+- The weekly post (`discordWeekly`, Monday from 09:00 UTC, up to 20 servers each hourly run, each once a week,
+  `week_at`): every server with alerts on gets "The week's best laps" in its alerts channel (with its league's name when
+  linked), each of its drivers' laps of the last seven days with the place on the leaderboard, the best places first,
+  at most 10, while the account that set the alerts up has Pro. Nothing is posted in a week without laps.

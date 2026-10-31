@@ -757,7 +757,7 @@ export async function community(req, env, url, ctx) {
       const cats = lst(x.cats).filter((c) => CATS.includes(c));
       const o = { id: x.id, name: x.name, about: x.about || "", cat: cats.length === 1 ? cats[0] : null, cats, days: lst(x.days).map(Number).filter((d) => d >= 0 && d <= 6),
         time: x.time || "", tz: x.tz || "", open: !!x.open, discord: x.discord || "", web: x.web || "", schedule: x.schedule || "", cars: x.cars || "", lang: x.lang || "",
-        created: x.created, updated: x.updated, game: x.game || "iracing", mine: !!who && x.owner === who.id, by: x.alias || "Driver" };
+        created: x.created, updated: x.updated, game: x.game || "iracing", mine: !!who && x.owner === who.id, by: x.alias || "Driver", bot: !!x.bot };
       if (o.mine || admin) { o.views = x.views || 0; o.clicks = x.clicks || 0; }
       return o;
     };
@@ -768,7 +768,7 @@ export async function community(req, env, url, ctx) {
       return a && a.supporter ? LEAGUES_SUPPORTER : LEAGUES_FREE;
     };
     if (m === "GET" && !lid) {
-      const r = await env.DB.prepare("SELECT l.*, u.alias FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.game=?1 ORDER BY l.updated DESC LIMIT 300").bind(lgGame).all();
+      const r = await env.DB.prepare("SELECT l.*, u.alias, EXISTS (SELECT 1 FROM discord_guilds g WHERE g.league_id=l.id) AS bot FROM leagues l LEFT JOIN community_users u ON u.id=l.owner WHERE l.game=?1 ORDER BY l.updated DESC LIMIT 300").bind(lgGame).all();
       const limit = await leagueLimit();
       // the limit counts the driver's leagues of every game together
       const mineN = who ? ((await env.DB.prepare("SELECT COUNT(*) AS n FROM leagues WHERE owner=?1").bind(who.id).first().catch(() => null)) || {}).n || 0 : 0;

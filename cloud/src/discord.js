@@ -18,7 +18,7 @@ const API = "https://discord.com/api/v10";
 const AMBER = 0xffb02e, PURPLE = 0xa970ff, EPHEMERAL = 64, MANAGE_GUILD = 0x20n;
 const PRO = new Set(PLANS.discordPro || []);
 // the commands that answer in the channel for everyone (a server can keep them to its chosen channels)
-const PUBLIC_CMDS = new Set(["record", "driver", "download", "coach", "compare", "board"]);
+const PUBLIC_CMDS = new Set(["record", "driver", "download", "coach", "compare", "board", "track"]);
 const fmt = (t) => { if (!(t > 0)) return "–"; const m = Math.floor(t / 60), s = t - m * 60; return (m ? m + ":" + (s < 10 ? "0" : "") : "") + s.toFixed(3); };
 const gap = (d) => (d < 0 ? "−" : "+") + Math.abs(d).toFixed(3);
 // text that came through a wrong encoding ("AutÃ³dromo") read back as it was written
@@ -95,7 +95,7 @@ export async function discordInteraction(req, env, ctx) {
   if (x.guild && chans.length && PUBLIC_CMDS.has(name) && !chans.includes(it.channel_id) && !chans.includes(it.channel && it.channel.parent_id))
     return text(tr(l, "In this server the bot answers in ", "En este servidor el bot responde en ", "Neste servidor o bot responde em ") + chans.map((c) => `<#${c}>`).join(" ") + ".");
   if (PRO.has(name) && !(await isPro(env, x.account))) return proOnly(x);
-  const run = { record, driver, link: linkStart, unlink, download, help, language, setup, coach, compare, board, alerts }[name];
+  const run = { record, driver, link: linkStart, unlink, download, help, language, setup, coach, compare, board, alerts, recent, track, league }[name];
   if (!run) return text(tr(l, "Unknown command", "Comando desconocido", "Comando desconhecido"));
   try {
     return await run(x);
@@ -165,6 +165,11 @@ async function suggest(env, it) {
   const f = (it.data.options || []).find((o) => o.focused);
   if (!f) return [];
   if (f.name === "car_track") return (await combos(env, f.value, 25)).map((x) => ({ name: `${fix(x.track)} · ${fix(x.car)}`.slice(0, 100), value: `${x.t}-${x.c}` }));
+  if (f.name === "track") return (await tracks(env, f.value, 25)).map((x) => ({ name: fix(x.track).slice(0, 100), value: String(x.t) }));
+  if (f.name === "league") {
+    const r = await env.DB.prepare("SELECT id, name FROM leagues WHERE lower(name) LIKE ?1 ORDER BY updated DESC LIMIT 25").bind("%" + String(f.value || "").trim().toLowerCase().replace(/[%_]/g, "") + "%").all();
+    return (r.results || []).map((x) => ({ name: fix(x.name).slice(0, 100), value: x.id }));
+  }
   const n = String(f.value || "").trim().toLowerCase().replace(/[%_]/g, "");
   const r = await env.DB.prepare(
     `SELECT u.alias FROM accounts a JOIN community_users u ON u.id=a.id WHERE a.anon=0 AND lower(u.alias) LIKE ?1
@@ -275,8 +280,8 @@ async function download(x) {
 
 function help(x) {
   const free = tr(x.l,
-    "`/record` the record and top 10 of a car and track\n`/driver` a driver's profile, or yours\n`/link` · `/unlink` your Pitlane HQ account\n`/download` the apps\n`/language` the bot's language",
-    "`/record` el récord y el top 10 de un coche y circuito\n`/driver` el perfil de un piloto, o el tuyo\n`/link` · `/unlink` tu cuenta de Pitlane HQ\n`/download` las apps\n`/language` el idioma del bot", "`/record` o recorde e o top 10 de um carro e pista\n`/driver` o perfil de um piloto, ou o seu\n`/link` · `/unlink` a sua conta do Pitlane HQ\n`/download` os apps\n`/language` o idioma do bot");
+    "`/record` the record and top 10 of a car and track\n`/driver` a driver's profile, or yours\n`/link` · `/unlink` your Pitlane HQ account\n`/recent` your last sessions\n`/track` a track's records on every car\n`/download` the apps\n`/language` the bot's language",
+    "`/record` el récord y el top 10 de un coche y circuito\n`/driver` el perfil de un piloto, o el tuyo\n`/link` · `/unlink` tu cuenta de Pitlane HQ\n`/recent` tus últimas sesiones\n`/track` los récords de un circuito en cada coche\n`/download` las apps\n`/language` el idioma del bot", "`/record` o recorde e o top 10 de um carro e pista\n`/driver` o perfil de um piloto, ou o seu\n`/link` · `/unlink` a sua conta do Pitlane HQ\n`/recent` as suas últimas sessões\n`/track` os recordes de uma pista em cada carro\n`/download` os apps\n`/language` o idioma do bot");
   const pro = tr(x.l,
     "`/coach` your best lap against the next level and the record\n`/compare` your laps against another driver's\n`/board` this server's ranking on a car and track\n`/alerts` this server's new best laps and records, posted in a channel",
     "`/coach` tu mejor vuelta contra el siguiente nivel y el récord\n`/compare` tus vueltas contra las de otro piloto\n`/board` el ranking de este servidor en un coche y circuito\n`/alerts` las mejores vueltas y récords de este servidor, en un canal", "`/coach` a sua melhor volta contra o próximo nível e o recorde\n`/compare` as suas voltas contra as de outro piloto\n`/board` o ranking deste servidor em um carro e pista\n`/alerts` as melhores voltas e recordes deste servidor, em um canal");
@@ -285,9 +290,9 @@ function help(x) {
     embeds: [{ color: AMBER, title: "Pitlane HQ", url: SITE,
       fields: [{ name: tr(x.l, "Free", "Gratis", "Grátis"), value: free }, { name: "Pro", value: pro + open },
         { name: tr(x.l, "For the server's managers", "Para quien gestiona el servidor", "Para quem gerencia o servidor"),
-          value: tr(x.l, "`/setup` the channels the bot answers in, the channels for best laps and records, and their language",
-            "`/setup` los canales donde responde el bot, los de mejores vueltas y récords, y su idioma",
-            "`/setup` os canais onde o bot responde, os das melhores voltas e recordes, e o idioma deles") }],
+          value: tr(x.l, "`/setup` the channels the bot answers in, the channels for best laps and records, and their language\n`/league` this server's league in the leagues hub",
+            "`/setup` los canales donde responde el bot, los de mejores vueltas y récords, y su idioma\n`/league` la liga de este servidor en el hub de ligas",
+            "`/setup` os canais onde o bot responde, os das melhores voltas e recordes, e o idioma deles\n`/league` a liga deste servidor no hub de ligas") }],
       footer: { text: tr(x.l, "Your laps reach the bot once Pitlane HQ for Windows records them.", "Tus vueltas llegan al bot cuando Pitlane HQ para Windows las graba.", "As suas voltas chegam ao bot quando o Pitlane HQ para Windows as grava.") } }],
   }, true);
 }
@@ -473,6 +478,95 @@ async function alerts(x) {
       .bind(x.guild, ch, x.account, gl, now).run();
     return { content: tr(x.l, `Alerts on in <#${ch}>. They cover the drivers who linked their account and used the bot in this server.`, `Alertas activadas en <#${ch}>. Cubren a los pilotos que vincularon su cuenta y usaron el bot en este servidor.`, `Alertas ativados em <#${ch}>. Cobrem os pilotos que vincularam a conta e usaram o bot neste servidor.`) };
   });
+}
+
+// ---------- /recent, /track, /league ----------
+const KIND = (l, k) => { const s = String(k || "").toLowerCase(); return /race/.test(s) ? tr(l, "Race", "Carrera", "Corrida") : /qual/.test(s) ? tr(l, "Qualifying", "Clasificación", "Classificação") : tr(l, "Practice", "Práctica", "Treino"); };
+// your own last sessions, only to you (they are your account's, never public)
+async function recent(x) {
+  if (!x.account) return needLink(x);
+  const r = await x.env.DB.prepare("SELECT started, track, car, kind, laps, best, pos, field, game FROM sessions WHERE uploader=?1 ORDER BY started DESC LIMIT 8").bind("acct:" + x.account).all();
+  const rows = r.results || [];
+  if (!rows.length) return text(tr(x.l, "No sessions on your account yet.", "Aún no hay sesiones en tu cuenta.", "Ainda não há sessões na sua conta."));
+  const lines = rows.map((v) => `<t:${Math.floor(v.started / 1000)}:d> **${md(fix(v.track))}** · ${md(fix(v.car))}\n${KIND(x.l, v.kind)}${v.pos ? ` **P${v.pos}**${v.field ? "/" + v.field : ""}` : ""} · ${v.laps || 0} ${tr(x.l, "laps", "vueltas", "voltas")}${v.best > 0 ? ` · \`${fmt(v.best)}\`` : ""}${v.game === "lmu" ? " · LMU" : ""}`);
+  return say({ embeds: [{ color: AMBER, title: tr(x.l, "Your last sessions", "Tus últimas sesiones", "As suas últimas sessões"), description: lines.join("\n\n").slice(0, 4000) }],
+    components: buttons(button(tr(x.l, "Open Pitlane HQ", "Abrir Pitlane HQ", "Abrir o Pitlane HQ"), SITE + "/")) }, true);
+}
+async function tracks(env, q, n) {
+  const words = String(q || "").toLowerCase().split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, "")).filter(Boolean).slice(0, 5);
+  const squash = "replace(replace(replace(lower(l.track),' ',''),'-',''),'.','')";
+  const where = words.map((_, i) => `AND ${squash} LIKE ?${i + 2}`).join(" ");
+  const r = await env.DB.prepare(`SELECT l.track_id AS t, MAX(l.track) AS track, COUNT(DISTINCT l.user_id) AS drivers FROM community_laps l
+    WHERE l.game='iracing' AND l.track_id>0 AND ${NOT_MODEL} ${where} GROUP BY l.track_id ORDER BY drivers DESC LIMIT ?1`).bind(n, ...words.map((w) => "%" + w + "%")).all();
+  return r.results || [];
+}
+async function track(x) {
+  const v = String(x.opt.track || "");
+  const t = /^\d+$/.test(v) ? { t: +v } : (await tracks(x.env, v, 1))[0];
+  if (!t) return text(tr(x.l, "No laps on that track yet. Pick one from the list as you type.", "Aún no hay vueltas en ese circuito. Elige uno de la lista mientras escribes.", "Ainda não há voltas nessa pista. Escolha uma da lista enquanto digita."));
+  const r = await x.env.DB.prepare(`SELECT l.car_id AS c, MAX(l.car) AS car, MAX(l.track) AS track, MIN(l.time) AS best, COUNT(DISTINCT l.user_id) AS drivers FROM community_laps l
+    WHERE l.track_id=?1 AND l.game='iracing' AND ${NOT_MODEL} GROUP BY l.car_id ORDER BY drivers DESC LIMIT 10`).bind(t.t).all();
+  const cars = r.results || [];
+  if (!cars.length) return text(tr(x.l, "No laps on that track yet.", "Aún no hay vueltas en ese circuito.", "Ainda não há voltas nessa pista."));
+  const name = fix(cars[0].track);
+  const lines = cars.map((c) => `\`${fmt(c.best)}\` ${md(famName("iracing", c.c, fix(c.car)))} · ${c.drivers} ${tr(x.l, "drivers", "pilotos", "pilotos")}`);
+  if (x.account && !(await isAnon(x.env, x.account))) {
+    const mine = (await x.env.DB.prepare(`SELECT l.car, l.car_id AS c, l.time, (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model' AND o.time<l.time)+1 AS pos
+      FROM community_laps l WHERE l.user_id=?1 AND l.track_id=?2 AND l.game='iracing' AND l.anon=0 AND ${NOT_MODEL} ORDER BY pos LIMIT 3`).bind(x.account, t.t).all()).results || [];
+    if (mine.length) lines.push("", tr(x.l, "**You**", "**Tú**", "**Você**"), ...mine.map((m) => `**P${m.pos}** \`${fmt(m.time)}\` ${md(famName("iracing", m.c, fix(m.car)))}`));
+  }
+  return say({ embeds: [{ color: AMBER, title: name.slice(0, 250), description: lines.join("\n").slice(0, 4000),
+    footer: { text: tr(x.l, "The record on each car · the most driven cars first · Pitlane HQ", "El récord en cada coche · primero los coches más usados · Pitlane HQ", "O recorde em cada carro · primeiro os carros mais usados · Pitlane HQ") } }] });
+}
+// a league's invite must lead to this server: the bot asks Discord where it goes
+async function inviteGuild(env, url) {
+  const m = /(?:discord\.gg|discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]+)/.exec(String(url || ""));
+  if (!m) return null;
+  const r = await fetch(`${API}/invites/${m[1]}`, env.DISCORD_BOT_TOKEN ? { headers: { authorization: "Bot " + env.DISCORD_BOT_TOKEN } } : {}).catch(() => null);
+  const j = r && r.ok ? await r.json().catch(() => null) : null;
+  return (j && j.guild && j.guild.id) || null;
+}
+async function league(x) {
+  if (!x.guild) return text(tr(x.l, "This works inside a server.", "Esto funciona dentro de un servidor.", "Isto funciona dentro de um servidor."));
+  if (!canManage(x)) return text(tr(x.l, "Only the people who manage this server can link its league.", "Solo quien gestiona este servidor puede vincular su liga.", "Só quem gerencia este servidor pode vincular a liga."));
+  const now = Date.now(), id = String(x.opt.league || "");
+  if (!id) {
+    await x.env.DB.prepare("UPDATE discord_guilds SET league_id=NULL, updated=?2 WHERE guild_id=?1").bind(x.guild, now).run();
+    return text(tr(x.l, "This server is not linked to a league any more.", "Este servidor ya no está vinculado a ninguna liga.", "Este servidor não está mais vinculado a nenhuma liga."));
+  }
+  const lg = await x.env.DB.prepare("SELECT id, name, discord FROM leagues WHERE id=?1").bind(id).first();
+  if (!lg) return text(tr(x.l, "Pick the league from the list as you type.", "Elige la liga de la lista mientras escribes.", "Escolha a liga da lista enquanto digita."));
+  return later(x, true, async () => {
+    if ((await inviteGuild(x.env, lg.discord)) !== x.guild)
+      return { content: tr(x.l, `The invite of **${md(fix(lg.name))}** in the leagues hub does not lead to this server. Its creator can change it on pitlanehq.app.`, `La invitación de **${md(fix(lg.name))}** en el hub de ligas no lleva a este servidor. Quien la creó puede cambiarla en pitlanehq.app.`, `O convite de **${md(fix(lg.name))}** no hub de ligas não leva a este servidor. Quem a criou pode mudá-lo em pitlanehq.app.`) };
+    await x.env.DB.prepare("INSERT INTO discord_guilds (guild_id, league_id, set_by, updated) VALUES (?1,?2,?3,?4) ON CONFLICT(guild_id) DO UPDATE SET league_id=excluded.league_id, updated=excluded.updated")
+      .bind(x.guild, lg.id, x.account, now).run();
+    return { content: tr(x.l, `This server is now **${md(fix(lg.name))}** in the leagues hub. With /alerts on, the week's best laps post there on Monday.`, `Este servidor es ahora **${md(fix(lg.name))}** en el hub de ligas. Con /alerts activado, las mejores vueltas de la semana se publican allí el lunes.`, `Este servidor agora é **${md(fix(lg.name))}** no hub de ligas. Com /alerts ligado, as melhores voltas da semana são publicadas lá na segunda-feira.`) };
+  });
+}
+
+/** Monday (the hourly runs from 09:00 UTC): each server with alerts gets its drivers' best laps of the week, while the
+ *  account that set the alerts up has Pro; up to 20 servers a run, each once a week. */
+export async function discordWeekly(env, now = Date.now()) {
+  if (!env.DISCORD_BOT_TOKEN) return 0;
+  const gs = (await env.DB.prepare(`SELECT g.guild_id, g.alerts_channel, g.set_by, g.lang, lg.name AS league FROM discord_guilds g LEFT JOIN leagues lg ON lg.id=g.league_id
+    WHERE g.alerts_channel IS NOT NULL AND (g.week_at IS NULL OR g.week_at<?1) LIMIT 20`).bind(now - 5 * 86400e3).all()).results || [];
+  let n = 0;
+  for (const g of gs) {
+    await env.DB.prepare("UPDATE discord_guilds SET week_at=?2 WHERE guild_id=?1").bind(g.guild_id, now).run();
+    if (!(await isPro(env, g.set_by))) continue;
+    const rows = (await env.DB.prepare(`SELECT dl.discord_id AS did, u.alias, l.track, l.car, l.car_id AS c, l.time,
+        (SELECT COUNT(*) FROM community_laps o WHERE o.track_id=l.track_id AND o.car_id=l.car_id AND o.game=l.game AND COALESCE(o.shown,'')<>'model' AND o.time<l.time)+1 AS pos
+        FROM discord_members m JOIN discord_links dl ON dl.discord_id=m.discord_id JOIN community_laps l ON l.user_id=dl.account_id
+        JOIN community_users u ON u.id=l.user_id JOIN accounts ac ON ac.id=l.user_id
+       WHERE m.guild_id=?1 AND l.created>=?2 AND l.game='iracing' AND l.anon=0 AND ac.anon=0 AND ${NOT_MODEL} ORDER BY pos, l.time LIMIT 10`).bind(g.guild_id, now - 7 * 86400e3).all()).results || [];
+    if (!rows.length) continue;
+    const l = ["es", "pt"].includes(g.lang) ? g.lang : "en";
+    const lines = rows.map((v) => `**P${v.pos}** \`${fmt(v.time)}\` <@${v.did}> ${md(v.alias)}\n${md(famName("iracing", v.c, fix(v.car)))} · ${md(fix(v.track))}`);
+    if (await post(env, g.alerts_channel, { embeds: [{ color: AMBER, title: tr(l, "🗓️ The week's best laps", "🗓️ Las mejores vueltas de la semana", "🗓️ As melhores voltas da semana") + (g.league ? " · " + fix(g.league) : ""),
+      description: lines.join("\n\n").slice(0, 4000), footer: { text: tr(l, "Each driver's best of the week and their place on the leaderboard · Pitlane HQ", "La mejor de cada piloto en la semana y su puesto en la leaderboard · Pitlane HQ", "A melhor de cada piloto na semana e a posição na classificação · Pitlane HQ") } }] })) n++;
+  }
+  return n;
 }
 
 async function post(env, channel, msg) {

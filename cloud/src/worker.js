@@ -17,7 +17,7 @@ import { community } from "./community.js";
 import { accounts, sessionAccount } from "./accounts.js";
 import { live } from "./live.js";
 import { seoPage, indexNow, notFound } from "./seo.js";
-import { discordInteraction, discordOAuth } from "./discord.js";
+import { discordInteraction, discordOAuth, discordWeekly } from "./discord.js";
 import { steamReturn } from "./steam.js";
 import { scanLeagues } from "./leaguescan.js";
 import { onlineRoute, prunePresence } from "./presence.js";
@@ -513,6 +513,8 @@ export default {
     if (hourly) ctx.waitUntil(pruneReports({ DB: raw }).catch(() => {}));
     // Monday from 07:00 UTC: the weekly emails, a few drivers each hourly run (digest.js)
     if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 7) ctx.waitUntil(sendDigests(env, at.getTime()).catch(() => {}));
+    // Monday from 09:00 UTC: the Discord servers' best laps of the week (discord.js)
+    if (hourly && at.getUTCDay() === 1 && at.getUTCHours() >= 9) ctx.waitUntil(discordWeekly(env, at.getTime()).catch(() => {}));
     const all = [];
     const wait = ctx.waitUntil.bind(ctx); ctx = { ...ctx, waitUntil: (pr) => { all.push(pr); wait(pr); } };
     ctx.waitUntil(rebuildDirty(env, { daily })); ctx.waitUntil(indexNow(env).catch(() => {}));
